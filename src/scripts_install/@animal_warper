@@ -302,8 +302,21 @@ set progname = @animal_warper
 #    + ... and fix output location
 #    + use log to record time info of start/stop
 #
-set version = "3.37" ; set date = "May 24, 2021"
+#set version = "3.37" ; set date = "May 24, 2021"
 # [PT] lower opacity in overlap check
+#
+#set version = "3.38" ; set date = "July 9, 2021"
+# [PT] Couple useful things:
+#    + new '-aff_move_opt ..' opt: control affine align behavior
+#      - necessary if coords are good and there is a lot of non-brain 
+#        in FOV
+#      - NB: all aff output dsets will be on BASE grid, too.
+#    + fix bug: if no followers used, no 'surfaces/' dir was created
+#      for orig surface brain.  Now OK.
+#
+set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -332,6 +345,7 @@ set make_orig_surfaces = "1"
 set align_type         = "all"
 set ok_to_exist        = "0"
 set extra_qw_opts      = ""
+set aff_move           = "-giant_move"
 
 # one-to-one correspondence between followers and abbrevs
 set atlas_followers      = () ; set atlas_abbrevs    = ()
@@ -388,6 +402,10 @@ while ($ac <= $#argv)
         exit 0
 
     # -------------------
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+        set DO_ECHO = "-echo"   
 
     else if ("$argv[$ac]" == "-input") then
         set this_opt = "$argv[$ac]"
@@ -508,6 +526,23 @@ while ($ac <= $#argv)
 
                 set align_centers_meth = "${align_centers_meth} $argv[$ac]" 
             endif
+        endif
+
+    # [PT: July 8, 2021] be able to control main affine opts for move
+    else if ("$argv[$ac]" == "-aff_move_opt") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+
+        set aaa = "$argv[$ac]"
+
+        if ( "${aaa}" == "OFF" ) then
+            set aff_move = ""
+        else
+            set aff_move = "-${aaa}"
         endif
 
     else if ("$argv[$ac]" == "-skullstrip") then
@@ -836,10 +871,6 @@ while ($ac <= $#argv)
 
     else if ("$argv[$ac]" == "-keep_temp") then
         set keep_temp = "1"
-
-    else if ( "$argv[$ac]" == "-echo" ) then
-        set echo
-        set DO_ECHO = "-echo"   
 
     # ---------- fin ------------------
 
@@ -1375,17 +1406,23 @@ if ( ( $ok_to_exist == "1" ) && \
      (-f  ${imed}/${srcsh_prefix}_al2std_mat.aff12.1D) ) then
    echo "++ Reusing affine transformation matrix"
 else
+
+   set aaa = ( -giant_move )
+
    # outputs a BRIK/HEAD file
+   # [PT: July 8, 2021] allow '-giant_move' to be switched to other opts
+   # [PT: July 9, 2021] ... and adding "-master_dset2 BASE" for stability
+   # across now-larger range of $aff_move options.
    align_epi_anat.py -overwrite                                     \
     -output_dir   "${imed}"                                         \
     -dset2        "${imed}/${srcsh_dset}"                           \
     -dset1        "${base_dset}"                                    \
     -dset2to1                                                       \
-    -giant_move                                                     \
     -suffix       _al2std                                           \
     -dset1_strip  None                                              \
     -dset2_strip  None                                              \
-    -cost $cost $rigidopt $feature_option $supersize
+    -cost $cost $rigidopt $feature_option $supersize ${aff_move}    \
+    -master_dset2  BASE
 
    if ( ${status} ) then
        echo "** ERROR: program failed (AEA)"
@@ -1867,7 +1904,7 @@ else
        -opacity 4                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
 endif
 
@@ -2246,7 +2283,7 @@ else
        -opacity 4                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
    # Image   : [ulay] orig dset [olay] mask of orig dset
    set ulay  = ${src_abbrev}.nii.gz
@@ -2269,7 +2306,7 @@ else
        -opacity 3                             \
        -montx 5 -monty 3                      \
        -set_xhairs OFF                        \
-       -label_mode 1 -label_size 3
+       -label_mode 1 -label_size 4
 
    # clean up a bit
    \rm -f ${imed}/__tmp_orig_mskd.nii.gz
@@ -2597,7 +2634,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                 -opacity 4                             \
                 -montx 5 -monty 3                      \
                 -set_xhairs OFF                        \
-                -label_mode 1 -label_size 3
+                -label_mode 1 -label_size 4
        else
           foreach nn ( `seq 0 1 ${nvi}` )
              set nnn = `printf %02d ${nn}`
@@ -2620,7 +2657,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -opacity 4                             \
                   -montx 5 -monty 3                      \
                   -set_xhairs OFF                        \
-                -label_mode 1 -label_size 3
+                -label_mode 1 -label_size 4
           end
        endif
    endif
@@ -2735,6 +2772,9 @@ end
 # --------------- TEMPLATE SURFACE: in native space -------------------
 
 if ( $make_orig_surfaces == "1" ) then
+
+   # [PT: July 9, 2021] this needed in case no followers above used
+   \mkdir -p surfaces
 
    # "carve" out template surface in native space instead to use
    #  as representative surface using anisotropic smoothing could
@@ -3103,6 +3143,18 @@ Options ~1~
                        run at all (the dset is just copied at that
                        step), which is useful if you have already
                        centered your dataset nicely.
+
+  -aff_move_opt AMO   :by default, '-giant_move' is used in the affine
+                       alignment step (via align_epi_anat.py). With this
+                       option, you can change the movement type to be
+                       any of the values allowed by align_epi_anat.py---
+                       note that you should *no* include the hypthen from
+                       the align_epi_anat.py option name, and if the option
+                       takes two terms, then you should put it in quotes, 
+                       such as: "cmass cmass"  (default: "giant_move").
+                       A special value of "OFF" means that none of these
+                       extra movement options is included (e.g., your
+                       input dset overlaps the base VERY well already).
 
   -cost xxx           :choose a cost function for affine and nonlinear
                        alignment. The same or similar cost function

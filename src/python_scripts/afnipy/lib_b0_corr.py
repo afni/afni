@@ -97,10 +97,14 @@
 #        obliquity difference; should be minisculy better for rounding
 #        error considerations
 #
-ver='2.63' ; date='June 3, 2020'
+#ver='2.63' ; date='June 3, 2020'
 # [PT]
 #    + bug fix: ARG_missing_arg() called a func that didn't exist here!
 #      -> that func is now in afni_base, so use that.
+#
+ver='2.64' ; date='Sep 23, 2021'
+# [PT] forgot to process option: -epi_pe_bwpp ..
+#    + now added in that ability...
 #
 ###############################################################################
 
@@ -1987,6 +1991,12 @@ def parse_args_b0_corr(full_argv):
                 BASE.ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_epi_pe_dir(argv[i])
+
+        elif argv[i] == "{epi_pe_bwpp}".format(**all_opts) :
+            if i >= Narg:
+                BASE.ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_epi_pe_bwpp(argv[i])
 
         elif argv[i] == "{scale_freq}".format(**all_opts) :
             if i >= Narg:

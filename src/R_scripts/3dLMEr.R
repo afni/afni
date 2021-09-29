@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.3, July 1, 2021
+Version 0.1.4, July 16, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -739,13 +739,14 @@ process.LME.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
-   if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN))
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 # process.LME.opts(lop, 0)
@@ -955,6 +956,8 @@ cat('Reading input files for effect estimates: Done!\n\n')
 # masking
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }

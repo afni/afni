@@ -18,8 +18,12 @@
 # [PT] adjust mask dset in qc_00* for disambiguating masks
 #    + Rick told me to, I swear!
 #
-set version   = "0.32";  set rev_dat   = "Mar 3, 2021"
+#set version   = "0.32";  set rev_dat   = "Mar 3, 2021"
 # [PT] turn of early exit
+#
+set version   = "0.33";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -202,7 +206,7 @@ set opref = qc_00_fs_brainmask_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \
@@ -231,7 +235,7 @@ set opref = qc_01_fs_parc_wb_mask_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \
@@ -260,7 +264,7 @@ set opref = qc_02_fs_tiss_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \
@@ -289,7 +293,7 @@ set opref = qc_03_fs_gm_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \
@@ -318,7 +322,7 @@ set opref = qc_04_fs_wm_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \
@@ -347,7 +351,7 @@ set opref = qc_05_fs_aa_REN_all_${subj}
     -prefix      ${opref}                                             \
     -montx 6 -monty 1                                                 \
     -set_xhairs OFF                                                   \
-    -label_mode 1 -label_size 3                                       \
+    -label_mode 1 -label_size 4                                       \
     -do_clean
 
 2dcat                                                             \

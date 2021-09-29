@@ -9759,8 +9759,9 @@ g_help_notes = """
               -regress_est_blur_errts                             \\
               -execute
 
-          EOF
-          # EOF denotes the end of the run.afni_proc command
+       EOF
+       # EOF terminates the 'cat > run.afni_proc' command, above
+       # (it must not be indented in the script)
 
           # now run the analysis (generate proc and execute)
           tcsh run.afni_proc

@@ -1115,7 +1115,7 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
    return str
 
 def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, 
-                        show_only=0, verb=1):
+                        show_only=0, tsv_int=None, verb=1):
    """Read a set of 3 column tsv (tab separated value) files
          - one file per run
          - each with a list of events for all classes
@@ -1147,7 +1147,8 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
    for rind, fname in enumerate(flist):
       if show_only: print("\nparsing TSV file : %s\n" % fname)
       nvals, header, elist = parse_Ncol_tsv(fname, hlabels=hlabels,
-                     def_dur_lab=def_dur_lab, show_only=show_only, verb=verb)
+                     def_dur_lab=def_dur_lab, show_only=show_only,
+                     tsv_int=tsv_int, verb=verb)
       if show_only: continue
       if nvals <= 0: return 1, tlist
 
@@ -1202,7 +1203,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
    return 0, tlist
 
 def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels, 
-                   def_dur_lab=None, show_only=0, verb=1):
+                   def_dur_lab=None, show_only=0, tsv_int=None, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
         - header list (length ncol)
@@ -1220,6 +1221,9 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
                    LABEL    : alternate column label for missed events
 
       show_only : show labels, then return
+
+      tsv_int   : if set, write a smaller tsv
+                  (columns of interest - union of col_inds and cols_alt)
 
       An N column tsv file should have an optional header line,
       followed by rows of VAL VAL LABEL, separated by tabs.
@@ -1292,7 +1296,17 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
            print("** could not find tsv column '%s' in %s"%(def_dur_lab,fname))
          return -1, [], []
       col_dur_alt = cols_alt[1]
-      
+
+   # perhaps we want to write out cols of interest
+   if not tsv_int is None:
+      # first merge col_inds nand cols_alt, then write
+      if verb > 1:
+         print("== writing to tsv %s" % tsv_int)
+      csub = col_inds[:]
+      csub.extend(cols_alt)
+      csub = UTIL.get_unique_sublist(csub)
+      write_tsv_cols(lines, csub, ofile=tsv_int)
+
    # if show_only, we are done
    if show_only: return 0, [], []
 
@@ -1356,6 +1370,26 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
    nuse = len(col_inds)
 
    return nuse, header, slist
+
+def write_tsv_cols(table, cols, ofile='stdout'):
+
+   if ofile == '-' or ofile == 'stdout':
+      fp = sys.stdout
+   else:
+      try:
+         fp = open(ofile, 'w')
+      except:
+         print("** failed to open '%s' for writing tsv cols" % ofile)
+         return 1
+
+   for line in table:
+      fp.write('\t'.join(['%s' % line[c] for c in cols]))
+      fp.write('\n')
+
+   if fp != sys.stdout:
+      fp.close()
+
+   return 0
 
 def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
    """return a list of columns to extract, in order of:

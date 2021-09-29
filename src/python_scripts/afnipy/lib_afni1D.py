@@ -1300,7 +1300,7 @@ class Afni1D:
       ncen = cvec.count(0)
       if self.nt != clen - ncen:
          print('** uncensor from vec: nt = %d, but nocen len = %d' \
-               (self.nt, clen-ncen))
+               % (self.nt, clen-ncen))
          return 1
 
       # explicitly set newvec, including with zeros

@@ -74,9 +74,15 @@ static float_triple  censor_rgbAA = { 1.0f , 0.9f , 0.4f } ;
 
 void usage_1dplot(int detail)
 {
-   printf(
-     "Usage: 1dplot [options] tsfile ...\n"
-     "Graphs the columns of a *.1D time series file to the X11 screen.\n"
+   printf("\n"
+     "Usage: 1dplot [options] tsfile ...\n\n"
+     "Graphs the columns of a *.1D time series file to the X11 screen,\n"
+     "or to an image file (.jpg or .png).\n"
+     "\n"
+     " ** This is the original C-language plotting program in AFNI, first created  **\n"
+     " **  in 1999 (by RW Cox), built on routines he first wrote in the 1980s.     **\n"
+     " ** Also see the much newer and similar Python-language program 1dplot.py    **\n"
+     " **  (created by PA Taylor in 2018), which can produce nicer looking graphs. **\n"
      "\n"
      "-------\n"
      "OPTIONS\n"
@@ -211,27 +217,44 @@ void usage_1dplot(int detail)
      "               'anti-alias' off, and switch to landscape mode.\n"
      "             * You can use the 'gs' program to convert PostScript\n"
      "               to other formats; for example, a .bmp file:\n"
-     "            1dplot -ps ~/data/verbal/cosall.1D | \n"
-     "             gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
+     "                 1dplot -ps ~/data/verbal/cosall.1D | \n"
+     "                  gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
+     "             * 1dplot is built on some line drawing software written\n"
+     "               a long time ago in a galaxy far away, which is why PostScript\n"
+     "               output was a natural thing to do -- I doubt that anyone uses\n"
+     "               this feature in these decadent modern times.\n"
      "\n"
      " -jpg fname  } = Render plot to an image and save to a file named\n"
      " -jpeg fname } = 'fname', in JPEG mode or in PNG mode or in PNM mode.\n"
      " -png fname  } = The default image width is 1024 pixels; to change\n"
-     " -pnm fname  } = this value to 2000 pixels (say), do\n"
-     "                   setenv AFNI_1DPLOT_IMSIZE 2000\n"
-     "                 before running 1dplot.  Widths over 2000 may start\n"
-     "                 to look odd, and will run more slowly.\n"
-     "               * PNG files will be smaller than JPEG, and are\n"
-     "                 compressed without loss.\n"
+     " -pnm fname  } = this value to 2048 pixels (say), do\n"
+     "                   setenv AFNI_1DPLOT_IMSIZE 2048\n"
+     "                 before running 1dplot, or add\n"
+     "                   -DAFNI_1DPLOT_IMSIZE=2048\n"
+     "                 to the 1dplot command line. Widths over 4096 might\n"
+     "                 start to look odd in some cases. The largest allowed\n"
+     "                 size is 8192 pixels.\n"
+     "               * PNG files created by 1dplot will be smaller than JPEG,\n"
+     "                 and are compressed without loss.\n"
      "               * PNG output requires that the netpbm program\n"
      "                 pnmtopng be installed somewhere in your PATH.\n"
+     "                 This program is NOT supplied with AFNI, but must\n"
+     "                 be installed separately:\n"
+     "                   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/index.html\n"
      "               * PNM output files are not compressed, and are manipulable\n"
      "                 by the netpbm package: http://netpbm.sourceforge.net/\n"
+     "                 Otherwise, this format isn't very useful anymore.\n"
+     "               * There will be small drawing differences between the\n"
+     "                 X11 (interactive) plotting window and the images saved\n"
+     "                 by these options -- or by the interactive button.\n"
+     "                 These differences arise from the use of different line\n"
+     "                 drawing functions for X11 windows and for off-screen\n"
+     "                 bitmap images.\n"
      "\n"
-     " -pngs SIZE fname } = a convenience function equivalent to\n"
-     " -jpgs SIZE fname } = setenv AFNI_1DPLOT_IMSIZE SIZE and \n"
-     " -jpegs SIZE fname} = -png (or -jpg or -pnm) fname\n"
-     " -pnms SIZE fname }\n"
+     " -pngs size fname } = convenience options equivalent to\n"
+     " -jpgs size fname } = -DAFNI_1DPLOT_IMSIZE=size followed by\n"
+     " -jpegs size fname} = -png fname (or -jpg or -jpeg or -pnm)\n"
+     " -pnms size fname } = The largest allowed size is 8192 pixels.\n"
      "\n"
      " -ytran 'expr'   = Transform the data along the y-axis by\n"
      "                   applying the expression to each input value.\n"
@@ -796,10 +819,6 @@ int main( int argc , char *argv[] )
         if( iarg+1 >= argc )
           ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
-        if (isize < 100 || isize > 9999) {
-          ERROR_exit("SIZE value of %d is rather fishy. \n"
-                     "Allowed range is between 100 and 9999", isize);
-        }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
         iarg++ ;
@@ -831,10 +850,6 @@ int main( int argc , char *argv[] )
         if( iarg+1 >= argc )
           ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
-        if (isize < 100 || isize > 9999) {
-          ERROR_exit("SIZE value of %d is rather fishy. \n"
-                     "Allowed range is between 100 and 9999", isize);
-        }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
         iarg++ ;
@@ -866,10 +881,6 @@ int main( int argc , char *argv[] )
         if( iarg+1 >= argc )
           ERROR_exit("need 2 arguments after '%s'",argv[iarg-1]) ;
         isize = (int) strtod(argv[iarg], NULL);
-        if (isize < 100 || isize > 9999) {
-          ERROR_exit("SIZE value of %d is rather fishy. \n"
-                     "Allowed range is between 100 and 9999", isize);
-        }
         sprintf(sss,"AFNI_1DPLOT_IMSIZE=%d", isize);
         putenv(sss) ;
         iarg++ ;

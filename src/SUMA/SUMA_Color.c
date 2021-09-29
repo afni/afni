@@ -643,7 +643,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
      }
    }
 
-   fprintf(stderr, "rgb = [%f, %f, %f]\n", rgb[0], rgb[1], rgb[2]);
+   if (LocalHead_Detail)
+      fprintf(stderr, "rgb = [%f, %f, %f]\n", rgb[0], rgb[1], rgb[2]);
 
    #if 0
       /* causes crash on Fedora Core 7 and core 6, not worth it */

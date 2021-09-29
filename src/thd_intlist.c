@@ -352,7 +352,7 @@ int * MCW_get_intlist( int nvals , char *str )
          ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
-      /** otherwise, must have '..' or '-' as next inputs **/
+      /** otherwise, must have '..' or '-' or ':' as next inputs **/
 
       if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
@@ -637,7 +637,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
-      /** otherwise, must have '..' or '-' as next inputs **/
+      /** otherwise, must have '..' or '-' or ':' as next inputs **/
 
       if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;

@@ -24,9 +24,9 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
 ------------------------------------------
 
-   examples:
+   examples: ~1~
 
-   1. basic: give 3 required inputs, all else is default
+   1. basic: give 3 required inputs, all else is default ~2~
 
       While a blur of 4.0 is the default, it is included for clarity.
 
@@ -37,7 +37,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar vol_mask mask_3mm+orig                        \\
 
 
-   2. more advanced, but still based on EPI analysis
+   2. more advanced, but still based on EPI analysis ~2~
 
       Specify p-values, blur size and number of iterations, along with the
       script name and results directory, use 10000 iterations, instead of
@@ -54,7 +54,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar results_dir clust.results.10000
 
 
-   3. basic, but on the surface (so no vol_mask is provided)
+   3. basic, but on the surface (so no vol_mask is provided) ~2~
 
         slow_surf_clustsim.py -save_script surf.sim.3           \\
             -on_surface yes                                     \\
@@ -75,7 +75,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
 ------------------------------------------
 
-   applying the results:
+   applying the results: ~1~
 
       The result of processing should be one z.max.* file for each uncorrected
       p-value input to the program (or each default).  These files contain the
@@ -97,7 +97,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
 ------------------------------------------
 
-   script outline:
+   script outline: ~1~
 
         set control variables
         create and enter results directory
@@ -114,7 +114,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
 ------------------------------------------
 
-   terminal options:
+   terminal options: ~1~
 
       -help                     : show this help
       -hist                     : show module history
@@ -123,7 +123,7 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
-   other options
+   other options: ~1~
       -on_surface yes/no        : if yes, start from noise on the surface
                                   (so no volume data is involved)
       -print_script             : print script to terminal

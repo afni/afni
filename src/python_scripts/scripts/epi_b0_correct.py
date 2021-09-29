@@ -91,11 +91,20 @@
 #ver='2.61' ; date='Oct 2, 2019'
 # + [PT] 3dmask_tool now to do dilate/erosion
 #
-ver='2.62' ; date='Oct 2, 2019'
+#ver='2.62' ; date='Oct 2, 2019'
 # + [PT] Move to use '3dWarp ...' rather than 'cat_matvec ...' for
 #        changing between EPI-freq dsets, which might have relative
 #        obliquity difference; should be minisculy better for rounding
 #        error considerations
+#
+#ver='2.63' ; date='June 3, 2020'
+# [PT]
+#    + bug fix: ARG_missing_arg() called a func that didn't exist here!
+#      -> that func is now in afni_base, so use that.
+#
+ver='2.64' ; date='Sep 23, 2021'
+# [PT] forgot to process option: -epi_pe_bwpp ..
+#    + now added in that ability...
 #
 ##########################################################################
 

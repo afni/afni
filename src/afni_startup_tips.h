@@ -784,6 +784,7 @@ static char *gby[] = {
      "No time for pleasantries, Kyle; we have a Level 5 emergency!"  ,
      "Digitize me, Fred"                                             ,
      "Well, nobody's perfect"                                        ,
+     "Well, pobody's nerfect"                                        ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
@@ -1193,6 +1194,8 @@ static char *gby[] = {
      "If you don't know where you are sailing, no wind will be favorable"             ,
      "The greatest remedy for anger is delay"                                         ,
      "It is more fitting to laugh at life than to lament over it"                     ,
+     "Remember: There are more things that frighten us than injure us"                ,
+     "Remember: Time heals what reason cannot"                                        ,
 
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
@@ -1605,10 +1608,10 @@ static char *gby[] = {
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
-     "\n  We shall not cease from exploration\n"
-     "  And the end of all our exploring\n"
-     "  Will be to arrive where we started\n"
-     "  And know the place for the first time"                                                ,
+     "\n We shall not cease from exploration\n"
+     "   And the end of all our exploring\n"
+     "   Will be to arrive where we started\n"
+     "   And know the place for the first time"                                               ,
 
      "Remember --\n"
      "  To argue with those who have renounced the use and authority\n"
@@ -1735,7 +1738,8 @@ static char *gby[] = {
      "     0.08  = Very suggestive\n"
      "     0.09  = Significant at the p < 0.1 level (send more funding)\n"
      "     > 0.1 = Hey! Look at this interesting subgroup analysis\n"
-     "     > 0.2 = Significant in an alternate reality"                     ,
+     "     > 0.2 = Significant in an alternate reality\n"
+     "  sqrt(-1) = It was significant in my dream last night"  ,
 
      "\n Possible answers to a binary question:\n"
      "     Yes\n"
@@ -1753,7 +1757,7 @@ static char *gby[] = {
      "     Please repeat the question more slowly\n"
      "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
-     "     From which branch of reality would you like the answer?\n"
+     "     From which branch manifold of reality would you like the answer?\n"
      "     That depends on the truth of the Riemann Hypothesis\n"
      "     Is there an odd perfect number?\n"
      "     Forty seven\n"
@@ -1955,16 +1959,86 @@ static char *gby[] = {
     "I have faced all the reality I need to face for today"                                          ,
     "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
     "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
+
     "\n  I'd be more interested in thinking outside the box\n"
-    "    if I could figure out thinking INSIDE the box first"                                        ,
-    "Real stupidity beats artificial intelligence, every time"                                       ,
-    "Sometimes it's better to light a flamethrower than curse the darkness"                          ,
-    "You can shut your eyes but you can't shut your brain"                                           ,
-    "Having a wonderful time. Please send more grant money"                                          , /* 22 Jun 2021 */
+    "    if I could figure out thinking INSIDE the box first"                        ,
+    "Real stupidity beats artificial intelligence, every time"                       ,
+    "Sometimes it's better to light a flamethrower than curse the darkness"          ,
+    "You can shut your eyes but you can't shut your brain"                           ,
+    "Having a wonderful time. Please send more grant money"                          , /* 22 Jun 2021 */
+    "I don't mind being this old. I just thought it would take longer to get here"   , /* 08 Jul 2021 */
+
+    "\n"
+    " Substitutions to understand yourself better:\n"
+    "   Obsessive  => Passionate\n"
+    "   Rigid      => Structured\n"
+    "   Fussy      => Specific\n"
+    "   Demanding  => Self-Protective\n"
+    "   Dramatic   => Sensitive\n"
+    "   Childish   => Youthful\n"
+    "   Unsociable => Independent\n"
+    "   Weird      => Unique\n"
+    "   Lazy       => Out of Energy\n"
+    "   Stubborn   => Consistent\n"
+    " And remember, AFNI is ALL of these things at the same time"                      , /* 12 Jul 2021 */
+
+    "Be Warned:\n"
+    "  Any observed statistical regularity will tend to collapse\n"
+    "  once pressure is placed upon it for control purposes"                           , /* 13 Jul 2021 */
+
+    "Tell me, what is it you plan to do with your one wild and precious life?"         ,
+    "Anything which can be used can be misused; anything which can be misused will be" ,
+    "It's hard to accept the truth when the lies were exactly what you wanted to hear" ,
+
+    "\n"
+    " The problem with connections is that the right ones are necessary,\n"
+    "   but there are too many possible wrong ones out there.\n"
+    "    Oh well, I guess that's what evolution and experience are for"                , /* 30 Jul 2021 */
+
+    "\n"
+    " What I tell you three times is true:\n"
+    "   p < 0.05 is arbitrary and confusing;\n"
+    "     p < 0.05 is arbitrary and confusing;\n"
+    "       p < 0.05 is arbitrary and confusing!!\n"
+    "   Life can only be understood after it is Lived;\n"
+    "     Life can only be understood after it is Lived;\n"
+    "       Lived is it after understood be only can Life!!\n"
+    "   The brain is not a computer and it is not running software;\n"
+    "     The brain is not a computer and it is not running software;\n"
+    "       The brain is not a computer and it is not running software!"               ,
+
+    "\n"
+    "  When I was 20, I thought a lot about what other people thought of me;\n"
+    "   When I was 40, I found I didn't think so much about what they thought of me;\n"
+    "    When I was 60, I figured out that they didn't spend much effort thinking about me" , /* 09 Aug 2021 */
+
+    "\n"
+    "  When the airless wind shall sing,\n"
+    "   When the broken circle mends,\n"
+    "    When the brightest day dawns without light,\n"
+    "     And the brittle night comes softly without darkness\n"
+    "      -- I shall yet remember"                                 , /* 10 Aug 2021 */
+
+    "Remember: He who wills the ends, wills the means"              , /* 23 Aug 2021 */
+
+    "Just because you're paranoid doesn't mean THEY aren't out to get you" , /* 24 Aug 2021 */
+    "Your destiny is decades away, until suddenly it is NOW"               ,
+
+    "Do not wear yourself out to get a smaller p-value; do not trust your own cleverness" , /* 25 Aug 2021 */
+    "Remember: Do not speak to fools" ,
+    "I always have a quotation for everything -- it saves original thinking" ,
+    "Program glitches are like cows: if you stare at them long enough, they go away" ,
+    "It's good to do things neatly and properly, even stupid things" ,
+    "I'm not just sure of my results, I'm abso-bally-lutely positive" ,
+    "Remember: Trouble shared is trouble halved" ,
+    "Good news: Your problem is fixed -- Bad News: You can now rush ahead to the NEXT problem" ,
+    "No important change comes calmly over the world" ,
+
+    "One thing that humbles me deeply is to see that human genius has its limits while human stupidity does not" ,
 
     /**** Keep this one last ****/
 
-    "You are very lucky - this is the last-in-list AFNI goodbye message - Adieu mon cher!"
+    "You are VERY lucky - this is the ultimate AFNI goodbye message - Adieu mon cher!"
 
 } ;
 

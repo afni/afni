@@ -3,10 +3,13 @@
 	-lf2c -lm   (in that order)
 */
 
-#include "f2c.h"
+/* #include "f2c.h" */
+#include "coxplot.h"
 
 /* Common Block Declarations */
 
+/* get these structs from coxplot.h    [13 Aug 2021 rickr] */
+#if 0
 extern struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
@@ -16,8 +19,6 @@ extern struct {
     real xphold, yphold;
 } zzzplt_;
 
-#define zzzplt_1 zzzplt_
-
 extern struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
@@ -25,9 +26,10 @@ extern struct {
     integer iflip, nplotr;
     char cfile[64];
 } zzpltr_;
+#endif
 
+#define zzzplt_1 zzzplt_
 #define zzpltr_1 zzpltr_
-
 
 
 

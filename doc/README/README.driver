@@ -363,6 +363,11 @@ OPEN_WINDOW [c.]windowname [options]
                         label is turned on, which is done from the
                         image window intensity bar popup, or via
                         the AFNI_IMAGE_LABEL_MODE environment variable.
+                      * If you wish to include a newline character,
+                        encode it as '\newline' -- this is one of
+                        TeX-like escapes described in README.texlike.
+                        For example:
+        ALTER_WINDOW A.axialimage overlay_label="\newline\small   Bob^{\red 3}"
                       * You can also set this string via environment
                         variable AFNI_IMAGE_LABEL_STRING.
 

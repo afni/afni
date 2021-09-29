@@ -551,6 +551,10 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_INSTACORR_FDR" ,
                   "Compute FDR curve for InstaCorr correlations?" ) ;
 
+   /* 24 Sep 2021 [RWCox] */
+   ENV_add_yesno( "AFNI_INSTACORR_JUMP" ,
+                  "Shift+Ctrl click jumps crosshairs before doing InstaCorr?") ;
+
    /* 27 Aug 2009 [RWCox] */
    ENV_add_numeric( "AFNI_IMAGE_CROPSTEP" ,
                     "Cropped image panning step size" ,

@@ -3431,6 +3431,21 @@ static char *readme_env[] = {
    "on the AFNI command line with the usual -DAFNI_INSTACORR_SEEDBLUR=YES\n" ,
    "method.\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_INSTACORR_JUMP (editable)\n" ,
+   "-----------------------------\n" ,
+   "When using the Shift+Ctrl+Click method to set the InstaCorr seed, the\n" ,
+   "usual operation is to jump the crosshairs focus point to the location\n" ,
+   "where the click happened, and then do the InstaCorr seed set. If you\n" ,
+   "set this environment variable to NO (the default value is YES), then\n" ,
+   "the crosshair jumping will not happen, but the seed will be set at\n" ,
+   "the clicked point.\n" ,
+   "One use case for this setting is when you have setup a Montage layout\n" ,
+   "and don't want it to automatically jump to a new slice when you set\n" ,
+   "the InstaCorr seed -- you like the layout of what you are seeing, and\n" ,
+   "don't want it to change underneath you just because you are moving\n" ,
+   "the seed location. [For Phil Kohn, Sep 2021]\n" ,
+   "\n" ,
    "--------------------------------\n" ,
    "Variable: AFNI_INSTACORR_XYZ_LPI\n" ,
    "--------------------------------\n" ,
@@ -4484,4 +4499,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4483
+#define NUM_readme_env 4498

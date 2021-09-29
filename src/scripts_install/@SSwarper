@@ -124,10 +124,14 @@
 #   + [PT] allow input mask
 #        + try Strategy 1 of just replacing 3dSkullStrip with it
 #
-set version   = "2.51"; set rev_dat   = "June 15, 2021"
+#set version   = "2.51"; set rev_dat   = "June 15, 2021"
 #   + [PT] minor, minor replacements to avoid errors on old tcsh:
 #        + "if(" -> "if ("
 #        + ")then" -> ") then"
+#
+set version   = "2.52";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -1042,7 +1046,7 @@ if ( ${DO_EXTRA_QC} ) then
         -montx 9 -monty 1                  \
         -montgap 3                         \
         -set_xhairs OFF                    \
-        -label_mode 1 -label_size 3      
+        -label_mode 1 -label_size 4      
 
     2dcat                                  \
         -gap 5                             \

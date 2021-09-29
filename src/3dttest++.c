@@ -2411,7 +2411,7 @@ int main( int argc , char *argv[] )
    int have_cov=0 ; /* 17 Mar 2017 */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
-   FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ;
+   FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ; int num_sdat=0 ;
 
    /*--- help the piteous luser? ---*/
 
@@ -4976,7 +4976,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          rval  = resar[ss] / SFAC ;
          sdatar[kout] = SHORTIZE(rval) ;
        }
-       fwrite(sdatar,sizeof(short),nmask_hits,fp_sdat) ;
+       fwrite(sdatar,sizeof(short),nmask_hits,fp_sdat) ; num_sdat++ ;
      }
 
      /* and load residual dataset [07 Dec 2015] */
@@ -5005,8 +5005,17 @@ LABELS_ARE_DONE:  /* target for goto above */
    }
 
    if( do_sdat ){      /*----- 29 Aug 2016 -----*/
+     int64_t fsiz ; int nnnn ;
      fclose(fp_sdat) ;
-     INFO_message("output short-ized file %s",sdat_prefix) ;
+     INFO_message("output short-ized file %s with %d values for each of %d volumes",
+                  sdat_prefix,nmask_hits,num_sdat) ;
+     fsiz = (int64_t)THD_filesize(sdat_prefix) ;
+     nnnn = (int)( fsiz /(sizeof(short)*nmask_hits) ) ;
+     if( nnnn != num_sdat ){
+       ERROR_message("  Output error? file size = %lld   num volumes = %d ???",
+                     (long long)fsiz , nnnn ) ;
+     }
+     ININFO_message("======= end of .sdat output run of 3dttest++ =======") ;
      exit(0) ;
    }
 
@@ -5257,7 +5266,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          qmd = (pp==0) ? bmd : NULL ;  /* re-blur command? (only once) [19 Apr 2017] */
 
-         /* format the command to run 3dttest++ with the residuals as input */
+         /* format the command to run 3dttest++ with the residuals as input;
+            note that .sdat output is ordered via -RANDOMSIGN vs. -randomsign;
+            note that we only want z-scores, not mean estimates               */
 
          if( !use_sdat )
            sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"

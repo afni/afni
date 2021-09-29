@@ -4,46 +4,61 @@
 
 #include "mrilib.h"
 
-static void vstep_print(void) ; /* prototype */
+static int    ARGC ;  /* global copies */
+static char **ARGV ;  /* for use in get_ilist_from_args() below */
+
+static void vstep_print(void) ; /* prototypes for later funcs */
 static float lhs_legendre( float x, float bot, float top, float n ) ;
 
 #define IC_POLORT 66666
 
-int main( int argc , char *argv[] )
+#ifdef USE_OMP      /* 16 Aug 2021 */
+#include <omp.h>
+#include "thd_fitter.c"
+#include "thd_lasso.c"
+#endif
+
+/*------------------------------------------------------------*/
+/* get an integer list from the args, starting at ARGV[*iarg] */
+
+static int * get_ilist_from_args( int *iarg )
 {
-   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
-   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
-   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
-   THD_3dim_dataset *fset=NULL ;
-   RwcPointer_array *dsar ;
-   int ntime , nvar=0 , polort=-1,npol=0 ;
-   char *prefix="Tfitter" ;
-   int meth=2 , nbad=0,ngood=0,nskip=0 ;
-   intvec *convec=NULL , *kvec=NULL ;
-   byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
-   floatvec *bfit ;
-   float *dvec , **rvec=NULL , *cvec=NULL , *evec ;
-   char **lab=NULL ; int nlab=0 ;
-   int verb=1 ;
+   char istr[16000] ; int *ilist=NULL , iaa=*iarg ;
+ENTRY("get_ilist_from_args") ;
+   istr[0] = '\0' ;
+   for( ; iaa < ARGC && isdigit(ARGV[iaa][0]) ; iaa++ ){
+     strcat( istr , ARGV[iaa] ) ;
+     if( istr[ strlen(istr)-1 ] != ',' ) strcat( istr , "," ) ;
+   }
+   ilist = MCW_get_intlist( 999999 , istr ) ;
+   *iarg = iaa ;
+   RETURN(ilist) ;
+}
 
-   THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
-   char *fal_pre=NULL ; int fal_pencod=3, fal_klen=0 , fal_dcon=0 ;
-   float *fal_kern=NULL , fal_penfac=0.0f ;
-   THD_3dim_dataset *defal_set=NULL ;
-   int nvoff=0 ;
+/*------------------------------------------------------------*/
+/* Get an integer vector from the args */
 
-   char *fitts_prefix=NULL; THD_3dim_dataset *fitts_set=NULL;
-   char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
-   int do_fitts=0 ;
+static intvec * get_intvec_from_args( int *iarg )
+{
+   int *ilist ;
+   intvec *ivec=NULL ;
+   int jj ;
 
-   float vthresh=0.0f ; /* 18 May 2010 */
+   ilist = get_ilist_from_args( iarg ) ;
+   if( ilist != NULL && ilist[0] > 0 ){
+     MAKE_intvec(ivec,ilist[0]) ;
+     for( jj=1 ; jj <= ilist[0] ; jj++ ){
+       ivec->ar[jj-1] = ilist[jj] ;
+     }
+   }
+   free(ilist) ;
+   return ivec ;
+}
 
-   intvec *lasso_ivec = NULL ;  /* 11 Mar 2011 */
-   float lasso_flam = 8.0f ;
+/*---------------------------------------------------------------------------*/
 
-   /*------------------ help the pitifully ignorant user? ------------------*/
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+static void Tfitter_help(void)
+{
      printf(
       "Usage: 3dTfitter [options]\n"
       "\n"
@@ -99,7 +114,11 @@ int main( int argc , char *argv[] )
       "      The answer to that question depends strongly on what you are\n"
       "      going to use the results for!  And on the quality of the data.\n"
       "\n"
-      "***** 3dTfitter is not for the casual user! *****\n"
+      "           *************************************************\n"
+      "           ***** 3dTfitter is not for the casual user! *****\n"
+      "           ***** It has a lot of options which let you *****\n"
+      "           ***** control the complex solution process. *****\n"
+      "           *************************************************\n"
       "\n"
       "----------------------------------\n"
       "SPECIFYING THE EQUATIONS AND DATA:\n"
@@ -122,9 +141,10 @@ int main( int argc , char *argv[] )
       "             * A 1D file defines as many columns in the LHS matrix as\n"
       "               are in the file.\n"
       "              ++ For example, you could input the LHS matrix from the\n"
-      "                 .xmat.1D file output by 3dDeconvolve, if you wanted\n"
+      "                 .xmat.1D matrix file output by 3dDeconvolve, if you wanted\n"
       "                 to repeat the same linear regression using 3dTfitter,\n"
       "                 for some bizarre unfathomable twisted psychotic reason.\n"
+      "                 (See https://shorturl.at/boxU9 for more details.)\n"
       "            ** If you have a problem where some LHS vectors might be tiny,\n"
       "                 causing stability problems, you can choose to omit them\n"
       "                 by using the '-vthr' option.  By default, only all-zero\n"
@@ -165,10 +185,14 @@ int main( int argc , char *argv[] )
       "               in the output.  The purpose of this option is to let you\n"
       "               have tiny inputs and have them be ignored.\n"
       "              * By default, 'v' is zero ==> only exactly zero LHS columns\n"
-      "                will be ignored.\n"
+      "                will be ignored in this case.\n"
       "             ** Prior to 18 May 2010, the built-in (and fixed) value of\n"
       "                'v' was 0.000333.  Thus, to get the old results, you should\n"
       "                use option '-vthr 0.000333' -- this means YOU, Rasmus Birn!\n"
+      "              * Note that '-vthr' column censoring is done separately for\n"
+      "                each voxel's regression problem, so if '-LHS' had any\n"
+      "                dataset components (i.e., voxelwise regressors), a different\n"
+      "                set of omitted columns could be used betwixt different voxels.\n"
       "\n"
       "--------------\n"
       "DECONVOLUTION:\n"
@@ -305,9 +329,12 @@ int main( int argc , char *argv[] )
       "                 sure the results in your type of problems make sense.\n"
       "          -->>++ Look at the results and the fits with AFNI (or 1dplot)!\n"
       "                 Do not blindly assume that the results are accurate.\n"
+      "              ++ Also, do not blindly assume that a paper promoting\n"
+      "                 a new deconvolution method that always works is\n"
+      "                 actually a good thing!\n"
       "              ++ There is no guarantee that the automatic selection of\n"
-      "                 of the penalty factor will give usable results for\n"
-      "                 your problem!\n"
+      "                 of the penalty factor herein will give usable results\n"
+      "                 for your problem!\n"
       "              ++ You should probably use a mask dataset with -FALTUNG,\n"
       "                 since deconvolution can often fail on pure noise\n"
       "                 time series.\n"
@@ -358,25 +385,87 @@ int main( int argc , char *argv[] )
       "                 and see if that works well for you.\n"
       "              ++ Or you can use the Square Root LASSO option (next), which\n"
       "                 (in theory) does not need to know sigma when setting lam.\n"
+      "              ++ If you do not provide lam, or give a value of 0, then a\n"
+      "                 default value will be used.\n"
       "             * Optionally, you can supply a list of parameter indexes\n"
       "               (after 'lam') that should NOT be penalized in the\n"
       "               the fitting process (e.g., traditionally, the mean value\n"
       "               is not included in the L1 penalty.)  Indexes start at 1,\n"
       "               as in 'consign' (below).\n"
+      "              ++ If this un-penalized integer list has long stretches of\n"
+      "                 contiguous entries, you can specify ranges of integers,\n"
+      "                 as in '1:9' instead of '1 2 3 4 5 6 7 8 9'.\n"
+      "        **-->>++ If you want to supply the list of indexes that GET a\n"
+      "                 L1 penalty, instead of the list that does NOT, you can\n"
+      "                 put an 'X' character first, as in\n"
+      "                   -LASSO 0 X 12:41\n"
+      "                 to indicate that variables 12..41 (inclusive) get the\n"
+      "                 penalty applied, and the other variables do not. This\n"
+      "                 inversion might be more useful to you in some cases.\n"
+      "              ++ If you also want the indexes to have 1 added to them and\n"
+      "                 be inverted -- because they came from a 0-based program -- \n"
+      "                 then use 'X1', as in '-LASSO 0 X1 12:41'.\n"
+      "              ++ If you want the indexes to have 1 added to them but NOT\n"
+      "                 to be inverted, use 'Y1', as in '-LASSO 0 Y1 13:42'.\n"
+      "              ++ Note that if you supply an integer list, you MUST supply\n"
+      "                 a value for lam first, even if that value is 0.\n"
       "              ++ In deconvolution ('-FALTUNG'), all baseline parameters\n"
       "                 (from '-LHS' and/or '-polort') are automatically non-penalized,\n"
-      "                 so there is no point to using this un-penalizing feature.\n"
+      "                 so there is usually no point to using this un-penalizing feature.\n"
       "              ++ If you are NOT doing deconvolution, then you'll need this\n"
-      "                 option to un-penalize the '-polort' parameters (if desired).\n"
+      "                 option to un-penalize any '-polort' parameters (if desired).\n"
       "            ** LASSO-ing herein should be considered experimental, and its\n"
-      "               implementation is subject to change!  You should definitely\n"
+      "               implementation is subject to change! You should definitely\n"
       "               play with different 'lam' values to see how well they work\n"
-      "               for your particular types of problems.  Algorithm is here:\n"
+      "               for your particular types of problems. Algorithm is here:\n"
       "              ++ TT Wu and K Lange.\n"
       "                 Coordinate descent algorithms for LASSO penalized regression.\n"
       "                 Annals of Applied Statistics, 2: 224-244 (2008).\n"
       "                 http://arxiv.org/abs/0803.3876\n"
       "             * '-LASSO' is a synonym for this option.\n"
+      "\n"
+      "  -lasso_centro_block i j k ...\n"
+      "             = Defines a block of coefficients that will be penalized together\n"
+      "               with ABS( beta[i] - centromean( beta[i], beta[j] , ... ) )\n"
+      "               where the centromean(a,b,...) is computed by sorting the\n"
+      "               arguments (a,b,...) and then averaging the central 50%% values.\n"
+      "              * The goal is to use LASSO to shrink these coefficients towards\n"
+      "                a common value to suppress outliers, rather than the default\n"
+      "                LASSO method of shrinking coefficients towards 0, where the\n"
+      "                penalty on coefficient beta[i] is just ABS( beta[i] ).\n"
+      "              * For example:\n"
+      "                  -lasso_centro_block 12:26 -lasso_centro_block 27:41\n"
+      "                These options define two blocks of coefficients.\n"
+      "          -->>*** The intended application of this option is to regularize\n"
+      "                  (reduce fluctuations) in the 'IM' regression method from\n"
+      "                  3dDeconvolve, where each task instance gets a separate\n"
+      "                  beta fit parameter.\n"
+      "              *** That is, the idea is that you run 3dTfitter to get the\n"
+      "                  'IM' betas as an alternative to 3dDeconvolve or 3dREMLfit,\n"
+      "                  since the centromean regularization will damp down wild\n"
+      "                  fluctuations in the individual task betas.\n"
+      "              *** In this example, the two blocks of coefficients correspond\n"
+      "                  to the beta values for each of two separate tasks.\n"
+      "              *** The input '-LHS' matrix is available from 3dDeconvolve's\n"
+      "                  '-x1D' option.\n"
+      "              *** Further details on 'blocks' can be found in this Google Doc\n"
+      "                     https://shorturl.at/boxU9\n"
+      "                  including shell commands on how to extract the block indexes\n"
+      "                  from the header of the matrix file.\n"
+      "              *** A 'lam' value for the '-LASSO' option that makes sense is a value\n"
+      "                  between -1 and -2, but as usual, you'll have to experiment with\n"
+      "                  your particular data and application.\n"
+      "              * If you have more than one block, do NOT let them overlap,\n"
+      "                because the program doesn't check for this kind of stoopidity\n"
+      "                and then peculiar/bad things will probably happen!\n"
+      "              * A block defined here must have at least 5 entries.\n"
+      "                In practice, I would recommend at least 12 entries for a\n"
+      "                block, or the whole idea of 'shrinking to the centromean'\n"
+      "                is silly.\n"
+      "              * This option can be abbreviated as '-LCB', since typing\n"
+      "                '-lasso_centro_block' correctly is a nontrivial challenge :-)\n"
+      "            *** This option is NOT implemented for -l2sqrtlasso :-(\n"
+      "              * [New option - 10 Aug 2021 - RWCox]\n"
       "\n"
       "  -l2sqrtlasso lam [i j k ...]\n"
       "            = Similar to above option, but uses 'Square Root LASSO' instead:\n"
@@ -387,14 +476,15 @@ int main( int argc , char *argv[] )
       "              ++ A Belloni, V Chernozhukov, and L Wang.\n"
       "                 Square-root LASSO: Pivotal recovery of sparse signals via\n"
       "                 conic programming (2010).  http://arxiv.org/abs/1009.5689\n"
-      "              ++ A coordinate descent algorithm is also used for this optimization.\n"
+      "              ++ A coordinate descent algorithm is also used for this optimization\n"
+      "                 (unlike in the paper above).\n"
       "            ** A reasonable range of 'lam' to use is from 1 to 10 (or so);\n"
       "               I suggest you start with 2 and see how well that works.\n"
       "              ++ Unlike the pure LASSO option above, you do not need to give\n"
       "                 give a negative value for lam here -- there is no need for\n"
-      "                 scaling by sigma.\n"
+      "                 scaling by sigma -- or so they say.\n"
       "             * The theoretical advantange of Square Root LASSO over\n"
-      "               standard LASSO is that a good choice of 'lam' doesn't\n"
+      "               standard LASSO is that a good choice of 'lam' does not\n"
       "               depend on knowing the noise level in the data (that is\n"
       "               what 'Pivotal' means in the paper's title).\n"
       "             * '-SQRTLASSO' is a synonym for this option.\n"
@@ -556,12 +646,12 @@ int main( int argc , char *argv[] )
       "  ++ You could generate some baseline 1D files using 1deval, perhaps.\n"
       "* There is no option to constrain the range of the output parameters,\n"
       "  except the semi-infinite ranges provided by '-consign' and/or '-consFAL'.\n"
-      "* This program is NOT parallelized via OpenMP :-(\n"
+      "* This program is NOW parallelized via OpenMP :-)  [17 Aug 2021 - RWCox]\n"
       "\n"
       "------------------\n"
       "Contrived Example:\n"
       "------------------\n"
-      "The dataset 'atm' and 'btm' are assumed to have 99 time points each.\n"
+      "The datasets 'atm' and 'btm' are assumed to have 99 time points each.\n"
       "We use 3dcalc to create a synthetic combination of these plus a constant\n"
       "plus Gaussian noise, then use 3dTfitter to fit the weights of these\n"
       "3 functions to each voxel, using 4 different methods.  Note the use of\n"
@@ -710,14 +800,62 @@ int main( int argc , char *argv[] )
       "** But might be useful for some other well-meaning souls out there     **\n"
       "*************************************************************************\n"
      ) ;
+
+     PRINT_AFNI_OMP_USAGE("3dTfitter",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
-   }
+}
+
+/*---------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
+   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
+   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
+   THD_3dim_dataset *fset=NULL ;
+   RwcPointer_array *dsar ;
+   int ntime , nvar=0 , polort=-1,npol=0 ;
+   char *prefix="Tfitter" ;
+   int meth=2 , nbad=0,ngood=0,nskip=0 ;
+   intvec *convec=NULL , *kvec=NULL ;
+   byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
+   float **rvec=NULL , *cvec=NULL ;
+   char **lab=NULL ; int nlab=0 ;
+   int verb=1 ;
+
+   THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
+   char *fal_pre=NULL ; int fal_pencod=3, fal_klen=0 , fal_dcon=0 ;
+   float *fal_kern=NULL , fal_penfac=0.0f ;
+   THD_3dim_dataset *defal_set=NULL ;
+   int nvoff=0 ;
+
+   char *fitts_prefix=NULL; THD_3dim_dataset *fitts_set=NULL;
+   char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
+   int do_fitts=0 ;
+
+   float vthresh=0.0f ; /* 18 May 2010 */
+
+   intvec *lasso_ivec = NULL ;     /* 11 Mar 2011 */
+   int     lasso_invert_ivec=0 ;   /* 04 Aug 2021 */
+   int     lasso_zerobase_ivec=0 ; /* 04 Aug 2021 */
+   float lasso_flam = 8.0f ;
+
+   /*------------------ help the pitifully ignorant user? ------------------*/
+
+   ARGC = argc ; /* 06 Aug 2016 */
+   ARGV = argv ;
+
+   /* help function does not return */
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Tfitter_help() ;
 
    /*------- official startup for the history books -------*/
 
    mainENTRY("3dTfitter"); machdep();
    PRINT_VERSION("3dTfitter"); AUTHOR("RWCox") ;
    AFNI_logger("3dTfitter",argc,argv);
+   AFNI_SETUP_OMP(0) ;
+   (void)COX_clock_time() ;
 
    /*------------ read command line args ------------*/
 
@@ -924,13 +1062,30 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcasecmp(argv[iarg],"-lasso_centro_block") == 0 ||
+         strcasecmp(argv[iarg],"-LCB")                == 0   ){  /* 06 Aug 2021 */
+       intvec *mblok ;
+       iarg++ ;
+       mblok = get_intvec_from_args( &iarg ) ;
+       if( mblok == NULL ){
+         WARNING_message("bad -lasso_centro_block (LCB): can't get integer list :(") ;
+       } else if( mblok->nar < 5 ){
+         ERROR_message("bad -lasso_centro_block (LCB): not enough entries :(") ;
+       } else {
+         THD_lasso_add_centro_block( mblok ) ;
+       }
+       continue ; /* iarg was updated in the function above */
+     }
+
+     /*-----*/
+
 #undef  ISAL
 #define ISAL(s) (isalpha(s[0]) || isalpha(s[1]))
 #undef  DFAL
 #define DFAL 3.1415926536f
 
      if( strcasecmp(argv[iarg],"-l2lasso") == 0 ||
-         strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){  /* experimental [11 Mar 2011] */
+         strcasecmp(argv[iarg],"-LASSO"  ) == 0   ){
        meth = -2 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = -DFAL ; ii = 1 ;
@@ -940,30 +1095,34 @@ int main( int argc , char *argv[] )
        }
        if( lasso_flam < 0.0f ){ THD_lasso_dosigest(1); lasso_flam = -lasso_flam; }
        THD_lasso_fixlam(lasso_flam) ;  /* cf. thd_lasso.c */
-       if( ii == 0 ){
+
+       if( iarg < argc-2 && argv[iarg+1][0] == 'X' ){ /* Invert? [04 Aug 2021] */
+         lasso_invert_ivec = 1 ;
+         lasso_zerobase_ivec = (argv[iarg+1][1] == '1') ;
+         iarg++ ;
+       } else if( iarg < argc-2 && isalpha(argv[iarg+1][0]) ){
+         lasso_invert_ivec = 0 ;
+         lasso_zerobase_ivec = (argv[iarg+1][1] == '1') ;
+         iarg++ ;
+       }
+
+       if( ii == 0 ){  /* flag to scan for index selection */
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-           MAKE_intvec(lasso_ivec,0) ;
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             jj = (int)strtod(argv[iarg],NULL) ;
-             if( jj > 0 ){
-               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-               lasso_ivec->ar[kk] = jj ;
-             } else {
-               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
-             }
+           lasso_ivec = get_intvec_from_args( &iarg ) ;
+           if( lasso_ivec == NULL ){
+             WARNING_message("illegal LASSO index list :(") ;
            }
-           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
-       continue ;
+       continue ;  /* iarg was already incremented above */
      }
 
      /*-----*/
 
      if( strcasecmp(argv[iarg],"-l2sqrtlasso") == 0 ||
          strcasecmp(argv[iarg],"-SQRTLASSO"  ) == 0 ||
-         strcasecmp(argv[iarg],"-LASSOSQRT"  ) == 0   ){
+         strcasecmp(argv[iarg],"-LASSOSQRT"  ) == 0   ){ /* EXPERIMENTAL */
        meth = -1 ; ii = 0 ; iarg++ ;
        if( iarg >= argc || ISAL(argv[iarg]) ){
          lasso_flam = DFAL ; ii = 1 ;
@@ -976,17 +1135,10 @@ int main( int argc , char *argv[] )
        if( ii == 0 ){
          iarg++ ;
          if( iarg < argc && isdigit(argv[iarg][0]) ){ /* get 'free' indexes */
-           MAKE_intvec(lasso_ivec,0) ;
-           for( ; iarg < argc && isdigit(argv[iarg][0]) ; iarg++ ){
-             jj = (int)strtod(argv[iarg],NULL) ;
-             if( jj > 0 ){
-               kk = lasso_ivec->nar ; RESIZE_intvec(lasso_ivec,kk+1) ;
-               lasso_ivec->ar[kk] = jj ;
-             } else {
-               WARNING_message("Illegal index value after -l2lasso: %d",jj) ;
-             }
+           lasso_ivec = get_intvec_from_args( &iarg ) ;
+           if( lasso_ivec == NULL ){
+             WARNING_message("illegal LASSO index list :(") ;
            }
-           if( lasso_ivec->nar == 0 ) KILL_intvec(lasso_ivec) ;
          }
        }
        continue ;
@@ -1109,8 +1261,6 @@ int main( int argc , char *argv[] )
      ERROR_exit("no -LHS or -polort option given?!") ;
    }
 
-   dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
-   evec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
    if( nvar > 0 )
      rvec = (float **)malloc(sizeof(float *)*nvar ) ;  /* LHS vectors */
 
@@ -1269,6 +1419,35 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
    }
 
+   /*-- Invert LASSO index selection? [04 Aug 2021] --*/
+
+   if( lasso_ivec != NULL && lasso_invert_ivec ){  /* 04 Aug 2021 */
+     intvec *tmp_ivec , *new_ivec=NULL ;
+
+/** DUMP_intvec(lasso_ivec,"LASSO - to be inverted") ; **/
+
+     MAKE_intvec( tmp_ivec , nvar ) ;
+     for( jj=0 ; jj < nvar ; jj++ ) tmp_ivec->ar[jj] = jj+1 ;
+
+     for( jj=0 ; jj < lasso_ivec->nar ; jj++ ){
+       ii = lasso_ivec->ar[jj] ;
+       if( ii > 0 && ii <= nvar ) tmp_ivec->ar[ii-1] = 0 ; /* un-use it */
+     }
+
+     for( ii=jj=0 ; jj < nvar ; jj++ ){
+       if( tmp_ivec->ar[jj] > 0 ) ii++ ;
+     }
+     if( ii > 0 ){  /* copy survivors (if any) */
+       MAKE_intvec( new_ivec , ii ) ;
+       for( ii=jj=0 ; jj < nvar ; jj++ ){
+         if( tmp_ivec->ar[jj] > 0 ) new_ivec->ar[ii++] = tmp_ivec->ar[jj] ;
+       }
+     }
+     KILL_intvec(tmp_ivec) ; KILL_intvec(lasso_ivec) ; lasso_ivec = new_ivec ;
+   }
+
+/** if( lasso_ivec != NULL ) DUMP_intvec(lasso_ivec,"final LASSO un-penalized indexes") ; **/
+
    /*-- finalize LASSO setup? --*/
 
    if( meth == -2 || meth == -1 ){
@@ -1298,6 +1477,70 @@ int main( int argc , char *argv[] )
    THD_fitter_do_fitts   ( do_fitts ) ;  /* 05 Mar 2008 */
    THD_fitter_set_vthresh( vthresh  ) ;  /* 18 May 2010 */
 
+
+AFNI_OMP_START ;
+#pragma omp parallel if( nvox > 1 )
+ { /* per-thread variables declared here */
+   int ii , jj , kk ;
+   float *dvec , *evec , **rrqvec=rvec , *falq_kern=fal_kern ;
+   THD_3dim_dataset *lset ;
+   floatvec *bfit ;
+
+#ifdef USE_OMP
+#pragma omp master
+ { int nthr = omp_get_num_threads() ;
+   if( nthr > 1 ) fprintf(stderr,"[%d OpenMP threads]%s",nthr,(vstep>0)?" ":"\n") ;
+ }
+#endif
+
+   /* allocate thread-specific arrays for voxel-dependent data */
+
+#pragma omp critical
+  { dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+    evec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+
+    /* This next suff is a little complicated:
+       rvec   =  LHS vectors, which are partly pre-loaded earlier
+                  (from .1D files and from -polort basis functions),
+                  and partly need to be loaded for each voxel from
+                  the LHS datasets (if any)
+       Problem:  With OpenMP, the voxelwise loading vectors need
+                  to be distinct to prevent inter-thread clobbers
+       Solution: Make rrqvec[ii] the same pointer as rvec[ii]
+                  for ii that does NOT come from a LHS dataset
+                  (that is, where rvec[ii] is pre-loaded with data)
+                  and make a new rrqvec[ii] to be loaded from a
+                  LHS dataset when that is necessary
+       Comment:  This is ugly, but the easiest way to retrofit for OpenMP */
+
+    if( nlset > 0 && AO_nth > 1 ){ /* have at least one LHS dataset */
+                                   /* and have more than 1 thread */
+      rrqvec = (float **)malloc(sizeof(float *)*nvar ) ;
+
+      for( ii=0 ; ii < nvar ; ii++ ){  /* copy all vectors */
+        rrqvec[ii] = rvec[ii] ;
+      }
+      for( ii=0 ; ii < nlhs ; ii++ ){  /* then overwrite a few of them */
+        kk = kvec->ar[ii] ;
+        if( kk >= 0 ){
+          lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
+          jj   = DSET_NVALS(lset) ;
+          rrqvec[kk] = (float *)malloc(sizeof(float)*(jj+1)) ;
+        }
+      }
+    }
+
+    /* Similarly, if the deconvolution kernel comes
+       from a dataset, we need a per-voxel kernel vector.
+       However, since there is only 1 deconvolution kernel
+       (unlike having multiple LHS vectors), this is simpler. */
+
+     if( fal_klen > 0 && fal_set != NULL )
+       falq_kern = (float *)malloc(sizeof(float)*fal_klen) ;
+
+  }
+
+#pragma omp for
    for( ii=0 ; ii < nvox ; ii++ ){
 
      if( vstep > 0 && ii%vstep==vstep-1 ) vstep_print() ;
@@ -1307,7 +1550,11 @@ int main( int argc , char *argv[] )
      THD_extract_array( ii , rhset , 0 , dvec ) ;   /* get RHS data vector */
 
      for( jj=0 ; jj < ntime && dvec[jj]==0.0f ; jj++ ) ; /*nada*/
-     if( jj == ntime ){ nskip++; continue; }   /*** skip all zero vector ***/
+     if( jj == ntime ){   /*** skip all zero vector ***/
+#pragma omp atomic /* ensure nskip ain't updated simultaneously in 2 threads */
+       nskip++;
+       continue;
+     }
 
      for( jj=0 ; jj < ntime ; jj++ ) evec[jj] = dvec[jj] ;  /* copy vector */
 
@@ -1317,7 +1564,7 @@ int main( int argc , char *argv[] )
        if( XTARR_IC(dsar,jj) == IC_DSET ){         /* out of LHS datasets  */
          lset = (THD_3dim_dataset *)XTARR_XT(dsar,jj) ;
          kk = kvec->ar[jj] ;
-         THD_extract_array( ii , lset , 0 , rvec[kk] ) ;
+         THD_extract_array( ii , lset , 0 , rrqvec[kk] ) ;
        }
      }
 
@@ -1326,16 +1573,16 @@ int main( int argc , char *argv[] )
      if( fal_klen > 0 ){      /*-- deconvolution --*/
 
        if( fal_set != NULL )  /* get decon kernel if from a 3D+time dataset */
-         THD_extract_array( ii , fal_set , 0 , fal_kern ) ;
+         THD_extract_array( ii , fal_set , 0 , falq_kern ) ;
 
        bfit = THD_deconvolve( ntime , dvec ,
-                              0 , fal_klen-1 , fal_kern ,
-                              nvar , rvec , meth , cvec , fal_dcon ,
+                              0 , fal_klen-1 , falq_kern ,
+                              nvar , rrqvec , meth , cvec , fal_dcon ,
                               fal_pencod , fal_penfac               ) ;
 
      } else {                 /*-- simple fitting --*/
 
-       bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
+       bfit = THD_fitter( ntime , dvec , nvar , rrqvec , meth , cvec ) ;
 
      }
 
@@ -1367,6 +1614,11 @@ int main( int argc , char *argv[] )
 
    } /* end of loop over voxels */
 
+   /* If I was feeling kindly, I'd free the per-thread malloc-ed stuff now. */
+   /* However, at this moment my kindliness coefficient has drizzled away. */
+ }
+AFNI_OMP_END ;
+
    if( vstep > 0 ) fprintf(stderr," Done!\n") ;
    if( nskip > 0 ) WARNING_message("Skipped %d voxels for being all zero",nskip) ;
 
@@ -1397,7 +1649,8 @@ int main( int argc , char *argv[] )
      DSET_write(ersum_set); DSET_unload(ersum_set);
    }
 
-   if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
+   if( verb )
+     INFO_message("3dTfitter: CPU time = %.1f s  Elapsed = %.1f s",COX_cpu_time(),COX_clock_time()) ;
    exit(0);
 }
 
@@ -1413,6 +1666,7 @@ static void vstep_print(void)
 }
 
 /*---------------------------------------------------------------------------*/
+/* LHS Legendre polynomial */
 
 static float lhs_legendre( float x, float bot, float top, float n )
 {

@@ -166,7 +166,13 @@ NI_dpr("NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
    /* didn't find it */
 
    if( nn < 0 ){
-     if( NI_stream_readcheck(ns,0) < 0 ) return NULL ;   /* connection lost */
+#ifdef NIML_DEBUG
+NI_dpr("NI_read_element: scan_for_angles() returns %d",nn) ;
+#endif
+     if( NI_stream_readcheck(ns,1) < 0 ) return NULL ;   /* connection lost */
+#ifdef NIML_DEBUG
+NI_dpr("                 trying again") ;
+#endif
      NI_sleep(2); goto HeadRestart;                      /* try again */
    }
 
@@ -774,6 +780,10 @@ static int scan_for_angles( NI_stream_type *ns, int msec )
    int start_time = NI_clock_time() , mleft , nbmin ;
    int caseb=0 ;  /* 1 => force rescan even if time is up */
 
+#ifdef NIML_DEBUG
+NI_dpr("ENTER scan_for_angles\n") ;
+#endif
+
    if( ns == NULL ) return -1 ;  /* bad input */
 
    if( ns->buf == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
@@ -794,6 +804,9 @@ Restart:                                       /* loop back here to retry */
       NI_reset_buffer(ns) ;                            /* and out of time */
       return -1 ;
    }
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles at restart=%d epos=%d bufsize=%d",num_restart,epos,ns->nbuf) ;
+#endif
 
    /*-- scan ahead to find goal character in the buffer --*/
 
@@ -802,6 +815,10 @@ Restart:                                       /* loop back here to retry */
    /*-- if we found our goal, do something about it --*/
 
    if( epos < ns->nbuf ){
+
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles found goal '%c' at epos=%d",goal,epos) ;
+#endif
 
      /*-- if our goal was the closing '>', we are done! (maybe) --*/
 
@@ -852,15 +869,21 @@ Restart:                                       /* loop back here to retry */
              - in this case, we expand the buffer size and hope --*/
 
    if( goal == '<' ){                    /* case (a) */
-
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles failed to find goal '<' in buffer of size %d",ns->nbuf) ;
+#endif
       ns->nbuf = ns->npos = epos = 0 ; caseb = 0 ;
 
    } else if( ns->nbuf < ns->bufsize || ns->npos > 0 ){  /* case (b) */
-
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles failed to find goal '>' -- retry") ;
+#endif
       NI_reset_buffer(ns) ; epos = ns->nbuf ; caseb = 1 ;
 
    } else {                              /* case (c) */
-
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles failed to find goal '>' -- expand buffer and retry") ;
+#endif
       epos = ns->nbuf ;
       nn = NI_stream_setbufsize(ns,2*ns->bufsize) ; /* expand buffer! */
       if( nn < 0 ){ ns->nbuf = ns->npos = 0 ; return -1 ; } /* fails? */
@@ -875,6 +898,9 @@ Restart:                                       /* loop back here to retry */
    if( mleft <= 0 ) mleft = 3 ;
    nbmin = (goal == '<') ? 4 : 1 ;
 
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles calling NI_stream_fillbuf") ;
+#endif
    nn = NI_stream_fillbuf( ns , nbmin , mleft ) ;
 
    if( nn >= nbmin ) caseb = 1 ;    /* got new data => force rescan */
@@ -882,7 +908,9 @@ Restart:                                       /* loop back here to retry */
    if( nn >= 0     ) goto Restart ; /* scan some more for the goal */
 
    /*-- if here, the stream went bad, so exit --*/
-
+#ifdef NIML_DEBUG
+NI_dpr("  scan_for_angles stream failed :(") ;
+#endif
    ns->nbuf = ns->npos = 0 ; return -1 ;
 }
 

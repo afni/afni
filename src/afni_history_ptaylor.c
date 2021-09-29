@@ -69,12 +69,218 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+
+{ 27, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_4d_imager" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@afni_refacer_run" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 23, Sep , 2021 , PT , "@epi_b0_corr.py" , MINOR , TYPE_NEW_OPT,
+   "Had been missing the internal processing of option '-epi_pe_bwpp'.",
+   "... which has now been added in.\n"
+},
+
+{ 23, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can now perform clusterizing, with Alpha+Boxed on, like in GUI.",
+   "New opt '-clusterize ..' for some commands; see help/NOTES for full info.\n"
+},
+
+{ 21, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 20, Sep , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "apsearchize.",
+   "Make help visible in editor with '@grayplot -hview'.\n"
+},
+
+{ 20, Sep , 2021 , PT , "3dGrayplot" , MINOR , TYPE_NEW_OPT,
+   "Add '-raw_with_bounds ..' to display raw values in arbitrary interval.",
+   "Maybe most useful if data have been scaled.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@4Daverage" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@FindAfniDsetPath" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@Purify_1D" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@RenamePanga" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_glue_imgs_vert" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_anonymize" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 31, Aug , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Change default cost function to 'lpa', from 'ls'.",
+   "Should be better? There is an opt to change, as necessary.\n"
+},
+
+{ 30, Aug , 2021 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-all_roi_zeros' and '-automask_off'.",
+   "Basically, N ROIs can have NxN mat, even if ROI ave is all zeros.\n"
+},
+
+{ 22, Aug , 2021 , PT , "lib_afni1D.py" , MICRO , TYPE_BUG_FIX,
+   "Afni1D.uncensor_from_vector() had a syntax error in one print call').",
+   "Was missing a %, now fixed.\n"
+},
+
+{ 10, Aug , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
+   "No longer worry about even/odd slice output (and remove '-no_fs_prep').",
+   "Dealt with an old non-issue.\n"
+},
+
+{ 29, July , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
+   "Add in @chauffeur_afni functionality:  -edgy_ulay.",
+   NULL
+},
+
+{ 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Copying Rick's fix. Thanks to user 'ymao' for raising this issue on the MB."
+ } ,
+
+{ 9, July , 2021 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "New: '-aff_move_opt ..' to use more than just giant_move in aff step.",
+   "Also bug fix for when no followers were entered.\n"
+},
+
+{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
    "Tweak column names *again*.",
    "Add in extra check that 3D vols are specified (e.g., with selectors).\n"
 },
 
-{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py" , MINOR , TYPE_GENERAL,
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
    "Reformat report*.1D tables a bit: match key and col names.",
    "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
 },

@@ -101,6 +101,25 @@ process options:
 
       Without this option, an existing -write_table will not be overwritten.
 
+
+   -empty_is_outlier    : treat empty tests as outliers
+
+         e.g.     -empty_is_outlier
+         default: (do not treat as outliers)
+
+      This option applies to -report_outliers.
+
+      If the user specifies a test that must be numerical (GT, GE, LT, LE)
+      against a valid float and the current column to test against is empty,
+      the default operation is to not report it (it is not treated as an
+      outlier).  For example, if looking for runs with "censor fraction"
+      greater than 0.1, a run without any censor fraction (e.g. if this subject
+      did not have the given run) would not be reported as an outlier.
+
+      Use this option to report such cases as outliers.
+
+      See also -report_outliers.
+
    -outlier_sep SEP     : use SEP for the outlier table separator
 
          e.g.     -outlier_sep tab
@@ -121,7 +140,7 @@ process options:
          e.g. -separator whitespace
 
       Use this option to specify the separation character or string between
-      the labels and values.
+      the labels and values of the input files.
 
    -showlabs            : display counts of all labels found, with parents
 
@@ -191,7 +210,7 @@ process options:
          subject lines are displayed.  But for those that are, the GCOR column
          (in this example) and values will be included.
 
-        See also -report_outliers_fill_style and -outlier_sep.
+      See also -report_outliers_fill_style, -outlier_sep and -empty_is_outlier.
 
    -report_outliers_fill_style STYLE : how to fill non-outliers in table
 
@@ -259,9 +278,15 @@ g_history = """
         - added -report_outliers_fill_style (for Paul)
         - added -write_outliers
         - added -write_table to replace -tablefile (though it still works)
+   1.3  Jul 13, 2021   - fixed "-separator whitespace" for empty lines
+   1.4  Jul 15, 2021
+        - added -empty_is_outlier
+        - default:  in valid comparison, eval blank test vals as non-outliers
+          with opt: eval blank test vals as outliers
+          (previously, any non-float was viewed as an outlier)
 """
 
-g_version = "gen_ss_review_table.py version 1.2, March 7, 2019"
+g_version = "gen_ss_review_table.py version 1.4, July 15, 2021"
 
 
 class MyInterface:
@@ -281,6 +306,7 @@ class MyInterface:
       self.separator       = ':'# input field separator (only first applies)
       self.seplen          = 1  # length, to avoid recomputing
       self.out_sep         = '\t'# output field separator
+      self.ev_outlier      = 0  # flag to treat empty test values as outliers
       self.overwrite       = 0
       self.verb            = 1
 
@@ -310,6 +336,10 @@ class MyInterface:
       self.maxcounts       = {} # max count of elements per dict entry
       self.subjcounts      = {} # number of infiles having each label
 
+      # misc
+      self.found_empty_tval= 0  # did we find an empty test val (see ev_outlier)
+      self.subjcounts      = {} # number of infiles having each label
+
       # initialize valid_opts
       self.valid_opts = self.get_valid_opts()
 
@@ -326,6 +356,8 @@ class MyInterface:
                     helpstr='input text files (from @ss_review_basic)')
       vopts.add_opt('-overwrite', 0, [],
                     helpstr='allow overwrite for output table file')
+      vopts.add_opt('-empty_is_outlier', 0, [],
+                    helpstr='empty field in valid test is outlier')
       vopts.add_opt('-report_outliers', -2, [],
                     helpstr='report outlier subjects for test')
       vopts.add_opt('-report_outliers_fill_style', 1, [],
@@ -456,6 +488,10 @@ class MyInterface:
                print("** bad opt: -report_outliers_fill_style %s" \
                      % self.ro_fill_type)
                errs += 1
+
+         # flag empty test values as outliers
+         elif opt.name == '-empty_is_outlier':
+            self.ev_outlier = 1
 
          elif opt.name == '-report_outliers_header_style':
             self.ro_head_type, err = uopts.get_string_opt('', opt=opt)
@@ -658,6 +694,8 @@ class MyInterface:
       # either split whole line (for whitespace) or go after specific separator
       if self.separator == 'ws':
          fields = line.split()
+         if len(fields) == 0:
+            return 0, '', []
          label = fields.pop(0)
          vals = fields
          if label == '': return 0, '', []
@@ -827,7 +865,7 @@ class MyInterface:
          # skip header rows
          if rind < 2: continue
 
-         # for each subject, do they  pass all tests
+         # for each subject, do they pass all tests
          all_passed = 1 
 
          # remaining columns as needed, offset by firstind
@@ -850,15 +888,12 @@ class MyInterface:
 
             # the main purpose: look for errors
             for repind in range(nchecks):
+               # if VARY, comparison is against first row
                if check == 'VARY':
-                  # convert 'VARY' to 'NE' initial_value
-                  usecheck = 'NE'
                   baseval = varyrow[posn]
-               else:
-                  usecheck = check
 
                testval = table[rind][posn]
-               outlier = self.ro_val_is_outlier(testval, usecheck, baseval)
+               outlier = self.ro_val_is_outlier(testval, check, baseval)
                # failure to run test
                if outlier < 0: return 1, []
 
@@ -880,6 +915,9 @@ class MyInterface:
       # if faillist is empty (len==2), what to do?
       failtable = [table[failind] for failind in faillist]
 
+      if self.found_empty_tval and self.verb > 1 and not self.ev_outlier:
+         print("** have empty test values, default is not outliers")
+
       return 0, failtable
 
    def ro_val_is_outlier(self, tval, comp, bval):
@@ -896,9 +934,6 @@ class MyInterface:
       # handle non-numeric first
       if comp == 'SHOW': return 0
 
-      # handle non-numeric first
-      if comp == 'VARY': return 0
-
       # get float directional comparison, if possible
       # (-1, 0, 1, or -2 on error)
       fcomp = self.ro_float_compare(tval, bval)
@@ -910,33 +945,66 @@ class MyInterface:
       #   - equality test would imply for floats, but is more general
       if comp == 'EQ':
          if scomp:       return 1 # equal strings
-         if fcomp == -2: return 0 # cannot tell as floats, call different
-         # float result
+         # use float result (-2 or -3 is also NE, if strings differ)
          if fcomp == 0:  return 1
          else:           return 0
          
-      if comp == 'NE':
-         if scomp:       return 0 # equal strings, this is an outlier
-         if fcomp == -2: return 1 # cannot tell as floats, call different
+      # VARY and NE are basically identical, except for with non-existent data,
+      # in which case VARY is always a straight comparison
+      if comp == 'NE' or comp == 'VARY':
+         if scomp:       return 0 # equal strings, not an outlier
+         # use float result (-2 or -3 is also NE, if strings differ)
          # float result
          if fcomp == 0:  return 0
          else:           return 1
          
+      # for case of empty sting, allow for equality as strings
+      # if strings are equal, we do not need float tests
+      if scomp:
+         if comp == 'LE' or comp == 'GE':
+            return 1
+         else:
+            # because even for non-float strings, x<x cannot hold, for example
+            return 0
+
+      # --------------------------------------------------
+      # handle case where conversion to float fails, given that the remaining
+      # are float-based comparisons
+
+      # if the base value (bval) fails conversion, flag true as an outlier
+      # (since it seems weird)
+      if fcomp == -2 or fcomp == -4:
+         return 1
+
+      # if the test value is empty, default to false as an outlier
+      # (unless the user overrides it)
+      # else default to true
+      if fcomp == -3:
+         if tval == '':
+            self.found_empty_tval = 1
+            if self.verb > 2:
+               print("-- found empty test val: '%s' vs '%s'" %(tval,bval))
+            return self.ev_outlier
+         else:
+            return 1
+
+      # --------------------------------------------------
       # continue with pure numerical tests (forget scomp)
+
       if comp == 'LT':
-         if fcomp == -2: return 1 # cannot tell, call outlier
+         if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp < 0)
          
       if comp == 'LE':
-         if fcomp == -2: return 1 # cannot tell, call outlier
+         if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp <= 0)
          
       if comp == 'GT':
-         if fcomp == -2: return 1 # cannot tell, call outlier
+         if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp > 0)
          
       if comp == 'GE':
-         if fcomp == -2: return 1 # cannot tell, call outlier
+         if fcomp == -2: return 1 # cannot tell, return true as outlier
          return (fcomp >= 0)
          
       print("** ro_val_is_outlier: unknown comp: %s" % comp)
@@ -944,16 +1012,30 @@ class MyInterface:
 
    def ro_float_compare(self, v1, v2):
       """try to compare as floats -1, 0, 1
-         return -2 on "failure to convert"
+         return -2 on "failure to convert": both bad
+         return -3 on "failure to convert": only first is bad
+         return -4 on "failure to convert": only second is bad
       """
-      try:
-         f1 = float(v1)
-         f2 = float(v2)
-         if f1 < f2: return -1
-         if f1 > f2: return  1
-         return 0
-      except:
-         return -2
+      okay1 = 1
+      okay2 = 1
+      # check individually as float
+      try:    f1 = float(v1)
+      except: okay1 = 0
+      try:    f2 = float(v2)
+      except: okay2 = 0
+
+      # if either is bad, return some failure (both bad or only one)
+      if not okay1 or not okay2:
+         if okay1 == okay2:
+            return -2
+         if not okay1:
+            return -3
+         return -4
+
+      # have floats, perform comparison
+      if f1 < f2: return -1
+      if f1 > f2: return  1
+      return 0
 
    def ro_insert_test_labels(self, table, test_list):
       """replace table[1] value entries with test info

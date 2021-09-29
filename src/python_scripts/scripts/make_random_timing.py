@@ -1234,6 +1234,33 @@ options (specific to the advanced usage): ~2~
          (e.g. 5-10 s).  Given this, one might not want to add any additional
          rest the comes from the prior stimulus event.
 
+    -rand_post_elist_partition OLD METHOD NEW_0 NEW_1 ...
+                                : partition OLD events into new events
+
+         e.g. -rand_post_elist_partition donuts  per_run   choc glaze sprinkle
+
+         Randomly partition all OLD events evenly among NEW events.
+         This operation happens after all timing and events have been created,
+         based on the other options (hence the "post" partitioning).
+
+            OLD     : should be an existing stimulus class
+            METHOD  : either "per_run" or "across_runs"
+                      per_run       : partition one run at a time
+                      across_runs   : partition across all runs at once
+            NEW     : a new stim class that replaces some of OLD
+
+         OLD should be an existing stimulus class that will be replaced evenly
+         by NEW_0, NEW_1, etc.  So the number of OLD events (per or across
+         runs) must be a multiple of the number of NEW classes.
+
+         The NEW class events will be randomly assigned to replace OLD events.
+         If replacement is per_run, then each run will have the same number of
+         events per NEW class.  If replacement is across_runs, each NEW class
+         will have the same total number of events, but they need not be equal
+         per run.
+
+         Note that post-stim rest will not be equalized across such classes.
+
     -show_rest_events           : show details of rest timing, per type
 
     -write_event_list FILE      : create FILE listing all events and times

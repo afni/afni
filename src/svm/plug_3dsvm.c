@@ -49,7 +49,7 @@
 /* --- globals --- */
 extern        RT_SVM_VARS GLOBAL_svm_vars;
 static char * ASL_main( PLUGIN_interface * );  /* the entry point prototype */
-static int    DBG_flag = 0;  /* set to 1 to print debugging statements */
+static int    DBG_flag = 1;  /* set to 1 to print debugging statements */
 static        PLUGIN_interface * plint = NULL ; /* AFNI plugin structure, global
                                          allows error popups for rt functions */
 
@@ -325,8 +325,8 @@ static char* ASL_main( PLUGIN_interface* plint )
     }
     if( (trnFlag) && (tstFlag) ) {
       
-      free(err);
-      free(errorString);
+      IFree(err);
+      IFree(errorString);
       freeArgv( myargv, myargc );
       
       return
@@ -353,7 +353,7 @@ static char* ASL_main( PLUGIN_interface* plint )
             "****************************************************************");
        
         freeArgv( myargv, myargc );
-        free(errorString);
+        IFree(errorString);
         return (err);
       }
       else {
@@ -367,7 +367,7 @@ static char* ASL_main( PLUGIN_interface* plint )
               errorString);
 
           freeArgv( myargv, myargc );
-          free(errorString);
+          IFree(errorString);
           return (err);
         }
       }
@@ -407,8 +407,8 @@ static char* ASL_main( PLUGIN_interface* plint )
          if (DBG_flag) printArgv(myargv,&myargc);
        }
        else {
-          free(err);
-          free(errorString);
+          IFree(err);
+          IFree(errorString);
           freeArgv( myargv, myargc );
           return
              "*******************************************\n"
@@ -425,8 +425,8 @@ static char* ASL_main( PLUGIN_interface* plint )
        if (DBG_flag) printArgv(myargv,&myargc);
      }
      else {
-       free(err);
-       free(errorString);
+       IFree(err);
+       IFree(errorString);
        freeArgv( myargv, myargc );
        return
            "*******************************************\n"
@@ -478,8 +478,8 @@ static char* ASL_main( PLUGIN_interface* plint )
          if (DBG_flag) printArgv(myargv,&myargc);
        }
        else {
-         free(err);
-         free(errorString);
+         IFree(err);
+         IFree(errorString);
          freeArgv( myargv, myargc );
 
           return
@@ -585,8 +585,8 @@ static char* ASL_main( PLUGIN_interface* plint )
 
          if( !PLUTO_prefix_ok(mystringPtr) ) {
 
-           free(err);
-           free(errorString);
+           IFree(err);
+           IFree(errorString);
            freeArgv( myargv, myargc );
           
            return
@@ -616,8 +616,8 @@ static char* ASL_main( PLUGIN_interface* plint )
          if (DBG_flag) printArgv(myargv,&myargc);
        }
        else {
-         free(err);
-         free(errorString);
+         IFree(err);
+         IFree(errorString);
          freeArgv( myargv, myargc );
          
          return
@@ -635,8 +635,8 @@ static char* ASL_main( PLUGIN_interface* plint )
          if (DBG_flag) printArgv(myargv,&myargc);
        }
        else {
-         free(err);
-         free(errorString);
+         IFree(err);
+         IFree(errorString);
          freeArgv( myargv, myargc );
          
          return
@@ -713,8 +713,8 @@ static char* ASL_main( PLUGIN_interface* plint )
           if (DBG_flag) printArgv(myargv,&myargc);
         }
         else {
-          free(err);
-          free(errorString);
+          IFree(err);
+          IFree(errorString);
           freeArgv( myargv, myargc );
           
           return
@@ -731,8 +731,8 @@ static char* ASL_main( PLUGIN_interface* plint )
           if (DBG_flag) printArgv(myargv,&myargc);
         }
         else {
-          free(err);
-          free(errorString);
+          IFree(err);
+          IFree(errorString);
           freeArgv( myargv, myargc );
           
           return
@@ -764,8 +764,8 @@ static char* ASL_main( PLUGIN_interface* plint )
           if (DBG_flag) printArgv(myargv,&myargc);
         }
         else {
-          free(err);
-          free(errorString);
+          IFree(err);
+          IFree(errorString);
           freeArgv( myargv, myargc );
           
           return
@@ -809,8 +809,8 @@ static char* ASL_main( PLUGIN_interface* plint )
   if( (trnFlag) && (!maskFlag) ) {
     if( !argvCheck(myargv, &myargc, "-nomodelmask", "") ) {
 
-      free(err);
-      free(errorString);
+      IFree(err);
+      IFree(errorString);
       freeArgv( myargv, myargc );
 
       return
@@ -833,8 +833,8 @@ static char* ASL_main( PLUGIN_interface* plint )
   if( ALLOW_realtime ) {
     if( (mode != RT_TRAIN) && (mode != RT_TEST) ) {
 
-      free(err);
-      free(errorString);
+      IFree(err);
+      IFree(errorString);
       freeArgv( myargv, myargc );
 
       return
@@ -860,13 +860,13 @@ static char* ASL_main( PLUGIN_interface* plint )
         GLOBAL_library.realtime_callback = NULL; 
 
         freeArgv( myargv, myargc );
-        free(errorString);
+        IFree(errorString);
         return (err);
       }
     }
     else {
       freeArgv( myargv, myargc );
-      free(err);
+      IFree(err);
 
       return
         "**********************************************\n"
@@ -907,7 +907,7 @@ static char* ASL_main( PLUGIN_interface* plint )
       }
     }
     else {
-      free(err);
+      IFree(err);
       freeArgv( myargv, myargc );
 
       return
@@ -925,7 +925,7 @@ static char* ASL_main( PLUGIN_interface* plint )
       printArgv( myargv,&myargc );
       printf("\n");
 
-      free(err);
+      IFree(err);
       freeArgv( myargv, myargc );
     
       printf("  ---3dsvm plugin run done---\n");
@@ -984,7 +984,7 @@ static char* ASL_main( PLUGIN_interface* plint )
     else {
       freeAfniModelAndArrays( &afniModel, dsetModelArray, dsetMaskArray, nt_model );
       freeArgv( myargv, myargc );
-      free(err);
+      IFree(err);
       
       return
         "**********************************************\n"
@@ -1003,7 +1003,7 @@ static char* ASL_main( PLUGIN_interface* plint )
     printArgv( myargv,&myargc );
     printf("\n");
 
-    free(err);
+    IFree(err);
     freeArgv( myargv, myargc );
     
     printf("  ---3dsvm plugin run done---\n");
@@ -1020,7 +1020,9 @@ void svm_rt_callback(void *junk)
 
   MODEL rt_model;
 
-  DatasetType **
+  /* CC made this static so that it persists, might consider adding it
+     GLOBAL_svm_vars */
+  static DatasetType **
     rt_testArray               = NULL;  /* holds last sub-brik that has been
     sent to afni. Declared this as 2D array out of convenience, since we already
     have functions that convert 2D arrays to svm-light data structures */
@@ -1028,218 +1030,124 @@ void svm_rt_callback(void *junk)
   THD_3dim_dataset *
     rt_dsetMask                = NULL;
 
-  double rt_dist               = 0;
+  static double *rt_dist              = NULL;
+  double rt_detrend            = 0.0;
+  double rt_gm                 = 0.0; /* CC holds the global mean for detrending */
+  long rt_cnt                  = 0;
   long rt_nvox                 = 0;
   int rt_datum                 = 0;
   int rt_nt                    = 0;   /* number of briks (timepoints) that
                                          have been sent to afni (increases every TR) */
 
   long v                       = 0;
+  long f                       = 0;
   int  ii                      = 0;
-  char SVM_buf[LONG_STRING];
-  char *rt_errorString        = NULL;
-  char *err                   = NULL;
+  int iw                       = 0;
 
-  /* -- allocate rt_errorString --- */
-  if( (rt_errorString = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
-    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for rt_errorString failed!\n"); 
-    return;
-  }
-  if( (err = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
-    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for err failed!\n"); 
-    return;
-  }
+  char tmp_buf[128];
+  char SVM_buf[LONG_STRING];
+
+  /* Cameron 
+     made these static so that they do not
+     have to be reinit every time through */
+  static char *rt_errorString        = NULL;
+  static char *err                   = NULL;
+
 
   /* ----- STARTUP ----- */
-  if( rts->status == RT_STARTUP ) {
+  if( rts->status == RT_STARTUP ) 
+  {
+      /* -- allocate rt_errorString --- */
+      if( (rt_errorString = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
+        fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for rt_errorString failed!\n"); 
+        return;
+      }
+      if( (err = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
+        fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for err failed!\n"); 
+        return;
+      }
+
+
+      fprintf(stderr,"***DBG: CB: 3dsvm: GLOBAL_svm_vars.n_wvec=%d\n", GLOBAL_svm_vars.n_wvec);
+
+      /* JL 2013: Allow predictions (linear) with multiple weight vectors stored in bucket */
+      if( (rt_dist = (double *) malloc(GLOBAL_svm_vars.n_wvec*sizeof(double)) ) == NULL ) {
+        fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for rt_dist failed!\n"); 
+        return;
+      }
+
     /* --- initialize --- */
 
     /* -- initialization for real-time training -- */
     if( GLOBAL_svm_vars.mode == RT_TRAIN ) {
-      fprintf(stderr,"CB: 3dsvm: training will start after entire "
+      fprintf(stderr,"CB: 3dsvm (RT_STARTUP, RT_TRAIN): training will start after entire "
           "dataset is acquired!\n");
     }
     /* -- initialization for real-time testing -- */
     else if( GLOBAL_svm_vars.mode == RT_TEST ) {
-      fprintf(stderr, "CB: 3dsvm: testing in real-time!\n");
+
+      /* CC set the last preprocessed TR = 0 */
+      GLOBAL_svm_vars.nt_processed = 0;
+
+      /* make sure that the rt_testArray is set to NULL */
+      rt_testArray = NULL;
+
+      /* only need temporary buffer if we are testing with the model */
+      if( GLOBAL_svm_vars.bucket_predict == 0)
+      { 
+          /* CC moved this here to prevent reallocating and deallocating each TR */ 
+          /* -- allocate rt_testArray -- */
+          /* 2D out of convenience */
+          if ( (rt_testArray = (DatasetType **)
+                Allocate2DT(1, DSET_NVOX(rts->dset[rts->numdset-1]))) == NULL ) {
+            snprintf(rt_errorString, LONG_STRING, "Allocating rt_testArray failed!");
+            fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
+            snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+            PLUTO_popup_transient( plint , err);
+            
+            /* free and return */
+            IFree(rt_errorString);
+            IFree(err);
+            free_rt_svm_vars(&GLOBAL_svm_vars);
+
+            /* turn off the rt callback */
+            GLOBAL_library.realtime_callback = NULL;
+            return;
+          }
+          fprintf(stderr, "CB: 3dsvm (RT_STARTUP, RT_TEST): Testing using full model\n" );
+      }
+      else 
+      {
+          fprintf(stderr, "CB: 3dsvm (RT_STARTUP, RT_TEST): "
+              "Testing using bucket with: %d weight vectors\n", GLOBAL_svm_vars.n_wvec );
+      }
+      
+      /* now that everything is initialized, mark it */
+      GLOBAL_svm_vars.initialized = 1;
+      fprintf(stderr, "CB: 3dsvm (RT_STARTUP, RT_TEST): Initialized!\n" );
 
     }
+    /* -- not RT_TRAIN and not RT_TEST -- */
     else {
+      /* should never get here */
       snprintf(rt_errorString, LONG_STRING, "What happened?! Real-time mode unknown!");
       fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
       snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
       PLUTO_popup_transient( plint , err);
     
       /* free and return */
-      free(rt_errorString);
-      free(err);
+      free2DT(rt_testArray, 1);
+      IFree(rt_errorString);
+      IFree(err);
       
+      free_rt_svm_vars(&GLOBAL_svm_vars);
+      /* turn off the rt callback */
+      GLOBAL_library.realtime_callback = NULL;
       return;
     }
-  }
-
-  /* ----- CONTINUE ----- */
-  else if( rts->status == RT_CONTINUE ) {
-
-    /* --- real-time testing while data is being acquired and send to afni --- */
-    if( GLOBAL_svm_vars.mode == RT_TEST ) {
-      /* -- get dataset specs -- */
-      rt_nt    = DSET_NUM_TIMES(rts->dset[rts->numdset-1]);
-      rt_nvox  = DSET_NVOX(rts->dset[rts->numdset-1]);
-      rt_datum = DSET_BRICK_TYPE(rts->dset[rts->numdset-1], rt_nt-1);
-
-      /* -- allocate rt_testArray -- */
-      /* 2D out of convenience */
-      if ( (rt_testArray = (DatasetType **) Allocate2DT(1, rt_nvox)) == NULL ) {
-        snprintf(rt_errorString, LONG_STRING, "Allocating rt_testArray failed!");
-        fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-        snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-        PLUTO_popup_transient( plint , err);
-        
-        /* free and return */
-        free(rt_errorString);
-        free(err);
-        
-        return;
-      }
-
-      /* -- extract last sub-brik that was sent to afni -- */
-      if( rt_datum == MRI_short ) {
-        short *tmp_dsetArray = (short *) DSET_ARRAY(rts->dset[rts->numdset-1], rt_nt-1);
-        for( v=0; v<rt_nvox; ++v ) rt_testArray[0][v] = (DatasetType) tmp_dsetArray[v];
-      }
-      else if( rt_datum == MRI_float ) {
-        float *tmp_dsetArray = (float *) DSET_ARRAY(rts->dset[rts->numdset-1], rt_nt-1);
-        for( v=0; v<rt_nvox; ++v ) rt_testArray[0][v] = (DatasetType) tmp_dsetArray[v];
-      }
-      else {
-        snprintf(rt_errorString, LONG_STRING, "Sorry, only datum type "
-            "short and float is supported");
-        fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-        snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-        PLUTO_popup_transient( plint , err);
-        
-        /* free and return */
-        free2DT(rt_testArray, 1);
-        free(rt_errorString);
-        free(err);
-        
-        return;
-      }
-
-      /* -- perform testing -- */
-      if( test_rt(rt_testArray, rt_nvox, &rt_dist, rt_errorString) ) {
-        fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-        snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-        PLUTO_popup_transient( plint , err);
-        
-        /* free and return */
-        free2DT(rt_testArray, 1);
-        free(rt_errorString);
-        free(err);
-        
-        return;
-      }
-
-      /* -- write distance to prediction file -- */
-      fprintf(stderr,"CB: 3dsvm: Distance to hyper-plane = %6.3lf\n", rt_dist);
-      if( GLOBAL_svm_vars.options->predFile[0] ) {
-        fprintf(GLOBAL_svm_vars.fp_pred, "%.8g\n", rt_dist);
-      }
-      
-      /* -- send distance to SVM host -- */
-      if( GLOBAL_svm_vars.SVM_HOST_OK ) {
-        snprintf(SVM_buf, LONG_STRING, "%6.4lf", rt_dist );
-        /*snprintf(SVM_buf, LONG_STRING,"tcp_dist %6.4lf", rt_dist ); */
-        ii = iochan_sendall( GLOBAL_svm_vars.SVM_ioc, SVM_buf, strlen(SVM_buf)+1 );
-
-        if( ii < 0 ) {
-          fprintf(stderr, "CB: 3dsvm: WARNING: Sending data to SVM host failed!\n");
-        }
-      }
-
-      /* --- free rt_testArray --- */
-      free2DT(rt_testArray, 1);
-    }
-  }
-
-  /* ----- FINISHED ----- */
-  else if( rts->status == RT_FINISHED ) {
-
-    /* reset global afni callback function */
-    GLOBAL_library.realtime_callback = NULL; 
-
-    /* --- training after data acquisition is finished --- */
-    if( GLOBAL_svm_vars.mode == RT_TRAIN ) {
-      fprintf(stderr, "CB: 3dsvm: Calling training function...\n");
-      if( GLOBAL_svm_vars.svm_type == CLASSIFICATION ) {
-        if( train_classification(&rt_model, 
-               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
-              &GLOBAL_svm_vars.kernel_cache_size,
-               GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
-               GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
-               GLOBAL_svm_vars.myargv, rt_errorString) ) {
-        
-          fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-          snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-          PLUTO_popup_transient( plint , err);
-        
-          /* free and return */
-          free_rt_svm_vars(&GLOBAL_svm_vars);
-          free(rt_errorString);
-          free(err);
-
-          return;
-        }
-      }
-      else if( GLOBAL_svm_vars.svm_type == REGRESSION ) {
-        if( train_regression(&rt_model, 
-               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
-               &GLOBAL_svm_vars.kernel_cache_size,
-               GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
-               GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
-               GLOBAL_svm_vars.myargv, rt_errorString) ) {
-        
-          fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-          snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-          PLUTO_popup_transient( plint , err);
-        }
-
-        /* free and return */
-        free_rt_svm_vars(&GLOBAL_svm_vars);
-        free(rt_errorString);
-        free(err);
-
-        return; 
-      }
-      else {
-        snprintf(rt_errorString, LONG_STRING, 
-            "What happend?! Real-time train type is unknown!");
-        fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
-        snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
-        PLUTO_popup_transient( plint , err);
-        
-        /* free and return */
-        free_rt_svm_vars(&GLOBAL_svm_vars);
-        free(rt_errorString);
-        free(err);
-
-        return; 
-      }
-    }
-    else if( GLOBAL_svm_vars.mode == RT_TEST ) {
-      if( GLOBAL_svm_vars.SVM_HOST_OK == 1 ) {
-        IOCHAN_CLOSE( GLOBAL_svm_vars.SVM_ioc );
-      }
-      if( GLOBAL_svm_vars.options->predFile[0] ) {
-        fclose(GLOBAL_svm_vars.fp_pred);
-      }
-
-      free_rt_svm_vars(&GLOBAL_svm_vars);
-    }
-  }
-
-  else {
+  } /* end RT_STARTUP */
+  else if ((rts->status != RT_CONTINUE) && (rts->status != RT_FINISHED)){
+     /* should never get here */
      snprintf(rt_errorString, LONG_STRING,
          "What happened?! Real-time status unknown!");
      fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
@@ -1247,11 +1155,266 @@ void svm_rt_callback(void *junk)
      PLUTO_popup_transient( plint , err);
 
      /* free and return */
-     free(rt_errorString);
-     free(err);
+     free2DT(rt_testArray, 1);
+     IFree(rt_errorString);
+     IFree(err);
         
+     free_rt_svm_vars(&GLOBAL_svm_vars);
+     /* turn off the rt callback */
+     GLOBAL_library.realtime_callback = NULL;
      return; 
   }
+
+  /* make sure initializations have completed */
+  if ( GLOBAL_svm_vars.initialized == 1 )
+  {
+      /* test to see if we have a new volume (i.e. one we haven't seen before ) */
+      if( DSET_NUM_TIMES(rts->dset[rts->numdset-1]) > GLOBAL_svm_vars.nt_processed )
+      {
+    
+        /* CC changed so that it runs for the first TR as well */
+        /* --- real-time testing while data is being acquired and send to afni --- */
+        if( GLOBAL_svm_vars.mode == RT_TEST ) {
+
+          /* -- get dataset specs -- */
+          rt_nt    = DSET_NUM_TIMES(rts->dset[rts->numdset-1]);
+          rt_nvox  = DSET_NVOX(rts->dset[rts->numdset-1]);
+          rt_datum = DSET_BRICK_TYPE(rts->dset[rts->numdset-1], rt_nt-1);
+      
+          fprintf(stderr, "CB: 3dsvm (initialized, RT_TEST): parameters rt_nt: %d rt_nvox: %ld\n", rt_nt, rt_nvox);
+
+          /* -- extract last sub-brik that was sent to afni
+                and calculate dot product with bucket (if available) -- */
+          for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ ) {
+          }
+
+          if( rt_datum == MRI_short ) 
+          {
+              short *tmp_dsetArray = (short *) DSET_ARRAY(rts->dset[rts->numdset-1], rt_nt-1);
+              for( v=0; v<rt_nvox; v++ )
+              {
+                  /* calculate dot product with weight vector */
+                  if( GLOBAL_svm_vars.bucket_predict == 1)
+                  { 
+                      /* JL: calculate dist for every weight vector in bucket */
+                      for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ )
+                      {
+                          rt_dist[iw] += (double)((double)GLOBAL_svm_vars.dsetModelArray[iw][v]*
+                           (double)tmp_dsetArray[v]);
+                      }
+                  }
+                  else
+                  {
+                      /* only need temporary buffer if we are testing with the model */
+                      rt_testArray[0][v] = (DatasetType)tmp_dsetArray[v];
+                  }
+              }
+          }
+          else if( rt_datum == MRI_float ) 
+          {
+              float *tmp_dsetArray = (float *) DSET_ARRAY(rts->dset[rts->numdset-1], rt_nt-1);
+              for( v=0; v<rt_nvox; v++ )
+              {
+                  /* calculate dot product with weight vector */
+                  if( GLOBAL_svm_vars.bucket_predict == 1)
+                  { 
+                      /* JL: calculate dist for every weight vector in bucket */
+                      for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ )
+                      {
+                          rt_dist[iw] += (double)((double)GLOBAL_svm_vars.dsetModelArray[iw][v]*
+                           (double)tmp_dsetArray[v]);
+                      }
+                  }
+                  else
+                  {
+                      /* only need temporary buffer if we are testing with the model */
+                      rt_testArray[0][v] = (DatasetType)tmp_dsetArray[v];
+                  }
+              }
+          }
+          else 
+          {
+              snprintf(rt_errorString, LONG_STRING, "Sorry, only datum type "
+                  "short and float are supported");
+              fprintf(stderr, "CB: 3dsvm (initialized, RT_TEST): ERROR: %s\n", rt_errorString);
+              snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+              PLUTO_popup_transient( plint , err);
+                            
+              /* free and return */
+              free2DT(rt_testArray, 1);
+              IFree(rt_errorString);
+              IFree(err);
+                            
+              free_rt_svm_vars(&GLOBAL_svm_vars);
+              /* turn off the rt callback */
+              GLOBAL_library.realtime_callback = NULL;
+              return;
+          }
+
+          if( GLOBAL_svm_vars.bucket_predict == 1 )
+          {
+              /* subtract the bias_value from the dot product */
+              /* JL: Do that for every brik and b in bucket */
+              for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ ) 
+              {
+                rt_dist[iw] = rt_dist[iw] - (double)GLOBAL_svm_vars.bias_value[iw];
+              }
+          }
+          else
+          {   /* -- perform model - based (sloooowwww) testing -- */
+              if( test_rt(rt_testArray, rt_nvox, &rt_dist[0], rt_errorString) )
+              {
+                  fprintf(stderr, "CB: 3dsvm (initialized, RT_TEST): ERROR: %s\n", rt_errorString);
+                  snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+                  PLUTO_popup_transient( plint , err);
+            
+                  /* free and return */
+                  free2DT(rt_testArray, 1);
+                  IFree(rt_errorString);
+                  IFree(err);
+            
+                  free_rt_svm_vars(&GLOBAL_svm_vars);
+                  /* turn off the rt callback */
+                  GLOBAL_library.realtime_callback = NULL;
+                  return;
+              }
+          }
+          /* -- write distance to prediction file and SVM_buf -- */
+          fflush(stderr);
+
+          /* write first distance to sderr, prediction file and SVM_buf */
+          fprintf(stderr,"CB: 3dsvm (initialized, RT_TEST): Distance to hyper-plane: %d = %6.4lf\n", 0, rt_dist[0]);
+          if( GLOBAL_svm_vars.options->predFile[0] ) {
+              fprintf(GLOBAL_svm_vars.fp_pred, "%.8g", rt_dist[0]);
+          }
+          snprintf(SVM_buf, 128, "%6.4lf", rt_dist[0] ); 
+
+
+          /* more than one weight vector in bucket */
+          for( iw=1; iw<GLOBAL_svm_vars.n_wvec; iw++ )
+          {
+              if( GLOBAL_svm_vars.options->predFile[0] ) {
+                fprintf(GLOBAL_svm_vars.fp_pred, "\t%.8g", rt_dist[iw]);
+              }
+              fprintf(stderr,"CB: 3dsvm (initialized, RT_TEST): Distance to hyper-plane: %d = %6.4lf\n", iw, rt_dist[iw]);
+
+              snprintf(tmp_buf, 128, ",%6.4lf", rt_dist[iw]);
+              strncat(SVM_buf, tmp_buf, LONG_STRING);
+          }
+
+          if( GLOBAL_svm_vars.options->predFile[0] ) {
+              fprintf(GLOBAL_svm_vars.fp_pred, "\n");
+          }
+
+          /* -- send distance to SVM host -- */
+          if( GLOBAL_svm_vars.SVM_HOST_OK ) {
+            ii = iochan_sendall( GLOBAL_svm_vars.SVM_ioc, SVM_buf, strlen(SVM_buf)+1 );
+     
+            if( ii < 0 ) {
+              fprintf(stderr, "CB: 3dsvm (initialized, RT_TEST): WARNING: Sending data to SVM host failed!\n");
+            }
+          }
+        } /* end if RT_TEST */
+
+        /* increment the number of volumes that we processed */
+        GLOBAL_svm_vars.nt_processed = DSET_NUM_TIMES(rts->dset[rts->numdset-1]);
+
+      } /* end if nt > nt_preprocessed */
+      else
+      {
+         fprintf(stderr, "CB: 3dsvm (initialized): No new data to process\n" );
+      }
+  }
+  else
+  {
+     fprintf(stderr, "CB: 3dsvm: Called but not initialized\n");
+  }
+
+  /* CC put finished at end in case it comes with an image */
+  /* ----- FINISHED ----- */
+  if( rts->status == RT_FINISHED ) {
+
+    /* reset global afni callback function */
+    GLOBAL_library.realtime_callback = NULL; 
+
+    /* --- training after data acquisition is finished --- */
+    if( GLOBAL_svm_vars.mode == RT_TRAIN ) {
+      if( GLOBAL_svm_vars.svm_type == CLASSIFICATION ) {
+        fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): Classification...\n");
+        if( train_classification(&rt_model, 
+               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
+              &GLOBAL_svm_vars.kernel_cache_size,
+               GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
+               GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
+               GLOBAL_svm_vars.myargv, rt_errorString) ) {
+        
+          fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): ERROR: %s\n", rt_errorString);
+          snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+          PLUTO_popup_transient( plint , err);
+        
+          /* free and return */
+          free_rt_svm_vars(&GLOBAL_svm_vars);
+          IFree(rt_errorString);
+          IFree(err);
+
+          return;
+        }
+      }
+      else if( GLOBAL_svm_vars.svm_type == REGRESSION ) {
+        fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): Regression...\n");
+        if( train_regression(&rt_model, 
+               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
+               &GLOBAL_svm_vars.kernel_cache_size,
+               GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
+               GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
+               GLOBAL_svm_vars.myargv, rt_errorString) ) {
+        
+          fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): ERROR: %s\n", rt_errorString);
+          snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+          PLUTO_popup_transient( plint , err);
+        }
+
+        /* free and return */
+        free_rt_svm_vars(&GLOBAL_svm_vars);
+        IFree(rt_errorString);
+        IFree(err);
+
+        return; 
+      }
+      /* not CLASSIFICATION and not REGRESSION */
+      else {
+        /* should never get here */
+        snprintf(rt_errorString, LONG_STRING, 
+            "What happend?! Real-time train type is unknown!");
+        fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): ERROR: %s\n", rt_errorString);
+        snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
+        PLUTO_popup_transient( plint , err);
+       
+        /* free and return */
+        free_rt_svm_vars(&GLOBAL_svm_vars);
+        IFree(rt_errorString);
+        IFree(err);
+
+        return; 
+      }
+    }
+    else if( GLOBAL_svm_vars.mode == RT_TEST )
+    {
+      fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TEST): Cleaning up...\n");
+       /* clear out the rt_testArray */
+       free2DT(rt_testArray, 1);
+       if( GLOBAL_svm_vars.SVM_HOST_OK == 1 ) {
+         IOCHAN_CLOSE( GLOBAL_svm_vars.SVM_ioc );
+       }
+       if( GLOBAL_svm_vars.options->predFile[0] ) {
+         fclose(GLOBAL_svm_vars.fp_pred);
+       }
+    
+       free_rt_svm_vars(&GLOBAL_svm_vars);
+       return;
+    }
+  }
+  /* finished with RT processing callback */
 }
 
 int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mode, char *errorString ) 
@@ -1288,6 +1451,13 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   }
 
 
+  /* -- Cameron Craddock modifications to support testing from the bucket --*/
+  GLOBAL_svm_vars.bucket_predict = 0;
+
+  /* Cameron cradock to let us now if initializations from the BEGIN
+     phase of the callback have occured */
+  GLOBAL_svm_vars.initialized = 0;
+ 
   /* --- setting global afni callback function to be invoked as
   * svm_rt_callback(void *junk) - junk will be NULL --- */
   GLOBAL_library.realtime_callback = svm_rt_callback;
@@ -1334,33 +1504,203 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   }
 
   /* --- real-time testing --- */
-  if( mode == RT_TEST ) {
-    
-    /* -- read afni model -- */
-    fprintf(stderr, "++  3dsvm: Reading model: %s...\n", options->modelFile);
-    if( THD_open_one_dataset(options->modelFile) == NULL ) {
+  if( mode == RT_TEST ) 
+  {
+   
+    /* -- Cameron Craddock modifications to support testing from the bucket --*/
+    /*    JL: Support testing on multiple weight vectors stored in the same bucket */
+    if( options->modelWeightFile[0] )
+    {
+        THD_3dim_dataset *bucket = NULL;
+        int nvox = 0;
+        int iv = 0;
+        int dtype = 0;
+        int nw, iw = 0;  
+        ATR_float* atr_float = NULL;        
 
-      /* TODO: Need some sort of search for a model here!
-       *       Don't want to use system calls though...
-       *       Maybe a default name will suffice 
-       */
-      snprintf(errorString, LONG_STRING, "Could not locate model dataset: %s!",
-          options->modelFile);
+        fprintf(stderr, "++  3dsvm: Reading bucket: %s...\n", options->modelWeightFile);
+        /* first lets open the dataset */
+        if(( bucket = THD_open_dataset( options->modelWeightFile )) == NULL )
+        {
+            snprintf( errorString, LONG_STRING, "Could not open bucket datset: %s!",
+                       options->modelWeightFile );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            return 1;
+        }
 
-      free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
-      return 1;
-    }
+        /*  get number of datasets in bucket */
+        nw = DSET_NVALS(bucket);
+        
+        /* next get the b (bias) from the bucket */
+        /* some error checking */
+        /* TODO: It would be good to check if all sub-briks in the bucket have
+           the same dimensionality, are of same type, etc.                      */
+        if( nw < 1 )
+        { 
+            snprintf( errorString, LONG_STRING, "Not enough brik(s) in: %s "
+                    "Need at least one", options->modelWeightFile );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
+        if( ( atr_float = THD_find_float_atr( bucket->dblk, "3DSVM_B" ) ) == NULL )
+        {
+            /* "Error" is a useful grep string in build output, using "error" */
+            snprintf( errorString, LONG_STRING, "error retrieving bias value "
+              "from %s the bucket", options->modelWeightFile );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
+        if( nw != atr_float->nfl ) 
+        {
+            snprintf( errorString, LONG_STRING, "Number of bias values: %d does "
+              "not match number of sub-briks: %d in the bucket: %s", 
+              atr_float->nfl, nw, options->modelWeightFile );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
 
-    GLOBAL_svm_vars.afniModel = (AFNI_MODEL *)malloc(sizeof(AFNI_MODEL));
-    if( readAllocateAfniModelAndArrays(options,
-         GLOBAL_svm_vars.afniModel, dsetModel,
-         &GLOBAL_svm_vars.dsetModelArray, &GLOBAL_svm_vars.dsetMaskArray,
-         &GLOBAL_svm_vars.nt_model, &GLOBAL_svm_vars.nvox_model, GLOBAL_svm_vars.mode,
-         &GLOBAL_svm_vars.svm_type, errorString) ) {
+        /* allocate */
+        if( ( GLOBAL_svm_vars.bias_value = (float *)malloc( nw * 
+                                            sizeof(float)) ) == NULL ) 
+        {
+            snprintf( errorString, LONG_STRING, "Error allocating array for bias value"); 
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
+        for( iw=0; iw<nw; ++iw )
+        {
+          GLOBAL_svm_vars.bias_value[iw] = atr_float->fl[iw]; 
+          fprintf(stderr, "++  3dsvm: Read B (%g) for brik: %d from bucket: %s...\n", 
+              GLOBAL_svm_vars.bias_value[iw], iw, options->modelWeightFile);
+        }
+
+        /* load the bucket */
+        DSET_load( bucket );
+        CHECK_LOAD_ERROR( bucket );
+        nvox = DSET_NVOX( bucket );
+
+        /* set global svm parameters for model */
+        GLOBAL_svm_vars.nt_model=nw;
+        GLOBAL_svm_vars.nvox_model=nvox;
+        
+        /* allocate buffer for the model array (JL: now nw * nvox) */
+        if(( GLOBAL_svm_vars.dsetModelArray = (DatasetType**)Allocate2DT(nw, nvox) )==NULL)
+        {
+            snprintf( errorString, LONG_STRING, 
+                "Error allocating memory for model" );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
+
+        /* allocate buffer for mask array weight_vector_ndx */
+        if(( GLOBAL_svm_vars.dsetMaskArray = (MaskType*)malloc(nvox*sizeof(MaskType)))==NULL)
+        {
+            snprintf( errorString, LONG_STRING, 
+                "Error allocating memory for mask" );
+            free2DT( GLOBAL_svm_vars.dsetModelArray, nw );
+            free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+            DSET_delete(bucket);
+            return 1; 
+        }
+        
+        
+        /* copy the data from the file into memory and make the mask */
+        /* loop over bucket sub-briks and write into memory  */
+        for( iw=0; iw<nw; ++iw )
+        { 
+            dtype = DSET_BRICK_TYPE( bucket, iw );
+            /* TODO: Should we enforce the same brik type? */
+            /* TODO: We could potentially have a different mask for each 
+               sub-brik, which could be useful. But that requires more work...
+               Using first brick i.e. [0] to calculate the mask */ 
+
+            switch( dtype )
+            {
+                case MRI_float:
+                {
+                    float* var = DSET_ARRAY( bucket, iw );
+
+                    for( iv = 0; iv < nvox; iv++ ) 
+                    {
+                        GLOBAL_svm_vars.dsetModelArray[iw][iv]=(float)var[iv]/(float)SCALE;
+                    }
+                    break;
+                }
+                case MRI_short:
+                {
+                    /* get a pointer to the voxel data */
+                    short* var = DSET_ARRAY( bucket, iw);
+
+                    for( iv = 0; iv < nvox; iv++ )
+                    {
+                        GLOBAL_svm_vars.dsetModelArray[iw][iv]=(float)var[iv]/(float)SCALE;
+                    }
+                }
+                default:
+                {
+                    snprintf( errorString, LONG_STRING, 
+                        "Unsupported datum (%d) for bucket (%s)",
+                        dtype, options->modelWeightFile );
+                    free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
+                    DSET_delete(bucket);
+                    return 1; 
+                }
+            }
+        }
+
+        /* calculate mask */
+        for( iv = 0; iv < nvox; iv++ ) 
+        {
+            if( GLOBAL_svm_vars.dsetModelArray[0][iv] != 0.0 )
+            {
+                GLOBAL_svm_vars.dsetMaskArray[iv]=1;
+            }
+            else
+            {
+                GLOBAL_svm_vars.dsetMaskArray[iv]=0;
+            }
+        }
       
-      free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
-      return 1;
+        /* we have all of the information that we need,
+           kill the bucket */
+        DSET_delete(bucket);
+        GLOBAL_svm_vars.bucket_predict = 1;
+        GLOBAL_svm_vars.n_wvec = nw;
     }
+    else
+    { 
+        /* -- read afni model -- */
+        fprintf(stderr, "++  3dsvm: Reading model: %s...\n", options->modelFile);
+        if( THD_open_one_dataset(options->modelFile) == NULL ) {
+    
+          /* TODO: Need some sort of search for a model here!
+           *       Don't want to use system calls though...
+           *       Maybe a default name will suffice 
+           */
+          snprintf(errorString, LONG_STRING, "Could not locate model dataset: %s!",
+              options->modelFile);
+    
+          free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
+          return 1;
+        }
+    
+        GLOBAL_svm_vars.afniModel = (AFNI_MODEL *)malloc(sizeof(AFNI_MODEL));
+        if( readAllocateAfniModelAndArrays(options,
+             GLOBAL_svm_vars.afniModel, dsetModel,
+             &GLOBAL_svm_vars.dsetModelArray, &GLOBAL_svm_vars.dsetMaskArray,
+             &GLOBAL_svm_vars.nt_model, &GLOBAL_svm_vars.nvox_model, GLOBAL_svm_vars.mode,
+             &GLOBAL_svm_vars.svm_type, errorString) ) {
+          
+          free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
+          return 1;
+        }
+    }
+    /* CC end modifications */
 
     /* -- open prediction file */
     if( options->predFile[0] ) {
@@ -1424,20 +1764,46 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
 
 void free_rt_svm_vars( RT_SVM_VARS *svm_vars ) {
 
+  ENTRY("free_rt_svm_vars");
+
   if( svm_vars->mode == RT_TRAIN ) {
     freeArgv(svm_vars->myargv, svm_vars->myargc);
   }
   else if( svm_vars->mode == RT_TEST ) {
-    freeAfniModelAndArrays( svm_vars->afniModel, svm_vars->dsetModelArray, 
-        svm_vars->dsetMaskArray,svm_vars->nt_model );
+
+    if( GLOBAL_svm_vars.bucket_predict == 1 )
+    {
+        /* if we predicted from the bucket, then we never
+           allocated an AfniModel, so we don't need to 
+           free it */
+        freeModelArrays(svm_vars->dsetModelArray, 
+            svm_vars->dsetMaskArray, svm_vars->nt_model, 1 );
+
+        /* JL May 2013: For multiple weight vectors in bucket */
+        if( GLOBAL_svm_vars.bias_value != NULL ) 
+        {
+            IFree( GLOBAL_svm_vars.bias_value );
+        }
+    }
+    else
+    {
+        freeAfniModelAndArrays( svm_vars->afniModel, svm_vars->dsetModelArray, 
+            svm_vars->dsetMaskArray,svm_vars->nt_model );
+    }
     freeArgv(svm_vars->myargv, svm_vars->myargc);
+
+    /* we must reinitialize before we can use this data again */
+    GLOBAL_svm_vars.initialized=0;
   }
 
-  return;
+  EXRETURN;
 }
 
 int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *errorString )
 {
+  /* TODO: This is very slow compared to -bucket (dot product), since model is read every TR!
+   *       This function is only needed when using non-linear kernels and multi-class. 
+   *       Multi-class can be implemented for -bucket)   */
 
   DOC   *currTestDoc         = NULL;
   MODEL *svmlModel           = NULL;
@@ -1596,8 +1962,8 @@ static int drive_3dsvm_plugin ( char *cmdl )
       fprintf(stderr, "**  3dsvm: ERROR: %s\n", errorString);
       snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", errorString);
       PLUTO_popup_transient( plint , err);
-      free( errorString );
-      free( err );
+      IFree( errorString );
+      IFree( err );
       freeArgv( myargv, myargc );
       return 1;
     }
@@ -1612,17 +1978,18 @@ static int drive_3dsvm_plugin ( char *cmdl )
 
     snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", errorString);
     PLUTO_popup_transient( plint , err);
-    free( errorString );
-    free( err );
+    IFree( errorString );
+    IFree( err );
     freeArgv( myargv, myargc );
 
     return 1;
   }
 
   /* -- free -- */
-  free( errorString );
-  free( err );
+  IFree( errorString );
+  IFree( err );
   freeArgv( myargv, myargc );
 
   return 0;
+
 }

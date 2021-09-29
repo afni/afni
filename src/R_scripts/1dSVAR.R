@@ -665,25 +665,25 @@ for (ii in 1:nROIs) for (jj in 1:nROIs) for (kk in 1:nLags)  { # ii: target, jj:
 	netMatT[kk,jj,ii] <- coef(fm)[[ii]][jj+nROIs*(kk-1), 3]  # t values
 }
 				
-#for (ii in 1:nLags) {
-#   print(sprintf("Path coefficient matrix with a lag of %i (direction goes from row to column):", ii))
-#   print(matrix(netMatR[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
-#   saveMat <- as.integer(readline("Save above path matrix for group analysis (0: no; 1: yes)? "))
-#   if (saveMat) {
-#      matName <- as.character(readline("File name prefix (e.g., PathLag1Subj1)? "))
-#      write.table(netMatR[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
-#   }   	
-#   print("-----------------")
-#	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
-#   print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
-#	print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-#	saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
-#   if (saveMatT) {
-#      matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
-#      write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
-#   }   	
-#   print("-----------------")
-#}
+for (ii in 1:nLags) {
+   print(sprintf("Path coefficient matrix with a lag of %i (direction goes from row to column):", ii))
+   print(matrix(netMatR[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
+   saveMat <- as.integer(readline("Save above path matrix for group analysis (0: no; 1: yes)? "))
+   if (saveMat) {
+      matName <- as.character(readline("File name prefix (e.g., PathLag1Subj1)? "))
+      write.table(netMatR[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
+   }   	
+   print("-----------------")
+	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
+   print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
+	print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
+	saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
+   if (saveMatT) {
+      matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
+      write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
+   }   	
+   print("-----------------")
+}
 
 #if (nLags>1) { # overall network with all lags collapsed
 #   libLoad("car")  # for linear.hypothesis

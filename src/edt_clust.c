@@ -61,12 +61,11 @@ ENTRY("MCW_find_clusters") ;
 
    mnum = mask->num_pt ;
 
-
-   /*--- scan through array, find nonzero point, build a cluster, ... ---*/
+   /*--- scan through array, find next nonzero point, build a cluster, ... ---*/
 
    INIT_CLARR(clust_arr) ;
 
-   ijk_last = 0 ;
+   ijk_last = 0 ;  /* starting point for scan */
    do {
       switch( ftype ){
          case MRI_short:
@@ -90,17 +89,17 @@ ENTRY("MCW_find_clusters") ;
             }
          break ;
       }
-      if( ijk == nxyz ) break ;  /* didn't find any! */
+      if( ijk == nxyz ) break ;  /* didn't find any nonzero points! */
 
 #ifdef CLUST_DEBUG
 printf("  starting cluster at ijk=%d\n",ijk) ;
 #endif
 
-      ijk_last = ijk+1 ;         /* start here next time */
+      ijk_last = ijk+1 ;                    /* start scanning here next time */
 
-      INIT_CLUSTER(clust) ;                  /* make a new cluster */
+      INIT_CLUSTER(clust) ;                    /* make a new (empty) cluster */
       IJK_TO_THREE(ijk,ic,jc,kc,nx,nxy) ;
-      ADDTO_CLUSTER( clust , ic, jc, kc, fimv ) ;  /* start it off */
+      ADDTO_CLUSTER( clust , ic, jc, kc, fimv ) ;           /* start it off! */
 
       /*--
         for each point in cluster:
@@ -111,24 +110,29 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
       --*/
 
       switch( ftype ){
-         case MRI_short:
+         case MRI_short:  /* clust->num_pt increases with each ADDTO_CLUSTER */
             for( icl=0 ; icl < clust->num_pt ; icl++ ){
-             ic = clust->i[icl];
+             ic = clust->i[icl];                  /* check around this point */
              jc = clust->j[icl];
              kc = clust->k[icl];
 
-             for( jma=0 ; jma < mnum ; jma++ ){
-                  im = ic + mask->i[jma];
+             for( jma=0 ; jma < mnum ; jma++ ){             /* scanning mask */
+                  im = ic + mask->i[jma];      /* offsets from (ic,jc,kc) pt */
                   jm = jc + mask->j[jma];
                   km = kc + mask->k[jma];
-                  if( im < 0 || im >= nx ||
+                  if( im < 0 || im >= nx ||        /* outside the 3D volume? */
                       jm < 0 || jm >= ny || km < 0 || km >= nz ) continue ;
 
-                  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
+                  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);    /* 3D index */
+
+                  /* is ijkma:  a previous point?
+                                outside the box?
+                                not "active"?    -- if any of these, skip it */
+
                   if( ijkma < ijk_last || ijkma >= nxyz || sfar[ijkma] == 0 ) continue ;
 
-                  ADDTO_CLUSTER( clust , im, jm, km, sfar[ijkma] ) ;
-                  sfar[ijkma] = 0 ;
+                  ADDTO_CLUSTER( clust , im, jm, km, sfar[ijkma] ) ; /* new! */
+                  sfar[ijkma] = 0 ;                    /* mark it as used up */
                }
             }
          break ;
@@ -178,10 +182,16 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
          break ;
       }
 
+      /* Cluster 'clust' is complete, add it to the cluster array */
+
       ADDTO_CLARR(clust_arr,clust) ;
    } while( 1 ) ;
 
+   /* the mask is now obsolete */
+
    KILL_CLUSTER(mask) ;
+
+   /* Didn't find anything at all? Weird. */
 
    if( clust_arr->num_clu <= 0 ){ DESTROY_CLARR(clust_arr) ; }
 
@@ -251,6 +261,7 @@ ENTRY("MCW_cluster_to_vol") ;
 /* Put the values from the dataset at the cluster locations into
    the 'mag' component of the cluster, and zero out the dataset
    at those location.  Can use MCW_cluster_to_vol() to restore later.
+   This pair of functions is used in Clusterize for Flash-ing.
 ---------------------------------------------------------------------*/
 
 void MCW_vol_to_cluster( int nx , int ny , int nz ,

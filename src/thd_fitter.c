@@ -10,8 +10,10 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                           int meth   , float *ccon  , int dcon   ,
                                           int pencode, float *penfac_used         );
 
-static int voxid = 0 ;
-void THD_fitter_voxid( int i ){ voxid = i; }
+/* 'AO' changes (from Aomp.h) are for compatibility with OpenMP */
+
+AO_DEFINE_SCALAR(int,voxid) ;
+void THD_fitter_voxid( int i ){ AO_VALUE(voxid) = i; }
 
 /*------------------------------------------------------------------*/
 /* Least squares fitting without constraints. (cf mri_matrix.c) */
@@ -57,14 +59,19 @@ ENTRY("new_lsqfit") ;
 
 /**--- 05 Mar 2008: stuff to get the fitted model back ---**/
 
-static floatvec *gfitv= NULL ;
+/* this variable is set once-and-for-all so doesn't need to be thread-ized */
 static int    do_fitv = 0 ;    /* if 1, will compute fitts into fitv */
 void       THD_fitter_do_fitts(int qq){ do_fitv = qq; }
-floatvec * THD_retrieve_fitts(void){ return gfitv; }
 
-static int       nggfitvv = 0 ;
-static floatvec **ggfitvv = NULL ;
+AO_DEFINE_SCALAR(floatvec*,gfitv) ;
+#if 0
+static floatvec *gfitv= NULL ;
+#endif
 
+/* get the fitted time series vector (immediately after getting params) */
+floatvec * THD_retrieve_fitts(void){ return AO_VALUE(gfitv); }
+
+/* these variables are set once-and-for-all so don't need to be thread-ized */
 static int use_rcmat = 0 ;
 
 static float vthresh = 0.0f ;             /* 18 May 2010: vector threshold */
@@ -97,7 +104,7 @@ floatvec * THD_fitter( int npt , float *far  ,
 
 ENTRY("THD_fitter") ;
 
-   KILL_floatvec(gfitv) ;  /* 05 Mar 2008 */
+   KILL_floatvec(AO_VALUE(gfitv)) ;  /* 05 Mar 2008 */
 
    /* check inputs for stupid users */
 
@@ -204,8 +211,8 @@ ENTRY("THD_fitter") ;
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
    free(qfit) ;                                  /* free the trashola */
-   if( do_fitv )                                    /* compute fitts? */
-     gfitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ); /* 05 Mar 2008 */
+   if( do_fitv )                                              /* compute fitts? */
+     AO_VALUE(gfitv) = THD_fitter_fitts( npt,fv,nref,ref,NULL ); /* 05 Mar 2008 */
 
    free(qmag) ; RETURN(fv) ;                      /* return to caller */
 }
@@ -246,6 +253,15 @@ ENTRY("THD_fitter_fitts") ;
 # define ERREX(s) do { ERROR_message(s); RETURN(NULL); } while(0)
 #else
 # define ERREX(s) RETURN(NULL)
+#endif
+
+/* these fitted time series vectors are for deconvolution */
+
+AO_DEFINE_SCALAR(int,nggfitvv) ;
+AO_DEFINE_SCALAR(floatvec**,ggfitvv) ;
+#if 0
+static int       nggfitvv = 0 ;
+static floatvec **ggfitvv = NULL ;
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -290,9 +306,11 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
 ENTRY("THD_deconvolve_multipen") ;
 
-   if( nggfitvv > 0 ){
-     for( ii=0 ; ii < nggfitvv ; ii++ ) KILL_floatvec(ggfitvv[ii]) ;
-     free((void *)ggfitvv) ; nggfitvv = 0 ; ggfitvv = NULL ;
+   /* delete any leftover junk */
+
+   if( AO_VALUE(nggfitvv) > 0 ){
+     for( ii=0 ; ii < AO_VALUE(nggfitvv) ; ii++ ) KILL_floatvec(AO_VALUE(ggfitvv)[ii]) ;
+     free((void *)AO_VALUE(ggfitvv)) ; AO_VALUE(nggfitvv) = 0 ; AO_VALUE(ggfitvv) = NULL ;
    }
 
    /* check inputs for stupid users */
@@ -421,9 +439,11 @@ STATUS("make up penalty factors") ;
 
    fvv = (floatvec **)calloc(sizeof(floatvec *),npfac) ;
 
+   /* allocate space for multiple fit vectors, for multiple penalty factors */
+
    if( do_fitv ){
-      ggfitvv = (floatvec **)calloc(sizeof(floatvec *),npfac) ;
-     nggfitvv = npfac ;
+      AO_VALUE(ggfitvv) = (floatvec **)calloc(sizeof(floatvec *),npfac) ;
+     AO_VALUE(nggfitvv) = npfac ;
    }
 
    p1scl = AFNI_numenv("AFNI_TFITTER_P1SCALE"); if( p1scl <= 0.0f ) p1scl=1.0f ;
@@ -472,9 +492,11 @@ STATUS(" setup p3") ;
 
      fvv[ipf] = THD_fitter( nplu , zar , nref , ref , meth , zcon ) ;
 
-     if( do_fitv && fvv[ipf] != NULL && gfitv != NULL ){
+     /* fvv = fitted params; gfitv = fitted time series */
+
+     if( do_fitv && fvv[ipf] != NULL && AO_VALUE(gfitv) != NULL ){
 STATUS("copy fitvec") ;
-       COPY_floatvec( ggfitvv[ipf] , gfitv ) ;
+       COPY_floatvec( AO_VALUE(ggfitvv)[ipf] , AO_VALUE(gfitv) ) ;
 STATUS(" end copy fitvec") ;
      }
 
@@ -623,7 +645,7 @@ ENTRY("THD_deconvolve_autopen") ;
    if( fvv == NULL ){
      ERROR_message(
        "THD_deconvolve_autopen failed to solve initial problems: voxel ID=%d",
-       voxid ) ;
+       AO_VALUE(voxid) ) ;
      RETURN(NULL) ;
    }
 
@@ -661,11 +683,11 @@ ENTRY("THD_deconvolve_autopen") ;
      free((void *)fvv) ;
      ERROR_message(
        "THD_deconvolve_autopen fails to find initial good fit: voxel ID=%d",
-       voxid);
+       AO_VALUE(voxid));
      RETURN(NULL) ;
    }
 
-   fv = fvv[ipk] ; if( do_fitv ){ COPY_floatvec(gv,ggfitvv[ipk]); }
+   fv = fvv[ipk] ; if( do_fitv ){ COPY_floatvec(gv,AO_VALUE(ggfitvv)[ipk]); }
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
@@ -687,8 +709,8 @@ ENTRY("THD_deconvolve_autopen") ;
                                   pencode , NPFAC , pfac , pres,psiz ) ;
 
    if( fvv == NULL ){  /* failed ==> return what we found earlier */
-     ERROR_message("THD_deconvolve_autopen semi-failed: voxel ID=%d",voxid) ;
-     if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
+     ERROR_message("THD_deconvolve_autopen semi-failed: voxel ID=%d",AO_VALUE(voxid)) ;
+     if( do_fitv ){ KILL_floatvec(AO_VALUE(gfitv)); AO_VALUE(gfitv) = gv; }
      RETURN(fv) ;
    }
 
@@ -722,13 +744,13 @@ ENTRY("THD_deconvolve_autopen") ;
    if( ipk < 0 || ppk == 0.0f ){ /* all failed?  use old result */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
      free((void *)fvv) ;
-     ERROR_message("THD_deconvolve_autopen semi-fails: voxel ID=%d",voxid) ;
-     if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
+     ERROR_message("THD_deconvolve_autopen semi-fails: voxel ID=%d",AO_VALUE(voxid)) ;
+     if( do_fitv ){ KILL_floatvec(AO_VALUE(gfitv)); AO_VALUE(gfitv) = gv; }
      RETURN(fv) ;
    }
 
    KILL_floatvec(fv) ; fv = fvv[ipk] ;
-   if( do_fitv ){ KILL_floatvec(gv); COPY_floatvec(gv,ggfitvv[ipk]); }
+   if( do_fitv ){ KILL_floatvec(gv); COPY_floatvec(gv,AO_VALUE(ggfitvv)[ipk]); }
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
@@ -737,6 +759,6 @@ ENTRY("THD_deconvolve_autopen") ;
      ININFO_message("Optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
 #endif
 
-   if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
+   if( do_fitv ){ KILL_floatvec(AO_VALUE(gfitv)); AO_VALUE(gfitv) = gv; }
    RETURN(fv) ;
 }

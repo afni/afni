@@ -24,8 +24,16 @@
 #      cbar range for both continuous and discrete (hot/cold) cbar
 #    + can also add in a continuous cbar of own choosing
 #
-set version   = "1.1";  set rev_dat   = "April 16, 2021"
+#set version   = "1.1";  set rev_dat   = "April 16, 2021"
 # [PT] add several more @chauffeur_afni opts to pass along. Sigh.
+#
+#set version   = "1.2";  set rev_dat   = "Sep 21, 2021"
+# [PT] add new @chauff* opts: '-no_cor', '-no_sag', '-no_axi'
+#    + will be useful for APQC (-no_cor)
+#
+set version   = "1.21";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -68,6 +76,9 @@ set user_coors     = "-pass"
 set label_mode     = 1
 
 set delta_slices   = "-pass"
+
+set views_off        = ( )
+set all_views        = ( 1 1 1 )
 
 # ------------------- process options, a la rr ----------------------
 
@@ -231,6 +242,18 @@ while ( $ac <= $#argv )
         @ ac += 1
         set thrnew = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-no_axi" ) then
+        set views_off = ( ${views_off} -no_axi )
+        set all_views[1] = 0
+
+    else if ( "$argv[$ac]" == "-no_cor" ) then
+        set views_off = ( ${views_off} -no_cor )
+        set all_views[2] = 0
+
+    else if ( "$argv[$ac]" == "-no_sag" ) then
+        set views_off = ( ${views_off} -no_sag )
+        set all_views[3] = 0
+
     # --------- extra control 
 
     else if ( "$argv[$ac]" == "-cbar_cont" ) then
@@ -272,6 +295,12 @@ end
 # =======================================================================
 
 echo "++ Prepare for running ${this_prog} (ver = ${version})"
+
+if ( `echo "${all_views[1]}+${all_views[2]}+${all_views[3]} == 0" | bc` ) then
+    echo "** ERROR: not allowed to turn off 3 view planes"
+    echo "   Can only use 2 of: -no_cor, -no_sag, -no_axi"
+    goto BAD_EXIT
+endif
 
 if ( "${ulay}" == "" ) then
     echo "** ERROR: use '-ulay ..'"
@@ -475,7 +504,8 @@ endif
     -montx    ${Nx}   -monty     ${Ny}                      \
     -montgap  ${mgap} -montcolor ${mcolor}                  \
     -set_xhairs  OFF                                        \
-    -label_mode  ${label_mode}   -label_size 3              \
+    -label_mode  ${label_mode}   -label_size 4              \
+    ${views_off}                                            \
     -do_clean                                               \
     ${user_coors}                                           \
     ${delta_slices}
@@ -522,6 +552,9 @@ EXTRA OPTS ~1~
 -olay_disc_hot_range  A B
 -olay_cont_max  A 
 -cbar_cont      A
+-no_cor
+-no_sag
+-no_axi
 -echo 
 
 EXAMPLE ~1~

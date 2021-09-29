@@ -53,6 +53,68 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Sep, 2021, RCR, "3dTshift", MICRO, TYPE_ENHANCE,
+   "update help to connect tzero to stimulus timing in 3dDeconvolve",
+   "Might want to subtract 'tzero' from stimulus event times."
+ } ,
+
+ { 21, Sep, 2021, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
+   "propagate toffset, if not zero",
+   NULL
+ } ,
+
+ { 10, Sep, 2021, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
+   "add web formatting to help",
+   NULL
+ } ,
+
+ { 31, Aug, 2021, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add option -gert_chan_digits, to specify num digits for channel in name",
+   NULL
+ } ,
+
+ { 20, Aug, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_tsv_cols_of_interest",
+   NULL
+ } ,
+
+ { 14, Aug, 2021, RCR, "coxplot", MICRO, TYPE_BUG_FIX,
+   "remove duplicate symbols zzzplt_ and zzpltr_",
+   "Done at the behest of D Glen."
+ } ,
+
+ { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Done with P Taylor."
+ } ,
+
+ { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add options -dcx, -dcy, -dcz, dc3",
+   "This provides the center of the volumetric grid, in DICOM coords."
+ } ,
+
+ { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -multi_durations_from_offsets",
+   "Added on the authority of W-L Tseng."
+ } ,
+
+ { 16, Jul, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "unindent EOF command terminator in example",
+   "Thanks to I Berteletti for noting the problem."
+ } ,
+
+ { 15, Jul, 2021, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -empty_is_outlier, to treat empty fields as outliers",
+   "The default reporting of blank outlier test vals is now as non-outliers.\n"
+   "Use this option to report as outliers.\n"
+   "Added for the mighty P Taylor."
+ } ,
+
+ { 13, Jul, 2021, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
+   "fix '-separator whitespace' in the case of blank lines",
+   "Thanks to P Taylor for noting the problem."
+ } ,
+
  { 25, Jun, 2021, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "add -rand_post_elist_partition",
    "This will partition an already defined stim class into new ones.\n"
@@ -149,9 +211,9 @@ afni_history_struct rickr_history[] = {
  {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
    "fix surprising slowness",
    "This would previously unload/mallocize/reload every time point,\n"
-   "possibly to free completed data.\n"
-   "Now, NIFTI input would be re-read every time point (why the change?).\n"
-   "Just mallocize in the first place, not per time point.\n"
+   "possibly to free completed data.  Then NIFTI input would be re-read\n"
+   "every time point (this might have changed due to something else).\n"
+   "Instead, mallocize in the first place, not per time point.\n"
    "Also, avoid scaling floats by 1.0.\n"
    "Thanks to C Craddock for reporting the problem."
  } ,

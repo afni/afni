@@ -3429,6 +3429,21 @@ the extra smoothing is done by Gaussian blurring with the chosen FWHM:
 on the AFNI command line with the usual -DAFNI_INSTACORR_SEEDBLUR=YES
 method.
 
+-----------------------------
+Variable: AFNI_INSTACORR_JUMP (editable)
+-----------------------------
+When using the Shift+Ctrl+Click method to set the InstaCorr seed, the
+usual operation is to jump the crosshairs focus point to the location
+where the click happened, and then do the InstaCorr seed set. If you
+set this environment variable to NO (the default value is YES), then
+the crosshair jumping will not happen, but the seed will be set at
+the clicked point.
+One use case for this setting is when you have setup a Montage layout
+and don't want it to automatically jump to a new slice when you set
+the InstaCorr seed -- you like the layout of what you are seeing, and
+don't want it to change underneath you just because you are moving
+the seed location. [For Phil Kohn, Sep 2021]
+
 --------------------------------
 Variable: AFNI_INSTACORR_XYZ_LPI
 --------------------------------

@@ -49,6 +49,61 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , SEP , 2021 , RWC , "AFNI GUi" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_INSTACORR_JUMP" ,
+   "If YES (default), Shift+Ctrl+click sets the instacorr seed and jumps the\n"
+   "crosshairs to that location. If NO, sets the instacorr seed but there is\n"
+   "no crosshair jump. (For Phil Kohn)" } ,
+
+ { 31 , AUG , 2021 , RWC , "3dTcorr1D/3dTcorrelate" , MINOR , TYPE_BUG_FIX ,
+   "Change labels and statcode for -Fisher option" ,
+   "Sir Paul pointed out that these programs didn't have the correct\n"
+   "statcode when the Fisher transform was ordered, and also that the labels\n"
+   "were confusing. Fixed it so if -Fisher was used, the statcode is FIZT vs\n"
+   "FICO, and the labels have 'atanh()'" } ,
+
+ { 19 , AUG , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change top-of-image drawn label to resize font if drawn too large" ,
+   NULL } ,
+
+ { 17 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_ENHANCE ,
+   "Modified to use OpenMP" ,
+   "3dTfitter.c, thd_fitter.c, and thd_lasso.c" } ,
+
+ { 10 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_NEW_PROG ,
+   "Add -LCB option for block-wise LASSO penalties" ,
+   "LCB = LASSO Centro Block\n"
+   "The penalty in a block is\n"
+   "  sum{ ABS[ beta[i] - centromean(beta[i],...) ] }\n"
+   "which is intendend to make all the beta[i] in a block shrink towards a\n"
+   "common value, rather than towards 0. The intent is to use this with IM\n"
+   "regression models from 3dDeconvolve, to reduce outliers in the\n"
+   "stimulus-wise beta estimates." } ,
+
+ { 20 , JUL , 2021 , RWC , "NIML library" , MAJOR , TYPE_BUG_FIX ,
+   "NIML file: input failed if file over 2BG in size" ,
+   "Due to storing filesize in int/long. Fix was to make it stored in\n"
+   "int64_t, and fixing a few other places." } ,
+
+ { 16 , JUL , 2021 , RWC , "AFNI driver and GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in overlay_label='xxx' driver" ,
+   "Someone put the terminating NUL byte in wrong place. (Whoever did that\n"
+   "should be beaten.)\n"
+   "Also added the '\\newline' escape as a way to add a line break to the\n"
+   "overlay label string from the driver -- since control characters aren't\n"
+   "really allowed." } ,
+
+ { 15 , JUL , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change image overlay label plotting to allow for multiline strings" ,
+   "Per DRG: multiline strings, being centered along the y-axis about their\n"
+   "point of origin, would be pushed off the top of the image. Fixed by\n"
+   "setting the y-coord of the origin point to include a factor for the\n"
+   "number of lines." } ,
+
+ { 12 , JUL , 2021 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Make min cluster size = 1 (from 2) for DR Glen." ,
+   NULL } ,
+
  { 29 , JUN , 2021 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
    "-log2 and -log10 options" ,
    "To convert statistics to minus the logarithm of p-value." } ,
@@ -7984,6 +8039,7 @@ afni_history_struct rwcox_history[] = {
 
   { 16,JAN,2001, RWC, "AFNI-general", SUPERDUPER, TYPE_GENERAL, "Older History stuff",
    "  ===========================================================\n"
+   " == This was the day I (RWC) started working at the NIH! :) ==\n"
    " == All changes from this date onwards were made at the NIH ==\n"
    "  ===========================================================\n"
    },

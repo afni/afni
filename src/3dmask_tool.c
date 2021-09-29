@@ -278,7 +278,7 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 
    /* undo any zeropadding (delete original and temporary datasets) */
    if( pad ) {
-      float diff, fmax = 0.0;
+      float diff = 0.0f, fmax = 0.0f;
 
       /* if pad and not convert, dnew == inset    11 Dec 2017 [rickr] */
       if( dnew != inset ) DSET_delete(inset);

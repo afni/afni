@@ -777,10 +777,11 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
 
    /* 17 Mar 2010: save seed location we just did in the im3d struct */
 
-   im3d->vinfo->xi_icor = xx ;
+   im3d->vinfo->xi_icor = xx ;  /* input DICOM coords */
    im3d->vinfo->yj_icor = yy ;
    im3d->vinfo->zk_icor = zz ;
 
+                                /* saving 3D indexes in anat space also */
    kv = THD_3dmm_to_3dind ( im3d->anat_now , jv ) ;
    UNLOAD_IVEC3( kv , im3d->vinfo->i1_icor ,
                       im3d->vinfo->j2_icor , im3d->vinfo->k3_icor ) ;

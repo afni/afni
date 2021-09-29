@@ -6,10 +6,14 @@
    /*** Then some internal (static) functions for common necessities. ***/
    /*-------------------------------------------------------------------*/
 
+static int lasso_verb = 0 ;
+
 /*----------------------------------------------------------------------------*/
 
 /** set the fixed value of lambda (flam);
     note that flam will always be positive (never 0) **/
+
+/* this is set once-and-for-all so doesn't need to be thread-ized */
 
 static float flam = 0.666f ;
 
@@ -17,9 +21,9 @@ void THD_lasso_fixlam( float x ){ if( x > 0.0f ) flam = x ; }
 
 /*............................................................................*/
 
-/** set the convergence parameter (deps) **/
+/** set the convergence parameter (deps) [function not used at this time] **/
 
-static float deps = 0.0000654321f ;
+static float deps = 0.0000321111f ;
 
 void THD_lasso_setdeps( float x ){
   deps = ( x >= 0.0000003f && x <= 0.1f ) ? x : 0.0000654321f ;
@@ -27,7 +31,7 @@ void THD_lasso_setdeps( float x ){
 
 /*............................................................................*/
 
-/** set this to 1 to do 'post-LASSO' re-regression **/
+/** set this to 1 to do 'post-LASSO' re-regression [not used at this time] **/
 
 static int do_post = 0 ;
 
@@ -36,6 +40,8 @@ void THD_lasso_dopost( int x ){ do_post = x ; }
 /*............................................................................*/
 
 /** set this to 1 to scale LASSO lambda by estimated sigma **/
+
+/* this is set once-and-for-all so doesn't need to be thread-ized */
 
 static int do_sigest = 0 ;
 
@@ -46,6 +52,8 @@ void THD_lasso_dosigest( int x ){ do_sigest = x ; }
 /** set the entire lambda vector **/
 
 static floatvec *vlam = NULL ;
+
+/* this is set once-and-for-all so doesn't need to be thread-ized */
 
 void THD_lasso_setlamvec( int nref , float *lam )
 {
@@ -65,19 +73,116 @@ ENTRY("THD_lasso_setlamvec") ;
 
 /** set initial parameters estimates **/
 
+/* not used at this time, but is thread-ized for safety */
+
+AO_DEFINE_SCALAR(floatvec*,vpar) ;
+#if 0
 static floatvec *vpar = NULL ;
+#endif
 
 void THD_lasso_setparvec( int nref , float *par )
 {
    register int ii ;
 ENTRY("THD_lasso_setparvec") ;
 #pragma omp critical (MALLOC)
-   { KILL_floatvec(vpar) ; }
+   { KILL_floatvec(AO_VALUE(vpar)) ; }
    if( nref > 0 && par != NULL ){
 #pragma omp critical (MALLOC)
-     { MAKE_floatvec(vpar,nref) ; }
-     for( ii=0 ; ii < nref ; ii++ ) vpar->ar[ii] = par[ii] ;
+     { MAKE_floatvec(AO_VALUE(vpar),nref) ; }
+     for( ii=0 ; ii < nref ; ii++ ) AO_VALUE(vpar)->ar[ii] = par[ii] ;
    }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Centro blocks = indexes over which the shrinkage is toward the centromean
+                   parameter (over the block) rather than toward 0.
+   Each centro block must have at least 3 entries.
+   NOTES: If the caller is an idiot, stupid things will happen; for example:
+            * If any of the entries of mb->ar[] are out of
+              the index range of the parameters (0..nref-1)
+            * If multiple centro blocks are used and share some indexes
+            * If an un-penalized index (mylam[i]==0) is provided
+          My suggestion is to avoid being an idiot.  [Aug 2021 - RWCox]
+*//*--------------------------------------------------------------------------*/
+
+/* set once-and-for-all so doesn't need to be thread-ized */
+
+static int cenblok_num  = 0 ;
+static intvec **cenblok = NULL ;
+
+void THD_lasso_add_centro_block( intvec *mb )
+{
+ENTRY("THD_lasso_add_centro_block") ;
+
+   if( mb == NULL ){  /* signal to clear all centro blocks */
+     int ii ;
+     if( cenblok != NULL ){
+       for( ii=0 ; ii < cenblok_num ; ii++ ){ KILL_intvec( cenblok[ii] ) ; }
+       free(cenblok) ;
+     }
+     EXRETURN ;
+   }
+
+   if( mb->nar < 3 || mb->ar == NULL ) EXRETURN ;
+
+   cenblok = (intvec **)realloc( cenblok, sizeof(intvec *)*(cenblok_num+1) ) ;
+
+   COPY_intvec( cenblok[cenblok_num] , mb ) ;
+   cenblok_num++ ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* load block centros, if any; med[] entries not in a block are unchanged */
+
+static void load_block_centros( int nref , float *ppar , float *med )
+{
+   int bb , ii , kk, njj ;
+   float *bpar , mval ;
+
+ENTRY("load_block_centros") ;
+
+   if( nref < 3 || ppar == NULL || med == NULL ) EXRETURN ;
+
+   AAmemset( med , 0 , nref*sizeof(float) ) ;
+
+   if( cenblok_num < 1 ) EXRETURN ;
+
+   bpar = (float *)malloc(sizeof(float)*nref) ;
+
+   /* loop over blocks [note subtract 1 from indexes in the intvecs */
+
+   for( bb=0 ; bb < cenblok_num ; bb++ ){
+
+     if( cenblok[bb]->nar < 3 ) continue ;          /* should be unpossible */
+
+     for( njj=ii=0 ; ii < cenblok[bb]->nar ; ii++ ){ /* extract params */
+       kk = cenblok[bb]->ar[ii]-1 ;                  /* for this block */
+       if( kk >= 0 && kk < nref ) bpar[njj++] = ppar[kk] ;
+     }
+
+     mval = centromean_float( njj , bpar ) ;  /* in cs_qmed.c */
+
+#if 0
+     if( lasso_verb && mval != 0.0f ){
+       char str[2048] ;
+       str[0] = '\0' ;
+       for( ii=0 ; ii < cenblok[bb]->nar ; ii++ ){
+        sprintf(str+strlen(str)," %d:%g",cenblok[bb]->ar[ii],bpar[ii]) ;
+       }
+       INFO_message("LASSO: LMB[%d] =%s => %g  njj=%d",bb,str,mval,njj) ;
+    }
+#endif
+
+     for( ii=0 ; ii < cenblok[bb]->nar ; ii++ ){     /* load med[] */
+       kk = cenblok[bb]->ar[ii]-1 ;                  /* for this block */
+       if( kk >= 0 && kk < nref ) med[kk] = mval ;
+     }
+
+   }
+
+   free(bpar) ;
    EXRETURN ;
 }
 
@@ -286,6 +391,7 @@ floatvec * THD_lasso_L2fit( int npt    , float *far   ,
    int ii,jj, nfree,nite,nimax,ndel , do_slam=0 ;
    float *mylam, *ppar, *resd, *rsq, *rj, pj,dg,dsum,dsumx,ll ;
    floatvec *qfit ; byte *fr ;
+   float *med , mval , pv , mv ;  /* for centro blocks [06 Aug 2021] */
 
 ENTRY("THD_lasso_L2fit") ;
 
@@ -303,10 +409,12 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- space for parameter iterates, etc (initialized to zero) ---*/
 
 #pragma omp critical (MALLOC)
-   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ;   /* parameters = output */
-     resd = (float *)calloc(sizeof(float),npt ) ;   /* residuals */
-     rsq  = (float *)calloc(sizeof(float),nref) ;   /* sums of squares */
-     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; } /* free list */
+   { MAKE_floatvec(qfit,nref) ; ppar = qfit->ar ; /* parameters = output */
+     resd = (float *)calloc(sizeof(float),npt ) ; /* residuals */
+     rsq  = (float *)calloc(sizeof(float),nref) ; /* sums of squares */
+     fr   = (byte  *)calloc(sizeof(byte) ,nref) ; /* free list */
+     med  = (float *)calloc(sizeof(float),nref) ; /* block centros */
+   }
 
    /*--- Save 1/(sum of squares) of each ref column ---*/
 
@@ -330,10 +438,10 @@ ENTRY("THD_lasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   if( vpar == NULL || vpar->nar < nref ){
+   if( AO_VALUE(vpar) == NULL || AO_VALUE(vpar)->nar < nref ){
      /* compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ; */
    } else {
-     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = AO_VALUE(vpar)->ar[ii] ;
    }
 
    /*--- initialize residuals ---*/
@@ -366,9 +474,21 @@ ENTRY("THD_lasso_L2fit") ;
 #undef  CONN    /* CONN(j) is true if ppar[j] is supposed to be <= 0 */
 #define CONN(j) (ccon != NULL && ccon[j] < 0.0f)
 
+   { AO_DEFINE_SCALAR(int,ncall) ;
+     lasso_verb = ( AO_VALUE(ncall) < 2 || AO_VALUE(ncall)%10000 == 1 ) ;
+     AO_VALUE(ncall)++ ;
+   }
+
    ii = MAX(nref,npt) ; jj = MIN(nref,npt) ; nimax = 17 + 5*ii + 31*jj ;
    dsumx = dsum = 1.0f ;
+#if 0
+   if( lasso_verb && cenblok_num > 0 ) INFO_message("LASSO => start iterations") ;
+#endif
    for( nite=0 ; nite < nimax && dsum+dsumx > deps ; nite++ ){
+
+     /*--- load block centros [06 Aug 2021] ---*/
+
+     if( nite > 3 ) load_block_centros( nref , ppar , med ) ;
 
      /*-- cyclic inner loop over parameters --*/
 
@@ -382,7 +502,13 @@ ENTRY("THD_lasso_L2fit") ;
        if( rsq[jj] == 0.0f ) continue ; /* all zero column!? */
        rj = ref[jj] ;                   /* j-th reference column */
        pj = ppar[jj] ;                  /* current value of j-th parameter */
-       ll = mylam[jj] ;
+       ll = mylam[jj] ;                 /* lambda for this param */
+#if 1
+       mv = med[jj] ;                   /* shrinkage target (e.g., 0) */
+#else
+       mv = 0.0f ;
+#endif
+       pv = pj - mv ;                   /* param diff from shrinkage target */
 
        /* compute dg = -gradient of un-penalized function wrt ppar[jj] */
        /*            = direction we want to step in                    */
@@ -401,12 +527,14 @@ ENTRY("THD_lasso_L2fit") ;
          /* Merge this with dg, change ppar[jj], then see if we stepped thru */
          /* zero (or hit a constraint) -- if so, stop ppar[jj] at zero.     */
 
-         if( pj > 0.0f || (pj == 0.0f && dg > ll) ){         /* on the + side */
-           dg -= ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink - way */
-           if( ppar[jj] < 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
-         } else if( pj < 0.0f || (pj == 0.0f && dg < -ll) ){ /* on the - side */
+         if( pv > 0.0f || (pv == 0.0f && dg > ll) ){    /* on the + side */
+           dg -= ll ; ppar[jj] += dg*rsq[jj] ;          /* shrink - way */
+           if( ppar[jj] < mv ) ppar[jj] = mv ;          /* went too far down? */
+           if( CON(jj)       ) ppar[jj] = 0.0f ;        /* violate constraint? */
+         } else if( pv < 0.0f || (pv == 0.0f && dg < -ll) ){ /* on the - side */
            dg += ll ; ppar[jj] += dg*rsq[jj] ;               /* shrink + way */
-           if( ppar[jj] > 0.0f || CON(jj) ) ppar[jj] = 0.0f ;
+           if( ppar[jj] > mv ) ppar[jj] = mv ;               /* too far up? */
+           if( CON(jj)       ) ppar[jj] = 0.0f ;             /* constraint? */
          }
 
        }
@@ -432,12 +560,10 @@ ENTRY("THD_lasso_L2fit") ;
    } /*---- end of outer iteration loop ----*/
 
 #if 1
-   { static int ncall=0 ;
-     if( ncall < 2 || ncall%10000 == 1 ){
+   { if( lasso_verb ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
-       INFO_message("LASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       INFO_message("\nLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
      }
-     ncall++ ;
    }
 #endif
 
@@ -456,7 +582,7 @@ ENTRY("THD_lasso_L2fit") ;
    /*--- Loading up the truck and heading to Beverlee ---*/
 
 #pragma omp critical (MALLOC)
-   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; }
+   { free(fr) ; free(rsq) ; free(resd) ; free(mylam) ; free(med) ; }
 
    RETURN(qfit) ;
 }
@@ -560,10 +686,10 @@ ENTRY("THD_sqrtlasso_L2fit") ;
          initialize them by un-penalized least squares
          (implicitly assuming all other parameters are zero) ---*/
 
-   if( vpar == NULL || vpar->nar < nref ){
+   if( AO_VALUE(vpar) == NULL || AO_VALUE(vpar)->nar < nref ){
      /* compute_free_param( npt,far,nref,ref,2,ccon , nfree,fr , ppar ) ; */
    } else {
-     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = vpar->ar[ii] ;
+     for( ii=0 ; ii < nref ; ii++ ) ppar[ii] = AO_VALUE(vpar)->ar[ii] ;
    }
 
    /*--- initialize residuals ---*/
@@ -660,12 +786,12 @@ ENTRY("THD_sqrtlasso_L2fit") ;
    } /*---- end of outer iteration loop ----*/
 
 #if 1
-   { static int ncall=0 ;
-     if( ncall < 2 || ncall%10000 == 1 ){
+   { AO_DEFINE_SCALAR(int,ncall) ;
+     if( AO_VALUE(ncall) < 2 || AO_VALUE(ncall)%10000 == 1 ){
        for( nfree=jj=0 ; jj < nref ; jj++ ) nfree += (ppar[jj] != 0.0f) ;
-       INFO_message("SQRTLASSO: nite=%d dsum=%g dsumx=%g nfree=%d/%d",nite,dsum,dsumx,nfree,nref) ;
+       INFO_message("SQRTLASSO %d: nite=%d dsum=%g dsumx=%g nfree=%d/%d",AO_VALUE(ncall),nite,dsum,dsumx,nfree,nref) ;
      }
-     ncall++ ;
+     AO_VALUE(ncall)++ ;
    }
 #endif
 

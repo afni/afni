@@ -1569,6 +1569,23 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
       memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
   } while(0)
 
+/* 04 Aug 2021 */
+#define DUMP_intvec(iv,str)                                               \
+  do{ int ni = (iv)->nar , qq ;                                           \
+      INFO_message("intvec %s has %d elements:",(str),ni) ;               \
+      if( ni > 0 ){                                                       \
+        for( qq=0 ; qq < ni ; qq++ ) fprintf(stderr," %d",(iv)->ar[qq]) ; \
+        fprintf(stderr,"\n") ;                                            \
+      }                                                                   \
+  } while(0)
+
+/* 06 Aug 2021 */
+#define COPY_intvec(nv,ov)                              \
+  do{ int qq ;                                          \
+      MAKE_intvec(nv,ov->nar) ;                         \
+      memcpy( nv->ar , ov->ar , sizeof(int)*ov->nar ) ; \
+  } while(0) ;
+
 /*--------------------------------------------------*/  /* 20 Jan 2016 */
 
 typedef struct { int nar ; int64_t *ar ; } int64vec ;

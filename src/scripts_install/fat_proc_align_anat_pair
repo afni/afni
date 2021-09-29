@@ -56,8 +56,16 @@
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
 #
-set version   = "1.21";   set rev_dat   = "Oct 28, 2020"
+#set version   = "1.21";   set rev_dat   = "Oct 28, 2020"
 #     + [PT] extra QC imaging: initial alignment
+#
+#set version   = "1.3";   set rev_dat   = "Aug 29, 2021"
+#     + [PT] remove -no_fs_prep opt and "DO_PREP_FS" behavior,
+#       which was neeever even needed, embarrassingly enough
+#
+set version   = "1.31";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ---------------------------------------------------------------
 
@@ -91,7 +99,6 @@ set it2w_mask  = ""
 
 # def: do prep t1w for freesurfing -> matrix has even numbered dims ->
 # 1mm iso voxels, or other iso
-set DO_PREP_FS = 1               
 set DO_SS_T1W  = 0
 
 set RES        = ""              # def: 1mm output res, or smallest vox dim
@@ -183,10 +190,6 @@ while ( $ac <= $#argv )
     # set output resolution by using t2w grid
     else if ( "$argv[$ac]" == "-out_t2w_grid" ) then
         set OUT_T2W_GRID = 1
-
-    # *don't* prep for FS. Why?
-    else if ( "$argv[$ac]" == "-no_fs_prep" ) then
-        set DO_PREP_FS= 0
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = "0"
@@ -459,53 +462,6 @@ endif
 set T1TOCOPY = $t1mapped
 \cp $imtrx $odir/$omtrx
 
-# zeropad if needed
-if ( $DO_PREP_FS == 1) then
-
-    set t1padded = $wdir/f08_t1padded.nii
-
-    echo "++ Perhaps for prepping for FreeSurfing:"
-    echo "    -> making sure that there are even numbers of voxels"
-    echo "       along each spatial dimension."
-
-    set dims = `3dinfo -n4 ${t1mapped}`
-    echo "++ The dimensions are:  $dims[1] $dims[2] $dims[3]"
-
-    set odds = ( 0 0 0 )
-
-    # silly stuff to deal with orientation
-    set ori  = `3dinfo -orient ${t1mapped}`
-    set orilet = ( "" "" "" )
-    set orilet[1] = `echo $ori | awk '{print substr($0,1,1)}'`
-    set orilet[2] = `echo $ori | awk '{print substr($0,2,1)}'`
-    set orilet[3] = `echo $ori | awk '{print substr($0,3,1)}'`
-
-    set build_cmd = "" 
-
-    foreach i ( `seq 1 1 3` ) 
-        set odds[$i] = `echo "$dims[$i] % 2" | bc`
-        if ( $odds[$i] != 0 ) then
-            echo "+* Found an odd dimension in the [${i}]th axis!"
-            echo "   --> will hopefully fix."
-
-            set build_cmd = "$build_cmd -${orilet[$i]} 1 "
-        endif
-    end
-
-    if ( "$build_cmd" != "" ) then
-        
-        echo "++ Zeropadding:  $build_cmd"
-        3dZeropad     -echo_edu                 \
-            -overwrite                          \
-            -prefix $t1padded                   \
-            $build_cmd                          \
-            $t1mapped
-
-        set T1TOCOPY = $t1padded
-    endif
-
-endif
-
 set fdims = `3dinfo -n4 ${T1TOCOPY}`
 set fres  = `3dinfo -ad3 ${T1TOCOPY}`
 
@@ -550,7 +506,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
     echo "\n\n"
@@ -566,7 +522,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix "$odirqc/$vpref1"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
 endif
@@ -628,11 +584,8 @@ cat << EOF
    + the T1w will have a FOV matching or quite similar to the T2w
      volume (as well as matching orientation).
 
-   + the output T1w will be checked to ensure having an even number of
-     rows along each axis; this is because FS somehow seems to want
-     this for best behavioring. A slice of zeros will be appended in
-     any direction with with an odd number of slices; turned off
-     by using '-no_fs_prep'.
+   + [Aug 9, 2021] no longer checking about all even row
+     dimensions---turned out not to be necessary.
 
  Note that, if you are preparing to use FS afterwards, then make sure
  to use their current help files, archives, etc. for all options and
@@ -666,7 +619,6 @@ cat << EOF
       {-do_ss_tmp_t1w}                      \
       {-matrix MMM}                         \
       {-workdir WWW}                        \
-      {-no_fs_prep}                         \
       {-warp WAR}                           \
       {-no_cmd_out}                         \
       {-no_clean} 
@@ -685,10 +637,6 @@ cat << EOF
    -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with 
                    possible addition of padding with a slice of zeros if
                    prepping for FS).
-
-   -no_fs_prep    :check output T1w volume to have an even number of slices
-                   in all directions, because FS appears to like/require this
-                   (at least at this slicetime of the universe, March, 2017).
 
    -in_t2w_mask MASK_T2W
                   :can input a mask to apply to the t2w volume for

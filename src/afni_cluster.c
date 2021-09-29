@@ -281,7 +281,7 @@ ENTRY("AFNI_clu_CB") ;
 
      if( im3d->vedset.code == VEDIT_CLUST ){
        nnlev = -im3d->vedset.param[2];
-       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 40 ;
+       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 1 ) ccsiz = 40 ;
      }
      MCW_choose_stuff( im3d->vwid->func->thr_label ,
                         "------ Set Clusterize Parameters ------\n"
@@ -290,7 +290,7 @@ ENTRY("AFNI_clu_CB") ;
                         "       2 : faces or edges touch\n"
                         "       3 : faces or edges or corners\n"
                         "* Voxels   => minimum cluster size that\n"
-                        "              will be kept [at least 2]\n"
+                        "              will be kept [at least 1]\n"
                         "* Bi-sided => positively and negatively\n"
                         "              thresholded voxels get\n"
                         "              clustered separately\n"
@@ -299,9 +299,10 @@ ENTRY("AFNI_clu_CB") ;
                         "* Click on the 'Rpt' button to open\n"
                         "  a complete cluster report panel.\n"     ,
 
+             /* min cluster size dropped to 1 (from 2) for DRG [12 Jul 2021] */
                       AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
-                        MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
+                        MSTUF_INT     , "Voxels   " , 1 , 99999 , ccsiz ,
                         MSTUF_STRLIST , "Bi-sided?" , 2 , bisid , yesno ,
                       MSTUF_END ) ;
      EXRETURN ;
@@ -413,6 +414,16 @@ static int scrolling      =  1 ;
      (qq) < (iq)->vwid->func->clu_num &&                           \
      (iq)->vwid->func->cwid != NULL     )                          \
    ? MCW_val_bbox((iq)->vwid->func->cwid->clu_see_bbox[qq]) : 0 )
+
+#undef  CLUST_TOGGLE         /* 12 Jul 2021 */
+#define CLUST_TOGGLE(iq,qq)                                              \
+ do{ int vv = ! MCW_val_bbox((iq)->vwid->func->cwid->clu_see_bbox[qq]) ; \
+     MCW_set_bbox( (iq)->vwid->func->cwid->clu_see_bbox[qq] , vv ) ;     \
+ } while(0)
+
+#undef  CLUST_SET
+#define CLUST_SET(iq,qq,val) \
+  MCW_set_bbox( (iq)->vwid->func->cwid->clu_see_bbox[qq] , (val) ) ;
 
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
@@ -1306,7 +1317,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    for( ii=0 ; ii < num ; ii++ ){
      MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
-                           "See or Hide this cluster" ) ;
+                           "See or Hide this cluster [+Shift for all below]" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
                         "Coordinates of cluster (Peak or CMass or ICent)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
@@ -2800,6 +2811,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
 
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar=im3d->vwid->func->clu_list ; int kk ;
+       XmAnyCallbackStruct *acbs = (XmAnyCallbackStruct *)cbs ;
+         /* was the Shift or Ctrl key pressed when the button was toggled? */
+       int shifted = ( ((XButtonEvent *)(acbs->event))->state & ShiftMask ) != 0 ;
        STATUS("toggling") ;
        if( ISVALID_DSET(fset) ){
          im3d->vedset.ival     = im3d->vinfo->fim_index ;
@@ -2816,23 +2830,19 @@ printf("wrote cluster table to %s\n", lb_fnam);
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
          MRI_IMAGE *vm = fset->dblk->vedim ;
+         if( shifted ){  /* turn all below #ii to same state [12 Jul 2021] */
+           int sss = CLUST_SEE(im3d,ii) ;
+           for( kk=ii+1 ; kk < nclu ; kk++ ){ CLUST_SET(im3d,kk,sss) ; }
+         }
          im3d->vedskip = 1 ;
-         for( kk=0 ; kk < nclu ; kk++ ){
-           if( !CLUST_SEE(im3d,kk) ){
+         for( kk=0 ; kk < nclu ; kk++ ){  /* extract out and zero data */
+           if( !CLUST_SEE(im3d,kk) ){     /* from all unseen clusters */
              MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                                 vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
            }
          }
          AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
          im3d->vedskip = 0 ;
-#if 0
-         for( kk=0 ; kk < nclu ; kk++ ){
-           if( !CLUST_SEE(im3d,kk) ){
-             MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
-                                vm->kind,mri_data_pointer(vm) , clar->clar[kk] );
-           }
-         }
-#endif
        }
 
        EXRETURN ;  /* end of see/hide */
@@ -2856,22 +2866,39 @@ printf("wrote cluster table to %s\n", lb_fnam);
                             (im3d->vednomask) ? NULL : im3d->vwid->func->clu_mask ) ;
        }
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
+#define NFLASH 3
          double tz , tt ; int ss ;
          MRI_IMAGE *vm = fset->dblk->vedim ;
          im3d->vedskip = 1 ; tz = PLUTO_elapsed_time() ;
-         for( jj=0 ; jj < 3 ; jj++ ){
+         for( jj=0 ; jj < NFLASH ; jj++ ){
+             /* also flash the pushbutton widget */
            MCW_invert_widget(w) ;
+
+             /* extract data in the ii'th cluster's voxels
+                and store the values the cluster struct, leaving
+                zeros behind -- this turns the cluster "off" in the images */
            MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
+             /* REDISPLAY_FLASH code means that other actions that
+                might happen during image viewer redisplay are turned off */
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
+
+             /* this timing stuff (in ms) is to avoid flashing too fast
+                -- no more than 1 image display per 66 milliseconds
+                   = 4 frames in a 60 Hz display                          */
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
            if( ss > 0 ) NI_sleep(ss) ;
+
            MCW_invert_widget(w) ;
+
+             /* shove the data values stored above in the cluster struct
+                back into the volume, which turns the cluster back "on"  */
            MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_FLASH ) ;
+
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
-           if( ss > 0 ) NI_sleep(ss) ;
+           if( ss > 0 && jj < NFLASH-1 ) NI_sleep(ss) ;
          }
          im3d->vedskip = 0 ;
        }
@@ -3090,9 +3117,9 @@ ENTRY("AFNI_clus_3dclust") ;
             if( rmm >= -1.0f ) rmm = 1.01f ;
        else if( rmm >= -2.0f ) rmm = 1.44f ;
        else                    rmm = 1.75f ;
-       if( vmul < 2.0f ) vmul = 2.0f ;
+       if( vmul < 1.0f ) vmul = 1.0f ;
      } else {
-       float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
+       float vmin=DSET_VOXVOL(im3d->fim_now) ;
        vmul = MAX(vmin,vmul) ;
      }
 

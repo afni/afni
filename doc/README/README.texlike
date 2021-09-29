@@ -1,0 +1,76 @@
+----------------------------------------
+Tex-Like escapes in AFNI Overlay Strings
+----------------------------------------
+The function plotpak_pwritf() is used to draw strings into geometrical
+overlays in the AFNI package, using a line drawing software package
+written in the early 1980s to emulate a pen plotter for dot matrix
+printers -- so that a lot of old pen plotter dependent code could
+be recycled. This line drawing package ekes out its life, nearly
+40 years later. (As the software is line drawing based, that explains
+why the fonts are peculiar looking -- they are drawn by line segments,
+not by antialiased curve segments as modern fonts are created -- and
+there is no kerning or any other fancy typography).
+
+The features described below can be used in the overlay label strings
+used in AFNI image viewer windows, in the graph labels of program
+1dplot, and probably in a few other places I've forgotten.
+
+plotpak_pwritf() allows various TeX-like features to be embedded
+in the string to be drawn. These include
+  '_' is the subscript operator, as in 'a_b'
+  '^' is the superscript operator, as in 'a^b'
+  '{...}' is the grouping operation, as in 'a^{2b}'
+  If you want actual braces in your string, you'll have to
+  use the escapes '\{' and '\}'.
+
+Various examples are given in the output of '1dplot -help'; for example:
+ '\Upsilon\Phi\Chi\Psi\Omega\red\leftrightarrow\blue\partial^{2}f/\partial x^2'
+Otherwise, I'm not going to teach TeX here.
+
+Below are the TeX-like escapes that are interpreted by the
+plotpak_pwritf() string drawing function in the AFNI package. They
+start with the '\' character (as in TeX). In a C-language string,
+you would have to do something like "\\alpha" to have the effect of
+a single '\'.
+
+Note that if you want to write something like the letter 'alpha'
+next to the letter 'B', you'll have to use a space between them,
+to signfify that you aren't trying to use the non-existent escape
+'\alphaB' -- use '\alpha B' instead. On the other hand, you can
+write '\alpha+B' since an escape's name can't have a special
+character in it, so the '+' indicates the end of '\alpha'.
+
+Greek Letters (note that '\Upsilon' is the most beautiful letter)
+-------------
+  \alpha  \beta     \gamma    \delta  \epsilon  \zeta
+  \eta    \theta    \iota     \kappa  \lambda   \mu
+  \nu     \xi       \omicron  \pi     \rho      \sigma
+  \tau    \upsilon  \phi      \chi    \psi      \omega
+  \Alpha  \Beta     \Gamma    \Delta  \Epsilon  \Zeta
+  \Eta    \Theta    \Iota     \Kappa  \Lambda   \Mu
+  \Nu     \Xi       \Omicron  \Pi     \Rho      \Sigma
+  \Tau    \Upsilon  \Phi      \Chi    \Psi      \Omega
+
+Various Shapes
+-------------
+  \Plus  \Cross  \Diamond  \Box    \FDiamond
+  \FBox  \FPlus  \FCross   \Burst  \Octagon
+
+Various Math Operators and Symbols
+----------------------------------
+  \propto \int       \times     \div        \approx         \partial
+  \cap    \?         \langle    \rangle     \ddagger        \pm
+  \leq    \S         \hbar      \lambar     \cup            \degree
+  \nabla  \downarrow \leftarrow \rightarrow \leftrightarrow \oint
+  \in     \notin     \surd      \_          \bar            \exists
+  \geq    \forall    \subset    \oplus      \otimes         \dagger
+  \neq    \supset    \infty     \uparrow
+
+Some Special Characters (not often needed in AFNI)
+--------------------------------------------------
+  \#   \$   \%   \&   \{   \}   \\\   \cents   \newline
+
+Font Changing Operations
+------------------------
+  COLORS: \black  \red   \blue  \green  \yellow  \magenta  \cyan
+  SIZES:  \small  \large
