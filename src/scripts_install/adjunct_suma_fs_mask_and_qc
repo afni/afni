@@ -21,7 +21,7 @@
 #set version   = "0.32";  set rev_dat   = "Mar 3, 2021"
 # [PT] turn of early exit
 #
-set version   = 0.33";   set rev_dat   = "Sep 27, 2021"
+set version   = "0.33";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
