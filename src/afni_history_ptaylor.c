@@ -70,6 +70,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 29, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Just running '-help' leads to lesion_outs.txt to be created and populated.",
+   "... and it also got overwritten oddly.  Move those lines further down.\n"
+},
+
 { 27, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
    "On/about Aug 23, 2021, default label_sizes in image windows changed.",
    "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
