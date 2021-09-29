@@ -1068,7 +1068,8 @@ PARSE_LABEL_FILE:
 	#          > TMPLIST_${RNS}_ln_
     # new new way - simpler with cut command and works with other delimiters and comma
     # also supports last column selector
-           cat $flab | cut -d${delim} -f3-$last_lncol > TMPLIST_${RNS}_ln_
+           ### [PT: Sep 29, 2021] need quotes around ${delim}
+           cat $flab | cut --delimiter="${delim}" -f3-$last_lncol > TMPLIST_${RNS}_ln_
 	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
 	    endif
 
@@ -1148,7 +1149,8 @@ HELP:
    echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
    echo "                names for regions, e.g. amygdala for AMY"
    echo "                cLONGNAME is the starting column for the longname continuing"
-   echo "                to the last name of the output (0-based column index)"
+   echo "                to the last name of the output (0-based column index)."
+   echo "                Using this option requires using '-atlas_pointlist ..'"
    echo "   -last_longname_col cLASTLONGNAME: limit longnames to nth column"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"

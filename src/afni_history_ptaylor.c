@@ -70,6 +70,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 29, Sep , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior with longnames---just needed a quote around var.",
+   "Should work now.  Also update help.\n"
+},
+
 { 29, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
    "Just running '-help' leads to lesion_outs.txt to be created and populated.",
    "... and it also got overwritten oddly.  Move those lines further down.\n"
