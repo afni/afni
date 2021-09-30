@@ -8,18 +8,42 @@ else
 SUMALIB = libSUMA.a
 endif
 
+# for compiling directly from this Makefile instead of SUMA_Makefile or AFNI's Makefile
+# where the CPU_TYPE should be set; otherwise get errors on ARM M1 like this:
+#config.status: creating test/coarsen/Makefile
+#sed: 24: ./confstatWn4LFR/subs-2.sed: unescaped newline inside substitute pattern
+# check against environment variable for cpu type for default settings
+ifeq ($(CPUTYPE), arm64)
+   CPU_TYPE ?= ARM_M1
+else
 # set default CPU_TYPE if not set already
-CPU_TYPE ?= x86_64
+   CPU_TYPE ?= x86_64
+endif
+
+# these are needed to run directly from this file 
+# should be safe because they only get assigned if not set already
+RANLIB ?= ranlib
+CP ?= cp
 
 # and possibly init CFLAGS based on CPU_TYPE
+# updated glib to 2.68.1 from previous 2.66 directory
+# then switched to pkg-config figuring this out
+# pkg-config --cflags --libs glib-2.0
+#   -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0 -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include \
+#   -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/Cellar/pcre/8.44/include \
+#   -L/opt/homebrew/Cellar/glib/2.68.1/lib -L/opt/homebrew/opt/gettext/lib -lglib-2.0 -lintl
+
 ifeq ($(CPU_TYPE), ARM_M1)
+GLIBCFLAGS = `pkg-config --cflags --libs glib-2.0`
 CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre                               \
          -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
-         -Wmissing-prototypes -Wmissing-declarations                     \
-         -I/opt/homebrew/Cellar/glib/2.66.7/include/glib-2.0             \
-         -I/opt/homebrew/Cellar/glib/2.66.7/lib/glib-2.0/include         \
-         -I/opt/homebrew/opt/gettext/include                             \
-         -I/opt/homebrew/Cellar/pcre/8.44/include
+         -Wmissing-prototypes -Wmissing-declarations                       \
+         $(GLIBCFLAGS)
+# previous manually found includes - update versions
+#         -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0             \
+#         -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include         \
+#         -I/opt/homebrew/opt/gettext/include                                     \
+#        -I/opt/homebrew/Cellar/pcre/8.44/include
 endif
 
 SUMASLIB = libSUMAseg.a
