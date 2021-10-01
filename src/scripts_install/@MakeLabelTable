@@ -389,6 +389,7 @@ MAKE_ATLAS_TABLE:
 #            set lln[3] =  `echo $lln[3-] | \tr -d \"|tr -d '\011\012\015'`
 #            set ln_len = `echo $lln[3-] |wc -c`
             set lname = ( "${lln[3-]}")
+
             set clname = `echo "$lname" |tr -d \"`
             if (("$lname" != "") && (${%clname} != 0) && ($#lname >= 1)) then
                echo ' LONGNAME='\""$clname"\"  >> $labeltable
@@ -1062,14 +1063,16 @@ PARSE_LABEL_FILE:
 	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
 	#          sed 's/^ *//g' | sed 's/ *$//g' | \
 	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
-	# new way gets all columns after longname column to handle extra spaces
+	# awk way gets all columns after longname column to handle extra spaces
 	#       awk -F "$delim" -v N=$lncol \
 	#          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
 	#          > TMPLIST_${RNS}_ln_
-    # new new way - simpler with cut command and works with other delimiters and comma
+    # cut way - simpler with cut command and works with other delimiters and comma
     # also supports last column selector
            ### [PT: Sep 29, 2021] need quotes around ${delim}
-           cat $flab | cut --delimiter="${delim}" -f3-$last_lncol > TMPLIST_${RNS}_ln_
+           # unfortunately, mac version doesn't support --delimiter
+    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
+           cat $flab | cut -d"${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
 	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
 	    endif
 
