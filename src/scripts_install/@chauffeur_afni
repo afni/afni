@@ -3071,7 +3071,7 @@ EXAMPLES ~1~
         -label_mode 1 -label_size 4                                 \
         -no_clean
 
-  E) Included Clusterizing, with Alpha+Boxed on, similar to above, but
+  F) Included Clusterizing, with Alpha+Boxed on, similar to above, but
      1sided example.
 
     @chauffeur_afni                                                 \
