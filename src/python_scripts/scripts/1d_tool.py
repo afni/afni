@@ -105,7 +105,6 @@ examples (very basic for now): ~1~
         i) .... apparently I forgot to do this...
 
 
-         1d_tool.py -infile X.xmat.1D -write X.bandpass.1D    \\
 
    Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
@@ -138,17 +137,22 @@ examples (very basic for now): ~1~
          1d_tool.py -infile X.xmat.1D -show_rows_cols
          1d_tool.py -infile X.xmat.1D -show_rows_cols -verb 0
 
-       b. Display indices of regressors of interest.
+       b. Display indices of regressors of interest from an X-matrix.
 
          1d_tool.py -infile X.xmat.1D -show_indices_interest
 
-       c. Display labels by group.
+       c. Display X-matrix labels by group.
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
        d. Display "degree of freedom" information:
 
          1d_tool.py -infile X.xmat.1D -show_df_info
+
+       d. Display X-matrix stimulus class information (for one class or ALL)
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stim_info aud
+         1d_tool.py -infile X.xmat.1D -show_xmat_stim_info ALL
 
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
@@ -1028,6 +1032,11 @@ general options: ~2~
    -show_trs_to_zero            : display number of TRs before final zero value
                                   (e.g. length of response curve)
 
+   -show_xmat_stim_info CLASS   : display information for the given stim class
+                                  (CLASS can be a specific one, or 'ALL')
+
+   -show_group_labels           : display group and label, per column
+
    -slice_order_to_times        : convert a list of slice indices to times
 
         Programs like to3d, 3drefit, 3dTcat and 3dTshift expect slice timing
@@ -1327,6 +1336,7 @@ class A1DInterface:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.show_trs_run    = -1         # restrict 'show_trs' to (0-based) run
       self.show_trs_to_zero= 0          # show iresp length
+      self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.slice_order_to_times = 0     # re-sort slices indices to times
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
@@ -1641,6 +1651,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
+
+      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [], 
+                      helpstr='display xmat stim class info for class')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
@@ -2042,6 +2055,11 @@ class A1DInterface:
          elif opt.name == '-show_group_labels':
             self.show_group_labels = 1
 
+         elif opt.name == '-show_xmat_stim_info':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_xmat_stim_info = val
+
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
 
@@ -2329,6 +2347,8 @@ class A1DInterface:
       if self.global_index >= 0: self.show_index_to_run_tr()
       if self.show_df_info:
          self.adata.show_df_info(protect=self.show_df_protect)
+      if self.show_xmat_stim_info != '':
+         self.adata.show_xmat_stim_info(label=self.show_xmat_stim_info)
 
       # treat reverse as a toggle
       if self.reverse_rank:
