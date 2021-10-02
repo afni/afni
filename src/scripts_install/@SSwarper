@@ -129,9 +129,13 @@
 #        + "if(" -> "if ("
 #        + ")then" -> ") then"
 #
-set version   = "2.52";   set rev_dat   = "Sep 27, 2021"
+#set version   = "2.52";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "2.53";   set rev_dat   = "Sep 28, 2021"
+#     + [PT] cp initial/raw anat to $odir 
+#          + also cp any initial/raw mask_ss to $odir 
 #
 # ----------------------------------------------------------------
 
@@ -496,6 +500,25 @@ if ( ${JUMP_TO_EXTRA_QC} ) then
 endif
 
 # --------------------------------------------------------------------
+
+## Step #-1: copy the raw anat (and perhaps mask_ss) into output
+## dir---often useful to compare later and/or check header info
+
+set dset_cp = $odir/anat_cp."${SubID}".nii
+if ( ! -f "${dset_cp}" ) then
+    3dTcat                        \
+        -prefix "${dset_cp}"      \
+        "$Adataset"
+endif
+
+if ( "${mask_ss}" != "" ) then
+    set mask_ss_cp = $odir/mask_ss_cp."${SubID}".nii
+    if ( ! -f "${mask_ss_cp}" ) then
+        3dTcat                           \
+            -prefix "${mask_ss_cp}"      \
+            "${mask_ss}"
+    endif
+endif
 
 ## start the work
 
