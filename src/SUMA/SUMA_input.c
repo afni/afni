@@ -1255,8 +1255,26 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     clipPlaneTransform(0,0,0,0,i, 1, 0);
                 }
                 clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+                lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
+
+                clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+                lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
         }
          break;
+         case XK_1:
+            if (clippingPlaneMode){
+                if (SUMA_ALT_KEY(key)){
+                    clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+                    lightenActiveClipPlaneSquare(0);
+                    darkenInactiveClipPlaneSquares(0);
+                } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
+                    clipPlaneTransform(0,0,0,0,0, 1, 0);
+                    previouslyActive[0] = active[0];
+                }
+                activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 0;
+            }
+            break;
         case XK_2:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<2){
@@ -5209,49 +5227,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          // alt-<number> keys, where number in [1,6] select the clipping plane by index
          case XK_1:
-            if (clippingPlaneMode){
-                if (SUMA_ALTHELL){
-                    clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-                    lightenActiveClipPlaneSquare(0);
-                    darkenInactiveClipPlaneSquares(0);
-                } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
-                    clipPlaneTransform(0,0,0,0,0, 1, 0);
-                    previouslyActive[0] = active[0];
+                strcat(modifierBuf, "1");
+                if (!SUMA_Numeral_Key(sv, modifierBuf, "drivesuma")) {
+                 SUMA_S_Err("Failed in Key function.");
                 }
-                activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 0;
-            }
             break;
          case XK_2:
-         /*
-            if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<2){
-                    for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                    }
-                    if (! SUMA_ALTHELL) active[1] = 0;  // Toggle plane off so it will be toggled on
-                }
-                if (SUMA_ALTHELL){    // Select clipping plane 2
-                    clipPlaneTransform(0,0,0,0,1, 0, 0);
-                    lightenActiveClipPlaneSquare(1);
-                    darkenInactiveClipPlaneSquares(1);
-                } else {        // Toggle plane 2 off/on
-                    clipPlaneTransform(0,0,0,0,1, 1, 0);
-                    previouslyActive[1] = active[1];
-                    clipPlaneTransform(0,0,0,0,1, 0, 0);
-                    lightenActiveClipPlaneSquare(1);
-                    darkenInactiveClipPlaneSquares(1);
-                }
-                activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 1;
-            }
-*/
-
                 strcat(modifierBuf, "2");
                 if (!SUMA_Numeral_Key(sv, modifierBuf, "drivesuma")) {
                  SUMA_S_Err("Failed in Key function.");
@@ -5467,6 +5448,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_0: // Zero key
+         /*
             if (clippingPlaneMode){
                     clipPlaneTransform(0,0,0,0,0, 0, 1);
                     resetClippingPlanes = 1;
@@ -5475,6 +5457,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                     clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+            }
+            */
+            strcat(modifierBuf, "0");
+            if (!SUMA_Numeral_Key(sv, modifierBuf, "drivesuma")) {
+             SUMA_S_Err("Failed in Key function.");
             }
             break;
 
