@@ -1228,7 +1228,7 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
 int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
-   static char FuncName[]={"SUMA_A_Key"};
+   static char FuncName[]={"SUMA_Numeral_Key"};
    char tk[]={"0"}, keyname[100];
    int k, nc, i, isv;
    SUMA_EngineData *ED = NULL;
@@ -1240,12 +1240,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   SUMA_KEY_COMMON;
-
    SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
-   fprintf(stderr, "k=%d\n", k);
-   fprintf(stderr, "key=%s\n", key);
+   k = SUMA_KeyPress(key, NULL);
 
    /* do the work */
    switch (k) {
@@ -1271,9 +1268,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                             exit(1);
                         }
                     }
-                    if (! SUMA_ALTHELL) active[1] = 0;  // Toggle plane off so it will be toggled on
+                    if (! SUMA_ALT_KEY(key)) active[1] = 0;  // Toggle plane off so it will be toggled on
                 }
-                if (SUMA_ALTHELL){    // Select clipping plane 2
+                if (SUMA_ALT_KEY(key)){    // Select clipping plane 2
                     clipPlaneTransform(0,0,0,0,1, 0, 0);
                     lightenActiveClipPlaneSquare(1);
                     darkenInactiveClipPlaneSquares(1);
@@ -1373,7 +1370,7 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
+   fprintf(stderr, "key = %s\n", key);
 
    SUMA_KEY_COMMON;
 
@@ -1468,6 +1465,8 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
+
+   fprintf(stderr, "key = %s\n", key);
 
    /* do the work */
    switch (k) {
@@ -4314,6 +4313,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    char CommString[SUMA_MAX_COMMAND_LENGTH];
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
    static char ssource[]={"suma"};
+   char modifierBuf[32];
    int it, ii, iv3[3], hit = 0, SwasHit = 0;
    float **fm, fv3[3], fv15[15];
    XKeyEvent Kev;
@@ -4411,6 +4411,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
       }
       // fprintf(stderr, "***** keysym = %ld\n", keysym);
+
+        // Modifier
+        sprintf(modifierBuf, "\0");
+        if (SUMA_ALTHELL) strcat(modifierBuf, "Alt+");
+        if ((Kev.state & ControlMask)) strcat(modifierBuf, "Ctrl+");
+
       /* XK_* are found in keysymdef.h */
       switch (keysym) { /* keysym */
          case XK_bracketleft: /* The left bracket */
@@ -5217,6 +5223,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
          case XK_2:
+         /*
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<2){
                     for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
@@ -5243,6 +5250,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 activeClipPlanes = activeClippingPlanes();
                 locallySelectedPlane = 1;
             }
+*/
+
+                strcat(modifierBuf, "2");
+                if (!SUMA_Numeral_Key(sv, modifierBuf, "drivesuma")) {
+                 SUMA_S_Err("Failed in Key function.");
+                }
             break;
          case XK_3:
             if (clippingPlaneMode){

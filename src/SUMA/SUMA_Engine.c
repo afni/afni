@@ -4756,17 +4756,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
-                           case 0:
-                           case 1:
-                           case 2:
-                           case 3:
-                           case 4:
-                           case 5:
-                           case 6:
-                           case 7:
-                           case 8:
-                           case 9:
-                              sprintf(stmp, "%d", k);
+                           case XK_0:
+                           case XK_1:
+                           case XK_2:
+                           case XK_3:
+                           case XK_4:
+                           case XK_5:
+                           case XK_6:
+                           case XK_7:
+                           case XK_8:
+                           case XK_9:
+                              // sprintf(stmp, "%d", k);   // DO NOT DELETE
                               if (!SUMA_Numeral_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
