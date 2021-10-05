@@ -4756,6 +4756,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
+                           case 0:
+                           case 1:
+                           case 2:
+                           case 3:
+                           case 4:
+                           case 5:
+                           case 6:
+                           case 7:
+                           case 8:
+                           case 9:
+                              sprintf(stmp, "%d", k);
+                              if (!SUMA_Numeral_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
                            case XK_a:
                            case XK_A:
                               // if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'A';

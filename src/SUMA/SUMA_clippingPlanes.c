@@ -45,6 +45,7 @@ Boolean justEnteredClippingPlaneMode;
 float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
 float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
 Boolean activeClipPlanes = True;
+int locallySelectedPlane;
 
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){

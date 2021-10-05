@@ -50,6 +50,7 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_space_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F3_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);

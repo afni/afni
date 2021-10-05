@@ -56,6 +56,26 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       c = keyname[0];
       SUMA_LHv("c now '%c'\n", c);
       switch(c) {
+         case '0':
+            SUMA_RETURN(XK_0);
+         case '1':
+            SUMA_RETURN(XK_1);
+         case '2':
+            SUMA_RETURN(XK_2);
+         case '3':
+            SUMA_RETURN(XK_3);
+         case '4':
+            SUMA_RETURN(XK_4);
+         case '5':
+            SUMA_RETURN(XK_5);
+         case '6':
+            SUMA_RETURN(XK_6);
+         case '7':
+            SUMA_RETURN(XK_7);
+         case '8':
+            SUMA_RETURN(XK_8);
+         case '9':
+            SUMA_RETURN(XK_9);
          case 'a':
             SUMA_RETURN(XK_a);
          case 'A':
@@ -1206,21 +1226,94 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
-int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_A_Key"};
-   char tk[]={"A"}, keyname[100];
-   int k, nc;
+   char tk[]={"0"}, keyname[100];
+   int k, nc, i, isv;
    SUMA_EngineData *ED = NULL;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
+   Widget w;
+   XKeyEvent Kev;
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
+   SUMA_KEY_COMMON;
+
+   SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
+
+   fprintf(stderr, "k=%d\n", k);
+   fprintf(stderr, "key=%s\n", key);
+
+   /* do the work */
+   switch (k) {
+      case XK_0:
+        if (clippingPlaneMode){
+                clipPlaneTransform(0,0,0,0,0, 0, 1);
+                resetClippingPlanes = 1;
+                for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                    active[i] = (i>0);
+                    clipPlaneTransform(0,0,0,0,i, 1, 0);
+                }
+                clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+        }
+         break;
+        case XK_2:
+            if (clippingPlaneMode){
+                if (SUMAg_CF->N_ClipPlanes<2){
+                    for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
+                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
+                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
+                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                            exit(1);
+                        }
+                    }
+                    if (! SUMA_ALTHELL) active[1] = 0;  // Toggle plane off so it will be toggled on
+                }
+                if (SUMA_ALTHELL){    // Select clipping plane 2
+                    clipPlaneTransform(0,0,0,0,1, 0, 0);
+                    lightenActiveClipPlaneSquare(1);
+                    darkenInactiveClipPlaneSquares(1);
+                } else {        // Toggle plane 2 off/on
+                    clipPlaneTransform(0,0,0,0,1, 1, 0);
+                    previouslyActive[1] = active[1];
+                    clipPlaneTransform(0,0,0,0,1, 0, 0);
+                    lightenActiveClipPlaneSquare(1);
+                    darkenInactiveClipPlaneSquares(1);
+                }
+                activeClipPlanes = activeClippingPlanes();
+                locallySelectedPlane = 1;
+            }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_A_Key"};
+   char tk[]={"A"}, keyname[100];
+   int k, nc, isv;
+   SUMA_EngineData *ED = NULL;
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   Widget w;
+   XKeyEvent Kev;
+
+   SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
+
+   SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
    /* do the work */
    switch (k) {
@@ -1232,23 +1325,29 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_a:
-         /* toggle background attenuation */
-         if (sv->Back_Modfact) {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity OFF.\n", FuncName);
-            sv->Back_Modfact = 0;
-         } else {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity ON.\n", FuncName);
-            sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
-         }
+        if (clippingPlaneMode){
+            if (!axisObject) makeAxisObject(w, sv);
+            axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
+            SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+        } else {
+             /* toggle background attenuation */
+             if (sv->Back_Modfact) {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity OFF.\n", FuncName);
+                sv->Back_Modfact = 0;
+             } else {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity ON.\n", FuncName);
+                sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+             }
 
-         /* set the remix flag */
-         if (!SUMA_SetShownLocalRemixFlag (sv)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
-                     FuncName);
-            break;
+             /* set the remix flag */
+             if (!SUMA_SetShownLocalRemixFlag (sv)) {
+                fprintf (SUMA_STDERR,
+                         "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
+                         FuncName);
+                break;
+             }
          }
 
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -1373,7 +1472,6 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_C:
-        fprintf(stderr, "XK_C\n");
             if ((SUMA_ALTHELL)){
 
                 if (clippingPlaneMode){
@@ -1396,6 +1494,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 }
             } else if (SUMA_CTRL_KEY(key)){
                 toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
+                if (!axisObject) makeAxisObject(w, sv);
             }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -1433,7 +1532,6 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
            }
          break;
       case XK_c:
-        fprintf(stderr, "XK_c\n");
             {
                SUMA_SurfaceObject *SO=NULL;
                if ((SO = SUMA_SV_Focus_SO(sv))) {
@@ -4452,17 +4550,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_a:
+             if (!SUMA_A_Key(sv, "a", "interactive")) {
+                    SUMA_S_Err("Failed in key func.");
+               }
+               /*
                if (clippingPlaneMode){
                 if (!axisObject) makeAxisObject(w, sv);
                 axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
-                /*
-                clipIdentificationPlane[0]->ShowMeshAxis =
-                        !(clipIdentificationPlane[0]->ShowMeshAxis);
-                        */
                 SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
                } else if (!SUMA_A_Key(sv, "a", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
+               */
                 break;
 
          case XK_B:
@@ -4509,6 +4608,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
             } else if ((Kev.state & ControlMask)){
                 toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
+                if (!axisObject) makeAxisObject(w, sv);
             }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
 
                 SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -5362,12 +5462,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         clipPlaneTransform(0,0,0,0,i, 1, 0);
                     }
                     clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-                    // SUMAg_CF->N_ClipPlanes = 1;
-                    /*
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                    */
-                    // SUMAg_CF->N_ClipPlanes = 0;
-                    // clippingPlaneMode = False;
             }
             break;
 
