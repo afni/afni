@@ -4206,8 +4206,6 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    char slabel[20]="\0", *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   fprintf(stderr, "*** Initialise clippingPlaneFile to NULL, and clipping \
-    plane mode to false, before .vss file possibly read\n");
    // Initialise to NULL before .vss file possibly read
    clippingPlaneFile = NULL;
    clippingPlaneMode = 0;
