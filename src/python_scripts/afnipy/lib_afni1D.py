@@ -25,8 +25,9 @@ MTYPE_NONE = 0   # no modulation        (these work as a bit mask)
 MTYPE_AMP  = 1   # amplitude modulation
 MTYPE_DUR  = 2   # duration modulation
 
-# global variable
+# global variables
 g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
+g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -2756,6 +2757,66 @@ class Afni1D:
             print("%-10s : %s" % (key, val))
          print()
 
+   def get_xmat_stype_cols(self, stypes=['ALL']):
+      """return columns for the given stim types, based on BasisOption entries
+         (requires them to be stored in dict['column_list']
+         (i.e. cannot include baseline or -stim_file regressor columns)
+
+            times:  -stim_times
+            AM:     -stim_times_AM1 or -stim_times_AM2
+            AM1:    -stim_times_AM1
+            AM2:    -stim_times_AM2
+            IM:     -stim_times_IM
+
+      """
+      # make a list of acceptible options
+      if 'ALL' in stypes:
+         optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
+                    '-stim_times_IM']
+      else:
+         # dupes are not a problem, if the user happens to allow them
+         optlist = []
+         if 'times' in stypes:
+            optlist.extend(['-stim_times'])
+         if 'AM' in stypes:
+            optlist.extend(['-stim_times_AM1', '-stim_times_AM2'])
+         if 'AM1' in stypes:
+            optlist.extend(['-stim_times_AM1'])
+         if 'AM2' in stypes:
+            optlist.extend(['-stim_times_AM2'])
+         if 'IM' in stypes:
+            optlist.extend(['-stim_times_IM'])
+
+      if self.verb > 2:
+         print("-- show_xmat_stype_cols convert: %s\n" \
+               "   to: %s" % (', '.join(stypes), ', '.join(optlist)))
+
+      # for each Basis entry, if the Option is desirable, append the cols
+      collist = []
+      for bdict in self.basisinfo:
+         keys = list(bdict.keys())
+
+         if 'Option' not in keys or 'column_list' not in keys:
+            continue
+
+         sopt = bdict['Option']
+         scols = bdict['column_list']
+
+         # does this have an option of interest?
+         if sopt not in optlist:
+            continue
+
+         if len(scols) == 0:
+            print("** xmat_type_cols: no 'column_list' for stim opt %s"%sopt)
+            return []
+
+         # we have something, append do the list
+         collist.extend(scols)
+
+      collist.sort()
+
+      return collist
+
    def slice_order_to_times(self, verb=1):
       """given a slice order, resort index list to slice times
 
@@ -3037,7 +3098,7 @@ class Afni1D:
       if btype == 'Name':
          pass
       elif btype == 'Option':
-         if not btype.startswith('-stim_'):
+         if not data.startswith('-stim_'):
             if self.verb > 1:
                print("** basisinfo: bad btype in label for: %s = '%s'" \
                      % (label, data))
@@ -3063,6 +3124,7 @@ class Afni1D:
          data = dotdata
 
       bdict[btype] = data
+      # make a list of 
 
       return 0
 
