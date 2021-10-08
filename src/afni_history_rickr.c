@@ -53,9 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_xmat_stype_cols",
+   "Display xmat columns for speicified -stim_* regressor classes."
+ } ,
+
  {  1, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_xmat_stim_info",
-   NULL
+   "Display xmat info for -stim_* regressor classes."
  } ,
 
  { 23, Sep, 2021, RCR, "3dTshift", MICRO, TYPE_ENHANCE,

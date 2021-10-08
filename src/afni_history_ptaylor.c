@@ -71,7 +71,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 2, Oct , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Copy input anat (and any mask_ss) into the output directory.",
-   "Can be useful for checking if things went awry (do they ever??!?).\n"
+   "Can be useful for checking if things went awry (do they ever?!?).\n"
 },
 
 { 29, Sep , 2021 , PT , "3dAllineate" , MAJOR , TYPE_GENERAL,
