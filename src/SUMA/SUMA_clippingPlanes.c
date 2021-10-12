@@ -384,10 +384,24 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
    PR = *PRi;   // Keep local copy
    // Store the PR in ado, hide it from return potential
+   (*PRi)->ado_idcode_str = NULL;
+   (*PRi)->dset_idcode_str = NULL;
+   SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
+
+   // This part is necessary to prevent the program from crashing in some instances,
+   //   apparently when volumes, rather than surfaces, are used
+   Saux->PR->ado_idcode_str = NULL;
+   Saux->PR->dset_idcode_str = NULL;
+
    SUMA_ADO_StorePickResult(ado, PRi);
 
    sv->Focus_DO_ID = ADO_iDO(ado);
    SUMA_UpdateViewerTitle(sv);
+
+   /*
+   (*PRi)->ado_idcode_str = NULL;
+   (*PRi)->dset_idcode_str = NULL;
+   */
 
    SUMA_LH("Returning");
    SUMA_RETURN (1); /* OK */
@@ -778,7 +792,10 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-        colorPlanes(sv, SO,&PR);
+        if (!colorPlanes(sv, SO,&PR)){
+            fprintf(stderr, "ERROR: colorPlanes failed in makeAxisPlaneFromNodeAndFaceSetList\n");
+            return NULL;
+        }
     }
 
     // Reduce opacity of current surface object (clipping plane square)
@@ -986,7 +1003,10 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA
         */
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-        colorPlanes(sv, SO,&PR);
+        if (!colorPlanes(sv, SO,&PR)) {
+            fprintf(stderr, "ERROR: colorPlanes failed in drawPlaneFromNodeAndFaceSetList\n");
+            return NULL;
+        }
     }
 
     // Reduce opacity of current surface object (clipping plane square)
@@ -1391,7 +1411,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
-        colorPlanes(sv, SO,&PR);
+        colorPlanes(sv, SO, &PR);
     }
 }
 

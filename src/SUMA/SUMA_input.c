@@ -1257,6 +1257,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                 lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
 
+                // Required to lighten plane mode in DriveSuma mode but not in interactive mode
                 clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                 lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
         }
@@ -1277,6 +1278,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         break;
     case XK_2:
         if (clippingPlaneMode){
+            // DEAD CODE
             if (SUMAg_CF->N_ClipPlanes<2){
                 for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
                     sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -1305,6 +1307,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_3:
             if (clippingPlaneMode){
+            // DEAD CODE
                 if (SUMAg_CF->N_ClipPlanes<3){
                     for (i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -1338,6 +1341,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
     case XK_4:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
+            // DEAD CODE
                     for (i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
@@ -1374,6 +1378,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
     case XK_5:
             if (clippingPlaneMode){
                 if (SUMAg_CF->N_ClipPlanes<5){
+            // DEAD CODE
                     for (i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                         clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
@@ -1409,6 +1414,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_6:
             if (clippingPlaneMode){
+            // DEAD CODE
                 if (SUMAg_CF->N_ClipPlanes<6){
                     for (i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
                         sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
@@ -8497,13 +8503,14 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
    static char FuncName[]={"SUMA_free_PickResult"};
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
    if (!PR) SUMA_RETURN(PR);
-   SUMA_ifree(PR->primitive);
-   SUMA_ifree(PR->ado_idcode_str);
-   SUMA_ifree(PR->dset_idcode_str);
+   if (PR->primitive) SUMA_ifree(PR->primitive);
+   if (PR->ado_idcode_str) SUMA_ifree(PR->ado_idcode_str);
+   if (PR->dset_idcode_str) SUMA_ifree(PR->dset_idcode_str);
+
    SUMA_ifree(PR->evr);
    SUMA_free(PR);
+
    SUMA_RETURN(NULL);
 }
 
@@ -8524,7 +8531,6 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
             SUMA_S_Err("NULL Saux!!!, don't let that happen");
             SUMA_RETURN(NOPE);
          }
-        // fprintf(stderr, "Saux = %p\n", Saux);
          SUMA_free_PickResult(Saux->PR);
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);
