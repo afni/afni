@@ -398,11 +398,6 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    sv->Focus_DO_ID = ADO_iDO(ado);
    SUMA_UpdateViewerTitle(sv);
 
-   /*
-   (*PRi)->ado_idcode_str = NULL;
-   (*PRi)->dset_idcode_str = NULL;
-   */
-
    SUMA_LH("Returning");
    SUMA_RETURN (1); /* OK */
 }/* determine intersection */
@@ -434,6 +429,14 @@ void getObjectMinMaxForAxes(float objectMinMax[][2]){
         if (soOld->Show==1) for (i=0; i<3; ++i){
             if (soOld->MaxDims[i]<= allowableMax) objectMinMax[i][1] = MAX(objectMinMax[i][1], soOld->MaxDims[i]);
             if (soOld->MinDims[i] >= allowableMin) objectMinMax[i][0] = MIN(objectMinMax[i][0], soOld->MinDims[i]);
+        }
+    }
+
+    // Ensure some gap between planes
+    for (i=0; i<3; ++i){
+        if (objectMinMax[i][0]>=objectMinMax[i][1]){
+            objectMinMax[i][0] = -100;
+            objectMinMax[i][1] = 100;
         }
     }
 }
