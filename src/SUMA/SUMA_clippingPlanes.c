@@ -560,12 +560,57 @@ void makeCommonNodesOfRectangleDarkYellow(SUMA_SurfaceObject *SO){
 void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
     int i;
 
+    // fprintf(stderr, "makeCommonNodesOfRectangleRed\n");
+
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[0] = 0.0;
 
     SO->Overlays[0]->ColVec[0] = 1.0;
     SO->Overlays[0]->ColVec[3] = 1.0;
     SO->Overlays[0]->ColVec[6] = 1.0;
     SO->Overlays[0]->ColVec[9] = 1.0;
+/*
+    fprintf(stderr, "SO->Overlays[0]->NodeCol = %d\n", SO->Overlays[0]->NodeCol);
+    fprintf(stderr, "SO->Overlays[0]->BordFrac = %d\n", SO->Overlays[0]->BordFrac);
+    fprintf(stderr, "SO->Overlays[0]->TxtShad = %d\n", SO->Overlays[0]->TxtShad);
+    fprintf(stderr, "SO->Overlays[0]->EdgeThick = %d\n", SO->Overlays[0]->EdgeThick);
+    fprintf(stderr, "SO->Overlays[0]->EdgeThickGain = %f\n", SO->Overlays[0]->EdgeThickGain);
+    fprintf(stderr, "SO->Overlays[0]->EdgeStip = %d\n", SO->Overlays[0]->EdgeStip);
+    fprintf(stderr, "SO->Overlays[0]->AlphaVal = %d\n", SO->Overlays[0]->AlphaVal);
+    fprintf(stderr, "SO->Overlays[0]->Name = %s\n", SO->Overlays[0]->Name);
+    fprintf(stderr, "SO->Overlays[0]->Label = %s\n", SO->Overlays[0]->Label);
+    fprintf(stderr, "SO->Overlays[0]->NodeDef[0] = %d\n", SO->Overlays[0]->NodeDef[0]);
+    fprintf(stderr, "SO->Overlays[0]->N_NodeDef = %d\n", SO->Overlays[0]->N_NodeDef);
+    fprintf(stderr, "SO->Overlays[0]->FullList = %d\n", SO->Overlays[0]->FullList);
+    fprintf(stderr, "SO->Overlays[0]->ColAlpha = %p\n", SO->Overlays[0]->ColAlpha);
+    fprintf(stderr, "SO->Overlays[0]->RemixOID = %d\n", SO->Overlays[0]->RemixOID);
+    fprintf(stderr, "SO->Overlays[0]->V[0] = %f\n", SO->Overlays[0]->V[0]);
+    fprintf(stderr, "SO->Overlays[0]->N_V = %d\n", SO->Overlays[0]->N_V);
+    fprintf(stderr, "SO->Overlays[0]->V_identifier = %s\n", SO->Overlays[0]->V_identifier);
+    fprintf(stderr, "SO->Overlays[0]->Vperc = %p\n", SO->Overlays[0]->Vperc);
+    fprintf(stderr, "SO->Overlays[0]->N_Vperc = %d\n", SO->Overlays[0]->N_Vperc);
+    fprintf(stderr, "SO->Overlays[0]->T[0] = %f\n", SO->Overlays[0]->T[0]);
+    fprintf(stderr, "SO->Overlays[0]->N_T = %d\n", SO->Overlays[0]->N_T);
+    fprintf(stderr, "SO->Overlays[0]->T_identifier = %s\n", SO->Overlays[0]->T_identifier);
+    fprintf(stderr, "SO->Overlays[0]->Tperc = %p\n", SO->Overlays[0]->Tperc);
+    fprintf(stderr, "SO->Overlays[0]->N_Tperc = %d\n", SO->Overlays[0]->N_Tperc);
+    fprintf(stderr, "SO->Overlays[0]->GlobalOpacity = %f\n", SO->Overlays[0]->GlobalOpacity);
+    fprintf(stderr, "SO->Overlays[0]->LocalOpacity[0] = %f\n", SO->Overlays[0]->LocalOpacity[0]);
+    fprintf(stderr, "SO->Overlays[0]->PlaneOrder = %d\n", SO->Overlays[0]->PlaneOrder);
+    fprintf(stderr, "SO->Overlays[0]->isBackGrnd = %d\n", SO->Overlays[0]->isBackGrnd);
+    fprintf(stderr, "SO->Overlays[0]->DimFact = %f\n", SO->Overlays[0]->DimFact);
+    fprintf(stderr, "SO->Overlays[0]->ForceIntRange[0] = %f\n", SO->Overlays[0]->ForceIntRange[0]);
+    fprintf(stderr, "SO->Overlays[0]->ForceIntRange[1] = %f\n", SO->Overlays[0]->ForceIntRange[1]);
+    fprintf(stderr, "SO->Overlays[0]->cmapname = %s\n", SO->Overlays[0]->cmapname);
+    fprintf(stderr, "SO->Overlays[0]->OptScl[0] = %d\n", SO->Overlays[0]->OptScl[0]);
+    fprintf(stderr, "SO->Overlays[0]->SymIrange = %d\n", SO->Overlays[0]->SymIrange);
+    fprintf(stderr, "SO->Overlays[0]->rowgraph_mtd = %p\n", SO->Overlays[0]->rowgraph_mtd);
+    fprintf(stderr, "SO->Overlays[0]->rowgraph_num = %d\n", SO->Overlays[0]->rowgraph_num);
+    fprintf(stderr, "SO->Overlays[0]->N_Contours = %d\n", SO->Overlays[0]->N_Contours);
+    fprintf(stderr, "SO->Overlays[0]->LinkMode = %d\n", SO->Overlays[0]->LinkMode);
+    fprintf(stderr, "SO->Overlays[0]->ClustList = %p\n", SO->Overlays[0]->ClustList);
+    fprintf(stderr, "SO->Overlays[0]->ClustOfNode = %p\n", SO->Overlays[0]->ClustOfNode);
+    fprintf(stderr, "SO->Overlays[0]->AlphaThresh = %f\n", SO->Overlays[0]->AlphaThresh);
+    */
 }
 
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
@@ -793,6 +838,10 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
+            fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
+            return;
+        }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         if (!colorPlanes(sv, SO,&PR)){
@@ -1378,6 +1427,13 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     }
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
+    // Avoid gray planes
+    for (i=0; i<4; ++i){
+        SO->Overlays[0]->V[i] = 0.583694;
+    }
+    SO->Overlays[0]->NodeDef[0] = 0;
+    SO->Overlays[0]->isBackGrnd = 1;
+
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
     return TRUE;
@@ -1389,15 +1445,6 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     SUMA_SurfaceViewer *sv;
     Widget w;
     int isv;
-
-    switch(planeIndex){
-        case 0: makeCommonNodesOfRectangleRed(SO); break;
-        case 1: makeCommonNodesOfRectangleGreen(SO); break;
-        case 2: makeCommonNodesOfRectangleBlue(SO); break;
-        case 3: makeCommonNodesOfRectangleCyan(SO); break;
-        case 4: makeCommonNodesOfRectangleMagenta(SO); break;
-        case 5: makeCommonNodesOfRectangleYellow(SO); break;
-    }
 
     // This block is necessary for the color changes to be applied to the square object
     {
@@ -1415,6 +1462,16 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         colorPlanes(sv, SO, &PR);
+    }
+
+
+    switch(planeIndex){
+        case 0: makeCommonNodesOfRectangleRed(SO); break;
+        case 1: makeCommonNodesOfRectangleGreen(SO); break;
+        case 2: makeCommonNodesOfRectangleBlue(SO); break;
+        case 3: makeCommonNodesOfRectangleCyan(SO); break;
+        case 4: makeCommonNodesOfRectangleMagenta(SO); break;
+        case 5: makeCommonNodesOfRectangleYellow(SO); break;
     }
 }
 
