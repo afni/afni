@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Oct, 2021, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow user-defined ROIs/masks to be used with -mask_apply",
+   "Thank to ... for the suggestion."
+ } ,
+
  {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_xmat_stype_cols",
    "Display xmat columns for speicified -stim_* regressor classes."
