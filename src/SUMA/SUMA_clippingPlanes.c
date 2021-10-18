@@ -386,6 +386,8 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    // Store the PR in ado, hide it from return potential
    (*PRi)->ado_idcode_str = NULL;
    (*PRi)->dset_idcode_str = NULL;
+   (*PRi)->primitive = NULL;
+   (*PRi)->evr = NULL;
    SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
 
    // This part is necessary to prevent the program from crashing in some instances,
@@ -569,47 +571,16 @@ void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
     SO->Overlays[0]->ColVec[6] = 1.0;
     SO->Overlays[0]->ColVec[9] = 1.0;
 /*
-    fprintf(stderr, "SO->Overlays[0]->NodeCol = %d\n", SO->Overlays[0]->NodeCol);
-    fprintf(stderr, "SO->Overlays[0]->BordFrac = %d\n", SO->Overlays[0]->BordFrac);
-    fprintf(stderr, "SO->Overlays[0]->TxtShad = %d\n", SO->Overlays[0]->TxtShad);
-    fprintf(stderr, "SO->Overlays[0]->EdgeThick = %d\n", SO->Overlays[0]->EdgeThick);
-    fprintf(stderr, "SO->Overlays[0]->EdgeThickGain = %f\n", SO->Overlays[0]->EdgeThickGain);
-    fprintf(stderr, "SO->Overlays[0]->EdgeStip = %d\n", SO->Overlays[0]->EdgeStip);
-    fprintf(stderr, "SO->Overlays[0]->AlphaVal = %d\n", SO->Overlays[0]->AlphaVal);
-    fprintf(stderr, "SO->Overlays[0]->Name = %s\n", SO->Overlays[0]->Name);
-    fprintf(stderr, "SO->Overlays[0]->Label = %s\n", SO->Overlays[0]->Label);
-    fprintf(stderr, "SO->Overlays[0]->NodeDef[0] = %d\n", SO->Overlays[0]->NodeDef[0]);
+    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->NodeDef[%d] = %d\n", i, SO->Overlays[0]->NodeDef[i]);
     fprintf(stderr, "SO->Overlays[0]->N_NodeDef = %d\n", SO->Overlays[0]->N_NodeDef);
-    fprintf(stderr, "SO->Overlays[0]->FullList = %d\n", SO->Overlays[0]->FullList);
-    fprintf(stderr, "SO->Overlays[0]->ColAlpha = %p\n", SO->Overlays[0]->ColAlpha);
-    fprintf(stderr, "SO->Overlays[0]->RemixOID = %d\n", SO->Overlays[0]->RemixOID);
-    fprintf(stderr, "SO->Overlays[0]->V[0] = %f\n", SO->Overlays[0]->V[0]);
+    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->V[%d] = %f\n", i, SO->Overlays[0]->V[i]);
     fprintf(stderr, "SO->Overlays[0]->N_V = %d\n", SO->Overlays[0]->N_V);
-    fprintf(stderr, "SO->Overlays[0]->V_identifier = %s\n", SO->Overlays[0]->V_identifier);
-    fprintf(stderr, "SO->Overlays[0]->Vperc = %p\n", SO->Overlays[0]->Vperc);
-    fprintf(stderr, "SO->Overlays[0]->N_Vperc = %d\n", SO->Overlays[0]->N_Vperc);
-    fprintf(stderr, "SO->Overlays[0]->T[0] = %f\n", SO->Overlays[0]->T[0]);
-    fprintf(stderr, "SO->Overlays[0]->N_T = %d\n", SO->Overlays[0]->N_T);
-    fprintf(stderr, "SO->Overlays[0]->T_identifier = %s\n", SO->Overlays[0]->T_identifier);
-    fprintf(stderr, "SO->Overlays[0]->Tperc = %p\n", SO->Overlays[0]->Tperc);
-    fprintf(stderr, "SO->Overlays[0]->N_Tperc = %d\n", SO->Overlays[0]->N_Tperc);
-    fprintf(stderr, "SO->Overlays[0]->GlobalOpacity = %f\n", SO->Overlays[0]->GlobalOpacity);
-    fprintf(stderr, "SO->Overlays[0]->LocalOpacity[0] = %f\n", SO->Overlays[0]->LocalOpacity[0]);
-    fprintf(stderr, "SO->Overlays[0]->PlaneOrder = %d\n", SO->Overlays[0]->PlaneOrder);
-    fprintf(stderr, "SO->Overlays[0]->isBackGrnd = %d\n", SO->Overlays[0]->isBackGrnd);
-    fprintf(stderr, "SO->Overlays[0]->DimFact = %f\n", SO->Overlays[0]->DimFact);
+    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->T[%d] = %f\n", i, SO->Overlays[0]->T[i]);
+    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->LocalOpacity[%d] = %f\n", i, SO->Overlays[0]->LocalOpacity[i]);
     fprintf(stderr, "SO->Overlays[0]->ForceIntRange[0] = %f\n", SO->Overlays[0]->ForceIntRange[0]);
     fprintf(stderr, "SO->Overlays[0]->ForceIntRange[1] = %f\n", SO->Overlays[0]->ForceIntRange[1]);
-    fprintf(stderr, "SO->Overlays[0]->cmapname = %s\n", SO->Overlays[0]->cmapname);
-    fprintf(stderr, "SO->Overlays[0]->OptScl[0] = %d\n", SO->Overlays[0]->OptScl[0]);
+    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->OptScl[%d] = %d\n", i, SO->Overlays[0]->OptScl[i]);
     fprintf(stderr, "SO->Overlays[0]->SymIrange = %d\n", SO->Overlays[0]->SymIrange);
-    fprintf(stderr, "SO->Overlays[0]->rowgraph_mtd = %p\n", SO->Overlays[0]->rowgraph_mtd);
-    fprintf(stderr, "SO->Overlays[0]->rowgraph_num = %d\n", SO->Overlays[0]->rowgraph_num);
-    fprintf(stderr, "SO->Overlays[0]->N_Contours = %d\n", SO->Overlays[0]->N_Contours);
-    fprintf(stderr, "SO->Overlays[0]->LinkMode = %d\n", SO->Overlays[0]->LinkMode);
-    fprintf(stderr, "SO->Overlays[0]->ClustList = %p\n", SO->Overlays[0]->ClustList);
-    fprintf(stderr, "SO->Overlays[0]->ClustOfNode = %p\n", SO->Overlays[0]->ClustOfNode);
-    fprintf(stderr, "SO->Overlays[0]->AlphaThresh = %f\n", SO->Overlays[0]->AlphaThresh);
     */
 }
 
@@ -1431,7 +1402,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     for (i=0; i<4; ++i){
         SO->Overlays[0]->V[i] = 0.583694;
     }
-    SO->Overlays[0]->NodeDef[0] = 0;
+    for (i=0; i<4; ++i) SO->Overlays[0]->NodeDef[i] = i;
     SO->Overlays[0]->isBackGrnd = 1;
 
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
@@ -1583,7 +1554,6 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     static SUMA_Boolean    firstCall = 1;
 
     if (reset){
-        fprintf(stderr, "Reset\n");
         planeIndex = 0;
         // These ranges determine
         planeD[0] = -objectMinMax[2][0];

@@ -8504,11 +8504,22 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
    SUMA_ENTRY;
 
    if (!PR) SUMA_RETURN(PR);
+
+   /*
+   fprintf(stderr, "PR=%p\n", PR);
+   fprintf(stderr, "PR->primitive=%p\n", PR->primitive);
+   fprintf(stderr, "PR->ado_idcode_str=%p\n", PR->ado_idcode_str);
+   fprintf(stderr, "PR->dset_idcode_str=%p\n", PR->dset_idcode_str);
+   fprintf(stderr, "PR->evr=%p\n", PR->evr);
+   */
    if (PR->primitive) SUMA_ifree(PR->primitive);
    if (PR->ado_idcode_str) SUMA_ifree(PR->ado_idcode_str);
-   if (PR->dset_idcode_str) SUMA_ifree(PR->dset_idcode_str);
+   if (PR->dset_idcode_str){
+        SUMA_ifree(PR->dset_idcode_str);
+        if (PR->evr) SUMA_ifree(PR->evr);
+    }
 
-   SUMA_ifree(PR->evr);
+
    SUMA_free(PR);
 
    SUMA_RETURN(NULL);
