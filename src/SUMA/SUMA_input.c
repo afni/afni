@@ -1693,6 +1693,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     activeClipPlanes = activeClippingPlanes();
                 }
             } else if (SUMA_CTRL_KEY(key)){
+                fprintf(stderr, "Toggle clipping plane mode.\n");
                 toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
                 if (!axisObject) makeAxisObject(w, sv);
             }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
