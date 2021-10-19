@@ -69,6 +69,25 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Oct , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Copy input anat (and any mask_ss) into the output directory.",
+   "Can be useful for checking if things went awry (do they ever?!?).\n"
+},
+
+{ 29, Sep , 2021 , PT , "3dAllineate" , MAJOR , TYPE_GENERAL,
+   "3dAllineate: set -lpa+ to re-include 'ov' in its recipe---for stability.",
+   "This makes it closer to historical form (but no 'mi' still).\n"
+},
+
+{ 29, Sep , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior with longnames---just needed a quote around var.",
+   "Should work now.  Also update help.\n"
+},
+
+{ 29, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Just running '-help' leads to lesion_outs.txt to be created and populated.",
+   "... and it also got overwritten oddly.  Move those lines further down.\n"
+},
 
 { 27, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
    "On/about Aug 23, 2021, default label_sizes in image windows changed.",

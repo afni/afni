@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Oct, 2021, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow user-defined ROIs/masks to be used with -mask_apply",
+   "Thank to D Picchioni for the suggestion."
+ } ,
+
+ {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_xmat_stype_cols",
+   "Display xmat columns for speicified -stim_* regressor classes."
+ } ,
+
+ {  1, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_xmat_stim_info",
+   "Display xmat info for -stim_* regressor classes."
+ } ,
+
  { 23, Sep, 2021, RCR, "3dTshift", MICRO, TYPE_ENHANCE,
    "update help to connect tzero to stimulus timing in 3dDeconvolve",
    "Might want to subtract 'tzero' from stimulus event times."

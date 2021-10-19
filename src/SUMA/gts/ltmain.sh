@@ -71,6 +71,9 @@ EOF
   exit $EXIT_SUCCESS
 fi
 
+# Whatever the above test does is not working on modern Linux. Hence: KISS
+echo=echo; ECHO=echo; export echo ECHO
+
 default_mode=
 help="Try \`$progname --help' for more information."
 magic="%%%MAGIC variable%%%"

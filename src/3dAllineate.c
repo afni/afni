@@ -103,8 +103,16 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define DEFAULT_MICHO_LPA_MI  0.0   /* 27 May 2021 */
 #define DEFAULT_MICHO_LPA_NMI 0.2
 #define DEFAULT_MICHO_LPA_CRA 0.4
-#define DEFAULT_MICHO_LPA_HEL 1.0
-#define DEFAULT_MICHO_LPA_OV  0.0
+#define DEFAULT_MICHO_LPA_HEL 0.4
+#define DEFAULT_MICHO_LPA_OV  0.4   /* 28 Sep 2021: bring this back */
+
+// [PT: 28 Sep 2021] lpb == lpa, but lpb+ does NOT contain ov
+// + leaving off doing more with this, at the moment
+#define DEFAULT_MICHO_LPB_MI  0.0   
+#define DEFAULT_MICHO_LPB_NMI 0.2
+#define DEFAULT_MICHO_LPB_CRA 0.4
+#define DEFAULT_MICHO_LPB_HEL 0.4
+#define DEFAULT_MICHO_LPB_OV  0.0   
 
 /****/
 
@@ -164,7 +172,7 @@ static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "crM", "nmi", "je"   , "hel",
-    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "lpa+"  } ;
+    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "lpa+" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
@@ -172,7 +180,8 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns" , "signedPcor" ,
-    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , "localPcorAbs+Others" } ;
+    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , 
+    "localPcorAbs+Others" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -204,7 +213,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "nonlinear average of Pearson cc over local neighborhoods" ,
     "1 - abs(lpc)"                                             ,
     "lpc + hel + mi + nmi + crA + overlap"                     ,
-    "lpa + hel + mi + nmi + crA + overlap"
+    "lpa + hel +      nmi + crA + overlap"                     
   } ;
 
 /* check if method code implies use of BLOKs */
@@ -1650,13 +1659,17 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
               "   All of the above now applies to the 'lpa+' cost functional,\n"
               "   which can be used as a robust method for like-to-like alignment.\n"
               "   For example, aligning 3T and 7T T1-weighted datasets from the same person.\n"
-              " * [28 May 2021]\n"
+              " * [28 Sep 2021]\n"
               "   However, the default multiplier constants for cost 'lpa+' are now\n"
               "   different from the 'lpc+' multipliers -- to make 'lpa+' more\n"
               "   robust. The new default for 'lpa+' is\n"
               "     lpa + hel*%.1f + crA*%.1f + nmi*%.1f + mi*%.1f + ov*%.1f\n"
-              " *** Note that in trial runs, we have found that lpc+ZZ and lpa+ZZ are more     ***\n"
-              " *** robust than lpc+ and lpa+ -- which is why the '+ZZ' amendment was created. ***\n"
+              " ***** '-cost lpa+ZZ' is very useful for T1w to T1w volumes (or any     *****\n"
+              " ***** similar-contrast datasets).                                      *****\n"
+              "\n"
+              " *** Note that in trial runs, we have found that lpc+ZZ and lpa+ZZ are    ***\n"
+              " *** more robust than lpc+ and lpa+ -- which is why the '+ZZ' amendment   ***\n"
+              " *** was created.                                                         ***\n"
              , DEFAULT_MICHO_LPC_HEL, DEFAULT_MICHO_LPC_CRA, DEFAULT_MICHO_LPC_NMI, DEFAULT_MICHO_LPC_MI, DEFAULT_MICHO_LPC_OV
              , DEFAULT_MICHO_LPA_HEL, DEFAULT_MICHO_LPA_CRA, DEFAULT_MICHO_LPA_NMI, DEFAULT_MICHO_LPA_MI, DEFAULT_MICHO_LPA_OV
              ) ;

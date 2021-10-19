@@ -691,7 +691,8 @@ g_history = """
        - fixed niml.dset suffix in case of -regress_compute_fitts on surface
          (thanks to S Torrisi for noting the problem)
     7.16 May 19, 2021: fixed volreg TSNR in surface case (still in volume)
-    7.17 Mul 16, 2021: unindent EOF
+    7.17 Jul 16, 2021: unindent EOF
+    7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
 """
 
 g_version = "version 7.17, July 16, 2021"
@@ -1456,9 +1457,11 @@ class SubjProcSream:
         self.valid_opts.add_opt('-blur_opts_merge', -1, [],
                         helpstr='additional options directly for 3dmerge')
 
+        # acplist=['epi', 'anat', 'epi_anat', 'group', 'extents'],
+        # - allow user-specified masks as well [18 Oct 2021 rickr]
         self.valid_opts.add_opt('-mask_apply', 1, [],
-                        acplist=['epi', 'anat', 'epi_anat', 'group', 'extents'],
                         helpstr="select mask to apply in regression")
+
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
         self.valid_opts.add_opt('-mask_opts_automask', -1, [],

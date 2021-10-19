@@ -197,10 +197,8 @@ endif()
 
 
 if(APPLE)
-    # turn of signing locally
-    message("--   (not) Adding Apple plist")
-    # set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
-
+    message("--   Adding Apple plist")
+    set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
     #Apple notarization requires a Info.plist
     # For .app bundles, the Info.plist is a separate file, for executables it is appended as a section
     #you can check that the Info.plist section has been inserted with either of these commands

@@ -1954,7 +1954,12 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
 #define GA_MATCH_PEARCLP_SCALAR    16
 
-#define GA_MATCH_METHNUM_SCALAR    14  /* Largest useful value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR    14  /* Largest useful value in
+                                          sequence above; 
+                                          -> actually, mostly just
+                                          used to desc length of
+                                          arrays in 3dAllineate.c
+                                          (meth_visible) */
 
  /* methods for smoothing images */
 

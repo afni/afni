@@ -4408,6 +4408,16 @@ def db_cmd_mask(proc, block):
         elif mtype == 'epi_anat':proc.mask = proc.mask_epi_anat
         elif mtype == 'group':   proc.mask = proc.mask_group
         elif mtype == 'extents': proc.mask = proc.mask_extents
+        else:
+           # otherwise, try as label
+           aname = proc.get_roi_dset(mtype)
+           if not aname:
+              print("*** ERROR, invalid -mask_apply mask: %s" % mtype)
+              print("    must be one of: epi, anat, epi_anat, group, extents")
+              print("    or else       : be a known/imported ROI or mask")
+              return
+           proc.mask = aname
+
         if proc.verb > 1: print("++ applying mask as '%s'" % mtype)
         if proc.mask: proc.regmask = 1 # apply, if it seems to exist
         else:
@@ -13032,8 +13042,11 @@ g_help_options = """
             If possible, masks will be made for the EPI data, the subject
             anatomy, the group anatomy and EPI warp extents.  This option is
             used to specify which of those masks to apply to the regression.
+            One can specify a pre-defined TYPE, or a user-specified one that
+            is defined via -anat_follower_ROI or -mask_import, for example.
 
-            Valid choices: epi, anat, group, extents.
+               Valid pre-defined choices:  epi, anat, group, extents.
+               Valid user-defined choices: mask LABELS specified elsewhere.
 
             A subject 'anat' mask will be created if the EPI anat anatomy are
             aligned, or if the EPI data is warped to standard space via the
@@ -13047,6 +13060,7 @@ g_help_options = """
 
             See "MASKING NOTE" and "DEFAULTS" for details.
             See also -blocks.
+            See also -mask_import.
 
         -mask_dilate NUM_VOXELS : specify the automask dilation
 

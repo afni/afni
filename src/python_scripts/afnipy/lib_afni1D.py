@@ -25,6 +25,10 @@ MTYPE_NONE = 0   # no modulation        (these work as a bit mask)
 MTYPE_AMP  = 1   # amplitude modulation
 MTYPE_DUR  = 2   # duration modulation
 
+# global variables
+g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
+g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
+
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
       """1D matrix class (2-D array)
@@ -75,6 +79,8 @@ class Afni1D:
       self.groups   = []        # integral column groups (from ColumnGroups)
       self.goodlist = []        # good time points       (from GoodList)
       self.runstart = []        # start indices          (from RunStart)
+      self.basisinfo= []        # Basis* fields as dictionaries
+                                # Name, Option, Formula, Columns
 
       self.verb     = verb
       self.ready    = 0         # matrix is ready
@@ -206,6 +212,11 @@ class Afni1D:
       # update lists
       if self.labels: self.labels = [self.labels[i] for i in vlist]
       if self.groups: self.groups = [self.groups[i] for i in vlist]
+
+      if self.basisinfo:
+         # consider propagating this later
+         del(self.basisinfo)
+         self.basisinfo = []
 
       return 0
 
@@ -1854,6 +1865,8 @@ class Afni1D:
       self.groups = []
       del(self.goodlist)
       self.goodlist = []
+      del(self.basisinfo)
+      self.basisinfo = []
       del(self.cormat)
       del(self.cosmat)
       self.cormat = None
@@ -2708,6 +2721,102 @@ class Afni1D:
          else:    print("%d" % mind, end='')
       print('')
 
+   def show_xmat_stim_info(self, label='', verb=1):
+      """display Basis* field information from an xmat
+            Name            : stim label
+            Option          : -stim_* option name
+            Formula         : 3dDeconvolve basis function
+            Columns         : column selector (test, but do not convert)
+
+         if label: only show matching classes
+      """
+      if label == '':
+         print("-- have %d Basis elements:\n" % len(self.basisinfo))
+
+      for bdict in self.basisinfo:
+         keys = list(bdict.keys())
+
+         # maybe we want to skip this (probably most)
+         if label and label != 'ALL':
+            if 'Name' not in keys:
+               continue
+            if bdict['Name'] != label:
+               continue
+
+         if 'column_list' in keys:
+            cols = bdict['column_list']
+            ncol = len(cols)
+         else:
+            ncol = 0
+         for key in g_xmat_basis_labels:
+            if key in keys: val = bdict[key]
+            else:           val = ''
+            # if there is only 1 column, do not use .. notation
+            if key == 'Columns' and ncol == 1:
+               val = str(cols[0])
+            print("%-10s : %s" % (key, val))
+         print()
+
+   def get_xmat_stype_cols(self, stypes=['ALL']):
+      """return columns for the given stim types, based on BasisOption entries
+         (requires them to be stored in dict['column_list']
+         (i.e. cannot include baseline or -stim_file regressor columns)
+
+            times:  -stim_times
+            AM:     -stim_times_AM1 or -stim_times_AM2
+            AM1:    -stim_times_AM1
+            AM2:    -stim_times_AM2
+            IM:     -stim_times_IM
+
+      """
+      # make a list of acceptible options
+      if 'ALL' in stypes:
+         optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
+                    '-stim_times_IM']
+      else:
+         # dupes are not a problem, if the user happens to allow them
+         optlist = []
+         if 'times' in stypes:
+            optlist.extend(['-stim_times'])
+         if 'AM' in stypes:
+            optlist.extend(['-stim_times_AM1', '-stim_times_AM2'])
+         if 'AM1' in stypes:
+            optlist.extend(['-stim_times_AM1'])
+         if 'AM2' in stypes:
+            optlist.extend(['-stim_times_AM2'])
+         if 'IM' in stypes:
+            optlist.extend(['-stim_times_IM'])
+
+      if self.verb > 2:
+         print("-- show_xmat_stype_cols convert: %s\n" \
+               "   to: %s" % (', '.join(stypes), ', '.join(optlist)))
+
+      # for each Basis entry, if the Option is desirable, append the cols
+      collist = []
+      for bdict in self.basisinfo:
+         keys = list(bdict.keys())
+
+         if 'Option' not in keys or 'column_list' not in keys:
+            continue
+
+         sopt = bdict['Option']
+         scols = bdict['column_list']
+
+         # does this have an option of interest?
+         if sopt not in optlist:
+            continue
+
+         if len(scols) == 0:
+            print("** xmat_type_cols: no 'column_list' for stim opt %s"%sopt)
+            return []
+
+         # we have something, append do the list
+         collist.extend(scols)
+
+      collist.sort()
+
+      return collist
+
    def slice_order_to_times(self, verb=1):
       """given a slice order, resort index list to slice times
 
@@ -2958,6 +3067,89 @@ class Afni1D:
 
       return 0
 
+   def add_basisinfo(self, label, data):
+      """update self.basisinfo
+         handle basis types:
+            Name            : stim label
+            Option          : -stim_* option name
+            Formula         : 3dDeconvolve basis function
+            Columns         : column selector (test, but do not convert)
+
+            column_list     : included for valid Columns
+      """
+      if self.verb > 3: print("-- add_basisinfo: %s = %s" %(label,data))
+
+      status, btype, bind = self.basisinfo_label_parts(label)
+      if status < 0:
+         print("** illegal basisinfo: %s = '%s'" % (label, data))
+         return 1
+      elif status == 0:
+         return 0
+
+      # we have something to process
+
+      # make sure there are enough dictionaries, and note the current one
+      nprev = len(self.basisinfo)
+      if nprev < bind:
+         self.basisinfo.extend([{} for i in range(bind-nprev)])
+      bdict = self.basisinfo[bind-1]
+
+      # test data for given btype
+      if btype == 'Name':
+         pass
+      elif btype == 'Option':
+         if not data.startswith('-stim_'):
+            if self.verb > 1:
+               print("** basisinfo: bad btype in label for: %s = '%s'" \
+                     % (label, data))
+            # what to do, just whine?
+            # return 1
+      elif btype == 'Formula':
+         # consider setting things like stim dur, etc
+         pass
+      elif btype == 'Columns':
+         # if we have a valid column list, store it
+         # ** note: replace ':' with '..'
+         dotdata = data.replace(':', '..')
+         intlist = UTIL.decode_1D_ints(dotdata)
+         if len(intlist) == 0:
+            if self.verb > 1:
+               print("** basisinfo: bad Columns in: %s = '%s'"%(label, data))
+            return 1
+
+         if self.nvec > 0: imax = self.nvec-1
+         else:             imax = -1
+         bdict['column_list'] = intlist
+         # store in .. format, not :
+         data = dotdata
+
+      bdict[btype] = data
+      # make a list of 
+
+      return 0
+
+   def basisinfo_label_parts(self, label, prefix='Basis'):
+      """return a tuple of:
+            status, basistype, index
+
+         status = -1 (on error), 0 (on ignore), 1 (on success)
+      """
+      lstuff = label.split('_')
+
+      # skip anything not of the format Basis*_index (1-based)
+      if len(lstuff) < 2: return 0, '', 0
+
+      blen = len(prefix)
+      btype = lstuff[0][blen:]
+      bind = -1
+      try:
+         bind = int(lstuff[1])
+      except:
+         print("** bad baseinfo label: %s")
+         return -1, '', 0
+
+      return 1, btype, bind
+
    def init_from_1D(self, fname):
       """initialize Afni1D from a 1D file (return err code)"""
 
@@ -3060,10 +3252,16 @@ class Afni1D:
                   self.runstart = []
                if self.verb > verb_level:
                   print("-- label %s: runstart %s" % (label,self.runstart))
+            elif label.startswith('Basis'):
+               self.add_basisinfo(label, data)
             elif self.verb > 2:
                print("** unknown comment label '%s'" % label)
          except:
             print("** failed to process comment label '%s'" % label)
+
+      if self.verb > 2 and len(self.basisinfo) > 0:
+         for bind, bdict in enumerate(self.basisinfo):
+            print("++ bdict %d: %s" % (bind+1, bdict))
 
       return 0
 

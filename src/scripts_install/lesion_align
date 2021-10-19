@@ -32,8 +32,14 @@ set progname = lesion_align
 # warp lesion mask
 #set version = 1.08
 # unifize option, lesion mask transformation
-set version = 1.09
-# chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
+#set version = 1.09
+# [pt] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
+set version = 1.10
+# [pt] $lesion_outs text file made with just "-help", populated with 
+#      non-useful info.  Also, immediately would overwrite itself...
+#      moved creation of ${lesion_outs} further down in code to prevent this
+#    + ** guessing it should also create this text file wherever the actual
+#      output will go
 
 # get parsed and we can still get at script version number
 if ("$#" <  "1") then
@@ -59,8 +65,6 @@ set goodside = ""
 set centersplit = "0"
 set exclusion = ""
 set unifize = "1"
-
-echo "# Command  :  $argv"                           >> ${lesion_outs}
 
 # process user options
 set ac = 1
@@ -251,7 +255,9 @@ set afni_vnum = `afni -vnum`
 set tbase     = `basename $base`
 
 # set up output text file with file descriptions
-echo "# List of inputs and outputs from lesion_align"  > ${lesion_outs}
+echo "# Command  :  $argv"                             >  ${lesion_outs}
+echo ""                                                >> ${lesion_outs}
+echo "# List of inputs and outputs from lesion_align"  >> ${lesion_outs}
 echo "AFNI package                 : $afni_pack"       >> ${lesion_outs}
 echo "AFNI version number          : $afni_vnum"       >> ${lesion_outs}
 echo "lesion_align ver             : $version"         >> ${lesion_outs}
