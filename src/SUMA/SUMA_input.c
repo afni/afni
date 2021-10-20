@@ -1264,7 +1264,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_1:
         if (clippingPlaneMode){
-            if (SUMA_ALT_KEY(key)){
+            if (SUMA_CTRL_KEY(key)){
                 clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
                 lightenActiveClipPlaneSquare(0);
                 darkenInactiveClipPlaneSquares(0);
@@ -1288,9 +1288,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                         exit(1);
                     }
                 }
-                if (! SUMA_ALT_KEY(key)) active[1] = 0;  // Toggle plane off so it will be toggled on
+                if (! SUMA_CTRL_KEY(key)) active[1] = 0;  // Toggle plane off so it will be toggled on
             }
-            if (SUMA_ALT_KEY(key)){    // Select clipping plane 2
+            if (SUMA_CTRL_KEY(key)){    // Select clipping plane 2
                 clipPlaneTransform(0,0,0,0,1, 0, 0);
                 lightenActiveClipPlaneSquare(1);
                 darkenInactiveClipPlaneSquares(1);
@@ -1321,9 +1321,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                             clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
-                    if (! SUMA_ALT_KEY(key)) active[2] = 0;  // Toggle plane off so it will be toggled on
+                    if (! SUMA_CTRL_KEY(key)) active[2] = 0;  // Toggle plane off so it will be toggled on
                 }
-                if (SUMA_ALT_KEY(key)){    // Select clipping plane 3
+                if (SUMA_CTRL_KEY(key)){    // Select clipping plane 3
                     clipPlaneTransform(0,0,0,0,2, 0, 0);
                     lightenActiveClipPlaneSquare(2);
                     darkenInactiveClipPlaneSquares(2);
@@ -1358,9 +1358,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                             clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
-                    if (! SUMA_ALT_KEY(key)) active[3] = 0;  // Toggle plane off so it will be toggled on
+                    if (! SUMA_CTRL_KEY(key)) active[3] = 0;  // Toggle plane off so it will be toggled on
                 }
-                if (SUMA_ALT_KEY(key)){
+                if (SUMA_CTRL_KEY(key)){
                     clipPlaneTransform(0,0,0,0,3, 0, 0);
                     lightenActiveClipPlaneSquare(3);
                     darkenInactiveClipPlaneSquares(3);
@@ -1395,9 +1395,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                             clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
-                    if (! SUMA_ALT_KEY(key)) active[4] = 0;  // Toggle plane off so it will be toggled on
+                    if (! SUMA_CTRL_KEY(key)) active[4] = 0;  // Toggle plane off so it will be toggled on
                 }
-                if (SUMA_ALT_KEY(key)){    // Select clipping plane 5
+                if (SUMA_CTRL_KEY(key)){    // Select clipping plane 5
                     clipPlaneTransform(0,0,0,0,4, 0, 0);
                     lightenActiveClipPlaneSquare(4);
                     darkenInactiveClipPlaneSquares(4);
@@ -1432,9 +1432,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                             clipPlaneTransform(0,0,0,0,i, 1, 0);
                         }
                     }
-                    if (! SUMA_ALT_KEY(key)) active[5] = 0;  // Toggle plane off so it will be toggled on
+                    if (! SUMA_CTRL_KEY(key)) active[5] = 0;  // Toggle plane off so it will be toggled on
                 }
-                if (SUMA_ALT_KEY(key)){    // Select clipping plane 6
+                if (SUMA_CTRL_KEY(key)){    // Select clipping plane 6
                     clipPlaneTransform(0,0,0,0,5, 0, 0);
                     lightenActiveClipPlaneSquare(5);
                     darkenInactiveClipPlaneSquares(5);
