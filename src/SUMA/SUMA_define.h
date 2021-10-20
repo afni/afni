@@ -2750,7 +2750,6 @@ typedef struct {
    int PryAx;             /* Prying axis. 3 == Z axis, 2 == Y axis */
 
    float clippingPlaneIncrement; // PDL
-   // char *clippingPlaneFile;   // PDL
 
 } SUMA_SurfaceViewer;
 
@@ -3963,5 +3962,8 @@ extern int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
 extern SUMA_DO *SUMAg_DOv;	/*!< Global pointer to Displayable Object structure vector*/
 extern int SUMAg_N_DOv; /*!< Number of DOs stored in DOv */
 extern SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+
+// char *clippingPlaneFile;   // PDL
+
 
 #endif

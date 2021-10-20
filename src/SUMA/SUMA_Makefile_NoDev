@@ -57,7 +57,7 @@ GLWLIB = libGLws.a
 
 SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr -IGLUT -I../f2c -I.. -I../niml -I../coxplot -I../ptaylor
 
-SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
+SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_clippingPlanes.c \
 		 SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c SUMA_SurfNorm.c SUMA_DOmanip.c \
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c \
@@ -143,7 +143,7 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
-SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
+SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_clippingPlanes.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
 		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
 		 SUMA_DataSets.h SUMA_Homer.h
 

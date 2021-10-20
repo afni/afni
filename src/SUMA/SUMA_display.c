@@ -265,6 +265,8 @@ static char SUMA_SCR_LIST_WIDGET_TRANSLATIONS[] =
       <Btn5Down>: ListNextItem() ";
 
 
+extern Bool clippingPlaneMode;
+
 
 /*!
 
@@ -1183,6 +1185,20 @@ void SUMA_LoadSegDO (char *s, void *csvp )
 */
 static int shutup;
 
+#define SUMA_getStringFromNiml(m_nel, m_attr, m_fv, m_n, m_fail) {\
+   char *m_atmp = NULL; \
+   int m_nr = 0; \
+   m_fail = 0; \
+   m_atmp = NI_get_attribute(m_nel, m_attr); \
+   if (!m_atmp) {   \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
+      m_fail = 1; \
+   }  \
+   m_fv = m_atmp;    \
+}
+
 #define SUMA_S2FV_ATTR(m_nel, m_attr, m_fv, m_n, m_fail) {\
    char *m_atmp = NULL; \
    int m_nr = 0; \
@@ -1424,6 +1440,8 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    Dimension ScrW, ScrH;
    char *atmp;
    SUMA_Boolean LocalHead = NOPE;
+   char * strbuf;
+   float    floatBuf[1];
 
    SUMA_ENTRY;
 
@@ -1432,7 +1450,19 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       SUMA_RETURN(0);
    }
 
+   fprintf(stderr, "*** Reading from VVS file\n");
+
    /* don't crash if you fail here and there, try your best ...*/
+   SUMA_getStringFromNiml(nel, "clippingPlaneFile", strbuf, 16, feyl);
+      if (!feyl) {
+        clippingPlaneFile = (char *)calloc(strlen(strbuf)+8, sizeof(char));
+        sprintf(clippingPlaneFile, "%s", strbuf);
+        fprintf(stderr, "Clipping file name = %s\n", clippingPlaneFile);
+      } else clippingPlaneFile = NULL;
+   SUMA_S2FV_ATTR(nel, "clippingPlaneMode", floatBuf, 1, feyl);
+      if (!feyl) {
+        clippingPlaneMode = (floatBuf[0] > 0.5);
+      }
    SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl);
       if (!feyl) {
          SUMA_COPY_VEC( quat, csv->GVS[csv->StdView].currentQuat, 4,
@@ -1524,8 +1554,6 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
           }
       }
    }
-
-
 
    SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl);
       if (!feyl) {
@@ -1631,6 +1659,18 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
 
    NI_free_element(nel); nel = NULL;
    NI_stream_close(nstdin);
+
+   /* Will probably be deleted
+   // Initiate clipping plane mode if required
+   if (clippingPlaneMode){
+    int isv, locallySelectedPlane = 0;
+    // SUMA_SurfaceViewer *sv;
+    Widget w;
+
+    SUMA_GLXAREA_WIDGET2SV(w, csv, isv);
+    toggleClippingPlaneMode(csv, w, &locallySelectedPlane);
+   }
+   */
 
    SUMA_RETURNe;
 }
@@ -4165,6 +4205,10 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
    char slabel[20]="\0", *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
+
+   // Initialise to NULL before .vss file possibly read
+   clippingPlaneFile = NULL;
+   clippingPlaneMode = 0;
 
    SUMA_ENTRY;
    /* Step 1. */
