@@ -6126,7 +6126,8 @@ ENTRY("allocate_memory") ;
 
 
   /*----- Allocate memory for fitted time series -----*/
-  if (option_data->fitts_filename != NULL)
+  /* do not allocate when using x1D_stop  [20 Oct 2021 rickr] */
+  if (option_data->fitts_filename != NULL && !option_data->x1D_stop)
     {
       *fitts_vol = (float **) malloc (sizeof(float **) * nt);
       MTEST (*fitts_vol);
@@ -6137,7 +6138,7 @@ ENTRY("allocate_memory") ;
     }
 
   /*----- Allocate memory for residual errors -----*/
-  if (option_data->errts_filename != NULL)
+  if (option_data->errts_filename != NULL && !option_data->x1D_stop)
     {
       *errts_vol = (float **) malloc (sizeof(float **) * nt);
       MTEST (*errts_vol);
@@ -8809,7 +8810,7 @@ void output_results
 
 
   /*----- Write the fitted (full model) 3D+time dataset -----*/
-  if (option_data->fitts_filename != NULL){
+  if (option_data->fitts_filename != NULL && fitts_vol != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
                   option_data->fitts_filename);
@@ -8819,7 +8820,7 @@ void output_results
 
 
   /*----- Write the residual errors 3D+time dataset -----*/
-  if (option_data->errts_filename != NULL){
+  if (option_data->errts_filename != NULL && errts_vol != NULL){
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
                   option_data->errts_filename);

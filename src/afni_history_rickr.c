@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Oct, 2021, RCR, "3dDeconvolve", MINOR, TYPE_ENHANCE,
+   "do not allocate errts/fitts on -x1D_stop",
+   NULL
+ } ,
+
  { 18, Oct, 2021, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "allow user-defined ROIs/masks to be used with -mask_apply",
    "Thank to D Picchioni for the suggestion."
