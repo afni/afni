@@ -1342,10 +1342,12 @@ char * SUMA_help_message_Info(TFORM targ)
       "             they are assumed to be the c and d parameters,\n"
       "             a and b are set to 0.\n"
       "           o You are allowed a maximum of %d planes\n"
-      "\n", SUMA_hkf("Ctrl+C", targ), SUMA_hkf(" Alt+C", targ),
+      "\n", SUMA_hkf("Shift-Ctrl+C", targ), SUMA_hkf(" Alt+C", targ),
       SUMA_MAX_N_CLIP_PLANES);
    SS = SUMA_StringAppend_va (SS,
-      "   %s: Toggle in and out of clipping plane mode.\n\n", SUMA_hkf("Ctrl+C", targ));
+      "   %s: Toggle in and out of clipping plane mode.  See\n"
+      "        'Clipping Plane Mode:' section.\n\n",
+      SUMA_hkf("Shift-Ctrl+C", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: load a node color file.\n\n", SUMA_hkf("c", targ));
    SS = SUMA_StringAppend_va (SS,
@@ -2316,9 +2318,9 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va (SS,
       "   %s: Select the numbered clipping plane (so \n"
       "       you can rotate/translate it with other key \n"
-      "       presses).  If the specified number > # planes, \n"
-      "       planes are added up to the specified number.\n\n",
-        SUMA_hkf("alt/cmd/opt-[a number]", targ));
+      "       presses).  There are six planes. By default \n"
+      "       plane 1 alone is shown.\n\n",
+        SUMA_hkf("Ctrl-[a number]", targ));
    SS = SUMA_StringAppend_va (SS,
       "   %s: Reset all clipping planes.\n\n",
       SUMA_hkf("0", targ));
