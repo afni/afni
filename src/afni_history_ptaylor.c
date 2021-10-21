@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Oct , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Max blowup factor is actually 8, not 4.",
+   "So, allow that fuller range in the internal number check.\n"
+},
+
 { 2, Oct , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
    "Copy input anat (and any mask_ss) into the output directory.",
    "Can be useful for checking if things went awry (do they ever?!?).\n"
