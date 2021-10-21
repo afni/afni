@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Oct, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow for previously set DYLD_LIBRARY_PATH",
+   NULL
+ } ,
+
  { 20, Oct, 2021, RCR, "3dDeconvolve", MINOR, TYPE_ENHANCE,
    "do not allocate errts/fitts on -x1D_stop",
    NULL
