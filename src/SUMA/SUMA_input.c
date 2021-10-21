@@ -1271,6 +1271,9 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
                 clipPlaneTransform(0,0,0,0,0, 1, 0);
                 previouslyActive[0] = active[0];
+                clipPlaneTransform(0,0,0,0,0, 0, 0);
+                lightenActiveClipPlaneSquare(0);
+                darkenInactiveClipPlaneSquares(0);
             }
             activeClipPlanes = activeClippingPlanes();
             locallySelectedPlane = 0;
@@ -1278,18 +1281,6 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         break;
     case XK_2:
         if (clippingPlaneMode){
-            // DEAD CODE
-            if (SUMAg_CF->N_ClipPlanes<2){
-                for (i=SUMAg_CF->N_ClipPlanes; i<2; ++i){
-                    sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                    clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                    if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                        fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                        exit(1);
-                    }
-                }
-                if (! SUMA_CTRL_KEY(key)) active[1] = 0;  // Toggle plane off so it will be toggled on
-            }
             if (SUMA_CTRL_KEY(key)){    // Select clipping plane 2
                 clipPlaneTransform(0,0,0,0,1, 0, 0);
                 lightenActiveClipPlaneSquare(1);
@@ -1307,22 +1298,6 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_3:
             if (clippingPlaneMode){
-            // DEAD CODE
-                if (SUMAg_CF->N_ClipPlanes<3){
-                    for (i=SUMAg_CF->N_ClipPlanes; i<3; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-                        if (i != 2){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_CTRL_KEY(key)) active[2] = 0;  // Toggle plane off so it will be toggled on
-                }
                 if (SUMA_CTRL_KEY(key)){    // Select clipping plane 3
                     clipPlaneTransform(0,0,0,0,2, 0, 0);
                     lightenActiveClipPlaneSquare(2);
@@ -1340,26 +1315,6 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_4:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<4){    // Select clipping plane 4
-            // DEAD CODE
-                    for (i=SUMAg_CF->N_ClipPlanes; i<4; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 3){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_CTRL_KEY(key)) active[3] = 0;  // Toggle plane off so it will be toggled on
-                }
                 if (SUMA_CTRL_KEY(key)){
                     clipPlaneTransform(0,0,0,0,3, 0, 0);
                     lightenActiveClipPlaneSquare(3);
@@ -1377,26 +1332,6 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_5:
             if (clippingPlaneMode){
-                if (SUMAg_CF->N_ClipPlanes<5){
-            // DEAD CODE
-                    for (i=SUMAg_CF->N_ClipPlanes; i<5; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 4){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_CTRL_KEY(key)) active[4] = 0;  // Toggle plane off so it will be toggled on
-                }
                 if (SUMA_CTRL_KEY(key)){    // Select clipping plane 5
                     clipPlaneTransform(0,0,0,0,4, 0, 0);
                     lightenActiveClipPlaneSquare(4);
@@ -1414,26 +1349,6 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
      break;
     case XK_6:
             if (clippingPlaneMode){
-            // DEAD CODE
-                if (SUMAg_CF->N_ClipPlanes<6){
-                    for (i=SUMAg_CF->N_ClipPlanes; i<6; ++i){
-                        sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                        clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
-                            fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
-                            exit(1);
-                        }
-
-                        // For some reason, this appears necessary to place planes, or their squares, in the right position
-                        //  if thet are planes 4-6
-                        if (SUMAg_CF->N_ClipPlanes>3) clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes-1, 0, 0);
-                        if (i != 5){   // Disable new, unselected planes
-                            active[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        }
-                    }
-                    if (! SUMA_CTRL_KEY(key)) active[5] = 0;  // Toggle plane off so it will be toggled on
-                }
                 if (SUMA_CTRL_KEY(key)){    // Select clipping plane 6
                     clipPlaneTransform(0,0,0,0,5, 0, 0);
                     lightenActiveClipPlaneSquare(5);
