@@ -314,9 +314,12 @@ set progname = @animal_warper
 #    + fix bug: if no followers used, no 'surfaces/' dir was created
 #      for orig surface brain.  Now OK.
 #
-set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
+#set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "3.40";   set rev_dat   = "Oct 21, 2021"
+#     + [PT] help examples were missing "-outdir .." arg.  Now provided
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -3516,7 +3519,7 @@ Examples ~1~
         -seg_followers     \${dir_ref}/NMT_*_segmentation.nii.gz  \
         -seg_abbrevs       SEG                                    \
         -skullstrip        \${dir_ref}/NMT_*_brainmask.nii.gz     \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
   2) Just like the previous example, but include more followers and
@@ -3533,7 +3536,7 @@ Examples ~1~
         -seg_followers     \${dir_ref}/NMT_*_segmentation.nii.gz  \
         -seg_abbrevs       SEG                                    \
         -skullstrip        \${dir_ref}/NMT_*_brainmask.nii.gz     \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
   3) Just like the previous example, but include followers (dset and
@@ -3554,7 +3557,7 @@ Examples ~1~
         -dset_abbrevs      T2W                                    \
         -roidset_followers \${dir_anat}/parcels-sub-000.nii.gz    \
         -roidset_abbrevs   ROIS                                   \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
 Demos, Tutorials and Online Docs ~1~
