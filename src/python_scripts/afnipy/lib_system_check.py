@@ -237,7 +237,9 @@ class SysInfo:
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
       rv += self.show_data_dir_info('afni_handouts')
 
-      if rv: self.comments.append('insufficient data for AFNI bootcamp')
+      if rv:
+         self.comments.append('insufficient data for AFNI bootcamp')
+         self.comments.append('(see "Prepare for Bootcamp" on install pages)')
 
       evar = 'AFNI_ATLAS_DIR'
       tryenv = 0                        # might suggest setting evar
