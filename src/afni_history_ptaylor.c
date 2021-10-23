@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Oct , 2021 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
+   "Report a better output path in the 'done' message.",
+   "The originally-output relative path was often not useful.\n"
+},
+
 { 21, Oct , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Max blowup factor is actually 8, not 4.",
    "So, allow that fuller range in the internal number check.\n"
