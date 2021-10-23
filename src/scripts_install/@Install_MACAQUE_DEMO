@@ -6,6 +6,7 @@ set sdir = $PWD
 # [PT: May 1, 2020]   updated version
 # [PT: July 30, 2020] updated version, run @Install_NMT here, too
 # [PT: Aug 4, 2020]   simplify directory numbering
+# [PT: Oct 23, 2021]  @Install_NMT gets v2.1
 set demo = MACAQUE_DEMO
 
 goto PARSE
@@ -44,12 +45,12 @@ tar xvzf $demo.tgz
 cd $demo
 
 echo "++ Getting standard reference datasets:"
-echo "     symmetric NMT v2.0, CHARM, D99 atlas, and more."
+echo "     symmetric NMT v2.1, CHARM, D99 atlas, and more."
 
 if ($use_curl == 0) then
-   @Install_NMT -wget -sym sym -nmt_ver 2.0
+   @Install_NMT -wget -sym sym -nmt_ver 2.1
 else
-   @Install_NMT -curl -sym sym -nmt_ver 2.0
+   @Install_NMT -curl -sym sym -nmt_ver 2.1
 endif
 
 echo "********************************************************"
