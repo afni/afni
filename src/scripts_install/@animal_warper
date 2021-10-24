@@ -318,8 +318,13 @@ set progname = @animal_warper
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "3.40";   set rev_dat   = "Oct 21, 2021"
+#set version   = "3.40";   set rev_dat   = "Oct 21, 2021"
 #     + [PT] help examples were missing "-outdir .." arg.  Now provided
+#
+set version   = "3.41";   set rev_dat   = "Oct 23, 2021"
+#     + [PT] make ROI_glasbey_2048 the colorbar for @chauffeur_afni
+#            ROI images
+#          + CHARM requires something >256, and other ones will, too
 #
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -2629,8 +2634,9 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                 -box_focus_slices "${focus}"           \
                 -montgap 1                             \
                 -montcolor 'black'                     \
-                -func_range 256                        \
-                -cbar ROI_i256                         \
+                -XXXnpane 2048                         \
+                -func_range 2048                       \
+                -cbar ROI_glasbey_2048                 \
                 -pbar_posonly                          \
                 -pbar_saveim "${opref}"                \
                 -prefix      "${opref}"                \
@@ -2652,8 +2658,9 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -box_focus_slices "${focus}"           \
                   -montgap 1                             \
                   -montcolor 'black'                     \
-                  -func_range 256                        \
-                  -cbar ROI_i256                         \
+                  -XXXnpane 2048                         \
+                  -func_range 2048                       \
+                  -cbar ROI_glasbey_2048                 \
                   -pbar_posonly                          \
                   -pbar_saveim "${opref}"                \
                   -prefix      "${opref}"                \
