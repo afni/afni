@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Improve QC outputs, and fix some chauffeur ranges.",
+   "Hopefully easier to evaluate alignment now, among other features.\n"
+},
+
 { 23, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "For ROI image QC, use ROI_glasbey_2048 now by default.",
    "CHARM has ROI values >256, so might as well go all in.\n"
