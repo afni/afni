@@ -939,7 +939,6 @@ static char *gby[] = {
      "I didn't fail the test, I just found 100 ways to do it wrong"  ,
      "Wise people don't need advice; fools won't take it"            ,
      "Half a truth is often a great lie"                             ,
-     "Will you help 'Make AFNI Great Again'?"                        ,
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
