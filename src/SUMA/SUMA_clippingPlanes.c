@@ -27,7 +27,7 @@
    }  \
 }
 
-Bool clippingPlaneMode;
+Bool clippingPlaneMode = 0;
 SUMA_SurfaceObject* clipIdentificationPlane[6];
 SUMA_SurfaceObject* axisObject = NULL;
 
