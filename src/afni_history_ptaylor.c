@@ -69,6 +69,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Opt '-extra_qw_opts ..' had wrong name in help file, '-qw_opts ..'.",
+   "Corrected this, as well as usage.\n"
+},
+
+{ 25, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Improve QC outputs, and fix some chauffeur ranges.",
+   "Hopefully easier to evaluate alignment now, among other features.\n"
+},
+
+{ 23, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "For ROI image QC, use ROI_glasbey_2048 now by default.",
+   "CHARM has ROI values >256, so might as well go all in.\n"
+},
+
+{ 22, Oct , 2021 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
+   "Report a better output path in the 'done' message.",
+   "The originally-output relative path was often not useful.\n"
+},
+
 { 21, Oct , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Max blowup factor is actually 8, not 4.",
    "So, allow that fuller range in the internal number check.\n"
