@@ -326,7 +326,7 @@ set progname = @animal_warper
 #            ROI images
 #          + CHARM requires something >256, and other ones will, too
 #
-set version   = "3.5";   set rev_dat   = "Oct 24, 2021"
+#set version   = "3.5";   set rev_dat   = "Oct 24, 2021"
 #     + [PT] improve QC outputs
 #          - use @djunct_edgy_olay to show alignment quality for qc_0{0,1}*
 #          - improve/simplify/separate naming structure of QC images
@@ -337,10 +337,14 @@ set version   = "3.5";   set rev_dat   = "Oct 24, 2021"
 #            automatically reflects them
 #          - make glasbey_ROIs a bit more opaque (hard to see otherwise)
 #
-set version   = "3.51";   set rev_dat   = "Oct 24, 2021"
+#set version   = "3.51";   set rev_dat   = "Oct 24, 2021"
 #     + [PT] fix some chauffeur ranges
 #          + change Urad in 3dUnifize to 14, from 30 (latter seems 
 #            waaaay too large for most animal dsets?)
+#   
+set version   = "3.52";   set rev_dat   = "Oct 27, 2021"
+#     + [PT] fix desc of opt name "-qw_opts" in help to what it actually is:
+#            "-extra_qw_opts".  Thanks, C Garin.
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -3266,7 +3270,7 @@ Options ~1~
                          @Align_Centers -base template -dset mydset \
                           -child dset2 dset3 ...
 
-  -align_type         :provide alignment only to specified level, of which  
+  -align_type   AT    :provide alignment only to specified level, of which  
                        your choices are:
                          rigid       - align using rotation and translation
                          rigid_equiv - compute alignment with full
@@ -3289,11 +3293,13 @@ Options ~1~
                        less-than-nonlinear warps will necessarily be more 
                        approximate.
 
-  -qw_opts       specify other options to add on to the existing options
-                       for 3dQwarp either as a group of options in quotes as
-                       in "-nopenalty -workhard 0:3" or by repeated use of this
-                       option. 3dQwarp is called indirectly using auto_warp.py.
-                       
+ -extra_qw_opts "EQO" :specify other options to add on to the
+                       existing options for 3dQwarp either as a group
+                       of options in quotes as in "-nopenalty
+                       -workhard 0:3" or by repeated use of this
+                       option. 3dQwarp is called indirectly using
+                       auto_warp.py.
+
   -keep_temp          :keep temporary files including awpy directory (from
                        auto_warp.py) and other intermediate datasets
 
