@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "try to warn on insufficient disk space",
+   "Check if any data partition has less than 5 GB available.\n"
+   "Done to appease the mighty P Taylor."
+ } ,
+
  { 21, Oct, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "allow for previously set DYLD_LIBRARY_PATH",
    NULL

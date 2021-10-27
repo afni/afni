@@ -16,7 +16,7 @@ if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
 
 # now load AFNI libraries by name
 from afnipy import option_list as OL
-from afnipy import afni_util as UTIL  # not actually used, but probably will be
+from afnipy import afni_util as UTIL
 from afnipy import lib_system_check as SC
 
 g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.cshrc', '.tcshrc']
@@ -226,9 +226,10 @@ g_history = """
         - whine if .zshrc references all_progs.COMP.bash
         - some python 3.8 distribution do not come with distro
    1.12 Feb 18, 2021 - check for reasonable XQuartz version
+   1.13 Oct 27, 2021 - warn if less than 5 GB disk space available
 """
 
-g_version = "afni_system_check.py version 1.12, February 18, 2021"
+g_version = "afni_system_check.py version 1.13, October 27, 2021"
 
 
 class CmdInterface:
