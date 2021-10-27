@@ -69,7 +69,7 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 27 Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+{ 27, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
    "Opt '-extra_qw_opts ..' had wrong name in help file, '-qw_opts ..'.",
    "Corrected this, as well as usage.\n"
 },
