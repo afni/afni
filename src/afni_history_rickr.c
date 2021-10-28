@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Oct, 2021, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "remove 2-run polort 0 cormat IDENTICAL automatic warnings",
+   "Done for P Taylor, as they were getting flagged in APQC."
+ } ,
+
  { 27, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "try to warn on insufficient disk space",
    "Check if any data partition has less than 5 GB available.\n"

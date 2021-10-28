@@ -1280,9 +1280,10 @@ g_history = """
    2.09 Jun  1, 2020 - added -show_regs and -show_regs_style
    2.10 Mar  5, 2021 - added -show_cormat_warnings_full, to include baseline
    2.11 Oct  8, 2021 - added -show_xmat_stim_info, -show_xmat_stim_info
+   2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
 """
 
-g_version = "1d_tool.py version 2.11, October 8, 2021"
+g_version = "1d_tool.py version 2.12, October 28, 2021"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
