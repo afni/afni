@@ -26,6 +26,10 @@ g_site_afnidoc      = 'https://afni.nimh.nih.gov/pub/dist/doc/htmldoc'
 g_site_install_root = '%s/background_install/install_instructs' % g_site_afnidoc
 g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
 
+# only run 'df' once per root directory
+g_fs_space_checked  = []
+g_fs_space_whine    = 1         # do we whine about fs space? (only once)
+
 # ------------------------------ main class  ------------------------------
 
 class SysInfo:
@@ -196,15 +200,27 @@ class SysInfo:
 
          return 0 if found, else 1
       """
+      global g_fs_space_whine
 
       status, droot = self.find_data_root(ddir, hvar=0)
       if status:
          print('data dir : missing %s' % ddir)
          return 1
 
-      # have a directory, show it
+      # have a directory, show it (and check file system space)
+      m_min = 5000
+      status, space = self.get_partition_space(droot, m_min=m_min)
+      if space:
+         sstr = ' (%s Avail)' % space
+      else:
+         sstr = ''
       dhome = droot.replace(self.home_dir, '$HOME')
-      print('data dir : found %-12s under %s' % (ddir, dhome))
+      print('data dir : found %-12s under %s%s' % (ddir, dhome, sstr))
+      # if we detect insufficient space, warn (but only once)
+      if status and g_fs_space_whine:
+         self.comments.append('possibly insufficient disk space for bootcamp')
+         self.comments.append('(prefer >= %d MB for data analysis)' % m_min)
+         g_fs_space_whine = 0
 
       # possibly show histfile
       if histfile == '': return 0
@@ -218,6 +234,74 @@ class SysInfo:
                " No info retrieved"%hname)
 
       return 0
+
+   def get_partition_space(self, dname, m_min=-1):
+      """run df -hm $dname, and return the value in '1M-blocks' column
+                            (if no such column, use Avail)
+
+            dname   : directory name to run df on
+            m_min   : if 1M-blocks and m_min >= 0, the min cutoff for failure
+
+         - find offset of header in first line of text
+         - starting at that position in the last line, return the first word
+           (it might not be the second line, in case Filesystem is too wide
+
+         Only run this once per dname, so track in g_fs_space_checked list.
+
+         return status and the size string
+                status: 1 on insufficient space, else 0
+      """
+
+      # do not check any dname more than once
+      global g_fs_space_checked
+      if dname in g_fs_space_checked:
+         return 0, ''
+      g_fs_space_checked.append(dname)
+
+      # try for an integral number of 1M-blocks
+      m = 1
+      cmd = 'df -hm %s' % dname
+      s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+      hsearch = '1M-blocks'
+
+      # if we fail at first, just get a value, probably in G
+      if s:
+         cmd = 'df -h %s' % dname
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+         hsearch = 'Avail'
+      if s: return 0, ''
+    
+      if len(so) < 2: return 0, ''
+
+      hstr = so[0]
+      astr = so[-1]
+
+      posn = hstr.find(hsearch)
+      if posn < 0: return 0, ''
+      if len(astr) <= posn: return 0, ''
+
+      # start from position of desired header string
+      astr = astr[posn:]
+      alist = astr.split()
+      if len(alist) == 0:
+         return 0, ''
+      astr = alist[0]
+
+      # if 'm' and this is an int, check for insufficient space
+      status = 0
+      if m and m_min >= 0:
+         try:
+            nmeg = int(astr)
+         except:
+            nmeg = -1
+         # failure
+         if nmeg >= 0 and nmeg < m_min:
+            status = 1
+      # if m, append a unit
+      if m:
+         astr = '%sM' % astr
+            
+      return status, astr
 
    def show_data_info(self, header=1):
       """checks that are specific to data
