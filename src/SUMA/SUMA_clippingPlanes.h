@@ -12,7 +12,7 @@ extern float  scrollInc;
 extern float  tiltInc;
 extern Boolean activeClipPlanes;
 extern int locallySelectedPlane;
-
+extern DList *list;
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane);
 void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
