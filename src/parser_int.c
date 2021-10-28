@@ -1107,8 +1107,9 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
 
    /*--- optimize ---*/
 
-   if( nfree > 1 ){
+   if( nfree > 1 ){  /* more than 1 parameter */
      double pcost1=1.e+38 , pcost2=1.e+38 , pval2[26] ; int j1,j2 ;
+     /* optimize twice for safety */
      j1 = powell_newuoa_constrained( nfree , pval , &pcost1 ,
                                      bfree , tfree ,
                                      666*nfree+111 , 77*nfree+11 , 33*nfree+7 ,
@@ -1116,18 +1117,18 @@ float * PARSER_fitter( int nval, float *indval, float *depval,
      memcpy( pval2 , pval , sizeof(double)*26 ) ;
      j2 = powell_newuoa_constrained( nfree , pval2 , &pcost2 ,
                                      bfree , tfree ,
-                                     66*nfree+33 , 11*nfree+7 , 7*nfree+5 ,
-                                     0.111 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
+                                     333*nfree+77 , 33*nfree+7 , 17*nfree+5 ,
+                                     0.055 , 0.0000333 , 666*nfree , pfit_ufunc ) ;
 
      if( j1 < 0 && j2 < 0 ){
        ERROR_message("PARSER_fitter: fitting failed!") ;
        pfit_free_atoz() ;
        return (NULL) ;
      }
-     if( j1 < 0 || (j2 > 0 && pcost2 < pcost1) ){
-       memcpy( pval , pval2 , sizeof(double)*26 ) ;
+     if( j1 < 0 || (j2 > 0 && pcost2 < pcost1) ){     /* if first failed, or */
+       memcpy( pval , pval2 , sizeof(double)*26 ) ;  /* second is better-ish */
      }
-   } else {
+   } else {         /* only one parameter (powell_newuoa doesn't work in 1D) */
      double xout ;
      xout = minimize_in_1D( bfree[0] , tfree[0] , pfit_ufunc ) ;
      pval[0] = xout ;
