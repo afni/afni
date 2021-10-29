@@ -2150,9 +2150,11 @@ class Afni1D:
       for ind in range(clen):
          aval, val, s, r, c = clist[clen-1-ind]
 
-         if aval == 1.0:
-            badlist.append((val, s, r, c)) # flag duplication
-            continue
+         # now raised to apqc, so do not auto-flag 2-run polort 0 correlations
+         # [28 Oct 2021 rickr - noted by PT]
+         # if aval == 1.0:
+         #    badlist.append((val, s, r, c)) # flag duplication
+         #    continue
 
          # skip motion against either motion or baseline
          rbase = r in basecols
