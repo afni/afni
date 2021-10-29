@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Oct , 2021 , PT , "@Install_NMT" , MINOR , TYPE_GENERAL,
+   "Update macaque template+atlas data.",
+   "Now working/defaulting to NMT v2.1.\n"
+},
+
+{ 29, Oct , 2021 , PT , "@Install_MACAQUE_DEMO_REST" , MINOR , TYPE_GENERAL,
+   "Update macaque demo for resting state FMRI processing.",
+   "New scripts, now working/defaulting to NMT v2.1.\n"
+},
+
 { 27, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
    "Opt '-extra_qw_opts ..' had wrong name in help file, '-qw_opts ..'.",
    "Corrected this, as well as usage.\n"
