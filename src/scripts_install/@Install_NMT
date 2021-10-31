@@ -12,9 +12,9 @@ set sdir = $PWD
 goto PARSE
 RET_PARSE:
 if ("$nmt_ver" =~ 2*) then
-      set template = NMT_v${nmt_ver}_${sym}
+    set template = NMT_v${nmt_ver}_${sym}
 else
-      set template = NMT_v${nmt_ver}
+    set template = NMT_v${nmt_ver}
 endif
 
 if ( -d ${install_dir}/$template) then
@@ -28,7 +28,7 @@ if ( -d ${install_dir}/$template) then
     goto END
   else if (${overwrite} == "1") then
     echo "WARNING: Removing currently installed ${install_dir}/$template"
-    rm -r ${install_dir}/$template
+    \rm -r ${install_dir}/$template
   endif
 endif
 
@@ -50,29 +50,41 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/nmt/${template}.tgz
 endif
 
-tar -xvzf $template.tgz
-rm $template.tgz
+\tar -xvzf $template.tgz
+\rm $template.tgz
 
 cd $template
-   echo "********************************************************"
-   echo "Please read ${install_dir}/$template/README.txt for more information about this template"
-   echo "********************************************************"
 
-if ($set_env == 1) then
-  set atlas_dir = ${install_dir}
-  @AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
-  @AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
-  @AfniEnv -set AFNI_TEMPLATE_SPACE_LIST NMT,NMT2,D99_Macaque,D99_Macaque_book
-  @AfniEnv -set AFNI_WEBBY_WAMI YES
-endif
+cat <<EOF
+
+********************************************************
+Please read ${install_dir}/$template/README.txt for more information
+about this template
+********************************************************
+
+EOF
+
+### PT: user has to set up the specific format of the dataset they
+### want to be in the env vars: *_05mm, *_fh, or 'default'.  This
+### won't work anymore
+#if ($set_env == 1) then
+#  set atlas_dir = ${install_dir}
+#  @AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
+#  @AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
+#  @AfniEnv -set AFNI_TEMPLATE_SPACE_LIST NMT,NMT2,D99_Macaque,D99_Macaque_book
+#  @AfniEnv -set AFNI_WEBBY_WAMI YES
+#endif
+
 cd -
+
+
 goto END
 
 PARSE:
 
 #------------------------ process user options --------------------------
 set use_curl = -1
-set nmt_ver = 2.0
+set nmt_ver = 2.1
 set sym = sym
 set install_dir = ${sdir}
 set overwrite = 0
@@ -110,7 +122,8 @@ while ($ac <= $#argv)
        set nmt_ver = $argv[$ac]
        if (($nmt_ver != "1.2")  && \
            ($nmt_ver != "1.3")  && \
-           ($nmt_ver != "2.0")) then
+           ($nmt_ver != "2.0")  && \
+           ($nmt_ver != "2.1")) then
              echo "nmt_ver $nmt_ver is not a valid choice"
              exit 1
        endif
@@ -130,7 +143,11 @@ while ($ac <= $#argv)
        endif
 
    else if ("$argv[$ac]" == "-set_env") then
-       set set_env = "1"
+       #set set_env = "1"
+       echo "+* WARNING: '-set_env' is no longer a usable option"
+       echo "   Instead, after the datadownload has completed,"
+       echo "   Run the setup*.tcsh script in your NMT data directory"
+       echo "   of choice to setup the AFNI environment vars."
 
    else
        echo "Error: Option or parameter '$argv[$ac]' not understood"
@@ -144,29 +161,32 @@ goto RET_PARSE
 HELP:
 cat << EOF
 
+   Overview ~1~
+
    Installs the NIMH Macaque Template (NMT) with the accompanying
    Cortical Hierarchy Atlas of the Rhesus Macaque (CHARM).
 
    Note there are multiple versions and variants of the template to
    choose from (see the "-ver .." and "-sym .." options, below), with
-   the default being the symmetric NMT v2.
+   the default being the ${sym}metric NMT v${nmt_ver}.
 
    The NMT v2 and the CHARM are described in:
 
-      Jung B, Taylor PA, Seidlitz PA, Sponheim C, Glen DR, Messinger A
-      (2020).  "A Comprehensive Macaque FMRI Pipeline and Hierarchical
-      Atlas."  NeuroImage, submitted.
-
+      Jung B, Taylor PA, Seidlitz PA, Sponheim C, Perkins P, Glen DR,
+      Messinger A (2021). A Comprehensive Macaque FMRI Pipeline and
+      Hierarchical Atlas. NeuroImage 235:117997.
+      https://doi.org/10.1016/j.neuroimage.2021.117997.
+      
    while the previous template versions (the NMT v1.2 and NMT v1.3) are
    described in:
 
       Seidlitz J, Sponheim C, Glen DR, Ye FQ, Saleem KS, Leopold DA,
-      Ungerleider L, Messinger A (2018). "A Population MRI Brain
-      Template and Analysis Tools for the Macaque." NeuroImage 170:
-      121–31.  https://doi.org/10.1016/j.neuroimage.2017.04.063.
+      Ungerleider L, Messinger A (2018). A Population MRI Brain
+      Template and Analysis Tools for the Macaque. NeuroImage 170:
+      121–31. doi: 10.1016/j.neuroimage.2017.04.063.
 
-   ** Please cite Jung et al. (2020) and/or Seidlitz et al. (2018) if you
-   make use of the respective templates in your work. **
+   ** Please cite Jung et al. (2021) and/or Seidlitz et al. (2018) if
+   you make use of the respective templates in your work. **
 
    After the archive is downloaded and unpacked (as the directory
    "NMT_*", depending on your selected version+variant), see its
@@ -174,23 +194,18 @@ cat << EOF
 
    --------------------------------------------------------------------------
 
-   Options:
+   Options ~1~
 
    -install_dir DD  :the install location for the NMT
                      (default = the PWD)
 
    -nmt_ver VV      :the version of the NMT you wish to install
-                     (default = 2.0; valid = 1.2, 1.3, 2.0)
+                     (default = ${nmt_ver}; valid = 2.1, 2.0, 1.3, 1.2)
 
    -sym SS          :the NMT v2 has both a symmetric and asymmetric variant.
-                     Specify the desired variant SS as either "sym" or "asym".
-                     Option is valid for the NMT v2 only--in other cases it is
-                     ignored. (default = "sym") 
-
-   -set_env         :allows the script to modify the ~/.afnirc file to increase
-                     NMT compatibility with AFNI (recommended if you do only
-                     macaque work, but not default; please inquire on the 
-                     AFNI Message Board if you have any questions about this)
+                     Specify the desired variant SS as either "sym" or
+                     "asym".  Option is valid for the NMT v2 only--in
+                     other cases it is ignored. (default = "${sym}")
 
    -overwrite       :allows the script to remove a pre-existing NMT directory
 
@@ -204,12 +219,23 @@ cat << EOF
 
    --------------------------------------------------------------------------
 
-   Please contact Dr. Adam Messinger (messinga@nih.gov) or Ben Jung
-   (benjamin.jung@nih.gov) with any questions or concerns regarding the
-   NMT.
+   Questions/contact ~1~
 
+   If you have any NMT or CHARM questions, please contact:
+
+     Adam Messinger : messinga @ nih.gov
+     Ben Jung       : benjamin.jung @ nih.gov
+
+   For demo or processing (@animal_warper, afni_proc.py, etc.) questions,
+   please contact:
+
+     Daniel Glen    : glend @ mail.nih.gov
+     Paul Taylor    : paul.taylor @ nih.gov
+
+   or ask on the AFNI Message Board.
 
 EOF
+
    goto END
 
 BEND:
