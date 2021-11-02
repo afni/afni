@@ -5328,26 +5328,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
             }
             break;
-/*
-         case XK_slash:
-            if (SUMA_ALTHELL){
-                clippingPlaneMode = !clippingPlaneMode;
-                if (clippingPlaneMode){
-                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
-                        clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-                    }
-                } else {
-                    for (i=0; i<6; ++i){
-                        previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
-                        active[i] = 1;                      // Turn clipping plane on so it will be toggled off
-                        if (SUMAg_CF->N_ClipPlanes>i) clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
-                    }
-                }
-                activeClipPlanes = activeClippingPlanes();
-            }
-            break;
-*/
+
          case XK_space:   /* The spacebar. */
             if (!SUMA_space_Key(sv, "SPACE", "interactive")) {
                SUMA_S_Err("Failed in key func.");
@@ -5366,43 +5347,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                    SUMA_S_Err("Failed in key func.");
                    }
             }
-         /*
-            // there's more:
-                  // XK_BackSpace XK_Tab XK_Linefeed XK_Return XK_Delete
-            // control mask and escape is grabbed by gnome window manager ....
-            if (Kev.state & ShiftMask){// kill all
-               if( SUMAg_CF->X->WarnClose) {
-                  if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
-                           "Close All Viewers?", SUMA_YES,
-                           SWP_DONT_CARE) != SUMA_YES) {
-                     break;
-                  }
-               }
-               XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
-               exit(0);
-            }else {
-               if( SUMAg_CF->X->WarnClose) {
-                  #ifdef DARWIN
-                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
-                                 "Close This Viewer?\n"
-                                 "OS-X users: If answering YES,\n"
-                                 "this prompt should not lie \n"
-                                 "over viewer to be closed.\n"
-                                 "Blame Bill Gates for this bug.",
-                                  SUMA_YES, SWP_TOP_RIGHT) != SUMA_YES) {
-                        break;
-                     }
-                  #else
-                     if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
-                                 "Close This Viewer?", SUMA_YES,
-                                 SWP_DONT_CARE) != SUMA_YES) {
-                        break;
-                     }
-                  #endif
-               }
-               SUMA_ButtClose_pushed (w, clientData, callData);
-            }
-            */
             break;
 
          case XK_A:
@@ -5458,103 +5402,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                 }
             }
             break;
-/*
-         case XK_C:
 
-            if ((SUMA_ALTHELL)){
-
-                if (clippingPlaneMode){
-
-                    if (resetClippingPlanes){
-                        SUMAg_CF->N_ClipPlanes = 1;
-                        resetClippingPlanes=0;
-                    }
-                    // This sets up a new clip plane (independent of the dialog box.  If called with
-                    //  the dialog box, two clipping planes result.)  The new plane is automatically
-                    //  assigned a label which is its 1-based index
-                    if ((Kev.state & ControlMask)){ // Ctrl-Shift-alt-C (clip plane box
-
-                        for (planeIndex=0; planeIndex<6; ++planeIndex){
-                            sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
-                            clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                        }
-                    }
-                    activeClipPlanes = activeClippingPlanes();
-                }
-            } else if ((Kev.state & ControlMask)){
-                toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
-                if (!axisObject) makeAxisObject(w, sv);
-            }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
-
-                SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
-
-                // Toggle clip plane identification mode
-                clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
-
-                for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
-                    if (clipPlaneIdentificationMode){
-                        if (active[planeIndex]) clipIdentificationPlane[planeIndex]->Show = 1;
-                    } else {
-                        clipIdentificationPlane[planeIndex]->Show = 0;
-                    }
-                }
-
-                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-            }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
-
-               SUMAg_CF->X->Clip_prmpt =
-                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
-                     "Enter screen clip plane parameters (a,b,c,d)",
-                     "A: 0,0,1,0",
-                     sv->X->TOPLEVEL, YUP,
-                     SUMA_APPLY_BUTTON,
-                     SUMA_SetScreenClip, (void *)sv,
-                     NULL, NULL,
-                     NULL, NULL,
-                     NULL, NULL,
-                     SUMAg_CF->X->Clip_prmpt);
-
-               SUMAg_CF->X->Clip_prmpt =
-                  SUMA_CreatePromptDialog(
-                     "Enter screen clip plane parameters (a,b,c,d)",
-                     SUMAg_CF->X->Clip_prmpt);
-           }
-            break;
-            */
          case XK_c:
             if (!SUMA_C_Key(sv, "c", "interactive")) {
                 SUMA_S_Err("Failed in key func.");
             }
             break;
-         /*
-            {
-               SUMA_SurfaceObject *SO=NULL;
-               if ((SO = SUMA_SV_Focus_SO(sv))) {
-                  if (!list) list = SUMA_CreateList();
-                  ED = SUMA_InitializeEngineListData (SE_OpenColFileSelection);
-                  if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                    SEF_vp, (void *)SO,
-                                    SES_Suma, (void *)sv, NOPE,
-                                    SEI_Head, NULL))) {
-                     SUMA_S_Err("Failed to register command.");
-                  }
 
-                  if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                SEF_ip, sv->X->TOPLEVEL,
-                                                SES_Suma, (void *)sv, NOPE,
-                                                SEI_In, NextElm)) {
-                     SUMA_S_Err("Failed to register command.");
-                  }
-
-                  if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR,
-                              "Error %s: SUMA_Engine call failed.\n", FuncName);
-                  }
-               }
-            }
-
-            break;
-*/
          case XK_D:
             if (1) {
                if (SUMA_ALTHELL){
@@ -5607,35 +5461,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                     }
             }
             break;
-/*
-         case XK_F:
-            // flip light position
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FlipLight0Pos,
-                                                SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-
-            if (!SUMA_Engine (&list)) {
-               fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-            }
-            break;
-
-         case XK_f:
-            if (clippingPlaneMode && (Kev.state & ControlMask) && SUMAg_CF->N_ClipPlanes > 0){
-                clipPlaneTransform(0,0,0,1,-1, 0, 0);  // PDL: Flip clipping plane
-            } else {
-                // Show/hide the foreground
-                if (!list) list = SUMA_CreateList();
-                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground,
-                                                    SES_Suma, sv);
-                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-
-                if (!SUMA_Engine (&list)) {
-                   fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-                }
-            }
-            break;
-*/
 
          case XK_g:
             if (Kev.state & ControlMask){
@@ -5669,43 +5494,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
              break;
 
-/*
-         case XK_H:
-               sv->X->HighlightBox_prmpt =
-                  SUMA_CreatePromptDialogStruct(SUMA_OK_APPLY_CLEAR_CANCEL,
-                                             "Enter XYZ of box's center\n"
-                                             "followed by it's size (6 values)",
-                                             "",
-                                             sv->X->TOPLEVEL, YUP,
-                                             SUMA_APPLY_BUTTON,
-                                             SUMA_HighlightBox, (void *)sv,
-                                             NULL, NULL,
-                                             NULL, NULL,
-                                             SUMA_CleanNumString, (void*)6,
-                                             sv->X->HighlightBox_prmpt);
-
-               sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title,
-                                                      sv->X->HighlightBox_prmpt);
-
-            break;
-
-         case XK_h:
-            if (Kev.state & ControlMask){
-              if (!list) list = SUMA_CreateList();
-              SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL);
-              if (!SUMA_Engine (&list)) {
-                  fprintf( stderr,
-                           "Error %s: SUMA_Engine call failed.\n", FuncName);
-              }
-            }else{
-               if (SUMAg_CF->Dev) {
-                  SUMA_SLP_Note("Please use ctrl+h for help.\n"
-                                "h alone will be reassigned\n"
-                                "in future versions.");
-               }
-            }
-            break;
-*/
          case XK_j:
                if (Kev.state & ControlMask){
                   if (!SUMA_J_Key(sv, "ctrl+j", "interactive", NULL)) {
@@ -5896,69 +5684,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
-/*
-         case XK_S:
-            if (clippingPlaneMode){
-                clipPlaneTransform(0, 0, -scrollInc, 0,-1, 0, 0); // Scroll outward
-            } else if (SUMAg_CF->Dev) {
-               int *do_id, n_do_id;
-               do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv,
-                                       SO_type, &n_do_id);
-               if (n_do_id) {
-                  while (n_do_id) {
-                     SUMA_Print_Surface_Object(
-                        (SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP,
-                        stdout);
-                     --n_do_id;
-                  }
-                  SUMA_free(do_id);
-               }
-            }
-            break;
 
-         case XK_s:
-            if (clippingPlaneMode){
-                clipPlaneTransform(0, 0, scrollInc, 0,-1, 0, 0);   // Scroll inward
-               } else if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){    // alt-ctrl-s
-                   if (!list) list = SUMA_CreateList();
-                   ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
-                   if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                              SEF_ip, sv->X->TOPLEVEL,
-                                              SES_Suma, (void *)sv, NOPE,
-                                              SEI_Head, NULL)) {
-                      fprintf (SUMA_STDERR,
-                               "Error %s: Failed to register command.\n", FuncName);
-                   }
-                   if (!SUMA_Engine (&list)) {
-                         fprintf( SUMA_STDERR,
-                                  "Error %s: SUMA_Engine call failed.\n",
-                                  FuncName);
-                   }
-
-            } else if (SUMA_ALTHELL){
-               // swap buttons 1 and 3
-               SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
-               if (SUMAg_CF->SwapButtons_1_3) {
-                  fprintf (SUMA_STDOUT,
-                           "%s: Buttons 1 and 3 are swapped.\n", FuncName);
-               } else {
-                  fprintf (SUMA_STDOUT,
-                           "%s: Default functions for buttons 1 and 3.\n",
-                           FuncName);
-               }
-            } else if (SUMAg_CF->Dev) {
-               #if 0
-               // Feb 03/03 No longer in use.
-               for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]]))
-                     SUMA_Print_Surface_Object(
-                        (SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP,
-                        stdout);
-               }
-               #endif
-            }
-            break;
-*/
          case XK_t:
             if ((Kev.state & ControlMask)){
                if (!SUMA_T_Key(sv, "ctrl+t", "interactive")) {
@@ -6013,46 +5739,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Failed in key func.");
                }
             break;
-/*
-         case XK_w:
-            if (clippingPlaneMode){
-                // Save clipping planes to file
-               char stmp[100];
-               char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
-                time_t t = time(NULL);
-                struct tm tm = *localtime(&t);
-              if (!(getcwd(cwd, sizeof(cwd)))) {
-                   perror("Error getting current working directory");
-                   SUMA_RETURNe;
-               }
-                sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
-                    cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                    tm.tm_hour, tm.tm_min);
-                sprintf(stmp, "%s", outputFileName);
-                sv->X->SetRenderOrder_prmpt = NULL;
-                sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialogStruct(
-                                     SUMA_OK_APPLY_CLEAR_CANCEL,
-                                "Please select output filename:\n"
-                                "(default is shown)):",
-                                     stmp,
-                                     sv->X->TOPLEVEL, YUP,
-                                     SUMA_APPLY_BUTTON,
-                                     writeClippingPlanes, (void *)sv,
-                                     NULL, NULL,
-                                     NULL, NULL,
-                                     SUMA_VerifyRenderOrder, (void *)outputFileName,
-                                     sv->X->SetRenderOrder_prmpt);
 
-                sv->X->SetRenderOrder_prmpt->VerifyFunction = NULL;
-                sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialog(
-                                  sv->X->Title, sv->X->SetRenderOrder_prmpt);
-
-                sv->X->SetRenderOrder_prmpt = NULL;
-            } else if (!SUMA_W_Key(sv, "w", "interactive")) {
-               SUMA_S_Err("Failed in key func.");
-            }
-            break;
-*/
          case XK_Z:
             if (!SUMA_Z_Key(sv, "Z", "interactive")) {
                SUMA_S_Err("Failed in key func.");
@@ -6126,177 +5813,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (!SUMA_asterisk_Key(sv, "*", "drivesuma")) {
              SUMA_S_Err("Failed in Key function.");
             }
-            /*
-               char stmp[100];
-               sprintf(stmp, "%d", SUMAg_CF->X->NumFinalSmoothing);
-               SUMAg_CF->X->N_FinalSmooth_prmpt =
-                  SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
-                                    "Final color smoothing iterations",
-                                    stmp,
-                                    sv->X->TOPLEVEL, YUP,
-                                    SUMA_APPLY_BUTTON,
-                                    SUMA_SetNumFinalSmoothing, (void *)sv,
-                                    NULL, NULL,
-                                    NULL, NULL,
-                                    SUMA_CleanNumString, (void*)1,                                                    SUMAg_CF->X->N_FinalSmooth_prmpt);
-
-               SUMAg_CF->X->N_FinalSmooth_prmpt =
-                     SUMA_CreatePromptDialog("Final color smoothing iterations",
-                                             SUMAg_CF->X->N_FinalSmooth_prmpt);
-                                             */
             break;
 
           case XK_at:
             if (!SUMA_at_Key(sv, "@", "drivesuma")) {
              SUMA_S_Err("Failed in Key function.");
             }
-/*
-            if (SUMAg_CF->Dev) {
-               SUMA_SurfaceObject *SO=NULL;
-               // calculate the curvature
-               fprintf(SUMA_STDOUT,
-                  "%s: Calculating surface curvature ...\n", FuncName);
-               if ((SO = SUMA_SV_Focus_SO(sv))){
-                  if (!SO->PolyArea) {
-                     fprintf(SUMA_STDOUT,
-                              "%s: Computing required mesh area.\n", FuncName);
-                     if (!SUMA_SurfaceMetrics (SO, "PolyArea", NULL)) {
-                        fprintf (SUMA_STDERR,
-                                 "Error %s: Failed in SUMA_SurfaceMetrics.\n",
-                                 FuncName);
-                        break;
-                     }
-                  }
-                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node,
-                              SO->NodeNormList, SO->PolyArea,
-                              SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
-                  if (SO->SC == NULL) {
-                        fprintf( stderr,
-                                 "Error %s: Failed in SUMA_Surface_Curvature\n",
-                                 FuncName);
-                        break;
-                     }
-               }
-            }
-            */
             break;
 
          case XK_parenleft:
             if (!SUMA_parenleft_Key(sv, "(", "drivesuma", w, clientData, callData)) {
              SUMA_S_Err("Failed in Key function.");
             }
-            /*
-            if (SUMAg_CF->Dev) {
-               SUMA_SurfaceObject *SO;
-               SUMA_COLOR_MAP *CM;
-               SUMA_SCALE_TO_MAP_OPT * OptScl;
-               int MapType;
-               SUMA_COLOR_SCALED_VECT * SV;
-               float IntRange[2], *Vsort;
-               float * attr_sm;
-               float *Cx = NULL;
-
-               fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
-               if ((SO = SUMA_SV_Focus_SO(sv))) {
-                  Cx = (float *)SUMA_GetCx(SO->idcode_str,
-                                           SUMAg_CF->DsetList, 0);
-                  if (Cx) {
-                     SUMA_S_Err("Cx must be null prior to new assignment");
-                     break;
-                  }
-                  Cx = SUMA_Convexity   ( SO->NodeList, SO->N_Node,
-                                          SO->NodeNormList, SO->FN, NULL);
-                  if (Cx == NULL) {
-                        fprintf(stderr,"Error %s: Failed in SUMA_Convexity\n",
-                                       FuncName);
-                        break;
-                  }
-                  // smooth estimate twice
-                  attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL,
-                                                    SO->FN, 1, NULL, 1);
-                  if (attr_sm == NULL) {
-                        fprintf(stderr,
-                                "Error %s: Failed in SUMA_SmoothAttr_Neighb\n",
-                                FuncName);
-                        break;
-                  }
-                  Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx,
-                                               SO->FN, 1, NULL, 1);
-                  if (attr_sm) SUMA_free(attr_sm);
-
-                  fprintf( SUMA_STDOUT,
-                           "%s: Use SUMA_ScaleToMap to colorize Conv.txt "
-                           "and display it on surface.\n", FuncName);
-                  CM = SUMA_FindNamedColMap ("ngray20");
-                  if (CM == NULL) {
-                     fprintf (SUMA_STDERR,
-                              "Error %s: Could not get standard colormap.\n",
-                              FuncName);
-                     exit (1);
-                  }
-
-                  // get the options for creating the scaled color mapping
-                  OptScl = SUMA_ScaleToMapOptInit();
-                  if (!OptScl) {
-                     SUMA_S_Err("Could not get scaling option structure.");
-                     exit (1);
-                  }
-
-                  // work the options a bit
-                  OptScl->ApplyClip = YUP;
-                  IntRange[0] = 5; IntRange[1] = 95; // percentile clip range
-                  Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node,
-                                          IntRange, IntRange, NULL);
-                  OptScl->IntRange[0] = IntRange[0];
-                  OptScl->IntRange[1] = IntRange[1];
-
-                  OptScl->BrightFact = 0.4;
-
-                  /* map the values in Cx to the colormap */
-                     /* allocate space for the result *//*
-                     SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
-                     if (!SV) {
-                        fprintf (SUMA_STDERR,
-                                 "Error %s: Could not allocate for SV.\n",
-                                 FuncName);
-                        exit(1);
-                     }
-
-                     /* finally ! */
-                     /*fprintf ( SUMA_STDERR,"%s: 1st color in map %f %f %f\n",
-                                 FuncName,
-                                 CM->M[0][0], CM->M[0][1],CM->M[0][2]);*//*
-                     if (!SUMA_ScaleToMap (Cx, SO->N_Node, Vsort[0],
-                                          Vsort[SO->N_Node-1], CM, OptScl, SV)) {
-                        fprintf (SUMA_STDERR,
-                                 "Error %s: Failed in SUMA_ScaleToMap.\n",
-                                 FuncName);
-                        exit(1);
-                     }
-
-                     // Now place SV in the color array
-                     glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
-                     if (!glar_ColorList) {
-                        SUMA_S_Err("NULL glar_ColorList. BAD.");
-                        break;
-                     }
-                     SUMA_RGBvec_2_GLCOLAR4(SV->cV, glar_ColorList, SO->N_Node);
-
-                     // free
-                     if (Vsort) SUMA_free(Vsort);
-                      if (OptScl) SUMA_free(OptScl);
-                     if (SV) SUMA_Free_ColorScaledVect (SV);
-                     if (Cx) {
-                        SUMA_free(Cx);
-                        Cx = NULL;
-                     }
-
-                  fprintf(SUMA_STDOUT, "%s: Convexity mapping done ...\n",
-                                       FuncName);
-                  SUMA_postRedisplay(w, clientData, callData);
-               }
-            }
-            */
             break;
 
          case XK_comma:
@@ -6391,57 +5919,24 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (!SUMA_home_Key(sv, "home", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            /*
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FOVreset, SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-            }
-            */
             break;
 
         case XK_plus:
             if (!SUMA_plus_Key(sv, "+", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            /*
-            if (clippingPlaneMode && scrollInc < 999999){
-                scrollInc *= 2.0;
-                tiltInc *= 2.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            */
             break;
 
         case XK_minus:
             if (!SUMA_minus_Key(sv, "-", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            /*
-            if (clippingPlaneMode){
-                scrollInc /= 2.0;
-                tiltInc /= 2.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            */
             break;
 
         case XK_equal:
             if (!SUMA_equal_Key(sv, "=", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            /*
-            if (clippingPlaneMode){
-                scrollInc = 1.0;
-                tiltInc = 1.0;
-                sv->clippingPlaneIncrement = scrollInc;
-                SUMA_UpdateViewerTitle(sv);
-            }
-            */
             break;
 
          case XK_Left:   /*KEY_LEFT:*/
@@ -6493,7 +5988,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_Right:   /*KEY_RIGHT: */
-            /*printf("Right Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Right_Key(sv, "ctrl+shift+right", "interactive")) {
                   SUMA_S_Err("Error in key func.");
@@ -6523,7 +6017,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_Down:   /*KEY_DOWN*/
-            /*printf("Down Key\n");*/
            if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Down_Key(sv, "ctrl+shift+down", "interactive")) {
                   SUMA_S_Err("Error in key func.");
@@ -6554,7 +6047,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_Up: /*KEY_UP*/
-            /*printf("Up Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
                if (!SUMA_Up_Key(sv, "ctrl+shift+up", "interactive")) {
                   SUMA_S_Err("Error in key func.");
