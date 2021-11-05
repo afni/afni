@@ -19,8 +19,6 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    if (keynameback) keynameback[0]='\0';
    keyname[0]='\0';
 
@@ -1817,6 +1815,25 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    k = SUMA_KeyPress(key, NULL);
 
+   // Verbose output
+   if (SUMAg_CF->clippingPlaneVerbose){
+       switch (k){
+           case 0x0030:
+               fprintf(stderr, "### Reset clipping planes\n");
+               break;
+           case 0x0037:
+               fprintf(stderr, "### Toggle all active clipping planes on/off\n");
+               break;
+           case 0x0038:
+           case 0x0039:
+               fprintf(stderr, "WARNING: No clipping plane %d\n", k-0x0030);
+               break;
+           default:
+               fprintf(stderr, "### %s clipping plane %d\n",
+                (SUMA_CTRL_KEY(key))? "Select" : "Toggle", k-0x0030);
+       }
+   }
+
    /* do the work */
    switch (k) {
     case XK_0:
@@ -2182,12 +2199,19 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         } else if (SUMA_CTRL_KEY(key)){
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
             if (!axisObject) makeAxisObject(w, sv);
-        }else if (clippingPlaneMode && SUMAg_CF->N_ClipPlanes>0) {
+/*
+            if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane mode %s\n",
+                clipPlaneIdentificationMode? "on" : "off");
+                */
+        }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
             // Toggle clip plane identification mode
             clipPlaneIdentificationMode = !clipPlaneIdentificationMode;
+
+            if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane squares %s\n",
+                clipPlaneIdentificationMode? "on" : "off");
 
             for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex){
                 if (clipPlaneIdentificationMode){
