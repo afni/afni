@@ -591,8 +591,9 @@ fim:fim.c
 	$(RM) $@
 	$(CC) -o fim fim.c -DSYSV $(LFLAGS) $(LLIBS)
 
-bzip2:bzip2.o
-	$(CC) -o bzip2 bzip2.o
+# REMOVED 08 Nov 2021 - RWC
+# bzip2:bzip2.o
+# 	$(CC) -o bzip2 bzip2.o
 
 fim2:fim2.o ts.o pcor.o
 	$(RM) $@
