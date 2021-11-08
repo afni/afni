@@ -734,7 +734,7 @@ interesting milestones for afni_proc.py:
    2010.06 : censoring based on initial outliers
    2010.08 : allow amplitude modulation via married timing files
    2011.06 : TSNR dataset
-   2011.07 : graphical interface - uber_subjet.py
+   2011.07 : graphical interface - uber_subject.py
    2011.07 : @ss QC review scripts - via gen_ss_review_scripts.py
    2011.10 : surface analysis
    2012.01 : base examples on AFNI_data6
