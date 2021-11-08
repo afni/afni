@@ -693,9 +693,10 @@ g_history = """
     7.16 May 19, 2021: fixed volreg TSNR in surface case (still in volume)
     7.17 Jul 16, 2021: unindent EOF
     7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
+    7.19 Nov  7, 2021: add -regress_opts_fwhmx
 """
 
-g_version = "version 7.17, July 16, 2021"
+g_version = "version 7.19, November 7, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1623,6 +1624,8 @@ class SubjProcSream:
                         helpstr="estimate blur from scaled EPI time series")
         self.valid_opts.add_opt('-regress_est_blur_errts', 0, [],
                         helpstr="estimate blur from scaled error time series")
+        self.valid_opts.add_opt('-regress_opts_fwhmx', -1, [],
+                        helpstr="additional options for 3dFWHMx")
         self.valid_opts.add_opt('-regress_errts_prefix', 1, [],
                         helpstr="prefix to use for errts dataset")
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [],

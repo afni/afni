@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
+   "Added on the authority of S Torrisi."
+ } ,
+ 
  { 29, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "on mac, check for standard R not in PATH",
    NULL
