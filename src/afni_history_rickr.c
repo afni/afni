@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -milestones, to show interesting milestones for the program)",
+   NULL
+ } ,
+ 
  {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
    "Added on the authority of S Torrisi."
