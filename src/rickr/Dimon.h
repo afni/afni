@@ -22,6 +22,7 @@
 #define IFM_USE_LONG         2
 #define IFM_USE_HIST         3
 #define IFM_USE_VERSION      4
+#define IFM_USE_MILESTONES   5
 
 #define IFM_IM_FTYPE_NONE    0       /* valid image file types:          */
 #define IFM_IM_FTYPE_GEMS5   1       /* GEMS 5.x                         */

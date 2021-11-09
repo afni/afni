@@ -54,7 +54,12 @@
 afni_history_struct rickr_history[] = {
 
  {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
-   "add -milestones, to show interesting milestones for the program)",
+   "add -milestones, to show interesting milestones for the program",
+   NULL
+ } ,
+ 
+ {  8, Nov, 2021, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -milestones",
    NULL
  } ,
  
