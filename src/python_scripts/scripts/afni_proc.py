@@ -719,9 +719,9 @@ g_requires_afni = [ \
 g_milestones = """
 interesting milestones for afni_proc.py:
 
-   2006.12 : initial release - standard processing blocks, can alter order
-   2006.12 : -ask_me option - interactive method for user options
-   2007.05 : backward compatible for python 2.2
+   2006.12 : initial release - basic processing blocks, can alter order
+   2006.12 : -ask_me - interactive method for user options
+   2007.05 : compatible for python 2.2 - 2.5
    2008.01 : estimate smoothness (for use in cluster correction)
    2008.12 : allow NIFTI inputs
    2009.03 : allow use of 3dREMLfit
@@ -729,7 +729,7 @@ interesting milestones for afni_proc.py:
    2009.04 : ricor block - for physiological regressors
    2009.05 : tlrc block - EPI to standard space (catenated transformation)
    2009.05 : align block - run align_epi_anat.py
-   2009.05 : base examples on new AFNI_data4
+   2009.05 : base examples on AFNI_data4
    2009.08 : censoring based on motion parameters
    2010.06 : censoring based on initial outliers
    2010.08 : allow amplitude modulation via married timing files
@@ -753,7 +753,7 @@ interesting milestones for afni_proc.py:
    2017.11 : python3 compatible
    2018.02 : combine block - for multi-echo data (OC and tedana)
    2018.11 : APQC HTML report
-   2019.01 : EPI alignment to per-run base - -volreg_post_vr_allin
+   2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
 """
