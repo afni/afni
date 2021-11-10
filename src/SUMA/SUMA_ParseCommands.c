@@ -4410,8 +4410,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
       }
 
      // Verbose mode
-     if (( !strcmp(argv[kar], "-verbose") )) {
-        SUMAg_CF->verbose = 1;
+     if (( !strcmp(argv[kar], "-clippingPlaneVerbose") )) {
+        SUMAg_CF->clippingPlaneVerbose = 1;
      }
 
 
