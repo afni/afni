@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, Nov , 2021 , PT , "afni_system_check.py" , MICRO , TYPE_NEW_OPT,
+   "New '-disp_num_cpu' opt to display number of available CPUs.",
+   "Phase one of secret plan to steal all of Rick's programs.  Bwahahaha.\n"
+},
+
 { 29, Oct , 2021 , PT , "@Install_NMT" , MINOR , TYPE_GENERAL,
    "Update macaque template+atlas data.",
    "Now working/defaulting to NMT v2.1.\n"
