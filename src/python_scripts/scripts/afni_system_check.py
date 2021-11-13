@@ -51,6 +51,7 @@ action options:
 
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
+   -disp_num_cpu        : display number of CPUs available
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
    -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
@@ -247,6 +248,7 @@ class CmdInterface:
       # action variables
       self.find_prog       = ''         # program name to find
       self.sys_check       = 0
+      self.sys_disp        = []         # list of keywords for disp
       self.dot_file_list   = 0          # list found dot files
       self.dot_file_pack   = ''         # package dot files
       self.dot_file_show   = 0          # display dot files
@@ -301,6 +303,8 @@ class CmdInterface:
                       helpstr='search path for *PROG*')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set verbosity level (default=1)')
+      self.valid_opts.add_opt('-disp_num_cpu', 0, [],
+                      helpstr='display number of CPUs available')
 
       return 0
 
@@ -361,6 +365,11 @@ class CmdInterface:
             self.sys_check = 1
             continue
 
+         if opt.name == '-disp_num_cpu':
+            self.act = 1
+            self.sys_disp.append('num_cpu')
+            continue
+
          if opt.name == '-data_root':
             self.data_root = opt.parlist[0]
             continue
@@ -413,6 +422,23 @@ class CmdInterface:
 
       self.sinfo.show_all_sys_info()
 
+   def show_system_info_items(self, items=[]):
+      '''Show a subset of items that would be in the full check_all, as
+      displayed by show_system_info().
+
+      items is a list of strings, each being a keyword to display part
+      of the full system check info.  Keywords in this list can be
+      built up over time.
+
+      '''
+
+      self.sinfo = SC.SysInfo(verb=self.verb, data_root=self.data_root)
+
+      # check for any known item strings
+      for x in items:
+          if x == 'num_cpu':
+              print(self.sinfo.get_cpu_count())
+
    def check_dotfiles(self, show=0, pack=0):
       global g_dotfiles
 
@@ -459,6 +485,7 @@ class CmdInterface:
 
    def execute(self):
 
+      if len(self.sys_disp):  self.show_system_info_items(self.sys_disp)
       if self.sys_check: self.show_system_info()
       if self.find_prog:
          # note casematching
