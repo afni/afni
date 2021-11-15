@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
+   "This should have no effect.\n"
+   "It is preparation for testing the AFNI extension in NIFTI against dset."
+ } ,
+ 
  {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "add -milestones, to show interesting milestones for the program",
    NULL
