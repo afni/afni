@@ -8,6 +8,8 @@ static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset);
 static int NIFTI_code_to_view(int code, char *atlas_space);
 static int NIFTI_default_view();
 extern char *THD_get_space(THD_3dim_dataset *dset);
+static int THD_nifti_process_afni_ext(THD_3dim_dataset *dset,
+                                      nifti_image *nim, char *pathnew);
 
 #undef  KILL_pathnew
 #define KILL_pathnew if( pathnew != NULL && pathnew != pathname ) free(pathnew)
@@ -747,79 +749,8 @@ ENTRY("THD_open_nifti") ;
    /** 10 May 2005: see if there is an AFNI extension;
                     if so, load attributes from it and
                     then edit the dataset appropriately **/
-
-   { int ee ;  /* extension index */
-
-     /* scan extension list to find the first AFNI extension */
-
-     for( ee=0 ; ee < nim->num_ext ; ee++ )
-       if( nim->ext_list[ee].ecode == NIFTI_ECODE_AFNI &&
-           nim->ext_list[ee].esize > 32                &&
-           nim->ext_list[ee].edata != NULL               ) break ;
-
-     /* if found an AFNI extension ... */
-
-     if( ee < nim->num_ext ){
-       char *buf = nim->ext_list[ee].edata , *rhs , *cpt ;
-       int  nbuf = nim->ext_list[ee].esize - 8 ;
-       NI_stream ns ;
-       void     *nini ;
-       NI_group *ngr , *nngr ;
-
-       /* if have data, it's long enough, and starts properly, then ... */
-
-       if( buf != NULL && nbuf > 32 && strncmp(buf,"<?xml",5)==0 ){
-         if( buf[nbuf-1] != '\0' ) buf[nbuf-1] = '\0' ;         /* for safety */
-         cpt = strstr(buf,"?>") ;                    /* find XML prolog close */
-         if( cpt != NULL ){                          /* if found it, then ... */
-           ns = NI_stream_open( "str:" , "r" ) ;
-           NI_stream_setbuf( ns , cpt+2 ) ;        /* start just after prolog */
-           nini = NI_read_element(ns,1) ;                 /* get root element */
-           NI_stream_close(ns) ;
-           if( NI_element_type(nini) == NI_GROUP_TYPE ){   /* must be a group */
-             ngr = (NI_group *)nini ;
-             if( strcmp(ngr->name,"AFNI_attributes") == 0 ){    /* root is OK */
-               nngr = ngr ;
-             } else {                   /* search in group for proper element */
-               int nn ; void **nnini ;
-               nn = NI_search_group_deep( ngr , "AFNI_attributes" , &nnini ) ;
-               if( nn <= 0 ) nngr = NULL ;
-               else        { nngr = (NI_group *)nnini[0]; NI_free(nnini); }
-             }
-
-             if( NI_element_type(nngr) == NI_GROUP_TYPE ){ /* have  good name */
-               rhs = NI_get_attribute( nngr , "self_idcode" ) ;
-               if( rhs == NULL )
-                 rhs = NI_get_attribute( nngr , "AFNI_idcode" ) ;
-               if( rhs != NULL )    /* set dataset ID code from XML attribute */
-                 MCW_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
-               rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
-               if( rhs != NULL ){                       /* dataset dimensions */
-                 char buf[128] ;                              /* were altered */
-                 /* %ld fails on older systems            [17 Jul 2019 rickr] */
-                 sprintf(buf,"%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64
-                             ",%" PRId64 ",%d" ,        /* 12 May 2005 */
-                         nim->nx, nim->ny, nim->nz,
-                         nim->nt, nim->nu, nim->datatype );
-                 if( strcmp(buf,rhs) != 0 ){
-                   static int nnn=0 ;
-                   if(nnn==0){fprintf(stderr,"\n"); nnn=1;}
-                   fprintf(stderr,
-                     "** WARNING: NIfTI file %s dimensions altered since "
-                                 "AFNI extension was added\n",pathnew ) ;
-                   /* fprintf(stderr, "            buf=%s\n", buf); */
-                 }
-               }
-               THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
-               THD_datablock_apply_atr( dset ) ;   /* apply to dataset struct */
-             }
-             NI_free_element( ngr ) ;          /* get rid of the root element */
-
-           } /* end of if found a group element at the root */
-         } /* end of if extension data array had an XML prolog close */
-       } /* end of if had a good extension data array */
-     } /* end of if had an AFNI extension */
-   } /* end of processing extensions */
+   /** 12 Nov 2021: moved to new thd_nifti_process_afni_ext [rickr] **/
+   (void)THD_nifti_process_afni_ext(dset, nim, pathnew);
 
    /* return unpopulated dataset */
 
@@ -839,6 +770,111 @@ ENTRY("THD_open_nifti") ;
    nifti_image_free(nim) ; KILL_pathnew ; RETURN(dset) ;
 }
 
+/* If there is an AFNI extension in the NIFTI dataset, process it.
+ * (moved from THD_open_nifti)
+ * 
+ * Modify logic to return on the "failed" tests, rather than having a
+ * set of nested if's to proceed.                 [15 Nov 2021 rickr]
+ */
+static int THD_nifti_process_afni_ext(THD_3dim_dataset * dset,
+                                      nifti_image * nim, char * pathnew)
+{
+   NI_stream  ns ;
+   NI_group  *ngr , *nngr ;
+   void      *nini ;
+   char      *buf , *rhs , *cpt ;
+   int        nbuf, ee ;  /* buf size, extension index */
+
+ENTRY("THD_nifti_process_afni_ext") ;
+
+   /* scan extension list to find the first AFNI extension */
+
+   for( ee=0 ; ee < nim->num_ext ; ee++ )
+     if( nim->ext_list[ee].ecode == NIFTI_ECODE_AFNI &&
+         nim->ext_list[ee].esize > 32                &&
+         nim->ext_list[ee].edata != NULL               ) break ;
+
+   /* if no AFNI extension, we are done */
+   if( ee >= nim->num_ext ) RETURN(0);
+
+   /* point to extension buffer */
+   buf = nim->ext_list[ee].edata ;
+   nbuf = nim->ext_list[ee].esize - 8 ;
+
+   /* if have data, it's long enough, and starts properly, then ... */
+
+   /* if insufficent data, fail */
+   if( buf == NULL || nbuf <= 32 || strncmp(buf,"<?xml",5) != 0 )
+      RETURN(1);
+
+   /* be sure buf is terminated, and find XML prolog close */
+   if( buf[nbuf-1] != '\0' ) buf[nbuf-1] = '\0' ;
+   cpt = strstr(buf,"?>") ;
+
+   /* if no XML prolog close, fail */
+   if( cpt == NULL )
+      RETURN(1);
+
+   /* read contents of NIML stream */
+   ns = NI_stream_open( "str:" , "r" ) ;
+   NI_stream_setbuf( ns , cpt+2 ) ;        /* start just after prolog */
+   nini = NI_read_element(ns,1) ;                 /* get root element */
+   NI_stream_close(ns) ;
+
+   /* if not a group, fail */
+   if( NI_element_type(nini) != NI_GROUP_TYPE )
+      RETURN(0);
+
+   /* have nngr point to AFNI_attributes */
+   ngr = (NI_group *)nini ;
+   if( strcmp(ngr->name,"AFNI_attributes") == 0 ){    /* root is OK */
+     nngr = ngr ;
+   } else {                   /* search in group for proper element */
+     int nn ; void **nnini ;
+     nn = NI_search_group_deep( ngr , "AFNI_attributes" , &nnini ) ;
+     if( nn <= 0 ) nngr = NULL ;
+     else        { nngr = (NI_group *)nnini[0]; NI_free(nnini); }
+   }
+
+   /* if such a group is found, process it */
+   if( NI_element_type(nngr) == NI_GROUP_TYPE ) {
+
+     rhs = NI_get_attribute( nngr , "self_idcode" ) ;
+     if( rhs == NULL )
+       rhs = NI_get_attribute( nngr , "AFNI_idcode" ) ;
+     if( rhs != NULL )    /* set dataset ID code from XML attribute */
+       MCW_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
+
+
+     /***** This is an example of what might go into consistency check. */
+
+     rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
+     if( rhs != NULL ){                       /* dataset dimensions */
+       char buf[128] ;                              /* were altered */
+       /* %ld fails on older systems            [17 Jul 2019 rickr] */
+       sprintf(buf,"%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64
+                   ",%" PRId64 ",%d" ,        /* 12 May 2005 */
+               nim->nx, nim->ny, nim->nz,
+               nim->nt, nim->nu, nim->datatype );
+       if( strcmp(buf,rhs) != 0 ){
+         static int nnn=0 ;
+         if(nnn==0){fprintf(stderr,"\n"); nnn=1;}
+         fprintf(stderr,
+           "** WARNING: NIfTI file %s dimensions altered since "
+                       "AFNI extension was added\n",pathnew ) ;
+         /* fprintf(stderr, "            buf=%s\n", buf); */
+       }
+     }
+
+     /* the main point: apply AFNI extension attributes to dset */
+     THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
+     THD_datablock_apply_atr( dset ) ;   /* apply to dataset struct */
+   }
+
+   NI_free_element( ngr ) ;          /* get rid of the root element */
+
+   RETURN(0);
+}
 
 /* n2   10 Jul, 2015 [rickr] */
 int64_t * copy_ints_as_i64(int * ivals, int nvals)
