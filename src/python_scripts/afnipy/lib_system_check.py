@@ -1432,6 +1432,15 @@ class SysInfo:
        """
        import re,subprocess
 
+       # SLURM cluster (e.g., Biowulf)
+       try:
+           if 'SLURM_JOB_CPUS_PER_NODE' in os.environ:
+               return os.environ['SLURM_JOB_CPUS_PER_NODE']
+           if 'SLURM_CPUS_PER_TASK' in os.environ:
+               return os.environ['SLURM_CPUS_PER_TASK']
+       except (ImportError,NotImplementedError):
+           pass
+
        # Python 2.6+
        try:
            import multiprocessing
