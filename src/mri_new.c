@@ -43,7 +43,7 @@ MRI_IMAGE *mri_new_7D_generic(
             MRI_TYPE kind , int make_space )
 {
    MRI_IMAGE *newim ;
-   int npix ;
+   int64_t npix ;
 
 ENTRY("mri_new_7D_generic") ;
 
@@ -124,8 +124,8 @@ ENTRY("mri_new_7D_generic") ;
 
    if( PRINT_TRACING ){
      char str[245] ;
-     sprintf(str,"nx=%d ny=%d nz=%d kind=%d bytes=%u %s",
-             nx,ny,nz,(int)kind,(unsigned int)newim->pixel_size*npix,
+     sprintf(str,"nx=%d ny=%d nz=%d kind=%d bytes=%lld %s",
+             nx,ny,nz,(int)kind,(long long)(npix*newim->pixel_size),
              make_space ? "(calloc)" : "(null)" ) ;
      STATUS(str) ;
    }
@@ -134,9 +134,9 @@ ENTRY("mri_new_7D_generic") ;
    else             newim->im = NULL ;
 
    if( make_space && newim->im == NULL ){
-     ERROR_message("malloc failure for image space: %u bytes\n",
-                   (unsigned int)npix*newim->pixel_size);
-     ERROR_message(" nx=%d ny=%d nz=%d npix=%d",nx,ny,nz,npix) ;
+     ERROR_message("malloc failure for image space: %lld bytes\n",
+                   (long long)(npix*newim->pixel_size) );
+     ERROR_message(" nx=%d ny=%d nz=%d npix=%lld",nx,ny,nz,(long long)npix) ;
      MRI_FATAL_ERROR ;
    }
 
