@@ -407,28 +407,41 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Process color planes\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Process color planes\n");
 
    if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
    // Mark intersection Facsets
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+    fprintf(stderr, "### Mark intersection Facsets\n");
    ado = (SUMA_ALL_DO *)SO;
 
    PR = *PRi;   // Keep local copy
    // Store the PR in ado, hide it from return potential
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Store the PR in ado, hide it from return potential\n");
    (*PRi)->ado_idcode_str = NULL;
    (*PRi)->dset_idcode_str = NULL;
    (*PRi)->primitive = NULL;
    (*PRi)->evr = NULL;
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### SUMA_ADO_SSaux\n");
    SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
 
    // This part is necessary to prevent the program from crashing in some instances,
    //   apparently when volumes, rather than surfaces, are used
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Try to prevent program crashing with volumes\n");
    Saux->PR->ado_idcode_str = NULL;
    Saux->PR->dset_idcode_str = NULL;
 
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Store pick result\n");
    SUMA_ADO_StorePickResult(ado, PRi);
 
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update viewer title\n");
    sv->Focus_DO_ID = ADO_iDO(ado);
    SUMA_UpdateViewerTitle(sv);
 
@@ -1349,6 +1362,8 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 
     float plane[4], points[4][3];
     int i, j;
+
+    fprintf(stderr, "Make mesh axes\n");
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Make axis object\n");
 
