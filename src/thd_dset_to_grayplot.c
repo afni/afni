@@ -102,9 +102,9 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
                                             byte *mmask ,
                                             int polort , float fwhm )
 {
-   int cmval , nmask , nxyz , nts ;
-   byte mm,*tmask ; int ii,jj,kk ;
-   int nvim ; MRI_vectim **vim , *vout ;
+   Aint cmval , nmask , nxyz , nts ;
+   byte mm,*tmask ; Aint ii,jj,kk ;
+   Aint nvim ; MRI_vectim **vim , *vout ;
    float *tsar , *fit=NULL , fac ;
 
    /* check inputs for plausibility */
@@ -195,7 +195,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
          case ORDER_PV:{   /* == by coherence with 1st 2 principal vectors */
            MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
-           int       *kim = (int *)malloc(sizeof(int)*cmval) ;
+           Aint      *kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
            float     *tar = MRI_FLOAT_PTR(tim), *par ;
 #if 0
            ININFO_message("  Computing PV order for mask partition #%d - %d voxels",
@@ -210,7 +210,11 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
            pim = mri_vec_to_pvmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
            /* sort so largest are first, keeping track of whence they came */
            for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
+#if Aintsize == 64
+           qsort_floatint64_t( cmval , par , kim ) ;
+#else
            qsort_floatint( cmval , par , kim ) ;
+#endif
            /* copy from temp image back to vectim, in the right order */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
@@ -220,14 +224,14 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
          break ;
 
          case ORDER_PEEL:{ /* == by order of peeling from outside */
-           short *depth=NULL ; int kk ;
+           short *depth=NULL ; Aint kk ;
            depth = THD_mask_depth( DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ,
                                    tmask , 1 , NULL, 2 ) ;
            if( depth != NULL ){
-             int    *idepth = (int *)calloc(sizeof(int),cmval) ;
-             int       *kim = (int *)calloc(sizeof(int),cmval) ;
-             MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) ;
-             float     *tar = MRI_FLOAT_PTR(tim) ;
+             Aint    *idepth = (Aint *)calloc(sizeof(Aint),cmval) ;
+             Aint       *kim = (Aint *)calloc(sizeof(Aint),cmval) ;
+             MRI_IMAGE *tim  = mri_new(nts,cmval,MRI_float) ;
+             float     *tar  = MRI_FLOAT_PTR(tim) ;
 #if 0
              ININFO_message("  Computing PEEL order for mask partition #%d - %d voxels",
                             ii,cmval) ;
@@ -239,7 +243,11 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
              for( jj=kk=0 ; jj < nxyz ; jj++ ){
                if( tmask[jj] ) idepth[kk++] = depth[jj] ;
              }
+#if Aintsize == 64
+             qsort_intint64_t( cmval , idepth , kim ) ;
+#else
              qsort_intint( cmval , idepth , kim ) ;
+#endif
              for( jj=0 ; jj < cmval ; jj++ ){
                memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
              }
@@ -250,7 +258,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
          case ORDER_LJ:{   /* == by Ljung-Box statistic [05 Feb 2020] */
            MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
-           int       *kim = (int *)malloc(sizeof(int)*cmval) ;
+           Aint      *kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
            float     *tar = MRI_FLOAT_PTR(tim), *par ;
 #if 0
            ININFO_message("  Computing LJ order for mask partition #%d - %d voxels",
@@ -265,7 +273,11 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
            pim = mri_vec_to_ljmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
            /* sort so largest are first, keeping track of whence they came */
            for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
+#if Aintsize == 64
+           qsort_floatint64_t( cmval , par , kim ) ;
+#else
            qsort_floatint( cmval , par , kim ) ;
+#endif
            /* copy from temp image back to vectim, in the right order */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;

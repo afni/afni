@@ -9,6 +9,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "Aint.h"        /* 17 Nov 2021 */
+
 #include "debugtrace.h"  /* 26 Jan 2001 addition */
 #include "Amalloc.h"     /* 09 Dec 2003 addition */
 #include "Aomp.h"

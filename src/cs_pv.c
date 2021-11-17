@@ -45,7 +45,7 @@ void * pv_get_workspace( int n , int m )
 
 float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 {
-   int nn=n , mm=m , jj ; register int ii ;
+   int64_t nn=n , mm=m , jj ; register int64_t ii ;
    register float *xj , fac,sum ; float *xx=NULL , **xar=NULL ;
 
    if( nn < 1 || mm < 1 || xp == NULL || uvec == NULL ) return -1.0f ;
@@ -91,7 +91,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                                 float *uvec , float *tvec ,
                                 float *ws , unsigned short xran[] )
 {
-   int nn=n , mm=m , nsym , jj,kk,qq ;
+   int64_t nn=n , mm=m , nsym , jj,kk,qq ;
    float *asym ;
    register float sum,qsum ; register float *xj,*xk ; register int ii ;
    float sval , *xx=NULL , **xar=NULL ;
@@ -194,7 +194,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                                      /* (e.g., more vectors than time points) */
 
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;  /* initialize=mean */
-     sval = symeig_sim1( nsym , asym , uvec , wws+nws , xran ) ;
+     sval = symeig_sim1( (int)nsym , asym , uvec , wws+nws , xran ) ;
 
    } else {       /* n > m: transform eigenvector to get left singular vector */
                   /* (e.g., more time points than vectors) */
@@ -203,7 +203,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
      qvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;  /* initialize=mean */
-     sval = symeig_sim1( nsym , asym , qvec , wws+nws , xran ) ;
+     sval = symeig_sim1( (int)nsym , asym , qvec , wws+nws , xran ) ;
      for( qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        if( xtyp <= 0 )
          for( sum=0.0f,kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * qvec[kk] ;
@@ -557,7 +557,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
                                       /* (e.g., more vectors than time points) */
 
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
-     svout = symeig_sim2( nsym , asym , uvec , vvec , wws+nws , xran ) ;
+     svout = symeig_sim2( (int)nsym , asym , uvec , vvec , wws+nws , xran ) ;
 
    } else {  /* n > m: transform eigenvector to get left singular vector */
              /* (e.g., more time points than vectors) */
@@ -567,7 +567,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
      qvec = wws + nws ; nws += nsym ;
      rvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
-     svout = symeig_sim2( nsym , asym , qvec , rvec , wws+nws , xran ) ;
+     svout = symeig_sim2( (int)nsym , asym , qvec , rvec , wws+nws , xran ) ;
      for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        ssum = sum = 0.0f ;
        if( xtyp <= 0 ){

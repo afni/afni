@@ -49,7 +49,7 @@ float_pair mri_pvmap_get_lampair(void)
 
 MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
 {
-   int nx , ny , ii ;
+   Aint nx , ny , ii ;
    float_pair svals ;
    MRI_IMAGE *outim ;
    float     *outar , *iar ;
