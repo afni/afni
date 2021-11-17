@@ -120,7 +120,7 @@ void SET_message_outbuf( int use_outbuf )
 
 static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
-   char *ifmt=NULL,*imsg=NULL , *cfmt=NULL,*cmsg=NULL , *epr ; int ll ;
+   char *ifmt=NULL,*imsg=NULL , *cfmt=NULL,*cmsg=NULL , *epr=NULL ; int ll ;
 #ifdef va_copy
    va_list vararg_cpy ;
    va_copy(vararg_cpy,vararg_ptr) ;        /* for re-use with cfmt and cmsg */

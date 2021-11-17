@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "handle uninit and if block in debugtrace.c, suma_datasets.c",
+   NULL
+ } ,
+ 
  { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
    "This should have no effect.\n"

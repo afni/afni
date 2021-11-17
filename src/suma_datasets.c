@@ -16281,10 +16281,11 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
    for (i=0; i<N_doms; ++i) {
       ind = dind+dindoff[i]; N=dindoff[i+1]-dindoff[i];
       min = max = ind[0];
+      imin = imax = 0;
       for (k=0; k<N; ++k) {
          if (sorted && k<N-1 && ind[k] >= ind[k+1]) sorted = 0;
-         if (ind[k] < min) min = ind[k]; imin = k+dindoff[i];
-         if (ind[k] > max) max = ind[k]; imax = k+dindoff[i];
+         if (ind[k] < min) { min = ind[k]; imin = k+dindoff[i]; }
+         if (ind[k] > max) { max = ind[k]; imax = k+dindoff[i]; }
       }
       snprintf(buff, 500*sizeof(char),"%d %d %d %d", 
                      min, max, imin, imax);
