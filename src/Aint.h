@@ -21,7 +21,7 @@
 #  define Aintsize 64
 #elif INTPTR_MAX == INT32_MAX
 #  define Aintsize 32
-#elif
+#else
 #  define Aintsize 32  /* probably wrong, but this is Weird Stuff */
 #endif
 
