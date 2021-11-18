@@ -860,7 +860,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-            return;
+            return NULL;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -1475,7 +1475,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
     int i;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     int isv;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
@@ -1513,7 +1513,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
  void darkenClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
         SUMA_SurfaceViewer *sv;
-        Widget w;
+        Widget w=NULL;
         int isv, i;
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
@@ -1570,7 +1570,7 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     int i;
 
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -1620,7 +1620,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     int isv, i;
     static int planeIndex = 0;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     static SUMA_Boolean    firstCall = 1;
 
     if (reset){
