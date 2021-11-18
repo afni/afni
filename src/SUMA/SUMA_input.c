@@ -1806,7 +1806,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   Widget w;
+   Widget w = NULL;
    XKeyEvent Kev;
 
    SUMA_ENTRY;
@@ -2009,7 +2009,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   Widget w;
+   Widget w = NULL;
    XKeyEvent Kev;
 
    SUMA_ENTRY;
@@ -2165,8 +2165,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   XKeyEvent Kev;
-   Widget w;
+   Widget w = NULL;
 
    SUMA_ENTRY;
 
@@ -2199,10 +2198,6 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
         } else if (SUMA_CTRL_KEY(key)){
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
             if (!axisObject) makeAxisObject(w, sv);
-/*
-            if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane mode %s\n",
-                clipPlaneIdentificationMode? "on" : "off");
-                */
         }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -2222,7 +2217,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
 
             SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-        }  else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
+        }  else if (SUMAg_CF->Dev && SUMA_CTRL_KEY(key)){
 
            SUMAg_CF->X->Clip_prmpt =
               SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
@@ -4305,7 +4300,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    int k, nc, ii, inode = -1;
    float ArrowDeltaRot = 0.05;
       /* The larger the value, the bigger the rotation increment */
-   Widget w;
+   Widget w = NULL;
    double dd[3] = {0.0, -1.0, 0.0}; /* up */
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -4430,7 +4425,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    int k, nc, ii, inode=-1;
    float ArrowDeltaRot = 0.05;
          /* The larger the value, the bigger the rotation increment */
-   Widget w;
+   Widget w = NULL;
    double dd[3] = {0.0, 1.0, 0.0}; /* down */
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -4552,7 +4547,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    int k, nc, ii, jj, inode = -1, bkey = 0;
    float ArrowDeltaRot = 0.05;
       /* The larger the value, the bigger the rotation increment */
-   Widget w;
+   Widget w = NULL;
    double dd[3] = {-1.0, 0.0, 0.0}; /* left */
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -4665,7 +4660,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    int k, nc, ii, inode=-1;
    float ArrowDeltaRot = 0.05;
          /* The larger the value, the bigger the rotation increment */
-   Widget w;
+   Widget w = NULL;
    double dd[3] = {1.0, 0.0, 0.0}; /* right */
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5706,6 +5701,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (!SUMA_S_Key(sv, "Alt+s", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
                }
+            } else if (!SUMA_S_Key(sv, "s", "interactive")) {
+                 SUMA_S_Err("Failed in key func.");
             }
             break;
 
@@ -7285,7 +7282,7 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
 {
    static char FuncName[]={"SUMA_momentum"};
    static int ReDisp;
-   Widget w;
+   Widget w = NULL;
    int isv;
    SUMA_SurfaceViewer *sv;
 
@@ -8521,20 +8518,20 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
 
    if (!PR) SUMA_RETURN(PR);
 
-   /*
-   fprintf(stderr, "PR=%p\n", PR);
-   fprintf(stderr, "PR->primitive=%p\n", PR->primitive);
-   fprintf(stderr, "PR->ado_idcode_str=%p\n", PR->ado_idcode_str);
-   fprintf(stderr, "PR->dset_idcode_str=%p\n", PR->dset_idcode_str);
-   fprintf(stderr, "PR->evr=%p\n", PR->evr);
-   */
+  if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### SUMA_free_PickResult: Free PR->primitive\n");
    if (PR->primitive) SUMA_ifree(PR->primitive);
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### SUMA_free_PickResult: Free PR->ado_idcode_str\n");
    if (PR->ado_idcode_str) SUMA_ifree(PR->ado_idcode_str);
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### SUMA_free_PickResult: Free PR->dset_idcode_str\n");
    if (PR->dset_idcode_str){
         SUMA_ifree(PR->dset_idcode_str);
+       if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### SUMA_free_PickResult: Free PR->evr\n");
         if (PR->evr) SUMA_ifree(PR->evr);
     }
-
 
    SUMA_free(PR);
 
@@ -8558,6 +8555,8 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
             SUMA_S_Err("NULL Saux!!!, don't let that happen");
             SUMA_RETURN(NOPE);
          }
+         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### SUMA_free_PickResult\n");
          SUMA_free_PickResult(Saux->PR);
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);

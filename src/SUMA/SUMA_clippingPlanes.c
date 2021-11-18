@@ -148,6 +148,8 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         fprintf(stderr, "### Update increment in header and refresh viewer\n");
     SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
+    return 1;
 }
 
 Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
@@ -311,7 +313,7 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     // Read NIML element
     if (!(nel = NI_read_element (nstdin, 1))) {
         perror("Failed to read nel.");
-        0;
+        return 0;
     }
 
     // Read NIML entries for clipping planes
@@ -425,6 +427,7 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    (*PRi)->dset_idcode_str = NULL;
    (*PRi)->primitive = NULL;
    (*PRi)->evr = NULL;
+
    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### SUMA_ADO_SSaux\n");
    SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
@@ -433,8 +436,10 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    //   apparently when volumes, rather than surfaces, are used
    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Try to prevent program crashing with volumes\n");
+   Saux->PR->primitive = NULL;
    Saux->PR->ado_idcode_str = NULL;
    Saux->PR->dset_idcode_str = NULL;
+   Saux->PR->evr = NULL;
 
    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Store pick result\n");
