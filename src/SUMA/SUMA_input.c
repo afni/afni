@@ -1808,6 +1808,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
    XKeyEvent Kev;
+   static  previouslySelectedPlane;
 
    SUMA_ENTRY;
 
@@ -1959,14 +1960,27 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 if (SUMA_CTRL_KEY(key)){
                     // Place-holder for ctrl-7
                 } else {
-                    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                        // Toggle all active clippping planes
-                        if (active[i]){
-                            previouslyActive[i] = 1;
-                            clipPlaneTransform(0,0,0,0,i, 1, 0);
-                        } else if (previouslyActive[i]) clipPlaneTransform(0,0,0,0,i, 1, 0);
-                    }
                     activeClipPlanes = activeClippingPlanes();
+                    if (activeClipPlanes>0){
+                        previouslySelectedPlane = selectedPlane;
+                        for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                            previouslyActive[i] = active[i];
+                            active[i] = 1;
+                            clipPlaneTransform(0,0,0,0,i, 0, 0);
+                            clipPlaneTransform(0,0,0,0,i, 1, 0);
+                            clipIdentificationPlane[i]->Show = 0;
+                        }
+                    } else {
+                        for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                            if (previouslyActive[i]){
+                                active[i] = 0;
+                                clipPlaneTransform(0,0,0,0,i, 1, 0);
+                                clipPlaneTransform(0,0,0,0,i, 0, 0);
+                            }
+                        }
+                        selectedPlane = previouslySelectedPlane;
+                        clipPlaneTransform(0,0,0,0,selectedPlane, 0, 0);
+                    }
                 }
             }
      break;
@@ -2000,23 +2014,21 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
-int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+int SUMA_A_Key(SUMA_SurfaceViewer *sv, Widget w, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_A_Key"};
    char tk[]={"A"}, keyname[100];
-   int k, nc, isv;
+   int k, nc;
    SUMA_EngineData *ED = NULL;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   Widget w = NULL;
+   // Widget w = NULL;
    XKeyEvent Kev;
 
    SUMA_ENTRY;
 
    SUMA_KEY_COMMON;
-
-   SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
    /* do the work */
    switch (k) {
@@ -2028,29 +2040,23 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_a:
-        if (clippingPlaneMode){
-            if (!axisObject) makeAxisObject(w, sv);
-            axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
-            SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-        } else {
-             /* toggle background attenuation */
-             if (sv->Back_Modfact) {
-                fprintf (SUMA_STDOUT,
-                         "%s: Modulation by background intensity OFF.\n", FuncName);
-                sv->Back_Modfact = 0;
-             } else {
-                fprintf (SUMA_STDOUT,
-                         "%s: Modulation by background intensity ON.\n", FuncName);
-                sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
-             }
+         /* toggle background attenuation */
+         if (sv->Back_Modfact) {
+            fprintf (SUMA_STDOUT,
+                     "%s: Modulation by background intensity OFF.\n", FuncName);
+            sv->Back_Modfact = 0;
+         } else {
+            fprintf (SUMA_STDOUT,
+                     "%s: Modulation by background intensity ON.\n", FuncName);
+            sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+         }
 
-             /* set the remix flag */
-             if (!SUMA_SetShownLocalRemixFlag (sv)) {
-                fprintf (SUMA_STDERR,
-                         "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
-                         FuncName);
-                break;
-             }
+         /* set the remix flag */
+         if (!SUMA_SetShownLocalRemixFlag (sv)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
+                     FuncName);
+            break;
          }
 
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -5369,13 +5375,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_A:
-             if (!SUMA_A_Key(sv, "A", "interactive")) {
+             if (!SUMA_A_Key(sv, w, "Shift+A", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
                 break;
 
          case XK_a:
-             if (!SUMA_A_Key(sv, "a", "interactive")) {
+             if (!SUMA_A_Key(sv, w, "a", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
                 break;
@@ -5383,12 +5389,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_B:
                if (( Kev.state & ControlMask)){
                   if (SUMAg_CF->Dev ) {
-                     if (!SUMA_B_Key(sv, "ctrl+B", "interactive")) {
+                     if (!SUMA_B_Key(sv, "Shift+ctrl+B", "interactive")) {
                         SUMA_S_Err("Failed in key func.");
                      }
                   }
                } else {
-                  if (!SUMA_B_Key(sv, "B", "interactive")) {
+                  if (!SUMA_B_Key(sv, "Shift+B", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
                   }
                }

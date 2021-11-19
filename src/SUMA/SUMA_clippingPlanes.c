@@ -359,7 +359,8 @@ Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *p
     char *strbuffer;
     int feyl, i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Get clipping plane parameters\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get clipping plane parameters\n");
 
     SUMA_getStringFromNiml(nel, attribute, strbuffer, 1, feyl);
       if (!feyl) {
@@ -378,7 +379,8 @@ Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float e
     char *strbuf, *eqnBuffer;
     int feyl, i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Get get equation for clipping plane\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get get equation for clipping plane\n");
 
     SUMA_getStringFromNiml(nel, attribute, eqnBuffer, 1, feyl);
       if (!feyl) {
@@ -457,7 +459,8 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 Boolean activeClippingPlanes(){
     int i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Activate clipping planes\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Activate clipping planes\n");
 
     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
         if (active[i]) return True;
@@ -470,7 +473,8 @@ void getObjectMinMaxForAxes(float objectMinMax[][2]){
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Get object min/max for axes\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get object min/max for axes\n");
 
     // Itialise
     for (i=0; i<3; ++i){
@@ -502,7 +506,8 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Dimensions inscribe those of previous surface objects\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Dimensions inscribe those of previous surface objects\n");
 
     // Initialize
     for (i=0; i<3; ++i){
@@ -538,7 +543,8 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO){
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Determine corners of square\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Determine corners of square\n");
 
     /*!< The maximum along each of the XYZ dimensions */
     SO->MaxDims[0] = clippingPlaneAxisRanges[0][1];
@@ -699,7 +705,8 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     SUMA_OVERLAYS *NewColPlane=NULL;
     static int squareIndex = 0;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Make axis plane from node and face set list\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make axis plane from node and face set list\n");
 
     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
     SO->N_Node = FS.N_Node;
@@ -882,10 +889,12 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     return SO;
     }
 
-SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
+    SUMA_FreeSurfer_struct FS, int planeIndex){
     int i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Draw plane node and face set list\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Draw plane node and face set list\n");
 
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
@@ -1301,7 +1310,8 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     float objectMinMax[2], axisMinMax[3][2];
     int i;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Get plane on square\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get plane on square\n");
 
     getOveralMinAndMaxOfCurrentSurfaceObjects(axisMinMax, objectMinMax);
 
@@ -1340,7 +1350,8 @@ Boolean updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
     int i, j;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Update clip square\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update clip square\n");
 
     if (!(clipIdentificationPlane[planeIndex])){
         fprintf(stderr, "ERROR: Index %d exceeds number of clip planes\n", planeIndex);
@@ -1370,7 +1381,8 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 
     fprintf(stderr, "Make mesh axes\n");
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Make axis object\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make axis object\n");
 
     // Axis plane object already exists?
     if (axisObject) return 1;
@@ -1422,7 +1434,8 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     float plane[4], points[4][3];
     int i, j;
 
-    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Make clip identification plane\n");
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make clip identification plane\n");
 
     // Clipping plane identification object already exists?
     if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
