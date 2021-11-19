@@ -250,7 +250,7 @@ int main( int argc , char *argv[] )
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,vv++){
          mask[vv] = (ii==0 || jj==0 || kk==0 || ii==nx1 || jj==ny1 || kk==nz1)
-                    ? 1 : 0 ;
+                    ? 0 : 1 ;
      }}}
      vv = THD_countmask( mask_nvox , mask ) ;
      ININFO_message("Number of voxels in mask = %d",vv) ;
