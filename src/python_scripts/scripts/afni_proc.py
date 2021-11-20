@@ -695,6 +695,9 @@ g_history = """
     7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
     7.19 Nov  7, 2021: add -regress_opts_fwhmx
     7.20 Nov  8, 2021: add -milestones
+    7.21 Nov 20, 2021:
+       - update for current tedana with --convention orig
+       - add -help_tedana_files for correspondence between file names
 """
 
 g_version = "version 7.20, November 8, 2021"
@@ -756,6 +759,7 @@ interesting milestones for afni_proc.py:
    2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
+   2021.11 : updated MEICA group tedana
 """
 
 g_process_changes_str = """
