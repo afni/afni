@@ -850,6 +850,35 @@ g_todo_str = """todo:
      for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
 """
 
+# paired 'orig' vs. 'bids' output files (e.g., tedana --convention orig)
+g_m_tedana_files = [
+ [ 'adaptive_mask.nii.gz',         'desc-adaptiveGoodSignal_mask.nii.gz'],
+ [ 'betas_OC.nii.gz',              'desc-ICA_stat-z_components.nii.gz'],
+ [ 'betas_hik_OC.nii.gz',          'desc-ICAAccepted_components.nii.gz'],
+ [ 'dataset_description.jzon',     'dataset_description.jzon'],
+ [ 'dn_ts_OC.nii.gz',              'desc-optcomDenoised_bold.nii.gz'],
+ [ 'feats_OC2.nii.gz',             'desc-ICAAccepted_stat-z_components.nii.gz'],
+ [ 'figures',                      'figures'],
+ [ 'hik_ts_OC.nii.gz',             'desc-optcomAccepted_bold.nii.gz'],
+ [ 'ica_components.nii.gz',        'desc-ICA_components.nii.gz'],
+ [ 'ica_decomposition.jzon',       'desc-ICA_decomposition.jzon'],
+ [ 'ica_metrics.jzon',             'desc-tedana_metrics.jzon'],
+ [ 'ica_metrics.tsv',              'desc-tedana_metrics.tsv'],
+ [ 'ica_mixing.tsv',               'desc-ICA_mixing.tsv'],
+ [ 'lowk_ts_OC.nii.gz',            'desc-optcomRejected_bold.nii.gz'],
+ [ 'pca_components.nii.gz',        'desc-PCA_stat-z_components.nii.gz'],
+ [ 'pca_decomposition.jzon',       'desc-PCA_decomposition.jzon'],
+ [ 'pca_metrics.jzon',             'desc-PCA_metrics.jzon'],
+ [ 'pca_metrics.tsv',              'desc-PCA_metrics.tsv'],
+ [ 'pca_mixing.tsv',               'desc-PCA_mixing.tsv'],
+ [ 'report.txt',                   'report.txt'],
+ [ 's0vG.nii.gz',                  'S0map.nii.gz'],
+ [ 't2svG.nii.gz',                 'T2starmap.nii.gz'],
+ [ 'tedana_2021-11-19T195806.tsv', 'tedana_2021-11-19T183932.tsv'],
+ [ 'tedana_report.html',           'tedana_report.html'],
+ [ 'ts_OC.nii.gz',                 'desc-optcom_bold.nii.gz'],
+]
+
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
@@ -1178,6 +1207,8 @@ class SubjProcSream:
                         helpstr="show this help")
         self.valid_opts.add_opt('-help_section', 1, [],
                         helpstr="show help from the given section")
+        self.valid_opts.add_opt('-help_tedana_files', 0, [],
+                        helpstr="show tedana files: old vs orig names")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
         self.valid_opts.add_opt('-milestones', 0, [],
@@ -1803,6 +1834,10 @@ class SubjProcSream:
                EGS.display_eg_all(aphelp=-1,verb=2)
             else:
                show_program_help(section=section)
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-help_tedana_files'):
+            self.show_tedana_files()
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history
@@ -3804,6 +3839,20 @@ class SubjProcSream:
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
+        
+    def show_tedana_files(self):
+        # see how long the names are
+        max0 = max([len(p[0]) for p in g_m_tedana_files])
+        max1 = max([len(p[1]) for p in g_m_tedana_files])
+
+        # header
+        print()
+        print("   %-*s   %-*s" % (max0, "orig", max1, "bids"))
+        print("   %-*s   %-*s" % (max0, "----", max1, "----"))
+
+        for pair in g_m_tedana_files:
+           print("   %-*s   %-*s" % (max0, pair[0], max1, pair[1]))
+        print()
         
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)
