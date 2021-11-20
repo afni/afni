@@ -3362,7 +3362,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run\n'                          \
+       '          --out-dir tedana_r$run --convention orig\n'        \
        'end\n\n'                                                     \
        % (method, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
 
