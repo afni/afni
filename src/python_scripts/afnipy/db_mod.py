@@ -3342,6 +3342,11 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
          print("** found -combine_opts_tedana without any options")
          return
 
+   # note the tedana version
+   vstr = '# note the version of tedana (only capure stdout)\n' \
+          '# (see also: afni_proc.py -help_tedana_files)\n'     \
+          'tedana --version | tee out.tedana_version.txt\n\n'
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    # 
@@ -3356,15 +3361,17 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    cmd =                                                                    \
        '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
        '%s'                                                          \
+       '%s'                                                          \
        '# first run tedana commands, to see if they all succeed\n'   \
        'foreach run ( $runs )\n'                                     \
        '   tedana -d %s \\\n'                                        \
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run\n'                          \
+       '          --out-dir tedana_r$run --convention orig\n'        \
        'end\n\n'                                                     \
-       % (method, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
+       % (method, vstr, mstr, prev_prefix, proc.mask.nice_input(head=1),
+          exoptstr)
 
 
    # ----------------------------------------------------------------------
