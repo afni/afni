@@ -80,6 +80,8 @@ int help_3dDiff(TFORM targ, int detail)
 " you would with 3dCalc.\n"
         );
     }
+
+    return 0;
 }
 
 
