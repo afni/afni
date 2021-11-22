@@ -91,6 +91,7 @@ int main( int argc , char * argv[] )
     char *left_fname, *right_fname ;
     MRI_IMAGE *left_dset , *right_dset ;
     int iarg=1 , mcount , udatum = MRI_float;
+    double perc_div = 0.0;
 
     mainENTRY("3dDiff main");
     machdep();
@@ -147,7 +148,10 @@ int main( int argc , char * argv[] )
         ERROR_exit("3dDiff encountered an unknown error\n");
     }
     else if ( diff ) {
-        INFO_message("Images diverge: %d of %d voxels disagree", diff, nvox);
+        perc_div = (double) diff / nvox * 100.0;
+        INFO_message(
+            "Images diverge: %d of %d voxels disagree (%2.3f%%)",
+            diff, nvox, perc_div);
         RETURN( 1 );
     }
     else {
