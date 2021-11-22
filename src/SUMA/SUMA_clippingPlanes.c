@@ -1689,7 +1689,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[planeIndex] = -planeD[planeIndex];
         planeTheta[planeIndex] = (int)(asin(-planeB[planeIndex])*rad2degrees+0.5);
         planePhi[planeIndex] = (int)(acos(planeC[planeIndex]/cos(planeTheta[planeIndex]*degrees2rad))*rad2degrees+0.5);
-    } else {
+    } else if (active[planeIndex]){
         // Update rotation and (normal) translation parameters
         planeTheta[planeIndex] += deltaTheta;
         planePhi[planeIndex] += deltaPhi;
