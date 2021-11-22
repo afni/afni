@@ -1589,7 +1589,7 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
     // Reset clipping plane parameters
-    for (i=1; i<6; ++i){
+    for (i=0; i<6; ++i){
          active[i] = 0;
          previouslyActive[i] = 0;
          planeTheta[i] = planePhi[i] = planeA[i] =  planeB[i] = 0.0f;
@@ -1603,6 +1603,15 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
 
     planePhi[2] = 90.0f;
     planePhi[5] = 270.0f;
+    /*
+    planeA[2] = 1.0f;
+    planeB[1] = -1.0f;
+    */
+    // Reset plane parameters
+    for (i=0; i<6; ++i){
+        planeA[i]=planeB[i]=0.0f;
+        planeC[i] = 1.0f;
+    }
     planeA[2] = 1.0f;
     planeB[1] = -1.0f;
 
@@ -1646,9 +1655,12 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[2] = -objectMinMax[0][0];
         planeD[5] = objectMinMax[0][1];
 
-        resetClippingPlaneParameters(planeTheta, planePhi, planeA,
-            planeB, planeC);
+        resetClippingPlaneParameters(planeTheta, planePhi, planeA, planeB, planeC);
         activePlane = 0;
+        active[0] = 1;
+        planeIndex = 0;
+
+        // DEBUG
     }
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
@@ -1689,7 +1701,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[planeIndex] = -planeD[planeIndex];
         planeTheta[planeIndex] = (int)(asin(-planeB[planeIndex])*rad2degrees+0.5);
         planePhi[planeIndex] = (int)(acos(planeC[planeIndex]/cos(planeTheta[planeIndex]*degrees2rad))*rad2degrees+0.5);
-    } else if (active[planeIndex]){
+    } else if (!reset && active[planeIndex]){
         // Update rotation and (normal) translation parameters
         planeTheta[planeIndex] += deltaTheta;
         planePhi[planeIndex] += deltaPhi;

@@ -1839,18 +1839,18 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    switch (k) {
     case XK_0:
         if (clippingPlaneMode){
-                clipPlaneTransform(0,0,0,0,0, 0, 1);
-                resetClippingPlanes = 1;
-                for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
-                    active[i] = (i>0);
-                    clipPlaneTransform(0,0,0,0,i, 1, 0);
-                }
-                clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-                lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
+            clipPlaneTransform(0,0,0,0,0, 0, 1);
+            resetClippingPlanes = 1;
+            for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+                active[i] = (i>0);
+                clipPlaneTransform(0,0,0,0,i, 1, 0);
+            }
+            clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+            lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
 
-                // Required to lighten plane mode in DriveSuma mode but not in interactive mode
-                clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
-                lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
+            // Required to lighten plane mode in DriveSuma mode but not in interactive mode
+            clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
+            lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
         }
      break;
     case XK_1:
