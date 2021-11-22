@@ -2014,7 +2014,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
-int SUMA_A_Key(SUMA_SurfaceViewer *sv, Widget w, char *key, char *callmode)
+int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_A_Key"};
    char tk[]={"A"}, keyname[100];
@@ -2023,7 +2023,6 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, Widget w, char *key, char *callmode)
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
-   // Widget w = NULL;
    XKeyEvent Kev;
 
    SUMA_ENTRY;
@@ -5375,13 +5374,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_A:
-             if (!SUMA_A_Key(sv, w, "Shift+A", "interactive")) {
+             if (!SUMA_A_Key(sv, "Shift+A", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
                 break;
 
          case XK_a:
-             if (!SUMA_A_Key(sv, w, "a", "interactive")) {
+             if (!SUMA_A_Key(sv, "a", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                }
                 break;
