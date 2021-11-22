@@ -22,9 +22,9 @@
 
 #define MRI_SIMPLE_DIFF_DIM_DIVERGE -2
 #define MRI_SIMPLE_DIFF_ERROR -1
-#define MRI_SIMPLE_DIFF_TOL 1e-8f
+#define MRI_SIMPLE_DIFF_DEFAULT_TOL 1e-8f
 
-int mri_ndiff( MRI_IMAGE *bim , MRI_IMAGE *nim )
+int mri_ndiff( MRI_IMAGE *bim , MRI_IMAGE *nim , float tol)
 {
     int nvox , ii , diffs = 0 ;
     MRI_IMAGE *fim , *gim ;
@@ -34,6 +34,8 @@ int mri_ndiff( MRI_IMAGE *bim , MRI_IMAGE *nim )
 ENTRY("mri_simple_diff") ;
 	 
     if ( bim == NULL || nim == NULL ) RETURN(MRI_SIMPLE_DIFF_ERROR) ;
+
+    if ( tol < 0 ) tol = 0.0f - tol ;
 
     nvox = bim->nvox ;
     if ( nim->nvox != nvox ) RETURN(MRI_SIMPLE_DIFF_DIM_DIVERGE) ;
@@ -45,8 +47,8 @@ ENTRY("mri_simple_diff") ;
 
     for ( ii=0; ii < nvox; ii++){
         curr_diff = far[ii] - gar[ii];
-        if ( !(curr_diff < MRI_SIMPLE_DIFF_TOL) ||
-             !(curr_diff > (0.0f - MRI_SIMPLE_DIFF_TOL))) {
+        if ( !(curr_diff < tol) ||
+             !(curr_diff > (0.0f - tol))) {
             ++diffs;
         }
     }
@@ -61,7 +63,7 @@ int help_3dDiff(TFORM targ, int detail)
 {
     if (detail >= 0) {
         sphinx_printf(targ,
-"Usage: 3dDiff <-left LEFT> <-right RIGHT>\n"
+"Usage: 3dDiff [-tol TOL] <-left LEFT> <-right RIGHT>\n"
 "   A program to calculate how many voxels diverge between two images.\n"
         );
     }
@@ -69,9 +71,10 @@ int help_3dDiff(TFORM targ, int detail)
         sphinx_printf(targ,
 " -left LSET: the left dataset.\n"
 " -right RSET: the right dataset.\n"
+" -tol TOL: the tolerance to use. (Default 1e-8; you may not use scientific notation).\n"
 "\n"
 " The calculation is performed by casting to floating point and counting \n"
-" the number of voxels that are outside the range (-1e8, 1e8).\n"
+" the number of voxels that are outside the range (-TOL, TOL).\n"
 " If the dimensions of the images diverge, the program will tell you and \n"
 " you will not get a count of diverging voxels. If the dimensions agree, \n"
 " then the program will give you a count of the diverging voxels and a \n"
@@ -91,7 +94,9 @@ int main( int argc , char * argv[] )
     char *left_fname, *right_fname ;
     MRI_IMAGE *left_dset , *right_dset ;
     int iarg=1 , mcount , udatum = MRI_float;
+    float tol = MRI_SIMPLE_DIFF_DEFAULT_TOL ;
     double perc_div = 0.0;
+
 
     mainENTRY("3dDiff main");
     machdep();
@@ -122,6 +127,12 @@ int main( int argc , char * argv[] )
             iarg++; continue;
         }
 
+        if ( strncmp(argv[iarg],"-tol",4) == 0) {
+            if (iarg >= argc) ERROR_exit("Need value after -tol");
+            tol = atof( argv[++iarg] ) ;
+            iarg++; continue;
+        }
+
         ERROR_message("ILLEGAL option: %s\n", argv[iarg]) ;
                 suggest_best_prog_option(argv[0], argv[iarg]);
         exit(1);
@@ -137,7 +148,7 @@ int main( int argc , char * argv[] )
     if ( !right_dset)
         ERROR_exit("No right dset supplied!");
 
-    diff = mri_ndiff(left_dset, right_dset);
+    diff = mri_ndiff(left_dset, right_dset, tol);
     nvox = left_dset->nvox;
 
     if ( diff == MRI_SIMPLE_DIFF_DIM_DIVERGE ) {
