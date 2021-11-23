@@ -22,6 +22,9 @@ void * pv_get_workspace( int n , int m )
 
    nb  = MIN(n,m) ; nt = MAX(n,m) ;
    mmm = nb*nb + n*m + 16*nt ;
+#if 1
+ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*mmm) ) ;
+#endif
    ws  = malloc( sizeof(float)*mmm ) ;
    return (ws) ;
 }
@@ -451,9 +454,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
                                   float *uvec, float *vvec, float *tvec,
                                   float *ws , unsigned short xran[] )
 {
-   int64_t nn=n , mm=m , nsym , jj,kk,qq ;
+   int64_t nn=(int64_t)n , mm=(int64_t)m , nsym , jj,kk,qq , ii ;
    float *asym ;
-   register float sum,qsum ; register float *xj,*xk ; register int64_t ii ;
+   float sum,qsum ; float *xj,*xk ;
    float sval , *xx=NULL , **xar=NULL ;
    float_pair svout = {-666.0f,-666.0f} ;
    float *wws=ws ; int64_t nws=0 ;
@@ -522,7 +525,7 @@ ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
                                         /* so [A] = [X][X]' = n x n */
      float *xt = wws + nws ;
 #if 1
-ININFO_message("     form X' matrix") ;
+ININFO_message("    form X' matrix") ;
 #endif
 
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
@@ -544,6 +547,9 @@ fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
          xk = xt + kk*mm ;
          for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+#if 1
+fprintf(stderr,"=%g",sum) ;
+#endif
        }
      }
 #if 1
