@@ -56,10 +56,12 @@ MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
    unsigned short xran[3] ;
    static int ncall=0 ;
 
-   if( inim == NULL || inim->kind != MRI_float ) return NULL ;
+ENTRY("mri_vec_to_pvmap") ;
 
-   nx = inim->nx ; if( nx < 9 ) return NULL ;
-   ny = inim->ny ; if( ny < 9 ) return NULL ;
+   if( inim == NULL || inim->kind != MRI_float ) RETURN(NULL) ;
+
+   nx = inim->nx ; if( nx < 9 ) RETURN(NULL) ;
+   ny = inim->ny ; if( ny < 9 ) RETURN(NULL) ;
 
    if( nx != nvec || uvec == NULL || vvec == NULL ){
      uvec = (float *)realloc(uvec,sizeof(float)*nx) ;
@@ -84,7 +86,7 @@ for( ii=0 ; ii < nx ; ii++ ){
 
    ulam = svals.a ; vlam = svals.b ;
 
-   if( svals.a < 0.0f || svals.b < 0.0f ) return NULL ;
+   if( svals.a < 0.0f || svals.b < 0.0f ) RETURN(NULL) ;
 
    outim = mri_new( ny , 1 , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
@@ -102,7 +104,7 @@ for( ii=0 ; ii < nx ; ii++ )
      outar[ii] = r2D( nx , uvec , vvec , iar+ii*nx ) ;
    }
 
-   return outim ;
+   RETURN(outim) ;
 }
 
 /*-----------------------------------------------------------------*/
@@ -113,15 +115,17 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
    MRI_IMAGE *inim, *tim, *outim ;
    float *inar, *tar, *outar, *dar ;
 
-   if( !ISVALID_DSET(dset) ) return NULL ;
+ENTRY("THD_dataset_to_pvmap") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
 
    nvox = DSET_NVOX(dset) ;
    npt  = DSET_NVALS(dset) ;
-   if( nvox < 9 || npt < 9 ) return NULL ;
+   if( nvox < 9 || npt < 9 ) RETURN(NULL) ;
 
    if( mask != NULL ){
      nmask = THD_countmask( nvox , mask ) ;
-     if( nmask < 9 ) return NULL ;
+     if( nmask < 9 ) RETURN(NULL) ;
    } else {
      nmask = nvox ;
    }
@@ -158,7 +162,7 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
 
    mri_free(inim) ;
 
-   if( nmask == nvox ) return tim ;
+   if( nmask == nvox ) RETURN(tim) ;
 
    outim = mri_new( nvox , 1 , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
@@ -171,5 +175,5 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
 
    mri_free(tim) ;
 
-   return outim ;
+   RETURN(outim) ;
 }

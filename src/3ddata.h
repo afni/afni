@@ -5211,6 +5211,9 @@ extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 
 extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
 
+extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
+                                               int istart , int numi ) ; /* 19 Nov 2021 */
+
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 

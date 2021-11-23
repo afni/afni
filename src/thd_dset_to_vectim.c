@@ -542,7 +542,9 @@ MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
 {
    MRI_vectim *qrv ;
 
-   if( mrv == NULL ) return NULL ;
+ENTRY("THD_vectim_copy") ;
+
+   if( mrv == NULL ) RETURN(NULL) ;
 
    MAKE_VECTIM( qrv , mrv->nvec , mrv->nvals ) ;
    qrv->ignore = mrv->ignore ;
@@ -551,7 +553,7 @@ MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
    qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
    qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
    qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;
-   return qrv ;
+   RETURN(qrv) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -562,7 +564,9 @@ MRI_vectim * THD_vectim_copy_nonzero( MRI_vectim *mrv ) /* 21 Sep 2010 */
    int nvals , nvec , ii,jj , ngood ;
    float *mar , *qar ;
 
-   if( mrv == NULL ) return NULL ;
+ENTRY("THD_vectim_copy_nonzero") ;
+
+   if( mrv == NULL ) RETURN(NULL) ;
    nvals = mrv->nvals ; nvec = mrv->nvec ;
 
    for( ngood=ii=0 ; ii < nvec ; ii++ ){
@@ -570,8 +574,8 @@ MRI_vectim * THD_vectim_copy_nonzero( MRI_vectim *mrv ) /* 21 Sep 2010 */
      for( jj=0 ; jj < nvals && mar[jj] == 0.0f ; jj++ ) ; /*nada*/
      if( jj < nvals ) ngood++ ;
    }
-   if( ngood == 0    ) return NULL ;                 /* nothing to do */
-   if( ngood == nvec ) return THD_vectim_copy(mrv) ; /* everything to do */
+   if( ngood == 0    ) RETURN(NULL) ;                   /* nothing to do */
+   if( ngood == nvec ) RETURN( THD_vectim_copy(mrv) ) ; /* everything to do */
 
    MAKE_VECTIM( qrv , ngood , nvals ) ;
    qrv->ignore = mrv->ignore ;
@@ -589,7 +593,7 @@ MRI_vectim * THD_vectim_copy_nonzero( MRI_vectim *mrv ) /* 21 Sep 2010 */
    qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
    qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
    qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;
-   return qrv ;
+   RETURN(qrv) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -1007,7 +1011,9 @@ int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar )
 {
    int nvals , jj,kk,nkk=0 ; register int ii ; float *fv ;
 
-   if( mrv == NULL || nind <= 0 || ind == NULL || ar == NULL ) return 0 ;
+ENTRY("THD_vectim_subset_average") ;
+
+   if( mrv == NULL || nind <= 0 || ind == NULL || ar == NULL ) RETURN(0) ;
 
    nvals = mrv->nvals ;
 
@@ -1024,7 +1030,7 @@ int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar )
      for( ii=0 ; ii < nvals ; ii++ ) ar[ii] *= fac ;
    }
 
-   return nkk ;
+   RETURN(nkk) ;
 }
 
 /*-----------------------------------------------------------*/
@@ -1035,7 +1041,7 @@ int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask )
    int nvals , nvox , nmask ;
    int64_t sz ;
 
-   ENTRY("THD_vectim_size") ;
+ENTRY("THD_vectim_size") ;
 
    if( !ISVALID_DSET(dset) ) RETURN(0) ;
 
@@ -1214,16 +1220,18 @@ MRI_vectim * THD_tcat_vectims( int nvim , MRI_vectim **vim )
    int iv , nvec , nvsum , vv , nvals ; size_t nvv ;
    float *vout_ptr , *vin_ptr ;
 
-   if( nvim <= 0 || vim == NULL ) return NULL ;
+ENTRY("THD_tcat_vectims") ;
+
+   if( nvim <= 0 || vim == NULL ) RETURN(NULL) ;
 
    if( nvim == 1 ){
-     vout = THD_vectim_copy( vim[0] ) ; return vout ;
+     vout = THD_vectim_copy( vim[0] ) ; RETURN(vout) ;
    }
 
    nvec  = vim[0]->nvec ;
    nvsum = vim[0]->nvals ;
    for( iv=1 ; iv < nvim ; iv++ ){
-     if( vim[iv]->nvec != nvec ) return NULL ;
+     if( vim[iv]->nvec != nvec ) RETURN(NULL) ;
      nvsum += vim[iv]->nvals ;
    }
 
@@ -1243,7 +1251,7 @@ MRI_vectim * THD_tcat_vectims( int nvim , MRI_vectim **vim )
      }
    }
 
-   return vout ;
+   RETURN(vout) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1253,12 +1261,14 @@ MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask
    MRI_vectim *vout , **vim ;
    int kk , jj ;
 
-   if( nds < 1 || ds == NULL ) return NULL ;
+ENTRY("THD_dset_list_to_vectim") ;
 
-   if( nds == 1 ) return THD_dset_to_vectim( ds[0] , mask , 0 ) ;
+   if( nds < 1 || ds == NULL ) RETURN(NULL) ;
+
+   if( nds == 1 ) RETURN( THD_dset_to_vectim( ds[0] , mask , 0 ) ) ;
 
    for( kk=0 ; kk < nds ; kk++ )
-     if( !ISVALID_DSET(ds[kk]) ) return NULL ;
+     if( !ISVALID_DSET(ds[kk]) ) RETURN(NULL) ;
 
 #pragma omp critical (MALLOC)
    vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
@@ -1267,13 +1277,13 @@ MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask
      /** DSET_unload( ds[kk] ) ; **/
      if( vim[kk] == NULL ){
        for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
-       free(vim) ; return NULL ;
+       free(vim) ; RETURN(NULL) ;
      }
    }
 
    vout = THD_tcat_vectims( nds , vim ) ;
    for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
-   free(vim) ; return vout ;
+   free(vim) ; RETURN(vout) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1284,14 +1294,16 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
    MRI_vectim *vout , **vim ;
    int kk , jj ;
 
-   if( nds < 1 || ds == NULL ) return NULL ;
+ENTRY("THD_dset_list_censored_to_vectim") ;
+
+   if( nds < 1 || ds == NULL ) RETURN(NULL) ;
 
    if( nds == 1 )   /* trivial case */
-     return THD_dset_censored_to_vectim( ds[0],mask,nkeep,keep );
+     RETURN( THD_dset_censored_to_vectim( ds[0],mask,nkeep,keep ) ) ;
 
    for( kk=0 ; kk < nds ; kk++ ){
-     if( !ISVALID_DSET(ds[kk]) ) return NULL ;
-     if( DSET_NVALS(ds[kk]) != DSET_NVALS(ds[0]) ) return NULL ;
+     if( !ISVALID_DSET(ds[kk]) ) RETURN(NULL) ;
+     if( DSET_NVALS(ds[kk]) != DSET_NVALS(ds[0]) ) RETURN(NULL) ;
    }
 
 #pragma omp critical (MALLOC)
@@ -1301,13 +1313,13 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
      /** DSET_unload( ds[kk] ) ; **/
      if( vim[kk] == NULL ){
        for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
-       free(vim) ; return NULL ;
+       free(vim) ; RETURN(NULL) ;
      }
    }
 
    vout = THD_tcat_vectims( nds , vim ) ;
    for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
-   free(vim) ; return vout ;
+   free(vim) ; RETURN(vout) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1361,10 +1373,12 @@ MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim )
    int nx,ny,nz,nv , nvectot , iv,ii,jj ;
    float *vout_ptr , *vin_ptr ;
 
-   if( nvim <= 0 || vim == NULL ) return NULL ;
+ENTRY("THD_xyzcat_vectims") ;
+
+   if( nvim <= 0 || vim == NULL ) RETURN(NULL) ;
 
    if( nvim == 1 ){
-     vout = THD_vectim_copy( vim[0] ) ; return vout ;
+     vout = THD_vectim_copy( vim[0] ) ; RETURN(vout) ;
    }
 
    nx = vim[0]->nx ;
@@ -1377,7 +1391,7 @@ MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim )
      if( vim[iv]->nx    != nx ||
          vim[iv]->ny    != ny ||
          vim[iv]->nz    != nz ||
-         vim[iv]->nvals != nv   ) return NULL ;
+         vim[iv]->nvals != nv   ) RETURN(NULL) ;
 
      nvectot += vim[iv]->nvec ;
    }
@@ -1394,5 +1408,28 @@ MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim )
      }
    }
 
-   return vout ;
+   RETURN(vout) ;
+}
+
+/*---------------------------------------------------------------------*/
+/* To discard the output from this function, use mri_clear_and_free()
+   NOT mri_free() -- the MRI_IMAGE data is just a pointer into the
+   vectim, and trying to free it would be disastrous! [19 Nov 2021]
+*//*-------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
+                                        int istart , int numi )
+{
+   MRI_IMAGE *imout ;
+
+ENTRY("THD_temp_subim_from_vectim") ;
+
+   if( vim == NULL )                               RETURN(NULL) ;
+   if( istart <  0 || istart        >= vim->nvec ) RETURN(NULL) ;
+   if( numi   <= 0 || istart+numi-1 >= vim->nvec ) RETURN(NULL) ;
+
+   imout = mri_new_vol_empty( vim->nvals , numi , 1 , MRI_float ) ;
+   mri_fix_data_pointer( VECTIM_PTR(vim,istart) , imout ) ;
+
+   RETURN(imout) ;
 }

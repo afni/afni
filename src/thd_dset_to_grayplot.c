@@ -109,14 +109,16 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
    /* check inputs for plausibility */
 
+ENTRY("THD_dset_grayplot_prep") ;
+
    lev_num = 0 ;
-   if( !ISVALID_DSET(dset) || mmask == NULL ) return NULL ;
+   if( !ISVALID_DSET(dset) || mmask == NULL ) RETURN(NULL) ;
    nts = DSET_NVALS(dset) ;
-   if( nts < 19 ) return NULL ;
+   if( nts < 19 ) RETURN(NULL) ;
 
    nxyz = DSET_NVOX(dset) ;
    nmask = THD_countmask( nxyz , mmask ) ;
-   if( nmask < 19 ) return NULL ;
+   if( nmask < 19 ) RETURN(NULL) ;
 
    if( do_percent && polort < 0 ) polort = 0 ;
 
@@ -297,7 +299,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
    lev_num = nvim ;
 
-   if( nvim == 0 ) return NULL ;
+   if( nvim == 0 ) RETURN(NULL) ;
 
    /* glue multiple level vectims into 1, if needed */
 
@@ -309,7 +311,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    }
 
    free(vim) ;
-   return vout ;
+   RETURN(vout) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -338,13 +340,15 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
    int ii , jj , nin1,nout1 , jbot,jtop ;
    float ffac , fjmid , fj ;
 
-   if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) return ;
+ENTRY("resample_1D_float") ;
+
+   if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) EXRETURN ;
 
    /* nothing to do? */
 
    if( nin == nout ){
      memcpy( xout , xin , sizeof(float)*nin) ;
-     return ;
+     EXRETURN ;
    }
 
    ffac  = (nin-1.0f)/(nout-1.0f) ;
@@ -450,7 +454,7 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
      }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -464,13 +468,15 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    MRI_IMAGE *imttt ; byte *tttar , *tar ;
    float zbot,ztop , val , zfac , *qar , *zar=NULL , *yar ;
 
-   if( imts == NULL ) return NULL ;
+ENTRY("mri_vectim_to_grayplot") ;
+
+   if( imts == NULL ) RETURN(NULL) ;
 
    if( nxx < 512 ) nxx = 512 ; else if( nxx > 32768 ) nxx = 32768 ;
    if( nyy < 256 ) nyy = 256 ; else if( nyy > 32768 ) nyy = 32768 ;
 
    ntt = imts->nvals ;
-   nss = imts->nvec ; if( ntt < 19 || nss < 19 ) return NULL ;
+   nss = imts->nvec ; if( ntt < 19 || nss < 19 ) RETURN(NULL) ;
 
    /* find min and max of pre-processed data */
 
@@ -490,7 +496,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
       }
    }
 
-   if( zbot >= ztop ) return NULL ;
+   if( zbot >= ztop ) RETURN(NULL) ;
    if( grange <= 0.0f ){
      zfac = 255.4f / (ztop-zbot) ; domid = 0 ;
    } else {
@@ -526,7 +532,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    if( zar != NULL ){ free(zar); zar = NULL; }
 
    if( nss == nyy ){ /* number of rows we have == number of rows we want? */
-     return imttt ;
+     RETURN(imttt) ;
    }
 
    /* convert number of rows we have (nss) to number we want (nyy) */
@@ -564,7 +570,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
      }
    }
 
-   return imout ;
+   RETURN(imout) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -578,6 +584,8 @@ MRI_IMAGE * THD_dset_to_grayplot( THD_3dim_dataset *dset ,
 {
    MRI_vectim *vim ; MRI_IMAGE *imout ;
 
+ENTRY("THD_dset_to_grayplot") ;
+
    vim = THD_dset_grayplot_prep( dset , mmask , polort , fwhm ) ;
 
    if( nxout < 128 ) nxout = 1024 ;
@@ -587,5 +595,5 @@ MRI_IMAGE * THD_dset_to_grayplot( THD_3dim_dataset *dset ,
 
    VECTIM_destroy(vim) ;
 
-   return imout ;
+   RETURN(imout) ;
 }
