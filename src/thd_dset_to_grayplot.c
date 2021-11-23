@@ -321,6 +321,7 @@ ININFO_message("  Putting sorted vectors back into vectim") ;
    }
    free(tmask) ;
    if( fit != NULL ) free(fit) ;
+   DSET_unload(dset) ;
 
    lev_num = nvim ;
 

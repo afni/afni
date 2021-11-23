@@ -542,7 +542,7 @@ ININFO_message("   Computing matrix with nn=%d < mm=%d",nn,mm) ;
        xj = xt + jj*mm ;
        for( kk=0 ; kk <= jj ; kk++ ){
 #if 1
-fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
+if( kk==jj )fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
 #endif
          xk = xt + kk*mm ;
          for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
