@@ -145,6 +145,9 @@ ENTRY("THD_dset_grayplot_prep") ;
        vim = (MRI_vectim **)realloc( vim , sizeof(MRI_vectim *)*(nvim+1) ) ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
        if( polort >= 0 ){
+#if 1
+ININFO_message("  Detrending vectim polort=%d",polort) ;
+#endif
          for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){          /* detrend */
            tsar = VECTIM_PTR( vim[nvim] , jj ) ; fit[0] = 0.0f ;
            THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,fit ) ;
@@ -159,6 +162,9 @@ ENTRY("THD_dset_grayplot_prep") ;
 
          case NORM_RMS:
          default:{
+#if 1
+ININFO_message("  RMS norming vectim") ;
+#endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
              THD_normRMS( nts , tsar ) ;
@@ -171,6 +177,9 @@ ENTRY("THD_dset_grayplot_prep") ;
 
          case NORM_MAXABS:{ /* scale so max(abs(x)) = 1 */
            float mab,val ;
+#if 1
+ININFO_message("  MAXABS norming vectim") ;
+#endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
              mab = fabsf(tsar[0]) ;
@@ -187,8 +196,12 @@ ENTRY("THD_dset_grayplot_prep") ;
 
        }
 
-       if( fwhm > 0.0f ) /* spatially blur inside this level */
+       if( fwhm > 0.0f ){ /* spatially blur inside this level */
+#if 1
+ININFO_message("  Blurring vectim fwhm=%.3g",fwhm) ;
+#endif
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
+       }
 
        /* re-order spatially, as ordered */
 
