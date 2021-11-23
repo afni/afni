@@ -129,7 +129,9 @@ int main( int argc , char * argv[] )
 
         if ( strncmp(argv[iarg],"-tol",4) == 0) {
             if (iarg >= argc) ERROR_exit("Need value after -tol");
-            tol = atof( argv[++iarg] ) ;
+            if ( sscanf( argv[++iarg] , "%f", &tol ) != 1 ) {
+                ERROR_exit("Cannot parse tolerance!\n") ;
+            }
             iarg++; continue;
         }
 
