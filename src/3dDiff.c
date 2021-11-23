@@ -65,13 +65,13 @@ int help_3dDiff(TFORM targ, int detail)
         sphinx_printf(targ,
 "Usage: 3dDiff [-tol TOL] <-left LEFT> <-right RIGHT>\n"
 "   A program to calculate how many voxels diverge between two images.\n"
+"       -left LSET: the left dataset.\n"
+"       -right RSET: the right dataset.\n"
+"       -tol TOL: the tolerance to use. (Default 1e-8).\n"
         );
     }
     if (detail >= 1) {
         sphinx_printf(targ,
-" -left LSET: the left dataset.\n"
-" -right RSET: the right dataset.\n"
-" -tol TOL: the tolerance to use. (Default 1e-8; you may not use scientific notation).\n"
 "\n"
 " The calculation is performed by casting to floating point and counting \n"
 " the number of voxels that are outside the range (-TOL, TOL).\n"
