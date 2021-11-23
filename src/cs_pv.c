@@ -548,7 +548,7 @@ if( kk==jj )fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
          for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
 #if 1
-fprintf(stderr,"=%g",sum) ;
+if( kk==jj )fprintf(stderr,"=%g",sum) ;
 #endif
        }
      }
