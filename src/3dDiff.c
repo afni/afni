@@ -42,7 +42,12 @@ ENTRY("mri_simple_diff") ;
 
     /* Some data validations */
     if ( bim == NULL || nim == NULL ) RETURN(MRI_SIMPLE_DIFF_ERROR) ;
-    if ( tol < 0 ) tol = 0.0f - tol ;
+    if ( tol < 0 ) {
+        tol = 0.0f - tol ;
+        WARNING_message(
+            "Tolerance %e was negative, performed sign flip", tol
+        );
+    }
 
     nvox = bim->nvox ;
     if ( nim->nvox != nvox ) RETURN(MRI_SIMPLE_DIFF_DIM_DIVERGE) ;
