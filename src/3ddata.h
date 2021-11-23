@@ -5214,6 +5214,8 @@ extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Ap
 extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
                                                int istart , int numi ) ; /* 19 Nov 2021 */
 
+#define VECTIM_TEMP_IMAGE(vvv) THD_temp_subim_from_vectim( (vvv) , 0 , 0 )
+
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 

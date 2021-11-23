@@ -196,27 +196,39 @@ ENTRY("THD_dset_grayplot_prep") ;
          default: break ;  /* == IJK */
 
          case ORDER_PV:{   /* == by coherence with 1st 2 principal vectors */
-           MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
-           Aint      *kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
-           float     *tar = MRI_FLOAT_PTR(tim), *par ;
-#if 0
-           ININFO_message("  Computing PV order for mask partition #%d - %d voxels",
-                          ii,cmval) ;
+           MRI_IMAGE *tim , *pim ;
+           Aint      *kim ;
+           float     *tar , *par ;
+#if 1
+ININFO_message("  Computing PV order for mask partition #%d - %d voxels", ii,cmval) ;
 #endif
-           /* copy data into temporary image */
+           /* copy data vectors into temporary image,
+              along with originating index of each vector */
+           tim = mri_new(nts,cmval,MRI_float) ; tar = MRI_FLOAT_PTR(tim) ;
+           kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
              kim[jj] = jj ;  /* source index */
            }
            /* make the PVmap */
+#if 1
+ININFO_message("  Computing mri_vec_to_pvmap") ;
+#endif
            pim = mri_vec_to_pvmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
            /* sort so largest are first, keeping track of whence they came */
+#if 1
+ININFO_message("  Sorting mri_vec_to_pvmap") ;
+#endif
            for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
 #if Aintsize == 64
            qsort_floatint64_t( cmval , par , kim ) ;
 #else
            qsort_floatint( cmval , par , kim ) ;
 #endif
+#if 1
+ININFO_message("  Putting sorted vectors back into vectim") ;
+#endif
+
            /* copy from temp image back to vectim, in the right order */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;

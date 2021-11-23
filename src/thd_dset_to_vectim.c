@@ -1415,6 +1415,7 @@ ENTRY("THD_xyzcat_vectims") ;
 /* To discard the output from this function, use mri_clear_and_free()
    NOT mri_free() -- the MRI_IMAGE data is just a pointer into the
    vectim, and trying to free it would be disastrous! [19 Nov 2021]
+   To put ALL vectors into the temp image, use istart=numi=0.
 *//*-------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
@@ -1426,7 +1427,11 @@ ENTRY("THD_temp_subim_from_vectim") ;
 
    if( vim == NULL )                               RETURN(NULL) ;
    if( istart <  0 || istart        >= vim->nvec ) RETURN(NULL) ;
-   if( numi   <= 0 || istart+numi-1 >= vim->nvec ) RETURN(NULL) ;
+   if( numi   <= 0 ){
+     numi = vim->nvec - istart ;
+   } else {
+     if(  istart+numi-1 >= vim->nvec )             RETURN(NULL) ;
+   }
 
    imout = mri_new_vol_empty( vim->nvals , numi , 1 , MRI_float ) ;
    mri_fix_data_pointer( VECTIM_PTR(vim,istart) , imout ) ;

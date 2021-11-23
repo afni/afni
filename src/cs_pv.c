@@ -502,6 +502,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
+#if 1
+ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
+#endif
      for( jj=0 ; jj < mm ; jj++ ){
        xj = XPT(jj) ;
        for( kk=0 ; kk <= jj ; kk++ ){
@@ -514,6 +517,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
      float *xt = wws + nws ;
+#if 1
+ININFO_message("   Computing matrix with nn=%d < mm=%d",nn,mm) ;
+#endif
 
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        if( xtyp <= 0 )
@@ -556,6 +562,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
    if( nn <= mm ){                    /* copy eigenvector into output directly */
                                       /* (e.g., more vectors than time points) */
 
+#if 1
+ININFO_message("   computing symeig_sim2") ;
+#endif
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
      svout = symeig_sim2( (int)nsym , asym , uvec , vvec , wws+nws , xran ) ;
 
@@ -564,10 +573,16 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
      float *qvec , *rvec , rsum , ssum ;
 
+#if 1
+ININFO_message("   computing symeig_sim2") ;
+#endif
      qvec = wws + nws ; nws += nsym ;
      rvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
      svout = symeig_sim2( (int)nsym , asym , qvec , rvec , wws+nws , xran ) ;
+#if 1
+ININFO_message("   transforming to get left singular vectors") ;
+#endif
      for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        ssum = sum = 0.0f ;
        if( xtyp <= 0 ){

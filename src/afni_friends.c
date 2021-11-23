@@ -110,6 +110,7 @@ static AFNI_friend afni_friends[] = {
   { "P Molfese"      ,      (    8 | 16 |               128             ) } ,
   { "E Leibenluft"   ,      ( 2                                         ) } ,
   { "D Pine"         ,      ( 2                                         ) } ,
+  { "P Kohn"         ,      ( 2 | 8                                     ) } ,
   { "C Baker"        ,      ( 2                                         ) }
 } ;
 
