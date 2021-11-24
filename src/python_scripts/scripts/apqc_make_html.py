@@ -40,9 +40,12 @@
 # + [PT] tiny tweak in departurating message: guard against dreaded
 #        double slash
 #
-ver = '2.4' ; date = 'March 27, 2020' 
+#ver = '2.4' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
 #    + dir_img now from lah
+#
+ver = '2.41' ; date = 'Oct 22, 2021' 
+# [PT] better path reporting for the "done" message, hopefully
 #
 #########################################################################
 
@@ -275,8 +278,15 @@ if __name__ == "__main__":
     if path_qcdir[-1] == '/' :
         path_qcdir = iopts.qcdir[:-1]
 
+    # [PT: Oct 22, 2021] update the 'done' message path, because the
+    # originally-reported relative path is often not useful.  here,
+    # get abs path to current dir, which should be QC_*/, because of
+    # os.chdir(..)  above
+    cwd_qc = os.getcwd()
+
     print('\n++ Done! Wrote QC HTML.  To check, consider:\n\n'
-          '   afni_open -b {}/{}\n'.format(path_qcdir, ohtml))
+          '   afni_open -b {}/{}\n'.format(cwd_qc, ohtml))
+
     os.chdir(my_cwd)
 
     # exit, pursued by a bear

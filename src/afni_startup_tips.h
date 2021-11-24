@@ -939,7 +939,6 @@ static char *gby[] = {
      "I didn't fail the test, I just found 100 ways to do it wrong"  ,
      "Wise people don't need advice; fools won't take it"            ,
      "Half a truth is often a great lie"                             ,
-     "Will you help 'Make AFNI Great Again'?"                        ,
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
@@ -2036,9 +2035,21 @@ static char *gby[] = {
 
     "One thing that humbles me deeply is to see that human genius has its limits while human stupidity does not" ,
 
+    "It's been fun - let's do it again soon" ,
+
+    "\n"                                                        /* 20 Oct 2021 */
+    "  Statements and questions that are never a good sign:\n"
+    "    We need to talk\n"
+    "    I don't mean to worry you\n"
+    "    I've been thinking\n"
+    "    The ceiling looks wet\n"
+    "    Stay extremely still\n"
+    "    What's that buzzing?\n"
+    "    Honestly, I'm fine, really"                            ,
+
     /**** Keep this one last ****/
 
-    "You are VERY lucky - this is the ultimate AFNI goodbye message - Adieu mon cher!"
+    "You are VERY lucky - This is the ultimate AFNI goodbye message - So long and thanks for all the smoked salmon!!"
 
 } ;
 

@@ -42,6 +42,9 @@ extern void qsort_doublestuff( int, double * , void ** ) ;  /* 18 Dec 2006 */
 extern void qsort_intstuff   ( int, int *    , void ** ) ;  /* 25 Mar 2010 */
 extern void qsort_double     ( int , double * ) ;           /* 06 Jul 2010 */
 
+extern void qsort_floatint64_t( int64_t, float * , int64_t * ) ; /* 16 Nov 2021 */
+extern void qsort_intint64_t( int64_t , int64_t *, int64_t * ) ;
+
 /***** Quicksort-ish median *****/
 
 extern float qmed_float     ( int , float * ) ;

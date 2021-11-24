@@ -18,11 +18,14 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec,
 
 void * pv_get_workspace( int n , int m )
 {
-   int mmm , nb,nt ; void *ws ;
+   UAint64 mmm , nb,nt ; void *ws ;
 
    nb  = MIN(n,m) ; nt = MAX(n,m) ;
    mmm = nb*nb + n*m + 16*nt ;
-   ws  = malloc( sizeof(float)*mmm ) ;
+#if 1
+ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*mmm) ) ;
+#endif
+   ws  = malloc( sizeof(float)*(size_t)mmm ) ;
    return (ws) ;
 }
 
@@ -45,10 +48,12 @@ void * pv_get_workspace( int n , int m )
 
 float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 {
-   int nn=n , mm=m , jj ; register int ii ;
-   register float *xj , fac,sum ; float *xx=NULL , **xar=NULL ;
+   UAint64 nn=n , mm=m , jj , ii ;
+   float *xj , fac,sum ; float *xx=NULL , **xar=NULL ;
 
-   if( nn < 1 || mm < 1 || xp == NULL || uvec == NULL ) return -1.0f ;
+ENTRY("mean_vector") ;
+
+   if( nn < 1 || mm < 1 || xp == NULL || uvec == NULL ) RETURN( -1.0f ) ;
 
    if( xtyp <= 0 ) xx  = (float * )xp ;
    else            xar = (float **)xp ;
@@ -62,7 +67,7 @@ float mean_vector( int n , int m , int xtyp , void *xp , float *uvec )
 
    fac = 1.0f / nn ; sum = 0.0f ;
    for( ii=0 ; ii < nn ; ii++ ){ uvec[ii] *= fac; sum += uvec[ii]*uvec[ii]; }
-   return sqrtf(sum) ;
+   RETURN( sqrtf(sum) ) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -91,11 +96,11 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                                 float *uvec , float *tvec ,
                                 float *ws , unsigned short xran[] )
 {
-   int nn=n , mm=m , nsym , jj,kk,qq ;
+   UAint64 nn=n , mm=m , nsym , jj,kk,qq , ii ;
    float *asym ;
-   register float sum,qsum ; register float *xj,*xk ; register int ii ;
+   float sum,qsum ; float *xj,*xk ;
    float sval , *xx=NULL , **xar=NULL ;
-   float *wws=ws ; int nws=0 ;
+   float *wws=ws ; UAint64 nws=0 ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
@@ -194,7 +199,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
                                      /* (e.g., more vectors than time points) */
 
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;  /* initialize=mean */
-     sval = symeig_sim1( nsym , asym , uvec , wws+nws , xran ) ;
+     sval = symeig_sim1( (int)nsym , asym , uvec , wws+nws , xran ) ;
 
    } else {       /* n > m: transform eigenvector to get left singular vector */
                   /* (e.g., more time points than vectors) */
@@ -203,7 +208,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 
      qvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;  /* initialize=mean */
-     sval = symeig_sim1( nsym , asym , qvec , wws+nws , xran ) ;
+     sval = symeig_sim1( (int)nsym , asym , qvec , wws+nws , xran ) ;
      for( qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        if( xtyp <= 0 )
          for( sum=0.0f,kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * qvec[kk] ;
@@ -449,16 +454,18 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
                                   float *uvec, float *vvec, float *tvec,
                                   float *ws , unsigned short xran[] )
 {
-   int nn=n , mm=m , nsym , jj,kk,qq ;
+   UAint64 nn=(UAint64)n , mm=(UAint64)m , nsym , jj,kk,qq , ii ;
    float *asym ;
-   register float sum,qsum ; register float *xj,*xk ; register int ii ;
+   float sum,qsum ; float *xj,*xk ;
    float sval , *xx=NULL , **xar=NULL ;
    float_pair svout = {-666.0f,-666.0f} ;
-   float *wws=ws ; int nws=0 ;
+   float *wws=(float *)ws ; int64_t nws=0 ;
+
+ENTRY("principal_vector_pair") ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
-   if( nsym < 1 || xp == NULL || uvec == NULL || vvec == NULL ) return (svout);
+   if( nsym < 1 || xp == NULL || uvec == NULL || vvec == NULL ) RETURN (svout);
 
    if( xtyp <= 0 ) xx  = (float * )xp ;
    else            xar = (float **)xp ;
@@ -489,11 +496,11 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
        sval = sqrtf(sval) ;
      }
 
-     svout.a = sval ; svout.b = 0.0f ; return (svout) ;
+     svout.a = sval ; svout.b = 0.0f ; RETURN (svout) ;
 
    } /*----- end of trivial case -----*/
 
-   if( wws == NULL ) wws = pv_get_workspace(nn,mm) ;
+   if( wws == NULL ) wws = (float *)pv_get_workspace(nn,mm) ;
 
    asym = wws ; nws = nsym*nsym ;  /* symmetric matrix */
 
@@ -502,6 +509,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
+#if 1
+ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
+#endif
      for( jj=0 ; jj < mm ; jj++ ){
        xj = XPT(jj) ;
        for( kk=0 ; kk <= jj ; kk++ ){
@@ -514,6 +524,9 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
      float *xt = wws + nws ;
+#if 1
+ININFO_message("    form X' matrix") ;
+#endif
 
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        if( xtyp <= 0 )
@@ -522,21 +535,38 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
          for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xar[jj][ii] ;
      }
 
+#if 1
+ININFO_message("   Computing matrix with nn=%d <= mm=%d",nn,mm) ;
+#endif
      for( jj=0 ; jj < nn ; jj++ ){
-       xj = xt + jj*mm ;
        for( kk=0 ; kk <= jj ; kk++ ){
+#if 1
+if( kk==jj )fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
+#endif
+         xj = xt + jj*mm ;
          xk = xt + kk*mm ;
-         for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
+STATUS("inner loop for matrix") ;
+         for( sum=0.0f,ii=0 ; ii < mm ; ii++,xj++,xk++ ) sum += (*xj)*(*xk) ;
+#if 1
+if( kk==jj )fprintf(stderr,"=%g",sum) ;
+#endif
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
+#if 1
+fprintf(stderr,"\n") ;
+#endif
 
    }
 
+#if 1
+ININFO_message("   Checking if matrix is all zero") ;
+#endif
    if( is_allzero(nsym*nsym,asym) ){
      for( jj=0 ; jj < nn ; jj++ ) uvec[jj] = vvec[jj] = 0.0f ;
      svout.a = svout.b = 0.0f ;
-     return svout ;
+     ININFO_message("   principal_vector_pair() -- %d x %d matrix is all zero :(",nsym,nsym) ;
+     RETURN( svout );
    }
 
    /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
@@ -556,18 +586,27 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
    if( nn <= mm ){                    /* copy eigenvector into output directly */
                                       /* (e.g., more vectors than time points) */
 
+#if 1
+ININFO_message("   computing symeig_sim2") ;
+#endif
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
-     svout = symeig_sim2( nsym , asym , uvec , vvec , wws+nws , xran ) ;
+     svout = symeig_sim2( (int)nsym , asym , uvec , vvec , wws+nws , xran ) ;
 
    } else {  /* n > m: transform eigenvector to get left singular vector */
              /* (e.g., more time points than vectors) */
 
      float *qvec , *rvec , rsum , ssum ;
 
+#if 1
+ININFO_message("   computing symeig_sim2") ;
+#endif
      qvec = wws + nws ; nws += nsym ;
      rvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
-     svout = symeig_sim2( nsym , asym , qvec , rvec , wws+nws , xran ) ;
+     svout = symeig_sim2( (int)nsym , asym , qvec , rvec , wws+nws , xran ) ;
+#if 1
+ININFO_message("   transforming to get left singular vectors") ;
+#endif
      for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        ssum = sum = 0.0f ;
        if( xtyp <= 0 ){
@@ -611,7 +650,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 
    if( wws != ws ) free(wws) ;
 
-   svout.a = sqrtf(svout.a) ; svout.b = sqrtf(svout.b) ; return (svout) ;
+   svout.a = sqrtf(svout.a) ; svout.b = sqrtf(svout.b) ; RETURN (svout) ;
 }
 
 /*---------------------------------------------------------------------------*/

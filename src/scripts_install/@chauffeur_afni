@@ -314,9 +314,12 @@
 #    + the idat and ithr come from '-subbb ....'
 #    + the thresholding comes from, say, -thr_olay_p2stat, -thr_olay_pside
 #
-set version   = "6.29";   set rev_dat   = "Sep 27, 2021"
+#set version   = "6.29";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level; just changing help examples here
+#
+set version   = "6.30";   set rev_dat   = "Oct 21, 2021"
+#     + [PT] max allowed bufac is actually 8, not 4.  
 #
 # =====================================================================
 
@@ -1137,7 +1140,7 @@ endif
 set ulay_refbox = "${ulay}"
 
 # check blowup factor
-set check_list = ( `seq 1 1 4` )
+set check_list = ( `seq 1 1 8` )
 set innit = 0
 foreach i ( $check_list )
     if ( $bufac == ${check_list[${i}]} ) then

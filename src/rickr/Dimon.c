@@ -107,7 +107,7 @@ static char * g_history[] =
     "      - also, pass along option TR in volume case\n"
     " 4.00 Aug 12, 2014 [rickr]\n",
     "      - no (real) change should be noticed\n"
-    "      - this was an internal re-write to allow for realtime sorting\n"
+    "      - this was an internal rewrite to allow for realtime sorting\n"
     " 4.01 Aug 13, 2014 [rickr] : minor changes\n",
     " 4.02 Aug 22, 2014 [rickr] :\n",
     "      - added -sort_method option (particularly for geme_index)\n"
@@ -158,10 +158,27 @@ static char * g_history[] =
     " 4.25 Feb  5, 2019 [rickr]: -infile_list implies -no_wait\n"
     " 4.26 Feb  3, 2020 [rickr]: show CSA header on high debug (4)\n"
     " 4.27 Aug 31, 2021 [rickr]: add -gert_chan_digits\n"
+    " 4.28 Nov  8, 2021 [rickr]: add -milestones\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.27 (August 31, 2021)"
+static char * g_milestones[] =
+{
+    "----------------------------------------------------------------------\n"
+    " interesting Dimon milestones:\n"
+    "\n",
+    " 2002.11 : initial release of Imon - realtime for GEMS 4.x Ifile\n",
+    " 2005.07 : initial release of Dimon - realtime for DICOM\n",
+    " 2005.07 : DICOM file sorter/organizer rt/off-line sorting\n",
+    " 2008.09 : add -drive_wait for delayed afni driver commands\n",
+    " 2010.10 : handle Siemens mosaic format (now links to libmri)\n",
+    " 2012.03 : multi-channel/multi-echo input\n",
+    " 2013.01 : handle inputs AFNI, NIFTI (and GEMS 4.x, DICOM)\n",
+    " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
+    "----------------------------------------------------------------------\n"
+};
+
+#define DIMON_VERSION "version 4.28 (November 8, 2021)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2903,6 +2920,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-hist", 5 ) )
         {
             usage( IFM_PROG_NAME, IFM_USE_HIST );
+            return 1;
+        }
+        else if ( ! strncmp( argv[ac], "-milestones", 6 ) )
+        {
+            usage( IFM_PROG_NAME, IFM_USE_MILESTONES );
             return 1;
         }
         else if ( ! strncmp( argv[ac], "-infile_list", 12 ) )
@@ -5803,6 +5825,13 @@ printf(
         int c, len = sizeof(g_history)/sizeof(char *);
         for( c = 0; c < len; c++ )
             fputs( g_history[c], stdout );
+        return 0;
+    }
+    else if ( level == IFM_USE_MILESTONES )
+    {
+        int c, len = sizeof(g_milestones)/sizeof(char *);
+        for( c = 0; c < len; c++ )
+            fputs( g_milestones[c], stdout );
         return 0;
     }
     else if ( level == IFM_USE_VERSION )

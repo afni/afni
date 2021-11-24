@@ -240,6 +240,9 @@ def retro_ts(
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
     # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    cardiac_peak = {}
+    respiration_peak = {}
     if phys_file:
         if phys_json is None:
             phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")

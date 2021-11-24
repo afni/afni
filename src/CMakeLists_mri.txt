@@ -195,8 +195,10 @@ add_library(
   cs_sort_dv.c
   cs_sort_ff.c
   cs_sort_fi.c
+  cs_sort_fi64.c
   cs_sort_fv.c
   cs_sort_ii.c
+  cs_sort_ii64.c
   cs_sort_iv.c
   cs_sort_str.c
   cs_symeig.c

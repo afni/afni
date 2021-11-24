@@ -53,6 +53,53 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "handle uninit and if block in debugtrace.c, suma_datasets.c",
+   NULL
+ } ,
+ 
+ { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
+   "This should have no effect.\n"
+   "It is preparation for testing the AFNI extension in NIFTI against dset."
+ } ,
+ 
+ {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -milestones, to show interesting milestones for the program",
+   NULL
+ } ,
+ 
+ {  8, Nov, 2021, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -milestones",
+   NULL
+ } ,
+ 
+ {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
+   "Added on the authority of S Torrisi."
+ } ,
+ 
+ { 29, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on mac, check for standard R not in PATH",
+   NULL
+ } ,
+ 
+ { 28, Oct, 2021, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "remove 2-run polort 0 cormat IDENTICAL automatic warnings",
+   "Done for P Taylor, as they were getting flagged in APQC."
+ } ,
+
+ { 27, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "try to warn on insufficient disk space",
+   "Check if any data partition has less than 5 GB available.\n"
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 21, Oct, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow for previously set DYLD_LIBRARY_PATH",
+   NULL
+ } ,
+
  { 20, Oct, 2021, RCR, "3dDeconvolve", MINOR, TYPE_ENHANCE,
    "do not allocate errts/fitts on -x1D_stop",
    NULL

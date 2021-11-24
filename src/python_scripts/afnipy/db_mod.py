@@ -3342,6 +3342,11 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
          print("** found -combine_opts_tedana without any options")
          return
 
+   # note the tedana version
+   vstr = '# note the version of tedana (only capure stdout)\n' \
+          '# (see also: afni_proc.py -help_tedana_files)\n'     \
+          'tedana --version | tee out.tedana_version.txt\n\n'
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    # 
@@ -3356,15 +3361,17 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    cmd =                                                                    \
        '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
        '%s'                                                          \
+       '%s'                                                          \
        '# first run tedana commands, to see if they all succeed\n'   \
        'foreach run ( $runs )\n'                                     \
        '   tedana -d %s \\\n'                                        \
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run\n'                          \
+       '          --out-dir tedana_r$run --convention orig\n'        \
        'end\n\n'                                                     \
-       % (method, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
+       % (method, vstr, mstr, prev_prefix, proc.mask.nice_input(head=1),
+          exoptstr)
 
 
    # ----------------------------------------------------------------------
@@ -5053,6 +5060,7 @@ def db_mod_regress(block, proc, user_opts):
     errs = 0  # allow errors to accumulate
 
     apply_uopt_to_block('-regress_motion_file', user_opts, block)
+    apply_uopt_to_block('-regress_opts_fwhmx', user_opts, block)
     apply_uopt_to_block('-regress_show_df_info', user_opts, block)
 
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
@@ -6852,23 +6860,28 @@ def db_cmd_blur_est(proc, block):
        cmd += '# create directory for ACF curve files\n' \
               'mkdir %s\n\n' % proc.ACFdir
 
+    olist, rv = block.opts.get_string_list(opt_name='-regress_opts_fwhmx')
+    if olist != None: ex_opts = ' '.join(olist)
+    else:             ex_opts = ''
+
     if aopt:
         bstr = blur_est_loop_str(proc,
-                    'all_runs%s$subj%s' % (proc.sep_char, proc.view),
-                    mask_dset, 'epits', blur_file, detrend=detrend)
+                  'all_runs%s$subj%s' % (proc.sep_char, proc.view), mask_dset,
+                  'epits', blur_file, detrend=detrend, ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
 
     if eopt and not sopt: # want errts, and 3dD was not stopped
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_pre, proc.view),
                     mask_dset, 'errts', blur_file, proc.errts_cen,
-                    detrend=detrend)
+                    detrend=detrend, ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt and proc.errts_reml: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_reml, proc.view),
-                    mask_dset, 'err_reml', blur_file, detrend=detrend)
+                    mask_dset, 'err_reml', blur_file, detrend=detrend,
+                    ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -6949,7 +6962,7 @@ def make_clustsim_commands(proc, block, cmethods, blur_file, mask_dset,
     return 0, cstr
 
 def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
-                                                          detrend=1):
+                      detrend=1, ex_opts=''):
     """return tcsh command string to compute blur from this dset
         proc     : afni_proc SubjProcStream (for reps or reps_all)
         dname    : dataset name to estimate blur on
@@ -6993,15 +7006,20 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
     if detrend: detstr = '-detrend '
     else:       detstr = ''
 
+    # any extra opts?
+    if ex_opts != '': sextra = '            %s \\\n' % ex_opts
+    else:             sextra = ''
+
     cmd = cmd +                                                 \
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
       '    3dFWHMx %s-mask %s \\\n'                             \
       '            -ACF %s \\\n'                                \
+      '%s'                                                      \
       '            %s%s >> %s\n'                                \
       'end\n\n'                                                 \
-      % (tstr1, detstr, mask, acffile, inset, tstr2, tmpfile)
+      % (tstr1, detstr, mask, acffile, sextra, inset, tstr2, tmpfile)
 
     btypes = ['FWHM', 'ACF']
     for bind, btype in enumerate(btypes):
@@ -14283,6 +14301,17 @@ g_help_options = """
         -regress_no_stim_times  : do not use
 
             OBSOLETE: please see -regress_use_stim_files
+
+        -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
+
+                e.g. -regress_opts_fwhmx -ShowMeClassicFWHM
+
+            This option allows the user to add extra options to the 3dFWHMx
+            commands used to get blur estimates.  Note that only one
+            such option should be applied, though multiple parameters
+            (3dFWHMx options) can be passed.
+
+            Please see '3dFWHMx -help' for more information.
 
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 

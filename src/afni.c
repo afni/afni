@@ -2208,7 +2208,7 @@ int main( int argc , char *argv[] )
 
    if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
 
-   if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+   if( argc > 1 && strncasecmp(argv[1],"-goodbye",6) == 0 ){
      printf("\n") ;
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){ /* 30 Jan 2018 */
        AFNI_sigfunc_alrm(-666666) ;
@@ -2218,7 +2218,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( argc > 1 && strcasecmp(argv[1],"-startup") == 0 ){ /* 05 Jan 2018 */
+   if( argc > 1 && strncasecmp(argv[1],"-startup",6) == 0 ){ /* 05 Jan 2018 */
      int jj ;
      if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){
        for( jj=0 ; jj < NTIP ; jj ++ ) AFNI_print_startup_tip(jj) ;

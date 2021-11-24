@@ -26,6 +26,10 @@ g_site_afnidoc      = 'https://afni.nimh.nih.gov/pub/dist/doc/htmldoc'
 g_site_install_root = '%s/background_install/install_instructs' % g_site_afnidoc
 g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
 
+# only run 'df' once per root directory
+g_fs_space_checked  = []
+g_fs_space_whine    = 1         # do we whine about fs space? (only once)
+
 # ------------------------------ main class  ------------------------------
 
 class SysInfo:
@@ -196,15 +200,27 @@ class SysInfo:
 
          return 0 if found, else 1
       """
+      global g_fs_space_whine
 
       status, droot = self.find_data_root(ddir, hvar=0)
       if status:
          print('data dir : missing %s' % ddir)
          return 1
 
-      # have a directory, show it
+      # have a directory, show it (and check file system space)
+      m_min = 5000
+      status, space = self.get_partition_space(droot, m_min=m_min)
+      if space:
+         sstr = ' (%s Avail)' % space
+      else:
+         sstr = ''
       dhome = droot.replace(self.home_dir, '$HOME')
-      print('data dir : found %-12s under %s' % (ddir, dhome))
+      print('data dir : found %-12s under %s%s' % (ddir, dhome, sstr))
+      # if we detect insufficient space, warn (but only once)
+      if status and g_fs_space_whine:
+         self.comments.append('possibly insufficient disk space for bootcamp')
+         self.comments.append(' (prefer >= %d MB for data analysis)' % m_min)
+         g_fs_space_whine = 0
 
       # possibly show histfile
       if histfile == '': return 0
@@ -218,6 +234,74 @@ class SysInfo:
                " No info retrieved"%hname)
 
       return 0
+
+   def get_partition_space(self, dname, m_min=-1):
+      """run df -hm $dname, and return the value in '1M-blocks' column
+                            (if no such column, use Avail)
+
+            dname   : directory name to run df on
+            m_min   : if 1M-blocks and m_min >= 0, the min cutoff for failure
+
+         - find offset of header in first line of text
+         - starting at that position in the last line, return the first word
+           (it might not be the second line, in case Filesystem is too wide
+
+         Only run this once per dname, so track in g_fs_space_checked list.
+
+         return status and the size string
+                status: 1 on insufficient space, else 0
+      """
+
+      # do not check any dname more than once
+      global g_fs_space_checked
+      if dname in g_fs_space_checked:
+         return 0, ''
+      g_fs_space_checked.append(dname)
+
+      # try for an integral number of 1M-blocks
+      m = 1
+      cmd = 'df -hm %s' % dname
+      s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+      hsearch = '1M-blocks'
+
+      # if we fail at first, just get a value, probably in G
+      if s:
+         cmd = 'df -h %s' % dname
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+         hsearch = 'Avail'
+      if s: return 0, ''
+    
+      if len(so) < 2: return 0, ''
+
+      hstr = so[0]
+      astr = so[-1]
+
+      posn = hstr.find(hsearch)
+      if posn < 0: return 0, ''
+      if len(astr) <= posn: return 0, ''
+
+      # start from position of desired header string
+      astr = astr[posn:]
+      alist = astr.split()
+      if len(alist) == 0:
+         return 0, ''
+      astr = alist[0]
+
+      # if 'm' and this is an int, check for insufficient space
+      status = 0
+      if m and m_min >= 0:
+         try:
+            nmeg = int(astr)
+         except:
+            nmeg = -1
+         # failure
+         if nmeg >= 0 and nmeg < m_min:
+            status = 1
+      # if m, append a unit
+      if m:
+         astr = '%sM' % astr
+            
+      return status, astr
 
    def show_data_info(self, header=1):
       """checks that are specific to data
@@ -237,7 +321,9 @@ class SysInfo:
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
       rv += self.show_data_dir_info('afni_handouts')
 
-      if rv: self.comments.append('insufficient data for AFNI bootcamp')
+      if rv:
+        self.comments.append('insufficient data for AFNI bootcamp')
+        self.comments.append(' (see "Prepare for Bootcamp" on install pages)')
 
       evar = 'AFNI_ATLAS_DIR'
       tryenv = 0                        # might suggest setting evar
@@ -333,7 +419,7 @@ class SysInfo:
       if header: print(UTIL.section_divider('OS specific', hchar='-'))
 
       if   self.system == 'Linux':  self.show_spec_linux()
-      elif self.system == 'Darwin': self.show_spec_osx()
+      elif self.system == 'Darwin': self.show_spec_macos()
 
       print('')
 
@@ -370,7 +456,7 @@ class SysInfo:
          else:
             self.comments.append('consider installing PyQt4')
 
-   def show_spec_osx(self):
+   def show_spec_macos(self):
       """look for fink, macports, homebrew, PyQt4"""
 
       # first check on XQuartz (and Xcode?)
@@ -383,7 +469,7 @@ class SysInfo:
          # self.comments.append('consider installing fink')
          print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
-      if self.get_osx_ver() < 7:
+      if self.get_macos_ver() < 7:
          self.comments.append('OS X version might be old')
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
@@ -441,6 +527,8 @@ class SysInfo:
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
       self.check_for_flat_namespace()
 
+      self.check_for_macos_R_in_path()
+
       # forget this function - I forgot that the problem was a non-flat version
       #                        of libXt6, not a 6 vs 7 issue...
       # self.check_for_libXt7()
@@ -472,7 +560,7 @@ class SysInfo:
       if self.afni_fails < 2: return
             
       # this check only applis to OS X 10.7 through 10.10 (and if that)
-      osver = self.get_osx_ver()
+      osver = self.get_macos_ver()
       if osver < 7 or osver > 10:
          return
 
@@ -508,6 +596,32 @@ class SysInfo:
          elif fvar != self.afni_dir:
             self.comments.append('not sure about DYLD_FALLBACK_LIBRARY_PATH')
 
+   def check_for_macos_R_in_path(self):
+      """if R is not in PATH, but it exists, suggest the directory to the user
+
+         check:
+            /Library/Frameworks/R.framework/Versions/3.6/Resources/bin
+            /Library/Frameworks/R.framework/Versions/Current/Resources/bin
+
+         this function is just to possibly add to self.comments
+      """
+      # if R is in PATH, we are done
+      if UTIL.num_found_in_path('R', mtype=1) > 0:
+         return
+
+      # so no R in PATH, but check in case it actually exists
+      rroot = '/Library/Frameworks/R.framework/Versions'
+      rbin_36 = '%s/3.6/Resources/bin' % rroot
+      rbin_cur = '%s/Current/Resources/bin' % rroot
+      ex36 = os.path.exists('%s/R'%rbin_36)
+      excur = os.path.exists('%s/R'%rbin_cur)
+
+      if ex36:
+         self.comments.append("have R, but need to add dir to PATH")
+         self.comments.append(" add dir: %s" % rbin_36)
+      elif excur:
+         self.comments.append("have R, but need to add dir to PATH")
+         self.comments.append(" add dir: %s" % rbin_cur)
 
    def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
       """in 10.11, check for library under homebrew
@@ -521,7 +635,7 @@ class SysInfo:
          return 0
 
       # require 10.11, unless being verbose
-      if self.get_osx_ver() < 11 and self.verb <= 1:
+      if self.get_macos_ver() < 11 and self.verb <= 1:
          return 0
 
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
@@ -582,7 +696,7 @@ class SysInfo:
       """
 
       # require 10.9, unless being verbose (nah, just check...)
-      # if self.get_osx_ver() < 9 and self.verb <= 1:
+      # if self.get_macos_ver() < 9 and self.verb <= 1:
       #    return 0
 
       flatdir = '/opt/X11/lib/flat_namespace'
@@ -619,7 +733,7 @@ class SysInfo:
          print('   (so afni and suma might fail)')
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         if self.get_osx_ver() >= 11:
+         if self.get_macos_ver() >= 11:
             self.check_evar_path_for_val(edir, flatdir)
             if self.cur_shell.find('csh') < 0:
                self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
@@ -714,7 +828,7 @@ class SysInfo:
 
       return s, so
 
-   def get_osx_ver(self):
+   def get_macos_ver(self):
       if self.system != "Darwin": return 0
       verlist = self.os_dist.split()
       if len(verlist) < 1: return 0
@@ -889,7 +1003,7 @@ class SysInfo:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
             print("%s = %s\n" % (evar, os.environ[evar]))
-         elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+         elif evar.startswith('DY') and self.get_macos_ver() >= 11:
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
@@ -989,6 +1103,7 @@ class SysInfo:
                if len(files) > 0:
                   if os.stat(files[0]).st_uid == 0:
                      self.comments.append("'afni' executable is owned by root")
+
       print('')
 
       # explicit python2 vs python3 check    7 Dec 2016
@@ -1316,6 +1431,12 @@ class SysInfo:
        from phihag @ stackoverflow.com, partially via other users
        """
        import re,subprocess
+
+       # SLURM cluster (e.g., Biowulf)
+       if 'SLURM_JOB_CPUS_PER_NODE' in os.environ:
+           return os.environ['SLURM_JOB_CPUS_PER_NODE']
+       if 'SLURM_CPUS_PER_TASK' in os.environ:
+           return os.environ['SLURM_CPUS_PER_TASK']
 
        # Python 2.6+
        try:

@@ -314,10 +314,38 @@ set progname = @animal_warper
 #    + fix bug: if no followers used, no 'surfaces/' dir was created
 #      for orig surface brain.  Now OK.
 #
-set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
+#set version   = "3.39";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
+#set version   = "3.40";   set rev_dat   = "Oct 21, 2021"
+#     + [PT] help examples were missing "-outdir .." arg.  Now provided
+#
+#set version   = "3.41";   set rev_dat   = "Oct 23, 2021"
+#     + [PT] make ROI_glasbey_2048 the colorbar for @chauffeur_afni
+#            ROI images
+#          + CHARM requires something >256, and other ones will, too
+#
+#set version   = "3.5";   set rev_dat   = "Oct 24, 2021"
+#     + [PT] improve QC outputs
+#          - use @djunct_edgy_olay to show alignment quality for qc_0{0,1}*
+#          - improve/simplify/separate naming structure of QC images
+#          - remove unnecessary pbar output for mask olay
+#          - add src_abbrev to output QC names, if present, kind of like
+#            having ${subj} (which we don't have available as input)
+#          - make variable names for QC prefixes at top, so the help
+#            automatically reflects them
+#          - make glasbey_ROIs a bit more opaque (hard to see otherwise)
+#
+#set version   = "3.51";   set rev_dat   = "Oct 24, 2021"
+#     + [PT] fix some chauffeur ranges
+#          + change Urad in 3dUnifize to 14, from 30 (latter seems 
+#            waaaay too large for most animal dsets?)
+#   
+set version   = "3.52";   set rev_dat   = "Oct 27, 2021"
+#     + [PT] fix desc of opt name "-qw_opts" in help to what it actually is:
+#            "-extra_qw_opts".  Thanks, C Garin.
+#   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -330,6 +358,7 @@ set src_dset           = ""       # copied src in outdir; used in proc
 set base_dset          = ""
 
 set src_abbrev         = ""
+set src_add            = ""
 set base_abbrev        = ""
 set USE_KNOWN_BASE_ABBREV = 0  # will use ${all_known_template_abbrev}
 
@@ -381,6 +410,17 @@ set animal_ints        = "${imed}/guide_to_ints.txt"  # guide to intermediate
 set backup_ao          = ""
 
 set DO_ECHO            = ""
+
+# put all QC/ image prefixes here, so we refer more easily to them in help
+set iqc00 = init_qc_00.input+base
+set iqc01 = init_qc_01.input_sh+base
+set iqc02 = init_qc_02.input_aff+base
+set iqc03 = init_qc_03.input_NL+base
+
+set qc00  = qc_00.wrpd_input+base
+set qc01  = qc_01.input+wrpd_base
+set qc02  = qc_02.input+mask
+set qc03  = qc_03.input+wrpd
 
 # ------------------------ process user options --------------------------
 
@@ -904,6 +944,13 @@ if ("${base_dset}" == "") then
     exit 1
 endif
 
+# [PT: Oct 24, 2021] if a src abbrev is used, add it to the QC image
+# names, so we can tell who is who more easily when looking at a lot
+# of them.
+if ( "${src_abbrev}" != "" ) then
+    set src_add = ".${src_abbrev}"
+endif
+
 # ------------------------ define final 'orig' space
 # is it *really* the orig, or the osh (orig-shifted)?
 
@@ -968,11 +1015,13 @@ endif
 
 # ------------------------- earliest QC: check overlap
 
+set opref = QC/${iqc00}${src_add}
+
 @djunct_overlap_check                             \
     -ulay   "${src_dset0}"                        \
     -olay   "${base_dset}"                        \
     -opacity 3                                    \
-    -prefix ${outdir}/QC/init_qc_00_inp_base
+    -prefix ${outdir}/${opref}
 
 # ------------------------- setup input SRC dset
 
@@ -1384,11 +1433,13 @@ printf "%-37s : %s\n"                             \
        >> ${animal_ints}
 
 # [PT] newer check about overlap, and show some progress
+set opref = QC/${iqc01}${src_add}
+
 @djunct_overlap_check                             \
-    -ulay   "${imed}/${srcsh_dset}"               \
-    -olay   "${base_dset}"                        \
+    -ulay    "${imed}/${srcsh_dset}"              \
+    -olay    "${base_dset}"                       \
     -opacity 3                                    \
-    -prefix QC/init_qc_01_inpsh_base
+    -prefix  ${opref}
 
 # ------------------------- estimate aff mat -------------------------
 
@@ -1557,12 +1608,13 @@ else
         -base   "${base_dset}"                                  \
         -master BASE                                            \
         -source "${imed}/${srcsh2_dset}"
-
+        
+    set opref = QC/${iqc02}${src_add}
     @djunct_overlap_check                             \
         -ulay   "${imed}/${srcsh2_prefix}_aff.nii.gz" \
         -olay   "${base_dset}"                        \
         -opacity 3                                    \
-        -prefix  QC/init_qc_02_inpaff_base
+        -prefix  ${opref}
 endif
 
 if ( ${status} ) then
@@ -1831,11 +1883,12 @@ else
         endif
     endif
 
+    set opref = QC/${iqc03}${src_add}
     @djunct_overlap_check                             \
         -ulay   "${src_abbrev}_warp2std.nii.gz"       \
         -olay   "${base_dset}"                        \
         -opacity 3                                    \
-        -prefix  QC/init_qc_03_inpNL_base
+        -prefix  ${opref}
 
    # make masked version of orig dset in template space, using the
    # template itself.
@@ -1863,7 +1916,7 @@ else
    3dUnifize -overwrite                             \
       -GM                                           \
       -clfrac 0.4                                   \
-      -Urad   30                                    \
+      -Urad   14                                    \
       -input  ${src_abbrev}_warp2std_ns.nii.gz      \
       -prefix ${src_abbrev}_warp2std_nsu.nii.gz
 
@@ -1879,32 +1932,23 @@ else
       ${src_abbrev}_warp2std_nsu.nii.gz
 
 
-   # Image : [ulay] edges of template; 
-   #         [olay] orig dset, warped to template
+   # Image : [ulay] orig dset, warped to template
+   #         [olay] edges of template
    # This is in template space, so use the template (which has no
    # skull) as a refbox
-   set ulay  = "${base_dset}"
-   set olay  = "${src_abbrev}_warp2std.nii.gz"
-   set opref = QC/qc_00_e_base+wrpd_input
+   set olay  = "${base_dset}"
+   set ulay  = "${src_abbrev}_warp2std.nii.gz"
+   set opref = QC/${qc00}${src_add}
 
-   @chauffeur_afni                            \
-       -ulay "${ulay}"                        \
-       -edgy_ulay                             \
-       -ulay_range_nz 0% 30%                  \
-       -set_subbricks 0 0 0                   \
-       -olay "${olay}"                        \
-       -box_focus_slices AMASK_FOCUS_ULAY     \
-       -cbar Spectrum:red_to_blue             \
-       -func_range_perc_nz 95                 \
-       -montgap 1                             \
-       -montcolor 'black'                     \
-       -pbar_posonly                          \
-       -pbar_saveim ${opref}                  \
-       -prefix      ${opref}                  \
-       -opacity 4                             \
-       -montx 5 -monty 3                      \
-       -set_xhairs OFF                        \
-       -label_mode 1 -label_size 4
+    @djunct_edgy_align_check                  \
+        -olay              ${olay}            \
+        -box_focus_slices  ${olay}            \
+        -ulay              ${ulay}            \
+        -prefix            ${opref}           \
+        -save_ftype        PNG                \
+        -montx 5 -monty 3                     \
+        -montgap 1                            \
+        -montcolor 'black'
 
 endif
 
@@ -2260,36 +2304,27 @@ else
       exit 1
    endif
 
-   # Image   : [ulay] edges of warped template; [olay] orig dset
-   set ulay  = "${templ_in_orig}"
-   set olay  = "${src_abbrev}.nii.gz"
+   # Image   : [ulay] orig dset; [olay] edges of warped template
+   set olay  = "${templ_in_orig}"
+   set ulay  = "${src_abbrev}.nii.gz"
    set focus = "${src_abbrev}_mask.nii.gz"
-   set opref = QC/qc_01_e_wrpd_base+input
+   set opref = QC/${qc01}${src_add}
 
-   @chauffeur_afni                            \
-       -ulay "${ulay}"                        \
-       -edgy_ulay                             \
-       -ulay_range_nz 0% 30%                  \
-       -set_subbricks 0 0 0                   \
-       -olay "${olay}"                        \
-       -box_focus_slices "${focus}"           \
-       -cbar Spectrum:red_to_blue             \
-       -func_range_perc_nz 95                 \
-       -montgap 1                             \
-       -montcolor 'black'                     \
-       -pbar_posonly                          \
-       -pbar_saveim ${opref}                  \
-       -prefix      ${opref}                  \
-       -opacity 4                             \
-       -montx 5 -monty 3                      \
-       -set_xhairs OFF                        \
-       -label_mode 1 -label_size 4
+    @djunct_edgy_align_check                  \
+        -olay              ${olay}            \
+        -box_focus_slices  ${focus}           \
+        -ulay              ${ulay}            \
+        -prefix            ${opref}           \
+        -save_ftype        PNG                \
+        -montx 5 -monty 3                     \
+        -montgap 1                            \
+        -montcolor 'black'
 
    # Image   : [ulay] orig dset [olay] mask of orig dset
    set ulay  = ${src_abbrev}.nii.gz
    set olay  = ${src_abbrev}_mask.nii.gz
    set focus = ${olay}
-   set opref = QC/qc_02_input+mask
+   set opref = QC/${qc02}${src_add}
 
    @chauffeur_afni                            \
        -ulay "${ulay}"                        \
@@ -2301,7 +2336,7 @@ else
        -montgap 1                             \
        -montcolor 'black'                     \
        -pbar_posonly                          \
-       -pbar_saveim ${opref}                  \
+       #-pbar_saveim ${opref}                  \
        -prefix      ${opref}                  \
        -opacity 3                             \
        -montx 5 -monty 3                      \
@@ -2334,7 +2369,7 @@ else
    3dUnifize -overwrite                   \
       -GM                                 \
       -clfrac 0.4                         \
-      -Urad   30                          \
+      -Urad   14                          \
       -input  ${src_abbrev}_ns.nii.gz     \
       -prefix ${src_abbrev}_nsu.nii.gz
 endif
@@ -2616,7 +2651,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
        set nvi = `3dinfo -nvi "${olay}"`
 
        if ( "${nvi}" == "0" ) then
-           set opref = QC/qc_03_ee_input+wrpd_${segm_type}_${segm_prefix}
+           set opref = QC/${qc03}_${segm_type}_${segm_prefix}${src_add}
 
            @chauffeur_afni                             \
                 -ulay "${ulay}"                        \
@@ -2626,20 +2661,21 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                 -box_focus_slices "${focus}"           \
                 -montgap 1                             \
                 -montcolor 'black'                     \
-                -func_range 256                        \
-                -cbar ROI_i256                         \
+                -XXXnpane 2048                         \
+                -func_range 2048                       \
+                -cbar ROI_glasbey_2048                 \
                 -pbar_posonly                          \
                 -pbar_saveim "${opref}"                \
                 -prefix      "${opref}"                \
-                -opacity 4                             \
+                -opacity 5                             \
                 -montx 5 -monty 3                      \
                 -set_xhairs OFF                        \
                 -label_mode 1 -label_size 4
        else
           foreach nn ( `seq 0 1 ${nvi}` )
-             set nnn = `printf %02d ${nn}`
-             set opref = QC/qc_03_ee_input+wrpd
-             set opref = ${opref}_${segm_type}_${segm_prefix}_${nnn}
+             set nnn   = `printf %02d ${nn}`
+             set opref = QC/${qc03}_${segm_type}_${segm_prefix}_${nnn}
+             set opref = ${opref}${src_add}
 
              @chauffeur_afni                             \
                   -ulay "${ulay}"                        \
@@ -2649,12 +2685,13 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
                   -box_focus_slices "${focus}"           \
                   -montgap 1                             \
                   -montcolor 'black'                     \
-                  -func_range 256                        \
-                  -cbar ROI_i256                         \
+                  -XXXnpane 2048                         \
+                  -func_range 2048                       \
+                  -cbar ROI_glasbey_2048                 \
                   -pbar_posonly                          \
                   -pbar_saveim "${opref}"                \
                   -prefix      "${opref}"                \
-                  -opacity 4                             \
+                  -opacity 5                             \
                   -montx 5 -monty 3                      \
                   -set_xhairs OFF                        \
                 -label_mode 1 -label_size 4
@@ -3233,7 +3270,7 @@ Options ~1~
                          @Align_Centers -base template -dset mydset \
                           -child dset2 dset3 ...
 
-  -align_type         :provide alignment only to specified level, of which  
+  -align_type   AT    :provide alignment only to specified level, of which  
                        your choices are:
                          rigid       - align using rotation and translation
                          rigid_equiv - compute alignment with full
@@ -3256,11 +3293,13 @@ Options ~1~
                        less-than-nonlinear warps will necessarily be more 
                        approximate.
 
-  -qw_opts       specify other options to add on to the existing options
-                       for 3dQwarp either as a group of options in quotes as
-                       in "-nopenalty -workhard 0:3" or by repeated use of this
-                       option. 3dQwarp is called indirectly using auto_warp.py.
-                       
+ -extra_qw_opts "EQO" :specify other options to add on to the
+                       existing options for 3dQwarp either as a group
+                       of options in quotes as in "-nopenalty
+                       -workhard 0:3" or by repeated use of this
+                       option. 3dQwarp is called indirectly using
+                       auto_warp.py.
+
   -keep_temp          :keep temporary files including awpy directory (from
                        auto_warp.py) and other intermediate datasets
 
@@ -3342,7 +3381,7 @@ Outputs (we got plenty of 'em!) ~1~
     *.txt file of ranges of values related to the ulay and olay, which
     might be useful for QC or figure-generation.
 
-    + init_qc_00_*.jpg, [init_qc_00_*_DEOB*]
+    + ${iqc00}*.jpg, [init_qc_00_*_DEOB*]
       [ulay] input source dset, original location
       [olay] base dset
       o single image montage to check initial overlap of source and base,
@@ -3354,31 +3393,31 @@ Outputs (we got plenty of 'em!) ~1~
         deobliquing with 3dWarp is created (*DEOB.jpg), and a text file
         about obliquity is also created (*DEOB.txt).
 
-    + init_qc_01_*.jpg
+    + ${iqc01}*.jpg
       [ulay] input source dset, center-shifted location
       [olay] base dset
 
-    + init_qc_02_*.jpg
+    + ${iqc02}*.jpg
       [ulay] input source dset, affine-aligned to base
       [olay] base dset
 
-    + init_qc_03_*.jpg
+    + ${iqc03}*.jpg
       [ulay] input source dset, NL-aligned to base
       [olay] base dset
 
-    + qc_00_e_base+wrpd_input.* (in base space)
+    + ${qc00}* (in base space)
       [ulay] edges of the base dset
       [olay] warped input dset
 
-    + qc_01_e_wrpd_base+input.* (in input space)
+    + ${qc01}* (in input space)
       [ulay] edges of the (warped) base dset
       [olay] original input dset
 
-    + qc_02_input+mask.* (in input space)
+    + ${qc02}* (in input space)
       [ulay] input dset 
       [olay] estimated (or input) mask, showing skullstripping
 
-    + qc_03_ee_input+wrpd_{ATL,SEG}_* (in input space)
+    + ${qc03}_{ATL,SEG}* (in input space)
       [ulay] 'edge enhanced' original input dset
       [olay] warped atlas or seg dset 
       o NB: if the olay dset has >1 subbrick, each will be snapshotted
@@ -3516,7 +3555,7 @@ Examples ~1~
         -seg_followers     \${dir_ref}/NMT_*_segmentation.nii.gz  \
         -seg_abbrevs       SEG                                    \
         -skullstrip        \${dir_ref}/NMT_*_brainmask.nii.gz     \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
   2) Just like the previous example, but include more followers and
@@ -3533,7 +3572,7 @@ Examples ~1~
         -seg_followers     \${dir_ref}/NMT_*_segmentation.nii.gz  \
         -seg_abbrevs       SEG                                    \
         -skullstrip        \${dir_ref}/NMT_*_brainmask.nii.gz     \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
   3) Just like the previous example, but include followers (dset and
@@ -3554,7 +3593,7 @@ Examples ~1~
         -dset_abbrevs      T2W                                    \
         -roidset_followers \${dir_anat}/parcels-sub-000.nii.gz    \
         -roidset_abbrevs   ROIS                                   \
-        -outdir                                                   \
+        -outdir            odir_aw                                \
         -ok_to_exist 
 
 Demos, Tutorials and Online Docs ~1~

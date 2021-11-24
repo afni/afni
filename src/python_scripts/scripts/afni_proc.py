@@ -693,9 +693,14 @@ g_history = """
     7.16 May 19, 2021: fixed volreg TSNR in surface case (still in volume)
     7.17 Jul 16, 2021: unindent EOF
     7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
+    7.19 Nov  7, 2021: add -regress_opts_fwhmx
+    7.20 Nov  8, 2021: add -milestones
+    7.21 Nov 20, 2021:
+       - update for current tedana with --convention orig
+       - add -help_tedana_files for correspondence between file names
 """
 
-g_version = "version 7.17, July 16, 2021"
+g_version = "version 7.20, November 8, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -712,6 +717,50 @@ g_requires_afni = [ \
       [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
       [ "23 Jul 2015",  "3dREMLfit -dsort" ],
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
+
+# milestones, for general reference
+g_milestones = """
+interesting milestones for afni_proc.py:
+
+   2006.12 : initial release - basic processing blocks, can alter order
+   2006.12 : -ask_me - interactive method for user options
+   2007.05 : compatible for python 2.2 - 2.5
+   2008.01 : estimate smoothness (for use in cluster correction)
+   2008.12 : allow NIFTI inputs
+   2009.03 : allow use of 3dREMLfit
+   2009.03 : default change - do not mask EPI results
+   2009.04 : ricor block - for physiological regressors
+   2009.05 : tlrc block - EPI to standard space (catenated transformation)
+   2009.05 : align block - run align_epi_anat.py
+   2009.05 : base examples on AFNI_data4
+   2009.08 : censoring based on motion parameters
+   2010.06 : censoring based on initial outliers
+   2010.08 : allow amplitude modulation via married timing files
+   2011.06 : TSNR dataset
+   2011.07 : graphical interface - uber_subject.py
+   2011.07 : @ss QC review scripts - via gen_ss_review_scripts.py
+   2011.10 : surface analysis
+   2012.01 : base examples on AFNI_data6
+   2012.04 : bandpassing
+   2012.05 : allow processing more than 99 runs
+   2012.09 : tissue-based regression - via 3dSeg segmentation
+   2013.01 : compute GCOR - average spatial pairwise correlation
+   2013.05 : ANATICOR - and recommended resting state analysis pipeline
+   2013.08 : non-linear registration to template
+   2013.09 : 3dRSFC
+   2014.04 : MIN_OUTLIER volreg base
+   2015.02 : fast ANATICOR - Gaussian-weighted local mean, rather than flat
+   2015.04 : anatomical followers and ROI/PC regression
+   2016.06 : distortion correction - using reverse blip
+   2016.08 : mixed-model ACF blur estimation
+   2017.11 : python3 compatible
+   2018.02 : combine block - for multi-echo data (OC and tedana)
+   2018.11 : APQC HTML report
+   2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
+   2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
+   2019.02 : compare options with examples and other afni_proc.py commands
+   2021.11 : updated MEICA group tedana
+"""
 
 g_process_changes_str = """
 ---------- changes to afni_proc.py that might afftect results ----------
@@ -804,6 +853,35 @@ g_todo_str = """todo:
   - add -regress_basis_AM2_offsets or _basis_multi_params (now hidden in basis)
      for something like -stim_times_AM2 'BLOCK(2)' :x:0.176
 """
+
+# paired 'orig' vs. 'bids' output files (e.g., tedana --convention orig)
+g_m_tedana_files = [
+ [ 'adaptive_mask.nii.gz',         'desc-adaptiveGoodSignal_mask.nii.gz'],
+ [ 'betas_OC.nii.gz',              'desc-ICA_stat-z_components.nii.gz'],
+ [ 'betas_hik_OC.nii.gz',          'desc-ICAAccepted_components.nii.gz'],
+ [ 'dataset_description.jzon',     'dataset_description.jzon'],
+ [ 'dn_ts_OC.nii.gz',              'desc-optcomDenoised_bold.nii.gz'],
+ [ 'feats_OC2.nii.gz',             'desc-ICAAccepted_stat-z_components.nii.gz'],
+ [ 'figures',                      'figures'],
+ [ 'hik_ts_OC.nii.gz',             'desc-optcomAccepted_bold.nii.gz'],
+ [ 'ica_components.nii.gz',        'desc-ICA_components.nii.gz'],
+ [ 'ica_decomposition.jzon',       'desc-ICA_decomposition.jzon'],
+ [ 'ica_metrics.jzon',             'desc-tedana_metrics.jzon'],
+ [ 'ica_metrics.tsv',              'desc-tedana_metrics.tsv'],
+ [ 'ica_mixing.tsv',               'desc-ICA_mixing.tsv'],
+ [ 'lowk_ts_OC.nii.gz',            'desc-optcomRejected_bold.nii.gz'],
+ [ 'pca_components.nii.gz',        'desc-PCA_stat-z_components.nii.gz'],
+ [ 'pca_decomposition.jzon',       'desc-PCA_decomposition.jzon'],
+ [ 'pca_metrics.jzon',             'desc-PCA_metrics.jzon'],
+ [ 'pca_metrics.tsv',              'desc-PCA_metrics.tsv'],
+ [ 'pca_mixing.tsv',               'desc-PCA_mixing.tsv'],
+ [ 'report.txt',                   'report.txt'],
+ [ 's0vG.nii.gz',                  'S0map.nii.gz'],
+ [ 't2svG.nii.gz',                 'T2starmap.nii.gz'],
+ [ 'tedana_2021-11-19T195806.tsv', 'tedana_2021-11-19T183932.tsv'],
+ [ 'tedana_report.html',           'tedana_report.html'],
+ [ 'ts_OC.nii.gz',                 'desc-optcom_bold.nii.gz'],
+]
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1133,8 +1211,12 @@ class SubjProcSream:
                         helpstr="show this help")
         self.valid_opts.add_opt('-help_section', 1, [],
                         helpstr="show help from the given section")
+        self.valid_opts.add_opt('-help_tedana_files', 0, [],
+                        helpstr="show tedana files: old vs orig names")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
+        self.valid_opts.add_opt('-milestones', 0, [],
+                        helpstr="show interesting milestones")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
                         helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-requires_afni_hist', 0, [],
@@ -1623,6 +1705,8 @@ class SubjProcSream:
                         helpstr="estimate blur from scaled EPI time series")
         self.valid_opts.add_opt('-regress_est_blur_errts', 0, [],
                         helpstr="estimate blur from scaled error time series")
+        self.valid_opts.add_opt('-regress_opts_fwhmx', -1, [],
+                        helpstr="additional options for 3dFWHMx")
         self.valid_opts.add_opt('-regress_errts_prefix', 1, [],
                         helpstr="prefix to use for errts dataset")
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [],
@@ -1756,8 +1840,16 @@ class SubjProcSream:
                show_program_help(section=section)
             return 0  # gentle termination
         
+        if opt_list.find_opt('-help_tedana_files'):
+            self.show_tedana_files()
+            return 0  # gentle termination
+        
         if opt_list.find_opt('-hist'):     # print the history
             print(g_history)
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-milestones'):     # print the history
+            print(g_milestones)
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_version'): # print required version
@@ -3751,6 +3843,20 @@ class SubjProcSream:
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
+        
+    def show_tedana_files(self):
+        # see how long the names are
+        max0 = max([len(p[0]) for p in g_m_tedana_files])
+        max1 = max([len(p[1]) for p in g_m_tedana_files])
+
+        # header
+        print()
+        print("   %-*s   %-*s" % (max0, "orig", max1, "bids"))
+        print("   %-*s   %-*s" % (max0, "----", max1, "----"))
+
+        for pair in g_m_tedana_files:
+           print("   %-*s   %-*s" % (max0, pair[0], max1, pair[1]))
+        print()
         
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)
