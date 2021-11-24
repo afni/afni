@@ -524,7 +524,8 @@ ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt ;
+     float *xt = wws + nws ;
+#if 0
      if( ws != NULL ){
         xt = wws + nws ;
      }else {
@@ -533,6 +534,8 @@ ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
 ININFO_message("malloc xt = %p",(void *)xt) ;
 #endif
      }
+#endif
+
 #if 1
 ININFO_message("    form X' matrix") ;
 #endif
