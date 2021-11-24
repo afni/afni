@@ -497,12 +497,15 @@ int main( int argc , char * argv[] )
          xv = THD_3dmm_to_3dfind( dset , dv ) ;
          UNLOAD_FVEC3(xv,xtop,ytop,ztop) ;
        }
-       /* rcr - rounding might not be preferable, as it can add voxles */
-       ibot = rint(xbot) ; jbot = rint(ybot) ; kbot = rint(zbot) ;  /* round */
-       itop = rint(xtop) ; jtop = rint(ytop) ; ktop = rint(ztop) ;
-       if( ibot > itop ){ btyp = ibot; ibot = itop; itop = btyp; }  /* flip? */
-       if( jbot > jtop ){ btyp = jbot; jbot = jtop; jtop = btyp; }
-       if( kbot > ktop ){ btyp = kbot; kbot = ktop; ktop = btyp; }
+
+       /* flip as float indices, before truncating   [24 Nov 2021 rickr] */
+       if( xbot > xtop ){ dx = xbot; xbot = xtop; xtop = dx; }
+       if( ybot > ytop ){ dx = ybot; ybot = ytop; ytop = dx; }
+       if( zbot > ztop ){ dx = zbot; zbot = ztop; ztop = dx; }
+
+       /* do not round, it could add unrequested voxels [24 Nov 2021 rickr] */
+       ibot = ceilf(xbot) ;  jbot = ceilf(ybot) ;  kbot = ceilf(zbot) ;
+       itop = floorf(xtop) ; jtop = floorf(ytop) ; ktop = floorf(ztop) ;
 
        /* skip box if outside dataset */
        if ( itop < 0 || ibot >= nx ) continue;
@@ -560,13 +563,13 @@ int main( int argc , char * argv[] )
        UNLOAD_FVEC3(xv,icen,jcen,kcen) ;
 
        /* create a bounding box around the ball to add */
-       /* scale radius to voxels   [24 Nov 2021 rickr] */
+       /* scale radius to voxels, and do not round [24 Nov 2021 rickr] */
        dx = fabs(DSET_DX(dset));
        dy = fabs(DSET_DY(dset));
        dz = fabs(DSET_DZ(dset));
-       ibot = rint(icen-rad/dx) ; itop = rint(icen+rad/dx) ;
-       jbot = rint(jcen-rad/dy) ; jtop = rint(jcen+rad/dy) ;
-       kbot = rint(kcen-rad/dz) ; ktop = rint(kcen+rad/dz) ;
+       ibot = ceilf(icen-rad/dx) ; itop = floorf(icen+rad/dx) ;
+       jbot = ceilf(jcen-rad/dy) ; jtop = floorf(jcen+rad/dy) ;
+       kbot = ceilf(kcen-rad/dz) ; ktop = floorf(kcen+rad/dz) ;
 
        rad = rad*rad ;
 
