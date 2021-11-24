@@ -2024,6 +2024,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
    XKeyEvent Kev;
+   Widget w = NULL;
 
    SUMA_ENTRY;
 
@@ -2039,26 +2040,36 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_a:
-         /* toggle background attenuation */
-         if (sv->Back_Modfact) {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity OFF.\n", FuncName);
-            sv->Back_Modfact = 0;
-         } else {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity ON.\n", FuncName);
-            sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
-         }
+        if (clippingPlaneMode){
+                if (!axisObject) makeAxisObject(w, sv);
+                axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
+                /*
+                clipIdentificationPlane[0]->ShowMeshAxis =
+                        !(clipIdentificationPlane[0]->ShowMeshAxis);
+                        */
+                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+               } else  {
+             /* toggle background attenuation */
+             if (sv->Back_Modfact) {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity OFF.\n", FuncName);
+                sv->Back_Modfact = 0;
+             } else {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity ON.\n", FuncName);
+                sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+             }
 
-         /* set the remix flag */
-         if (!SUMA_SetShownLocalRemixFlag (sv)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
-                     FuncName);
-            break;
-         }
+             /* set the remix flag */
+             if (!SUMA_SetShownLocalRemixFlag (sv)) {
+                fprintf (SUMA_STDERR,
+                         "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
+                         FuncName);
+                break;
+             }
 
-         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         }
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
