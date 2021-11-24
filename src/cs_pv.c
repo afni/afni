@@ -18,12 +18,13 @@ static float_pair symeig_sim2( int nn, float *asym, float *vec, float *wec,
 
 void * pv_get_workspace( int n , int m )
 {
+   UAint64 nn = (UAint64)n , mm = (UAint64)m ;
    UAint64 mmm , nb,nt ; void *ws ;
 
-   nb  = MIN(n,m) ; nt = MAX(n,m) ;
-   mmm = nb*nb + n*m + 16*nt ;
+   nb  = MIN(nn,mm) ; nt = MAX(nn,mm) ;
+   mmm = nb*nb + nn*mm + 16*nt ;
 #if 1
-ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*mmm) ) ;
+ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*(size_t)mmm) ) ;
 #endif
    ws  = malloc( sizeof(float)*(size_t)mmm ) ;
    return (ws) ;
@@ -523,7 +524,15 @@ ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt = wws + nws ;
+     float *xt ;
+     if( ws != NULL ){
+        xt = wws + nws ;
+     }else {
+        xt = (float *)malloc(sizeof(float)*(size_t)(mm)*(size_t)nn) ;
+#if 1
+ININFO_message("malloc xt = %p",(void *)xt) ;
+#endif
+     }
 #if 1
 ININFO_message("    form X' matrix") ;
 #endif
@@ -537,7 +546,8 @@ ININFO_message("    form X' matrix") ;
 
 #if 1
 ININFO_message("   Computing matrix with nn=%d <= mm=%d",nn,mm) ;
-ININFO_message("   sizeof(xt) = %u  xt = %p",sizeof(xt),(void *)xt ) ;
+ININFO_message("   sizeof(xt)  = %u  xt  = %p"            ,sizeof(xt) ,(void *)xt  ) ;
+ININFO_message("   sizeof(wws) = %u  wws = %p  nws = %lld",sizeof(wws),(void *)wws,(long long)nws ) ;
 #endif
      for( jj=0 ; jj < nn ; jj++ ){
        for( kk=0 ; kk <= jj ; kk++ ){
@@ -554,6 +564,7 @@ if( kk==jj )fprintf(stderr,"=%g",sum) ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
+     if( ws == NULL ) free(xt) ;
 #if 1
 fprintf(stderr,"\n") ;
 #endif
