@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Nov, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
+   "make boxes tight; scale radius to voxel counts",
+   "Tighten boxes and balls to not include unrequested voxels.\n"
+   "Scaling the radius allows for sub-mm voxels."
+ } ,
+ 
+ { 21, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add updates for current tedana; add -help_tedana_files",
+   NULL
+ } ,
+ 
  { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "handle uninit and if block in debugtrace.c, suma_datasets.c",
    NULL
