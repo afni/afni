@@ -35,6 +35,7 @@ int main( int argc , char * argv[] )
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx=0,ny=0,nz=0,nxy=0,nxyz ;
    unsigned int nrandseed = 1234u;
+   float dx, dy, dz;   /* scale mm to voxels  [24 Nov 2021 rickr] */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -496,6 +497,7 @@ int main( int argc , char * argv[] )
          xv = THD_3dmm_to_3dfind( dset , dv ) ;
          UNLOAD_FVEC3(xv,xtop,ytop,ztop) ;
        }
+       /* rcr - rounding might not be preferable, as it can add voxles */
        ibot = rint(xbot) ; jbot = rint(ybot) ; kbot = rint(zbot) ;  /* round */
        itop = rint(xtop) ; jtop = rint(ytop) ; ktop = rint(ztop) ;
        if( ibot > itop ){ btyp = ibot; ibot = itop; itop = btyp; }  /* flip? */
@@ -557,9 +559,14 @@ int main( int argc , char * argv[] )
        xv = THD_3dmm_to_3dfind( dset , dv ) ;   /* coords from dataset to index */
        UNLOAD_FVEC3(xv,icen,jcen,kcen) ;
 
-       ibot = rint(icen-rad) ; itop = rint(icen+rad) ; /* box around ball */
-       jbot = rint(jcen-rad) ; jtop = rint(jcen+rad) ;
-       kbot = rint(kcen-rad) ; ktop = rint(kcen+rad) ;
+       /* create a bounding box around the ball to add */
+       /* scale radius to voxels   [24 Nov 2021 rickr] */
+       dx = fabs(DSET_DX(dset));
+       dy = fabs(DSET_DY(dset));
+       dz = fabs(DSET_DZ(dset));
+       ibot = rint(icen-rad/dx) ; itop = rint(icen+rad/dx) ;
+       jbot = rint(jcen-rad/dy) ; jtop = rint(jcen+rad/dy) ;
+       kbot = rint(kcen-rad/dz) ; ktop = rint(kcen+rad/dz) ;
 
        rad = rad*rad ;
 
