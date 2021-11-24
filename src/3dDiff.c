@@ -1,5 +1,4 @@
 #include "mrilib.h"
-#include "matrix.h"
 
 /*------------------------------------------------------------------------*/
 /*! Return a measure of the difference between 2 images bim and nim,
