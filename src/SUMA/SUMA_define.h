@@ -3908,6 +3908,9 @@ typedef struct {
    char **dcom;
    int N_dcom;
 
+   Boolean clippingPlaneVerbose;
+   int clippingPlaneVerbosityLevel;
+
 } SUMA_CommonFields;
 
 

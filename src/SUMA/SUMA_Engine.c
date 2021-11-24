@@ -4799,10 +4799,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
+                           case XK_f:
+                           case XK_F:
+                              if (!SUMA_F_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
                            case XK_g:
                            case XK_G:
-                              // if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'G';
                               if (!SUMA_G_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_h:
+                           case XK_H:
+                              if (!SUMA_H_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
@@ -4852,6 +4863,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            case XK_R:
                               // if (strstr(stmp, "Shift")) stmp[strlen(stmp)-1] = 'R';
                               if (!SUMA_R_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_s:
+                           case XK_S:
+                              if (!SUMA_S_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
@@ -4908,6 +4925,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
+                           case XK_slash:
+                              if (!SUMA_slash_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
                            case XK_period:
                               if (!SUMA_period_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
@@ -4915,6 +4937,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               break;
                            case XK_comma:
                               if (!SUMA_comma_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_plus:
+                              if (!SUMA_plus_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_minus:
+                              if (!SUMA_minus_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_equal:
+                              if (!SUMA_equal_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;

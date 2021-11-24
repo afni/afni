@@ -255,6 +255,11 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "            of commands that get executed in the order in which they appear\n"
 "            on the command line.\n"
 "\n"
+"   [-clippingPlaneVerbose [<verbosity>]]  Give verbose output in clipping\n"
+"            plane mode.  The default verbosity is 1, meaning it only tells\n"
+"            when an action toggles a state or selects a plane.  A higher \n"
+"            verbosity integer (current maximum 2) gives more detailed \n"
+"            information about what is happening.\n"
 "\n"
 "%s",
        (detail > 1) ? ssym:"     use -help for more detail on loading template surfaces with symbolic notation\n" ,
@@ -925,6 +930,18 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
 
+     // Verbose mode
+     if (( !strcmp(argv[kar], "-clippingPlaneVerbose") )) {
+        SUMAg_CF->clippingPlaneVerbose = 1;
+        SUMAg_CF->clippingPlaneVerbosityLevel = 1;
+        brk = YUP;
+     }
+
+     // Verbosity level
+     if (kar>0 && ( !strcmp(argv[kar-1], "-clippingPlaneVerbose") )) {
+        SUMAg_CF->clippingPlaneVerbosityLevel = atoi(argv[kar]);
+        brk = YUP;
+     }
 
       if (!brk && !ps->arg_checked[kar]) {
          if (  !strcmp(argv[kar], "-i") ||

@@ -27,7 +27,7 @@
    }  \
 }
 
-Bool clippingPlaneMode;
+Bool clippingPlaneMode = 0;
 SUMA_SurfaceObject* clipIdentificationPlane[6];
 SUMA_SurfaceObject* axisObject = NULL;
 
@@ -46,14 +46,19 @@ float clippingPlaneTheta[SUMA_MAX_N_CLIP_PLANES]={0,90,0,180,270,180};
 float clippingPlanePhi[SUMA_MAX_N_CLIP_PLANES]={0,0,90,0,0,270};
 Boolean activeClipPlanes = True;
 int locallySelectedPlane;
-
+DList *list = NULL;
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
 
     clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
 
+    if (SUMAg_CF->clippingPlaneVerbose) fprintf(stderr, "### Clipping plane mode %s\n",
+        clippingPlaneMode? "on" : "off");
+
     //Update title bar
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update title bar\n");
     sv->GVS[sv->StdView].ClippingPlane =
                          !sv->GVS[sv->StdView].ClippingPlane;
     if (sv->GVS[sv->StdView].ClippingPlane)
@@ -83,19 +88,25 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             *locallySelectedPlane = 0;
             // SUMAg_CF->N_ClipPlanes = 6;
         } else if (!activeClipPlanes){  // Toggle plane 1 on
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### Toggle plane 1 on\n");
             clipPlaneTransform(0,0,0,0,0, 1, 0);
             previouslyActive[0] = active[0];
         } else {
             clipPlaneIdentificationMode = previousClipPlaneIdentificationMode;
         }
 
-        // Load saved clipping planes is available
+        // Load saved clipping planes if available
         if (clippingPlaneFile){
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### Load clipping planes\n");
             loadSavedClippingPlanes(clippingPlaneFile, locallySelectedPlane);
             sv->clippingPlaneIncrement = scrollInc;
         }
 
         // Turn on clipping planes and their colored squares
+        if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### Turn on clipping planes and their colored squares\n");
         for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
             active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
             clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
@@ -117,6 +128,8 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         clipPlaneTransform(0,0,0,0,*locallySelectedPlane, 0, 0);     // Ensure correct plane selected
 
         // Darken inactive clip planes
+        if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### Darken inactive clip planes\n");
         darkenInactiveClipPlaneSquares(*locallySelectedPlane);
         lightenActiveClipPlaneSquare(*locallySelectedPlane);
     } else {
@@ -131,12 +144,19 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         }
     }
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update increment in header and refresh viewer\n");
     SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+
+    return 1;
 }
 
 Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta, float phi,
     int planeIndex, float *deltaTheta, float *deltaPhi){
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Determine additional rotations based on plane index\n");
 
     // Determine additional rotations based on plane index
     switch (planeIndex){
@@ -171,6 +191,8 @@ Boolean determineAdditionalRotationsFromRequiredAndExistingRotations(float theta
 
 Boolean determineRotationAnglesFromEquation(float *equation, float *theta, float *phi){
     static float rad2degrees=180.0/M_PI, degrees2rad=M_PI/180;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Determine rotation angles from equation\n");
 
     if (equation[2] == 1.0){
         *theta = 0.0;
@@ -213,6 +235,8 @@ Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, flo
     float deltaTheta, deltaPhi, deltaD;
     int     i;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation parameters to clipping plane\n");
+
     // Determine additional rotations from required and existing rotations
     determineAdditionalRotationsFromRequiredAndExistingRotations(theta[planeIndex], phi[planeIndex],
         planeIndex, &deltaTheta, &deltaPhi);
@@ -229,6 +253,8 @@ Boolean applyEquationParametersToClippingPlane(int planeIndex, float *theta, flo
 Boolean applyEquationToClippingPlane(float *equation, int planeIndex){
     float theta, phi, deltaTheta, deltaPhi, deltaD;
     int     i;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Apply equation to clipping plane %d\n", planeIndex+1);
 
     // Determine rotation angles from equation
     determineRotationAnglesFromEquation(equation, &theta, &phi);
@@ -255,6 +281,8 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     NI_element *nel = NULL;
     char *strbuf;
     float   theta[SUMA_MAX_N_CLIP_PLANES], phi[SUMA_MAX_N_CLIP_PLANES], offset[SUMA_MAX_N_CLIP_PLANES];
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1) fprintf(stderr, "### Load saved clipping planes\n");
 
     // Make sure correct form of filename supplied
     if (!clippingPlaneFile){
@@ -285,7 +313,7 @@ Boolean loadSavedClippingPlanes(char *clippingPlaneFile, int *locallySelectedPla
     // Read NIML element
     if (!(nel = NI_read_element (nstdin, 1))) {
         perror("Failed to read nel.");
-        0;
+        return 0;
     }
 
     // Read NIML entries for clipping planes
@@ -331,6 +359,9 @@ Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *p
     char *strbuffer;
     int feyl, i;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get clipping plane parameters\n");
+
     SUMA_getStringFromNiml(nel, attribute, strbuffer, 1, feyl);
       if (!feyl) {
         parameters[0] = atof(strtok(strbuffer, ","));
@@ -347,6 +378,9 @@ Boolean getClippingEquationParameters(NI_element *nel, char *attribute, float *p
 Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float equation[4]){
     char *strbuf, *eqnBuffer;
     int feyl, i;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get get equation for clipping plane\n");
 
     SUMA_getStringFromNiml(nel, attribute, eqnBuffer, 1, feyl);
       if (!feyl) {
@@ -377,26 +411,44 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
    SUMA_ENTRY;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Process color planes\n");
+
    if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
 
    // Mark intersection Facsets
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+    fprintf(stderr, "### Mark intersection Facsets\n");
    ado = (SUMA_ALL_DO *)SO;
 
    PR = *PRi;   // Keep local copy
    // Store the PR in ado, hide it from return potential
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Store the PR in ado, hide it from return potential\n");
    (*PRi)->ado_idcode_str = NULL;
    (*PRi)->dset_idcode_str = NULL;
    (*PRi)->primitive = NULL;
    (*PRi)->evr = NULL;
+
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### SUMA_ADO_SSaux\n");
    SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
 
    // This part is necessary to prevent the program from crashing in some instances,
    //   apparently when volumes, rather than surfaces, are used
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Try to prevent program crashing with volumes\n");
+   Saux->PR->primitive = NULL;
    Saux->PR->ado_idcode_str = NULL;
    Saux->PR->dset_idcode_str = NULL;
+   Saux->PR->evr = NULL;
 
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Store pick result\n");
    SUMA_ADO_StorePickResult(ado, PRi);
 
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update viewer title\n");
    sv->Focus_DO_ID = ADO_iDO(ado);
    SUMA_UpdateViewerTitle(sv);
 
@@ -406,6 +458,9 @@ int colorPlanes(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
 
 Boolean activeClippingPlanes(){
     int i;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Activate clipping planes\n");
 
     for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i)
         if (active[i]) return True;
@@ -417,6 +472,9 @@ void getObjectMinMaxForAxes(float objectMinMax[][2]){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get object min/max for axes\n");
 
     // Itialise
     for (i=0; i<3; ++i){
@@ -447,6 +505,9 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
     int allowableMin = -SUMA_TESSCON_DIFF_FLAG/2;
     int allowableMax = SUMA_TESSCON_DIFF_FLAG/2;
     int i, dov_ID;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Dimensions inscribe those of previous surface objects\n");
 
     // Initialize
     for (i=0; i<3; ++i){
@@ -481,6 +542,10 @@ void dimensionsInscribeThoseOfPreviousSurfaceObjects(SUMA_SurfaceObject *SO){
 }
 
 void determineCornersOfSquare(SUMA_SurfaceObject *SO){
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Determine corners of square\n");
+
     /*!< The maximum along each of the XYZ dimensions */
     SO->MaxDims[0] = clippingPlaneAxisRanges[0][1];
     SO->MaxDims[1] = clippingPlaneAxisRanges[1][1];
@@ -570,18 +635,6 @@ void makeCommonNodesOfRectangleRed(SUMA_SurfaceObject *SO){
     SO->Overlays[0]->ColVec[3] = 1.0;
     SO->Overlays[0]->ColVec[6] = 1.0;
     SO->Overlays[0]->ColVec[9] = 1.0;
-/*
-    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->NodeDef[%d] = %d\n", i, SO->Overlays[0]->NodeDef[i]);
-    fprintf(stderr, "SO->Overlays[0]->N_NodeDef = %d\n", SO->Overlays[0]->N_NodeDef);
-    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->V[%d] = %f\n", i, SO->Overlays[0]->V[i]);
-    fprintf(stderr, "SO->Overlays[0]->N_V = %d\n", SO->Overlays[0]->N_V);
-    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->T[%d] = %f\n", i, SO->Overlays[0]->T[i]);
-    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->LocalOpacity[%d] = %f\n", i, SO->Overlays[0]->LocalOpacity[i]);
-    fprintf(stderr, "SO->Overlays[0]->ForceIntRange[0] = %f\n", SO->Overlays[0]->ForceIntRange[0]);
-    fprintf(stderr, "SO->Overlays[0]->ForceIntRange[1] = %f\n", SO->Overlays[0]->ForceIntRange[1]);
-    for (i=0; i<4; ++i) fprintf(stderr, "SO->Overlays[0]->OptScl[%d] = %d\n", i, SO->Overlays[0]->OptScl[i]);
-    fprintf(stderr, "SO->Overlays[0]->SymIrange = %d\n", SO->Overlays[0]->SymIrange);
-    */
 }
 
 void makeCommonNodesOfRectangleGreen(SUMA_SurfaceObject *SO){
@@ -651,6 +704,9 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     ado = SUMA_SV_Focus_ADO(sv);
     SUMA_OVERLAYS *NewColPlane=NULL;
     static int squareIndex = 0;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make axis plane from node and face set list\n");
 
     SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)calloc(1, sizeof(SUMA_SurfaceObject));
     SO->N_Node = FS.N_Node;
@@ -811,7 +867,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-            return;
+            return NULL;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -833,8 +889,12 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
     return SO;
     }
 
-SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv, SUMA_FreeSurfer_struct FS, int planeIndex){
+SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
+    SUMA_FreeSurfer_struct FS, int planeIndex){
     int i;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Draw plane node and face set list\n");
 
     // Set global variables
     char *FuncName = "drawPlaneFromNodeAndFaceSetList";
@@ -1250,6 +1310,9 @@ void getSquareOnPlane(float *plane, float points[4][3]){
     float objectMinMax[2], axisMinMax[3][2];
     int i;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Get plane on square\n");
+
     getOveralMinAndMaxOfCurrentSurfaceObjects(axisMinMax, objectMinMax);
 
     // Get plane point closest to view origin
@@ -1287,6 +1350,9 @@ Boolean updateClipSquare(int planeIndex){
     float plane[4], points[4][3];
     int i, j;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Update clip square\n");
+
     if (!(clipIdentificationPlane[planeIndex])){
         fprintf(stderr, "ERROR: Index %d exceeds number of clip planes\n", planeIndex);
         return 0;
@@ -1312,6 +1378,11 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 
     float plane[4], points[4][3];
     int i, j;
+
+    fprintf(stderr, "Make mesh axes\n");
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make axis object\n");
 
     // Axis plane object already exists?
     if (axisObject) return 1;
@@ -1362,6 +1433,9 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
 Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Make clip identification plane\n");
 
     // Clipping plane identification object already exists?
     if (clippingPlaneIDDisplayableObjects[planeIndex]) return 1;
@@ -1414,8 +1488,11 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
     int i;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     int isv;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Lighten active clip plane square\n");
 
     // This block is necessary for the color changes to be applied to the square object
     {
@@ -1449,8 +1526,11 @@ void lightenActiveClipPlaneSquare(int planeIndex){
  void darkenClipPlaneSquare(int planeIndex){
     SUMA_SurfaceObject* SO =clipIdentificationPlane[planeIndex];
         SUMA_SurfaceViewer *sv;
-        Widget w;
+        Widget w=NULL;
         int isv, i;
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Darken clipping plane square %d\n", planeIndex+1);
 
     switch(planeIndex){
         case 0: makeCommonNodesOfRectangleDarkRed(SO); break;
@@ -1488,6 +1568,9 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 void darkenInactiveClipPlaneSquares(int activePlane){
     int p, i;
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Darken inactive clipping plane squares\n");
+
     for (p=0; p<SUMAg_CF->N_ClipPlanes; ++p) if (p!=activePlane){
         darkenClipPlaneSquare(p);
     }
@@ -1500,13 +1583,13 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
     char chrTmp[64];
     int isv;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     int i;
 
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
     // Reset clipping plane parameters
-    for (i=1; i<6; ++i){
+    for (i=0; i<6; ++i){
          active[i] = 0;
          previouslyActive[i] = 0;
          planeTheta[i] = planePhi[i] = planeA[i] =  planeB[i] = 0.0f;
@@ -1520,6 +1603,15 @@ void resetClippingPlaneParameters(float *planeTheta, float *planePhi, float *pla
 
     planePhi[2] = 90.0f;
     planePhi[5] = 270.0f;
+    /*
+    planeA[2] = 1.0f;
+    planeB[1] = -1.0f;
+    */
+    // Reset plane parameters
+    for (i=0; i<6; ++i){
+        planeA[i]=planeB[i]=0.0f;
+        planeC[i] = 1.0f;
+    }
     planeA[2] = 1.0f;
     planeB[1] = -1.0f;
 
@@ -1550,7 +1642,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     int isv, i;
     static int planeIndex = 0;
     SUMA_SurfaceViewer *sv;
-    Widget w;
+    Widget w=NULL;
     static SUMA_Boolean    firstCall = 1;
 
     if (reset){
@@ -1563,9 +1655,12 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[2] = -objectMinMax[0][0];
         planeD[5] = objectMinMax[0][1];
 
-        resetClippingPlaneParameters(planeTheta, planePhi, planeA,
-            planeB, planeC);
+        resetClippingPlaneParameters(planeTheta, planePhi, planeA, planeB, planeC);
         activePlane = 0;
+        active[0] = 1;
+        planeIndex = 0;
+
+        // DEBUG
     }
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
@@ -1606,7 +1701,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[planeIndex] = -planeD[planeIndex];
         planeTheta[planeIndex] = (int)(asin(-planeB[planeIndex])*rad2degrees+0.5);
         planePhi[planeIndex] = (int)(acos(planeC[planeIndex]/cos(planeTheta[planeIndex]*degrees2rad))*rad2degrees+0.5);
-    } else {
+    } else if (!reset && active[planeIndex]){
         // Update rotation and (normal) translation parameters
         planeTheta[planeIndex] += deltaTheta;
         planePhi[planeIndex] += deltaPhi;
