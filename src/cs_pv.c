@@ -98,7 +98,7 @@ float principal_vector( int n , int m , int xtyp , void *xp ,
 {
    UAint64 nn=n , mm=m , nsym , jj,kk,qq , ii ;
    float *asym ;
-   float sum,qsum ; register float *xj,*xk ;
+   float sum,qsum ; float *xj,*xk ;
    float sval , *xx=NULL , **xar=NULL ;
    float *wws=ws ; UAint64 nws=0 ;
 
@@ -539,13 +539,14 @@ ININFO_message("    form X' matrix") ;
 ININFO_message("   Computing matrix with nn=%d <= mm=%d",nn,mm) ;
 #endif
      for( jj=0 ; jj < nn ; jj++ ){
-       xj = xt + jj*mm ;
        for( kk=0 ; kk <= jj ; kk++ ){
 #if 1
 if( kk==jj )fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
 #endif
+         xj = xt + jj*mm ;
          xk = xt + kk*mm ;
-         for( sum=0.0f,ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
+STATUS("inner loop for matrix") ;
+         for( sum=0.0f,ii=0 ; ii < mm ; ii++,xj++,xk++ ) sum += (*xj)*(*xk) ;
 #if 1
 if( kk==jj )fprintf(stderr,"=%g",sum) ;
 #endif
