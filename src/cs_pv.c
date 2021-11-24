@@ -537,6 +537,7 @@ ININFO_message("    form X' matrix") ;
 
 #if 1
 ININFO_message("   Computing matrix with nn=%d <= mm=%d",nn,mm) ;
+ININFO_message("   sizeof(xt) = %u  xt = %p",sizeof(xt),(void *)xt ) ;
 #endif
      for( jj=0 ; jj < nn ; jj++ ){
        for( kk=0 ; kk <= jj ; kk++ ){
