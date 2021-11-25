@@ -4133,6 +4133,8 @@ typedef struct {
 
 extern char * THD_get_space(THD_3dim_dataset *dset);
 extern int THD_space_code(char *space);
+extern int space_to_NIFTI_code(THD_3dim_dataset *dset);
+
 
 extern int is_surface_storage_mode( int smode ) ;
 

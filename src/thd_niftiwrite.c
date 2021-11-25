@@ -9,8 +9,6 @@ void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 static int get_slice_timing_pattern( float * times, int len, float * delta );
 static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn);
-static int space_to_NIFTI_code(THD_3dim_dataset *dset);
-extern int THD_space_code(char *space);
 
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIfTI file.
@@ -812,7 +810,7 @@ ENTRY("get_slice_timing_pattern");
 }
 
 /* set NIFTI sform code  based on atlas space */
-static int space_to_NIFTI_code(THD_3dim_dataset *dset)
+int space_to_NIFTI_code(THD_3dim_dataset *dset)
 {
     char *genspc = NULL;
     /* several changes for generic spaces and defaults 05/02/2012 -mod drg */
