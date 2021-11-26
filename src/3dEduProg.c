@@ -120,9 +120,7 @@ int main(int argc, char *argv[]) {
    mainENTRY("3dEduProg"); machdep(); 
   
    // ****************************************************************
-   // ****************************************************************
-   //                    load AFNI stuff
-   // ****************************************************************
+   //                  parse command line arguments
    // ****************************************************************
 	
    /** scan through args **/
@@ -143,7 +141,7 @@ int main(int argc, char *argv[]) {
 
          dset_inp = THD_open_dataset(argv[iarg]);
 
-         // verify that the dset is OK and can be read in
+         // read in and check dset
          if( (dset_inp == NULL ))
             ERROR_exit("Can't open dataset '%s'", argv[iarg]);
          DSET_load(dset_inp); CHECK_LOAD_ERROR(dset_inp);
@@ -158,7 +156,6 @@ int main(int argc, char *argv[]) {
          dset_mask = THD_open_dataset(argv[iarg]);
          if( dset_mask == NULL )
             ERROR_exit("Can't open dataset '%s'", argv[iarg]);
-
          DSET_load(dset_mask); CHECK_LOAD_ERROR(dset_mask);
 			
          iarg++ ; continue ;
@@ -199,17 +196,17 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      ERROR_message("Bad option '%s'\n",argv[iarg]) ;
+      // whine about any bad option, but also try to be helpful in that case
+      ERROR_message("Bad option '%s'\n",argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
 	
-   /* ------------------ test basic input properties -----------------
+   // ****************************************************************
+   //               verify presence+behavior of inputs
+   // ****************************************************************
 
-      And we also display some ways to communicate information as the
-      program runs, with various *_message() functions.
-   
-    */
+   // NB: the *_message() functions are useful for communicating with the user
 
    INFO_message("Starting to check inputs...");
 
@@ -241,25 +238,26 @@ int main(int argc, char *argv[]) {
                 "   The input has %d total time point(s).", 
                 Dim[0], Dim[1], Dim[2], Nvox, Dim[3]);
 
+   // ****************************************************************
+   //                         Actual work
+   // ****************************************************************
 
-   // *************************************************************
-   // *************************************************************
-   //                    Beginning of main loops
-   // *************************************************************
-   // *************************************************************
+
+
+
 	
 
    // **************************************************************
    //                 Store and output
    // **************************************************************
-   // **************************************************************
 
 
-   // ************************************************************
-   // ************************************************************
-   //                    Freeing
-   // ************************************************************
-   // ************************************************************
+
+
+
+   // ****************************************************************
+   //                           Freeing
+   // ****************************************************************
 
    if( dset_inp ){
       DSET_delete(dset_inp);
