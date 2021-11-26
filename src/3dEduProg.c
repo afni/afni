@@ -68,6 +68,12 @@ int usage_3dEduProg(int detail)
 "\n"
 "written by: %s\n"
 "\n"
+"Description ~2~ \n"
+"\n"
+"This program will take one dataset as input, and output a copy of its [0]th\n"
+"volume.  A mask can be provided, as well as two multiplicative factors to\n"
+"mask and scale the output, respectively.\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Command usage and option list ~1~ \n"
@@ -90,10 +96,26 @@ int usage_3dEduProg(int detail)
 "\n"
 "Examples ~1~\n"
 "\n"
-"1) Description ... *** \n"
+"1) Output a copy of the [0]th volume of the input:\n"
 "\n"
+"   3dEduProg                                     \\\n"
+"      -input  epi_r1+orig.HEAD                   \\\n"
+"      -prefix OUT_edu_01                         \n"
 "\n"
-"2) Another case ... *** \n"
+"2) Output a masked copy of the [0]th volume of the input:\n"
+"\n"
+"   3dEduProg                                     \\\n"
+"      -input  epi_r1+orig.HEAD                   \\\n"
+"      -mask   mask.auto.nii.gz                   \\\n"
+"      -prefix OUT_edu_02                         \n"
+"\n"
+"3) Output a masked+scaled copy of the [0]th volume of the input:\n"
+"\n"
+"   3dEduProg                                        \\\n"
+"      -mult_facs 3 5.5                              \\\n"
+"      -input     epi_r1+orig.HEAD                   \\\n"
+"      -mask      mask.auto.nii.gz                   \\\n"
+"      -prefix    OUT_edu_03                         \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -105,6 +127,8 @@ author );
 int main(int argc, char *argv[]) {
    
    int iarg;
+   int i, j, k;
+   int idx;
 
    int DO_SOME_OPT = 0;
    float *mult_facs = NULL;
@@ -116,6 +140,11 @@ int main(int argc, char *argv[]) {
 
    int Nvox=-1;  
    int *Dim=NULL;
+
+   float *arr_mskd=NULL;
+
+   THD_3dim_dataset *dset_out1 = NULL;
+
 
    mainENTRY("3dEduProg"); machdep(); 
   
@@ -136,12 +165,12 @@ int main(int argc, char *argv[]) {
 			 
       // Option requires input filename
       if( strcmp(argv[iarg],"-input") == 0 ){
+         // the following 2 lines apply to any opt that takes 1 arg
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
-         dset_inp = THD_open_dataset(argv[iarg]);
-
          // read in and check dset
+         dset_inp = THD_open_dataset(argv[iarg]);
          if( (dset_inp == NULL ))
             ERROR_exit("Can't open dataset '%s'", argv[iarg]);
          DSET_load(dset_inp); CHECK_LOAD_ERROR(dset_inp);
@@ -226,7 +255,10 @@ int main(int argc, char *argv[]) {
       if( THD_dataset_mismatch( dset_inp , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
-   
+
+   if ( !prefix )
+      ERROR_exit("Need an output name via '-prefix ..'\n");
+
    Dim  = (int *)calloc(4, sizeof(int));
    Dim[0] = DSET_NX(dset_inp); Dim[1] = DSET_NY(dset_inp); 
    Dim[2] = DSET_NZ(dset_inp); Dim[3] = DSET_NVALS(dset_inp); 
@@ -238,21 +270,64 @@ int main(int argc, char *argv[]) {
                 "   The input has %d total time point(s).", 
                 Dim[0], Dim[1], Dim[2], Nvox, Dim[3]);
 
+   // make a 1D array of appropriate length
+	arr_mskd = (float *)calloc(Nvox, sizeof(float)); 
+
+   if( arr_mskd == NULL ) { 
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(2);
+   }
+
    // ****************************************************************
    //                         Actual work
    // ****************************************************************
 
-
-
-
-	
-
+   // go through array making some calc: here, get value from [0]th volume
+   idx = 0;
+   for( k=0 ; k<Dim[2] ; k++ ) 
+      for( j=0 ; j<Dim[1] ; j++ ) 
+         for( i=0 ; i<Dim[0] ; i++ ) {
+            if ( dset_mask ) {
+               if ( THD_get_voxel(dset_mask, idx, 0) != 0.0 ) 
+                  arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
+            }
+            else{
+               arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
+            }
+            if ( arr_mskd[idx] != 0.0 && mult_facs ) 
+               arr_mskd[idx]*= mult_facs[0] * mult_facs[1];
+            
+            idx++;
+         }
+   
    // **************************************************************
    //                 Store and output
    // **************************************************************
+   
+   /* prepare header for output by copying that of input, and then
+      changing items as necessary */
+   dset_out1 = EDIT_empty_copy( dset_inp ); 
+   EDIT_dset_items(dset_out1,
+                   ADN_nvals, 1,                 // just a single brick
+						 ADN_datum_all, MRI_float ,    
+                   ADN_prefix, prefix,
+						 ADN_none );                   /* Always last param */  
+   
+   // provide volume values from the appropriately-sized array
+	EDIT_substitute_brick(dset_out1, 0, MRI_float, arr_mskd); 
+	arr_mskd=NULL;
 
+   // prepare to write
+	THD_load_statistics( dset_out1 );
+	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_out1)) )
+		ERROR_exit("Can't overwrite existing dataset '%s'",
+					  DSET_HEADNAME(dset_out1));
+	tross_Make_History("3dEduProg", argc, argv, dset_out1);
 
-
+   // write and free
+	THD_write_3dim_dataset(NULL, NULL, dset_out1, True);
+	DSET_delete(dset_out1); 
+  	free(dset_out1); 
 
 
    // ****************************************************************
@@ -271,12 +346,12 @@ int main(int argc, char *argv[]) {
 
    if( mult_facs ) 
       free(mult_facs);
- 
+
    if( prefix )
       free(prefix);
 
    if( Dim )
       free(Dim);
-	
+
    return 0;
 }
