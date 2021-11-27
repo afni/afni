@@ -38,8 +38,8 @@ g_oc_methods = [
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
     'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    # https://github.com/ME-ICA/tedana/
     'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-                        #    https://github.com/ME-ICA/tedana/
     'm_tedana_OC'       # ts_OC.nii              from m_tedana
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
@@ -3295,6 +3295,14 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    if len(proc.echo_times) == 0:
       print("** option -echo_times is required for %s combine method" % method)
       return
+
+   # tedort: do we project good components from bad?
+   if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=0):
+      print("** m_tedana options not ready for tedort")
+      return
+      midk_opt = '1'
+   else:
+      midk_opt = '0'
 
    # ----------------------------------------------------------------------
    # decide what to do
@@ -13291,6 +13299,8 @@ g_help_options = """
                 tedana_OC        : run tedana.py, using output ts_OC.nii
                                    (i.e. use tedana.py for optimally combined)
                 tedana_OC_tedort : tedana_OC, and include tedana orts
+                m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
+                m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017

@@ -17,7 +17,7 @@ from afnipy.option_list import *
 from afnipy.db_mod import *
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
-from afnipy import tedana_afni as TED
+from afnipy import lib_tedana_afni as TED
 
 # ----------------------------------------------------------------------
 # globals
@@ -699,9 +699,13 @@ g_history = """
     7.21 Nov 20, 2021:
        - update for current tedana with --convention orig
        - add -help_tedana_files for correspondence between file names
+    7.22 Nov 27, 2021:
+       - add lib_tedana_afni
+       - update m_tedana/m_tedana_OC combine methods to work with new tedana
+         (use 3dcalc to copy results, preserving space/view, use float)
 """
 
-g_version = "version 7.20, November 8, 2021"
+g_version = "version 7.22, November 27, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
