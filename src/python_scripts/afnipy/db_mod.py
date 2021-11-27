@@ -38,8 +38,8 @@ g_oc_methods = [
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
     'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    # https://github.com/ME-ICA/tedana/
     'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-                        #    https://github.com/ME-ICA/tedana/
     'm_tedana_OC'       # ts_OC.nii              from m_tedana
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
@@ -3296,6 +3296,14 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
       print("** option -echo_times is required for %s combine method" % method)
       return
 
+   # tedort: do we project good components from bad?
+   if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=0):
+      print("** m_tedana options not ready for tedort")
+      return
+      midk_opt = '1'
+   else:
+      midk_opt = '0'
+
    # ----------------------------------------------------------------------
    # decide what to do
    #    - what output to copy, if any (and a corresponding comment)
@@ -3304,17 +3312,23 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    if method == 'm_tedana':
       ready = 1
       getorts = 0
-      dataout = 'dn_ts_OC.nii'
+      dataout = 'dn_ts_OC.nii.gz'
       mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
    elif method == 'm_tedana_OC':
       ready = 1
       getorts = 0
-      dataout = 'ts_OC.nii'
+      dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
+   elif method == 'm_tedana_tedort':
+      # rcr - todo, -tedort from MEICA tedana
+      getorts = 1
+      dataout = 'ts_OC.nii.gz'
+      mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
+             % dataout
    elif method == 'm_tedana_OC_tedort':
       # rcr - todo, need ort vec
       getorts = 1
-      dataout = 'ts_OC.nii'
+      dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
    elif method == 'getorts':
@@ -3344,7 +3358,6 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
 
    # note the tedana version
    vstr = '# note the version of tedana (only capure stdout)\n' \
-          '# (see also: afni_proc.py -help_tedana_files)\n'     \
           'tedana --version | tee out.tedana_version.txt\n\n'
 
    # input prefix has $run fixed, but uses a wildcard for echoes
@@ -3352,7 +3365,9 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # 
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+   fave_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
    exoptstr = ''.join(exopts)
+
 
    # actually run tedana
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
@@ -3360,6 +3375,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # note: tedana will mask if we don't, so always specify one
    cmd =                                                                    \
        '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
+       '#       see also: https://tedana.readthedocs.io\n\n'         \
        '%s'                                                          \
        '%s'                                                          \
        '# first run tedana commands, to see if they all succeed\n'   \
@@ -3377,12 +3393,15 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # ----------------------------------------------------------------------
    # only copy the results back out if dataout is set
    if dataout != '':
-      cmd += '# now get the tedana results\n'   \
-             'foreach run ( $runs )\n'          \
-             '   # copy result back here\n'     \
-             '   3dcopy tedana_r$run/%s %s%s\n' \
-             'end\n\n'                          \
-             % (dataout, cur_prefix, proc.view)
+      cmd += '# now copy the tedana results\n'                      \
+             'foreach run ( $runs )\n'                              \
+             '   # copy, but get space/view from tedana input\n'    \
+             '   3dcalc -a %s \\\n'                                 \
+             '          -b tedana_r$run/%s \\\n'                    \
+             '          -prefix %s \\\n'                            \
+             '          -expr b -datum float\n'                     \
+             'end\n\n'                                              \
+             % (fave_prefix, dataout, cur_prefix)
 
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
@@ -13280,6 +13299,8 @@ g_help_options = """
                 tedana_OC        : run tedana.py, using output ts_OC.nii
                                    (i.e. use tedana.py for optimally combined)
                 tedana_OC_tedort : tedana_OC, and include tedana orts
+                m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
+                m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017
