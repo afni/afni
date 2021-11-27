@@ -52,7 +52,7 @@
 */
 int usage_3dEdu_01_scale(int detail) 
 {
-   char *author = "L. Cranston";
+   char *author = "PA Taylor";
 
    printf(
 "\n"
