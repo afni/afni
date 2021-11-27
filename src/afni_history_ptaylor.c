@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
+   "Renaming of 3dEduProg.  Simplifying some inner workings",
+   "Basic AFNI program example.\n"
+},
+
 { 26, Nov , 2021 , PT , "3dEduProg" , MICRO , TYPE_NEW_PROG,
    "A new program for people to learn to write AFNI progs.",
    "Perhaps a bit more basic I/O and usage than 3dToyProg.\n"

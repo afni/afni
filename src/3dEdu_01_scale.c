@@ -4,7 +4,7 @@
 
    To ensure this program is compiled, see how it is added in
    Makefile.INCLUDE (details of which might change depending on
-   dependencies used here) by searching for instances of '3dEduProg'.
+   dependencies used here) by searching for instances of '3dEdu_01_scale'.
 */
 
 
@@ -50,7 +50,7 @@
   example, see:
   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html#ahelp-afni-proc-py
 */
-int usage_3dEduProg(int detail) 
+int usage_3dEdu_01_scale(int detail) 
 {
    char *author = "L. Cranston";
 
@@ -60,7 +60,7 @@ int usage_3dEduProg(int detail)
 "\n"
 "This is an example starting program for those who want to create a new\n"
 "AFNI program to see some examples of possible I/O and internal calcs.\n"
-"Please see the source code file in the main afni/src/3dEduProg.c\n"
+"Please see the source code file in the main afni/src/3dEdu_01_scale.c\n"
 "for more information.\n"
 "\n"
 "This program is intended purely for educational and code-development\n"
@@ -78,7 +78,7 @@ int usage_3dEduProg(int detail)
 "\n"
 "Command usage and option list ~1~ \n"
 "\n"
-"  3dEduProg [something]\n"
+"  3dEdu_01_scale [something]\n"
 "\n"
 "where: \n"
 "\n"
@@ -98,20 +98,20 @@ int usage_3dEduProg(int detail)
 "\n"
 "1) Output a copy of the [0]th volume of the input:\n"
 "\n"
-"   3dEduProg                                     \\\n"
-"      -input  epi_r1+orig.HEAD                   \\\n"
-"      -prefix OUT_edu_01                         \n"
+"   3dEdu_01_scale                                   \\\n"
+"      -input  epi_r1+orig.HEAD                      \\\n"
+"      -prefix OUT_edu_01                            \n"
 "\n"
 "2) Output a masked copy of the [0]th volume of the input:\n"
 "\n"
-"   3dEduProg                                     \\\n"
-"      -input  epi_r1+orig.HEAD                   \\\n"
-"      -mask   mask.auto.nii.gz                   \\\n"
-"      -prefix OUT_edu_02                         \n"
+"   3dEdu_01_scale                                   \\\n"
+"      -input  epi_r1+orig.HEAD                      \\\n"
+"      -mask   mask.auto.nii.gz                      \\\n"
+"      -prefix OUT_edu_02                            \n"
 "\n"
 "3) Output a masked+scaled copy of the [0]th volume of the input:\n"
 "\n"
-"   3dEduProg                                        \\\n"
+"   3dEdu_01_scale                                   \\\n"
 "      -mult_facs 3 5.5                              \\\n"
 "      -input     epi_r1+orig.HEAD                   \\\n"
 "      -mask      mask.auto.nii.gz                   \\\n"
@@ -127,7 +127,6 @@ author );
 int main(int argc, char *argv[]) {
    
    int iarg;
-   int i, j, k;
    int idx;
 
    int DO_SOME_OPT = 0;
@@ -137,37 +136,35 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *dset_mask = NULL;
 
    char *prefix = NULL;
-
-   int Nvox=-1;  
-   int *Dim=NULL;
+   int nx, ny, nz, nvox, nvals;
 
    float *arr_mskd=NULL;
 
    THD_3dim_dataset *dset_out1 = NULL;
 
 
-   mainENTRY("3dEduProg"); machdep(); 
+   mainENTRY("3dEdu_01_scale"); machdep(); 
   
    // ****************************************************************
    //                  parse command line arguments
    // ****************************************************************
 	
    /** scan through args **/
-   if (argc == 1) { usage_3dEduProg(1); exit(0); }
+   if (argc == 1) { usage_3dEdu_01_scale(1); exit(0); }
    iarg = 1; 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
-         usage_3dEduProg(strlen(argv[iarg])>3 ? 2:1);
+         usage_3dEdu_01_scale(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
 			 
       // Option requires input filename
       if( strcmp(argv[iarg],"-input") == 0 ){
          // the following 2 lines apply to any opt that takes 1 arg
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          // read in and check dset
          dset_inp = THD_open_dataset(argv[iarg]);
@@ -179,8 +176,8 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          dset_mask = THD_open_dataset(argv[iarg]);
          if( dset_mask == NULL )
@@ -192,8 +189,9 @@ int main(int argc, char *argv[]) {
 
       // Option requires one arg: whine if none given.
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
          prefix = strdup(argv[iarg]) ;
 
          // check if the name for output is allowed
@@ -210,16 +208,16 @@ int main(int argc, char *argv[]) {
 
       //  Option requires two inputs, both numerical
       if( strcmp(argv[iarg],"-mult_facs") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          mult_facs = (float *)calloc(2, sizeof(float));
 
          mult_facs[0] = atof(argv[iarg]);
 
          // ... and again for second argumnet
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2nd argument after '%s'", argv[iarg-2]);
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need 2nd argument after '%s'", argv[iarg-2]);
          mult_facs[1] = atof(argv[iarg]);
 
          iarg++ ; continue ;
@@ -259,19 +257,19 @@ int main(int argc, char *argv[]) {
    if ( !prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
-   Dim  = (int *)calloc(4, sizeof(int));
-   Dim[0] = DSET_NX(dset_inp); Dim[1] = DSET_NY(dset_inp); 
-   Dim[2] = DSET_NZ(dset_inp); Dim[3] = DSET_NVALS(dset_inp); 
-
-   Nvox = DSET_NVOX(dset_inp);
+   nx = DSET_NX(dset_inp);
+   ny = DSET_NY(dset_inp); 
+   nz = DSET_NZ(dset_inp); 
+   nvox = DSET_NVOX(dset_inp);
+   nvals = DSET_NVALS(dset_inp); 
 
    INFO_message("The matrix dims of the input dset are:  %d %d %d\n"
                 "   ... for a total of %d voxels per volume.\n"
                 "   The input has %d total time point(s).", 
-                Dim[0], Dim[1], Dim[2], Nvox, Dim[3]);
+                nx, ny, nz, nvox, nvals);
 
    // make a 1D array of appropriate length
-	arr_mskd = (float *)calloc(Nvox, sizeof(float)); 
+	arr_mskd = (float *)calloc(nvox, sizeof(float)); 
 
    if( arr_mskd == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -283,22 +281,17 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    // go through array making some calc: here, get value from [0]th volume
-   idx = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
-         for( i=0 ; i<Dim[0] ; i++ ) {
-            if ( dset_mask ) {
-               if ( THD_get_voxel(dset_mask, idx, 0) != 0.0 ) 
-                  arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
-            }
-            else{
-               arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
-            }
-            if ( arr_mskd[idx] != 0.0 && mult_facs ) 
-               arr_mskd[idx]*= mult_facs[0] * mult_facs[1];
-            
-            idx++;
-         }
+   for( idx=0 ; idx<nvox ; idx++ ) {
+      if ( dset_mask ) {
+         if ( THD_get_voxel(dset_mask, idx, 0) != 0.0 ) 
+            arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
+      }
+      else
+         arr_mskd[idx] = THD_get_voxel(dset_inp, idx, 0);
+
+      if ( arr_mskd[idx] != 0.0 && mult_facs ) 
+         arr_mskd[idx]*= mult_facs[0] * mult_facs[1];
+   }
    
    // **************************************************************
    //                 Store and output
@@ -308,7 +301,7 @@ int main(int argc, char *argv[]) {
       changing items as necessary */
    dset_out1 = EDIT_empty_copy( dset_inp ); 
    EDIT_dset_items(dset_out1,
-                   ADN_nvals, 1,                 // just a single brick
+                   ADN_nvals, 1,                 // just one brick here
 						 ADN_datum_all, MRI_float ,    
                    ADN_prefix, prefix,
 						 ADN_none );                   /* Always last param */  
@@ -322,7 +315,7 @@ int main(int argc, char *argv[]) {
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_out1)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(dset_out1));
-	tross_Make_History("3dEduProg", argc, argv, dset_out1);
+	tross_Make_History("3dEdu_01_scale", argc, argv, dset_out1);
 
    // write and free
 	THD_write_3dim_dataset(NULL, NULL, dset_out1, True);
@@ -349,9 +342,6 @@ int main(int argc, char *argv[]) {
 
    if( prefix )
       free(prefix);
-
-   if( Dim )
-      free(Dim);
 
    return 0;
 }
