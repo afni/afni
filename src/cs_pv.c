@@ -567,7 +567,8 @@ if( kk==jj )fprintf(stderr,"=%g",sum) ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
-     if( ws == NULL ) free(xt) ;
+     /* xt is no longer malloc'd   [26 Nov 2021 rickr] */
+     /* if( ws == NULL ) free(xt) ; */
 #if 1
 fprintf(stderr,"\n") ;
 #endif
