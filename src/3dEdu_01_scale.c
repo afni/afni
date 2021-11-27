@@ -9,13 +9,17 @@
 
 
 /* 
-   Files to include (dependencies).  The files in "double quotes" are
-   first searched for in this source file's local directory, and those
-   in <angle brackets> are searched for in "a sequence of
-   implementation-defined places".  In practice, AFNI-created header
-   files and those distributed with the AFNI source code are included
-   in "double quotes", while standard C libraries and external
-   dependencies are included in <angle brackets>.
+   NOTE: INCLUDING HEADER FILES
+
+   The files in "double quotes" are first searched for in this source
+   file's local directory, and those in <angle brackets> are searched
+   for in "a sequence of implementation-defined places" (according to
+   C standard).  
+
+   In practice, AFNI-created header files and those distributed with
+   the AFNI source code are included in "double quotes", while
+   standard C libraries and external dependencies are included in
+   <angle brackets>.
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,19 +31,21 @@
 
 
 /*
-  HELP TEXT NOTES
+  NOTE: HELP TEXT
 
-  The following function displays a help file for the program.  We try
-  to keep the content width <=80 chars for readability.
+  The following function displays help for the program.  We try to
+  keep the content width <=80 chars for readability.
 
-  Each option should be listed with a single hyphen.  The 'apsearch'
-  program will parse all help files and enable tab-autocompletion of
-  program options from the command line. It will recognize an option
-  as a string starting with '-' that has only white space to its left.
-  Hence, we list options like:
+  Each option should be listed with a single hyphen.  AFNI's apsearch
+  program will parse all program help files and enable
+  tab-autocompletion of program options from the command line. It will
+  recognize an option as a string starting with '-' that has only
+  white space to its left.  Hence, we list options like:
+
       -opt0   DSET    :something that requires a dset input
       -opt_1  A B C   :something that requires three inputs
       -opt2_name      :something that is a flag
+
   Note: it is useful to clearly distinguish between option flags and
   options that take one or more arguments, as above. 
 
@@ -50,7 +56,7 @@
   example, see:
   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html#ahelp-afni-proc-py
 */
-int usage_3dEdu_01_scale(int detail) 
+int usage_3dEdu_01_scale() 
 {
    char *author = "PA Taylor";
 
@@ -89,7 +95,7 @@ int usage_3dEdu_01_scale(int detail)
 "\n"
 "  -some_opt        :(opt) option flag to do something\n"
 "\n"
-"  -mult_facs  A B  :(opt) numerical factors for multiplying each voxel value;\n"
+"  -mult_facs  A B  :(opt) numerical factors for multiplying each voxel;\n"
 "                    that is, each voxel is multiplied by both A and B.\n"
 "\n"
 "==========================================================================\n"
@@ -125,23 +131,25 @@ author );
 }
 
 int main(int argc, char *argv[]) {
-   
+   /*
+     Initializing+declaring variables.  Pointers should be set to
+     NULL, to allow for easy checking+usage+freeing later.
+   */
+
    int iarg;
    int idx;
 
    int DO_SOME_OPT = 0;
    float *mult_facs = NULL;
 
-   THD_3dim_dataset *dset_inp = NULL;
-   THD_3dim_dataset *dset_mask = NULL;
+   THD_3dim_dataset *dset_inp = NULL, *dset_mask = NULL;
+   THD_3dim_dataset *dset_out1 = NULL;
 
    char *prefix = NULL;
    int nx, ny, nz, nvox, nvals;
 
-   float *arr_mskd=NULL;
-
-   THD_3dim_dataset *dset_out1 = NULL;
-
+   // an array which will be used to populate the output dset
+   float *arr_mskd = NULL;
 
    mainENTRY("3dEdu_01_scale"); machdep(); 
   
@@ -149,24 +157,27 @@ int main(int argc, char *argv[]) {
    //                  parse command line arguments
    // ****************************************************************
 	
-   /** scan through args **/
-   if (argc == 1) { usage_3dEdu_01_scale(1); exit(0); }
+   /* no command line args -> see the help */
+   if (argc == 1) { usage_3dEdu_01_scale(); exit(0); }
+
+   /* scan through args */
    iarg = 1; 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
-         usage_3dEdu_01_scale(strlen(argv[iarg])>3 ? 2:1);
+         usage_3dEdu_01_scale();
          exit(0);
       }
 			 
-      // Option requires input filename
+      /* Option taking 1 arg (here, a dset filename)
+         + the first 'if' condition applies generally to any opt with 1 arg
+         + since the arg is a dset name, we check+load it here, too
+      */
       if( strcmp(argv[iarg],"-input") == 0 ){
-         // the following 2 lines apply to any opt that takes 1 arg
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
-         // read in and check dset
          dset_inp = THD_open_dataset(argv[iarg]);
          if( (dset_inp == NULL ))
             ERROR_exit("Can't open dataset '%s'", argv[iarg]);
@@ -187,7 +198,6 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      // Option requires one arg: whine if none given.
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
@@ -200,7 +210,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      // Option flag example: takes no args
+      // Option flag: takes no args
       if( strcmp(argv[iarg],"-some_opt") == 0) {
          DO_SOME_OPT = 1;
          iarg++ ; continue ;
@@ -215,7 +225,7 @@ int main(int argc, char *argv[]) {
 
          mult_facs[0] = atof(argv[iarg]);
 
-         // ... and again for second argumnet
+         // ... and again for second argument; note argv[] index
          if( ++iarg >= argc ) 
             ERROR_exit("Need 2nd argument after '%s'", argv[iarg-2]);
          mult_facs[1] = atof(argv[iarg]);
@@ -233,7 +243,13 @@ int main(int argc, char *argv[]) {
    //               verify presence+behavior of inputs
    // ****************************************************************
 
-   // NB: the *_message() functions are useful for communicating with the user
+   /*
+     Examples of ways to check for required inputs, as well as
+     checking consistency of some (e.g., if dsets have the same grid).
+
+     NB: the *_message() functions are useful for communicating with
+     the user.
+   */
 
    INFO_message("Starting to check inputs...");
 
@@ -268,9 +284,10 @@ int main(int argc, char *argv[]) {
                 "   The input has %d total time point(s).", 
                 nx, ny, nz, nvox, nvals);
 
-   // make a 1D array of appropriate length
+   // make a 1D array of appropriate length for the dset...
 	arr_mskd = (float *)calloc(nvox, sizeof(float)); 
 
+   // ... and check that allocation went OK
    if( arr_mskd == NULL ) { 
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(2);
@@ -297,7 +314,7 @@ int main(int argc, char *argv[]) {
    //                 Store and output
    // **************************************************************
    
-   /* prepare header for output by copying that of input, and then
+   /* Prepare header for output by copying that of input, and then
       changing items as necessary */
    dset_out1 = EDIT_empty_copy( dset_inp ); 
    EDIT_dset_items(dset_out1,
@@ -317,7 +334,7 @@ int main(int argc, char *argv[]) {
 					  DSET_HEADNAME(dset_out1));
 	tross_Make_History("3dEdu_01_scale", argc, argv, dset_out1);
 
-   // write and free
+   // write and free dset 
 	THD_write_3dim_dataset(NULL, NULL, dset_out1, True);
 	DSET_delete(dset_out1); 
   	free(dset_out1); 
@@ -327,6 +344,7 @@ int main(int argc, char *argv[]) {
    //                           Freeing
    // ****************************************************************
 
+   // Note use of both DSET_delete() and free() with THD_3dim_dataset type
    if( dset_inp ){
       DSET_delete(dset_inp);
       free(dset_inp);
