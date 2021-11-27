@@ -221,11 +221,14 @@ int main(int argc, char *argv[]) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
+         // allocate and verify
          mult_facs = (float *)calloc(2, sizeof(float));
+         if( mult_facs == NULL )
+            ERROR_exit("MemAlloc failure.\n");
 
          mult_facs[0] = atof(argv[iarg]);
 
-         // ... and again for second argument; note argv[] index
+         // check again for second argument; note argv[] index
          if( ++iarg >= argc ) 
             ERROR_exit("Need 2nd argument after '%s'", argv[iarg-2]);
          mult_facs[1] = atof(argv[iarg]);
@@ -255,7 +258,7 @@ int main(int argc, char *argv[]) {
 
    if ( !DO_SOME_OPT ) 
       WARNING_message("Are you sure you didn't want to use the flag "
-                      "-some_opt'?");
+                      "-some_opt'? (Juuust an example warning.)");
 
    if ( !dset_inp ) { 
       ERROR_message("You need to provide an input dset with '-input ..'");
