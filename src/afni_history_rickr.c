@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Nov, 2021, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
+   "cs_pv.c: xt no longer malloc'd",
+   NULL
+ } ,
+ 
+ { 24, Nov, 2021, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "put space_to_NIFTI_code() into libmri",
+   "To satisfy the evil designs of afni_proc.py."
+ } ,
+ 
  { 24, Nov, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "make boxes tight; scale radius to voxel counts",
    "Tighten boxes and balls to not include unrequested voxels.\n"
