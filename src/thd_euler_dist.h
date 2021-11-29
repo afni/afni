@@ -1,6 +1,7 @@
 #ifndef THD_EDT_INCLUDED
 #define THD_EDT_INCLUDED
 
+#define BIG FLT_MAX     // from float.h
 
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
@@ -49,11 +50,18 @@ PARAMS_euler_dist set_euler_dist_defaults(void);
 int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival);
+                      THD_3dim_dataset *dset_roi, int ival,
+                      float *flarr, int *maparr );
 int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival);
+                      THD_3dim_dataset *dset_roi, int ival,
+                      float *flarr, int *maparr );
 int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival);
+                      THD_3dim_dataset *dset_roi, int ival,
+                      float *flarr, int *maparr );
 
+int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
+                       float delta, int bounds_are_zero );
+
+float * Euclidean_DT_delta(float *f, int n, float delta);
 
 #endif

@@ -45,8 +45,6 @@
 #include "3ddata.h"
 #include "thd_euler_dist.c"
 
-#define BIG FLT_MAX     // from float.h
-
 int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                 int argc, char *argv[] );
 int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
@@ -296,20 +294,47 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
    i = sort_vox_ord_desc(3, Ledge, vox_ord_rev);
 
    for( i=0 ; i<3 ; i++ ){
-      switch( vox_ord_rev[i] ){
+      float *flarr=NULL;   // store distances along one dim
+      int *maparr=NULL;    // store ROI map along one dim
 
+      switch( vox_ord_rev[i] ){
+         // note pairings per case: 0 and nx; 1 and ny; 2 and nz
       case 0 :
-         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival );
+         flarr = (float *) calloc( nx, sizeof(float) );
+         maparr = (int *) calloc( nx, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+         
+         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
          break;
+
       case 1 :
-         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival );
+         flarr = (float *) calloc( ny, sizeof(float) );
+         maparr = (int *) calloc( ny, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+
+         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
          break;
+
       case 2 :
-         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival );
+         flarr = (float *) calloc( nz, sizeof(float) );
+         maparr = (int *) calloc( nz, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+
+         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
          break;
+
       default:
          WARNING_message("Should never be here in EDT prog");
       }
+
+      if( flarr) free(flarr);
+      if( maparr) free(maparr);
    } // end of looping over axes
 
    // Zero out EDT values in "zero" ROI?
