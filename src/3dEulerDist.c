@@ -39,16 +39,18 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <debugtrace.h>
 #include <float.h>
+#include "debugtrace.h"
 #include "mrilib.h"
 #include "3ddata.h"
 #include "thd_euler_dist.c"
 
 #define BIG FLT_MAX     // from float.h
 
-int calc_EDT_3D( int comline, PARAMS_euler_dist opts,
-                 int argc, char *argv[] );
+int run_EDT_3D( int comline, PARAMS_euler_dist opts,
+                int argc, char *argv[] );
+int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, int ival);
 
 // --------------------------------------------------------------------------
 
@@ -186,20 +188,156 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
    // DONE FILLING, now call
-   ii = calc_EDT_3D(1, InOpts, argc, argv);
-
+   ii = run_EDT_3D(1, InOpts, argc, argv);
 
    return 0;
 }
 
 
-int calc_EDT_3D( int comline, PARAMS_euler_dist opts,
-                 int argc, char *argv[] )
+int run_EDT_3D( int comline, PARAMS_euler_dist opts,
+                int argc, char *argv[] )
 {
+   int i, j, k;
+   int nn;
+	THD_3dim_dataset *dset_roi = NULL;          // input
+	THD_3dim_dataset *dset_edt = NULL;          // output
 
-	THD_3dim_dataset *insetUC = NULL;
+   int nx, ny, nz, nvals;
+   
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+
+   nvals = DSET_NVALS(dset_roi);
+
+   for( nn=0 ; nn<nvals ; nn++ ){
+      float ***arr_dist = NULL;           // array that will hold dist values
+
+      arr_dist = (float ***) calloc( nx, sizeof(float **) );
+      for ( i=0 ; i<nx ; i++ ) 
+         arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
+      if( arr_dist == NULL ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(12);
+      }
+
+      i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
+
+      // SOMETHING HERE TO CONVERT OUTPUT ARR TO OUTPUT DATASET
+
+      if(arr_dist){
+         for ( i=0 ; i<nx ; i++ ) 
+            for ( j=0 ; j<ny ; j++ ) 
+               free(arr_dist[i][j]);
+         for ( i=0 ; i<nx ; i++ ) 
+            free(arr_dist[i]);
+         free(arr_dist);
+      }
+   } // end of loop over nvals
 
 
+
+   // free
 
    return 0;
 }
+
+/*
+  arr_dist :  initialized 3D distance array of floats ('odt' in lib_EDT.py)
+              -> what is filled in here
+  opts     :  struct containing options 
+  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  ival     :  index value of the subbrick/subvolume to analyze
+  */
+int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, int ival)
+{
+   int i, j, k, idx;
+   float minmax[2] = {0, 0};
+   int nx, ny, nz;
+
+   float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
+   int vox_ord_rev[3];
+
+   // check if a subbrick is const; there are a couple cases where we
+   // would be done at this stage.
+   i = THD_subbrick_minmax( dset_roi, ival, 1, &minmax[0], &minmax[1] );
+   if ( minmax[0] == minmax[1] ){
+      if ( minmax[1] == 0.0 ){
+         WARNING_message("Constant (zero) subbrick: %d", ival);
+         return 0;
+      }
+      else if( !opts.bounds_are_zero ){
+         WARNING_message("Constant (nonzero) subbrick, "
+                         "and no bounds_are_zero: %d", ival);
+         return 0;
+      }
+   }
+
+   // dset properties we need to know
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   Ledge[0] = fabs(DSET_DX(dset_roi)); 
+   Ledge[1] = fabs(DSET_DY(dset_roi)); 
+   Ledge[2] = fabs(DSET_DZ(dset_roi)); 
+
+   // initialize distance array to BIG
+   for ( i=0 ; i<nx ; i++ ) 
+      for ( j=0 ; j<ny ; j++ ) 
+         for ( k=0 ; k<nz ; k++ ) 
+            arr_dist[i][j][k] = BIG;
+
+   // find axis order of decreasing voxel sizes, to avoid pathology in
+   // the EDT alg
+   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev);
+
+   for( i=0 ; i<3 ; i++ ){
+      switch( vox_ord_rev[i] ){
+
+      case 0 :
+         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival );
+         break;
+      case 1 :
+         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival );
+         break;
+      case 2 :
+         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival );
+         break;
+      default:
+         WARNING_message("Should never be here in EDT prog");
+      }
+   } // end of looping over axes
+
+   // Zero out EDT values in "zero" ROI?
+    if( opts.zeros_are_zeroed ) {
+       idx = 0;
+       for ( i=0 ; i<nx ; i++ ) 
+          for ( j=0 ; j<ny ; j++ ) 
+             for ( k=0 ; k<nz ; k++ ){
+                if( !THD_get_voxel(dset_roi, idx, ival) )
+                   arr_dist[i][j][k] = 0.0;
+                idx++;
+             }
+    }
+
+    // Output distance-squared, or just distance (sqrt of what we have
+    // so-far calc'ed)?
+    if( opts.do_sqrt ) {
+       idx = 0;
+       for ( i=0 ; i<nx ; i++ ) 
+          for ( j=0 ; j<ny ; j++ ) 
+             for ( k=0 ; k<nz ; k++ ){
+                arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
+                idx++;
+             }
+    }
+
+   return 0;
+}
+
+
+

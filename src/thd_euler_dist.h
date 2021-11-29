@@ -44,5 +44,16 @@ typedef struct {
 /* function to initialize EDT params */
 PARAMS_euler_dist set_euler_dist_defaults(void);
 
+// ---------------------------------------------------------------------------
+
+int sort_vox_ord_desc(int N, float *Ledge, int *ord);
+
+int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+                      THD_3dim_dataset *dset_roi, int ival);
+int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+                      THD_3dim_dataset *dset_roi, int ival);
+int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+                      THD_3dim_dataset *dset_roi, int ival);
+
 
 #endif
