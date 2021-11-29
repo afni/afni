@@ -36,6 +36,8 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord)
    float far[N];
    int iar[N];
 
+   ENTRY("sort_vox_ord_desc");
+
    for( i=0 ; i<N ; i++){
       far[i] = Ledge[i];
       iar[i] = i;     // so that we get indices in decreasing order
@@ -68,6 +70,8 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
    int nx, ny, nz, nxy;
    float delta;            // voxel edge length ('edims' element in lib_EDT.py)
 
+   ENTRY("calc_EDT_3D_dim2");
+
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
@@ -83,11 +87,18 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
             flarr[kk] = arr_dist[ii][jj][kk];  // note index on flarr
             maparr[kk] = (int) THD_get_voxel(dset_roi, idx, ival);
             }
+
+         // update distance along this 1D line...
          ll = run_EDTD_per_line( flarr, maparr, nz,
                                  delta, opts.bounds_are_zero );
+
+         // ... and now put those values back into the distance arr
+         for( kk=0; kk<nz ; kk++ ) {
+            arr_dist[ii][jj][kk] = flarr[kk];
+            //if( arr_dist[ii][jj][kk] < 100000 )
+              // printf("||%d, %d: %.2f||", ii, jj, arr_dist[ii][jj][kk]);
          }
-
-
+      }
 
    return 0;
 }
@@ -98,6 +109,8 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
                       float *flarr, int *maparr )
 {
 
+   ENTRY("calc_EDT_3D_dim1");
+
    return 0;
 }
 
@@ -106,6 +119,7 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       float *flarr, int *maparr )
 {
    
+   ENTRY("calc_EDT_3D_dim0");
 
 
    return 0;
@@ -124,6 +138,8 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
    int limit = Na-1;
    size_t  rowLengthInBytes = Na*sizeof(float);
    
+   //ENTRY("run_EDTD_per_line");
+
    if (!(line_out=(float *)malloc(rowLengthInBytes)))
       ERROR_exit("Memory allocation problem: line_out");
    

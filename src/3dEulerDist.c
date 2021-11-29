@@ -195,52 +195,109 @@ int main(int argc, char *argv[]) {
 int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                 int argc, char *argv[] )
 {
-   int i, j, k;
+   int i, j, k, idx;
    int nn;
+   int nx, ny, nz, nxy, nvox, nvals;
 	THD_3dim_dataset *dset_roi = NULL;          // input
 	THD_3dim_dataset *dset_edt = NULL;          // output
 
-   int nx, ny, nz, nvals;
+   float ***arr_dist = NULL;           // array that will hold dist values
    
+   ENTRY("run_EDT_3D");
+
+   dset_roi = THD_open_dataset(opts.input_name);
+   if( (dset_roi == NULL ))
+      ERROR_exit("Can't open dataset '%s'", opts.input_name);
+   DSET_load(dset_roi); CHECK_LOAD_ERROR(dset_roi);
+
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
-
+   nxy = nx*ny;
+   nvox = DSET_NVOX(dset_roi);
    nvals = DSET_NVALS(dset_roi);
+   INFO_message("AAA 0");
 
+   arr_dist = (float ***) calloc( nx, sizeof(float **) );
+   for ( i=0 ; i<nx ; i++ ) 
+      arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
+   for ( i=0 ; i<nx ; i++ ) 
+      for ( j=0 ; j<ny ; j++ ) 
+         arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
+   if( arr_dist == NULL ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(12);
+   }
+   INFO_message("AAA 1");
    for( nn=0 ; nn<nvals ; nn++ ){
-      float ***arr_dist = NULL;           // array that will hold dist values
+      float *tmp_arr = NULL;
+      tmp_arr = (float *) calloc( nvox, sizeof(float) );
 
-      arr_dist = (float ***) calloc( nx, sizeof(float **) );
-      for ( i=0 ; i<nx ; i++ ) 
-         arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
-      if( arr_dist == NULL ) {
-         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-         exit(12);
-      }
+      INFO_message("AAA 1a");
 
       i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
+      INFO_message("AAA 1b");
 
-      // SOMETHING HERE TO CONVERT OUTPUT ARR TO OUTPUT DATASET
-
-      if(arr_dist){
-         for ( i=0 ; i<nx ; i++ ) 
-            for ( j=0 ; j<ny ; j++ ) 
-               free(arr_dist[i][j]);
-         for ( i=0 ; i<nx ; i++ ) 
-            free(arr_dist[i]);
-         free(arr_dist);
+      printf("\n\n");
+      for( k=0; k<nz ; k++ ) {
+         if( arr_dist[64][58][k] < 100000 )
+            printf("||%.2f||",  arr_dist[64][58][k]);
       }
+
+      for( i=0 ; i<nx ; i++ )
+         for( j=0 ; j<ny ; j++ ) 
+            for( k=0; k<nz ; k++ ) {
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               tmp_arr[idx] = arr_dist[i][j][k];
+            }
+
+      /* Prepare header for output by copying that of input, and then
+         changing items as necessary */
+      dset_edt = EDIT_empty_copy( dset_roi ); 
+      EDIT_dset_items(dset_edt,
+                      ADN_datum_all, MRI_float ,    
+                      ADN_prefix, opts.prefix,
+                      ADN_none );
+      
+      // provide volume values from the appropriately-sized array
+      EDIT_substitute_brick(dset_edt, nn, MRI_float, tmp_arr); 
+      tmp_arr=NULL;
+    
+
    } // end of loop over nvals
 
+   INFO_message("AAA 2");
 
+   // free input dset
+	DSET_delete(dset_roi); 
+  	free(dset_roi); 
 
-   // free
+   // prepare to write output
+	THD_load_statistics( dset_edt );
+	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
+		ERROR_exit("Can't overwrite existing dataset '%s'",
+					  DSET_HEADNAME(dset_edt));
+	tross_Make_History("3dEulerDist", argc, argv, dset_edt);
 
-   return 0;
+   // write and free dset 
+	THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
+	DSET_delete(dset_edt); 
+  	free(dset_edt); 
+   INFO_message("AAA 3");
+
+   // free more
+   if(arr_dist){
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            free(arr_dist[i][j]);
+      for ( i=0 ; i<nx ; i++ ) 
+         free(arr_dist[i]);
+      free(arr_dist);
+   }
+   INFO_message("AAA 4");
+
+   return 0;   
+
 }
 
 /*
@@ -259,6 +316,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
    float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
    int vox_ord_rev[3];
+
+   ENTRY("calc_EDT_3D");
 
    // check if a subbrick is const; there are a couple cases where we
    // would be done at this stage.
@@ -300,6 +359,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
       switch( vox_ord_rev[i] ){
          // note pairings per case: 0 and nx; 1 and ny; 2 and nz
       case 0 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nx, sizeof(float) );
          maparr = (int *) calloc( nx, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -310,6 +371,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 1 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( ny, sizeof(float) );
          maparr = (int *) calloc( ny, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -320,6 +383,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 2 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nz, sizeof(float) );
          maparr = (int *) calloc( nz, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -327,6 +392,7 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
          j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
                                flarr, maparr );
+         
          break;
 
       default:
@@ -338,28 +404,35 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
    } // end of looping over axes
 
    // Zero out EDT values in "zero" ROI?
-    if( opts.zeros_are_zeroed ) {
-       idx = 0;
-       for ( i=0 ; i<nx ; i++ ) 
-          for ( j=0 ; j<ny ; j++ ) 
-             for ( k=0 ; k<nz ; k++ ){
-                if( !THD_get_voxel(dset_roi, idx, ival) )
-                   arr_dist[i][j][k] = 0.0;
-                idx++;
-             }
-    }
+   if( opts.zeros_are_zeroed ) {
+      idx = 0;
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k] = 0.0;
+               idx++;
+            }
+   }
 
-    // Output distance-squared, or just distance (sqrt of what we have
-    // so-far calc'ed)?
-    if( opts.do_sqrt ) {
-       idx = 0;
-       for ( i=0 ; i<nx ; i++ ) 
-          for ( j=0 ; j<ny ; j++ ) 
-             for ( k=0 ; k<nz ; k++ ){
-                arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
-                idx++;
-             }
-    }
+   // Output distance-squared, or just distance (sqrt of what we have
+   // so-far calc'ed)?
+   if( opts.do_sqrt ) {
+      idx = 0;
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
+               idx++;
+            }
+   }
+    
+   // at this point, arr_dist should have the correct distance values
+   // for this 3D volume
+   for( k=0; k<nz ; k++ ) {
+         if( arr_dist[64][58][k] < 100000 )
+            printf("||%.2f||",  arr_dist[64][58][k]);
+      }
 
    return 0;
 }

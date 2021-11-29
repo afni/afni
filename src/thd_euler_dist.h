@@ -1,7 +1,7 @@
 #ifndef THD_EDT_INCLUDED
 #define THD_EDT_INCLUDED
 
-#define BIG FLT_MAX     // from float.h
+#define BIG (100000000000.) //FLT_MAX     // from float.h
 
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
