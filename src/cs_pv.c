@@ -551,6 +551,9 @@ ENTRY("principal_vector_pair") ;
 
      for( ii=0 ; ii < mm ; ii++ ){
        xi = xar[ii] ;
+
+if( mm > 99999 && ii%10000 == 0 ) ININFO_message(" start ii=%lld",(long long)ii) ;
+
 AFNI_OMP_START ;
 #pragma omp parallel if( mm > 99999 )
 {      UAint64 jj,kk,qq , qtop ;
