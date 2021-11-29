@@ -537,18 +537,48 @@ ENTRY("principal_vector_pair") ;
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float xjj ;
      memset( asym , 0 , sizeof(float)*nsym*nsym ) ;
+#ifdef USE_OMP
+#pragma omp parallel if( mm > 99999 )
+ {
+#pragma omp master
+  { int nthr = omp_get_num_threads() ;
+    if( mm > 99999 )
+      ININFO_message("nn=%lld < mm=%lld -- using %d threads",
+                     (long long)nn , (long long)mm , nthr    ) ;
+ } }
+#endif
+
      for( ii=0 ; ii < mm ; ii++ ){
-       xi = xar[ii] ; xjj = xi[0] ;
+       xi = xar[ii] ;
 AFNI_OMP_START ;
-#pragma omp parallel
+#pragma omp parallel if( mm > 99999 )
 {      UAint64 jj,kk,qq , qtop ;
        qtop = nn*(nn+1)/2 ;
 #pragma omp for
-       for( qq=jj=kk=0 ; qq < qtop ; qq++ ){ /* loop over (jj,kk): lower triangle */
-         A(jj,kk) += xjj*xi[kk] ;
-         kk++ ; if( kk > jj ){ kk = 0 ; jj++ ; xjj = xi[jj] ; }
+       /* In the code below:
+            qq = kk + jj*(jj+1)/2 = lower triangular index in symmetric matrix
+                                            kk=0,1 ->
+                                     jj=0 [ 0       ]
+                                     jj=1 [ 1 2     ]
+                                          [ 3 4 5   ]
+                                          [ 6 7 8 9 ]
+           and we want to compute (jj,kk) given qq -- the reason for this
+           convoluted code is to allow this loop to be parallelized, and
+           for that to happen, it has to be (1) a single loop - not a double
+           loop over (jj,kk), and (2) it has to have a pre-computable number
+           of iterates (qtop) determinable by the OpenMP software.
+           * The result is jj = [ sqrt(8*qq+1)-1 ] / 2 and then kk follows
+           * For example, qq=7: sqrt(7*8+1) - 1 = 6.54983
+                                ditto / 2       = 3.27492
+                                floor(ditto)    = 3 = correct row index
+           * Twisted counting logic for (hopeful) efficiency when there's
+             a lot of computation going on (mm and nn big). [RWC - 29 Nov 2021]
+       */
+       for( qq=0 ; qq < qtop ; qq++ ){ /* loop over (jj,kk): lower triangle */
+         jj = (UAint64)floor((sqrt(8.0*(double)qq+1.000001)-0.999999)*0.5) ;
+         kk = qq - jj*(jj+1)/2 ;
+         A(jj,kk) += xi[jj]*xi[kk] ;
        }
 }
 AFNI_OMP_END ;
