@@ -68,7 +68,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
-   float delta;            // voxel edge length ('edims' element in lib_EDT.py)
+   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
 
    ENTRY("calc_EDT_3D_dim2");
 
@@ -76,7 +76,6 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
-
    delta = fabs(DSET_DZ(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
@@ -93,11 +92,8 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
                                  delta, opts.bounds_are_zero );
 
          // ... and now put those values back into the distance arr
-         for( kk=0; kk<nz ; kk++ ) {
+         for( kk=0; kk<nz ; kk++ ) 
             arr_dist[ii][jj][kk] = flarr[kk];
-            //if( arr_dist[ii][jj][kk] < 100000 )
-              // printf("||%d, %d: %.2f||", ii, jj, arr_dist[ii][jj][kk]);
-         }
       }
 
    return 0;
@@ -108,8 +104,35 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, int *maparr )
 {
+   int ii, jj, kk, idx, ll;
+   int nx, ny, nz, nxy;
+   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
 
    ENTRY("calc_EDT_3D_dim1");
+
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+   delta = fabs(DSET_DY(dset_roi));
+
+   // make appropriate 1D arrays of dist and ROI maps
+   for( ii=0 ; ii<nx ; ii++ )
+      for( kk=0; kk<nz ; kk++ ) {
+         for( jj=0 ; jj<ny ; jj++ ) {
+            idx = THREE_TO_IJK(ii, jj, kk, nx, nxy);
+            flarr[jj] = arr_dist[ii][jj][kk];  // note index on flarr
+            maparr[jj] = (int) THD_get_voxel(dset_roi, idx, ival);
+         }
+
+         // update distance along this 1D line...
+         ll = run_EDTD_per_line( flarr, maparr, ny,
+                                 delta, opts.bounds_are_zero );
+
+         // ... and now put those values back into the distance arr
+         for( jj=0; jj<ny ; jj++ )
+            arr_dist[ii][jj][kk] = flarr[jj];
+      }
 
    return 0;
 }
@@ -118,9 +141,35 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, int *maparr )
 {
-   
+   int ii, jj, kk, idx, ll;
+   int nx, ny, nz, nxy;
+   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
+
    ENTRY("calc_EDT_3D_dim0");
 
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+   delta = fabs(DSET_DX(dset_roi));
+
+   // make appropriate 1D arrays of dist and ROI maps
+   for( kk=0; kk<nz ; kk++ ) 
+      for( jj=0 ; jj<ny ; jj++ ) {
+         for( ii=0 ; ii<nx ; ii++ ) {
+            idx = THREE_TO_IJK(ii, jj, kk, nx, nxy);
+            flarr[ii] = arr_dist[ii][jj][kk];  // note index on flarr
+            maparr[ii] = (int) THD_get_voxel(dset_roi, idx, ival);
+         }
+
+         // update distance along this 1D line...
+         ll = run_EDTD_per_line( flarr, maparr, nx,
+                                 delta, opts.bounds_are_zero );
+
+         // ... and now put those values back into the distance arr
+         for( ii=0; ii<nx ; ii++ )
+            arr_dist[ii][jj][kk] = flarr[ii];
+      }
 
    return 0;
 }

@@ -238,12 +238,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
       INFO_message("AAA 1b");
 
-      printf("\n\n");
-      for( k=0; k<nz ; k++ ) {
-         if( arr_dist[64][58][k] < 100000 )
-            printf("||%.2f||",  arr_dist[64][58][k]);
-      }
-
       for( i=0 ; i<nx ; i++ )
          for( j=0 ; j<ny ; j++ ) 
             for( k=0; k<nz ; k++ ) {
@@ -312,7 +306,7 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 {
    int i, j, k, idx;
    float minmax[2] = {0, 0};
-   int nx, ny, nz;
+   int nx, ny, nz, nxy;
 
    float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
    int vox_ord_rev[3];
@@ -338,6 +332,7 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
    Ledge[0] = fabs(DSET_DX(dset_roi)); 
    Ledge[1] = fabs(DSET_DY(dset_roi)); 
    Ledge[2] = fabs(DSET_DZ(dset_roi)); 
@@ -405,25 +400,22 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
    // Zero out EDT values in "zero" ROI?
    if( opts.zeros_are_zeroed ) {
-      idx = 0;
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
                if( !THD_get_voxel(dset_roi, idx, ival) )
                   arr_dist[i][j][k] = 0.0;
-               idx++;
             }
    }
 
    // Output distance-squared, or just distance (sqrt of what we have
-   // so-far calc'ed)?
+   // so-far calc'ed)
    if( opts.do_sqrt ) {
-      idx = 0;
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){
                arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
-               idx++;
             }
    }
     
