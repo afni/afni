@@ -4,7 +4,8 @@
 
    To ensure this program is compiled, see how it is added in
    Makefile.INCLUDE (details of which might change depending on
-   dependencies used here) by searching for instances of '3dEdu_01_scale'.
+   dependencies used here) by searching for instances of
+   '3dEdu_01_scale'.
 */
 
 
@@ -130,6 +131,36 @@ author );
 	return 0;
 }
 
+/*
+  NOTE: FIND AND USE FUNCTIONS
+
+  Below we should some basic I/O and other functionality for dealing
+  with datasets.  We list the files where most of those functions and
+  macros are found.
+
+  - Note 1 -
+  If I want to find where a function is defined in the large AFNI
+  codebase, I will often use something like the following grep:
+   
+      grep -H FUNC_NAME *.c  | grep TYPE_RETURNED
+
+  If I can't tell the type returned from usage, then I might grep
+  through header files first to find it:
+
+     grep -H FUNC_NAME *.h 
+
+  ... and then use that new-found TYPE_RETURNED information to refine
+  the grep through *.c files.  
+
+  One might have to resort to recursive searching, if the function
+  might be defined in the SUMA/ or other subdirectory, such as with:
+
+     grep -r FUNC_NAME .  | grep TYPE_RETURNED
+   
+  - Note 2 -
+  Most DSET_*(...) functionalities are macros that are defined in
+  3ddata.h.
+*/
 int main(int argc, char *argv[]) {
    /*
      Initializing+declaring variables.  Pointers should be set to
@@ -142,6 +173,15 @@ int main(int argc, char *argv[]) {
    int DO_SOME_OPT = 0;
    float *mult_facs = NULL;
 
+   /*
+     THD_3dim_dataset: One of the main AFNI input datastructures.  It
+     can actually can be used quite generally beyond 'just' 3D vols.
+     This is one way that so many 3d* programs run usefully on 3D or
+     4D volumes, or surfaces, or (transposed) *.1D files, ...
+
+     This datastructure is defined in 3ddata.h, search for:
+        'typedef struct THD_3dim_dataset'.
+   */
    THD_3dim_dataset *dset_inp = NULL, *dset_mask = NULL;
    THD_3dim_dataset *dset_out1 = NULL;
 
@@ -173,6 +213,11 @@ int main(int argc, char *argv[]) {
       /* Option taking 1 arg (here, a dset filename)
          + the first 'if' condition applies generally to any opt with 1 arg
          + since the arg is a dset name, we check+load it here, too
+
+         For:
+         + THD_open_dataset(...), see thd_mastery.c
+         + DSET_load(...), see 3ddata.h
+         + CHECK_LOAD_ERROR(...), see mrilib.h
       */
       if( strcmp(argv[iarg],"-input") == 0 ){
          if( ++iarg >= argc ) 
@@ -251,7 +296,7 @@ int main(int argc, char *argv[]) {
      checking consistency of some (e.g., if dsets have the same grid).
 
      NB: the *_message() functions are useful for communicating with
-     the user.
+     the user.  These are each defined in debugtrace.c.
    */
 
    INFO_message("Starting to check inputs...");
@@ -276,6 +321,10 @@ int main(int argc, char *argv[]) {
    if ( !prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
+   /* 
+      These DSET_*(...) macros are defined in 3ddata.h---along with
+      many other macros to access THD_3dim_dataset elements.
+   */
    nx = DSET_NX(dset_inp);
    ny = DSET_NY(dset_inp); 
    nz = DSET_NZ(dset_inp); 
@@ -300,7 +349,13 @@ int main(int argc, char *argv[]) {
    //                         Actual work
    // ****************************************************************
 
-   // go through array making some calc: here, get value from [0]th volume
+   /*
+     Go through the array making some calc: here, get the [idx]th
+     value from [0]th subvolume of the 'dset_mask' and 'dset_inp'
+     datasets.
+
+     For THD_get_voxel(...), see thd_loaddblk.c.  
+   */
    for( idx=0 ; idx<nvox ; idx++ ) {
       if ( dset_mask ) {
          if ( THD_get_voxel(dset_mask, idx, 0) != 0.0 ) 
@@ -317,8 +372,18 @@ int main(int argc, char *argv[]) {
    //                 Store and output
    // **************************************************************
    
-   /* Prepare header for output by copying that of input, and then
-      changing items as necessary */
+   /* 
+      Prepare header for output by copying that of input, and then
+      changing items as necessary.
+
+      For:
+      + EDIT_empty_copy(...), see edt_emptycopy.c
+      + EDIT_dset_items(...), see edt_dsetitems.c
+      + EDIT_substitute_brick(...), see edt_substbrick.c
+
+      NB: EDIT_dset_items() is the *only* way you should change
+      elements in a THD_3dmin_dataset structure.
+   */
    dset_out1 = EDIT_empty_copy( dset_inp ); 
    EDIT_dset_items(dset_out1,
                    ADN_nvals, 1,                 // just one brick here
@@ -326,11 +391,24 @@ int main(int argc, char *argv[]) {
                    ADN_prefix, prefix,
 						 ADN_none );                   /* Always last param */  
    
-   // provide volume values from the appropriately-sized array
+   // Provide values for the dset_out1 from the appropriately-sized
+   // array (and then nullify the arr_mskd, to not have 2 pointers to
+   // the same place)
 	EDIT_substitute_brick(dset_out1, 0, MRI_float, arr_mskd); 
 	arr_mskd=NULL;
 
-   // prepare to write
+   /*
+     Prepare to write out dataset.
+
+     For: 
+     + THD_load_statistics(...), see thd_bstats.c
+     + THD_ok_overwrite(), see afni_environ.c
+     + THD_is_ondisk(...), see thd_filestuff.c
+     + DSET_HEADNAME(...), see 3ddata.h
+     + tross_Make_History(...), see thd_notes.c
+     + THD_write_3dim_dataset(...), see thd_writedset.c
+     + DSET_delete(...), see 3ddata.h
+   */
 	THD_load_statistics( dset_out1 );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_out1)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
@@ -347,7 +425,12 @@ int main(int argc, char *argv[]) {
    //                           Freeing
    // ****************************************************************
 
-   // Note use of both DSET_delete() and free() with THD_3dim_dataset type
+   /* 
+      Note the use of both DSET_delete() and free() with
+      THD_3dim_dataset type (and also above).  The first cleans up
+      the internal dataset contents, and the latter frees the pointer
+      itself.
+   */
    if( dset_inp ){
       DSET_delete(dset_inp);
       free(dset_inp);
