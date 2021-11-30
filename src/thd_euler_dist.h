@@ -34,6 +34,8 @@ typedef struct {
    char *prefix;          
 
    int zeros_are_zeroed;  
+   int zeros_are_neg;  
+   int nz_are_neg;  
    int bounds_are_zero;   
    int do_sqrt;           
 

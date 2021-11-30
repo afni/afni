@@ -97,8 +97,15 @@ int usage_3dEulerDist()
 "\n"
 "  -zeros_are_zero  :by default, EDT values are output for the full FOV,\n"
 "                    even zero-valued regions.  If this option is used, EDT\n"
-"                    values are only reported within the non-zero locations\n"
+"                    values are only reported within the nonzero locations\n"
 "                    of the input dataset.\n"
+"\n"
+"  -zeros_are_neg   :if this option is used, EDT in the zero/background\n"
+"                    of the input will be negative (def: they are positive).\n"
+"                    This opt cannot be used if '-zeros_are_zero' is.\n"
+"\n"
+"  -nz_are_neg      :if this option is used, EDT in the nonzero ROI regions\n"
+"                    of the input will be negative (def: they are positive).\n"
 "\n"
 "  -bounds_are_zero :this flag affects how FOV boundaries are treated for\n"
 "                    nonzero ROIs: by default, they are viewed as ROI\n"
@@ -117,7 +124,7 @@ int usage_3dEulerDist()
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT.nii.gz                                  \n"
 "\n"
-"2) Same as above, but only output distances within non-zero regions/ROIs:\n"
+"2) Same as above, but only output distances within nonzero regions/ROIs:\n"
 "   3dEulerDist                                                     \\\n"
 "       -zeros_are_zero                                             \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
@@ -195,6 +202,16 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-zeros_are_neg") == 0) {
+         InOpts.zeros_are_neg = 1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-nz_are_neg") == 0) {
+         InOpts.nz_are_neg = 1;
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-bounds_are_not_zero") == 0) {
          InOpts.bounds_are_zero = 0;
          iarg++ ; continue ;
@@ -224,6 +241,10 @@ int main(int argc, char *argv[]) {
 
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
+
+   if ( InOpts.zeros_are_zeroed && InOpts.zeros_are_neg  )
+      ERROR_exit("Cannot combine '-zeros_are_zero' and '-zeros_are_neg'.  "
+                 "You must choose which you *really* want.\n");
 
    // DONE FILLING, now call
    ii = run_EDT_3D(1, InOpts, argc, argv);
@@ -260,7 +281,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       if( THD_dataset_mismatch( dset_roi , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
-
 
 
    nx = DSET_NX(dset_roi);
@@ -454,6 +474,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
       if( maparr) free(maparr);
    } // end of looping over axes
 
+   // ----- Apply various user post-proc options, if asked for -------
+   
    // Zero out EDT values in "zero" ROI?
    if( opts.zeros_are_zeroed ) {
       for ( i=0 ; i<nx ; i++ ) 
@@ -463,8 +485,8 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
                if( !THD_get_voxel(dset_roi, idx, ival) )
                   arr_dist[i][j][k] = 0.0;
             }
-   }
-
+   } 
+ 
    // Output distance-squared, or just distance (sqrt of what we have
    // so-far calc'ed)
    if( opts.do_sqrt ) {
@@ -474,7 +496,32 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
                arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
             }
    }
-    
+   
+
+   // negative where input was zero?
+   if( opts.zeros_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+   // negative where input was nonzero?
+   if( opts.nz_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+
+
    // at this point, arr_dist should have the correct distance values
    // for this 3D volume
 

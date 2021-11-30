@@ -11,6 +11,8 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.prefix = NULL;         
 
    defopt.zeros_are_zeroed = 0;  
+   defopt.zeros_are_neg = 0;  
+   defopt.nz_are_neg = 0;  
    defopt.bounds_are_zero = 1;   
    defopt.do_sqrt = 1;           
 
