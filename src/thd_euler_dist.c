@@ -257,67 +257,105 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
    return 0;
 }
 
-float * Euclidean_DT_delta(float *f, int n, float delta)
+float * Euclidean_DT_delta(float *f0, int n, float delta)
 {
-   //    Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
-   //        Huttenlocher (2012), but for given voxel lengths.
-   //
-   //    Assumes that: len(f) < sqrt(10**10).
-   //
-   //    In this version, all voxels should have equal length, and units
-   //    are "edge length" or "number of voxels."
-   //
-   //    Parameters
-   //    ----------
-   //
-   //    f     : 1D array or list, distance**2 values (or, to start, binarized
-   //    between 0 and BIG).
-   //
-   //    delta : voxel edge length size along a particular direction
+   /*
+     Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
+     Huttenlocher (2012), but for given voxel lengths.
+   
+     Assumes that: len(f) < sqrt(10**10).
+   
+     In this version, all voxels should have equal length, and units
+     are "edge length" or "number of voxels."
+   
+     Parameters
+     ----------
+   
+     f0       : 1D array or list. Either distance**2 values (or, to start,
+                values binarized to 0 or BIG).
+   
+     delta    : element edge length along this dimension.
+   
+     To deal with anisotropic and non-unity-edge-length elements,
+     first scale non-BIG distances to be "as if" there were edge=1
+     voxels, and then at end scale back.
+   
+     [PT] Comment: unlike in earlier thinking (even before current
+     scale down/up approach), do NOT want to mult 'BIG' by 'delta',
+     because pixels/voxels can be anisotropic here.
+   */
 
-   int q;
-   int *v=NULL;
-   int k = 0;
-   float *z=NULL, *Df=NULL;
+   int i, q;
    float s;
+   float delta2;
 
-   if (!(v=(int *)calloc(n, sizeof(int))) ||
-       !(z=(float *)calloc(n+1, sizeof(float)))){
-      if (v) free(v);
-      return NULL;
-   }
+   int k = 0;
+   int *v = NULL;
+   float *z = NULL, *f = NULL;
+   float *Df = NULL, *Df0 = NULL;
+
+   v = (int *)calloc(n, sizeof(int));
+   f = (float *)calloc(n, sizeof(float));
+   z = (float *)calloc(n+1, sizeof(float));
+   Df = (float *)calloc(n, sizeof(float));
+   Df0 = (float *)calloc(n, sizeof(float));
+   if ( v==NULL || f==NULL || z==NULL || Df==NULL || Df0==NULL ) 
+      ERROR_exit("MemAlloc issue: v, f, z, Df or Df0.\n");
+
    z[0] = -BIG;
-   z[1] =  BIG;
+   z[1] = BIG;
 
-   for ( q = 1; q<n; ++q ) {
-      s = f[q] + pow(q*delta, 2.0) - (f[v[k]] + pow(v[k]*delta,2.0));
-      s/= 2. * delta * (q - v[k]);
-      while (s <= z[k]){
-         k-= 1;
-         s = f[q] + pow(q*delta,2.0) - (f[v[k]] + pow(v[k]*delta, 2.0));
-         s/= 2. * delta * (q - v[k]);
-      }
-      k+= 1;
-      v[k]   = q;
-      z[k]   = s;
-      z[k+1] = BIG;
-   }
+   delta2 = delta * delta;
 
-   k   = 0;
-   if (!(Df=(float *)calloc(n, sizeof(float)))){
-      free(v);
-      free(z);
-      return NULL;
-   }
-   for ( q=0; q<n; ++q ){
-      while (z[k+1] < q * delta) k+= 1;
-      Df[q] = pow(delta*(q - v[k]), 2.0) + f[v[k]];
-   }
+    // Scale down, if not using unity element
+    for( i=0 ; i<n ; i++ )
+       f[i] = f0[i];           // copy f0  
+    if( delta != 1 ){
+        for( i=0 ; i<n ; i++ )
+            if(f[i] != BIG )
+                f[i]/= delta2;
+        }
 
-   if( v )
-      free(v);
-   if( z )
-      free(z);
+    for( q=1 ; q<n ; q++ ){
+       s = (f[q] + q*q) - (f[v[k]] + v[k]*v[k]);
+       s/= 2. * (q - v[k]);
 
-   return Df;
+       while ( s <= z[k] ){
+          k--;
+          s = (f[q] + q*q) - (f[v[k]] + v[k]*v[k]);
+          s/= 2. * (q - v[k]);
+       }
+
+       k++;
+       v[k]   = q;
+       z[k]   = s;
+       z[k+1] = BIG;
+    }
+
+    k = 0;
+    for( q=0 ; q<n ; q++ ){
+       while( z[k+1] < q )
+          k++;
+       Df[q] = (q - v[k])*(q - v[k]) + f[v[k]];
+    }
+
+    // Scale back up, if not using unity element
+    for( i=0 ; i<n ; i++ )
+       Df0[i] = Df[i];           // copy Df  
+    if (delta != 1 ){
+       for( i=0 ; i<n ; i++ )
+            if( Df0[i] != BIG )
+                Df0[i]*= delta2;
+    }
+
+    if( v )
+       free(v);
+    if( f )
+       free(f);
+    if( z )
+       free(z);
+    if( Df )
+       free(Df);
+
+    return Df0;
 }

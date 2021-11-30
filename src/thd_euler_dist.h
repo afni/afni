@@ -62,6 +62,6 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
                        float delta, int bounds_are_zero );
 
-float * Euclidean_DT_delta(float *f, int n, float delta);
+float * Euclidean_DT_delta(float *f0, int n, float delta);
 
 #endif
