@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Nov , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_PROG,
+   "New C prog for Eulerian Distance Transform (EDT) for ROI-based dsets.",
+   "Calculate distances to boundaries within a FOV.\n"
+},
+
 { 26, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
    "Renaming of 3dEduProg.  Simplifying some inner workings",
    "Basic AFNI program example.\n"
