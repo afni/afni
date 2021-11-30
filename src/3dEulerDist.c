@@ -216,7 +216,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    nxy = nx*ny;
    nvox = DSET_NVOX(dset_roi);
    nvals = DSET_NVALS(dset_roi);
-   INFO_message("AAA 0");
 
    arr_dist = (float ***) calloc( nx, sizeof(float **) );
    for ( i=0 ; i<nx ; i++ ) 
@@ -228,15 +227,12 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(12);
    }
-   INFO_message("AAA 1");
+
    for( nn=0 ; nn<nvals ; nn++ ){
       float *tmp_arr = NULL;
       tmp_arr = (float *) calloc( nvox, sizeof(float) );
 
-      INFO_message("AAA 1a");
-
       i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
-      INFO_message("AAA 1b");
 
       for( i=0 ; i<nx ; i++ )
          for( j=0 ; j<ny ; j++ ) 
@@ -257,10 +253,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       EDIT_substitute_brick(dset_edt, nn, MRI_float, tmp_arr); 
       tmp_arr=NULL;
     
-
    } // end of loop over nvals
-
-   INFO_message("AAA 2");
 
    // free input dset
 	DSET_delete(dset_roi); 
@@ -277,7 +270,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
 	THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
-   INFO_message("AAA 3");
 
    // free more
    if(arr_dist){
@@ -288,10 +280,8 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
          free(arr_dist[i]);
       free(arr_dist);
    }
-   INFO_message("AAA 4");
 
-   return 0;   
-
+   return 0;
 }
 
 /*
@@ -421,10 +411,6 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
     
    // at this point, arr_dist should have the correct distance values
    // for this 3D volume
-   for( k=0; k<nz ; k++ ) {
-         if( arr_dist[64][58][k] < 100000 )
-            printf("||%.2f||",  arr_dist[64][58][k]);
-      }
 
    return 0;
 }
