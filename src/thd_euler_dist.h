@@ -23,6 +23,12 @@
                    EDT values are still calculated everywhere; it is just
                    a question of zeroing out later (no time saved for True).
 
+    ignore_voxdims : we have implemented an EDT alg that works in
+                   terms of physical distance and can use the voxel dimension
+                   info in each direction.  However, users might want 'depth'
+                   just in voxel units (so, delta=1 everywhere), which 
+                   using this option will give 'em.                   
+
     edims        : (len=3 fl arr) element dimensions (here, voxel edge lengths)
 
     shape        : (len=3 int arr) matrix size in each direction
@@ -37,6 +43,7 @@ typedef struct {
    int zeros_are_neg;  
    int nz_are_neg;  
    int bounds_are_zero;   
+   int ignore_voxdims;
    int do_sqrt;           
 
    float edims[3];        

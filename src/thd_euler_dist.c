@@ -14,6 +14,7 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.zeros_are_neg = 0;  
    defopt.nz_are_neg = 0;  
    defopt.bounds_are_zero = 1;   
+   defopt.ignore_voxdims = 0;
    defopt.do_sqrt = 1;           
 
    defopt.edims[0] = 0.0;       
@@ -121,13 +122,18 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
       float *flarr=NULL;   // store distances along one dim
       int *maparr=NULL;    // store ROI map along one dim
 
+      if ( !ival ){
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], 
+                      Ledge[vox_ord_rev[i]]);
+         if( opts.ignore_voxdims )
+            INFO_message("... but this will be ignored, at user behest");
+      }
+
       switch( vox_ord_rev[i] ){
          // note pairings per case: 0 and nx; 1 and ny; 2 and nz
 
       case 0 :
-         if ( !ival )
-            INFO_message("Move along axis %d (delta = %.6f)", 
-                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nx, sizeof(float) );
          maparr = (int *) calloc( nx, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -138,9 +144,6 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 1 :
-         if ( !ival )
-            INFO_message("Move along axis %d (delta = %.6f)", 
-                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( ny, sizeof(float) );
          maparr = (int *) calloc( ny, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -151,9 +154,6 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 2 :
-         if ( !ival )
-            INFO_message("Move along axis %d (delta = %.6f)", 
-                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nz, sizeof(float) );
          maparr = (int *) calloc( nz, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -161,7 +161,6 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
          j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
                                flarr, maparr );
-         
          break;
 
       default:
@@ -212,7 +211,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
-   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
+   float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
    ENTRY("calc_EDT_3D_dim2");
 
@@ -220,7 +219,9 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
-   delta = fabs(DSET_DZ(dset_roi)); 
+
+   if( !opts.ignore_voxdims )
+      delta = fabs(DSET_DZ(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
    for( ii=0 ; ii<nx ; ii++ )
@@ -250,7 +251,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
-   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
+   float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
    ENTRY("calc_EDT_3D_dim1");
 
@@ -258,7 +259,9 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
-   delta = fabs(DSET_DY(dset_roi));
+
+   if( !opts.ignore_voxdims )
+      delta = fabs(DSET_DZ(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
    for( ii=0 ; ii<nx ; ii++ )
@@ -288,7 +291,7 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
-   float delta;          // voxel edge length ('edims' element in lib_EDT.py)
+   float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
    ENTRY("calc_EDT_3D_dim0");
 
@@ -296,7 +299,9 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
-   delta = fabs(DSET_DX(dset_roi));
+
+   if( !opts.ignore_voxdims )
+      delta = fabs(DSET_DZ(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
    for( kk=0; kk<nz ; kk++ ) 

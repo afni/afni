@@ -113,6 +113,12 @@ int usage_3dEulerDist()
 "                    an open boundary).  Zero-valued ROIs (= background)\n"
 "                    are not affected by this option.\n"
 "\n"
+" -ignore_voxdims   :this EDT algorithm works in terms of physical distance\n"
+"                    and uses the voxel dimension info in each direction, by\n"
+"                    default.  However, using this option will ignore voxel\n"
+"                    size, producing outputs as if each voxel dimension was\n"
+"                    unity.\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Examples ~1~\n"
@@ -126,13 +132,28 @@ int usage_3dEulerDist()
 "   3dEulerDist                                                     \\\n"
 "       -zeros_are_zero                                             \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
-"       -prefix roi_map_EDT_NZ.nii.gz                               \n"
+"       -prefix roi_map_EDT_ZZ.nii.gz                               \n"
 "\n"
 "3) Output distance-squared at each voxel:\n"
 "   3dEulerDist                                                     \\\n"
 "       -dist_squared                                               \\\n"
 "       -input  mask.nii.gz                                         \\\n"
 "       -prefix mask_EDT_SQ.nii.gz                                  \n"
+"\n"
+"4) Distinguish ROIs from nonzero background by making the former have\n"
+"   negative distance values in output:\n"
+"   3dEulerDist                                                     \\\n"
+"       -nz_are_neg                                                 \\\n"
+"       -input  roi_map.nii.gz                                      \\\n"
+"       -prefix roi_map_EDT_NZNEG.nii.gz                            \n"
+"\n"
+"5) Have output voxel values represent (number of vox)**2 from a boundary;\n"
+"   voxel dimensions are ignored here:\n"
+"   3dEulerDist                                                     \\\n"
+"       -ignore_voxdims                                             \\\n"
+"       -dist_squared                                               \\\n"
+"       -input  roi_map.nii.gz                                      \\\n"
+"       -prefix roi_map_EDT_SQ_VOX.nii.gz                           \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -217,6 +238,11 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-dist_squared") == 0) {
          InOpts.do_sqrt = 0;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-ignore_voxdims") == 0) {
+         InOpts.ignore_voxdims = 1;
          iarg++ ; continue ;
       }
 
