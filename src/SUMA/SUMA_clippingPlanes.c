@@ -573,6 +573,11 @@ void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
     int i;
+   
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1){
+        fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO = %p\n", SO);
+        if (SO) fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO->idcode_str = %s\n", SO->idcode_str);
+    }
 
     for (i=0; i<16; ++i) SO->Overlays[0]->ColVec[i] = DARK_BACKGROUND;
 
@@ -1503,9 +1508,10 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        Cmp->idvec = SO->idcode_str;
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-        fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-        return;
+            fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
+            return;
         }
 
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
@@ -1541,6 +1547,9 @@ void lightenActiveClipPlaneSquare(int planeIndex){
         case 5: makeCommonNodesOfRectangleDarkYellow(SO); break;
     }
 
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Darken clipping plane square: color changes to be applied to the square object\n");
+
     // This block is necessary for the color changes to be applied to the square object
     // PDL: Not clear why two iterations are necessary to the last two planes.  Hopefully,
     //  this will become clear with further analysis of the code duirng the addition of
@@ -1549,20 +1558,36 @@ void lightenActiveClipPlaneSquare(int planeIndex){
     for (i = 0; i < iterations; ++i)
     {
         // SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
+        if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### Darken clipping plane square: Make SO->SurfCont\n");
         SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
         SUMA_ALL_DO *ado = SUMA_SV_Focus_ADO(sv);
         SO->SurfCont->curColPlane = SUMA_ADO_CurColPlane(ado);
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
+        Cmp->idvec = SO->idcode_str;
+        if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        {
+            fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
+            fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
+            fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
+            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %s\n", Cmp->cname);
+            fprintf(stderr, "### Darken clipping plane square: Cmp->idvec = %s\n", Cmp->idvec);
+        }
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
-        fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
-        return;
+            fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
+            return;
         }
 
+        if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+            fprintf(stderr, "### Darken clipping plane square: SUMA_PICK_RESULT\n");
         SUMA_PICK_RESULT *PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
         colorPlanes(sv, SO,&PR);
     }
+
+    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### Darken clipping plane square: completed\n");
 }
 
 void darkenInactiveClipPlaneSquares(int activePlane){

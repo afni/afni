@@ -2212,7 +2212,11 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 activeClipPlanes = activeClippingPlanes();
             }
         } else if (SUMA_CTRL_KEY(key)){
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### axisObject = %d\n", axisObject);
             if (!axisObject) makeAxisObject(w, sv);
         }else if (clippingPlaneMode) {
 
@@ -8534,7 +8538,7 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
 
    if (!PR) SUMA_RETURN(PR);
 
-  if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### SUMA_free_PickResult: Free PR->primitive\n");
    if (PR->primitive) SUMA_ifree(PR->primitive);
    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
