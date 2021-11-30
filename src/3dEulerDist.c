@@ -2,15 +2,12 @@
    Working from P. Lauren's distanceField.c, which was made in
    connection with PA Taylor's Python library for this.
 
-# ==========================================================================
-#
-#
-# ver = 2.0;  date = 'Nov 29, 2021'
-# + [PT] this program has been a longtime coming.  This version merges
-#   P Taylor's Python version in lib_EDT.py with P Lauren's concurrent
-#   work on a C version (which had been compared/developed in part with 
-#   the aformentioned lib_EDT.py).
-#
+ver = 2.0;  date = Nov 29, 2021
++ [PT] this program has been a longtime coming.  This version merges
+  P Taylor's Python version in lib_EDT.py with P Lauren's concurrent
+  work on a C version (which had been compared/developed in part with 
+  the aformentioned lib_EDT.py).
+
 
 */
 
@@ -40,6 +37,13 @@ int usage_3dEulerDist()
 "Overview ~1~ \n"
 "\n"
 "This program calculates the Eulerian Distance Transform (EDT).\n"
+"\n"
+"Basically, this means calculating the Euclidean distance of each\n"
+"voxel's centroid to the nearest boundary  with a separate ROI (well, to be\n"
+"brutally technical, to centroid of the nearest voxel in a neighboring ROI.\n"
+"The input dataset should be a map of ROIs (so, integer-valued). The\n"
+"EDT values are calculated throughout the entire FOV by default,\n"
+"even in the zero/background regions (there is an option to control this).\n"
 "\n"
 "written by: %s\n"
 "\n"
@@ -73,7 +77,7 @@ int usage_3dEulerDist()
 "\n"
 "Command usage and option list ~1~ \n"
 "\n"
-"  3dEulerDist [options] -prefix PREF -input DSET\n"
+"    3dEulerDist [options] -prefix PREF -input DSET\n"
 "\n"
 "where: \n"
 "\n"
