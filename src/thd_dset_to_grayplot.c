@@ -1,6 +1,7 @@
 #include "mrilib.h"
 
 #include "mri_pvmap.c"
+#include "cs_pv.c"
 
 /*** Functions for doing 4D image to grayplot conversion ***/
 
@@ -109,14 +110,16 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
    /* check inputs for plausibility */
 
+ENTRY("THD_dset_grayplot_prep") ;
+
    lev_num = 0 ;
-   if( !ISVALID_DSET(dset) || mmask == NULL ) return NULL ;
+   if( !ISVALID_DSET(dset) || mmask == NULL ) RETURN(NULL) ;
    nts = DSET_NVALS(dset) ;
-   if( nts < 19 ) return NULL ;
+   if( nts < 19 ) RETURN(NULL) ;
 
    nxyz = DSET_NVOX(dset) ;
    nmask = THD_countmask( nxyz , mmask ) ;
-   if( nmask < 19 ) return NULL ;
+   if( nmask < 19 ) RETURN(NULL) ;
 
    if( do_percent && polort < 0 ) polort = 0 ;
 
@@ -143,6 +146,9 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
        vim = (MRI_vectim **)realloc( vim , sizeof(MRI_vectim *)*(nvim+1) ) ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
        if( polort >= 0 ){
+#if 1
+ININFO_message("  Detrending vectim polort=%d",polort) ;
+#endif
          for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){          /* detrend */
            tsar = VECTIM_PTR( vim[nvim] , jj ) ; fit[0] = 0.0f ;
            THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,fit ) ;
@@ -157,6 +163,9 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
          case NORM_RMS:
          default:{
+#if 1
+ININFO_message("  RMS norming vectim") ;
+#endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
              THD_normRMS( nts , tsar ) ;
@@ -169,6 +178,9 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
          case NORM_MAXABS:{ /* scale so max(abs(x)) = 1 */
            float mab,val ;
+#if 1
+ININFO_message("  MAXABS norming vectim") ;
+#endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
              mab = fabsf(tsar[0]) ;
@@ -185,8 +197,12 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
        }
 
-       if( fwhm > 0.0f ) /* spatially blur inside this level */
+       if( fwhm > 0.0f ){ /* spatially blur inside this level */
+#if 1
+ININFO_message("  Blurring vectim fwhm=%.3g",fwhm) ;
+#endif
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
+       }
 
        /* re-order spatially, as ordered */
 
@@ -194,27 +210,39 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
          default: break ;  /* == IJK */
 
          case ORDER_PV:{   /* == by coherence with 1st 2 principal vectors */
-           MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
-           Aint      *kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
-           float     *tar = MRI_FLOAT_PTR(tim), *par ;
-#if 0
-           ININFO_message("  Computing PV order for mask partition #%d - %d voxels",
-                          ii,cmval) ;
+           MRI_IMAGE *tim , *pim ;
+           Aint      *kim ;
+           float     *tar , *par ;
+#if 1
+ININFO_message("  Computing PV order for mask partition #%d - %d voxels", ii,cmval) ;
 #endif
-           /* copy data into temporary image */
+           /* copy data vectors into temporary image,
+              along with originating index of each vector */
+           tim = mri_new(nts,cmval,MRI_float) ; tar = MRI_FLOAT_PTR(tim) ;
+           kim = (Aint *)malloc(sizeof(Aint)*cmval) ;
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
              kim[jj] = jj ;  /* source index */
            }
            /* make the PVmap */
+#if 1
+ININFO_message("  Computing mri_vec_to_pvmap") ;
+#endif
            pim = mri_vec_to_pvmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
            /* sort so largest are first, keeping track of whence they came */
+#if 1
+ININFO_message("  Sorting mri_vec_to_pvmap") ;
+#endif
            for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
 #if Aintsize == 64
            qsort_floatint64_t( cmval , par , kim ) ;
 #else
            qsort_floatint( cmval , par , kim ) ;
 #endif
+#if 1
+ININFO_message("  Putting sorted vectors back into vectim") ;
+#endif
+
            /* copy from temp image back to vectim, in the right order */
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
@@ -294,10 +322,11 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    }
    free(tmask) ;
    if( fit != NULL ) free(fit) ;
+   DSET_unload(dset) ;
 
    lev_num = nvim ;
 
-   if( nvim == 0 ) return NULL ;
+   if( nvim == 0 ) RETURN(NULL) ;
 
    /* glue multiple level vectims into 1, if needed */
 
@@ -309,7 +338,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    }
 
    free(vim) ;
-   return vout ;
+   RETURN(vout) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -338,13 +367,15 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
    int ii , jj , nin1,nout1 , jbot,jtop ;
    float ffac , fjmid , fj ;
 
-   if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) return ;
+ENTRY("resample_1D_float") ;
+
+   if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) EXRETURN ;
 
    /* nothing to do? */
 
    if( nin == nout ){
      memcpy( xout , xin , sizeof(float)*nin) ;
-     return ;
+     EXRETURN ;
    }
 
    ffac  = (nin-1.0f)/(nout-1.0f) ;
@@ -450,7 +481,7 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
      }
    }
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -464,13 +495,15 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    MRI_IMAGE *imttt ; byte *tttar , *tar ;
    float zbot,ztop , val , zfac , *qar , *zar=NULL , *yar ;
 
-   if( imts == NULL ) return NULL ;
+ENTRY("mri_vectim_to_grayplot") ;
+
+   if( imts == NULL ) RETURN(NULL) ;
 
    if( nxx < 512 ) nxx = 512 ; else if( nxx > 32768 ) nxx = 32768 ;
    if( nyy < 256 ) nyy = 256 ; else if( nyy > 32768 ) nyy = 32768 ;
 
    ntt = imts->nvals ;
-   nss = imts->nvec ; if( ntt < 19 || nss < 19 ) return NULL ;
+   nss = imts->nvec ; if( ntt < 19 || nss < 19 ) RETURN(NULL) ;
 
    /* find min and max of pre-processed data */
 
@@ -490,7 +523,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
       }
    }
 
-   if( zbot >= ztop ) return NULL ;
+   if( zbot >= ztop ) RETURN(NULL) ;
    if( grange <= 0.0f ){
      zfac = 255.4f / (ztop-zbot) ; domid = 0 ;
    } else {
@@ -526,7 +559,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    if( zar != NULL ){ free(zar); zar = NULL; }
 
    if( nss == nyy ){ /* number of rows we have == number of rows we want? */
-     return imttt ;
+     RETURN(imttt) ;
    }
 
    /* convert number of rows we have (nss) to number we want (nyy) */
@@ -564,7 +597,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
      }
    }
 
-   return imout ;
+   RETURN(imout) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -578,6 +611,8 @@ MRI_IMAGE * THD_dset_to_grayplot( THD_3dim_dataset *dset ,
 {
    MRI_vectim *vim ; MRI_IMAGE *imout ;
 
+ENTRY("THD_dset_to_grayplot") ;
+
    vim = THD_dset_grayplot_prep( dset , mmask , polort , fwhm ) ;
 
    if( nxout < 128 ) nxout = 1024 ;
@@ -587,5 +622,5 @@ MRI_IMAGE * THD_dset_to_grayplot( THD_3dim_dataset *dset ,
 
    VECTIM_destroy(vim) ;
 
-   return imout ;
+   RETURN(imout) ;
 }

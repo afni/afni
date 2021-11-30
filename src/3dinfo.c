@@ -75,6 +75,7 @@ int Syntax(TFORM targ, int detail)
 "   -space: dataset's space\n"
 "   -gen_space: datasets generic space\n"
 "   -av_space: AFNI format's view extension for the space\n"
+"   -nifti_code: what AFNI would use for an output NIFTI (q)sform_code\n"
 "   -is_oblique: 1 if dset is oblique\n"
 "   -handedness: L if orientation is Left handed, R if it is right handed\n"
 "   -obliquity: Angle from plumb direction.\n"
@@ -313,7 +314,8 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 }
 
 typedef enum {
-   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
+   CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, INFO_NIFTI_CODE,
+   IS_NIFTI, DSET_EXISTS,
    DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
    IS_ATLAS, IS_ATLAS_OR_LABELTABLE, IS_OBLIQUE, OBLIQUITY, 
    AFORM_REAL, AFORM_REAL_ONELINE, AFORM_REAL_REFIT_ORI, // [PT: Nov 13, 2020]
@@ -343,8 +345,8 @@ typedef enum {
                               Leave N_FIELDS at the end */
 
 char Field_Names[][32]={
-   {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
-   {"exten"}, {"smode"},
+   {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti_code"},
+   {"nifti?"}, {"exist?"}, {"exten"}, {"smode"},
    {"atlas?"}, {"atlas_or_lt?"}, {"oblq?"}, {"oblq"},
    {"aformr"}, {"aformr_line"}, {"aformr_refit"},
    {"aformr_orth?"}, {"aform_orth"}, {"perm2ori"},
@@ -496,6 +498,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = AV_DSET_SPACE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-gen_space") == 0) {
          sing[N_sing++] = DSET_GEN_SPACE; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-nifti_code") == 0) {
+         sing[N_sing++] = INFO_NIFTI_CODE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_nifti") == 0) {
          sing[N_sing++] = IS_NIFTI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-dset_extension") == 0) {
@@ -883,6 +887,9 @@ int main( int argc , char *argv[] )
                   fprintf(stdout, "-----");
             else
                   fprintf(stdout, "%s", tempstr);
+            break;
+         case INFO_NIFTI_CODE:
+            fprintf(stdout,"%d", space_to_NIFTI_code(dset));
             break;
          case AV_DSET_SPACE:
             /* don't allow anything but the three AFNI views */

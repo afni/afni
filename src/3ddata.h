@@ -4133,6 +4133,8 @@ typedef struct {
 
 extern char * THD_get_space(THD_3dim_dataset *dset);
 extern int THD_space_code(char *space);
+extern int space_to_NIFTI_code(THD_3dim_dataset *dset);
+
 
 extern int is_surface_storage_mode( int smode ) ;
 
@@ -5210,6 +5212,11 @@ extern MRI_vectim * THD_tcat_vectims( int , MRI_vectim ** ) ; /* 26 Jul 2010 */
 extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 
 extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
+
+extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
+                                               int istart , int numi ) ; /* 19 Nov 2021 */
+
+#define VECTIM_TEMP_IMAGE(vvv) THD_temp_subim_from_vectim( (vvv) , 0 , 0 )
 
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
