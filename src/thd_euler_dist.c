@@ -123,9 +123,11 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
       switch( vox_ord_rev[i] ){
          // note pairings per case: 0 and nx; 1 and ny; 2 and nz
+
       case 0 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         if ( !ival )
+            INFO_message("Move along axis %d (delta = %.6f)", 
+                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nx, sizeof(float) );
          maparr = (int *) calloc( nx, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -136,8 +138,9 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 1 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         if ( !ival )
+            INFO_message("Move along axis %d (delta = %.6f)", 
+                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( ny, sizeof(float) );
          maparr = (int *) calloc( ny, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -148,8 +151,9 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
          break;
 
       case 2 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         if ( !ival )
+            INFO_message("Move along axis %d (delta = %.6f)", 
+                         vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
          flarr = (float *) calloc( nz, sizeof(float) );
          maparr = (int *) calloc( nz, sizeof(int) );
          if( flarr == NULL || maparr == NULL ) 
@@ -176,82 +180,6 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
    return 0;
 }
-
-// ---------------------------------------------------------------------------
-
-/*
-  Basically, walk through the array many times and apply various
-  rescalings/negations/zeroings, the options commandeth.
-
-  arr_dist :  3D distance array of floats ('odt' in lib_EDT.py)
-              -> what has been filled in here
-  opts     :  struct containing default/user options 
-  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
-  ival     :  index value of the subbrick/subvolume to analyze
-
-*/
-int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
-                           THD_3dim_dataset *dset_roi, int ival)
-{
-   int i, j, k, idx;
-   int nx, ny, nz, nxy;
-
-   ENTRY("apply_opts_to_edt_arr");
-
-   // dset properties we need to know
-   nx = DSET_NX(dset_roi);
-   ny = DSET_NY(dset_roi);
-   nz = DSET_NZ(dset_roi);
-   nxy = nx*ny;
-
-   // Zero out EDT values in "zero" ROI?
-   if( opts.zeros_are_zeroed ) {
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( !THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k] = 0.0;
-            }
-   } 
- 
-   // Output distance-squared, or just distance (sqrt of what we have
-   // so-far calc'ed)
-   if( opts.do_sqrt ) {
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
-            }
-   }
-   
-   // negative where input was zero?
-   if( opts.zeros_are_neg ) { 
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( !THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k]*= -1.0;
-            }
-   }
-
-   // negative where input was nonzero?
-   if( opts.nz_are_neg ) { 
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k]*= -1.0;
-            }
-   }
-
-   return 0;
-}
-                           
-
-
 
 // ---------------------------------------------------------------------------
 
@@ -593,3 +521,79 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
 
     return Df0;
 }
+
+// ---------------------------------------------------------------------------
+
+/*
+  Basically, walk through the array many times and apply various
+  rescalings/negations/zeroings, the options commandeth.
+
+  arr_dist :  3D distance array of floats ('odt' in lib_EDT.py)
+              -> what has been filled in here
+  opts     :  struct containing default/user options 
+  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  ival     :  index value of the subbrick/subvolume to analyze
+
+*/
+int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
+                           THD_3dim_dataset *dset_roi, int ival)
+{
+   int i, j, k, idx;
+   int nx, ny, nz, nxy;
+
+   ENTRY("apply_opts_to_edt_arr");
+
+   // dset properties we need to know
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+
+   // Zero out EDT values in "zero" ROI?
+   if( opts.zeros_are_zeroed ) {
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k] = 0.0;
+            }
+   } 
+ 
+   // Output distance-squared, or just distance (sqrt of what we have
+   // so-far calc'ed)
+   if( opts.do_sqrt ) {
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
+            }
+   }
+   
+   // negative where input was zero?
+   if( opts.zeros_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+   // negative where input was nonzero?
+   if( opts.nz_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+   return 0;
+}
+                           
+
+
