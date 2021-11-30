@@ -30,7 +30,7 @@
 typedef struct {
 
    char *input_name;      
-
+   char *mask_name;      
    char *prefix;          
 
    int zeros_are_zeroed;  

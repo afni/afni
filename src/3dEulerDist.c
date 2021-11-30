@@ -85,6 +85,12 @@ int usage_3dEulerDist()
 "\n"
 "  -prefix PREF     :(req) output prefix name\n"
 "\n"
+"  -mask  MASK      :mask dataset.  NB: this mask is only applied *after*\n"
+"                    the EDT has been calculated.  Therefore, the boundaries\n"
+"                    of this mask have no affect on the calculated distance\n"
+"                    values, except for potentially zeroing some out at the\n"
+"                    end.\n"
+"\n"
 "  -dist_squared    :by default, the output EDT volume contains distance\n"
 "                    values.  By using this option, the output values are\n"
 "                    distance**2.\n"
@@ -162,23 +168,16 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          InOpts.input_name = strdup(argv[iarg]) ;
-
          iarg++ ; continue ;
       }
 
-      /*
       if( strcmp(argv[iarg],"-mask") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
-         dset_mask = THD_open_dataset(argv[iarg]);
-         if( dset_mask == NULL )
-            ERROR_exit("Can't open dataset '%s'", argv[iarg]);
-         DSET_load(dset_mask); CHECK_LOAD_ERROR(dset_mask);
-			
+         InOpts.mask_name = strdup(argv[iarg]) ;			
          iarg++ ; continue ;
       }
-      */
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( ++iarg >= argc ) 
@@ -202,7 +201,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-dist_squared") == 0) {
-         InOpts.do_sqrt = 1;
+         InOpts.do_sqrt = 0;
          iarg++ ; continue ;
       }
 
@@ -240,6 +239,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    int nn;
    int nx, ny, nz, nxy, nvox, nvals;
 	THD_3dim_dataset *dset_roi = NULL;          // input
+   THD_3dim_dataset *dset_mask = NULL;         // mask
 	THD_3dim_dataset *dset_edt = NULL;          // output
 
    float ***arr_dist = NULL;           // array that will hold dist values
@@ -250,6 +250,18 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    if( (dset_roi == NULL ))
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_roi); CHECK_LOAD_ERROR(dset_roi);
+
+   if( opts.mask_name ) {
+      dset_mask = THD_open_dataset(opts.mask_name);
+      if( dset_mask == NULL )
+         ERROR_exit("Can't open dataset '%s'", opts.mask_name);
+      DSET_load(dset_mask); CHECK_LOAD_ERROR(dset_mask);
+
+      if( THD_dataset_mismatch( dset_roi , dset_mask ) )
+         ERROR_exit("Mismatch between input and mask dsets!\n");
+   }
+
+
 
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
@@ -282,6 +294,14 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                tmp_arr[idx] = arr_dist[i][j][k];
             }
 
+      // the mask is only applied after all calcs
+      if( dset_mask ){
+         for( i=0 ; i<nvox ; i++ ) {
+            if( !THD_get_voxel(dset_mask, i, 0))
+                tmp_arr[i] = 0.0;
+         }
+      }
+
       /* Prepare header for output by copying that of input, and then
          changing items as necessary */
       dset_edt = EDIT_empty_copy( dset_roi ); 
@@ -313,6 +333,11 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
   	free(dset_edt); 
 
    // free more
+   if( dset_mask ){
+      DSET_delete(dset_mask);
+      free(dset_mask);
+   }
+
    if(arr_dist){
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 

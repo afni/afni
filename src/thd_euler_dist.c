@@ -7,6 +7,7 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    PARAMS_euler_dist defopt;
 
    defopt.input_name = NULL;     
+   defopt.mask_name = NULL;     
    defopt.prefix = NULL;         
 
    defopt.zeros_are_zeroed = 0;  
