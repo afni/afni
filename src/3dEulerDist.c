@@ -4,33 +4,12 @@
 
 # ==========================================================================
 #
-# This code calculates the Euclidean Distance Transform (EDT) for 3D
-# volumes following this nice, efficient algorithm, by Felzenszwalb
-# and Huttenlocher (2012;  FH2012):
 #
-#   Felzenszwalb PF, Huttenlocher DP (2012). Distance Transforms of
-#   Sampled Functions. Theory of Computing 8:415-428.
-#   https://cs.brown.edu/people/pfelzens/papers/dt-final.pdf
-#
-# Another useful/illustrative resource abotu this is by Philip Rideout:
-#
-#   https://prideout.net/blog/distance_fields/
-#
-# The current code here extends/tweaks the FH2012 algorithm to a more
-# general case of having several different ROIs present, for running
-# in 3D (trivial extension), and for having voxels of non-unity and
-# non-isotropic lengths.  It does this by utilizing the fact that at
-# its very heart, the FH2012 algorithm works line by line and can even
-# be thought of as working boundary-by-boundary.
-#
-# Here, the zero-valued "background" is also just treated like an ROI,
-# with one difference.  At a FOV boundary, the zero-valued
-# ROI/backgroud is treated as open, so that the EDT value at each
-# "zero" voxel is always to one of the shapes within the FOV.  For
-# nonzero ROIs, one can treat the FOV boundary *either* as an ROI edge
-# (EDT value there will be 1 edge length) *or* as being open.
-#
-# written by:  PA Taylor (NIH)
+# ver = 2.0;  date = 'Nov 29, 2021'
+# + [PT] this program has been a longtime coming.  This version merges
+#   P Taylor's Python version in lib_EDT.py with P Lauren's concurrent
+#   work on a C version (which had been compared/developed in part with 
+#   the aformentioned lib_EDT.py).
 #
 
 */
@@ -54,7 +33,7 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
 int usage_3dEulerDist() 
 {
-   char *author = "P Lauren and PA Taylor";
+   char *author = "P Lauren and PA Taylor (SSCC, NIMH, NIH)";
 
    printf(
 "\n"
@@ -66,21 +45,79 @@ int usage_3dEulerDist()
 "\n"
 "Description ~2~ \n"
 "\n"
+"This code calculates the Euclidean Distance Transform (EDT) for 3D\n"
+"volumes following this nice, efficient algorithm, by Felzenszwalb\n"
+"and Huttenlocher (2012;  FH2012):\n"
+"\n"
+"   Felzenszwalb PF, Huttenlocher DP (2012). Distance Transforms of\n"
+"   Sampled Functions. Theory of Computing 8:415-428.\n"
+"   https://cs.brown.edu/people/pfelzens/papers/dt-final.pdf\n"
+"\n"
+"Thanks to C. Rorden for pointing this paper out and discussing it.\n"
+"\n"
+"The current code here extends/tweaks the FH2012 algorithm to a more\n"
+"general case of having several different ROIs present, for running\n"
+"in 3D (trivial extension), and for having voxels of non-unity and\n"
+"non-isotropic lengths.  It does this by utilizing the fact that at\n"
+"its very heart, the FH2012 algorithm works line by line and can even\n"
+"be thought of as working boundary-by-boundary.\n"
+"\n"
+"Here, the zero-valued 'background' is also just treated like an ROI,\n"
+"with one difference.  At a FOV boundary, the zero-valued\n"
+"ROI/backgroud is treated as open, so that the EDT value at each\n"
+"'zero' voxel is always to one of the shapes within the FOV.  For\n"
+"nonzero ROIs, one can treat the FOV boundary *either* as an ROI edge\n"
+"(EDT value there will be 1 edge length) *or* as being open.\n"
 "\n"
 "==========================================================================\n"
 "\n"
 "Command usage and option list ~1~ \n"
 "\n"
-"  3dEulerDist [something]\n"
+"  3dEulerDist [options] -prefix PREF -input DSET\n"
 "\n"
 "where: \n"
 "\n"
 "  -input DSET      :(req) input dataset\n"
 "\n"
+"  -prefix PREF     :(req) output prefix name\n"
+"\n"
+"  -dist_squared    :by default, the output EDT volume contains distance\n"
+"                    values.  By using this option, the output values are\n"
+"                    distance**2.\n"
+"\n"
+"  -zeros_are_zero  :by default, EDT values are output for the full FOV,\n"
+"                    even zero-valued regions.  If this option is used, EDT\n"
+"                    values are only reported within the non-zero locations\n"
+"                    of the input dataset.\n"
+"\n"
+"  -bounds_are_zero :this flag affects how FOV boundaries are treated for\n"
+"                    nonzero ROIs: by default, they are viewed as ROI\n"
+"                    boundaries (so the FOV is a closed boundary for an ROI);\n"
+"                    but when this option is used, the ROI behaves as if it\n"
+"                    continued 'infinitely' at the FOV boundary (so it is\n"
+"                    an open boundary).  Zero-valued ROIs (= background)\n"
+"                    are not affected by this option.\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Examples ~1~\n"
 "\n"
+"1) Basic case:\n"
+"   3dEulerDist                                                     \\\n"
+"       -input  roi_map.nii.gz                                      \\\n"
+"       -prefix roi_map_EDT.nii.gz                                  \n"
+"\n"
+"2) Same as above, but only output distances within non-zero regions/ROIs:\n"
+"   3dEulerDist                                                     \\\n"
+"       -zeros_are_zero                                             \\\n"
+"       -input  roi_map.nii.gz                                      \\\n"
+"       -prefix roi_map_EDT_NZ.nii.gz                               \n"
+"\n"
+"3) Output distance-squared at each voxel:\n"
+"   3dEulerDist                                                     \\\n"
+"       -dist_squared                                               \\\n"
+"       -input  mask.nii.gz                                         \\\n"
+"       -prefix mask_EDT_SQ.nii.gz                                  \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -160,7 +197,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-dist_square") == 0) {
+      if( strcmp(argv[iarg],"-dist_squared") == 0) {
          InOpts.do_sqrt = 1;
          iarg++ ; continue ;
       }
@@ -290,7 +327,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
   opts     :  struct containing options 
   dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
   ival     :  index value of the subbrick/subvolume to analyze
-  */
+*/
 int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
                  THD_3dim_dataset *dset_roi, int ival)
 {
@@ -335,7 +372,7 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg
-   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev);
+   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
 
    for( i=0 ; i<3 ; i++ ){
       float *flarr=NULL;   // store distances along one dim
