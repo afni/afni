@@ -74,13 +74,13 @@ ENTRY("mri_vec_to_pvmap") ;
    xran[2] = (unsigned short)(nx*ny+7) ;
 
    iar   = MRI_FLOAT_PTR(inim) ;
-#if 1
+#if 0
 ININFO_message("   Computing principal_vector_pair") ;
 #endif
-   svals = principal_vector_pair( nx , ny , 0 , iar ,
+   svals = principal_vector_pair( nx , ny , 0 , iar ,  /* cf. cs_pv.c */
                                   uvec , vvec , NULL , NULL , xran ) ;
 
-#if 1
+#if 0
 ININFO_message("   mri_vec_to_pvmap: svals = %g %g",svals.a,svals.b) ;
 #if 0
 for( ii=0 ; ii < nx ; ii++ ){
@@ -93,7 +93,7 @@ for( ii=0 ; ii < nx ; ii++ ){
 
    if( svals.a < 0.0f || svals.b < 0.0f ) RETURN(NULL) ;
 
-#if 1
+#if 0
 ININFO_message("   Computing output image") ;
 #endif
    outim = mri_new( ny , 1 , MRI_float ) ;
