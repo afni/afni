@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+# include <omp.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 
 static float symeig_sim1( int n  , float *asym , float *vec ,
@@ -23,7 +27,7 @@ void * pv_get_workspace( int n , int m )
 
    nb  = MIN(nn,mm) ; nt = MAX(nn,mm) ;
    mmm = nb*nb + nn*mm + 16*nt ;
-#if 1
+#if 0
 ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*(size_t)mmm) ) ;
 #endif
    ws  = malloc( sizeof(float)*(size_t)mmm ) ;
@@ -32,10 +36,17 @@ ININFO_message("   pv_get_workspace %lld bytes",(long long)(sizeof(float)*(size_
 
 /*----------------------------------------------------------------------------*/
 
+/* nsym X nsym matrix element (i,j) */
 #undef  A
 #define A(i,j) asym[(i)+(j)*nsym]
+
+/* pointer to the q'th column of length nn (for q=0..mm-1) */
 #undef  XPT
 #define XPT(q) ( (xtyp<=0) ? xx+(q)*nn : xar[q] )
+
+/* (p,q) element of input matrix (p=0..nn-1, q=0..mm-1) -- NOT USED */
+#undef  XX
+#define XX(p,q) ( (xtyp<0) ? xx[(p)+(q)*nn] : xar[q][p] )
 
 /*----------------------------------------------------------------------------*/
 /*! Compute the mean vector of a set of m columns, each of length n.
@@ -457,7 +468,7 @@ float_pair principal_vector_pair( int n , int m , int xtyp , void *xp ,
 {
    UAint64 nn=(UAint64)n , mm=(UAint64)m , nsym , jj,kk,qq , ii ;
    float *asym ;
-   float sum,qsum ; float *xj,*xk ;
+   float sum,qsum ; float *xi,*xj,*xk ;
    float sval , *xx=NULL , **xar=NULL ;
    float_pair svout = {-666.0f,-666.0f} ;
    float *wws=(float *)ws ; int64_t nws=0 ;
@@ -501,6 +512,11 @@ ENTRY("principal_vector_pair") ;
 
    } /*----- end of trivial case -----*/
 
+   if( xtyp <= 0 ){  /* create xar for this storage type */
+     xar = (float **)malloc(sizeof(float *)*mm) ;
+     for( ii=0 ; ii < mm ; ii++ ) xar[ii] = xx+ii*nn ;
+   }
+
    if( wws == NULL ) wws = (float *)pv_get_workspace(nn,mm) ;
 
    asym = wws ; nws = nsym*nsym ;  /* symmetric matrix */
@@ -510,13 +526,10 @@ ENTRY("principal_vector_pair") ;
 
    if( nn > mm ){                       /* more rows than columns:  */
                                         /* so [A] = [X]'[X] = m x m */
-#if 1
-ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
-#endif
      for( jj=0 ; jj < mm ; jj++ ){
-       xj = XPT(jj) ;
+       xj = xar[jj] ;
        for( kk=0 ; kk <= jj ; kk++ ){
-         xk = XPT(kk) ;
+         xk = xar[kk] ;
          for( sum=0.0f,ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
@@ -524,64 +537,66 @@ ININFO_message("   Computing matrix with nn=%d > mm=%d",nn,mm) ;
 
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
-     float *xt = wws + nws ;
-#if 0
-     if( ws != NULL ){
-        xt = wws + nws ;
-     }else {
-        xt = (float *)malloc(sizeof(float)*(size_t)(mm)*(size_t)nn) ;
-#if 1
-ININFO_message("malloc xt = %p",(void *)xt) ;
-#endif
-     }
-#endif
-
-#if 1
-ININFO_message("    form X' matrix") ;
+     memset( asym , 0 , sizeof(float)*nsym*nsym ) ;
+#ifdef USE_OMP
+#pragma omp parallel if( mm > 99999 )
+ {
+#pragma omp master
+  { int nthr = omp_get_num_threads() ;
+    if( mm > 99999 )
+      ININFO_message("nn=%lld < mm=%lld -- using %d threads",
+                     (long long)nn , (long long)mm , nthr    ) ;
+ } }
 #endif
 
-     for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
-       if( xtyp <= 0 )
-         for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
-       else
-         for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xar[jj][ii] ;
-     }
+     for( ii=0 ; ii < mm ; ii++ ){
+       xi = xar[ii] ;
 
-#if 1
-ININFO_message("   Computing matrix with nn=%d <= mm=%d",nn,mm) ;
-ININFO_message("   sizeof(xt)  = %u  xt  = %p"            ,sizeof(xt) ,(void *)xt  ) ;
-ININFO_message("   sizeof(wws) = %u  wws = %p  nws = %lld",sizeof(wws),(void *)wws,(long long)nws ) ;
-#endif
-     for( jj=0 ; jj < nn ; jj++ ){
-       for( kk=0 ; kk <= jj ; kk++ ){
-#if 1
-if( kk==jj )fprintf(stderr," (%d,%d)",(int)jj,(int)kk) ;
-#endif
-         xj = xt + jj*mm ;
-         xk = xt + kk*mm ;
-STATUS("inner loop for matrix") ;
-         for( sum=0.0f,ii=0 ; ii < mm ; ii++,xj++,xk++ ) sum += (*xj)*(*xk) ;
-#if 1
-if( kk==jj )fprintf(stderr,"=%g",sum) ;
-#endif
-         A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+if( mm > 99999 && ii%10000 == 0 ) ININFO_message(" start ii=%lld",(long long)ii) ;
+
+AFNI_OMP_START ;
+#pragma omp parallel if( mm > 99999 )
+{      UAint64 jj,kk,qq , qtop ;
+       qtop = nn*(nn+1)/2 ;
+#pragma omp for
+       /* In the code below:
+            qq = kk + jj*(jj+1)/2 = lower triangular index in symmetric matrix
+                                            kk=0,1 ->
+                                     jj=0 [ 0       ]
+                                     jj=1 [ 1 2     ]
+                                          [ 3 4 5   ]
+                                          [ 6 7 8 9 ]
+           and we want to compute (jj,kk) given qq -- the reason for this
+           convoluted code is to allow this loop to be parallelized, and
+           for that to happen, it has to be (1) a single loop - not a double
+           loop over (jj,kk), and (2) it has to have a pre-computable number
+           of iterates (qtop) determinable by the OpenMP software.
+           * The result is jj = [ sqrt(8*qq+1)-1 ] / 2 and then kk follows
+           * For example, qq=7: sqrt(7*8+1) - 1 = 6.54983
+                                ditto / 2       = 3.27492
+                                floor(ditto)    = 3 = correct row index
+           * Twisted counting logic for (hopeful) efficiency when there's
+             a lot of computation going on (mm and nn big). [RWC - 29 Nov 2021]
+       */
+       for( qq=0 ; qq < qtop ; qq++ ){ /* loop over (jj,kk): lower triangle */
+         jj = (UAint64)floor((sqrt(8.0*(double)qq+1.000001)-0.999999)*0.5) ;
+         kk = qq - jj*(jj+1)/2 ;
+         A(jj,kk) += xi[jj]*xi[kk] ;
        }
+}
+AFNI_OMP_END ;
      }
-     /* xt is no longer malloc'd   [26 Nov 2021 rickr] */
-     /* if( ws == NULL ) free(xt) ; */
-#if 1
-fprintf(stderr,"\n") ;
-#endif
+     for( jj=0 ; jj < nn ; jj++ ){           /* reflect result to upper triangle */
+       for( kk=0 ; kk < jj ; kk++ ) A(kk,jj) = A(jj,kk) ;
+     }
 
-   }
+   } /* at this point, asym[] contains the symmetric matrix */
 
-#if 1
-ININFO_message("   Checking if matrix is all zero") ;
-#endif
    if( is_allzero(nsym*nsym,asym) ){
      for( jj=0 ; jj < nn ; jj++ ) uvec[jj] = vvec[jj] = 0.0f ;
      svout.a = svout.b = 0.0f ;
      ININFO_message("   principal_vector_pair() -- %d x %d matrix is all zero :(",nsym,nsym) ;
+     if( xtyp <= 0 ) free(xar) ;
      RETURN( svout );
    }
 
@@ -602,9 +617,6 @@ ININFO_message("   Checking if matrix is all zero") ;
    if( nn <= mm ){                    /* copy eigenvector into output directly */
                                       /* (e.g., more vectors than time points) */
 
-#if 1
-ININFO_message("   computing symeig_sim2") ;
-#endif
      (void)mean_vector( nsym , nsym , 0 , asym , uvec ) ;
      svout = symeig_sim2( (int)nsym , asym , uvec , vvec , wws+nws , xran ) ;
 
@@ -613,16 +625,10 @@ ININFO_message("   computing symeig_sim2") ;
 
      float *qvec , *rvec , rsum , ssum ;
 
-#if 1
-ININFO_message("   computing symeig_sim2") ;
-#endif
      qvec = wws + nws ; nws += nsym ;
      rvec = wws + nws ; nws += nsym ;
      (void)mean_vector( nsym , nsym , 0 , asym , qvec ) ;
      svout = symeig_sim2( (int)nsym , asym , qvec , rvec , wws+nws , xran ) ;
-#if 1
-ININFO_message("   transforming to get left singular vectors") ;
-#endif
      for( rsum=qsum=0.0f,ii=0 ; ii < nn ; ii++ ){
        ssum = sum = 0.0f ;
        if( xtyp <= 0 ){
@@ -665,6 +671,7 @@ ININFO_message("   transforming to get left singular vectors") ;
    /** free at last!!! **/
 
    if( wws != ws ) free(wws) ;
+   if( xtyp <= 0 ) free(xar) ;
 
    svout.a = sqrtf(svout.a) ; svout.b = sqrtf(svout.b) ; RETURN (svout) ;
 }

@@ -462,11 +462,6 @@ Ifile:Ifile.o
 3dGetrow:3dGetrow.o
 	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
-3dGrayplot.o: 3dGrayplot.c thd_dset_to_grayplot.c mri_pvmap.c
-
-3dGrayplot:3dGrayplot.o
-	$(CC) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)
-
 3dEulerDist.o: 3dEulerDist.c thd_euler_dist.c
 
 3dEulerDist:3dEulerDist.o
@@ -1388,6 +1383,14 @@ mri_nstats.o:mri_nstats.c
 3dBallMatch:3dBallMatch.o
 	$(RM) $@
 	$(CCOMP) -o 3dBallMatch 3dBallMatch.o $(LFLAGS) $(LLIBS)
+
+3dGrayplot.o:3dGrayplot.c thd_dset_to_grayplot.c mri_pvmap.c cs_pv.c
+	$(RM) $@
+	$(CCOMP) -c 3dGrayplot.c $(INFLAGS)
+
+3dGrayplot:3dGrayplot.o
+	$(RM) $@
+	$(CCOMP) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)
 
 3dEdu_01_scale:3dEdu_01_scale.o
 	$(RM) $@
