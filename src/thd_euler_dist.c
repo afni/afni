@@ -30,6 +30,9 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
 // ---------------------------------------------------------------------------
 
 /*
+  Minor helper function: we want to go through the axes in the order
+  of descending voxel size.
+
   Ledge : (input) array of 3 vox edge lengths
   ord   : (output) array of 3 indices, describing decreasing vox size
 */
@@ -59,9 +62,219 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord)
 // ---------------------------------------------------------------------------
 
 /*
+  arr_dist :  initialized 3D distance array of floats ('odt' in lib_EDT.py)
+              -> what is filled in here
+  opts     :  struct containing default/user options 
+  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  ival     :  index value of the subbrick/subvolume to analyze
+*/
+int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, int ival)
+{
+   int i, j, k, idx;
+   float minmax[2] = {0, 0};
+   int nx, ny, nz, nxy;
+
+   float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
+   int vox_ord_rev[3];
+
+   ENTRY("calc_EDT_3D");
+
+   // check if a subbrick is const; there are a couple cases where we
+   // would be done at this stage.
+   i = THD_subbrick_minmax( dset_roi, ival, 1, &minmax[0], &minmax[1] );
+   if ( minmax[0] == minmax[1] ){
+      if ( minmax[1] == 0.0 ){
+         WARNING_message("Constant (zero) subbrick: %d\n"
+                         "\t-> This volume will have all zero values", ival);
+         return 0;
+      }
+      else if( !opts.bounds_are_zero ){
+         WARNING_message("Constant (nonzero) subbrick, "
+                         "and no bounds_are_zero: %d\n"
+                         "\t-> This volume will have all zero values", ival);
+         return 0;
+      }
+   }
+
+   // dset properties we need to know
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+   Ledge[0] = fabs(DSET_DX(dset_roi)); 
+   Ledge[1] = fabs(DSET_DY(dset_roi)); 
+   Ledge[2] = fabs(DSET_DZ(dset_roi)); 
+
+   // initialize distance array to BIG
+   for ( i=0 ; i<nx ; i++ ) 
+      for ( j=0 ; j<ny ; j++ ) 
+         for ( k=0 ; k<nz ; k++ ) 
+            arr_dist[i][j][k] = BIG;
+
+   // find axis order of decreasing voxel sizes, to avoid pathology in
+   // the EDT alg (that miiiight have only existed in earlier calc
+   // method, but it still makes sense to do---why not?)
+   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
+
+   for( i=0 ; i<3 ; i++ ){
+      float *flarr=NULL;   // store distances along one dim
+      int *maparr=NULL;    // store ROI map along one dim
+
+      switch( vox_ord_rev[i] ){
+         // note pairings per case: 0 and nx; 1 and ny; 2 and nz
+      case 0 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         flarr = (float *) calloc( nx, sizeof(float) );
+         maparr = (int *) calloc( nx, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+         
+         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
+         break;
+
+      case 1 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         flarr = (float *) calloc( ny, sizeof(float) );
+         maparr = (int *) calloc( ny, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+
+         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
+         break;
+
+      case 2 :
+         INFO_message("Move along axis %d (delta = %.6f)", 
+                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
+         flarr = (float *) calloc( nz, sizeof(float) );
+         maparr = (int *) calloc( nz, sizeof(int) );
+         if( flarr == NULL || maparr == NULL ) 
+            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+
+         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
+                               flarr, maparr );
+         
+         break;
+
+      default:
+         WARNING_message("Should never be here in EDT prog");
+      }
+
+      if( flarr) free(flarr);
+      if( maparr) free(maparr);
+   } // end of looping over axes
+
+   // Apply various user post-proc options
+   i = apply_opts_to_edt_arr( arr_dist, opts, dset_roi, ival);
+
+   // At this point, arr_dist should have the correct distance values
+   // for this 3D volume
+
+   return 0;
+}
+
+// ---------------------------------------------------------------------------
+
+/*
+  Basically, walk through the array many times and apply various
+  rescalings/negations/zeroings, the options commandeth.
+
+  arr_dist :  3D distance array of floats ('odt' in lib_EDT.py)
+              -> what has been filled in here
+  opts     :  struct containing default/user options 
+  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  ival     :  index value of the subbrick/subvolume to analyze
+
+*/
+int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
+                           THD_3dim_dataset *dset_roi, int ival)
+{
+   int i, j, k, idx;
+   int nx, ny, nz, nxy;
+
+   ENTRY("apply_opts_to_edt_arr");
+
+   // dset properties we need to know
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+
+   // Zero out EDT values in "zero" ROI?
+   if( opts.zeros_are_zeroed ) {
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k] = 0.0;
+            }
+   } 
+ 
+   // Output distance-squared, or just distance (sqrt of what we have
+   // so-far calc'ed)
+   if( opts.do_sqrt ) {
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
+            }
+   }
+   
+   // negative where input was zero?
+   if( opts.zeros_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( !THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+   // negative where input was nonzero?
+   if( opts.nz_are_neg ) { 
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival) )
+                  arr_dist[i][j][k]*= -1.0;
+            }
+   }
+
+   return 0;
+}
+                           
+
+
+
+// ---------------------------------------------------------------------------
+
+/*
+  calc_EDT_3D_dim?(...) are a set of 3 functions that manage walking
+  along each of the axes: calc_EDT_3D_dim2(...)  does calcs along the
+  [2]th axis, etc. 
+
+  In each, there are "hardwired" aspects for each dimension: loop
+  order, using index [0], using 'nx', etc.  So be very careful if you
+  want to edit these: make sure you don't forget to get the
+  appropriate axis in each.  Likely, each should be edited in parallel.
+
   By construction, flarr has the correct length for each of the
-  dimension calc_EDT_3D_dim?(...) funcs; the calc_EDT_3D_dim2(...)
-  does calcs along the [2]th axis, etc.
+  dimension calc_EDT_3D_dim?(...)  funcs from how these funcs are called.
+
+  arr_dist       :3D float array of distances (gets edited/updated here)
+  opts           :struct of opts, from default/user specification
+  dset_roi       :input map of ROIs, guides the process
+  ival           :subbrick/subvolume index (dset_roi could be 4D)
+  flarr          :1D array of distances, getting updated in this specific func
+                  (from which arr_dist gets updated)
+  maparr         :1D array of ROIs, matched with flarr to guide its calcs
 */
 
 // analyzing along [2]th dimension
@@ -102,7 +315,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
    return 0;
 }
 
-
+// see notes by calc_EDT_3D_dim2(...)
 int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, int *maparr )
@@ -140,6 +353,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
    return 0;
 }
 
+// see notes by calc_EDT_3D_dim2(...)
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, int *maparr )
@@ -177,6 +391,18 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
    return 0;
 }
 
+// -----------------------------------------------------------------------
+
+/*
+  Manage how each line gets chunked and handed in pieces to the actual
+  EDT-calculating function.
+
+  dist2_line      :float array of 'Na' distance values (gets updated here)
+  roi_line        :int array of 'Na' ROI labels (unchanged)
+  Na              :length of 1D arrays used here
+  delta           :voxel dim along this 1D array
+  bounds_are_zero :option for how to treat FOV boundaries for nonzero ROIs
+*/
 int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
                        float delta, int bounds_are_zero )
 {
@@ -259,33 +485,39 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
    return 0;
 }
 
+// -----------------------------------------------------------------------
+
+/*
+  *Finally*, the actual EDT calculation.
+
+  Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
+  Huttenlocher (2012), but for given voxel lengths.
+  
+  Assumes that: len(f) < sqrt(10**10).
+  
+  In this version, all voxels should have equal length, and units are
+  "edge length" or "number of voxels."
+  
+  Parameters
+  ----------
+  
+  f0       : 1D array. Either distance**2 values (or, to start,
+             values binarized to 0 or BIG).
+  
+  n        : len of f0 array
+
+  delta    : element edge length along this dimension.
+  
+  To deal with anisotropic and non-unity-edge-length elements, first
+  scale non-BIG distances to be "as if" there were edge=1 voxels, and
+  then at end scale back.
+  
+  [PT] Comment: unlike in earlier thinking (even before current scale
+  down/up approach), do NOT want to mult 'BIG' by 'delta', because
+  pixels/voxels can be anisotropic here.
+*/
 float * Euclidean_DT_delta(float *f0, int n, float delta)
 {
-   /*
-     Classical Euclidean Distance Transform (EDT) of Felzenszwalb and
-     Huttenlocher (2012), but for given voxel lengths.
-   
-     Assumes that: len(f) < sqrt(10**10).
-   
-     In this version, all voxels should have equal length, and units
-     are "edge length" or "number of voxels."
-   
-     Parameters
-     ----------
-   
-     f0       : 1D array or list. Either distance**2 values (or, to start,
-                values binarized to 0 or BIG).
-   
-     delta    : element edge length along this dimension.
-   
-     To deal with anisotropic and non-unity-edge-length elements,
-     first scale non-BIG distances to be "as if" there were edge=1
-     voxels, and then at end scale back.
-   
-     [PT] Comment: unlike in earlier thinking (even before current
-     scale down/up approach), do NOT want to mult 'BIG' by 'delta',
-     because pixels/voxels can be anisotropic here.
-   */
 
    int i, q;
    float s;

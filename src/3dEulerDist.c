@@ -23,14 +23,12 @@ ver = 2.0;  date = Nov 29, 2021
 
 int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                 int argc, char *argv[] );
-int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
-                 THD_3dim_dataset *dset_roi, int ival);
 
 // --------------------------------------------------------------------------
 
 int usage_3dEulerDist() 
 {
-   char *author = "P Lauren and PA Taylor (SSCC, NIMH, NIH)";
+   char *author = "PA Taylor and P Lauren (SSCC, NIMH, NIH)";
 
    printf(
 "\n"
@@ -282,7 +280,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
 
-
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
@@ -301,17 +298,29 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       exit(12);
    }
 
+   /* Prepare header for output by copying that of input, and then
+      changing items as necessary */
+   dset_edt = EDIT_empty_copy( dset_roi ); 
+   EDIT_dset_items(dset_edt,
+                   ADN_datum_all, MRI_float ,    
+                   ADN_prefix, opts.prefix,
+                   ADN_none );
+
    for( nn=0 ; nn<nvals ; nn++ ){
       float *tmp_arr = NULL;
       tmp_arr = (float *) calloc( nvox, sizeof(float) );
 
       i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
 
+      // Copy arr_dist values to tmp_arr, which will be used to
+      // populate the actual dset.  Then reset arr_dist values (to
+      // prepare for another iteration)
       for( i=0 ; i<nx ; i++ )
          for( j=0 ; j<ny ; j++ ) 
             for( k=0; k<nz ; k++ ) {
                idx = THREE_TO_IJK(i, j, k, nx, nxy);
                tmp_arr[idx] = arr_dist[i][j][k];
+               arr_dist[i][j][k] = 0.0;
             }
 
       // the mask is only applied after all calcs
@@ -321,14 +330,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                 tmp_arr[i] = 0.0;
          }
       }
-
-      /* Prepare header for output by copying that of input, and then
-         changing items as necessary */
-      dset_edt = EDIT_empty_copy( dset_roi ); 
-      EDIT_dset_items(dset_edt,
-                      ADN_datum_all, MRI_float ,    
-                      ADN_prefix, opts.prefix,
-                      ADN_none );
       
       // provide volume values from the appropriately-sized array
       EDIT_substitute_brick(dset_edt, nn, MRI_float, tmp_arr); 
@@ -369,164 +370,4 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
 
    return 0;
 }
-
-/*
-  arr_dist :  initialized 3D distance array of floats ('odt' in lib_EDT.py)
-              -> what is filled in here
-  opts     :  struct containing options 
-  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
-  ival     :  index value of the subbrick/subvolume to analyze
-*/
-int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
-                 THD_3dim_dataset *dset_roi, int ival)
-{
-   int i, j, k, idx;
-   float minmax[2] = {0, 0};
-   int nx, ny, nz, nxy;
-
-   float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
-   int vox_ord_rev[3];
-
-   ENTRY("calc_EDT_3D");
-
-   // check if a subbrick is const; there are a couple cases where we
-   // would be done at this stage.
-   i = THD_subbrick_minmax( dset_roi, ival, 1, &minmax[0], &minmax[1] );
-   if ( minmax[0] == minmax[1] ){
-      if ( minmax[1] == 0.0 ){
-         WARNING_message("Constant (zero) subbrick: %d", ival);
-         return 0;
-      }
-      else if( !opts.bounds_are_zero ){
-         WARNING_message("Constant (nonzero) subbrick, "
-                         "and no bounds_are_zero: %d", ival);
-         return 0;
-      }
-   }
-
-   // dset properties we need to know
-   nx = DSET_NX(dset_roi);
-   ny = DSET_NY(dset_roi);
-   nz = DSET_NZ(dset_roi);
-   nxy = nx*ny;
-   Ledge[0] = fabs(DSET_DX(dset_roi)); 
-   Ledge[1] = fabs(DSET_DY(dset_roi)); 
-   Ledge[2] = fabs(DSET_DZ(dset_roi)); 
-
-   // initialize distance array to BIG
-   for ( i=0 ; i<nx ; i++ ) 
-      for ( j=0 ; j<ny ; j++ ) 
-         for ( k=0 ; k<nz ; k++ ) 
-            arr_dist[i][j][k] = BIG;
-
-   // find axis order of decreasing voxel sizes, to avoid pathology in
-   // the EDT alg
-   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
-
-   for( i=0 ; i<3 ; i++ ){
-      float *flarr=NULL;   // store distances along one dim
-      int *maparr=NULL;    // store ROI map along one dim
-
-      switch( vox_ord_rev[i] ){
-         // note pairings per case: 0 and nx; 1 and ny; 2 and nz
-      case 0 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
-         flarr = (float *) calloc( nx, sizeof(float) );
-         maparr = (int *) calloc( nx, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
-         
-         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         break;
-
-      case 1 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
-         flarr = (float *) calloc( ny, sizeof(float) );
-         maparr = (int *) calloc( ny, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
-
-         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         break;
-
-      case 2 :
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], Ledge[vox_ord_rev[i]]);
-         flarr = (float *) calloc( nz, sizeof(float) );
-         maparr = (int *) calloc( nz, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
-
-         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         
-         break;
-
-      default:
-         WARNING_message("Should never be here in EDT prog");
-      }
-
-      if( flarr) free(flarr);
-      if( maparr) free(maparr);
-   } // end of looping over axes
-
-   // ----- Apply various user post-proc options, if asked for -------
-   
-   // Zero out EDT values in "zero" ROI?
-   if( opts.zeros_are_zeroed ) {
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( !THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k] = 0.0;
-            }
-   } 
- 
-   // Output distance-squared, or just distance (sqrt of what we have
-   // so-far calc'ed)
-   if( opts.do_sqrt ) {
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
-            }
-   }
-   
-
-   // negative where input was zero?
-   if( opts.zeros_are_neg ) { 
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( !THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k]*= -1.0;
-            }
-   }
-
-   // negative where input was nonzero?
-   if( opts.nz_are_neg ) { 
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ){
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( THD_get_voxel(dset_roi, idx, ival) )
-                  arr_dist[i][j][k]*= -1.0;
-            }
-   }
-
-
-
-   // at this point, arr_dist should have the correct distance values
-   // for this 3D volume
-
-   return 0;
-}
-
-
 

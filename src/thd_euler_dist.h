@@ -51,6 +51,12 @@ PARAMS_euler_dist set_euler_dist_defaults(void);
 
 int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 
+int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
+                           THD_3dim_dataset *dset_roi, int ival);
+
+int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, int ival);
+
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, int *maparr );
