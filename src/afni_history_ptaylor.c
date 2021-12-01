@@ -72,6 +72,7 @@ afni_history_struct ptaylor_history[] = {
 { 30, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
    "Added many more internal comments, e.g., codebase references.",
    "Thanks for the discussion+suggestions, J Teves!\n"
+},
 
 { 30, Nov , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_PROG,
    "New C prog for Eulerian Distance Transform (EDT) for ROI-based dsets.",
