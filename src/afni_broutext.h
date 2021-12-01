@@ -361,7 +361,7 @@ static char * afni_broutext[] = {
    "Kaiser-Wilhelm-Institut fur Hirnforschung (Institute for Brain Research).\n" ,
    "\n" ,
    "In 1909 he published his original research on cortical cytoarchitectonics in\n" ,
-   "'Vergleichende Lokalisationslehre der Gro§hirnrinde in ihren Prinzipien\n" ,
+   "'Vergleichende Lokalisationslehre der Grosshirnrinde in ihren Prinzipien\n" ,
    "dargestellt auf Grund des Zellenbaues' (Comparative Localization Studies in\n" ,
    "the Brain Cortex, its Fundamentals Represented on the Basis of its Cellular\n" ,
    "Architecture).\n" ,
