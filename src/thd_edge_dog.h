@@ -9,7 +9,7 @@ typedef struct {
    char *prefix;          
    char *prefix_dog; //[THD_MAX_PREFIX];          
 
-   int do_output_dog;
+   int do_output_intermed;
 
    float sigma_rad[3];
    float sigma_nvox[3];

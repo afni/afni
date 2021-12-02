@@ -81,10 +81,12 @@ int usage_3dedgedog()
 "                    greater than 1 (def: %f). Default chosen because\n"
 "                    MH1980 liked this value.\n"
 "\n"
-"  -output_dog      :use this option flag if you would like to output the\n"
-"                    intermediate difference of Gaussian (DOG) dset\n"
-"                    (def: not output).  Output will be prefix name with\n"
-"                    '_DOG' appended to it.\n"
+"  -output_intermed :use this option flag if you would like to output some\n"
+"                    intermediate dataset(s):\n"
+"                         + DOG (difference of Gaussian)\n"
+"                         + EDT (Euler Distance Transform), [0]th vol only\n"
+"                    (def: not output).  Output names  will be user-entered\n"
+"                    prefix with a representative suffix appended.\n"
 "\n"
 "  -edge_bnd_NN EBN :specify the 'nearest neighbor' (NN) value for the\n"
 "                    connectedness of the drawn boundaries.  EBN must be\n"
@@ -254,8 +256,8 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-output_dog") == 0 ){
-         InOpts.do_output_dog = 1;
+      if( strcmp(argv[iarg],"-output_intermed") == 0 ){
+         InOpts.do_output_intermed = 1;
          iarg++ ; continue ;
       }
 
@@ -268,8 +270,7 @@ int main(int argc, char *argv[]) {
    //               verify presence+behavior of inputs
    // ****************************************************************
 
-   INFO_message("Starting to check inputs...");
-
+   INFO_message("3dedgedog: verify inputs");
 
    if ( !InOpts.input_name ) { 
       ERROR_message("You need to provide an input dset with '-input ..'");
@@ -334,29 +335,14 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
                    ADN_none );
 
    // calculate DOG
+   INFO_message("Calculate DOG");
    for( nn=0 ; nn<nvals ; nn++ )
       i = calc_edge_dog_DOG(dset_dog, opts, dset_input, nn);
    
-   // make output dset
-   dset_bnd = EDIT_empty_copy( dset_input ); 
-   EDIT_dset_items(dset_bnd,
-                   ADN_nvals, nvals,
-                   ADN_datum_all, MRI_short,    
-                   ADN_prefix, opts.prefix,
-                   ADN_none );
+   // Output DOG data, if asked
+   if ( opts.do_output_intermed ){
+      INFO_message("Output intermediate dset: %s", prefix_dog);
 
-   // might be several ways to calc this
-   for( nn=0 ; nn<nvals ; nn++ )
-      i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
-
-
-   // free input dset
-	DSET_delete(dset_input); 
-  	free(dset_input); 
-
-   // build prefix for DOG dset, if outputting it
-   if ( opts.do_output_dog ){
-   
       THD_load_statistics( dset_dog );
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_dog)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
@@ -365,15 +351,59 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
       // write and free dset 
       THD_write_3dim_dataset(NULL, NULL, dset_dog, True);
+   }
+
+
+   // ------------------------ calc edge/bnd ---------------------------
+
+   dset_bnd = EDIT_empty_copy( dset_input ); 
+   EDIT_dset_items(dset_bnd,
+                   ADN_nvals, nvals,
+                   ADN_datum_all, MRI_short,    
+                   ADN_prefix, opts.prefix,
+                   ADN_none );
+
+   INFO_message("Calculate boundaries");
+
+   // might be several ways to calc edges/bnds from DOG data
+   for( nn=0 ; nn<nvals ; nn++ )
+      i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+
+   INFO_message("Output main dset: %s", opts.prefix);
+
+   THD_load_statistics( dset_bnd );
+   if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_bnd)) )
+      ERROR_exit("Can't overwrite existing dataset '%s'",
+                 DSET_HEADNAME(dset_bnd));
+   tross_Make_History("3dedgedog", 0, NULL, dset_bnd);
+   
+   // write edge/bnd
+   THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);
+
+
+   // free dsets
+   if( dset_input ){
+      DSET_delete(dset_input); 
+      free(dset_input); 
+   }
+
+   if( dset_dog ){
       DSET_delete(dset_dog); 
       free(dset_dog); 
    }
 
-   // free more
+   if( dset_bnd ){
+      DSET_delete(dset_bnd); 
+      free(dset_bnd); 
+   }
+
    if( dset_mask ){
       DSET_delete(dset_mask);
       free(dset_mask);
    }
+
+   // free more
+
 
    return 0;
 }

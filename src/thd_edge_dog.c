@@ -14,7 +14,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.prefix_dog = NULL;     
    //sprintf(defopt.prefix_dog, "tmp_dog");
 
-   defopt.do_output_dog = 0;
+   defopt.do_output_intermed = 0;
 
    // units=mm; from typical adult human GM thick.  Will allow this to
    // be anisotropic, hence array of 3
@@ -238,16 +238,15 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // make ROI=1 where DOG>=0, and background/ROI=0 elsewhere
    for( idx=0 ; idx<nvox ; idx++ )
       tmp_arr[idx] = (THD_get_voxel(dset_dog, idx, ival) >= 0.0 ) ? 1 : 0;
-   
+
    EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
    tmp_arr=NULL;
-
 
    // ------------------ run EDT calc --------------------
 
    // Make empty EDT dset (NB: just a single volume, FYI, if outputting)
    dset_edt = EDIT_empty_copy( dset_bnd ); 
-   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_BND" );
+   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_EDT" );
    EDIT_dset_items(dset_edt,
                    ADN_nvals, 1,
                    ADN_datum_all, MRI_short,    
@@ -261,25 +260,13 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    EdgeDogOpts.verb = 0;
 
    // run EDT
+   INFO_message("Calculate EDT for vol %d", ival);
    i = calc_EDT_3D( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
 
-   // threshold EDT to make boundaries; dset_edt has only one volume
-   // here (to save memory), but dset_bnd can be 4D---hence two indices
-   i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
-
-
-   //***** working here *****
-
-
-   if( 1 ) {
-      THD_load_statistics( dset_bnd );
-      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_bnd)) )
-         ERROR_exit("Can't overwrite existing dataset '%s'",
-                    DSET_HEADNAME(dset_bnd));
-      tross_Make_History("3dedgedog", 0, NULL, dset_bnd);
-
-      // write and free dset 
-      THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);
+   // can output this intermediate dset for the [0]th volume, if the
+   // user asks
+   if( opts.do_output_intermed && ival==0 ) {
+      INFO_message("Output intermediate dset ([0]th vol): %s", prefix_edt);
 
       THD_load_statistics( dset_edt );
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
@@ -290,6 +277,11 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       // write and free dset 
       THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
    }
+
+   // threshold EDT to make boundaries; dset_edt has only one volume
+   // here (to save memory), but dset_bnd can be 4D---hence two indices
+   i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
+
    // free dset
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
