@@ -249,8 +249,9 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    int nx, ny, nz, nxy, nvox, nvals;
 	THD_3dim_dataset *dset_input = NULL;        // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
-	THD_3dim_dataset *dset_dog = NULL;         // output
-   
+	THD_3dim_dataset *dset_dog = NULL;         // intermed/out
+   THD_3dim_dataset *dset_bnd = NULL;         // output
+
    ENTRY("run_edge_dog");
 
    dset_input = THD_open_dataset(opts.input_name);
@@ -268,6 +269,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
 
+   // NTS: do we need all these quantities?
    nx = DSET_NX(dset_input);
    ny = DSET_NY(dset_input);
    nz = DSET_NZ(dset_input);
@@ -285,11 +287,26 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
                    ADN_none );
 
    // calculate DOG
-   for( nn=0 ; nn<nvals ; nn++ ){
+   for( nn=0 ; nn<nvals ; nn++ )
       i = calc_edge_dog_DOG(dset_dog, opts, dset_input, nn);
-   } // end of loop over nvals
+   
 
    INFO_message("***JUST OUTPUTTING THE DOG MAP AT THE MOMENT***");
+
+   // make output dset
+   dset_bnd = EDIT_empty_copy( dset_input ); 
+   EDIT_dset_items(dset_bnd,
+                   ADN_nvals, nvals,
+                   ADN_datum_all, MRI_short,    
+                   ADN_prefix, opts.prefix,
+                   ADN_none );
+
+   // might be several ways to calc this
+   for( nn=0 ; nn<nvals ; nn++ )
+      i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+
+
+
 
    // free input dset
 	DSET_delete(dset_input); 

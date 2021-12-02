@@ -24,10 +24,13 @@ PARAMS_edge_dog set_edge_dog_defaults(void);
 
 int build_dog_prefix( PARAMS_edge_dog *opts);
 
+int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge, 
+                         float *rad_in, float *rad_out);
+
 int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
                        THD_3dim_dataset *dset_input, int ival);
 
-int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge, 
-                         float *rad_in, float *rad_out);
+int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                       THD_3dim_dataset *dset_dog, int ival);
 
 #endif
