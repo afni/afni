@@ -25,6 +25,9 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 int usage_3dedgedog() 
 {
    char *author = "PA Taylor and DR Glen (SSCC, NIMH, NIH)";
+   PARAMS_edge_dog opts;
+
+   opts = set_edge_dog_defaults();
 
    printf(
 "\n"
@@ -62,7 +65,7 @@ int usage_3dedgedog()
 "                    end.\n"
 "\n"
 "  -sigma_rad RRR   :radius for 'inner' Gaussian, in units of mm; RRR must\n"
-"                    by greater than zero (def: 2). Default is chosen to\n"
+"                    by greater than zero (def: %f). Default is chosen to\n"
 "                    approximate typical GM thickness in human adults.\n"
 "\n"
 "  -sigma_nvox NNN  :define radius for 'inner' Gaussian by providing a\n"
@@ -72,10 +75,10 @@ int usage_3dedgedog()
 "                    '-sigma_rad ..' opt (def: use '-sigma_rad' and its\n"
 "                    default value).\n"
 "\n"
-"  -ratio_sig   RS  :the ratio of inner and outer Gaussian sigma values.\n"
+"  -ratio_sigma RS  :the ratio of inner and outer Gaussian sigma values.\n"
 "                    That is, RS defines the size of the outer Gaussian,\n"
 "                    by scaling up the inner value.  RS can be any float\n"
-"                    greater than 1 (def: 1.6). Default chosen because\n"
+"                    greater than 1 (def: %f). Default chosen because\n"
 "                    MH1980 liked this value.\n"
 "\n"
 "  -output_dog      :use this option flag if you would like to output the\n"
@@ -89,7 +92,7 @@ int usage_3dedgedog()
 "                        1 -> for face only\n"
 "                        2 -> for face+edge\n"
 "                        3 -> for face+edge+node\n"
-"                    (def: 2).\n"
+"                    (def: %d).\n"
 "\n"
 "\n"
 "  -edge_bnd_sign EBS :specify which boundary layer around the zero-layer\n"
@@ -98,7 +101,7 @@ int usage_3dedgedog()
 "                        1 -> for positive (outer) boundary\n"
 "                       -1 -> for negative (inner) boundary\n"
 "                        0 -> for both (inner+outer) boundary\n"
-"                    (def: 1).\n"
+"                    (def: %d).\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -117,7 +120,7 @@ int usage_3dedgedog()
 "\n"
 "==========================================================================\n"
 "\n",
-author );
+author, opts.sigma_rad[0], opts.ratio_sigma, 2, opts.edge_bnd_sign);
 
 	return 0;
 }
@@ -230,7 +233,7 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          itmp = atoi(argv[iarg]);
-         if( itmp >= 1 && itmp <= 1 )
+         if( -1 <= itmp && itmp <= 1 )
             InOpts.edge_bnd_sign = itmp;
          else
             ERROR_exit("Need either -1, 0 or 1 after '%s'", argv[iarg-1]);
@@ -238,7 +241,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-ratio_sig") == 0) {
+      if( strcmp(argv[iarg],"-ratio_sigma") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
@@ -246,7 +249,7 @@ int main(int argc, char *argv[]) {
          if( tmp <= 1.0 )
             ERROR_exit("Need value >1 after '%s'", argv[iarg-1]);
 
-         InOpts.ratio_sig = tmp;
+         InOpts.ratio_sigma = tmp;
 
          iarg++ ; continue ;
       }
@@ -334,9 +337,6 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    for( nn=0 ; nn<nvals ; nn++ )
       i = calc_edge_dog_DOG(dset_dog, opts, dset_input, nn);
    
-
-   INFO_message("***JUST OUTPUTTING THE DOG MAP AT THE MOMENT***");
-
    // make output dset
    dset_bnd = EDIT_empty_copy( dset_input ); 
    EDIT_dset_items(dset_bnd,

@@ -13,7 +13,7 @@ typedef struct {
 
    float sigma_rad[3];
    float sigma_nvox[3];
-   float ratio_sig;
+   float ratio_sigma;
 
    float edge_bnd_thr;
    int edge_bnd_sign;

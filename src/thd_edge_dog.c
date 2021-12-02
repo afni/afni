@@ -30,7 +30,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.sigma_nvox[2] = 0.0;   
 
    // ratio of outer/inner gaussians; from MH1980
-   defopt.ratio_sig = 1.6;
+   defopt.ratio_sigma = 1.6;
 
    /*
      EDGE CONTROL PARAMS
@@ -47,12 +47,13 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
 
        edge_sign: determine which boundary of the EDT to use for the
        edge.  Encoding is:
-       + edge_bnd_sign =  1 -> for positive (outer) boundary
        + edge_bnd_sign = -1 -> for negative (inner) boundary
+       + edge_bnd_sign =  1 -> for positive (outer) boundary
        + edge_bnd_sign =  0 -> for both (inner+outer) boundary
+       Noting that using '-1' seems best, by eye (in preliminary tests).
    */
    defopt.edge_bnd_thr = 1.7;
-   defopt.edge_bnd_sign = 1;
+   defopt.edge_bnd_sign = -1;
 
    return defopt;
 };
@@ -122,7 +123,7 @@ int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge,
    }
 
    for( ii=0 ; ii<3 ; ii++ )
-      rad_out[ii] = rad_in[ii] * opts.ratio_sig;
+      rad_out[ii] = rad_in[ii] * opts.ratio_sigma;
 
    return 0;
 }
