@@ -2062,14 +2062,14 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
              if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                     fprintf(stderr, "### SUMA_A_Key: sv->N_ColList = %d\n", sv->N_ColList);
 
-             /* set the remix flag *//*
+             /* set the remix flag */
              if (!SUMA_SetShownLocalRemixFlag (sv)) {
                 fprintf (SUMA_STDERR,
                          "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
                          FuncName);
                 break;
              }
-*/
+/**/
              SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          }
          break;
