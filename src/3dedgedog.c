@@ -83,7 +83,22 @@ int usage_3dedgedog()
 "                    (def: not output).  Output will be prefix name with\n"
 "                    '_DOG' appended to it.\n"
 "\n"
+"  -edge_bnd_NN EBN :specify the 'nearest neighbor' (NN) value for the\n"
+"                    connectedness of the drawn boundaries.  EBN must be\n"
+"                    one of the following integer values:\n"
+"                        1 -> for face only\n"
+"                        2 -> for face+edge\n"
+"                        3 -> for face+edge+node\n"
+"                    (def: 2).\n"
 "\n"
+"\n"
+"  -edge_bnd_sign EBS :specify which boundary layer around the zero-layer\n"
+"                    to use in the algorithm.  EBS must be one of the"
+"                    following integer values:\n"
+"                        1 -> for positive (outer) boundary\n"
+"                       -1 -> for negative (inner) boundary\n"
+"                        0 -> for both (inner+outer) boundary\n"
+"                    (def: 1).\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -113,6 +128,7 @@ int main(int argc, char *argv[]) {
    int iarg;
    PARAMS_edge_dog InOpts;
    float tmp;
+   int itmp;
 
    mainENTRY("3dedgedog"); machdep(); 
   
@@ -192,6 +208,36 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-edge_bnd_NN") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
+         itmp = atoi(argv[iarg]);
+         if( itmp == 1 )
+            InOpts.edge_bnd_thr = 1.1;
+         else if( itmp == 2 )
+            InOpts.edge_bnd_thr = 1.7;
+         else if( itmp == 3 )
+            InOpts.edge_bnd_thr = 1.9;
+         else
+            ERROR_exit("Need either 1, 2 or 3 after '%s'", argv[iarg-1]);
+
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-edge_bnd_sign") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
+         itmp = atoi(argv[iarg]);
+         if( itmp >= 1 && itmp <= 1 )
+            InOpts.edge_bnd_sign = itmp;
+         else
+            ERROR_exit("Need either -1, 0 or 1 after '%s'", argv[iarg-1]);
+
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-ratio_sig") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
@@ -230,10 +276,6 @@ int main(int argc, char *argv[]) {
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
-   // build prefix for DOG dset, if outputting it
-   if ( InOpts.do_output_dog )
-      ii = build_dog_prefix( &InOpts );
-   
    // DONE FILLING, now do the work
    ii = run_edge_dog(1, InOpts, argc, argv);
 
@@ -251,6 +293,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    THD_3dim_dataset *dset_mask = NULL;         // mask
 	THD_3dim_dataset *dset_dog = NULL;         // intermed/out
    THD_3dim_dataset *dset_bnd = NULL;         // output
+   char prefix_dog[THD_MAX_PREFIX];
 
    ENTRY("run_edge_dog");
 
@@ -280,10 +323,11 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    /* Prepare header for output by copying that of input, and then
       changing items as necessary */
    dset_dog = EDIT_empty_copy( dset_input ); 
+   i = build_edge_dog_suppl_prefix( &opts, prefix_dog, "_DOG" );
    EDIT_dset_items(dset_dog,
                    ADN_nvals, nvals,
                    ADN_datum_all, MRI_float,    
-                   ADN_prefix, opts.prefix_dog,
+                   ADN_prefix, prefix_dog,
                    ADN_none );
 
    // calculate DOG
@@ -306,14 +350,13 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
 
 
-
-
    // free input dset
 	DSET_delete(dset_input); 
   	free(dset_input); 
 
-   // output the DOG dset?
-   if( opts.do_output_dog){
+   // build prefix for DOG dset, if outputting it
+   if ( opts.do_output_dog ){
+   
       THD_load_statistics( dset_dog );
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_dog)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",

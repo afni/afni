@@ -49,6 +49,8 @@ typedef struct {
    float edims[3];        
    int   shape[3];        
 
+   int verb;
+
 } PARAMS_euler_dist;
 
 /* function to initialize EDT params */

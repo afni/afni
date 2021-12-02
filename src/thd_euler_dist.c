@@ -11,19 +11,20 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.prefix = NULL;         
 
    defopt.zeros_are_zeroed = 0;  
-   defopt.zeros_are_neg = 0;  
-   defopt.nz_are_neg = 0;  
-   defopt.bounds_are_zero = 1;   
-   defopt.ignore_voxdims = 0;
-   defopt.do_sqrt = 1;           
+   defopt.zeros_are_neg    = 0;  
+   defopt.nz_are_neg       = 0;  
+   defopt.bounds_are_zero  = 1;   
+   defopt.ignore_voxdims   = 0;
+   defopt.do_sqrt          = 1;           
 
    defopt.edims[0] = 0.0;       
    defopt.edims[1] = 0.0;
    defopt.edims[2] = 0.0;
-
    defopt.shape[0] = 0; 
    defopt.shape[1] = 0; 
    defopt.shape[2] = 0; 
+
+   defopt.verb = 1;
 
    return defopt;
 };
@@ -140,7 +141,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       float *flarr=NULL;   // store distances along one dim
       int *maparr=NULL;    // store ROI map along one dim
 
-      if ( !ival ){
+      if ( !ival && opts.verb ){
          INFO_message("Move along axis %d (delta = %.6f)", 
                       vox_ord_rev[i], 
                       Ledge[vox_ord_rev[i]]);

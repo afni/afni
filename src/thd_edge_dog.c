@@ -2,6 +2,7 @@
 #include "thd_edge_dog.h"
 #include "thd_euler_dist.c"
 
+
 PARAMS_edge_dog set_edge_dog_defaults(void)
 {
 
@@ -10,7 +11,8 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.input_name = NULL;     
    defopt.mask_name  = NULL;     
    defopt.prefix     = NULL;     
-   sprintf(defopt.prefix_dog, "tmp_dog");
+   defopt.prefix_dog = NULL;     
+   //sprintf(defopt.prefix_dog, "tmp_dog");
 
    defopt.do_output_dog = 0;
 
@@ -30,18 +32,51 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    // ratio of outer/inner gaussians; from MH1980
    defopt.ratio_sig = 1.6;
 
+   /*
+     EDGE CONTROL PARAMS
+     
+     --- For the EDT (Euler-distance based) case ---
+
+       edge_edt_thr: A floating-point way to use NN values to select
+       "corner-ness" of output boundary edges. This will be used to
+       threshold the voxel-counted EDT maps with a particular float
+       value:
+       + NN=1 -> edge_bnd_thr=1.1, for face only
+       + NN=2 -> edge_bnd_thr=1.7, for face+edge
+       + NN=3 -> edge_bnd_thr=1.9, for face+edge+node
+
+       edge_sign: determine which boundary of the EDT to use for the
+       edge.  Encoding is:
+       + edge_bnd_sign =  1 -> for positive (outer) boundary
+       + edge_bnd_sign = -1 -> for negative (inner) boundary
+       + edge_bnd_sign =  0 -> for both (inner+outer) boundary
+   */
+   defopt.edge_bnd_thr = 1.7;
+   defopt.edge_bnd_sign = 1;
+
    return defopt;
 };
 
 // ---------------------------------------------------------------------------
 
-int build_dog_prefix( PARAMS_edge_dog *opts)
+/*
+  Build prefixes for supplementary data output, based on user's chosen
+  prefix. 
+
+  opts     :struct of default/user input (here, getting inopts->prefix)
+  suffix   :that which will be inserted at the end of the prefix_noext 
+            from inopts->prefix 
+
+*/
+int build_edge_dog_suppl_prefix( PARAMS_edge_dog *opts, char *ostr, 
+                                 char *suffix)
 {
-   char *ext, nullch, tprefix[THD_MAX_PREFIX-4];
-   
-   ENTRY("build_dog_prefix");
+   char *ext, nullch, tprefix[THD_MAX_PREFIX-strlen(suffix)];
+
+   ENTRY("build_edge_dog_suppl_prefix");
 
    sprintf(tprefix, "%s", opts->prefix);
+
    if( has_known_non_afni_extension(opts->prefix) ){
       ext = find_filename_extension(opts->prefix);
       tprefix[strlen(opts->prefix) - strlen(ext)] = '\0';
@@ -50,8 +85,8 @@ int build_dog_prefix( PARAMS_edge_dog *opts)
       nullch = '\0';
       ext = &nullch;
    }
-   
-   sprintf(opts->prefix_dog, "%s_DOG%s", tprefix, ext);
+
+   sprintf(ostr, "%s%s%s", tprefix, suffix, ext);
 
    return 0;
 }
@@ -172,9 +207,9 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   Calculate the boundaries from the dog dset.  Might be many ways of
   doing this.
 
-  dset_dog    :the dset that will be the DOG dataset (essentially, the output)
+  dset_bnd     :the dset that will be the boundary map (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
-  dset_input   :the input dataset of which DOG/edges will be calculated
+  dset_dog     :the input dataset of unthresholded/'raw' DOG values
   ival         :index of subvolume of 'dset_input' to process
 
 */
@@ -184,39 +219,56 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    int i, idx;
    int nvox;
    short *tmp_arr = NULL;
-   THD_3dim_dataset *dset_tmp = NULL;   
+   THD_3dim_dataset *dset_edt = NULL;   
+   char prefix_edt[THD_MAX_PREFIX];
    PARAMS_euler_dist EdgeDogOpts;
 
    ENTRY("calc_edge_dog_BND");
 
    nvox = DSET_NVOX(dset_dog);
-
-   dset_tmp = EDIT_empty_copy( dset_bnd ); 
-   EDIT_dset_items(dset_tmp,
-                   ADN_nvals, 1,
-                   ADN_datum_all, MRI_short,    
-                   ADN_prefix, "tmp_dset",
-                   ADN_none );
-
    tmp_arr = (short *) calloc( nvox, sizeof(short) );
    if( tmp_arr == NULL ) 
       ERROR_exit("MemAlloc failure.\n");
 
-   // make ROIs where this is positive or negative
+   // ------------------ prep to run EDT calc --------------------
+
+   // dset_bnd gets a preliminary role: be the ROI map entered into EDT
+
+   // make ROI=1 where DOG>=0, and background/ROI=0 elsewhere
    for( idx=0 ; idx<nvox ; idx++ )
       tmp_arr[idx] = (THD_get_voxel(dset_dog, idx, ival) >= 0.0 ) ? 1 : 0;
    
-
    EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
    tmp_arr=NULL;
 
-   // fill option struct with defaults, and a couple desired props;
-   // could have lots of variations here
+
+   // ------------------ run EDT calc --------------------
+
+   // Make empty EDT dset (NB: just a single volume, FYI, if outputting)
+   dset_edt = EDIT_empty_copy( dset_bnd ); 
+   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_BND" );
+   EDIT_dset_items(dset_edt,
+                   ADN_nvals, 1,
+                   ADN_datum_all, MRI_short,    
+                   ADN_prefix, prefix_edt,
+                   ADN_none );
+
+   // fill EDT option struct with defaults and a couple desired props
    EdgeDogOpts = set_euler_dist_defaults();
    EdgeDogOpts.ignore_voxdims = 1;
    EdgeDogOpts.zeros_are_neg = 1;  
+   EdgeDogOpts.verb = 0;
 
-   i = calc_EDT_3D( dset_tmp, EdgeDogOpts, dset_bnd, NULL, ival);
+   // run EDT
+   i = calc_EDT_3D( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
+
+   // threshold EDT to make boundaries; dset_edt has only one volume
+   // here (to save memory), but dset_bnd can be 4D---hence two indices
+   i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
+
+
+   //***** working here *****
+
 
    if( 1 ) {
       THD_load_statistics( dset_bnd );
@@ -228,19 +280,76 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       // write and free dset 
       THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);
 
-
-      THD_load_statistics( dset_tmp );
-      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_tmp)) )
+      THD_load_statistics( dset_edt );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
-                    DSET_HEADNAME(dset_tmp));
-      tross_Make_History("3dedgedog", 0, NULL, dset_tmp);
+                    DSET_HEADNAME(dset_edt));
+      tross_Make_History("3dedgedog", 0, NULL, dset_edt);
 
       // write and free dset 
-      THD_write_3dim_dataset(NULL, NULL, dset_tmp, True);
+      THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
    }
    // free dset
-	DSET_delete(dset_tmp); 
-  	free(dset_tmp); 
+	DSET_delete(dset_edt); 
+  	free(dset_edt); 
+
+   return 0;
+}
+
+// ---------------------------------------------------------------------------
+
+/*
+  Threshold the boundaries of the EDT dset.  Might be many ways of
+  doing this.
+
+  dset_bnd     :the dset that will be the edge dataset (essentially, the output)
+  opts         :options from the user, with some other quantities calc'ed
+  dset_edt     :the input dataset EDT values, to be thresholded for edges
+  ival         :index of subvolume of 'dset_input' to process
+
+*/
+int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                           THD_3dim_dataset *dset_edt, int ival_bnd, 
+                           int ival_edt)
+{
+   int i, idx;
+   int nvox;
+   float bot, top, val;  
+
+   short *tmp_arr = NULL;
+
+   ENTRY("calc_edge_dog_thr_EDT");
+
+   nvox = DSET_NVOX(dset_edt);
+   tmp_arr = (short *) calloc( nvox, sizeof(short) );
+   if( tmp_arr == NULL ) 
+      ERROR_exit("MemAlloc failure.\n");
+
+   // Decide on boundary values.  Nothing can have zero EDT here, so
+   // don't need to worry about doubling up on that.
+   if( opts.edge_bnd_sign == 1 ) {
+      bot = 0.0;
+      top = opts.edge_bnd_thr;
+   }
+   else if( opts.edge_bnd_sign == -1 ) {
+      bot = -opts.edge_bnd_thr;
+      top = 0;
+   }
+   else if( opts.edge_bnd_sign == 0 ) {
+      bot = -opts.edge_bnd_thr;
+      top = opts.edge_bnd_thr;
+   }
+   
+   // Go through EDT values, pick out what becomes a boundary
+   for ( idx=0 ; idx<nvox ; idx++ ) {
+      val = THD_get_voxel(dset_edt, idx, ival_edt);
+      if( bot <= val && val <= top )
+         tmp_arr[idx] = 1;
+   }
+
+   // load this array into the dset subvolume
+   EDIT_substitute_brick(dset_bnd, ival_bnd, MRI_short, tmp_arr); 
+   tmp_arr = NULL;
 
    return 0;
 }

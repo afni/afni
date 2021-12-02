@@ -127,6 +127,9 @@ int usage_3dEulerDist()
 "                    size, producing outputs as if each voxel dimension was\n"
 "                    unity.\n"
 "\n"
+" -verb V           :manage verbosity when running code (def: 1).\n"
+"                    Providing a V of 0 means to run quietly.\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Examples ~1~\n"
@@ -175,6 +178,7 @@ int main(int argc, char *argv[]) {
    int ii = 0;
    int iarg;
    PARAMS_euler_dist InOpts;
+   int itmp;
 
    mainENTRY("3dEulerDist"); machdep(); 
   
@@ -254,6 +258,19 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-verb") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need int>0 argument after '%s'", argv[iarg-1]);
+
+         itmp = atoi(argv[iarg]);
+         if( itmp <= 0 )
+            InOpts.verb = 0;
+         else
+            InOpts.verb = itmp;
+
+         iarg++ ; continue ;
+      }
+
       ERROR_message("Bad option '%s'\n",argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
@@ -263,8 +280,8 @@ int main(int argc, char *argv[]) {
    //               verify presence+behavior of inputs
    // ****************************************************************
 
-   INFO_message("Starting to check inputs...");
-
+   if ( InOpts.verb )
+      INFO_message("EDT: starting to check inputs...");
 
    if ( !InOpts.input_name ) { 
       ERROR_message("You need to provide an input dset with '-input ..'");
