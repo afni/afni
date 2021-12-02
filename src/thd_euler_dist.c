@@ -63,21 +63,25 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord)
 // ---------------------------------------------------------------------------
 
 /*
-  arr_dist :  initialized 3D distance array of floats ('odt' in lib_EDT.py)
-              -> what is filled in here
-  opts     :  struct containing default/user options 
-  dset_roi :  the ROI map (dataset, basically 'im' in lib_EDT.py)
-  ival     :  index value of the subbrick/subvolume to analyze
+  dset_edt  :  dset that is filled in here with EDT values
+  opts      :  struct containing default/user options 
+  dset_roi  :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  dset_mask :  a mask dset to be applied at end (could be NULL)
+  ival      :  index value of the subbrick/subvolume to analyze
 */
-int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
-                 THD_3dim_dataset *dset_roi, int ival)
+int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
+                 int ival)
 {
    int i, j, k, idx;
    float minmax[2] = {0, 0};
-   int nx, ny, nz, nxy;
+   int nx, ny, nz, nxy, nvox;
 
    float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
    int vox_ord_rev[3];
+
+   float ***arr_dist = NULL;           // array that will hold dist values
+   float *tmp_arr = NULL;
 
    ENTRY("calc_EDT_3D");
 
@@ -103,9 +107,23 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
+   nvox = DSET_NVOX(dset_roi);
    Ledge[0] = fabs(DSET_DX(dset_roi)); 
    Ledge[1] = fabs(DSET_DY(dset_roi)); 
    Ledge[2] = fabs(DSET_DZ(dset_roi)); 
+
+   // create arrays to be used
+   tmp_arr = (float *) calloc( nvox, sizeof(float) );
+   arr_dist = (float ***) calloc( nx, sizeof(float **) );
+   for ( i=0 ; i<nx ; i++ ) 
+      arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
+   for ( i=0 ; i<nx ; i++ ) 
+      for ( j=0 ; j<ny ; j++ ) 
+         arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
+   if( tmp_arr == NULL || arr_dist == NULL ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(12);
+   }
 
    // initialize distance array to BIG
    for ( i=0 ; i<nx ; i++ ) 
@@ -174,8 +192,42 @@ int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
    // Apply various user post-proc options
    i = apply_opts_to_edt_arr( arr_dist, opts, dset_roi, ival);
 
-   // At this point, arr_dist should have the correct distance values
-   // for this 3D volume
+   /*
+     At this point, arr_dist should have the correct distance values for
+     this 3D volume.
+   */
+
+   // Copy arr_dist values to tmp_arr, which will be used to
+   // populate the actual dset.  Then reset arr_dist values (to
+   // prepare for another iteration)
+   for( i=0 ; i<nx ; i++ )
+      for( j=0 ; j<ny ; j++ ) 
+         for( k=0; k<nz ; k++ ) {
+            idx = THREE_TO_IJK(i, j, k, nx, nxy);
+            tmp_arr[idx] = arr_dist[i][j][k];
+            arr_dist[i][j][k] = 0.0;
+         }
+
+   // the mask is only applied after all calcs
+   if( dset_mask ){
+      for( i=0 ; i<nvox ; i++ ) {
+         if( !THD_get_voxel(dset_mask, i, 0))
+            tmp_arr[i] = 0.0;
+      }
+   }
+      
+   // provide volume values from the appropriately-sized array
+   EDIT_substitute_brick(dset_edt, ival, MRI_float, tmp_arr); 
+   tmp_arr=NULL;
+
+   if(arr_dist){
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            free(arr_dist[i][j]);
+      for ( i=0 ; i<nx ; i++ ) 
+         free(arr_dist[i]);
+      free(arr_dist);
+   }
 
    return 0;
 }
@@ -222,7 +274,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 
    if( !opts.ignore_voxdims )
       delta = fabs(DSET_DZ(dset_roi)); 
-
+   
    // make appropriate 1D arrays of dist and ROI maps
    for( ii=0 ; ii<nx ; ii++ )
       for( jj=0 ; jj<ny ; jj++ ) {
@@ -261,7 +313,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
    nxy = nx*ny;
 
    if( !opts.ignore_voxdims )
-      delta = fabs(DSET_DZ(dset_roi)); 
+      delta = fabs(DSET_DY(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
    for( ii=0 ; ii<nx ; ii++ )
@@ -301,7 +353,7 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
    nxy = nx*ny;
 
    if( !opts.ignore_voxdims )
-      delta = fabs(DSET_DZ(dset_roi)); 
+      delta = fabs(DSET_DX(dset_roi)); 
 
    // make appropriate 1D arrays of dist and ROI maps
    for( kk=0; kk<nz ; kk++ ) 
@@ -348,7 +400,7 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
    
    int limit = Na-1;
    size_t  rowLengthInBytes = Na*sizeof(float);
-   
+   //printf("---%f---",delta);
    //ENTRY("run_EDTD_per_line");
 
    if (!(line_out=(float *)malloc(rowLengthInBytes)))

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_BUG_FIX,
+   "Was getting incorrect voxel scaling along a couple axes---fixed now.",
+   "Also re-arrange functions to be easier to call from other funcs.\n"
+},
+
 { 30, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
    "Added many more internal comments, e.g., codebase references.",
    "Thanks for the discussion+suggestions, J Teves!\n"

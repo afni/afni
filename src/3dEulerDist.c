@@ -8,6 +8,14 @@ ver = 2.0;  date = Nov 29, 2021
   work on a C version (which had been compared/developed in part with 
   the aformentioned lib_EDT.py).
 
+ver = 2.1;  date = Dec 1, 2021
++ [PT] Rearrange how main run_EDT_3D works, and how calc_EDT_3D() is
+  called. Mostly, we want to make it easier for other programs to use
+  the latter func
+
+ver = 2.2;  date = Dec 1, 2021
++ [PT] Bug fix: had delta set incorrectly in 2 out of 3
+  calc_EDT_3d_dim?() funcs, because was using *DZ* everywhere.
 
 */
 
@@ -286,8 +294,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
 	THD_3dim_dataset *dset_roi = NULL;          // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
 	THD_3dim_dataset *dset_edt = NULL;          // output
-
-   float ***arr_dist = NULL;           // array that will hold dist values
    
    ENTRY("run_EDT_3D");
 
@@ -313,17 +319,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    nvox = DSET_NVOX(dset_roi);
    nvals = DSET_NVALS(dset_roi);
 
-   arr_dist = (float ***) calloc( nx, sizeof(float **) );
-   for ( i=0 ; i<nx ; i++ ) 
-      arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
-   for ( i=0 ; i<nx ; i++ ) 
-      for ( j=0 ; j<ny ; j++ ) 
-         arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
-   if( arr_dist == NULL ) {
-      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-      exit(12);
-   }
-
    /* Prepare header for output by copying that of input, and then
       changing items as necessary */
    dset_edt = EDIT_empty_copy( dset_roi ); 
@@ -333,34 +328,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                    ADN_none );
 
    for( nn=0 ; nn<nvals ; nn++ ){
-      float *tmp_arr = NULL;
-      tmp_arr = (float *) calloc( nvox, sizeof(float) );
-
-      i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
-
-      // Copy arr_dist values to tmp_arr, which will be used to
-      // populate the actual dset.  Then reset arr_dist values (to
-      // prepare for another iteration)
-      for( i=0 ; i<nx ; i++ )
-         for( j=0 ; j<ny ; j++ ) 
-            for( k=0; k<nz ; k++ ) {
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               tmp_arr[idx] = arr_dist[i][j][k];
-               arr_dist[i][j][k] = 0.0;
-            }
-
-      // the mask is only applied after all calcs
-      if( dset_mask ){
-         for( i=0 ; i<nvox ; i++ ) {
-            if( !THD_get_voxel(dset_mask, i, 0))
-                tmp_arr[i] = 0.0;
-         }
-      }
-      
-      // provide volume values from the appropriately-sized array
-      EDIT_substitute_brick(dset_edt, nn, MRI_float, tmp_arr); 
-      tmp_arr=NULL;
-    
+      i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
    } // end of loop over nvals
 
    // free input dset
@@ -383,15 +351,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    if( dset_mask ){
       DSET_delete(dset_mask);
       free(dset_mask);
-   }
-
-   if(arr_dist){
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            free(arr_dist[i][j]);
-      for ( i=0 ; i<nx ; i++ ) 
-         free(arr_dist[i]);
-      free(arr_dist);
    }
 
    return 0;
