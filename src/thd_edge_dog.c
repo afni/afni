@@ -7,9 +7,12 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    PARAMS_edge_dog defopt;
 
    defopt.input_name = NULL;     
-   defopt.mask_name = NULL;     
-   defopt.prefix = NULL;     
-    
+   defopt.mask_name  = NULL;     
+   defopt.prefix     = NULL;     
+   sprintf(defopt.prefix_dog, "tmp_dog");
+
+   defopt.do_output_dog = 0;
+
    // units=mm; from typical adult human GM thick.  Will allow this to
    // be anisotropic, hence array of 3
    defopt.sigma_rad[0] = 2.0;  
@@ -31,18 +34,39 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
 
 // ---------------------------------------------------------------------------
 
+int build_dog_prefix( PARAMS_edge_dog *opts)
+{
+   char *ext, nullch, tprefix[THD_MAX_PREFIX-4];
+   
+   sprintf(tprefix, "%s", opts->prefix);
+   if( has_known_non_afni_extension(opts->prefix) ){
+      ext = find_filename_extension(opts->prefix);
+      tprefix[strlen(opts->prefix) - strlen(ext)] = '\0';
+   }
+   else {
+      nullch = '\0';
+      ext = &nullch;
+   }
+   
+   sprintf(opts->prefix_dog, "%s_DOG%s", tprefix, ext);
+
+   return 0;
+}
+
+// ---------------------------------------------------------------------------
+
 /*
   Calculate the difference of gaussian (DOG) dataset, which will be
   thresholded to be the edge map.
 
-  dset_edge    :the dset that will be the DOG dataset (essentially, the output)
+  dset_dog    :the dset that will be the DOG dataset (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
   dset_input   :the input dataset of which DOG/edges will be calculated
   ival         :index of subvolume of 'dset_input' to process
 
 */
-int calc_edge_dog( THD_3dim_dataset *dset_edge, PARAMS_edge_dog opts,
-                   THD_3dim_dataset *dset_input, int ival)
+int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
+                       THD_3dim_dataset *dset_input, int ival)
 {
    int ii, idx;
    int nx, ny, nz, nvox;
@@ -90,7 +114,7 @@ int calc_edge_dog( THD_3dim_dataset *dset_edge, PARAMS_edge_dog opts,
       tmp_arr[idx] = fl_im_inner[idx]- fl_im_outer[idx];
 
    // load this array into the dset subvolume
-   EDIT_substitute_brick(dset_edge, ival, MRI_float, tmp_arr); 
+   EDIT_substitute_brick(dset_dog, ival, MRI_float, tmp_arr); 
    tmp_arr = NULL;
 
    // free

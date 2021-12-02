@@ -78,6 +78,12 @@ int usage_3dedgedog()
 "                    greater than 1 (def: 1.6). Default chosen because\n"
 "                    MH1980 liked this value.\n"
 "\n"
+"  -output_dog      :use this option flag if you would like to output the\n"
+"                    intermediate difference of Gaussian (DOG) dset\n"
+"                    (def: not output).  Output will be prefix name with\n"
+"                    '_DOG' appended to it.\n"
+"\n"
+"\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -199,6 +205,10 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-output_dog") == 0 ){
+         InOpts.do_output_dog = 1;
+         iarg++ ; continue ;
+      }
 
       ERROR_message("Bad option '%s'\n",argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
@@ -220,8 +230,11 @@ int main(int argc, char *argv[]) {
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
-
-   // DONE FILLING, now call
+   // build prefix for DOG dset, if outputting it
+   if ( InOpts.do_output_dog )
+      ii = build_dog_prefix( &InOpts );
+   
+   // DONE FILLING, now do the work
    ii = run_edge_dog(1, InOpts, argc, argv);
 
    return 0;
@@ -236,7 +249,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    int nx, ny, nz, nxy, nvox, nvals;
 	THD_3dim_dataset *dset_input = NULL;        // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
-	THD_3dim_dataset *dset_edge = NULL;         // output
+	THD_3dim_dataset *dset_dog = NULL;         // output
    
    ENTRY("run_edge_dog");
 
@@ -264,15 +277,16 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
    /* Prepare header for output by copying that of input, and then
       changing items as necessary */
-   dset_edge = EDIT_empty_copy( dset_input ); 
-   EDIT_dset_items(dset_edge,
+   dset_dog = EDIT_empty_copy( dset_input ); 
+   EDIT_dset_items(dset_dog,
                    ADN_nvals, nvals,
                    ADN_datum_all, MRI_float,    
-                   ADN_prefix, opts.prefix,
+                   ADN_prefix, opts.prefix_dog,
                    ADN_none );
 
+   // calculate DOG
    for( nn=0 ; nn<nvals ; nn++ ){
-      i = calc_edge_dog(dset_edge, opts, dset_input, nn);
+      i = calc_edge_dog_DOG(dset_dog, opts, dset_input, nn);
    } // end of loop over nvals
 
    INFO_message("***JUST OUTPUTTING THE DOG MAP AT THE MOMENT***");
@@ -281,17 +295,19 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 	DSET_delete(dset_input); 
   	free(dset_input); 
 
-   // prepare to write output
-	THD_load_statistics( dset_edge );
-	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edge)) )
-		ERROR_exit("Can't overwrite existing dataset '%s'",
-					  DSET_HEADNAME(dset_edge));
-	tross_Make_History("3dedgedog", argc, argv, dset_edge);
+   // output the DOG dset?
+   if( opts.do_output_dog){
+      THD_load_statistics( dset_dog );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_dog)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(dset_dog));
+      tross_Make_History("3dedgedog", argc, argv, dset_dog);
 
-   // write and free dset 
-	THD_write_3dim_dataset(NULL, NULL, dset_edge, True);
-	DSET_delete(dset_edge); 
-  	free(dset_edge); 
+      // write and free dset 
+      THD_write_3dim_dataset(NULL, NULL, dset_dog, True);
+      DSET_delete(dset_dog); 
+      free(dset_dog); 
+   }
 
    // free more
    if( dset_mask ){
