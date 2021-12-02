@@ -2059,15 +2059,17 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                          "%s: Modulation by background intensity ON.\n", FuncName);
                 sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
              }
+             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                    fprintf(stderr, "### SUMA_A_Key: sv->N_ColList = %d\n", sv->N_ColList);
 
-             /* set the remix flag */
+             /* set the remix flag *//*
              if (!SUMA_SetShownLocalRemixFlag (sv)) {
                 fprintf (SUMA_STDERR,
                          "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
                          FuncName);
                 break;
              }
-
+*/
              SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          }
          break;
@@ -4206,12 +4208,12 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 // Save clipping planes to file
                char stmp[100];
                char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
-                time_t t = time(NULL);
-                struct tm tm = *localtime(&t);
-              if (!(getcwd(cwd, sizeof(cwd)))) {
+               time_t t = time(NULL);
+               struct tm tm = *localtime(&t);
+               if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
-                   SUMA_RETURNe;
-               }
+                   SUMA_RETURN(0);
+                }
                 sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min);
