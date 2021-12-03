@@ -691,7 +691,11 @@ void AFNI_syntax(void)
      "                  the dataset directories.  The *.1D files in the\n"
      "                  directories listed in the AFNI_TSPATH environment\n"
      "                  variable will still be read (if this variable is\n"
-     "                  not set, then './' will be scanned for *.1D files.)\n"
+     "                  not set, then './' will be scanned for *.1D files).\n"
+     "\n"
+     "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
+     "   -notsv         they are synonyms): each tells AFNI not to read\n"
+     "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"

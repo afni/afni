@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Dec , 2021 , PT , "afni" , MICRO , TYPE_GENERAL,
+   "Adding the description of existing option(s) in the program help.",
+   "The opts are the synonyms: '-notcsv', '-notsv', '-nocsv'.\n"
+},
+
 { 30, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
    "Added many more internal comments, e.g., codebase references.",
    "Thanks for the discussion+suggestions, J Teves!\n"
