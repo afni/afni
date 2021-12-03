@@ -128,7 +128,7 @@ int usage_3dedgedog()
 "\n"
 "\n"
 "  -edge_bnd_sign EBS :specify which boundary layer around the zero-layer\n"
-"                    to use in the algorithm.  EBS must be one of the"
+"                    to use in the algorithm.  EBS must be one of the\n"
 "                    following integer values:\n"
 "                        1 -> for positive (outer) boundary\n"
 "                       -1 -> for negative (inner) boundary\n"
