@@ -59,7 +59,7 @@ int usage_3dedgedog()
 "   Lond B Biol Sci. 207(1167):187-217.\n"
 "   doi: 10.1098/rspb.1980.0020. PMID: 6102765.\n"
 "\n"
-"Thanks to C. Rorden for pointing these paper out and discussing them.\n"
+"Thanks to C. Rorden for pointing these papers out and discussing them.\n"
 "\n"
 "The current code here extends/tweaks the MH1980 algorithm a bit.  It runs\n"
 "in 3D by default (a straightforward extension), it also employs the\n"
