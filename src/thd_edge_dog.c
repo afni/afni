@@ -247,7 +247,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // Make empty EDT dset (NB: just a single volume, FYI, if outputting)
    dset_edt = EDIT_empty_copy( dset_bnd ); 
-   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_EDT" );
+   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_EDT2" );
    EDIT_dset_items(dset_edt,
                    ADN_nvals, 1,
                    ADN_datum_all, MRI_short,    
