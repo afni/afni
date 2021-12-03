@@ -6,7 +6,7 @@
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
 
-    do_sqrt      : if True, the output image of EDT values is distance
+    dist_sq      : if False (def), the output image of EDT values is distance
                    values; otherwise, the values are distance**2 (because
                    that is what the program works with).
 
@@ -44,7 +44,7 @@ typedef struct {
    int nz_are_neg;  
    int bounds_are_zero;   
    int ignore_voxdims;
-   int do_sqrt;           
+   int dist_sq;           
 
    float edims[3];        
    int   shape[3];        

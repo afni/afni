@@ -97,7 +97,7 @@ int usage_3dEulerDist()
 "                    values, except for potentially zeroing some out at the\n"
 "                    end.\n"
 "\n"
-"  -dist_squared    :by default, the output EDT volume contains distance\n"
+"  -dist_sq         :by default, the output EDT volume contains distance\n"
 "                    values.  By using this option, the output values are\n"
 "                    distance**2.\n"
 "\n"
@@ -147,7 +147,7 @@ int usage_3dEulerDist()
 "\n"
 "3) Output distance-squared at each voxel:\n"
 "   3dEulerDist                                                     \\\n"
-"       -dist_squared                                               \\\n"
+"       -dist_sq                                                    \\\n"
 "       -input  mask.nii.gz                                         \\\n"
 "       -prefix mask_EDT_SQ.nii.gz                                  \n"
 "\n"
@@ -162,7 +162,7 @@ int usage_3dEulerDist()
 "   voxel dimensions are ignored here:\n"
 "   3dEulerDist                                                     \\\n"
 "       -ignore_voxdims                                             \\\n"
-"       -dist_squared                                               \\\n"
+"       -dist_sq                                                    \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_SQ_VOX.nii.gz                           \n"
 "\n"
@@ -248,8 +248,8 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-dist_squared") == 0) {
-         InOpts.do_sqrt = 0;
+      if( strcmp(argv[iarg],"-dist_sq") == 0) {
+         InOpts.dist_sq = 1;
          iarg++ ; continue ;
       }
 

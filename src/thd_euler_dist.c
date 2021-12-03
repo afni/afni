@@ -10,12 +10,12 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.mask_name = NULL;     
    defopt.prefix = NULL;         
 
-   defopt.zeros_are_zeroed = 0;  
-   defopt.zeros_are_neg    = 0;  
-   defopt.nz_are_neg       = 0;  
-   defopt.bounds_are_zero  = 1;   
+   defopt.zeros_are_zeroed = 0;
+   defopt.zeros_are_neg    = 0;
+   defopt.nz_are_neg       = 0;
+   defopt.bounds_are_zero  = 1;
    defopt.ignore_voxdims   = 0;
-   defopt.do_sqrt          = 1;           
+   defopt.dist_sq          = 0;
 
    defopt.edims[0] = 0.0;       
    defopt.edims[1] = 0.0;
@@ -620,7 +620,7 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
  
    // Output distance-squared, or just distance (sqrt of what we have
    // so-far calc'ed)
-   if( opts.do_sqrt ) {
+   if( !opts.dist_sq ) {
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){

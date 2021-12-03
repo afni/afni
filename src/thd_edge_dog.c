@@ -37,22 +37,23 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
      
      --- For the EDT (Euler-distance based) case ---
 
-       edge_edt_thr: A floating-point way to use NN values to select
-       "corner-ness" of output boundary edges. This will be used to
-       threshold the voxel-counted EDT maps with a particular float
-       value:
-       + NN=1 -> edge_bnd_thr=1.1, for face only
-       + NN=2 -> edge_bnd_thr=1.7, for face+edge
-       + NN=3 -> edge_bnd_thr=1.9, for face+edge+node
+       edge_bnd_NN: Use NN value to select "corner-ness" of output
+       boundary edges. This will be used to threshold the
+       voxel-counted EDT maps---this works elegantly because we will
+       output distance-squared maps of number of voxels from the EDT:
+         + NN=1 -> for face only
+         + NN=2 -> for face+edge
+         + NN=3 -> for face+edge+node
+       NB: We increase them *slightly* for the actual comparisons.
 
        edge_sign: determine which boundary of the EDT to use for the
        edge.  Encoding is:
-       + edge_bnd_sign = -1 -> for negative (inner) boundary
-       + edge_bnd_sign =  1 -> for positive (outer) boundary
-       + edge_bnd_sign =  0 -> for both (inner+outer) boundary
+         + edge_bnd_sign = -1 -> for negative (inner) boundary
+         + edge_bnd_sign =  1 -> for positive (outer) boundary
+         + edge_bnd_sign =  0 -> for both (inner+outer) boundary
        Noting that using '-1' seems best, by eye (in preliminary tests).
    */
-   defopt.edge_bnd_thr = 1.7;
+   defopt.edge_bnd_NN = 1;
    defopt.edge_bnd_sign = -1;
 
    return defopt;
@@ -257,6 +258,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    EdgeDogOpts = set_euler_dist_defaults();
    EdgeDogOpts.ignore_voxdims = 1;
    EdgeDogOpts.zeros_are_neg = 1;  
+   EdgeDogOpts.dist_sq = 1;          // so NN values are directly thresholds
    EdgeDogOpts.verb = 0;
 
    // run EDT
@@ -322,15 +324,15 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // don't need to worry about doubling up on that.
    if( opts.edge_bnd_sign == 1 ) {
       bot = 0.0;
-      top = opts.edge_bnd_thr;
+      top = opts.edge_bnd_NN * 1.01;
    }
    else if( opts.edge_bnd_sign == -1 ) {
-      bot = -opts.edge_bnd_thr;
+      bot = -opts.edge_bnd_NN * 1.01;
       top = 0;
    }
    else if( opts.edge_bnd_sign == 0 ) {
-      bot = -opts.edge_bnd_thr;
-      top = opts.edge_bnd_thr;
+      bot = -opts.edge_bnd_NN * 1.01;
+      top = opts.edge_bnd_NN * 1.01;
    }
    
    // Go through EDT values, pick out what becomes a boundary

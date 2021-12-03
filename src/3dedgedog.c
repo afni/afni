@@ -65,7 +65,7 @@ int usage_3dedgedog()
 "                    end.\n"
 "\n"
 "  -sigma_rad RRR   :radius for 'inner' Gaussian, in units of mm; RRR must\n"
-"                    by greater than zero (def: %f). Default is chosen to\n"
+"                    by greater than zero (def: %.2f). Default is chosen to\n"
 "                    approximate typical GM thickness in human adults.\n"
 "\n"
 "  -sigma_nvox NNN  :define radius for 'inner' Gaussian by providing a\n"
@@ -78,7 +78,7 @@ int usage_3dedgedog()
 "  -ratio_sigma RS  :the ratio of inner and outer Gaussian sigma values.\n"
 "                    That is, RS defines the size of the outer Gaussian,\n"
 "                    by scaling up the inner value.  RS can be any float\n"
-"                    greater than 1 (def: %f). Default chosen because\n"
+"                    greater than 1 (def: %.2f). Default chosen because\n"
 "                    MH1980 liked this value.\n"
 "\n"
 "  -output_intermed :use this option flag if you would like to output some\n"
@@ -122,7 +122,8 @@ int usage_3dedgedog()
 "\n"
 "==========================================================================\n"
 "\n",
-author, opts.sigma_rad[0], opts.ratio_sigma, 2, opts.edge_bnd_sign);
+author, opts.sigma_rad[0], opts.ratio_sigma, opts.edge_bnd_NN, 
+opts.edge_bnd_sign );
 
 	return 0;
 }
@@ -218,12 +219,8 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
          itmp = atoi(argv[iarg]);
-         if( itmp == 1 )
-            InOpts.edge_bnd_thr = 1.1;
-         else if( itmp == 2 )
-            InOpts.edge_bnd_thr = 1.7;
-         else if( itmp == 3 )
-            InOpts.edge_bnd_thr = 1.9;
+         if( 1 <= itmp && itmp <=3 )
+            InOpts.edge_bnd_NN = itmp;
          else
             ERROR_exit("Need either 1, 2 or 3 after '%s'", argv[iarg-1]);
 

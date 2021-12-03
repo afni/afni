@@ -15,7 +15,7 @@ typedef struct {
    float sigma_nvox[3];
    float ratio_sigma;
 
-   float edge_bnd_thr;
+   int edge_bnd_NN;
    int edge_bnd_sign;
 
 } PARAMS_edge_dog;
