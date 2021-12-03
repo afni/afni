@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Dec, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -combine_method m_tedana_tedort",
+   "Now have MEICA group tedana methods:\n"
+   "    m_tedana, m_tedana_OC, m_tedana_tedort"
+ } ,
+ 
  { 26, Nov, 2021, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
    "cs_pv.c: xt no longer malloc'd",
    NULL

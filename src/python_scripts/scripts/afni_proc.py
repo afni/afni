@@ -700,12 +700,14 @@ g_history = """
        - update for current tedana with --convention orig
        - add -help_tedana_files for correspondence between file names
     7.22 Nov 27, 2021:
+       - updates for current MEICA group tedana
        - add lib_tedana_afni
        - update m_tedana/m_tedana_OC combine methods to work with new tedana
          (use 3dcalc to copy results, preserving space/view, use float)
+    7.23 Dec  3, 2021: add the m_tedana_tedort -combine_method
 """
 
-g_version = "version 7.22, November 27, 2021"
+g_version = "version 7.23, December 3, 2021"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
