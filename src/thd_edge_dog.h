@@ -17,6 +17,7 @@ typedef struct {
 
    int edge_bnd_NN;
    int edge_bnd_side;
+   int edge_bnd_scale;
    char *edge_bnd_side_user;
 
 } PARAMS_edge_dog;

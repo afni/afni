@@ -1,9 +1,16 @@
 /* 
 
-
 ver = 1.0;  date = Dec 1, 2021
 + [PT] start of this program
 
+ver = 1.2;  date = Dec 3, 2021
++ [PT] getting there, for basic functionality.  Defaults work pretty well.
+     
+
+*** still need to add:
+  - scaling of edge values
+  - mask out stuff in low intensity range
+  - perhaps multi-spatial scale
 
 */
 
@@ -126,10 +133,9 @@ int usage_3dedgedog()
 "                        3 -> for face+edge+node\n"
 "                    (def: %d).\n"
 "\n"
-"\n"
 "  -edge_bnd_side EBS :specify which boundary layer around the zero-layer\n"
 "                    to use in the algorithm.  EBS must be one of the\n"
-"                    following integer values:\n"
+"                    following keywords:\n"
 "                       \"NEG\"  -> for negative (inner) boundary\n"
 "                       \"POS\"  -> for positive (outer) boundary\n"
 "                       \"BOTH\" -> for both (inner+outer) boundary\n"
@@ -137,20 +143,29 @@ int usage_3dedgedog()
 "                                        with pos/neg sides keeping sign\n"
 "                    (def: \"%s\").\n"
 "\n"
+"  -edge_bnd_scale  :by default, this program outputs a mask of edges, so\n"
+"                    edge locations have value=1, and everything else is 0.\n"
+"                    Using this option means the edges will have values\n"
+"                    scaled to have a relative magnitude between 0 and 1,\n"
+"                    depending on the gradient value at the edge (based\n"
+"                    on the distribution of all gradient values).\n"
+"                    ***not activated yet***\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Examples ~1~\n"
 "\n"
 "1) Basic case:\n"
 "   3dedgedog                                                       \\\n"
-"       -input  roi_map.nii.gz                                      \\\n"
-"       -prefix roi_map_EDT.nii.gz                                  \n"
+"       -input   anat+orig.HEAD                                     \\\n"
+"       -prefix  anat_EDGE.nii.gz                                   \n"
 "\n"
-"2) ***:\n"
+"2) Same as above, but output both edges from the DOG+EDT steps, keeping\n"
+"   the sign of each side:\n"
 "   3dedgedog                                                       \\\n"
-"       *******                                                     \\\n"
-"       -input  roi_map.nii.gz                                      \\\n"
-"       -prefix roi_map_EDT_ZZ.nii.gz                               \n"
+"       -edge_bnd_side  BOTH_SIGN                                   \\\n"
+"       -input   anat+orig.HEAD                                     \\\n"
+"       -prefix  anat_EDGE_BOTH.nii.gz                              \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -275,6 +290,11 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need either \"NEG\", \"POS\" or \"BOTH\" "
                        "after '%s'", argv[iarg-1]);
 
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-edge_bnd_scale") == 0 ){
+         InOpts.edge_bnd_scale = 1;
          iarg++ ; continue ;
       }
 

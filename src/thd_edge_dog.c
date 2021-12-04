@@ -48,7 +48,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
          + NN=3 -> for face+edge+node
        NB: We increase them *slightly* for the actual comparisons.
 
-       edge_sign: determine which boundary of the EDT to use for the
+       edge_bnd_side: determine which boundary of the EDT to use for the
        edge.  Encoding is (user enters char string keyword to select):
          + "NEG"  -> -1 -> for negative (inner) boundary
          + "POS"  ->  1 -> for positive (outer) boundary
@@ -58,10 +58,14 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
        Noting that using "NEG"/-1 seems best, by eye (in preliminary tests).
        NB: edge_bnd_side_user is just displayed in the help file---just keep
        it consistent with the internal value.
+
+       edge_bnd_scale: use the values of the gradients to scale the
+       edges.
    */
    defopt.edge_bnd_NN = 1;
    defopt.edge_bnd_side = -1;
    defopt.edge_bnd_side_user = "NEG"; 
+   defopt.edge_bnd_scale = 0; 
 
    return defopt;
 };
@@ -291,6 +295,33 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // here (to save memory), but dset_bnd can be 4D---hence two indices
    i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
 
+/* !!! working in progress---add ability to scale edge values here
+   // calc mean and sigma of distribution of (abs value) of edge
+   // gradients
+   if( opts.edge_bnd_scale ){
+      
+      int count = 0;
+      float grad_mean = 0., grad_std = 0.;  
+
+      for ( idx=0 ; idx<nvox ; idx++ ) {
+         val = THD_get_voxel(dset_edt, idx, ival_edt);
+         if( bot <= val && val <= top ) {
+            count++;
+            grad_mean+= abs(tmp_arr[idx]);
+            grad_std += abs(tmp_arr[idx]);
+         }
+      }
+
+      if( count ){
+         grad_mean/= (float) count;
+         grad_std -= count * grad_mean * grad_mean;
+         if( count - 1 > 0 )
+            grad_std/= (float) count - 1.0;
+      }
+      
+   }
+*/
+
    // free dset
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
@@ -317,7 +348,6 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    int i, idx;
    int nvox;
    float bot, top, val;  
-
    short *tmp_arr = NULL;
 
    ENTRY("calc_edge_dog_thr_EDT");
@@ -352,7 +382,6 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                tmp_arr[idx]*= -1;
       }
    }
-
    
    // load this array into the dset subvolume
    EDIT_substitute_brick(dset_bnd, ival_bnd, MRI_short, tmp_arr); 
