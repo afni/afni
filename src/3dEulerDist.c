@@ -8,6 +8,14 @@ ver = 2.0;  date = Nov 29, 2021
   work on a C version (which had been compared/developed in part with 
   the aformentioned lib_EDT.py).
 
+ver = 2.1;  date = Dec 1, 2021
++ [PT] Rearrange how main run_EDT_3D works, and how calc_EDT_3D() is
+  called. Mostly, we want to make it easier for other programs to use
+  the latter func
+
+ver = 2.2;  date = Dec 1, 2021
++ [PT] Bug fix: had delta set incorrectly in 2 out of 3
+  calc_EDT_3d_dim?() funcs, because was using *DZ* everywhere.
 
 */
 
@@ -89,7 +97,7 @@ int usage_3dEulerDist()
 "                    values, except for potentially zeroing some out at the\n"
 "                    end.\n"
 "\n"
-"  -dist_squared    :by default, the output EDT volume contains distance\n"
+"  -dist_sq         :by default, the output EDT volume contains distance\n"
 "                    values.  By using this option, the output values are\n"
 "                    distance**2.\n"
 "\n"
@@ -119,6 +127,9 @@ int usage_3dEulerDist()
 "                    size, producing outputs as if each voxel dimension was\n"
 "                    unity.\n"
 "\n"
+" -verb V           :manage verbosity when running code (def: 1).\n"
+"                    Providing a V of 0 means to run quietly.\n"
+"\n"
 "==========================================================================\n"
 "\n"
 "Examples ~1~\n"
@@ -136,7 +147,7 @@ int usage_3dEulerDist()
 "\n"
 "3) Output distance-squared at each voxel:\n"
 "   3dEulerDist                                                     \\\n"
-"       -dist_squared                                               \\\n"
+"       -dist_sq                                                    \\\n"
 "       -input  mask.nii.gz                                         \\\n"
 "       -prefix mask_EDT_SQ.nii.gz                                  \n"
 "\n"
@@ -151,7 +162,7 @@ int usage_3dEulerDist()
 "   voxel dimensions are ignored here:\n"
 "   3dEulerDist                                                     \\\n"
 "       -ignore_voxdims                                             \\\n"
-"       -dist_squared                                               \\\n"
+"       -dist_sq                                                    \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_SQ_VOX.nii.gz                           \n"
 "\n"
@@ -167,6 +178,7 @@ int main(int argc, char *argv[]) {
    int ii = 0;
    int iarg;
    PARAMS_euler_dist InOpts;
+   int itmp;
 
    mainENTRY("3dEulerDist"); machdep(); 
   
@@ -236,13 +248,26 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-dist_squared") == 0) {
-         InOpts.do_sqrt = 0;
+      if( strcmp(argv[iarg],"-dist_sq") == 0) {
+         InOpts.dist_sq = 1;
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-ignore_voxdims") == 0) {
          InOpts.ignore_voxdims = 1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-verb") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need int>0 argument after '%s'", argv[iarg-1]);
+
+         itmp = atoi(argv[iarg]);
+         if( itmp <= 0 )
+            InOpts.verb = 0;
+         else
+            InOpts.verb = itmp;
+
          iarg++ ; continue ;
       }
 
@@ -255,8 +280,8 @@ int main(int argc, char *argv[]) {
    //               verify presence+behavior of inputs
    // ****************************************************************
 
-   INFO_message("Starting to check inputs...");
-
+   if ( InOpts.verb )
+      INFO_message("EDT: starting to check inputs...");
 
    if ( !InOpts.input_name ) { 
       ERROR_message("You need to provide an input dset with '-input ..'");
@@ -286,8 +311,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
 	THD_3dim_dataset *dset_roi = NULL;          // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
 	THD_3dim_dataset *dset_edt = NULL;          // output
-
-   float ***arr_dist = NULL;           // array that will hold dist values
    
    ENTRY("run_EDT_3D");
 
@@ -313,17 +336,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    nvox = DSET_NVOX(dset_roi);
    nvals = DSET_NVALS(dset_roi);
 
-   arr_dist = (float ***) calloc( nx, sizeof(float **) );
-   for ( i=0 ; i<nx ; i++ ) 
-      arr_dist[i] = (float **) calloc( ny, sizeof(float *) );
-   for ( i=0 ; i<nx ; i++ ) 
-      for ( j=0 ; j<ny ; j++ ) 
-         arr_dist[i][j] = (float *) calloc( nz, sizeof(float) );
-   if( arr_dist == NULL ) {
-      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-      exit(12);
-   }
-
    /* Prepare header for output by copying that of input, and then
       changing items as necessary */
    dset_edt = EDIT_empty_copy( dset_roi ); 
@@ -333,34 +345,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                    ADN_none );
 
    for( nn=0 ; nn<nvals ; nn++ ){
-      float *tmp_arr = NULL;
-      tmp_arr = (float *) calloc( nvox, sizeof(float) );
-
-      i = calc_EDT_3D(arr_dist, opts, dset_roi, nn);
-
-      // Copy arr_dist values to tmp_arr, which will be used to
-      // populate the actual dset.  Then reset arr_dist values (to
-      // prepare for another iteration)
-      for( i=0 ; i<nx ; i++ )
-         for( j=0 ; j<ny ; j++ ) 
-            for( k=0; k<nz ; k++ ) {
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               tmp_arr[idx] = arr_dist[i][j][k];
-               arr_dist[i][j][k] = 0.0;
-            }
-
-      // the mask is only applied after all calcs
-      if( dset_mask ){
-         for( i=0 ; i<nvox ; i++ ) {
-            if( !THD_get_voxel(dset_mask, i, 0))
-                tmp_arr[i] = 0.0;
-         }
-      }
-      
-      // provide volume values from the appropriately-sized array
-      EDIT_substitute_brick(dset_edt, nn, MRI_float, tmp_arr); 
-      tmp_arr=NULL;
-    
+      i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
    } // end of loop over nvals
 
    // free input dset
@@ -383,15 +368,6 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    if( dset_mask ){
       DSET_delete(dset_mask);
       free(dset_mask);
-   }
-
-   if(arr_dist){
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            free(arr_dist[i][j]);
-      for ( i=0 ; i<nx ; i++ ) 
-         free(arr_dist[i]);
-      free(arr_dist);
    }
 
    return 0;

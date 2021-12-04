@@ -467,6 +467,11 @@ Ifile:Ifile.o
 3dEulerDist:3dEulerDist.o
 	$(CC) -o 3dEulerDist 3dEulerDist.o $(LFLAGS) $(LLIBS)
 
+3dedgedog.o: 3dedgedog.c thd_edge_dog.c
+
+3dedgedog:3dedgedog.o
+	$(CC) -o 3dedgedog 3dedgedog.o $(LFLAGS) $(LLIBS)
+
 # not distributed 25 Aug 2020
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)

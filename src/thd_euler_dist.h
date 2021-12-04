@@ -6,7 +6,7 @@
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
 
-    do_sqrt      : if True, the output image of EDT values is distance
+    dist_sq      : if False (def), the output image of EDT values is distance
                    values; otherwise, the values are distance**2 (because
                    that is what the program works with).
 
@@ -44,10 +44,12 @@ typedef struct {
    int nz_are_neg;  
    int bounds_are_zero;   
    int ignore_voxdims;
-   int do_sqrt;           
+   int dist_sq;           
 
    float edims[3];        
    int   shape[3];        
+
+   int verb;
 
 } PARAMS_euler_dist;
 
@@ -61,8 +63,9 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
                            THD_3dim_dataset *dset_roi, int ival);
 
-int calc_EDT_3D( float ***arr_dist, PARAMS_euler_dist opts,
-                 THD_3dim_dataset *dset_roi, int ival);
+int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+                 THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
+                 int ival);
 
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
