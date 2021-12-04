@@ -127,13 +127,13 @@ int usage_3dedgedog()
 "                    (def: %d).\n"
 "\n"
 "\n"
-"  -edge_bnd_sign EBS :specify which boundary layer around the zero-layer\n"
+"  -edge_bnd_side EBS :specify which boundary layer around the zero-layer\n"
 "                    to use in the algorithm.  EBS must be one of the\n"
 "                    following integer values:\n"
-"                        1 -> for positive (outer) boundary\n"
-"                       -1 -> for negative (inner) boundary\n"
-"                        0 -> for both (inner+outer) boundary\n"
-"                    (def: %d).\n"
+"                       \"NEG\"  -> for negative (inner) boundary\n"
+"                       \"POS\"  -> for positive (outer) boundary\n"
+"                       \"BOTH\" -> for both (inner+outer) boundary\n"
+"                    (def: \"%s\").\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -153,7 +153,7 @@ int usage_3dedgedog()
 "==========================================================================\n"
 "\n",
 author, opts.sigma_rad[0], opts.ratio_sigma, opts.edge_bnd_NN, 
-opts.edge_bnd_sign );
+opts.edge_bnd_side_user );
 
 	return 0;
 }
@@ -257,15 +257,19 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-edge_bnd_sign") == 0) {
+      if( strcmp(argv[iarg],"-edge_bnd_side") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
 
-         itmp = atoi(argv[iarg]);
-         if( -1 <= itmp && itmp <= 1 )
-            InOpts.edge_bnd_sign = itmp;
+         if( strcmp(argv[iarg],"NEG") == 0)
+            InOpts.edge_bnd_side = -1;
+         else if( strcmp(argv[iarg],"POS") == 0)
+            InOpts.edge_bnd_side = 1;
+         else if( strcmp(argv[iarg],"BOTH") == 0)
+            InOpts.edge_bnd_side = 0;
          else
-            ERROR_exit("Need either -1, 0 or 1 after '%s'", argv[iarg-1]);
+            ERROR_exit("Need either \"NEG\", \"POS\" or \"BOTH\" "
+                       "after '%s'", argv[iarg-1]);
 
          iarg++ ; continue ;
       }
@@ -295,7 +299,7 @@ int main(int argc, char *argv[]) {
 	
    // ****************************************************************
    //               verify presence+behavior of inputs
-   // ****************************************************************
+   // **************************************************************** 
 
    INFO_message("3dedgedog: verify inputs");
 

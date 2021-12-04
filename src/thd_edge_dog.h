@@ -7,7 +7,7 @@ typedef struct {
    char *input_name;      
    char *mask_name;      
    char *prefix;          
-   char *prefix_dog; //[THD_MAX_PREFIX];          
+   char *prefix_dog; 
 
    int do_output_intermed;
 
@@ -16,7 +16,8 @@ typedef struct {
    float ratio_sigma;
 
    int edge_bnd_NN;
-   int edge_bnd_sign;
+   int edge_bnd_side;
+   char *edge_bnd_side_user;
 
 } PARAMS_edge_dog;
 

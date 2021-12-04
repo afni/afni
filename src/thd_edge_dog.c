@@ -30,7 +30,9 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.sigma_nvox[2] = 0.0;   
 
    // ratio of outer/inner gaussians; from MH1980
-   defopt.ratio_sigma = 1.6;
+   // Note: from testing different values, decreasing this ratio toward
+   // 1.1 shows more details---but it gets noisy, too.
+   defopt.ratio_sigma = 1.4;
 
    /*
      EDGE CONTROL PARAMS
@@ -47,14 +49,17 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
        NB: We increase them *slightly* for the actual comparisons.
 
        edge_sign: determine which boundary of the EDT to use for the
-       edge.  Encoding is:
-         + edge_bnd_sign = -1 -> for negative (inner) boundary
-         + edge_bnd_sign =  1 -> for positive (outer) boundary
-         + edge_bnd_sign =  0 -> for both (inner+outer) boundary
-       Noting that using '-1' seems best, by eye (in preliminary tests).
+       edge.  Encoding is (user enters char string keyword to select):
+         + "NEG"  -> -1 -> for negative (inner) boundary
+         + "POS"  ->  1 -> for positive (outer) boundary
+         + "BOTH" ->  0 -> for both (inner+outer) boundary
+       Noting that using "NEG"/-1 seems best, by eye (in preliminary tests).
+       NB: edge_bnd_side_user is just displayed in the help file---just keep
+       it consistent with the internal value.
    */
    defopt.edge_bnd_NN = 1;
-   defopt.edge_bnd_sign = -1;
+   defopt.edge_bnd_side = -1;
+   defopt.edge_bnd_side_user = "NEG"; 
 
    return defopt;
 };
@@ -322,15 +327,15 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // Decide on boundary values.  Nothing can have zero EDT here, so
    // don't need to worry about doubling up on that.
-   if( opts.edge_bnd_sign == 1 ) {
+   if( opts.edge_bnd_side == 1 ) {
       bot = 0.0;
       top = opts.edge_bnd_NN * 1.01;
    }
-   else if( opts.edge_bnd_sign == -1 ) {
+   else if( opts.edge_bnd_side == -1 ) {
       bot = -opts.edge_bnd_NN * 1.01;
       top = 0;
    }
-   else if( opts.edge_bnd_sign == 0 ) {
+   else if( opts.edge_bnd_side == 0 ) {
       bot = -opts.edge_bnd_NN * 1.01;
       top = opts.edge_bnd_NN * 1.01;
    }
