@@ -52,7 +52,9 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
        edge.  Encoding is (user enters char string keyword to select):
          + "NEG"  -> -1 -> for negative (inner) boundary
          + "POS"  ->  1 -> for positive (outer) boundary
-         + "BOTH" ->  0 -> for both (inner+outer) boundary
+         + "BOTH" ->  2 -> for both (inner+outer) boundary
+         + "BOTH_SIGN"-> 3 -> for both (inner+outer) boundary,
+                              with pos/neg sides keeping sign
        Noting that using "NEG"/-1 seems best, by eye (in preliminary tests).
        NB: edge_bnd_side_user is just displayed in the help file---just keep
        it consistent with the internal value.
@@ -335,7 +337,7 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       bot = -opts.edge_bnd_NN * 1.01;
       top = 0;
    }
-   else if( opts.edge_bnd_side == 0 ) {
+   else if( opts.edge_bnd_side == 2 || opts.edge_bnd_side == 3 ) {
       bot = -opts.edge_bnd_NN * 1.01;
       top = opts.edge_bnd_NN * 1.01;
    }
@@ -343,10 +345,15 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // Go through EDT values, pick out what becomes a boundary
    for ( idx=0 ; idx<nvox ; idx++ ) {
       val = THD_get_voxel(dset_edt, idx, ival_edt);
-      if( bot <= val && val <= top )
+      if( bot <= val && val <= top ) {
          tmp_arr[idx] = 1;
+         if(  opts.edge_bnd_side == 3 )
+            if( val < 0 )
+               tmp_arr[idx]*= -1;
+      }
    }
 
+   
    // load this array into the dset subvolume
    EDIT_substitute_brick(dset_bnd, ival_bnd, MRI_short, tmp_arr); 
    tmp_arr = NULL;

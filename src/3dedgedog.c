@@ -133,6 +133,8 @@ int usage_3dedgedog()
 "                       \"NEG\"  -> for negative (inner) boundary\n"
 "                       \"POS\"  -> for positive (outer) boundary\n"
 "                       \"BOTH\" -> for both (inner+outer) boundary\n"
+"                       \"BOTH_SIGN\" -> for both (inner+outer) boundary,\n"
+"                                        with pos/neg sides keeping sign\n"
 "                    (def: \"%s\").\n"
 "\n"
 "==========================================================================\n"
@@ -266,7 +268,9 @@ int main(int argc, char *argv[]) {
          else if( strcmp(argv[iarg],"POS") == 0)
             InOpts.edge_bnd_side = 1;
          else if( strcmp(argv[iarg],"BOTH") == 0)
-            InOpts.edge_bnd_side = 0;
+            InOpts.edge_bnd_side = 2;
+         else if( strcmp(argv[iarg],"BOTH_SIGN") == 0)
+            InOpts.edge_bnd_side = 3;
          else
             ERROR_exit("Need either \"NEG\", \"POS\" or \"BOTH\" "
                        "after '%s'", argv[iarg-1]);
