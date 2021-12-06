@@ -9,7 +9,7 @@
 #endif
 
 #define MTH 999 /* threshold for using multiple threads in OpenMP code below */
-#define NTH 999
+#define NTH  99
 
 /*----------------------------------------------------------------------------*/
 
@@ -604,9 +604,6 @@ ENTRY("principal_vector_pair") ;
                                         /* so [A] = [X][X]' = n x n */
 
      memset( asym , 0 , sizeof(float)*nsym*nsym ) ; /* zero out A=asym matrix */
-
-#define MTH 999
-#define NTH 999
 
 #ifdef USE_OMP
 #pragma omp parallel if( mm > MTH && nn > NTH )
