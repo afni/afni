@@ -12,7 +12,6 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.mask_name  = NULL;     
    defopt.prefix     = NULL;     
    defopt.prefix_dog = NULL;     
-   //sprintf(defopt.prefix_dog, "tmp_dog");
 
    defopt.do_output_intermed = 0;
 
@@ -150,6 +149,7 @@ int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge,
   opts         :options from the user, with some other quantities calc'ed
   dset_input   :the input dataset of which DOG/edges will be calculated
   ival         :index of subvolume of 'dset_input' to process
+  ival         :shared index of subvol of 'dset_input' & 'dset_dog' to process
 
 */
 int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
@@ -223,7 +223,7 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   dset_bnd     :the dset that will be the boundary map (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
   dset_dog     :the input dataset of unthresholded/'raw' DOG values
-  ival         :index of subvolume of 'dset_input' to process
+  ival         :shared index of subvolume of 'dset_bnd' & 'dset_dog' to process
 
 */
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
@@ -338,7 +338,8 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
   dset_bnd     :the dset that will be the edge dataset (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
   dset_edt     :the input dataset EDT values, to be thresholded for edges
-  ival         :index of subvolume of 'dset_input' to process
+  ival_bnd     :index of subvolume of 'dset_bnd' to process
+  ival_edt     :index of subvolume of 'dset_edt' to process
 
 */
 int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
