@@ -5362,7 +5362,7 @@ ENTRY("AFNI_rescan_timeseries_CB") ;
            NI_free_element(newel) ;                             /* is old */
         }
      }
-     if( nadd > 0 ) /*POPDOWN_timeseries_chooser*/ ;
+     /* if( nadd > 0 ) POPDOWN_timeseries_chooser ; */
      FREE_ELARR(newtsvar) ;
    }
 
