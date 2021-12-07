@@ -404,7 +404,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
                     DSET_HEADNAME(dset_dog));
       tross_Make_History("3dedgedog", argc, argv, dset_dog);
 
-      // write and free dset 
+      // write dset 
       THD_write_3dim_dataset(NULL, NULL, dset_dog, True);
    }
 
@@ -420,9 +420,56 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
    INFO_message("Calculate boundaries");
 
-   // might be several ways to calc edges/bnds from DOG data
-   for( nn=0 ; nn<nvals ; nn++ )
+   // calculate edges/bnds: might be several ways to these from DOG data
+   for( nn=0 ; nn<nvals ; nn++ ){
       i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+      
+      if( 1 )
+         i = scale_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+   }
+   
+   /*
+   // output edges are scaled values, not binary ones, if user asks
+   if( 1 ) { // !!!!!!!!TEST:  opts.edge_bnd_scale ){
+
+      void *tmp_vec = NULL;
+      byte *mmm = NULL;  // to be byte mask where edges are
+      int mmvox = 0;
+      int ninmask = 0;
+
+      int N_mp = 2;                     // number of percentiles to calc
+      double mpv[2] = {0.02, 0.98};     // the percentile values to calc
+      double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
+      int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
+
+      for( nn=0 ; nn<nvals ; nn++ ){
+         mmm = THD_makemask( dset_bnd, nn, 0.0, -1.0 );
+         if ( !mmm ) {
+            ERROR_message("Failed to general %ile mask.");
+            exit(1);         
+         }
+         ninmask = THD_countmask(nvox, mmm);
+
+         tmp_vec = Percentate( DSET_ARRAY(dset_dog, nn), mmm, nvox,
+                               DSET_BRICK_TYPE(dset_dog, nn), mpv, N_mp,
+                               1, perc,
+                               zero_flag, pos_flag, neg_flag );
+         if ( !tmp_vec ) {
+            ERROR_message("Failed to compute percentiles.");
+            exit(1);         
+         }
+      }
+
+      INFO_message("NB: %d in mask; %iles = %.6f, %.6f", ninmask, 
+                   perc[0], perc[1]);
+
+      if( tmp_vec )
+         free(tmp_vec); 
+      tmp_vec = NULL;
+      if( mmm )
+         free(mmm);
+   }
+   */
 
    INFO_message("Output main dset: %s", opts.prefix);
 

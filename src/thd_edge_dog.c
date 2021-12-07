@@ -329,6 +329,63 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    return 0;
 }
 
+// ----------------------------------------
+
+/* 
+   Same inputs as calc_edge_dog_BND().
+
+   Get 2- and 98-%ile values of DOG values across edge voxels,
+   and use DOG values scaled within this range for output
+   coloration.
+   
+   Here, we basically follow what happens in 3dBrickStat.c.
+*/ 
+int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                        THD_3dim_dataset *dset_dog, int ival)
+{
+   void *tmp_vec = NULL;
+   byte *mmm = NULL;  // to be byte mask where edges are
+   int nvox = 0;
+   int ninmask = 0;
+   
+   int N_mp = 2;                     // number of percentiles to calc
+   double mpv[2] = {0.02, 0.98};     // the percentile values to calc
+   double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
+   int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
+   
+   ENTRY("scale_edge_dog_BND");
+
+   nvox = DSET_NVOX(dset_bnd);
+
+   mmm = THD_makemask( dset_bnd, ival, 0.0, -1.0 );
+   if ( !mmm ) {
+      ERROR_message("Failed to general %ile mask.");
+      exit(1);         
+   }
+   ninmask = THD_countmask(nvox, mmm);
+   
+   tmp_vec = Percentate( DSET_ARRAY(dset_dog, ival), mmm, nvox,
+                         DSET_BRICK_TYPE(dset_dog, ival), mpv, N_mp,
+                         1, perc,
+                         zero_flag, pos_flag, neg_flag );
+   if ( !tmp_vec ) {
+      ERROR_message("Failed to compute percentiles.");
+      exit(1);         
+   }
+
+   INFO_message("NB: %d in mask; percentiles = %.6f, %.6f", ninmask, 
+                perc[0], perc[1]);
+   
+   if( tmp_vec ){
+      free(tmp_vec); 
+      tmp_vec = NULL;
+   }
+   if( mmm )
+         free(mmm);
+
+   return 0;
+};
+
 // ---------------------------------------------------------------------------
 
 /*
