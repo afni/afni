@@ -323,7 +323,7 @@ AFNI_OMP_END ;
 *//*--------------------------------------------------------------------------*/
 
 #undef  FEPS
-#define FEPS 0.00000123456f  /* convergence test */
+#define FEPS 0.000000123456f  /* convergence test */
 
 #undef  DEPS
 #undef  DEPSQ
@@ -473,7 +473,7 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* check first eigenvalue in D for convergence */
 
-     if( nite > 199 ||
+     if( nite > 266 ||
          ( nite > 0 && fabs(ev[0]-evold) <= FEPS*(fabs(evold)+FEPS) ) ) break ;
 
      /* not done yet ==> iterate */
@@ -899,7 +899,7 @@ fprintf(stderr,"         bb=%.5g %.5g %.5g\n"
 
      /* check first two eigenvalues in D for convergence */
 
-     if( nite > 199 ||
+     if( nite > 266 ||
          ( nite > 0                                       &&
            fabs(ev[0]-evold1) <= FEPS*(fabs(evold1)+FEPS) &&
            fabs(ev[1]-evold2) <= FEPS*(fabs(evold2)+FEPS)   ) ) break ;
