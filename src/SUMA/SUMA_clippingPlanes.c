@@ -50,6 +50,7 @@ DList *list = NULL;
 
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
+    char *FuncName = "toggleClippingPlaneMode";
 
     clippingPlaneMode = !clippingPlaneMode; // Toggle clipping plane state
 
@@ -66,6 +67,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
     SUMA_UpdateViewerTitle(sv);
 
     if (clippingPlaneMode){
+   
         if (resetClippingPlanes){
             SUMAg_CF->N_ClipPlanes = 1;
             resetClippingPlanes=0;
@@ -114,6 +116,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             // Display clip plane identification mode if required
             if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
         }
+        
         if (!((XtPointer)sv->X->GLXAREA)){
             fprintf(stderr, "*** Error: Color map widget, GLXAREA, is NULL\n");
             // SUMA_X_SurfaceViewer_Create();
@@ -131,7 +134,9 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
             fprintf(stderr, "### Darken inactive clip planes\n");
         darkenInactiveClipPlaneSquares(*locallySelectedPlane);
+        /*
         lightenActiveClipPlaneSquare(*locallySelectedPlane);
+        /**/
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
@@ -148,6 +153,9 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         fprintf(stderr, "### Update increment in header and refresh viewer\n");
     SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+    
+    if (!clippingPlaneMode && SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+        fprintf(stderr, "### toggleClippingPlaneMode: sv->N_ColList = %d\n", sv->N_ColList);
 
     justEnteredClippingPlaneMode = 0;
     return 1;
@@ -1569,6 +1577,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
             fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
+            fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }
         if (!justEnteredClippingPlaneMode && !SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
