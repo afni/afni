@@ -103,4 +103,45 @@ double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
    if (scl && denom>0.0) dd /= denom;
    
    RETURN(dd);   
+}
+
+/*---------------------------------------------------------------------
+  07 Dec 2021: Return the total number of differing voxels within the
+               given tolerance.
+    return = -1 ERROR
+           =  0 Exactly the same
+           =  n The number of differing voxels
+-----------------------------------------------------------------------*/
+int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, float eps) {
+   double dd=0.0;
+   int count=0;
+   int i=0, k=0;
+   double *a1=NULL, *a2=NULL;
+   MRI_IMAGE *b1 = NULL , *b2 = NULL;
+
+   ENTRY("THD_count_diffs");
+
+   if (!d1 && !d2) RETURN(dd);
+   if (!d1 || !d2) RETURN(-1.0);
+
+   if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
+   if (DSET_NVALS(d1) != DSET_NVALS(d2)) RETURN(-1.0);
+
+   DSET_mallocize(d1) ; DSET_load(d1) ;
+   DSET_mallocize(d2) ; DSET_load(d2) ;
+   dd = 0.0;
+   for (i=0; i<DSET_NVALS(d1); ++i) {
+      b1 = THD_extract_double_brick(i, d1);
+      b2 = THD_extract_double_brick(i, d2);
+      a1 = MRI_DOUBLE_PTR(b1);
+      a2 = MRI_DOUBLE_PTR(b2);
+      for (k=0; k<DSET_NVOX(d1); ++k) {
+         dd = ABS(a1[k]-a2[k]);
+         if (dd > eps) ++count;
+      }
+      mri_clear_data_pointer(b1); mri_free(b1) ;
+      mri_clear_data_pointer(b2); mri_free(b2) ;
+   }
+
+   RETURN(count);
 }  

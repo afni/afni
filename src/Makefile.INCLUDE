@@ -743,10 +743,9 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dToyProg 3dToyProg.o $(LFLAGS) $(LLIBS)
 
-3dDiff:3dDiff.o
+3dDiff:thd_mismatch.o 3dDiff.o
 	$(RM) $@
-	$(CC) -o 3dDiff 3dDiff.o $(LFLAGS) $(LLIBS)
-
+	$(CC) -o 3dDiff thd_mismatch.o 3dDiff.o $(LFLAGS) $(LLIBS)
 
 3dSynthesize:3dSynthesize.o
 	$(RM) $@

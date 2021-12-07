@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "3ddata.h"
 
 /*------------------------------------------------------------------------*/
 /*! Return a measure of the difference between 2 images bim and nim,
@@ -19,96 +20,73 @@
     - MRI_SIMPLE_DIFF_ERROR indicates some other error
 --------------------------------------------------------------------------*/
 
-#define MRI_SIMPLE_DIFF_DIM_DIVERGE -2
 #define MRI_SIMPLE_DIFF_ERROR -1
 #define MRI_SIMPLE_DIFF_DEFAULT_TOL 1e-8f
 
-int mri_ndiff( MRI_IMAGE *bim , MRI_IMAGE *nim , float tol)
+int help_3dDiff()
 {
-    /* 
-     * nvox is the total number of voxels to be diffed
-     * ii is the current position while iterating over images
-     * diffs is the total number of differing voxels */
-    int nvox , ii , diffs = 0 ;
-    /* *fim is the left image pointer, *gim the right */
-    MRI_IMAGE *fim , *gim ;
-    /* *far is the left float-version image, *gar the right */
-    float *far, *gar ;
-    /* curr_diff is the current voxel's difference */
-    float curr_diff;
+    char * author = "JB Teves";
 
-ENTRY("mri_simple_diff") ;
-
-    /* Some data validations */
-    if ( bim == NULL || nim == NULL ) RETURN(MRI_SIMPLE_DIFF_ERROR) ;
-    if ( tol < 0 ) {
-        tol = 0.0f - tol ;
-        WARNING_message(
-            "Tolerance %e was negative, performed sign flip", tol
-        );
-    }
-
-    nvox = bim->nvox ;
-    if ( nim->nvox != nvox ) RETURN(MRI_SIMPLE_DIFF_DIM_DIVERGE) ;
-
-    /* If the data type is not a float, we need to coerce it to one */
-    fim = (bim->kind != MRI_float) ? mri_to_float(bim) : bim ;
-    gim = (bim->kind != MRI_float) ? mri_to_float(nim) : nim ;
-
-    far = MRI_FLOAT_PTR(fim) ; gar = MRI_FLOAT_PTR(gim) ;
-
-    /* Iterate over the voxels, counting diffs */
-    for ( ii=0; ii < nvox; ii++){
-        curr_diff = far[ii] - gar[ii];
-        if ( !(curr_diff < tol) ||
-             !(curr_diff > (0.0f - tol))) {
-            ++diffs;
-        }
-    }
-
-    /* Free the memory we asked for if we converted to float */
-    if ( fim != bim ) mri_free(fim) ;
-    if ( gim != nim ) mri_free(gim) ;
-
-    /* It is finished */
-    RETURN(diffs);
-}
-
-int help_3dDiff(TFORM targ, int detail)
-{
-    if (detail >= 0) {
-        sphinx_printf(targ,
-"Usage: 3dDiff [-tol TOL] <-left LEFT> <-right RIGHT>\n"
-"   A program to calculate how many voxels diverge between two images.\n"
-"       -left LSET: the left dataset.\n"
-"       -right RSET: the right dataset.\n"
-"       -tol TOL: the tolerance to use. (Default 1e-8).\n"
-        );
-    }
-    if (detail >= 1) {
-        sphinx_printf(targ,
+    printf(
 "\n"
-" The calculation is performed by casting to floating point and counting \n"
-" the number of voxels that are outside the range (-TOL, TOL).\n"
-" If the dimensions of the images diverge, the program will tell you and \n"
-" you will not get a count of diverging voxels. If the dimensions agree, \n"
-" then the program will give you a count of the diverging voxels and a \n"
-" representation of this count as a percentage of total voxels. \n"
-" Useful for comparing files quickly without writing a dset to disk, as \n"
-" you would with 3dCalc.\n"
-        );
-    }
+"Overview ~1~ \n"
+"\n"
+"This is a program to show the differences between two images.\n"
+"\n"
+"written by: %s\n"
+"\n"
+"===========================================================================\n"
+"\n"
+"Command usage and option list ~1~ \n"
+"\n"
+" 3dDiff [-tol TOLERANCE] <-left LEFT_DSET> <-right RIGHT_DSET>\n"
+"\n"
+"where: \n"
+"\n"
+"  -tol TOLERANCE   :(opt) the floating-point tolerance/epsilon\n"
+"\n"
+"  -left LEFT_DSET  :(req) input left dataset\n"
+"\n"
+"  -right RIGHT_DSET:(req) input right dataset\n"
+"\n"
+"===========================================================================\n"
+"\n"
+"Examples ~1~\n"
+"\n"
+"1) Diff two images with equivalent grids, no matching voxels\n"
+"%% 3dDiff -left a.nii -right b.nii\n"
+"++ Images diverge: 42663935 of 42663936 voxels disagree (100.000%%)\n"
+"\n"
+"2) Diff two images with different dimensions entirely\n"
+"%% 3dDiff -left grid1.nii -right grid2.nii\n"
+"++ Image dimensions mismatch: (64, 64, 31) vs. (32, 32, 15)\n"
+"\n"
+"3) Diff two images with different centers, obliquities\n"
+"%% 3dDiff -left ob1.nii -right ob2.nii\n"
+"++ Image centers diverge\n"
+"++ Image orientations diverge\n"
+"++ Image obliquities diverge: 3.783151 apart\n"
+"\n"
+"4) Diff two images with an optional (and more permissive tolerance)"
+"%% 3dDiff -tol .5 a.nii -right b.nii\n"
+"++ Images diverge: 23999522 of 42663936 voxels disagree (56.252%%)\n"
+"\n"
+"5) Diff two images that agree completely (quietly succeeds)\n"
+"%% 3dDiff -left a.nii -right a.nii\n"
+"\n"
+"===========================================================================\n"
+"\n",
+author );
 
     return 0;
 }
 
-
 int main( int argc , char * argv[] )
 {
     /* diff for differing voxels, nvox for total voxels */
-    int diff, nvox = 0 ;
+    int diff, nvox, dim_check = 0 ;
     char *left_fname, *right_fname ;
-    MRI_IMAGE *left_dset , *right_dset ;
+    THD_3dim_dataset *left_dset = NULL, *right_dset = NULL;
     /* iarg counts where we are in the passed args; start at 1 */
     int iarg=1 ;
     /* tolerance we'll use; defaults to the value specified above */
@@ -135,18 +113,20 @@ int main( int argc , char * argv[] )
         /* left image */
         if ( strncmp(argv[iarg],"-left",5) == 0) {
             if (iarg >= argc) ERROR_exit("Need dset after -left");
-            left_dset = mri_read( argv[++iarg] ) ;
+            left_dset = THD_open_dataset( argv[++iarg] ) ;
             if ( left_dset == NULL )
                 ERROR_exit("Cannot open left dataset!\n") ;
+            DSET_load(left_dset); CHECK_LOAD_ERROR(left_dset);
             iarg++; continue;
         }
 
         /* right image */
         if ( strncmp(argv[iarg],"-right",5) == 0) {
             if (iarg >= argc) ERROR_exit("Need dset after -right");
-            right_dset = mri_read( argv[++iarg] ) ;
+            right_dset = THD_open_dataset( argv[++iarg] ) ;
             if ( right_dset == NULL )
                 ERROR_exit("Cannot open right dataset!\n") ;
+            DSET_load(right_dset); CHECK_LOAD_ERROR(right_dset);
             iarg++; continue;
         }
 
@@ -166,7 +146,7 @@ int main( int argc , char * argv[] )
 
     /* With args parsed, ensure required ones were present */
     if ( argc < 3 ){
-        help_3dDiff(TXT, 0);
+        help_3dDiff();
         PRINT_COMPILE_DATE ; exit(0) ;
     }
 
@@ -175,19 +155,42 @@ int main( int argc , char * argv[] )
     if ( !right_dset )
         ERROR_exit("No right dset supplied!");
 
-    /* Actually perform the calculation */
-    diff = mri_ndiff(left_dset, right_dset, tol);
+    /* Check for dimension mismatch, report if so */
+    dim_check = THD_dataset_mismatch(left_dset, right_dset);
+    if ( dim_check ) {
+        if ( dim_check & MISMATCH_DELTA ) {
+            INFO_message("Image centers diverge");
+        }
+        if ( dim_check & MISMATCH_ORIENT ) {
+            INFO_message("Image orientations diverge");
+        }
+        if ( dim_check & MISMATCH_DIMEN ) {
+            INFO_message(
+                "Image dimensions mismatch: (%d, %d, %d) vs. (%d, %d, %d)",
+                DSET_NX(left_dset), DSET_NY(left_dset), DSET_NZ(left_dset),
+                DSET_NX(right_dset), DSET_NY(right_dset), DSET_NZ(right_dset)
+            );
+        }
+        if ( dim_check & MISMATCH_OBLIQ ) {
+            INFO_message(
+                "Image obliquities diverge: %f apart",
+                dset_obliquity_angle_diff(
+                    left_dset, right_dset, OBLIQ_ANGLE_THRESH
+                )
+            );
+        }
+    }
+    if ( ! EQUIV_GRIDS( left_dset , right_dset ) ) RETURN ( 1 ) ;
+
+    diff = THD_count_diffs(left_dset, right_dset, tol);
     /* How many voxels did we just diff, anyway? */
-    nvox = left_dset->nvox;
+    nvox = DSET_NVOX(left_dset) * DSET_NVALS(left_dset);
+    /* Free the images */
+    DSET_delete(left_dset); free(left_dset);
+    DSET_delete(right_dset); free(right_dset);
 
     /* Report to user */
-    /* NOTE: nonzero exit codes if there is a difference, to emulate
-     * the behavior of the much more common "diff" program */
-    if ( diff == MRI_SIMPLE_DIFF_DIM_DIVERGE ) {
-        INFO_message("Image dimensions diverge") ;
-        RETURN( 1 ) ;
-    }
-    else if ( diff == MRI_SIMPLE_DIFF_ERROR ) {
+    if ( diff == MRI_SIMPLE_DIFF_ERROR ) {
         /* TODO: make a more informative error */
         ERROR_exit("3dDiff encountered an unknown error\n");
     }
