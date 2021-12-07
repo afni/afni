@@ -322,7 +322,7 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    int ninmask = 0;
    
    int N_mp = 2;                     // number of percentiles to calc
-   double mpv[2] = {0.10, 0.90};     // the percentile values to calc
+   double mpv[2] = {0.0, 0.0};       // the percentile values to calc
    double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
    int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
    
@@ -345,6 +345,20 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    }
    ninmask = THD_countmask(nvox, mmm);
 
+   // The percentile ranges depend on which kind of boundaries we have
+   if( opts.edge_bnd_side == 1 ){
+      mpv[0] = 0.02;
+      mpv[1] = 0.50;
+   }
+   else if( opts.edge_bnd_side == -1 ){
+      mpv[0] = 0.98;
+      mpv[1] = 0.50;
+   }
+   else if( opts.edge_bnd_side == 2 || opts.edge_bnd_side == 3 ){
+      mpv[0] = 0.25;
+      mpv[1] = 0.75;
+   }
+
    tmp_vec = Percentate( DSET_ARRAY(dset_dog, ival), mmm, nvox,
                          DSET_BRICK_TYPE(dset_dog, ival), mpv, N_mp,
                          1, perc,
@@ -354,11 +368,13 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       exit(1);         
    }
    
+   //INFO_message("RANGE: %.6f %.6f", perc[0], perc[1]);
+
    flim = MRI_FLOAT_PTR(dset_dog->dblk->brick->imarr[ival]);
    
    // Decide on boundary values.  Nothing can have zero EDT here, so
-   // don't need to worry about doubling up on that.
-   if( opts.edge_bnd_side == 1 ) { 
+   // don't need to worry about doubling up on that. 
+   if( opts.edge_bnd_side == 1 || opts.edge_bnd_side == -1) { 
       bot = (float) perc[0];
       top = (float) perc[1];
       ran = top - bot;
@@ -366,50 +382,24 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       for( i=0 ; i<nvox ; i++ )
          if( mmm[i] ){
             val = (flim[i] - bot)/ran;
+            val = ( val > 0.0 ) ? val : 0.0;
             tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
          }
    }
-   else if( opts.edge_bnd_side == -1 ) {
-      bot = (float) perc[1];
-      top = (float) perc[0];
-      ran = top - bot; // note order, for sign consideration
-
-      for( i=0 ; i<nvox ; i++ )
-         if( mmm[i] ){
-            val = (flim[i] - bot)/ran;
-            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
-         }
-   }
-   else if( opts.edge_bnd_side == 2 ) {
+   else if( opts.edge_bnd_side == 2 || opts.edge_bnd_side == 3) {
       bot = (float) perc[0];
       top = (float) perc[1];
 
       for( i=0 ; i<nvox ; i++ )
          if( mmm[i] ){
-            if( flim[i] >= 0 ){ 
+            if( flim[i] >= 0 )
                val = flim[i]/top;
-               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
-            }
-            else{
+            else
                val = flim[i]/bot;
-               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
-            }
-         }
-   }
-   else if( opts.edge_bnd_side == 3 ) {
-      bot = (float) abs(perc[0]);
-      top = (float) perc[1];
+            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
 
-      for( i=0 ; i<nvox ; i++ )
-         if( mmm[i] ){
-            if( flim[i] >= 0 ){ 
-               val = flim[i]/top;
-               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
-            }
-            else{
-               val = flim[i]/bot;
-               tmp_arr[i] = (val <= -1.0 ) ? -100 : 99*val-1;
-            }
+            if( flim[i] < 0 && opts.edge_bnd_side == 3 )
+               tmp_arr[i]*= -1;
          }
    }
 
