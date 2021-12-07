@@ -38,9 +38,10 @@ g_oc_methods = [
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
     'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
-    # https://github.com/ME-ICA/tedana/
+    # https://github.com/ME-ICA/tedana
     'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-    'm_tedana_OC'       # ts_OC.nii              from m_tedana
+    'm_tedana_OC',      # ts_OC.nii              from m_tedana
+    'm_tedana_tedort'   # tedana --tedort
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -3298,40 +3299,47 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
 
    # tedort: do we project good components from bad?
    if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=0):
-      print("** m_tedana options not ready for tedort")
+      print("** m_tedana not ready for tedort (might not be appropriate)")
       return
       midk_opt = '1'
    else:
       midk_opt = '0'
 
+   # init any extra tedana options
+   exopts = []
+
    # ----------------------------------------------------------------------
    # decide what to do
    #    - what output to copy, if any (and a corresponding comment)
    #    - whether to grab the ortvec
-   ready = 0    # flag what still needs to be done
+   ready = 1    # flag what still needs to be done
    if method == 'm_tedana':
-      ready = 1
       getorts = 0
       dataout = 'dn_ts_OC.nii.gz'
       mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
    elif method == 'm_tedana_OC':
-      ready = 1
       getorts = 0
       dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
    elif method == 'm_tedana_tedort':
-      # rcr - todo, -tedort from MEICA tedana
-      getorts = 1
-      dataout = 'ts_OC.nii.gz'
+      getorts = 0
+      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
+      exopts.append('--tedort')
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
+   # todo: methods that need to extract ortvecs
    elif method == 'm_tedana_OC_tedort':
-      # rcr - todo, need ort vec
+      ready = 0
+      print("** MEICA -combine_method %s not ready" % method)
+
       getorts = 1
       dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
    elif method == 'getorts':
+      ready = 0
+      print("** MEICA -combine_method %s not ready" % method)
+
       getorts = 1
       dataout = ''
       mstr = '# (get MEICA tedana -ortvec results)\n\n'
@@ -3345,7 +3353,6 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    oindent = ' '*6
 
    # gather any extra tedana options
-   exopts = []
    oname = '-combine_opts_tedana'
    if block.opts.find_opt(oname):
       olist, rv = block.opts.get_string_list(oname)
@@ -3366,7 +3373,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    fave_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
-   exoptstr = ''.join(exopts)
+   exoptstr = '          %s \\\n' % ''.join(exopts)
 
 
    # actually run tedana
@@ -13294,25 +13301,38 @@ g_help_options = """
                 OC_B             : newer log() time series regression method
                                    (there is little difference between OC_A
                                    and OC_B)
+
+                   -- combine methods that use Prantik's "original" tedana.py --
+
                 OC_tedort        : OC, and pass tedana orts to regression
                 tedana           : run tedana.py, using output dn_ts_OC.nii
                 tedana_OC        : run tedana.py, using output ts_OC.nii
                                    (i.e. use tedana.py for optimally combined)
                 tedana_OC_tedort : tedana_OC, and include tedana orts
+
+                   -- combine methods that use tedana from the MEICA group --
+
                 m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
                 m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
+                m_tedana_tedort  : tedana from MEICA group (dn_ts_OC.nii.gz)
+                                   (--tedort: "good" projected from "bad")
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017
             summer course.
 
-            The 'tedort' methods are applied using @extract_meica_ortvec,
-            which projects the 'good' MEICA components out of the 'bad' ones,
-            and saves those as regressors to be applied later.  Otherwise, some
-            of the 'good' components are removed with the 'bad.  The tedort
-            method can be applied with either AFNI OC or tedana OC (meaning
-            the respective OC method would be applied to combine the echoes,
-            and the tedort components will be passed on to the regress block).
+            The 'tedort' methods for Prantik's tedana.py are applied using
+            @extract_meica_ortvec, which projects the 'good' MEICA components
+            out of the 'bad' ones, and saves those as regressors to be applied
+            later.  Otherwise, some of the 'good' components are removed with
+            the 'bad.  The tedort method can be applied with either AFNI OC or
+            tedana OC (meaning the respective OC method would be applied to
+            combine the echoes, and the tedort components will be passed on to
+            the regress block).
+
+            The 'm_tedana_tedort' method for the MEICA group's passes --tedort
+            to tedana, and tedana does the "good" from "bad" projection before
+            projecting the modified "bad" components from the time series.
 
             Please see '@compute_OC_weights -help' for more information.
             Please see '@extract_meica_ortvec -help' for more information.
