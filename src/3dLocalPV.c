@@ -95,7 +95,7 @@ int main( int argc , char *argv[] )
        "* On my Mac Pro, about 30%% faster than 3dLocalSVD computing the same thing.\n"
        "* If you're curious, the 'special method' used for the eigensolution is\n"
        "   a variant of matrix power iteration, called 'simultaneous iteration'.\n"
-       "* This method uses pseudo-random numbers to initialize the vector iterations.
+       "* This method uses pseudo-random numbers to initialize the vector iterations.\n"
        "   If you wish to control that seed, set environment variable\n"
        "   AFNI_RANDOM_SEEDVAL to some nonzero number. Otherwise, a random seed will\n"
        "   be selected from the time, which means otherwise identical runs will give\n"
