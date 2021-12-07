@@ -6,9 +6,13 @@ ver = 1.0;  date = Dec 1, 2021
 ver = 1.2;  date = Dec 3, 2021
 + [PT] getting there, for basic functionality.  Defaults work pretty well.
      
+ver = 1.3;  date = Dec 6, 2021
++ [PT] start to add scaling of edge values...
+
+ver = 1.31;  date = Dec 6, 2021
++ [PT] ... and scaling now activated: using DOG value at each edge vox
 
 *** still need to add:
-  - scaling of edge values
   - mask out stuff in low intensity range
   - perhaps multi-spatial scale
 
@@ -424,53 +428,13 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    for( nn=0 ; nn<nvals ; nn++ ){
       i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
       
-      if( 1 )
+      if( opts.edge_bnd_scale ){
+         if( !nn )
+            INFO_message("Scale boundaries");
          i = scale_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+      }
    }
    
-   /*
-   // output edges are scaled values, not binary ones, if user asks
-   if( 1 ) { // !!!!!!!!TEST:  opts.edge_bnd_scale ){
-
-      void *tmp_vec = NULL;
-      byte *mmm = NULL;  // to be byte mask where edges are
-      int mmvox = 0;
-      int ninmask = 0;
-
-      int N_mp = 2;                     // number of percentiles to calc
-      double mpv[2] = {0.02, 0.98};     // the percentile values to calc
-      double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
-      int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
-
-      for( nn=0 ; nn<nvals ; nn++ ){
-         mmm = THD_makemask( dset_bnd, nn, 0.0, -1.0 );
-         if ( !mmm ) {
-            ERROR_message("Failed to general %ile mask.");
-            exit(1);         
-         }
-         ninmask = THD_countmask(nvox, mmm);
-
-         tmp_vec = Percentate( DSET_ARRAY(dset_dog, nn), mmm, nvox,
-                               DSET_BRICK_TYPE(dset_dog, nn), mpv, N_mp,
-                               1, perc,
-                               zero_flag, pos_flag, neg_flag );
-         if ( !tmp_vec ) {
-            ERROR_message("Failed to compute percentiles.");
-            exit(1);         
-         }
-      }
-
-      INFO_message("NB: %d in mask; %iles = %.6f, %.6f", ninmask, 
-                   perc[0], perc[1]);
-
-      if( tmp_vec )
-         free(tmp_vec); 
-      tmp_vec = NULL;
-      if( mmm )
-         free(mmm);
-   }
-   */
-
    INFO_message("Output main dset: %s", opts.prefix);
 
    THD_load_statistics( dset_bnd );

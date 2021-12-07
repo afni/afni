@@ -295,33 +295,6 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // here (to save memory), but dset_bnd can be 4D---hence two indices
    i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
 
-/* !!! working in progress---add ability to scale edge values here
-   // calc mean and sigma of distribution of (abs value) of edge
-   // gradients
-   if( opts.edge_bnd_scale ){
-      
-      int count = 0;
-      float grad_mean = 0., grad_std = 0.;  
-
-      for ( idx=0 ; idx<nvox ; idx++ ) {
-         val = THD_get_voxel(dset_edt, idx, ival_edt);
-         if( bot <= val && val <= top ) {
-            count++;
-            grad_mean+= abs(tmp_arr[idx]);
-            grad_std += abs(tmp_arr[idx]);
-         }
-      }
-
-      if( count ){
-         grad_mean/= (float) count;
-         grad_std -= count * grad_mean * grad_mean;
-         if( count - 1 > 0 )
-            grad_std/= (float) count - 1.0;
-      }
-      
-   }
-*/
-
    // free dset
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
@@ -349,13 +322,21 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    int ninmask = 0;
    
    int N_mp = 2;                     // number of percentiles to calc
-   double mpv[2] = {0.02, 0.98};     // the percentile values to calc
+   double mpv[2] = {0.10, 0.90};     // the percentile values to calc
    double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
    int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
    
+   int i;
+   float bot, top, ran, val;
+   float *flim = NULL;
+   short *tmp_arr = NULL;
+
    ENTRY("scale_edge_dog_BND");
 
    nvox = DSET_NVOX(dset_bnd);
+   tmp_arr = (short *) calloc( nvox, sizeof(short) );
+   if( tmp_arr == NULL ) 
+      ERROR_exit("MemAlloc failure.\n");
 
    mmm = THD_makemask( dset_bnd, ival, 0.0, -1.0 );
    if ( !mmm ) {
@@ -363,7 +344,7 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       exit(1);         
    }
    ninmask = THD_countmask(nvox, mmm);
-   
+
    tmp_vec = Percentate( DSET_ARRAY(dset_dog, ival), mmm, nvox,
                          DSET_BRICK_TYPE(dset_dog, ival), mpv, N_mp,
                          1, perc,
@@ -372,16 +353,77 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       ERROR_message("Failed to compute percentiles.");
       exit(1);         
    }
-
-   INFO_message("NB: %d in mask; percentiles = %.6f, %.6f", ninmask, 
-                perc[0], perc[1]);
    
+   flim = MRI_FLOAT_PTR(dset_dog->dblk->brick->imarr[ival]);
+   
+   // Decide on boundary values.  Nothing can have zero EDT here, so
+   // don't need to worry about doubling up on that.
+   if( opts.edge_bnd_side == 1 ) { 
+      bot = (float) perc[0];
+      top = (float) perc[1];
+      ran = top - bot;
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            val = (flim[i] - bot)/ran;
+            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+         }
+   }
+   else if( opts.edge_bnd_side == -1 ) {
+      bot = (float) perc[1];
+      top = (float) perc[0];
+      ran = top - bot; // note order, for sign consideration
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            val = (flim[i] - bot)/ran;
+            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+         }
+   }
+   else if( opts.edge_bnd_side == 2 ) {
+      bot = (float) perc[0];
+      top = (float) perc[1];
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            if( flim[i] >= 0 ){ 
+               val = flim[i]/top;
+               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+            }
+            else{
+               val = flim[i]/bot;
+               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+            }
+         }
+   }
+   else if( opts.edge_bnd_side == 3 ) {
+      bot = (float) abs(perc[0]);
+      top = (float) perc[1];
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            if( flim[i] >= 0 ){ 
+               val = flim[i]/top;
+               tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+            }
+            else{
+               val = flim[i]/bot;
+               tmp_arr[i] = (val <= -1.0 ) ? -100 : 99*val-1;
+            }
+         }
+   }
+
+   EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
+   tmp_arr=NULL;
+
    if( tmp_vec ){
       free(tmp_vec); 
       tmp_vec = NULL;
    }
    if( mmm )
-         free(mmm);
+      free(mmm);
+
+   flim = NULL;
 
    return 0;
 };
