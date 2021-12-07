@@ -137,7 +137,7 @@ RUN wget -P /opt/cmake  https://github.com/Kitware/CMake/releases/download/v${CM
   ; cd /opt/cmake \
   ; tar xzvf cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
   ;rm -fr cmake-${CMAKE_VER}-Linux-x86_64.tar.gz \
-  && fix-permissions /opt
+  && fix-permissions /opt 
 ENV PATH="/opt/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
 
 RUN mkdir $PYTHONUSERBASE
@@ -166,7 +166,11 @@ RUN python3 -m pip install \
         pytest-xdist \
         scipy \
         git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
-  && fix-permissions /opt
+  && fix-permissions /opt \
+  && git config --global user.name "Docker Almighty" \
+  && git config --global user.email "nobody@example.com" \
+  && datalad wtf
+
 
 # add pdb alias ipy for easier pdb debugging
 RUN echo 'alias ipy from IPython import embed;embed()' >> ~/.pdbrc
