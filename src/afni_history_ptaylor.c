@@ -73,7 +73,7 @@ afni_history_struct ptaylor_history[] = {
    "Already change something internally about only2D calcs.",
    "Should just be simple change, being more general.\n"
 },
-
+a
 { 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
    "Can run in 2D now, with opt '-only2D ..'.",
    "For Daniel Glen.\n"
