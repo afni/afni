@@ -70,11 +70,10 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 { 7, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
-   "Add in optional scaling of edges, via '-edge_bnd_scale'.",
+   "Add in optional scaling of edges, via '-edge_bnd_scale'. B",
    "Related but slightly different scaling based on '-edge_bnd_side' opt.\n"
 },
-
-
+ 
 { 3, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_PROG,
    "Calculate edges with the Difference of Gaussian (DOG) approach.",
    "Thanks to DR Glen and C Rorden for discussions/suggestions on this.\n"
