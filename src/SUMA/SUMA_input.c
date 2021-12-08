@@ -4195,7 +4195,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 struct tm tm = *localtime(&t);
               if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
-                   SUMA_RETURNe;
+                   SUMA_RETURN(1);
                }
                 sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
