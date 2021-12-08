@@ -1,7 +1,6 @@
 #include "mrilib.h"
 
 #include "mri_pvmap.c"
-// #include "cs_pv.c"
 
 /*** Functions for doing 4D image to grayplot conversion ***/
 
