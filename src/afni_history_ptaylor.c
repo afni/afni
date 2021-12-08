@@ -69,6 +69,36 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
+   "Add in optional scaling of edges, via '-edge_bnd_scale'. B",
+   "Related but slightly different scaling based on '-edge_bnd_side' opt.\n"
+},
+ 
+{ 3, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_PROG,
+   "Calculate edges with the Difference of Gaussian (DOG) approach.",
+   "Thanks to DR Glen and C Rorden for discussions/suggestions on this.\n"
+},
+
+{ 2, Dec , 2021 , PT , "afni" , MICRO , TYPE_GENERAL,
+   "Adding the description of existing option(s) in the program help.",
+   "The opts are the synonyms: '-notcsv', '-notsv', '-nocsv'.\n"
+},
+
+{ 1, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_BUG_FIX,
+   "Was getting incorrect voxel scaling along a couple axes---fixed now.",
+   "Also re-arrange functions to be easier to call from other funcs.\n"
+},
+
+{ 30, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
+   "Added many more internal comments, e.g., codebase references.",
+   "Thanks for the discussion+suggestions, J Teves!\n"
+},
+
+{ 30, Nov , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_PROG,
+   "New C prog for Eulerian Distance Transform (EDT) for ROI-based dsets.",
+   "Calculate distances to boundaries within a FOV.\n"
+},
+
 { 26, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
    "Renaming of 3dEduProg.  Simplifying some inner workings",
    "Basic AFNI program example.\n"

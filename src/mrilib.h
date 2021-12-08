@@ -1050,6 +1050,8 @@ extern MRI_IMAGE * mri_colorsetup( int,int,int,int ) ;   /* 05 Oct 2004 */
 extern MRI_IMAGE *mri_new_vol      ( int,int,int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_new_vol_empty( int,int,int , MRI_TYPE ) ;
 
+#define mri_new_empty(aa,bb,tt) mri_new_vol_empty((aa),(bb),1,(MRI_TYPE)(tt))
+
 MRI_IMAGE *mri_new_7D_generic( int nx, int ny, int nz, int nt,
                                int nu, int nv, int nw,
                                MRI_TYPE kind , int make_space ) ;

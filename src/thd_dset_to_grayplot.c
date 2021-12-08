@@ -1,7 +1,6 @@
 #include "mrilib.h"
 
 #include "mri_pvmap.c"
-#include "cs_pv.c"
 
 /*** Functions for doing 4D image to grayplot conversion ***/
 
@@ -147,7 +146,7 @@ ENTRY("THD_dset_grayplot_prep") ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
        if( polort >= 0 ){
 #if 1
-ININFO_message("  Detrending vectim polort=%d",polort) ;
+ININFO_message("  Detrending time series with polort=%d",polort) ;
 #endif
          for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){          /* detrend */
            tsar = VECTIM_PTR( vim[nvim] , jj ) ; fit[0] = 0.0f ;
@@ -164,7 +163,7 @@ ININFO_message("  Detrending vectim polort=%d",polort) ;
          case NORM_RMS:
          default:{
 #if 1
-ININFO_message("  RMS norming vectim") ;
+ININFO_message("  RMS norming time series") ;
 #endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
@@ -179,7 +178,7 @@ ININFO_message("  RMS norming vectim") ;
          case NORM_MAXABS:{ /* scale so max(abs(x)) = 1 */
            float mab,val ;
 #if 1
-ININFO_message("  MAXABS norming vectim") ;
+ININFO_message("  MAXABS norming time series") ;
 #endif
            for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
              tsar = VECTIM_PTR( vim[nvim] , jj ) ;
@@ -199,7 +198,7 @@ ININFO_message("  MAXABS norming vectim") ;
 
        if( fwhm > 0.0f ){ /* spatially blur inside this level */
 #if 1
-ININFO_message("  Blurring vectim fwhm=%.3g",fwhm) ;
+ININFO_message("  Blurring (in mask) volumes fwhm=%.3g",fwhm) ;
 #endif
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
        }

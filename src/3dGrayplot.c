@@ -1,6 +1,10 @@
 #include "mrilib.h"
 
 #include "thd_dset_to_grayplot.c"
+#ifdef USE_OMP
+# include "cs_pv.c"
+#endif
+
 void show_help(void) ;
 
 #define IS_NUMERIC(sss)                                           \
