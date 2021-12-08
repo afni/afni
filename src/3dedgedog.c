@@ -374,7 +374,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    ENTRY("run_edge_dog");
 
    dset_input = THD_open_dataset(opts.input_name);
-   if( (dset_input == NULL ))
+   if( dset_input == NULL )
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_input); CHECK_LOAD_ERROR(dset_input);
 
