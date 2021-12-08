@@ -6,9 +6,13 @@ ver = 1.0;  date = Dec 1, 2021
 ver = 1.2;  date = Dec 3, 2021
 + [PT] getting there, for basic functionality.  Defaults work pretty well.
      
+ver = 1.3;  date = Dec 6, 2021
++ [PT] start to add scaling of edge values...
+
+ver = 1.31;  date = Dec 6, 2021
++ [PT] ... and scaling now activated: using DOG value at each edge vox
 
 *** still need to add:
-  - scaling of edge values
   - mask out stuff in low intensity range
   - perhaps multi-spatial scale
 
@@ -146,10 +150,9 @@ int usage_3dedgedog()
 "  -edge_bnd_scale  :by default, this program outputs a mask of edges, so\n"
 "                    edge locations have value=1, and everything else is 0.\n"
 "                    Using this option means the edges will have values\n"
-"                    scaled to have a relative magnitude between 0 and 1,\n"
-"                    depending on the gradient value at the edge (based\n"
-"                    on the distribution of all gradient values).\n"
-"                    ***not activated yet***\n"
+"                    scaled to have a relative magnitude between 0 and 100\n"
+"                    (NB: the output dset will still be datum=short)\n"
+"                    depending on the gradient value at the edge.\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -165,7 +168,21 @@ int usage_3dedgedog()
 "   3dedgedog                                                       \\\n"
 "       -edge_bnd_side  BOTH_SIGN                                   \\\n"
 "       -input   anat+orig.HEAD                                     \\\n"
-"       -prefix  anat_EDGE_BOTH.nii.gz                              \n"
+"       -prefix  anat_EDGE_BOTHS.nii.gz                             \n"
+"\n"
+"3) Output both sides of edges, and scale the edge values (by DOG value):\n"
+"   3dedgedog                                                       \\\n"
+"       -edge_bnd_side  BOTH_SIGN                                   \\\n"
+"       -edge_bnd_scale                                             \\\n"
+"       -input   anat+orig.HEAD                                     \\\n"
+"       -prefix  anat_EDGE_BOTHS_SCALE.nii.gz                       \n"
+"\n"
+"4) Increase scale size of edged shapes to 2.7mm:\n"
+"   3dedgedog                                                       \\\n"
+"       -sigma_rad 2.7                                              \\\n"
+"       -edge_bnd_scale                                             \\\n"
+"       -input   anat+orig.HEAD                                     \\\n"
+"       -prefix  anat_EDGE_BOTHS_SCALE.nii.gz                       \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -404,7 +421,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
                     DSET_HEADNAME(dset_dog));
       tross_Make_History("3dedgedog", argc, argv, dset_dog);
 
-      // write and free dset 
+      // write dset 
       THD_write_3dim_dataset(NULL, NULL, dset_dog, True);
    }
 
@@ -420,10 +437,17 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
    INFO_message("Calculate boundaries");
 
-   // might be several ways to calc edges/bnds from DOG data
-   for( nn=0 ; nn<nvals ; nn++ )
+   // calculate edges/bnds: might be several ways to these from DOG data
+   for( nn=0 ; nn<nvals ; nn++ ){
       i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
-
+      
+      if( opts.edge_bnd_scale ){
+         if( !nn )
+            INFO_message("Scale boundaries");
+         i = scale_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+      }
+   }
+   
    INFO_message("Output main dset: %s", opts.prefix);
 
    THD_load_statistics( dset_bnd );

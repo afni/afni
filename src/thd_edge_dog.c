@@ -12,7 +12,6 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.mask_name  = NULL;     
    defopt.prefix     = NULL;     
    defopt.prefix_dog = NULL;     
-   //sprintf(defopt.prefix_dog, "tmp_dog");
 
    defopt.do_output_intermed = 0;
 
@@ -150,6 +149,7 @@ int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge,
   opts         :options from the user, with some other quantities calc'ed
   dset_input   :the input dataset of which DOG/edges will be calculated
   ival         :index of subvolume of 'dset_input' to process
+  ival         :shared index of subvol of 'dset_input' & 'dset_dog' to process
 
 */
 int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
@@ -223,7 +223,7 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   dset_bnd     :the dset that will be the boundary map (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
   dset_dog     :the input dataset of unthresholded/'raw' DOG values
-  ival         :index of subvolume of 'dset_input' to process
+  ival         :shared index of subvolume of 'dset_bnd' & 'dset_dog' to process
 
 */
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
@@ -295,39 +295,128 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // here (to save memory), but dset_bnd can be 4D---hence two indices
    i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
 
-/* !!! working in progress---add ability to scale edge values here
-   // calc mean and sigma of distribution of (abs value) of edge
-   // gradients
-   if( opts.edge_bnd_scale ){
-      
-      int count = 0;
-      float grad_mean = 0., grad_std = 0.;  
-
-      for ( idx=0 ; idx<nvox ; idx++ ) {
-         val = THD_get_voxel(dset_edt, idx, ival_edt);
-         if( bot <= val && val <= top ) {
-            count++;
-            grad_mean+= abs(tmp_arr[idx]);
-            grad_std += abs(tmp_arr[idx]);
-         }
-      }
-
-      if( count ){
-         grad_mean/= (float) count;
-         grad_std -= count * grad_mean * grad_mean;
-         if( count - 1 > 0 )
-            grad_std/= (float) count - 1.0;
-      }
-      
-   }
-*/
-
    // free dset
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
 
    return 0;
 }
+
+// ----------------------------------------
+
+/* 
+   Same inputs as calc_edge_dog_BND().
+
+   Get 2- and 98-%ile values of DOG values across edge voxels,
+   and use DOG values scaled within this range for output
+   coloration.
+   
+   Here, we basically follow what happens in 3dBrickStat.c.
+*/ 
+int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                        THD_3dim_dataset *dset_dog, int ival)
+{
+   void *tmp_vec = NULL;
+   byte *mmm = NULL;  // to be byte mask where edges are
+   int nvox = 0;
+   int ninmask = 0;
+   
+   int N_mp = 2;                     // number of percentiles to calc
+   double mpv[2] = {0.0, 0.0};       // the percentile values to calc
+   double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
+   int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
+   
+   int i;
+   float bot, top, ran, val;
+   float *flim = NULL;
+   short *tmp_arr = NULL;
+
+   ENTRY("scale_edge_dog_BND");
+
+   nvox = DSET_NVOX(dset_bnd);
+   tmp_arr = (short *) calloc( nvox, sizeof(short) );
+   if( tmp_arr == NULL ) 
+      ERROR_exit("MemAlloc failure.\n");
+
+   mmm = THD_makemask( dset_bnd, ival, 0.0, -1.0 );
+   if ( !mmm ) {
+      ERROR_message("Failed to general %ile mask.");
+      exit(1);         
+   }
+   ninmask = THD_countmask(nvox, mmm);
+
+   // The percentile ranges depend on which kind of boundaries we have
+   if( opts.edge_bnd_side == 1 ){
+      mpv[0] = 0.02;
+      mpv[1] = 0.50;
+   }
+   else if( opts.edge_bnd_side == -1 ){
+      mpv[0] = 0.98;
+      mpv[1] = 0.50;
+   }
+   else if( opts.edge_bnd_side == 2 || opts.edge_bnd_side == 3 ){
+      mpv[0] = 0.25;
+      mpv[1] = 0.75;
+   }
+
+   tmp_vec = Percentate( DSET_ARRAY(dset_dog, ival), mmm, nvox,
+                         DSET_BRICK_TYPE(dset_dog, ival), mpv, N_mp,
+                         1, perc,
+                         zero_flag, pos_flag, neg_flag );
+   if ( !tmp_vec ) {
+      ERROR_message("Failed to compute percentiles.");
+      exit(1);         
+   }
+   
+   //INFO_message("RANGE: %.6f %.6f", perc[0], perc[1]);
+
+   flim = MRI_FLOAT_PTR(dset_dog->dblk->brick->imarr[ival]);
+   
+   // Decide on boundary values.  Nothing can have zero EDT here, so
+   // don't need to worry about doubling up on that. 
+   if( opts.edge_bnd_side == 1 || opts.edge_bnd_side == -1) { 
+      bot = (float) perc[0];
+      top = (float) perc[1];
+      ran = top - bot;
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            val = (flim[i] - bot)/ran;
+            val = ( val > 0.0 ) ? val : 0.0;
+            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+         }
+   }
+   else if( opts.edge_bnd_side == 2 || opts.edge_bnd_side == 3) {
+      bot = (float) perc[0];
+      top = (float) perc[1];
+
+      for( i=0 ; i<nvox ; i++ )
+         if( mmm[i] ){
+            if( flim[i] >= 0 )
+               val = flim[i]/top;
+            else
+               val = flim[i]/bot;
+            tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+
+            if( flim[i] < 0 && opts.edge_bnd_side == 3 )
+               tmp_arr[i]*= -1;
+         }
+   }
+
+   EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
+   tmp_arr=NULL;
+
+   if( tmp_vec ){
+      free(tmp_vec); 
+      tmp_vec = NULL;
+   }
+   if( mmm )
+      free(mmm);
+
+   flim = NULL;
+
+   return 0;
+};
 
 // ---------------------------------------------------------------------------
 
@@ -338,7 +427,8 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
   dset_bnd     :the dset that will be the edge dataset (essentially, the output)
   opts         :options from the user, with some other quantities calc'ed
   dset_edt     :the input dataset EDT values, to be thresholded for edges
-  ival         :index of subvolume of 'dset_input' to process
+  ival_bnd     :index of subvolume of 'dset_bnd' to process
+  ival_edt     :index of subvolume of 'dset_edt' to process
 
 */
 int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
