@@ -73,17 +73,16 @@ afni_history_struct ptaylor_history[] = {
    "Already change something internally about only2D calcs.",
    "Should just be simple change, being more general.\n"
 },
-a
+
 { 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
    "Can run in 2D now, with opt '-only2D ..'.",
    "For Daniel Glen.\n"
 },
 
 { 7, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
-   "Add in optional scaling of edges, via '-edge_bnd_scale'.",
+   "Add in optional scaling of edges, via '-edge_bnd_scale'. A",
    "Related but slightly different scaling based on '-edge_bnd_side' opt.\n"
 },
-
 
 { 3, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_PROG,
    "Calculate edges with the Difference of Gaussian (DOG) approach.",
