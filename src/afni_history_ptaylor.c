@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
+   "Can run in 2D now, with opt '-only2D ..'.",
+   "For Daniel Glen.\n"
+},
+
 { 7, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
    "Add in optional scaling of edges, via '-edge_bnd_scale'.",
    "Related but slightly different scaling based on '-edge_bnd_side' opt.\n"

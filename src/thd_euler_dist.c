@@ -10,6 +10,8 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.mask_name = NULL;     
    defopt.prefix = NULL;         
 
+   defopt.only2D = NULL;
+
    defopt.zeros_are_zeroed = 0;
    defopt.zeros_are_neg    = 0;
    defopt.nz_are_neg       = 0;
@@ -25,6 +27,10 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.shape[2] = 0; 
 
    defopt.verb = 1;
+
+   defopt.axes_to_proc[0] = 1;
+   defopt.axes_to_proc[1] = 1;
+   defopt.axes_to_proc[2] = 1;
 
    return defopt;
 };
@@ -60,6 +66,50 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord)
 
    return 0;
 }
+
+// ---------------------------------------
+
+/*
+  Minor helper function: given a 'which_slice' value (of: cor, axi or
+  sag), and a particular dataset, determine which axes to analyze and
+  which to skip.  The latter information is 'output' via the
+  integer-valued onoff_arr: axes to that are part of the which_slice
+  plane should get a 1, and that which isn't should get a 0.
+
+  For example, for a dset with orient=LIP, if the which_slice value is
+  'cor', then the onoff_arr should be 110.
+
+  dset         :(dset) just to get orientation info from
+  which_slice  :(char array) name of plane
+  onoff_arr    :(int arr, len=3) essentially output, made of 1s and 0.
+  verb         :(int) do we discuss what we are doing?
+  
+*/
+int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
+                           int *onoff_arr, int verb )
+{
+   char ostr[4];  
+
+   if( strcmp(which_slice, "cor") == 0 ){ // LR and IS, not AP
+      onoff_arr[ORIENT_xyzint[dset->daxes->yyorient]-1] = 0;
+   }
+   else if( strcmp(which_slice, "axi") == 0 ){ // LR and AP, not IS
+      onoff_arr[ORIENT_xyzint[dset->daxes->zzorient]-1] = 0;
+   }
+   else if( strcmp(which_slice, "sag") == 0 ){ // AP and IS, not LR
+      onoff_arr[ORIENT_xyzint[dset->daxes->xxorient]-1] = 0;
+   }
+   
+   if( verb ) {
+      THD_fill_orient_str_3(dset->daxes, ostr);
+      INFO_message("Do 2D calc in '%s' plane, and dset orient=%s,\n"
+                   "   so the ON/OFF of axes for the EDT calc is: %d%d%d.",
+                   which_slice, ostr, onoff_arr[0], 
+                   onoff_arr[1], onoff_arr[2]);
+   }
+
+   return 0;
+};
 
 // ---------------------------------------------------------------------------
 
@@ -138,56 +188,64 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
 
    for( i=0 ; i<3 ; i++ ){
-      float *flarr=NULL;   // store distances along one dim
-      int *maparr=NULL;    // store ROI map along one dim
 
-      if ( !ival && opts.verb ){
-         INFO_message("Move along axis %d (delta = %.6f)", 
-                      vox_ord_rev[i], 
-                      Ledge[vox_ord_rev[i]]);
-         if( opts.ignore_voxdims )
-            INFO_message("... but this will be ignored, at user behest");
-      }
+      /*
+        This if condition allows us to run 2D-only EDT, if the user
+        asks.
+       */
+      if( opts.axes_to_proc[vox_ord_rev[i]] ){
+         float *flarr=NULL;   // store distances along one dim
+         int *maparr=NULL;    // store ROI map along one dim
 
-      switch( vox_ord_rev[i] ){
-         // note pairings per case: 0 and nx; 1 and ny; 2 and nz
+         if ( !ival && opts.verb ){
+            INFO_message("Move along axis %d (delta = %.6f)", 
+                         vox_ord_rev[i], 
+                         Ledge[vox_ord_rev[i]]);
+            if( opts.ignore_voxdims )
+               INFO_message("... but this will be ignored,"
+                            "at user behest");
+         }
 
-      case 0 :
-         flarr = (float *) calloc( nx, sizeof(float) );
-         maparr = (int *) calloc( nx, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+         switch( vox_ord_rev[i] ){
+            // note pairings per case: 0 and nx; 1 and ny; 2 and nz
+
+         case 0 :
+            flarr = (float *) calloc( nx, sizeof(float) );
+            maparr = (int *) calloc( nx, sizeof(int) );
+            if( flarr == NULL || maparr == NULL ) 
+               ERROR_exit("MemAlloc failure: flarr/maparr\n");
          
-         j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         break;
+            j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
+                                  flarr, maparr );
+            break;
 
-      case 1 :
-         flarr = (float *) calloc( ny, sizeof(float) );
-         maparr = (int *) calloc( ny, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+         case 1 :
+            flarr = (float *) calloc( ny, sizeof(float) );
+            maparr = (int *) calloc( ny, sizeof(int) );
+            if( flarr == NULL || maparr == NULL ) 
+               ERROR_exit("MemAlloc failure: flarr/maparr\n");
 
-         j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         break;
+            j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
+                                  flarr, maparr );
+            break;
 
-      case 2 :
-         flarr = (float *) calloc( nz, sizeof(float) );
-         maparr = (int *) calloc( nz, sizeof(int) );
-         if( flarr == NULL || maparr == NULL ) 
-            ERROR_exit("MemAlloc failure: flarr/maparr\n");
+         case 2 :
+            flarr = (float *) calloc( nz, sizeof(float) );
+            maparr = (int *) calloc( nz, sizeof(int) );
+            if( flarr == NULL || maparr == NULL ) 
+               ERROR_exit("MemAlloc failure: flarr/maparr\n");
 
-         j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
-                               flarr, maparr );
-         break;
+            j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
+                                  flarr, maparr );
+            break;
 
-      default:
-         WARNING_message("Should never be here in EDT prog");
+         default:
+            WARNING_message("Should never be here in EDT prog");
+         }
+
+         if( flarr) free(flarr);
+         if( maparr) free(maparr);
       }
-
-      if( flarr) free(flarr);
-      if( maparr) free(maparr);
    } // end of looping over axes
 
    // Apply various user post-proc options
@@ -217,6 +275,22 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       }
    }
       
+   // in case user calcs EDT in 2D, replace any remaining BIG values
+   // (from initialization) with 0
+   if( opts.only2D ){
+      float checkmax;
+
+      // what values do we check for to squash?
+      if( opts.dist_sq )
+         checkmax = BIG;
+      else
+         checkmax = NEAR_SQRT_BIG;
+      
+      for( i=0 ; i<nvox ; i++ ) 
+         if( tmp_arr[i] >= checkmax )
+            tmp_arr[i] = 0.0;
+   }
+
    // provide volume values from the appropriately-sized array
    EDIT_substitute_brick(dset_edt, ival, MRI_float, tmp_arr); 
    tmp_arr=NULL;
