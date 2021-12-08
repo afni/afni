@@ -275,22 +275,6 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       }
    }
       
-   // in case user calcs EDT in 2D, replace any remaining BIG values
-   // (from initialization) with 0
-   if( opts.only2D ){
-      float checkmax;
-
-      // what values do we check for to squash?
-      if( opts.dist_sq )
-         checkmax = BIG;
-      else
-         checkmax = NEAR_SQRT_BIG;
-      
-      for( i=0 ; i<nvox ; i++ ) 
-         if( tmp_arr[i] >= checkmax )
-            tmp_arr[i] = 0.0;
-   }
-
    // provide volume values from the appropriately-sized array
    EDIT_substitute_brick(dset_edt, ival, MRI_float, tmp_arr); 
    tmp_arr=NULL;
@@ -680,6 +664,18 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
+
+   // in case user calcs EDT in 2D, replace any remaining BIG values
+   // (from initialization) with 0; do this before sqrt of dist**2 or
+   // any negating of dists values, for simplicity
+   if( opts.only2D ){
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ){
+               if( arr_dist[i][j][k] >= BIG )
+                  arr_dist[i][j][k] = 0.0;
+               }
+   }
 
    // Zero out EDT values in "zero" ROI?
    if( opts.zeros_are_zeroed ) {

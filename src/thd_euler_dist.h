@@ -2,8 +2,6 @@
 #define THD_EDT_INCLUDED
 
 #define BIG FLT_MAX            // from float.h
-#define NEAR_SQRT_BIG (sqrt(FLT_MAX)*0.999) // for checking sqrt of BIG
-
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
 
