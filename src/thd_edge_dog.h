@@ -20,6 +20,11 @@ typedef struct {
    int edge_bnd_scale;
    char *edge_bnd_side_user;
 
+   char *only2D; 
+   int axes_to_proc[3];
+
+   int verb;
+
 } PARAMS_edge_dog;
 
 /* function to initialize params */
