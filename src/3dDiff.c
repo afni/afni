@@ -159,21 +159,21 @@ int main( int argc , char * argv[] )
     dim_check = THD_dataset_mismatch(a_dset, b_dset);
     if ( dim_check ) {
         if ( dim_check & MISMATCH_DELTA ) {
-            INFO_message("Image centers diverge");
+            INFO_message("Image centers differ");
         }
         if ( dim_check & MISMATCH_ORIENT ) {
-            INFO_message("Image orientations diverge");
+            INFO_message("Image orientations differ");
         }
         if ( dim_check & MISMATCH_DIMEN ) {
             INFO_message(
-                "Image dimensions mismatch: (%d, %d, %d) vs. (%d, %d, %d)",
+                "Image dimensions differ: (%d, %d, %d) vs. (%d, %d, %d)",
                 DSET_NX(a_dset), DSET_NY(a_dset), DSET_NZ(a_dset),
                 DSET_NX(b_dset), DSET_NY(b_dset), DSET_NZ(b_dset)
             );
         }
         if ( dim_check & MISMATCH_OBLIQ ) {
             INFO_message(
-                "Image obliquities diverge: %f apart",
+                "Image obliquities differ: %f apart",
                 dset_obliquity_angle_diff(
                     a_dset, b_dset, OBLIQ_ANGLE_THRESH
                 )
@@ -197,12 +197,16 @@ int main( int argc , char * argv[] )
     else if ( diff ) {
         perc_div = (double) diff / nvox * 100.0;
         INFO_message(
-            "Images diverge: %d of %d voxels disagree (%2.3f%%)",
-            diff, nvox, perc_div);
+            "Images differ: %d of %d voxels disagree (%2.3f%%) at tolerance %e",
+            diff, nvox, perc_div, tol
+        );
         RETURN( 1 );
     }
     else {
-        /* Silent success */
+        INFO_message(
+            "Image do NOT differ: %d of %d differ with tolerance %e",
+            0, nvox, tol
+        );
         RETURN( 0 );
     }
 }
