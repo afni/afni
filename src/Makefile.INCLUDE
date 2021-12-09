@@ -2362,10 +2362,6 @@ cs_symeig.o:cs_symeig.c svdlib.c
 	$(RM) $@
 	$(CCFAST) -c cs_symeig.c $(INFLAGS)
 
-cs_pv.o:cs_pv.c
-	$(RM) $@
-	$(CCFAST) -c cs_pv.c $(INFLAGS)
-
 cs_qmed.o:cs_qmed.c
 	$(RM) $@
 	$(CCFAST) -c cs_qmed.c $(INFLAGS)

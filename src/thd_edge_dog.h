@@ -38,6 +38,8 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
 
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                        THD_3dim_dataset *dset_dog, int ival);
+int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                        THD_3dim_dataset *dset_dog, int ival);
 
 int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                            THD_3dim_dataset *dset_edt, int ival_bnd, 
