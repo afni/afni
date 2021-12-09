@@ -17,6 +17,17 @@ ver = 2.2;  date = Dec 1, 2021
 + [PT] Bug fix: had delta set incorrectly in 2 out of 3
   calc_EDT_3d_dim?() funcs, because was using *DZ* everywhere.
 
+ver = 2.3;  date = Dec 8, 2021
++ [PT] new opt, '-only2D ..' so that EDT can be calced in only 2D, if
+  desired.  For DRG, may he use it well.
+
+ver = 2.4;  date = Dec 9, 2021
++ [PT] internal tweak: allocate some tmp arrays less, doesn't really
+  make much difference in speed :(
+
+ver = 2.5;  date = Dec 9, 2021
++ [PT] fix 2D selection---was only correct for some dset orientations
+
 */
 
 #include <stdio.h>
@@ -126,6 +137,13 @@ int usage_3dEulerDist()
 "                    default.  However, using this option will ignore voxel\n"
 "                    size, producing outputs as if each voxel dimension was\n"
 "                    unity.\n"
+"\n"
+"  -only2D   SLI    :instead of running full 3D EDT, run just in 2D, per.\n"
+"                    plane.  Provide the slice plane you want to run along\n"
+"                    as the single argument SLI:\n"
+"                       \"axi\"  -> for axial slice\n"
+"                       \"cor\"  -> for coronal slice\n"
+"                       \"sag\"  -> for sagittal slice\n"
 "\n"
 " -verb V           :manage verbosity when running code (def: 1).\n"
 "                    Providing a V of 0 means to run quietly.\n"
@@ -258,6 +276,21 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-only2D") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
+         if( strcmp(argv[iarg],"cor") == 0 || \
+             strcmp(argv[iarg],"axi") == 0 || \
+             strcmp(argv[iarg],"sag") == 0 )
+            InOpts.only2D = strdup(argv[iarg]);
+         else
+            ERROR_exit("Need either \"cor\", \"axi\" or \"sag\" "
+                       "after '%s'", argv[iarg-1]);
+
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-verb") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need int>0 argument after '%s'", argv[iarg-1]);
@@ -329,6 +362,11 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
 
+   // if only running in 2D, figure out which slice that is
+   if ( opts.only2D )
+      i = choose_axes_for_plane( dset_roi, opts.only2D,
+                                 opts.axes_to_proc, opts.verb );
+   
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
    nz = DSET_NZ(dset_roi);

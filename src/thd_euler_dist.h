@@ -1,10 +1,13 @@
 #ifndef THD_EDT_INCLUDED
 #define THD_EDT_INCLUDED
 
-#define BIG FLT_MAX     // from float.h
-
+#define BIG FLT_MAX            // from float.h
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
+
+    only2D       : (str) name of 2D plane to work within; so EDT is calced
+                   across whole FOV, but only planewise with each of the
+                   given planes
 
     dist_sq      : if False (def), the output image of EDT values is distance
                    values; otherwise, the values are distance**2 (because
@@ -32,6 +35,10 @@
     edims        : (len=3 fl arr) element dimensions (here, voxel edge lengths)
 
     shape        : (len=3 int arr) matrix size in each direction
+
+    axes_to_proc : (len=3 int arr) switches for running EDT along selected 
+                   axes;  default to run with all of them.
+
 */
 typedef struct {
 
@@ -49,6 +56,9 @@ typedef struct {
    float edims[3];        
    int   shape[3];        
 
+   char *only2D;          
+   int axes_to_proc[3];
+
    int verb;
 
 } PARAMS_euler_dist;
@@ -59,6 +69,9 @@ PARAMS_euler_dist set_euler_dist_defaults(void);
 // ---------------------------------------------------------------------------
 
 int sort_vox_ord_desc(int N, float *Ledge, int *ord);
+
+int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
+                           int *onoff_arr, int verb );
 
 int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
                            THD_3dim_dataset *dset_roi, int ival);
