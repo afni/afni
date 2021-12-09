@@ -21,6 +21,10 @@ ver = 2.3;  date = Dec 8, 2021
 + [PT] new opt, '-only2D ..' so that EDT can be calced in only 2D, if
   desired.  For DRG, may he use it well.
 
+ver = 2.4;  date = Dec 9, 2021
++ [PT] internal tweak: allocate some tmp arrays less, doesn't really
+  make much difference in speed :(
+
 */
 
 #include <stdio.h>

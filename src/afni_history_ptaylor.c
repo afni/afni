@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Dec , 2021 , PT , "3dEulerDist" , MICRO , TYPE_GENERAL,
+   "Some internal tweaks for speed, possibly.",
+   "... though it doesn't seem much faster :(.\n"
+},
+
 { 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
    "Already change something internally about only2D calcs.",
    "Should just be simple change, being more general.\n"

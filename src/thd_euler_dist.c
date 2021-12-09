@@ -131,7 +131,14 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
    int vox_ord_rev[3];
 
-   float ***arr_dist = NULL;           // array that will hold dist values
+   float fldim[3];            // just want max arr len
+   int dim_ord_rev[3] = {0,1,2};
+
+   int dim_max = -1;
+   float *flarr = NULL;       // store distances along one dim
+   int *maparr = NULL;        // store ROI map along one dim
+
+   float ***arr_dist = NULL;  // array that will hold dist values
    float *tmp_arr = NULL;
 
    ENTRY("calc_EDT_3D");
@@ -187,6 +194,18 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    // method, but it still makes sense to do---why not?)
    i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
 
+   // len of longest dset dim, so we don't have to keep
+   // allocating/freeing
+   fldim[0] = nx;
+   fldim[1] = ny;
+   fldim[2] = nz;
+   qsort_floatint( 3 , fldim , dim_ord_rev );
+   dim_max = (int) fldim[2];
+   flarr   = (float *) calloc( dim_max, sizeof(float) );
+   maparr  = (int *) calloc( dim_max, sizeof(int) );
+   if( flarr == NULL || maparr == NULL ) 
+      ERROR_exit("MemAlloc failure: flarr/maparr\n");
+
    for( i=0 ; i<3 ; i++ ){
 
       /*
@@ -194,9 +213,6 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
         asks.
        */
       if( opts.axes_to_proc[vox_ord_rev[i]] ){
-         float *flarr=NULL;   // store distances along one dim
-         int *maparr=NULL;    // store ROI map along one dim
-
          if ( !ival && opts.verb ){
             INFO_message("Move along axis %d (delta = %.6f)", 
                          vox_ord_rev[i], 
@@ -210,31 +226,16 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
             // note pairings per case: 0 and nx; 1 and ny; 2 and nz
 
          case 0 :
-            flarr = (float *) calloc( nx, sizeof(float) );
-            maparr = (int *) calloc( nx, sizeof(int) );
-            if( flarr == NULL || maparr == NULL ) 
-               ERROR_exit("MemAlloc failure: flarr/maparr\n");
-         
             j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
                                   flarr, maparr );
             break;
 
          case 1 :
-            flarr = (float *) calloc( ny, sizeof(float) );
-            maparr = (int *) calloc( ny, sizeof(int) );
-            if( flarr == NULL || maparr == NULL ) 
-               ERROR_exit("MemAlloc failure: flarr/maparr\n");
-
             j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
                                   flarr, maparr );
             break;
 
          case 2 :
-            flarr = (float *) calloc( nz, sizeof(float) );
-            maparr = (int *) calloc( nz, sizeof(int) );
-            if( flarr == NULL || maparr == NULL ) 
-               ERROR_exit("MemAlloc failure: flarr/maparr\n");
-
             j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
                                   flarr, maparr );
             break;
@@ -243,10 +244,11 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
             WARNING_message("Should never be here in EDT prog");
          }
 
-         if( flarr) free(flarr);
-         if( maparr) free(maparr);
       }
    } // end of looping over axes
+
+   if( flarr) free(flarr);
+   if( maparr) free(maparr);
 
    // Apply various user post-proc options
    i = apply_opts_to_edt_arr( arr_dist, opts, dset_roi, ival);
