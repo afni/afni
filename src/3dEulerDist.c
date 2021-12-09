@@ -25,6 +25,9 @@ ver = 2.4;  date = Dec 9, 2021
 + [PT] internal tweak: allocate some tmp arrays less, doesn't really
   make much difference in speed :(
 
+ver = 2.5;  date = Dec 9, 2021
++ [PT] fix 2D selection---was only correct for some dset orientations
+
 */
 
 #include <stdio.h>
@@ -360,30 +363,9 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
    }
 
    // if only running in 2D, figure out which slice that is
-   if ( opts.only2D ){
-
+   if ( opts.only2D )
       i = choose_axes_for_plane( dset_roi, opts.only2D,
                                  opts.axes_to_proc, opts.verb );
-/*
-      if( strcmp(opts.only2D, "cor") == 0 ){ // LR and IS, not AP
-         opts.axes_to_proc[ORIENT_xyzint[dset_roi->daxes->yyorient]-1] = 0;
-      }
-      else if( strcmp(opts.only2D, "axi") == 0 ){ // LR and AP, not IS
-         opts.axes_to_proc[ORIENT_xyzint[dset_roi->daxes->zzorient]-1] = 0;
-      }
-      else if( strcmp(opts.only2D, "sag") == 0 ){ // AP and IS, not LR
-         opts.axes_to_proc[ORIENT_xyzint[dset_roi->daxes->xxorient]-1] = 0;
-      }
-
-      if( opts.verb ) {
-         char ostr[4];  
-         THD_fill_orient_str_3(dset_roi->daxes, ostr);
-         INFO_message("Do 2D calc in '%s' plane, and dset orient=%s,\n"
-                      "   so the ON/OFF of axes for the EDT calc is: %d%d%d.",
-                      opts.only2D, ostr, opts.axes_to_proc[0], 
-                      opts.axes_to_proc[1], opts.axes_to_proc[2]);
-      }*/
-   }
    
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);

@@ -66,6 +66,14 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.edge_bnd_side_user = "NEG"; 
    defopt.edge_bnd_scale = 0; 
 
+   defopt.verb = 1;
+
+   // same as in PARAMS_euler_dist
+   defopt.only2D = NULL;
+   defopt.axes_to_proc[0] = 1;
+   defopt.axes_to_proc[1] = 1;
+   defopt.axes_to_proc[2] = 1;
+
    return defopt;
 };
 
@@ -271,6 +279,12 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    EdgeDogOpts.zeros_are_neg = 1;  
    EdgeDogOpts.dist_sq = 1;          // so NN values are directly thresholds
    EdgeDogOpts.verb = 0;
+   if( opts.only2D ){
+      EdgeDogOpts.only2D = strdup(opts.only2D);
+      for( i=0 ; i<3 ; i++ )
+         EdgeDogOpts.axes_to_proc[i] = opts.axes_to_proc[i];
+   }
+
 
    // run EDT
    INFO_message("Calculate EDT for vol %d", ival);

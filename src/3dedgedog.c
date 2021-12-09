@@ -12,6 +12,10 @@ ver = 1.3;  date = Dec 6, 2021
 ver = 1.31;  date = Dec 6, 2021
 + [PT] ... and scaling now activated: using DOG value at each edge vox
 
+ver = 1.4;  date = Dec 9, 2021
++ [PT] add -only2D opt, for DRG
+
+
 *** still need to add:
   - mask out stuff in low intensity range
   - perhaps multi-spatial scale
@@ -153,6 +157,13 @@ int usage_3dedgedog()
 "                    scaled to have a relative magnitude between 0 and 100\n"
 "                    (NB: the output dset will still be datum=short)\n"
 "                    depending on the gradient value at the edge.\n"
+"\n"
+"  -only2D   SLI    :instead of estimating edges in full 3D volume, calculate\n"
+"                    edges just in 2D, per plane.  Provide the slice plane\n"
+"                    you want to run along as the single argument SLI:\n"
+"                       \"axi\"  -> for axial slice\n"
+"                       \"cor\"  -> for coronal slice\n"
+"                       \"sag\"  -> for sagittal slice\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -359,6 +370,22 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      // same as in 3dEulerDist
+      if( strcmp(argv[iarg],"-only2D") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
+         if( strcmp(argv[iarg],"cor") == 0 || \
+             strcmp(argv[iarg],"axi") == 0 || \
+             strcmp(argv[iarg],"sag") == 0 )
+            InOpts.only2D = strdup(argv[iarg]);
+         else
+            ERROR_exit("Need either \"cor\", \"axi\" or \"sag\" "
+                       "after '%s'", argv[iarg-1]);
+
+         iarg++ ; continue ;
+      }
+
       ERROR_message("Bad option '%s'\n",argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
@@ -413,6 +440,12 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       if( THD_dataset_mismatch( dset_input , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
+
+   // if only running in 2D, figure out which slice that is;
+   // same as in 3dEulerDist
+   if ( opts.only2D )
+      i = choose_axes_for_plane( dset_input, opts.only2D,
+                                 opts.axes_to_proc, opts.verb );
 
    // NTS: do we need all these quantities?
    nx = DSET_NX(dset_input);

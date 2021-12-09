@@ -10,8 +10,6 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.mask_name = NULL;     
    defopt.prefix = NULL;         
 
-   defopt.only2D = NULL;
-
    defopt.zeros_are_zeroed = 0;
    defopt.zeros_are_neg    = 0;
    defopt.nz_are_neg       = 0;
@@ -28,6 +26,7 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
 
    defopt.verb = 1;
 
+   defopt.only2D = NULL;
    defopt.axes_to_proc[0] = 1;
    defopt.axes_to_proc[1] = 1;
    defopt.axes_to_proc[2] = 1;
@@ -88,16 +87,30 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord)
 int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
                            int *onoff_arr, int verb )
 {
+   int i;
    char ostr[4];  
+   THD_fill_orient_str_3(dset->daxes, ostr);
 
    if( strcmp(which_slice, "cor") == 0 ){ // LR and IS, not AP
-      onoff_arr[ORIENT_xyzint[dset->daxes->yyorient]-1] = 0;
+      for( i=0 ; i<3 ; i++ )
+         if( !strncmp(ostr+i,"A", 1) || !strncmp(ostr+i,"P", 1) ){
+            onoff_arr[i] = 0;
+            break;
+         }
    }
    else if( strcmp(which_slice, "axi") == 0 ){ // LR and AP, not IS
-      onoff_arr[ORIENT_xyzint[dset->daxes->zzorient]-1] = 0;
+      for( i=0 ; i<3 ; i++ )
+         if( !strncmp(ostr+i,"I", 1) || !strncmp(ostr+i,"S", 1) ){
+            onoff_arr[i] = 0;
+            break;
+         }
    }
    else if( strcmp(which_slice, "sag") == 0 ){ // AP and IS, not LR
-      onoff_arr[ORIENT_xyzint[dset->daxes->xxorient]-1] = 0;
+      for( i=0 ; i<3 ; i++ )
+         if( !strncmp(ostr+i,"R", 1) || !strncmp(ostr+i,"L", 1) ){
+            onoff_arr[i] = 0;
+            break;
+         }
    }
    
    if( verb ) {

@@ -5,7 +5,9 @@
 
 /* struct of quantities for running Euler Distance Transform (EDT) 
 
-   only2D        : (str) name of 
+    only2D       : (str) name of 2D plane to work within; so EDT is calced
+                   across whole FOV, but only planewise with each of the
+                   given planes
 
     dist_sq      : if False (def), the output image of EDT values is distance
                    values; otherwise, the values are distance**2 (because
@@ -44,8 +46,6 @@ typedef struct {
    char *mask_name;      
    char *prefix;          
 
-   char *only2D;          
-
    int zeros_are_zeroed;  
    int zeros_are_neg;  
    int nz_are_neg;  
@@ -56,6 +56,7 @@ typedef struct {
    float edims[3];        
    int   shape[3];        
 
+   char *only2D;          
    int axes_to_proc[3];
 
    int verb;

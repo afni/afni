@@ -69,9 +69,14 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 9, Dec , 2021 , PT , "3dEulerDist" , MICRO , TYPE_GENERAL,
-   "Some internal tweaks for speed, possibly.",
-   "... though it doesn't seem much faster :(.\n"
+{ 9, Dec , 2021 , PT , "3dEulerDist" , MICRO , TYPE_BUG_FIX,
+   "Fix new -only2D opt slice selection.",
+   "Was not always getting correct planar direction; should be now.\n"
+},
+
+{ 9, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
+   "Add in '-only2D ..' opt, similar to 3dEulerDist's one.",
+   "Now can get planar edges, instead of always volumetric ones.\n"
 },
 
 { 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
