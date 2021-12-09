@@ -576,6 +576,16 @@ int main( int argc , char * argv[] )
        jbot = ceilf(jcen-rad/dy) ; jtop = floorf(jcen+rad/dy) ;
        kbot = ceilf(kcen-rad/dz) ; ktop = floorf(kcen+rad/dz) ;
 
+       /* skip test box if outside dataset   [9 Dec 2021 rickr] */
+       if ( itop < 0 || ibot >= nx ) continue;
+       if ( jtop < 0 || jbot >= ny ) continue;
+       if ( ktop < 0 || kbot >= nz ) continue;
+
+       /* constrain values to dataset dimensions   [9 Dec 2021 rickr] */
+       if ( ibot < 0 ) ibot = 0;  if ( itop >= nx ) itop = nx-1;
+       if ( jbot < 0 ) jbot = 0;  if ( jtop >= ny ) jtop = ny-1;
+       if ( kbot < 0 ) kbot = 0;  if ( ktop >= nz ) ktop = nz-1;
+
        rad = rad*rad ;
 
        for( kk=kbot ; kk <= ktop ; kk++ ){
