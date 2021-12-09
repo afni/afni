@@ -3,21 +3,21 @@
 
 /*------------------------------------------------------------------------*/
 /*! Return a measure of the difference between 2 images bim and nim,
-    with 0.0 indicating no differences.
+with 0.0 indicating no differences.
 
-    The result is the total fraction of voxels that diverge,
-    dd = sum [ bim[i] != nim[i] ] / NN
-         i
-    
-    where NN is the total number of voxels.
-	 A tolerance of 1e-8 is used to determine "equality."
-    A zero would indicate total agreement between the images, and a positive
-    value indicates the fraction of voxels which agree.
+The result is the total fraction of voxels that diverge,
+dd = sum [ bim[i] != nim[i] ] / NN
+i
 
-    A negative return value indicates one of the following:
+where NN is the total number of voxels.
+A tolerance of 1e-8 is used to determine "equality."
+A zero would indicate total agreement between the images, and a positive
+value indicates the fraction of voxels which agree.
 
-    - MRI_SIMPLE_DIFF_DIM_DIVERGE indicates diverging voxel dimensions
-    - MRI_SIMPLE_DIFF_ERROR indicates some other error
+A negative return value indicates one of the following:
+
+- MRI_SIMPLE_DIFF_DIM_DIVERGE indicates diverging voxel dimensions
+- MRI_SIMPLE_DIFF_ERROR indicates some other error
 --------------------------------------------------------------------------*/
 
 #define MRI_SIMPLE_DIFF_ERROR -1
@@ -25,9 +25,9 @@
 
 int help_3dDiff()
 {
-    char * author = "JB Teves";
+char * author = "JB Teves";
 
-    printf(
+printf(
 "\n"
 "Overview ~1~ \n"
 "\n"
@@ -39,30 +39,30 @@ int help_3dDiff()
 "\n"
 "Command usage and option list ~1~ \n"
 "\n"
-" 3dDiff [-tol TOLERANCE] <-left LEFT_DSET> <-right RIGHT_DSET>\n"
+" 3dDiff [-tol TOLERANCE] <-a DSET_1> <-b DSET_2>\n"
 "\n"
 "where: \n"
 "\n"
 "  -tol TOLERANCE   :(opt) the floating-point tolerance/epsilon\n"
 "\n"
-"  -left LEFT_DSET  :(req) input left dataset\n"
+"  -a DSET_1        :(req) input dataset a\n"
 "\n"
-"  -right RIGHT_DSET:(req) input right dataset\n"
+"  -b DSET_2        :(req) input dataset b\n"
 "\n"
 "===========================================================================\n"
 "\n"
 "Examples ~1~\n"
 "\n"
 "1) Diff two images with equivalent grids, no matching voxels\n"
-"%% 3dDiff -left a.nii -right b.nii\n"
+"%% 3dDiff -a a.nii -b b.nii\n"
 "++ Images diverge: 42663935 of 42663936 voxels disagree (100.000%%)\n"
 "\n"
 "2) Diff two images with different dimensions entirely\n"
-"%% 3dDiff -left grid1.nii -right grid2.nii\n"
+"%% 3dDiff -a grid1.nii -b grid2.nii\n"
 "++ Image dimensions mismatch: (64, 64, 31) vs. (32, 32, 15)\n"
 "\n"
 "3) Diff two images with different centers, obliquities\n"
-"%% 3dDiff -left ob1.nii -right ob2.nii\n"
+"%% 3dDiff -a ob1.nii -b ob2.nii\n"
 "++ Image centers diverge\n"
 "++ Image orientations diverge\n"
 "++ Image obliquities diverge: 3.783151 apart\n"
@@ -72,21 +72,21 @@ int help_3dDiff()
 "++ Images diverge: 23999522 of 42663936 voxels disagree (56.252%%)\n"
 "\n"
 "5) Diff two images that agree completely (quietly succeeds)\n"
-"%% 3dDiff -left a.nii -right a.nii\n"
+"%% 3dDiff -a a.nii -b a.nii\n"
 "\n"
 "===========================================================================\n"
 "\n",
 author );
 
-    return 0;
+return 0;
 }
 
 int main( int argc , char * argv[] )
 {
-    /* diff for differing voxels, nvox for total voxels */
+/* diff for differing voxels, nvox for total voxels */
     int diff, nvox, dim_check = 0 ;
-    char *left_fname, *right_fname ;
-    THD_3dim_dataset *left_dset = NULL, *right_dset = NULL;
+    char *a_fname, *b_fname ;
+    THD_3dim_dataset *a_dset = NULL, *b_dset = NULL;
     /* iarg counts where we are in the passed args; start at 1 */
     int iarg=1 ;
     /* tolerance we'll use; defaults to the value specified above */
@@ -107,26 +107,26 @@ int main( int argc , char * argv[] )
     set_obliquity_report(0);
 
     /* Parse the args */
-    while ( iarg < argc && argv[iarg][0] == '-'){
-        CHECK_HELP(argv[iarg], help_3dDiff);
+    if (argc == 1) { help_3dDiff(); exit(0); } /* No args supplied */
 
+    while ( iarg < argc && argv[iarg][0] == '-'){
         /* left image */
-        if ( strncmp(argv[iarg],"-left",5) == 0) {
-            if (iarg >= argc) ERROR_exit("Need dset after -left");
-            left_dset = THD_open_dataset( argv[++iarg] ) ;
-            if ( left_dset == NULL )
-                ERROR_exit("Cannot open left dataset!\n") ;
-            DSET_load(left_dset); CHECK_LOAD_ERROR(left_dset);
+        if ( strncmp(argv[iarg],"-a",5) == 0) {
+            if (iarg >= argc) ERROR_exit("Need dset after -a");
+            a_dset = THD_open_dataset( argv[++iarg] ) ;
+            if ( a_dset == NULL )
+                ERROR_exit("Cannot open dataset a!\n") ;
+            DSET_load(a_dset); CHECK_LOAD_ERROR(a_dset);
             iarg++; continue;
         }
 
         /* right image */
-        if ( strncmp(argv[iarg],"-right",5) == 0) {
-            if (iarg >= argc) ERROR_exit("Need dset after -right");
-            right_dset = THD_open_dataset( argv[++iarg] ) ;
-            if ( right_dset == NULL )
-                ERROR_exit("Cannot open right dataset!\n") ;
-            DSET_load(right_dset); CHECK_LOAD_ERROR(right_dset);
+        if ( strncmp(argv[iarg],"-b",5) == 0) {
+            if (iarg >= argc) ERROR_exit("Need dset after -b");
+            b_dset = THD_open_dataset( argv[++iarg] ) ;
+            if ( b_dset == NULL )
+                ERROR_exit("Cannot open dataset b!\n") ;
+            DSET_load(b_dset); CHECK_LOAD_ERROR(b_dset);
             iarg++; continue;
         }
 
@@ -150,13 +150,13 @@ int main( int argc , char * argv[] )
         PRINT_COMPILE_DATE ; exit(0) ;
     }
 
-    if ( !left_dset )
-        ERROR_exit("No left dset supplied!");
-    if ( !right_dset )
-        ERROR_exit("No right dset supplied!");
+    if ( !a_dset )
+        ERROR_exit("No dset a supplied!");
+    if ( !b_dset )
+        ERROR_exit("No dset b supplied!");
 
     /* Check for dimension mismatch, report if so */
-    dim_check = THD_dataset_mismatch(left_dset, right_dset);
+    dim_check = THD_dataset_mismatch(a_dset, b_dset);
     if ( dim_check ) {
         if ( dim_check & MISMATCH_DELTA ) {
             INFO_message("Image centers diverge");
@@ -167,27 +167,27 @@ int main( int argc , char * argv[] )
         if ( dim_check & MISMATCH_DIMEN ) {
             INFO_message(
                 "Image dimensions mismatch: (%d, %d, %d) vs. (%d, %d, %d)",
-                DSET_NX(left_dset), DSET_NY(left_dset), DSET_NZ(left_dset),
-                DSET_NX(right_dset), DSET_NY(right_dset), DSET_NZ(right_dset)
+                DSET_NX(a_dset), DSET_NY(a_dset), DSET_NZ(a_dset),
+                DSET_NX(b_dset), DSET_NY(b_dset), DSET_NZ(b_dset)
             );
         }
         if ( dim_check & MISMATCH_OBLIQ ) {
             INFO_message(
                 "Image obliquities diverge: %f apart",
                 dset_obliquity_angle_diff(
-                    left_dset, right_dset, OBLIQ_ANGLE_THRESH
+                    a_dset, b_dset, OBLIQ_ANGLE_THRESH
                 )
             );
         }
     }
-    if ( ! EQUIV_GRIDS( left_dset , right_dset ) ) RETURN ( 1 ) ;
+    if ( ! EQUIV_GRIDS( a_dset , b_dset ) ) RETURN ( 1 ) ;
 
-    diff = THD_count_diffs(left_dset, right_dset, tol);
+    diff = THD_count_diffs(a_dset, b_dset, tol);
     /* How many voxels did we just diff, anyway? */
-    nvox = DSET_NVOX(left_dset) * DSET_NVALS(left_dset);
+    nvox = DSET_NVOX(a_dset) * DSET_NVALS(a_dset);
     /* Free the images */
-    DSET_delete(left_dset); free(left_dset);
-    DSET_delete(right_dset); free(right_dset);
+    DSET_delete(a_dset); free(a_dset);
+    DSET_delete(b_dset); free(b_dset);
 
     /* Report to user */
     if ( diff == MRI_SIMPLE_DIFF_ERROR ) {
