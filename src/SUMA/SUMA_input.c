@@ -2065,7 +2065,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_a:
-        if (0 && clippingPlaneMode){
+        if (clippingPlaneMode){
                 if (!axisObject) makeAxisObject(w, sv);
                 axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
                 /*
