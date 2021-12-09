@@ -52,7 +52,9 @@ ENTRY("THD_dataset_mismatch") ;
    LOAD_FVEC3(fv1,dax1->xxdel,dax1->yydel,dax1->zzdel) ; c1 = SIZE_FVEC3(fv1) ;
    LOAD_FVEC3(fv2,dax2->xxdel,dax2->yydel,dax2->zzdel) ; c2 = SIZE_FVEC3(fv2) ;
 
-   if( cd > 0.1*(c1+c2) ) code |= MISMATCH_CENTER ;
+   /* change default limit from 0.1 * vox diag sum  to  0.001 * ave_vox_diag */
+   /* done to appease the mighty ZSS                      [9 Dec 2021 rickr] */
+   if( cd > 0.0005*(c1+c2) ) code |= MISMATCH_CENTER ;
 
    /* check if the obliquity is the same */
    /* (allow for truncation differnces)   22 May 2015 [rickr] */

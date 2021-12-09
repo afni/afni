@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  9, Dec, 2021, RCR, "3dmaskdump", MICRO, TYPE_BUG_FIX,
+ {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
+   "further restrict -same_center",
+   "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."
+ } ,
+ 
+ {  9, Dec, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
    "balls were not verified to be entirely within dset bounds",
    "Thanks to aclyn11 (AFNI MB) for noting the problem."
  } ,
