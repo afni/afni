@@ -53,6 +53,7 @@ foreach(
   3dEmpty
   3dEntropy
   3dErrtsCormat
+  3dEulerDist
   3dExtractGroupInCorr
   3dExtrema
   3dFDR
@@ -124,6 +125,7 @@ foreach(
   3ddelay
   3ddot
   3ddup
+  3dedgedog
   3dfim+
   3dnewid
   3dnoise
