@@ -160,6 +160,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale           \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
+           3dedgedog                                                          \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
