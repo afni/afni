@@ -73,7 +73,7 @@ afni_history_struct ptaylor_history[] = {
    "Fix new -only2D opt slice selection.",
    "Was not always getting correct planar direction; should be now.\n"
 },
-
+ 
 { 9, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
    "Add in '-only2D ..' opt, similar to 3dEulerDist's one.",
    "Now can get planar edges, instead of always volumetric ones.\n"
