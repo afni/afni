@@ -34,11 +34,8 @@ ver = 2.5;  date = Dec 9, 2021
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <float.h>
 #include "debugtrace.h"
 #include "mrilib.h"
-#include "3ddata.h"
-#include "thd_euler_dist.c"
 
 int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                 int argc, char *argv[] );

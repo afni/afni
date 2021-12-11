@@ -276,7 +276,7 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              Aomp.h rcmat.h misc_math.h                                        \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h           \
              thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h               \
-             cs_qsort_small.h thd_depth.h thd_euler_dist.h
+             cs_qsort_small.h thd_euler_dist.h thd_edge_dog.h
 
 ### Make everything, install it too, and cleanup
 
@@ -463,12 +463,12 @@ Ifile:Ifile.o
 3dGetrow:3dGetrow.o
 	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
-3dEulerDist.o: 3dEulerDist.c thd_euler_dist.c
+3dEulerDist.o: 3dEulerDist.c 
 
 3dEulerDist:3dEulerDist.o
 	$(CC) -o 3dEulerDist 3dEulerDist.o $(LFLAGS) $(LLIBS)
 
-3dedgedog.o: 3dedgedog.c thd_edge_dog.c
+3dedgedog.o: 3dedgedog.c 
 
 3dedgedog:3dedgedog.o
 	$(CC) -o 3dedgedog 3dedgedog.o $(LFLAGS) $(LLIBS)
@@ -2568,7 +2568,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
            thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
            thd_remove_allzero.o thd_store_index.o thd_ljungbox.o          \
-           thd_get_tcsv.o thd_vecwarp.o thd_StatsPDL.o thd_depth.o
+           thd_get_tcsv.o thd_vecwarp.o thd_StatsPDL.o thd_euler_dist.o   \
+           thd_edge_dog.o
 
 # these are now included in NIML
 
