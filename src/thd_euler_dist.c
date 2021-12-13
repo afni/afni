@@ -1,5 +1,4 @@
 #include "mrilib.h" 
-#include "thd_euler_dist.h"
 
 PARAMS_euler_dist set_euler_dist_defaults(void)
 {
@@ -196,11 +195,11 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       exit(12);
    }
 
-   // initialize distance array to BIG
+   // initialize distance array to EULER_BIG
    for ( i=0 ; i<nx ; i++ ) 
       for ( j=0 ; j<ny ; j++ ) 
          for ( k=0 ; k<nz ; k++ ) 
-            arr_dist[i][j][k] = BIG;
+            arr_dist[i][j][k] = EULER_BIG;
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg (that miiiight have only existed in earlier calc
@@ -561,18 +560,18 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
   ----------
   
   f0       : 1D array. Either distance**2 values (or, to start,
-             values binarized to 0 or BIG).
+             values binarized to 0 or EULER_BIG).
   
   n        : len of f0 array
 
   delta    : element edge length along this dimension.
   
   To deal with anisotropic and non-unity-edge-length elements, first
-  scale non-BIG distances to be "as if" there were edge=1 voxels, and
+  scale non-EULER_BIG distances to be "as if" there were edge=1 voxels, and
   then at end scale back.
   
   [PT] Comment: unlike in earlier thinking (even before current scale
-  down/up approach), do NOT want to mult 'BIG' by 'delta', because
+  down/up approach), do NOT want to mult 'EULER_BIG' by 'delta', because
   pixels/voxels can be anisotropic here.
 */
 float * Euclidean_DT_delta(float *f0, int n, float delta)
@@ -595,8 +594,8 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
    if ( v==NULL || f==NULL || z==NULL || Df==NULL || Df0==NULL ) 
       ERROR_exit("MemAlloc issue: v, f, z, Df or Df0.\n");
 
-   z[0] = -BIG;
-   z[1] = BIG;
+   z[0] = -EULER_BIG;
+   z[1] = EULER_BIG;
 
    delta2 = delta * delta;
 
@@ -605,7 +604,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        f[i] = f0[i];           // copy f0  
     if( delta != 1 ){
         for( i=0 ; i<n ; i++ )
-            if(f[i] != BIG )
+            if(f[i] != EULER_BIG )
                 f[i]/= delta2;
         }
 
@@ -622,7 +621,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        k++;
        v[k]   = q;
        z[k]   = s;
-       z[k+1] = BIG;
+       z[k+1] = EULER_BIG;
     }
 
     k = 0;
@@ -637,7 +636,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        Df0[i] = Df[i];           // copy Df  
     if (delta != 1 ){
        for( i=0 ; i<n ; i++ )
-            if( Df0[i] != BIG )
+            if( Df0[i] != EULER_BIG )
                 Df0[i]*= delta2;
     }
 
@@ -680,14 +679,14 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
 
-   // in case user calcs EDT in 2D, replace any remaining BIG values
+   // in case user calcs EDT in 2D, replace any remaining EULER_BIG values
    // (from initialization) with 0; do this before sqrt of dist**2 or
    // any negating of dists values, for simplicity
    if( opts.only2D ){
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){
-               if( arr_dist[i][j][k] >= BIG )
+               if( arr_dist[i][j][k] >= EULER_BIG )
                   arr_dist[i][j][k] = 0.0;
                }
    }

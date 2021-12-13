@@ -26,11 +26,8 @@ ver = 1.4;  date = Dec 9, 2021
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <float.h>
 #include "debugtrace.h"
 #include "mrilib.h"
-#include "3ddata.h"
-#include "thd_edge_dog.c"
 
 int run_edge_dog( int comline, PARAMS_edge_dog opts,
                   int argc, char *argv[] );
