@@ -335,7 +335,7 @@ extern void clock_time_atexit(void) ;
       if( e != NULL ) DBG_fp=fopen(e,"w") ;                           \
       if( DBG_fp==NULL ) DBG_fp=stdout;                               \
       (void)NI_clock_time() ;                                         \
-      DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,argv); } while(0)
+      DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,&argv); } while(0)
 
 #define STATUS(str)                                                                  \
   do{ if(TRACK_TRACING){                                                             \
@@ -413,7 +413,7 @@ extern void clock_time_atexit(void) ;
 #  endif
 
 #  define mainENTRY(rout) \
-   do { (void)AFNI_prefilter_args(&argc,argv); } while(0)
+   do { (void)AFNI_prefilter_args(&argc,&argv); } while(0)
 
 #endif /* USE_TRACING */
 /*********************************************************************/

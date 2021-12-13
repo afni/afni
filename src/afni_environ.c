@@ -6,7 +6,11 @@
 
 #include "mrilib.h"
 
-extern int SUMA_IcoNums(int depth, byte bin, char what);
+extern int SUMA_IcoNums(int depth, byte bin, char what) ;
+
+static void AFNI_prefilter_inclusions( int * , char *** ) ; /* 13 Dec 2021 */
+
+#undef DEBUG_ME
 
 /*------------------------------------------------------------------------
    Read an entire file into a character string.  When you are
@@ -343,7 +347,7 @@ char *get_gopt_help() {
 "                      node index on an Icosahedron with -ld 120. See \n"
 "                      CreateIcosahedron for details.\n"
 "                   d:DSET.niml.dset which sets NODE to the maximum node found\n"
-"                      in dataset DSET.niml.dset.\n" 
+"                      in dataset DSET.niml.dset.\n"
 "                   ** This option is for surface-based datasets only.\n"
 "                      Some programs may not heed it, so check the output if\n"
 "                      you are not sure.\n"
@@ -351,7 +355,73 @@ char *get_gopt_help() {
 "                   way to tag a process and find it in the output of ps -a\n"
 "   -echo_edu: Echos the entire command line to stdout (without -echo_edu)\n"
 "              for edification purposes\n"
-"\n" 
+"\n"
+"   SPECIAL PURPOSE ARGUMENTS TO ADD *MORE* ARGUMENTS TO THE COMMAND LINE\n"
+"   ---------------------------------------------------------------------\n"
+"   Arguments of the following form can be used to create MORE command\n"
+"   line arguments -- the principal reason for using these options\n"
+"   is to create program command lines that are beyond the limit of\n"
+"   easy scripting. The generic form of these options is:\n"
+"     '<<XY list'\n"
+"   where X = I for Include (include from file)\n"
+"      or X = G for Glob (wildcard expansion)\n"
+"   where Y = M for Multi-string (create multiple arguments from multiple strings)\n"
+"      or Y = 1 for One-string   (all strings created are put into one argument)\n"
+"\n"
+"  * '<<GM wildcards'\n"
+"    Each wildcard string will be 'globbed' -- expanded from the names of\n"
+"    files -- and the list of files found this way will be stored in a\n"
+"    sequence of new arguments that replace this argument:\n"
+"      '<<GM ~/Alice/*.nii ~/Bob/*.nii'\n"
+"    might expand into a list of hundreds of separate datasets.\n"
+"\n"
+"  * '<<G1 wildcards'\n"
+"    The difference from the above case is that after the wildcard expansion\n"
+"    strings are found, they are catenated with separating spaces into one\n"
+"    big string. The only use for this in AFNI is for auto-catenation of\n"
+"    multiple datasets into one big dataset.\n"
+"\n"
+"  * '<<IM filenames'\n"
+"    Each filename string will result in the contents of that text file being\n"
+"    read in, broken at whitespace into separate strings, and the resulting\n"
+"    collection of strings will be stored in a sequence of new arguments\n"
+"    that replace this argument. This type of option can be used to input\n"
+"    large numbers of files which are listed in an external file:\n"
+"      '<<IM Bob.list.txt'\n"
+"    which could in principle result in reading in thousands of datasets\n"
+"    (if you've got the RAM).\n"
+"\n"
+"  * '<<I1 filenames'\n"
+"    The difference from the above case is that after the files are read\n"
+"    and their strings are found, they are catenated with separating spaces\n"
+"    into one big string. The only use for this in AFNI is for auto-catenation\n"
+"    of multiple datasets into one big dataset.\n"
+"\n"
+"  * 'G', 'M', and 'I' can be lower case, as in '<<gm'.\n"
+"\n"
+"  * 'glob' is Unix jargon for wildcard expansion:\n"
+"    https://en.wikipedia.org/wiki/Glob_(programming)\n"
+"\n"
+"  * If you set environment variable AFNI_GLOB_SELECTORS to YES,\n"
+"    then the wildcard expansion with '<<g' will not use the '[...]'\n"
+"    construction as a Unix wildcard. Instead, it will expand the rest\n"
+"    of the wildcard and then append the '[...]' to the results:\n"
+"      '<<gm fred/*.nii[1..100]'\n"
+"    would expand to something like\n"
+"      fred/A.nii[1..100] fred/B.nii[1..100] fred/C.nii[1..100]\n"
+"    This technique is a way to preserve AFNI-style sub-brick selectors\n"
+"    and have them apply to a lot of files at once.\n"
+"    Another example:\n"
+"      3dttest++ -DAFNI_GLOB_SELECTORS=YES -brickwise -prefix Junk.nii \\\n"
+"                -setA '<<gm sub-*/func/*rest_bold.nii.gz[0..100]'\n"
+"\n"
+"  * However, if you want to put sub-brick selectors on the '<<im' type\n"
+"    of input, you will have to do that in the input text file itself\n"
+"    (for each input filename in that file).\n"
+"\n"
+"   * BE CAREFUL OUT THERE!\n"
+"   ---------------------------------------------------------------------\n"
+"\n"
 /* Do not add options for NIML ports here, get them with get_np_help() instead */
    };
    return(GOPT_HELP);
@@ -382,12 +452,18 @@ char *get_help_help() {
 
 int MRILIB_DomainMaxNodeIndex = -1;
 
-int AFNI_prefilter_args( int *argc , char **argv )
+int AFNI_prefilter_args( int *argc , char ***argvp )
 {
    int narg=*argc , ii,jj , nused , ttt ;
    char *used , *eee ;
+   char **argv ;
+   static int firstcall=1 ;
 
-   if( narg <= 1 || argv == NULL ) return(0) ;
+   if( !firstcall || narg <= 1 || argvp == NULL ) return(0) ;
+
+   argv = *argvp ; if( argv == NULL ) return(0) ;
+
+   firstcall = 0 ;
 
    used = (char *)calloc((size_t)narg,sizeof(char)) ;
 
@@ -408,6 +484,10 @@ int AFNI_prefilter_args( int *argc , char **argv )
        used[ii] = 1 ; continue ;
      }
 
+#ifdef DEBUG_ME
+INFO_message("prefilter [%d] '%s'",ii,argv[ii]) ;
+#endif
+
      /*** -Dname=val to set environment variable ***/
 
      if( strncmp(argv[ii],"-D",2) == 0 && strchr(argv[ii],'=') != NULL ){
@@ -424,7 +504,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
        *eee = '\0';
 
        if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,scpy) ;
-       fprintf(stdout,"%s\n", (eee = my_getenv(scpy)) ? eee:"") ; 
+       fprintf(stdout,"%s\n", (eee = my_getenv(scpy)) ? eee:"") ;
         used[ii] = 1 ; exit(0) ;
      }
 
@@ -432,33 +512,33 @@ int AFNI_prefilter_args( int *argc , char **argv )
 
      if( strcmp(argv[ii],"-overwrite") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
-       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; 
+       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ;
        THD_set_quiet_overwrite(1); /* no need to kvetch */
        used[ii] = 1 ; continue ;
      }
 
      /*** echo command ***/
-     
+
      if( strcmp(argv[ii],"-echo_edu") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -echo_edu\n",ii) ;
        {
-         int jjj=0; 
-         fprintf(stdout,"\n+++ Command Echo:\n   "); 
-         for (jjj=0; jjj<narg; ++jjj)  { 
-            if (jjj != ii) {   
-               fprintf(stdout,"%s ", argv[jjj]);  
-            }     
+         int jjj=0;
+         fprintf(stdout,"\n+++ Command Echo:\n   ");
+         for (jjj=0; jjj<narg; ++jjj)  {
+            if (jjj != ii) {
+               fprintf(stdout,"%s ", argv[jjj]);
+            }
          }
          fprintf(stdout,"\n\n");
          used[ii] = 1 ; continue ;
        }
      }
-     
+
      if( strcmp(argv[ii],"-all_opts") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -all_opts\n",ii) ;
-       print_prog_options(argv[0]); used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       print_prog_options(argv[0]); used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
 
      if( strcmp(argv[ii],"-h_find") == 0 ){
@@ -469,11 +549,11 @@ int AFNI_prefilter_args( int *argc , char **argv )
        }
        used[ii] = 1 ; ii++;
        suggest_best_prog_option(argv[0], argv[ii]);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      if( strcmp(argv[ii],"-h_aspx") == 0 && ii == 1){
        char *s=NULL;
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_apsx\n",ii) ;
@@ -482,27 +562,27 @@ int AFNI_prefilter_args( int *argc , char **argv )
          exit(1);
        }
        fprintf(stdout,"%s", s); free(s);
-       used[ii] = 1 ; 
-       exit(0); 
+       used[ii] = 1 ;
+       exit(0);
      }
-     
-     
+
+
      if( strcmp(argv[ii],"-h_view") == 0 || strcmp(argv[ii],"-hview") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view or -hview \n",ii) ;
        view_prog_help(argv[0]);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      if( strcmp(argv[ii],"-h_web") == 0  || strcmp(argv[ii],"-hweb") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web or -hweb\n",ii) ;
        web_prog_help(argv[0],0);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/
 
      if( strcmp(argv[ii],"-ok_1D_text") == 0 ){
@@ -527,14 +607,14 @@ int AFNI_prefilter_args( int *argc , char **argv )
          exit(1);
        }
        used[ii] = 1 ; ii++;
-       
+
        if (!strncasecmp(argv[ii],"ld",2)) {
          if (strlen(argv[ii]) < 3) {
             fprintf(stderr,"** need a number right after ld (like ld120)\n");
             exit(1);
          }
          MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 0, 'n')-1;
-         if( ttt ) fprintf(stderr, "ld pad_to_node %d\n", 
+         if( ttt ) fprintf(stderr, "ld pad_to_node %d\n",
                                     MRILIB_DomainMaxNodeIndex);
        } else if (!strncasecmp(argv[ii],"rd",2)) {
          if (strlen(argv[ii]) < 3) {
@@ -542,7 +622,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
             exit(1);
          }
          MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 1, 'n')-1;
-         if( ttt ) fprintf(stderr, "rd pad_to_node %d\n", 
+         if( ttt ) fprintf(stderr, "rd pad_to_node %d\n",
                                     MRILIB_DomainMaxNodeIndex);
        } else if (!strncasecmp(argv[ii],"d:",2)) {
          THD_3dim_dataset *dset=NULL;
@@ -552,19 +632,19 @@ int AFNI_prefilter_args( int *argc , char **argv )
             exit(1);
          }
          dset = THD_open_dataset(argv[ii]+2);
-         if (dset) { 
-            DSET_MAX_NODE(dset, MRILIB_DomainMaxNodeIndex); 
+         if (dset) {
+            DSET_MAX_NODE(dset, MRILIB_DomainMaxNodeIndex);
             DSET_delete(dset); dset = NULL;
-            if( ttt ) fprintf(stderr, "d: pad_to_node %d\n", 
-                                    MRILIB_DomainMaxNodeIndex);         
+            if( ttt ) fprintf(stderr, "d: pad_to_node %d\n",
+                                    MRILIB_DomainMaxNodeIndex);
          } else {
             fprintf(stderr,"** Could not load dset %s to determine padding\n",
                            argv[ii]+2);
-         } 
+         }
        } else {
          MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
-         if( ttt ) fprintf(stderr, "pad_to_node %d\n", 
-                                    MRILIB_DomainMaxNodeIndex);     
+         if( ttt ) fprintf(stderr, "pad_to_node %d\n",
+                                    MRILIB_DomainMaxNodeIndex);
        }
        if (MRILIB_DomainMaxNodeIndex < 0) {
          fprintf(stderr,"** parameter for -pad_to_node (%d) is negative!\n",
@@ -579,7 +659,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
        used[ii] = 1;
        continue ;
      }
-     
+
      if( strcmp(argv[ii],"-np") == 0 ||
          strcmp(argv[ii],"-npq") == 0 ){   /* ZSS, June 2011 */
        if( ttt ) fprintf(stderr,"++ argv[%d] is -np\n",ii) ;
@@ -596,18 +676,18 @@ int AFNI_prefilter_args( int *argc , char **argv )
                "   -np was ignored\n");
          }
        } else {
-         if (strcmp(argv[ii-1],"-npq")) 
+         if (strcmp(argv[ii-1],"-npq"))
             fprintf(stderr,"++ -np set to %d\n", get_user_np());
        }
        used[ii] = 1;
        continue ;
      }
-     
+
      if( strcmp(argv[ii],"-npb") == 0 ){   /* ZSS, June 2011 */
        if( ttt ) fprintf(stderr,"++ argv[%d] is -npb\n",ii) ;
        if (ii+1 >= narg) {
          fprintf(stderr,
-               "** -npb needs an integer NPB such that 0 <= NPB <= %d\n", 
+               "** -npb needs an integer NPB such that 0 <= NPB <= %d\n",
                get_max_port_bloc());
          exit(1);
        }
@@ -616,7 +696,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
             fprintf(stderr,
                "** -npb is not an integer such that 0 <= NPB <= %d\n"
                "   -npb was ignored\n", get_max_port_bloc());
-       } 
+       }
        used[ii] = 1;
        continue ;
      }
@@ -637,29 +717,29 @@ int AFNI_prefilter_args( int *argc , char **argv )
       /* -max_port_bloc number and quit */
       if( strncmp(argv[ii],"-max_port_bloc", 8) == 0) {
          int pp = 0;
-         pp = get_max_port_bloc(); 
+         pp = get_max_port_bloc();
          if (strcmp(argv[ii-1], "-max_port_bloc_quiet")) {
-            fprintf(stdout, "Maximum port bloc number: %d\n", 
-                                pp); 
+            fprintf(stdout, "Maximum port bloc number: %d\n",
+                                pp);
          } else {
-            fprintf(stdout, "%d\n", pp); 
+            fprintf(stdout, "%d\n", pp);
          }
          exit(0);
       }
-      
+
       /* -num_assigned port number and quit */
       if( strncmp(argv[ii],"-num_assigned_ports", 8) == 0) {
          int pp = 0;
-         pp = get_max_port_bloc(); 
+         pp = get_max_port_bloc();
          if (strcmp(argv[ii-1], "-num_assigned_ports_quiet")) {
-            fprintf(stdout, "Number of assigned ports: %d\n", 
-                                pp); 
+            fprintf(stdout, "Number of assigned ports: %d\n",
+                                pp);
          } else {
-            fprintf(stdout, "%d\n", pp); 
+            fprintf(stdout, "%d\n", pp);
          }
          exit(0);
       }
-      
+
 
      /*** if get to here, argv[ii] is nothing special ***/
 
@@ -676,9 +756,12 @@ int AFNI_prefilter_args( int *argc , char **argv )
    if( ttt && nused > 0 )
      fprintf(stderr,"++ 'used up' %d argv[] entries, leaving %d\n",nused,narg) ;
 
-   free((void *)used) ; *argc = narg ; return(nused);
-}
+   if( narg > 0 )
+     AFNI_prefilter_inclusions( &narg , argvp ) ; /* 13 Dec 2021 */
 
+   free((void *)used) ; *argc = narg ;
+   return(nused);
+}
 
 /*-------------------------------------------------------------------------*/
 /* These functions moved here: 05 Feb 2008. */
@@ -757,10 +840,291 @@ char *THD_get_image_globalrange_str()
 void THD_cycle_image_globalrange()
 {
    int ig;
-   
+
    ig = THD_get_image_globalrange();
    ig++;
    if(ig>2) ig = 0;
    THD_set_image_globalrange(ig);
 }
 
+/*--------------------------------------------------------------------*/
+/* Parse and expand one inclusion argument of the forms
+     '<<XY strings'
+   where 'X' is 'I' for Include or 'G' for Glob (how expansion works),
+   and   'Y' is '1' for 1-string output or 'M' for Multi-string output
+                    (whether the result of expansion is one string, )
+                    (or is separated at whitespace into many strings)
+*//*------------------------------------------------------------------*/
+
+#define INCLUSION_BAD      0
+#define INCLUSION_ONE      1
+#define INCLUSION_MANY     2
+#define INCLUSION_INCLUDE 11
+#define INCLUSION_GLOB    12
+
+#define INCLUSION_COUNT(ccc)                        \
+   (  ( (ccc)        == '1' ) ? INCLUSION_ONE       \
+    : ( toupper(ccc) == 'M' ) ? INCLUSION_MANY      \
+    :                           INCLUSION_BAD )
+
+#define INCLUSION_MODE(ccc)                         \
+   (  ( toupper(ccc) == 'I' ) ? INCLUSION_INCLUDE   \
+    : ( toupper(ccc) == 'G' ) ? INCLUSION_GLOB      \
+    :                           INCLUSION_BAD    )
+
+/*--------------------------------------------------------------------*/
+
+static int AFNI_is_valid_inclusion_string( char *astr )
+{
+ENTRY("AFNI_is_valid_inclusion_string") ;
+
+   if( astr == NULL              ||
+       strlen(astr) < 6          ||
+       strncmp(astr,"<<",2) != 0 ||
+       !isspace(astr[4])           ) RETURN(0) ;
+
+   if( INCLUSION_MODE (astr[2]) == INCLUSION_BAD ) RETURN(0) ;
+   if( INCLUSION_COUNT(astr[3]) == INCLUSION_BAD ) RETURN(0) ;
+
+   RETURN(1) ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static NI_str_array * AFNI_parse_inclusion( char *astr )
+{
+   NI_str_array *nsar_out=NULL , *nsar_in=NULL ;
+   int in_count , in_mode , nstr ;
+
+ENTRY("AFNI_parse_inclusion") ;
+
+   /* check string for criminal behavior */
+
+   if( ! AFNI_is_valid_inclusion_string(astr) ) RETURN(NULL) ;
+
+   in_mode  = INCLUSION_MODE ( astr[2] ) ;  /* GLOB or INCLUDE */
+   in_count = INCLUSION_COUNT( astr[3] ) ;  /* ONE  or MANY */
+
+   /* break input string into substrings, separated by whitespace */
+
+   nsar_in = NI_decode_string_list( astr , " " ) ;
+
+   /* didn't get ANYTHING? [shouldn't be possible] */
+
+   if( nsar_in == NULL ) RETURN(NULL) ;
+
+   /* need at least 2 substrings or life is meaningless drivel */
+
+   nstr = nsar_in->num ;
+   if( nstr < 2 ){
+     NI_delete_str_array(nsar_in) ; RETURN(NULL) ;
+   }
+
+   /* handle the modes (GLOB or INCLUDE) for processing the strings */
+
+   switch( in_mode ){
+
+     case INCLUSION_GLOB:{      /* strings = wildcards to expand */
+       int nout ; char **fout ;
+
+       /* cf. mcw_glob.c */
+       MCW_file_expand( nstr-1 , nsar_in->str + 1 , &nout , &fout ) ;
+
+       if( nout > 0 ){  /* got something? */
+
+         nsar_out = (NI_str_array *)malloc(sizeof(NI_str_array)) ;
+
+         if( in_count == INCLUSION_MANY ){ /* just stuff array of */
+           nsar_out->num = nout ;          /* strings into output */
+           nsar_out->str = fout ;
+         } else {                          /* concat all strings plus blanks */
+           UAint64 ntot=9 ; int ii ; char *apt ;
+           for( ii=0 ; ii < nout ; ii++ )            /* add up lengths */
+             ntot += (UAint64)( strlen(fout[ii]) + 1 ) ;
+           apt = (char *)calloc(sizeof(char),ntot) ; /* output string */
+           for( ii=0 ; ii < nout ; ii++ ){           /* concatenations */
+             strcat( apt , fout[ii] ) ; free(fout[ii]) ;
+             if( ii < nout-1 )
+               strcat( apt , " " ) ;  /* inter-string blank */
+           }
+           free(fout) ;
+           nsar_out->num    = 1 ;
+           nsar_out->str    = (char **)malloc(sizeof(char *)) ;
+           nsar_out->str[0] = apt ;
+         }
+       } else {
+         ERROR_message("No results from wildcard expansion in '%s'",astr) ;
+       }
+     }
+     break ;
+
+     case INCLUSION_INCLUDE:{  /* strings = filenames to read */
+       char *fstr , *aastr=NULL ;
+       NI_str_array *nsar_file ; int ii ;
+
+       /* read each file into one big string (fstr),
+          then catenate them into one super-big string (aastr) */
+
+       for( ii=1 ; ii < nstr ; ii++ ){
+         fstr = AFNI_suck_file( nsar_in->str[ii] ) ;
+         if( fstr == NULL ){
+           ERROR_message("Cannot include data from file %s",nsar_in->str[ii]) ;
+         } else if( aastr == NULL ){
+           aastr = fstr ;
+         } else {
+           size_t nfs = strlen(fstr) + strlen(aastr) + 4 ;
+           aastr = (char *)realloc( aastr , sizeof(char)*nfs ) ;
+           strcat(aastr," ") ; strcat(aastr,fstr) ; free(fstr) ;
+         }
+       }
+
+       /* put results into output, depending on in_count method */
+
+       if( aastr != NULL ){
+         nsar_out = (NI_str_array *)malloc(sizeof(NI_str_array)) ;
+         if( in_count == INCLUSION_ONE ){
+           nsar_out->num    = 1 ;
+           nsar_out->str    = (char **)malloc(sizeof(char *)) ;
+           nsar_out->str[0] = aastr ;
+         } else {
+           nsar_out = NI_decode_string_list( aastr , " " ) ;
+           free(aastr) ;
+         }
+       }
+     }
+     break ;
+   }
+
+   NI_delete_str_array(nsar_in) ;
+
+   RETURN(nsar_out) ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static void AFNI_prefilter_inclusions( int *nargp , char ***argvp )
+{
+   int narg = *nargp ;
+   char **old_argv = *argvp ;
+   char **new_argv = NULL ;
+   int ii,jj,kk ;
+   int            incnn = 0    ;  /* number of inclusion args */
+   int            inctt = 0    ;  /* number of expanded strings */
+   int           *incii = NULL ;  /* list of indexes that are inclusions */
+   NI_str_array **incar = NULL ;  /* list of expansions of inclusions */
+
+ENTRY("AFNI_prefilter_inclusions") ;
+
+   if( narg <= 0 || old_argv == NULL ) EXRETURN ;
+
+   /* count number of inclusion args */
+
+   for( ii=0 ; ii < narg ; ii++ ){
+     if( AFNI_is_valid_inclusion_string(old_argv[ii]) ) incnn++ ;
+#ifdef DEBUG_ME
+ININFO_message("scan argv[%d] = '%s' ==> incnn = %d",
+ ii , old_argv[ii] , incnn ) ;
+#endif
+   }
+   if( incnn == 0 ) EXRETURN ;  /* None? Why did you disturb my rest!? */
+
+   /* allocate list of expanded inclusions */
+
+   incii = (int *)          malloc( sizeof(int)            * incnn ) ;
+   incar = (NI_str_array **)malloc( sizeof(NI_str_array *) * incnn ) ;
+
+   /* scan through args and expand each inclusion
+      into its own string array (incar[kk]),
+      keeping track of where it came from in the arg list (incii[kk]), and
+      adding up how many strings resulted from all the inclusions (inctt) */
+
+   for( kk=ii=0 ; ii < narg ; ii++ ){
+     if( AFNI_is_valid_inclusion_string(old_argv[ii]) ){
+       incii[kk] = ii ;
+       incar[kk] = AFNI_parse_inclusion( old_argv[ii] ) ;
+       if( incar[kk] != NULL && incar[kk]->num > 0 ){
+#ifdef DEBUG_ME
+ININFO_message("scan argv[%d] = '%s' gives %d output strings" ,
+ ii , old_argv[ii] , incar[kk]->num ) ;
+#endif
+         inctt += incar[kk]->num ;  /* number strings to add to argv */
+         kk++ ;
+       }
+     }
+   }
+
+   incnn = kk ; if( incnn == 0 || inctt == 0 ) EXRETURN ; /* got nothing? */
+
+   /* create new arglist if inclusions result in more args */
+
+   if( inctt > incnn ){  /* need more space */
+
+    new_argv = (char **)malloc( sizeof(char *)*(narg+inctt-incnn+1)) ;
+
+   } else { /* one-for-one replacement of all inclusions! */
+
+    new_argv = old_argv ;
+
+   }
+
+   /* In the following loop:
+        ii = index in old_argv of argument we are dealing with
+        jj = index in new_argv where results from old_argv[ii] go
+        kk = index of current inclusion we are looking for;
+             when incii[kk] == ii, then old_argv[ii] is an inclusion
+             and so its expansion need to go into new_argv[jj] etc.,
+             otherwise old_argv[ii] just goes into new_argv[jj]
+
+     Note that if each inclusion expanded to a single string,
+     then jj==ii at all times, but if some inclusions result in
+     multiple strings, then at some point jj > ii.
+
+     At the end of this loop, jj is the number of elements in new_argv.
+
+     I hope all that is clear. If not, please seek me out in the BrainVan! */
+
+   for( kk=jj=ii=0 ; ii < narg ; ii++ ){
+
+     if( ii != incii[kk] ){ /* NOT the next inclusion */
+
+       if( new_argv != old_argv ){  /* copy old string into new output */
+         new_argv[jj++] = strdup( old_argv[ii] ) ;
+       } /* don't need to copy it if we didn't create a new argv array */
+
+     } else {  /* copy inclusion strings into the output */
+
+       int ss ;
+       for( ss=0 ; ss < incar[kk]->num ; ss++ ){
+         if( incar[kk]->str[ss] != NULL ){
+           new_argv[jj++] = incar[kk]->str[ss] ; /* copy pointer */
+           incar[kk]->str[ss] = NULL ;           /* NULL to avoid free below */
+         }
+       }
+       NI_delete_str_array( incar[kk] ) ;  /* all used up */
+       kk++ ;    /* next inclusion index we will look for */
+
+     }
+
+   }
+
+   /* cleanup and run away screaming into the darkness */
+
+   if( new_argv != old_argv ) new_argv[jj] = NULL ;
+
+#ifdef DEBUG_ME     /* debugging */
+     INFO_message("--------------------------------------------------------");
+     INFO_message("AFNI_prefilter_inclusions:") ;
+   ININFO_message(" narg input=%d output=%d",narg,jj) ;
+   ININFO_message(" argv input=%p output=%p",(void *)old_argv,(void *)new_argv);
+   ININFO_message(" Output args:") ;
+   for( kk=0 ; kk < jj ; kk++ ){
+     ININFO_message("   [%d] = '%s'",kk,new_argv[kk]) ;
+   }
+     INFO_message("--------------------------------------------------------");
+#endif
+
+   free(incii) ; free(incar) ;
+   *nargp = jj ;
+   *argvp = new_argv ;
+   EXRETURN ;
+}
