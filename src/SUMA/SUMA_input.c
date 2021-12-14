@@ -4233,7 +4233,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
       case XK_w:
             if (clippingPlaneMode){
                 // Save clipping planes to file
-               char stmp[100];
+               char stmp[PATH_MAX+512];
                char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
                time_t t = time(NULL);
                struct tm tm = *localtime(&t);
@@ -4264,9 +4264,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                   sv->X->Title, sv->X->SetRenderOrder_prmpt);
 
                 sv->X->SetRenderOrder_prmpt = NULL;
-            } else if (!SUMA_W_Key(sv, "w", "interactive")) {
-               SUMA_S_Err("Failed in key func.");
-            }
+            } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
