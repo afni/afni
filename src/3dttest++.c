@@ -5216,7 +5216,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
 
      if( use_mega && ncsim < NCSIM_MEGA ){   /* 15 Dec 2021 */
-       INFO_message("NOTE: Use of AFNI_CLUSTIM_MEGA ==> ncsim raised from %d to %d",ncsim,NCSIM_MEGA) ;
+       INFO_message("NOTE: Use of AFNI_CLUSTSIM_MEGA ==> ncsim raised from %d to %d",ncsim,NCSIM_MEGA) ;
        ncsim = NCSIM_MEGA ;
      }
      if( use_mega ) csim_mode = "-MEGA" ;    /* 15 Dec 2021 */
