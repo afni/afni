@@ -141,6 +141,22 @@ static int   nathr_mega     = 22 ;
 static double athr_mega[22] = { 0.100,0.095,0.090,0.085,0.080,0.075,0.070,0.065,0.060,0.055,
                                 0.050,0.045,0.040,0.035,0.030,0.025,0.020,0.015,0.010,0.005,0.004,0.003 } ;
 
+static int force_mega = 0 ; /* 15 Dec 2021 */
+static int did_mega   = 0 ;
+
+#undef  SET_MEGA            /* 15 Dec 2021 */
+#define SET_MEGA                                            \
+ do{ npthr = npthr_mega ;                                   \
+     pthr  = (double *)realloc(pthr,sizeof(double)*npthr) ; \
+     memcpy( pthr , pthr_mega , sizeof(double)*npthr ) ;    \
+     nathr = nathr_mega ;                                   \
+     athr  = (double *)realloc(athr,sizeof(double)*nathr) ; \
+     memcpy( athr , athr_mega , sizeof(double)*nathr ) ;    \
+     athr_sum_bot = 13 ; athr_sum_top = 31 ;                \
+     if( niter < 30000 ) niter = 30000 ;                    \
+     did_mega = 1 ;                                         \
+ } while(0)
+
 static int    npthr = 9 ;
 static double *pthr = NULL ;
 
@@ -528,6 +544,10 @@ void display_help_menu()
    "\n"
    "-LOTS          = the same as using '-pthr LOTS -athr LOTS'\n"
    "-MEGA          = adds even MORE values to the '-pthr' and '-athr' grids.\n"
+   "                 * NOTE: you can also invoke '-MEGA' by setting environment\n"
+   "                   variable AFNI_CLUSTSIM_MEGA to YES.\n"
+   "                 * Doing this will over-ride any use of other options to set\n"
+   "                   the '-pthr' and '-athr' lists!\n"
    "\n"
    "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
@@ -548,7 +568,7 @@ void display_help_menu()
    "-both          = Output the table in XML/NIML format AND in .1D format.\n"
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
-   "                  * '-both' implies 'niml' which implies '-LOTS'.\n"
+   "                  * '-both' implies 'niml' which implies '-LOTS' (unless '-MEGA').\n"
    "                    So '-pthr' (if desired) should follow '-both'/'-niml'\n"
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
@@ -759,13 +779,18 @@ void get_options( int argc , char **argv )
 
 ENTRY("get_options") ;
 
-  /*----- add to program log -----*/
-
   pthr = (double *)malloc(sizeof(double)*npthr) ;
   memcpy( pthr , pthr_init , sizeof(double)*npthr ) ;
 
   athr = (double *)malloc(sizeof(double)*nathr) ;
   memcpy( athr , athr_init , sizeof(double)*nathr ) ;
+
+  if( AFNI_yesenv("AFNI_CLUSTSIM_MEGA") ){  /* 15 Dec 2021 */
+    force_mega = 1 ;    /* MEGA it is and MEGA it will be! */
+    do_niml    = 1 ;
+    INFO_message("NOTE: AFNI_CLUSTSIM_MEGA forces use of -MEGA") ;
+    SET_MEGA ;
+  }
 
   if( getenv("AFNI_RANDOM_SEEDVAL") != NULL ){
     gseed = (unsigned int)AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
@@ -987,31 +1012,31 @@ ENTRY("get_options") ;
     /*-----   -LOTS     -----*/
 
     if( strcasecmp(argv[nopt],"-LOTS") == 0 ){
-      npthr = npthr_lots ;
-      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
-      memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
-      nathr = nathr_lots ;
-      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
-      memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
-      athr_sum_bot = 10 ; athr_sum_top = 22 ;
+      if( !did_mega ){
+        npthr = npthr_lots ;
+        pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+        memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
+        nathr = nathr_lots ;
+        athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+        memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+        athr_sum_bot = 10 ; athr_sum_top = 22 ;
+      }
       nopt++ ; continue ;
     }
 
     /*-----   -MEGA     -----*/
 
     if( strcasecmp(argv[nopt],"-MEGA") == 0 ){   /* 18 Dec 2015 */
-      npthr = npthr_mega ;
-      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
-      memcpy( pthr , pthr_mega , sizeof(double)*npthr ) ;
-      nathr = nathr_mega ;
-      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
-      memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
-#if 0
-      athr_sum_bot =  5 ; athr_sum_top = 31 ;
-#else
-      athr_sum_bot = 13 ; athr_sum_top = 31 ;
-#endif
-      if( niter < 30000 ) niter = 30000 ;
+      if( !did_mega ){
+        npthr = npthr_mega ;
+        pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+        memcpy( pthr , pthr_mega , sizeof(double)*npthr ) ;
+        nathr = nathr_mega ;
+        athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+        memcpy( athr , athr_mega , sizeof(double)*nathr ) ;
+        athr_sum_bot = 13 ; athr_sum_top = 31 ;
+        if( niter < 30000 ) niter = 30000 ;
+      }
       nopt++ ; continue ;
     }
 
@@ -1036,6 +1061,13 @@ ENTRY("get_options") ;
 
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      if( force_mega ){
+        WARNING_message("AFNI_CLUSTSIM_MEGA is YES -- skipping '-pthr' option") ;
+        for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+        continue ;
+      }
+      if( did_mega )
+        WARNING_message("-pthr option is over-riding earlier -MEGA option!") ;
       if( strcmp(argv[nopt],"LOTS") == 0 ){   /* built in big table of values */
         npthr = npthr_lots ;
         pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
@@ -1070,6 +1102,13 @@ ENTRY("get_options") ;
 
     if( strcmp(argv[nopt],"-athr") == 0 || strcmp(argv[nopt],"-aval") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      if( force_mega ){
+        WARNING_message("AFNI_CLUSTSIM_MEGA is YES -- skipping '-athr' option") ;
+        for( ii=nopt ; ii < argc && argv[ii][0] != '-' ; ii++ ) ; /*nada*/
+        continue ;
+      }
+      if( did_mega )
+        WARNING_message("-athr option is over-riding earlier -MEGA option!") ;
       if( strcmp(argv[nopt],"LOTS") == 0 ){   /* built in big table of values */
         nathr = nathr_lots ;
         athr = (double *)realloc(athr,sizeof(double)*nathr) ;
@@ -1119,12 +1158,14 @@ ENTRY("get_options") ;
       if( have_pthr )
         ERROR_exit("-both or -niml cannot follow -pthr, as they override it\n"
                    "   i.e. -pthr should be after -both or -niml") ;
-      npthr = npthr_lots ;
-      pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
-      memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
-      nathr = nathr_lots ;
-      athr = (double *)realloc(athr,sizeof(double)*nathr) ;
-      memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+      if( !did_mega ){
+        npthr = npthr_lots ;
+        pthr = (double *)realloc(pthr,sizeof(double)*npthr) ;
+        memcpy( pthr , pthr_lots , sizeof(double)*npthr ) ;
+        nathr = nathr_lots ;
+        athr = (double *)realloc(athr,sizeof(double)*nathr) ;
+        memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
+      }
       do_niml = 1 ;
       do_1D   = ( strcasecmp(argv[nopt],"-both") == 0 ) ;
       nopt++ ; continue ;

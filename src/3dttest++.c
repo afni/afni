@@ -216,6 +216,8 @@ static char *name_mask = NULL ; /* 10 Feb 2016 */
 
 static int ttest_opcode = 0 ;  /* 0=pooled, 1=unpooled, 2=paired */
 
+#define IS_PAIRED (ttest_opcode == 2)   /* 15 Dec 2021 */
+
 static int               ndset_AAA=0 , nval_AAA=0 ;
 static char              *snam_AAA=NULL , *lnam_AAA=NULL ;
 static char             **name_AAA=NULL ;  /* argv names for input datasets */
@@ -252,6 +254,13 @@ static char *tempdir         = "." ; /* 20 Jul 2016 */
 static int       do_5percent = 1 ;   /* 24 May 2017 */
 
 static int dryrun = 0 ;
+
+/* number of simulations for -Clustsim and -ETAC */
+
+#define NCSIM_NORM 10080             /* 15 Dec 2021 */
+#define NCSIM_MEGA 30240
+
+static int use_mega = 0 ;
 
 typedef struct {
   int nnlev , sid , npthr ;
@@ -529,6 +538,27 @@ void display_help_menu(void)
       " ++ See the section 'STRUCTURE OF THE OUTPUT DATASET' (far below) for\n"
       "    more infomation on how the results are formatted.\n"
       "\n"
+      "   ** NOTES on the labels above:\n"
+      "      ++ The '-setX' label (above: 'Green') will be limited to 12 characters\n"
+      "         -- this label is used in the sub-brick labels in the output files,\n"
+      "         which are shown in the AFNI GUI 'Define Overlay' buttons for\n"
+      "         choosing the volumes (sub-bricks) you want to look at.\n"
+      "      ++ However, the dataset labels (above: 'sub001', etc) are only limited\n"
+      "         to 256 characters. These labels are used to pick values out of the\n"
+      "         covariates table.\n"
+      "      ++ In the 'LONG' form input illustrated above, the set label and the\n"
+      "         dataset labels are given explicitly.\n"
+      "      ++ In the 'SHORT' form input, the set label must be given separately,\n"
+      "         using option '-labelA' and/or '-labelB'. The dataset labels are\n"
+      "         taken from the dataset input filenames -- to be precise, the 'prefix'\n"
+      "         part of the filename, as in:\n"
+      "           'Ethel/Fred.nii' -> 'Fred'  and  'Lucy/Ricky+tlrc.HEAD' -> 'Lucy'\n"
+      "         If you are using covariates and are using the 'SHORT' form of input\n"
+      "         (the most common usage), the prefixes of the dataset filename must\n"
+      "         be unique within their first 256 characters, or trouble will happen.\n"
+      "      ++ I added this note [15 Dec 2021] because failing to distinguish between\n"
+      "         these labels and their limits was causing some confusion and angst.\n"
+      "\n"
       "* You can input 1 or 2 sets of data (labeled 'A' and 'B' by default).\n"
       "\n"
       "* With 1 set ('-setA'), the mean across input datasets (usually subjects)\n"
@@ -584,7 +614,7 @@ void display_help_menu(void)
       "   is just followed by a list of datasets to use.\n"
       "\n"
       "* The second (long) form is similar to the 3dMEMA program, where you specify\n"
-      "   a label for each input dataset sub-brick (a difference between this\n"
+      "   a distinct label for each input dataset sub-brick (a difference between this\n"
       "   option and the version in 3dMEMA is only that you do not give a second\n"
       "   dataset ('T_DSET') with each sample in this program).\n"
       "\n"
@@ -602,6 +632,13 @@ void display_help_menu(void)
       "   *** on how multiple sub-brick datasets will be processed herein. ***\n"
       "  ++ If multiple sub-bricks are input from a single dataset, then\n"
       "     covariates cannot be used (sorry, Charlie).\n"
+      "  ++ In the short form input, the 'prefix' for each dataset is its label\n"
+      "     if '-covariates' is used. The prefix is the dataset file name with\n"
+      "     any leading directory name removed, and everything at and after\n"
+      "     '+' or '.nii' cut off:\n"
+      "       Zork/Fred.nii -> Fred  *OR*   Zork/Fred+tlrc.HEAD -> Fred\n"
+      "  ++ In the long form input (described below), you provied each dataset\n"
+      "     with a label on the command line directly.\n"
       "  ++ For some limited compatibility with 3dttest, you can use '-set2' in\n"
       "     place of '-setA', and '-set1' in place of '-setB'.\n"
       "  ++ [19 Jun 2012, from Beijing Normal University, during AFNI Bootcamp]\n"
@@ -632,8 +669,10 @@ void display_help_menu(void)
       "   BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n"
       "             ++ only 1 sub-brick can be specified here!\n"
       "    ** Note that the label 'SETNAME' is limited to %d characters,\n"
-      "       and the labels 'LABL_K' are limited to %d characters\n"
-      "       -- any more will be thrown away without warning.\n"
+      "       and the dataset labels 'LABL_K' are limited to %d characters.\n"
+      "       -- Any more will be thrown away without warning.\n"
+      "       -- This limit also applies to the dataset labels taken\n"
+      "          from the dataset filenames in the short form input.\n"
       "    ** Only the first %d characters of the covariate labels can be\n"
       "       used in the sub-brick labels, due to limitations in the AFNI\n"
       "       dataset structure and AFNI GUI. Any covariate labels longer than\n"
@@ -1387,6 +1426,14 @@ void display_help_menu(void)
       "                 to extract a value from the table having a voxelwise p-value\n"
       "                 ('-csim_pthr ..') and an FDR alpha level ('-csim_alpha ..').\n"
       "                 Be sure to check out those options in 1d_tool.py's help!\n"
+      "        **-->>++ NOTE: The default operation of 3dClustSim when used from\n"
+      "                       3dttest++ is with the '-LOTS' option controlling\n"
+      "                       the thresholds used for the tabular output.\n"
+      "                       You can change that to the '-MEGA' option = a larger\n"
+      "                       table, by setting Unix environment variable\n"
+      "                       AFNI_CLUSTSIM_MEGA to YES. You can do that in several\n"
+      "                       ways, including on the command line with the option\n"
+      "                       '-DAFNI_CLUSTSIM_MEGA=YES'.     [15 Dec 2021 - RWCox]\n"
       "\n"
       "  ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
       "  ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
@@ -3722,7 +3769,7 @@ int main( int argc , char *argv[] )
      center_code = CENTER_DIFF ;
    }
 
-   if( nval_AAA != nval_BBB && ttest_opcode == 2 )
+   if( nval_AAA != nval_BBB && IS_PAIRED )
      ERROR_exit("Cannot do '-paired' with unequal set sizes: #A=%d #B=%d",
                 nval_AAA , nval_BBB ) ;
 
@@ -3741,7 +3788,7 @@ int main( int argc , char *argv[] )
      nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
    }
 
-   if( nBwt > 0 && nval_BBB > 0 && ttest_opcode == 2 ){   /* paired test? */
+   if( nBwt > 0 && nval_BBB > 0 && IS_PAIRED ){   /* paired test? */
      WARNING_message(  "-setweightB used with -paired ==> ignoring [uses -setweightA]") ;
      nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
      if( nAwt == 0 )
@@ -3783,7 +3830,7 @@ int main( int argc , char *argv[] )
        WARNING_message("-setweightB has %d values, more than %d -setB values to test",
                        nBwt , nval_BBB ) ;
        nBwt = nval_BBB ;
-     } else if( nBwt == 0 && nval_BBB > 0 && ttest_opcode != 2 ){  /* none at all */
+     } else if( nBwt == 0 && nval_BBB > 0 && !IS_PAIRED ){  /* none at all */
        INFO_message("-setweightB not given ==> using all 1 weights for -setB") ;
      }
 
@@ -3801,7 +3848,7 @@ int main( int argc , char *argv[] )
        SCALE_wtar(Bwtar,nval_BBB) ; /* scaling macro */
        Bwtim->nx = nval_BBB ; Bwtim->ny = Bwtim->nz = 1 ;
        Bwtstring = mri_1D_tostring( Bwtim ) ;
-     } else if( nAwt > 0 && ttest_opcode == 2 ){ /* paired == copy A weights */
+     } else if( nAwt > 0 && IS_PAIRED ){ /* paired == copy A weights */
        nBwt = nAwt ; Bwtar = Awtar ; Bwtim = Awtim ;
        INFO_message("-paired and -setweightA ==> -setB will copy weights from -setA") ;
      }
@@ -3838,7 +3885,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("-zskip and -covariates cannot be used together /:(") ;
 
 #if 0  /* No longer true [06 May 2021]*/
-   if( do_zskip && ttest_opcode == 2 )
+   if( do_zskip && IS_PAIRED == 2 )
      ERROR_exit("-zskip and -paired cannot be used together /:(") ;
 #endif
 
@@ -3862,7 +3909,7 @@ int main( int argc , char *argv[] )
    /* send a message about -zskip */
 
    if( do_zskip ){
-     if( ttest_opcode == 2 ){ /* paired case [06 May 2021] */
+     if( IS_PAIRED ){ /* paired case [06 May 2021] */
        INFO_message("-zskip and -paired: require at least %d (out of %d) nonzero pairs in setA+setB",
                     zskip_AAA,nval_AAA) ;
      } else {
@@ -3946,7 +3993,7 @@ int main( int argc , char *argv[] )
    if( do_Xclustsim && nval_AAA+nval_BBB < 14 )
      ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
                 clustsim_opt,nval_AAA+nval_BBB) ;
-   if( do_Xclustsim && nval_AAA+nval_BBB < 28 && ttest_opcode == 2 )
+   if( do_Xclustsim && nval_AAA+nval_BBB < 28 && IS_PAIRED )
      ERROR_exit("You can't use %s in a paired 2-sample test with nval_AAA+nval_BBB=%d < 28",
                 clustsim_opt,nval_AAA+nval_BBB) ;
 
@@ -4003,7 +4050,7 @@ int main( int argc , char *argv[] )
          WARNING_message("-permute with -unpooled is somewhat weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
-     if( ttest_opcode == 2 ){         /* -paired -- disable -permute */
+     if( IS_PAIRED ){                 /* -paired -- disable -permute */
        if( do_permute > 1 )
          WARNING_message("-permute is turned off for -paired t-test") ;
        do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ;
@@ -4021,14 +4068,19 @@ int main( int argc , char *argv[] )
 
    /*----- ETAC memory check [22 Aug 2017] -----*/
 
+   use_mega = ( do_clustsim && AFNI_yesenv("AFNI_CLUSTSIM_MEGA") ) ;
+
    if( do_Xclustsim ){
      int64_t nsdat , nsysmem ;
      int ncsim , ncase ;
-     int ncmin = (do_Xclustsim && do_local_etac) ? 30240 : 10080 ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? NCSIM_MEGA : NCSIM_NORM ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
           if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
+
+     if( use_mega )   /* 15 Dec 2021 */
+       ncsim = MAX(ncsim,NCSIM_MEGA) ;
 
      ncase = (Xclu_nblur == 0) ? 1 : Xclu_nblur ;
 
@@ -4100,7 +4152,7 @@ int main( int argc , char *argv[] )
        INFO_message("results will be %s - %s", snam_PPP,snam_MMM) ;
      else
        INFO_message("%s test: results will be %s - %s",
-                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
+                    IS_PAIRED ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
    /*----- set up covariates/regression matrices in a very lengthy aside now -----*/
@@ -4126,6 +4178,7 @@ int main( int argc , char *argv[] )
 
        nbad = 0 ; /* total error count */
        if( twosam ){  /* do setB covariates now */
+         char *mylab ;
          qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
          covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
          covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -4133,7 +4186,8 @@ int main( int argc , char *argv[] )
            covvim_BBB[jj] = NULL ;         /* initialize output vectors to NULL */
            covvec_BBB[jj] = NULL ;
            for( nkbad=kk=0 ; kk < ndset_BBB ; kk++ ){     /* loop over datasets */
-             ii = string_search( labl_BBB[kk] ,     /* ii = covariate row index */
+             mylab = (IS_PAIRED) ? labl_AAA[kk] : labl_BBB[kk] ; /* 15 Dec 2021 */
+             ii = string_search( mylab ,            /* ii = covariate row index */
                                  covnel->vec_len ,
                                  (char **)covnel->vec[0] ) ;
              if( ii < 0 ){                     /* can't find it ==> this is bad */
@@ -4149,7 +4203,7 @@ int main( int argc , char *argv[] )
                  ERROR_message("Cannot open dataset '%s' from covariates file" ,
                                qpt[ii] ) ; nbad++ ; nkbad++ ;
                } else if( DSET_NVALS(qset[kk]) > 1 ){
-                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks (should be 1)",
                                qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
                }
              } /* end of creating dataset #kk in column #jj */
@@ -4250,11 +4304,11 @@ int main( int argc , char *argv[] )
 
      /*-- setB matrix --*/
 
-     if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
+     if( twosam && !IS_PAIRED ){        /* un-paired 2-sample case */
        Bxxim = mri_new( nval_BBB , mcov+1 , MRI_float ) ;
        Bxx   = MRI_FLOAT_PTR(Bxxim) ;
-     } else if( twosam && ttest_opcode == 2 ){  /* paired case */
-       Bxxim = Axxim ; Bxx = Axx ;   /* identical matrix to setA */
+     } else if( twosam && IS_PAIRED ){  /* paired case */
+       Bxxim = Axxim ; Bxx = Axx ;      /* identical matrix to setA */
      }
 
      /*-- fill them in and (pseudo)invert them --*/
@@ -4263,7 +4317,7 @@ int main( int argc , char *argv[] )
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && mcov > 0 && num_covset_col < mcov && !singletonA ){ /* 19 Oct 2010 */
+     if( twosam && !IS_PAIRED && mcov > 0 && num_covset_col < mcov && !singletonA ){ /* 19 Oct 2010 */
        int toz_sav = toz ; float pp ; /* test covariates for equality-ishness */
 
        toz = 1 ;
@@ -4757,8 +4811,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
 
-           if( ttest_opcode == 2 ){  /* -zskip for -paired [06 May 2021] */
-                                     /* -paired implies nval_AAA == nval_BBB */
+           if( IS_PAIRED ){  /* -zskip for -paired [06 May 2021] */
+                             /* -paired implies nval_AAA == nval_BBB */
              for( ii=nz=0 ; ii < nval_AAA ; ii++ ){ /* 'bad' count: if either setA or set B is 0 */
                nz += ( (datAAA[ii] == 0.0f) || (datBBB[ii] == 0.0f) ) ;
              }
@@ -4795,7 +4849,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              }
            }
 
-           if( ttest_opcode != 2 && twosam ){  /* -zskip for setB separately from setA */
+           if( !IS_PAIRED && twosam ){  /* -zskip for setB separately from setA */
              for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nBBB = nval_BBB - nz ;
@@ -5100,7 +5154,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message("results are %s - %s", snam_PPP,snam_MMM) ;
    else if( twosam )
      ININFO_message("%s test: results are %s - %s",
-                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
+                    IS_PAIRED ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
    /*------------------------------------------------------------------------*/
    /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
@@ -5143,11 +5197,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      int use_sdat ; /* use the .sdat format? */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
+     char *csim_mode = "-LOTS" ; /* 15 Dec 2021 */
 
      /* min number of iterations (need more for local ETAC).
         why these particular values?
         that's an exercise for the student! (hint: prime factorization) */
-     int ncmin = (do_Xclustsim && do_local_etac) ? 30240 : 10080 ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? NCSIM_MEGA : NCSIM_NORM ;
      int ncsim ; /* number of iterations to run */
 
      /* using the .sdat format, unless ordered not to */
@@ -5159,6 +5214,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
           if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
+
+     if( use_mega && ncsim < NCSIM_MEGA ){   /* 15 Dec 2021 */
+       INFO_message("NOTE: Use of AFNI_CLUSTIM_MEGA ==> ncsim raised from %d to %d",ncsim,NCSIM_MEGA) ;
+       ncsim = NCSIM_MEGA ;
+     }
+     if( use_mega ) csim_mode = "-MEGA" ;    /* 15 Dec 2021 */
 
      /* how many cases? */
 
@@ -5243,7 +5304,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( bmd+strlen(bmd) , " -mask %s",name_mask) ;
          if( ttest_opcode == 1 )
            sprintf( bmd+strlen(bmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
+         if( IS_PAIRED )
            sprintf( bmd+strlen(bmd) , " -paired") ;
 
          sprintf( fname , ".%s" , clab[icase] ) ;
@@ -5312,7 +5373,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
          if( ttest_opcode == 1 )
            sprintf( cmd+strlen(cmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
+         if( IS_PAIRED )
            sprintf( cmd+strlen(cmd) , " -paired") ;
 
          if( CS_arg != NULL )     /* any extra arguments from the user */
@@ -5522,8 +5583,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(fname,"%s.CSim%s.cmd",prefix_clustsim,clab[icase]) ;
          if( !use_sdat ){
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -inset" ,
-                          prefix_clustsim , clab[icase] , fname ) ;
+                          " -prefix %s.CSim%s %s -both -nodec -cmd %s -inset" ,
+                          prefix_clustsim , clab[icase] , csim_mode , fname ) ;
            sprintf( cmd+strlen(cmd) , " \\\n   ") ;
            if( name_mask != NULL )
              sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
@@ -5533,8 +5594,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            }
          } else {
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -insdat %s" ,
-                          prefix_clustsim , clab[icase] , fname , name_mask ) ;
+                          " -prefix %s.CSim%s %s -both -nodec -cmd %s -insdat %s" ,
+                          prefix_clustsim , clab[icase] , csim_mode , fname , name_mask ) ;
            sprintf( cmd+strlen(cmd) , " \\\n   ") ;
            for( pp=0 ; pp < num_clustsim ; pp++ ){
              qq = pp + icase*num_clustsim ;
@@ -5553,25 +5614,26 @@ LABELS_ARE_DONE:  /* target for goto above */
            /* load the 3drefit command from 3dClustSim */
 
            ccc = AFNI_suck_file(fname) ;
-           if( ccc == NULL )
-             ERROR_exit("===== 3dClustSim command failed :-((( =====") ;
+           if( ccc == NULL ){
+             ERROR_message("===== 3dClustSim command failed to output 3drefit stub :-((( =====") ;
+           } else {
+             /* crop whitespace off the end */
 
-           /* crop whitespace off the end */
+             for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
+             if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
 
-           for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
-           if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
-
-           /* and run 3drefit */
+             /* and run 3drefit */
 #if 0
-           ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
+             ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
 #endif
-           if( cprefix == NULL )
-             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
-           else
-             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
+             if( cprefix == NULL )
+               sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
+             else
+               sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
 
-           if( debug ) ININFO_message("Running\n  %s",cmd) ;
-           system(cmd) ;
+             if( debug ) ININFO_message("Running\n  %s",cmd) ;
+             system(cmd) ;
+           }
          }
 
        } /* end of loop over icase */
@@ -6648,7 +6710,7 @@ ENTRY("TT_matrix_setup") ;
 #ifdef ALLOW_RANK
    if( do_ranks ){
      for( jj=1 ; jj <= mcov ; jj++ ){
-       if( twosam && ttest_opcode != 2 )
+       if( twosam && !IS_PAIRED )
          rank_order_2floats( nval_AAA , &(AXX(0,jj)) , nval_BBB , &(BXX(0,jj)) ) ;
        else
          rank_order_float( nval_AAA , &(AXX(0,jj)) ) ;
@@ -6684,7 +6746,7 @@ ENTRY("TT_matrix_setup") ;
    if( debug ){
      sprintf(label,"setA voxel#%d",kout) ;
      mri_matrix_print(stderr,Axxim,label) ;
-     if( twosam && ttest_opcode != 2 ){
+     if( twosam && !IS_PAIRED ){
        sprintf(label,"setB voxel#%d",kout) ;
        mri_matrix_print(stderr,Bxxim,label) ;
      }
@@ -6715,7 +6777,7 @@ ENTRY("TT_matrix_setup") ;
 
    /* and for setB, if needed */
 
-   if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
+   if( twosam && !IS_PAIRED ){  /* un-paired 2-sample case */
      if( imprB != NULL ) DESTROY_IMARR(imprB) ;
      imprB = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
      if( imprB == NULL ) ERROR_exit("Cannot invert setB covariate matrix?! \\:(") ;
@@ -6729,7 +6791,7 @@ ENTRY("TT_matrix_setup") ;
        mri_matrix_print(stderr,IMARR_SUBIM(imprB,1),label) ;
      }
 
-   } else if( twosam && ttest_opcode == 2 ){
+   } else if( twosam && IS_PAIRED ){
      Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
    }
 
