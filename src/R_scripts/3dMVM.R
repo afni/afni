@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.11,  July 16, 2021
+Version 4.0.12,  Dec 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1495,8 +1495,10 @@ head <- inData
  tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
     errex.AFNI(c("Problem with input files! Two possibilities: 1) There is a specification error\n",
    "with either file path or file name. Use shell command \'ls\' on the last column in the\n",
-   "data table to find out the problem. 2) At least one of the input files has different\n",
-   "dimensions. Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory\n",
+   "data table to find out the problem. 2) At least one of the input files has different dimensions:\n",
+   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
+   "or     (2) some input files have more than one value per voxel.\n",
+   "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory\n",
    "where the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
 cat('Reading input files: Done!\n\n')
