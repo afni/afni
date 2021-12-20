@@ -136,7 +136,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         darkenInactiveClipPlaneSquares(*locallySelectedPlane);
         /*
         lightenActiveClipPlaneSquare(*locallySelectedPlane);
-        /**/
+        */
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
