@@ -417,7 +417,7 @@ jobs:
   macos_build:
     working_directory: /tmp/src/afni
     macos:
-        xcode: "11.2.1"
+        xcode: "12.4.0"
     steps: # a series of commands to run
       - checkout_afni
       - setup_macos_for_afni
