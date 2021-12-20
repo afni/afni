@@ -32,6 +32,8 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_euler_dist.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_edge_dog.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_StatsPDL.h
@@ -39,6 +41,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vol2surf.h
+
 )
 target_include_directories(
   libheaders
@@ -286,8 +289,10 @@ add_library(
   thd_dsetto1D.c
   thd_dsetto3D.c
   thd_dumdset.c
+  thd_edge_dog.c
   thd_editdaxes.c
   thd_entropy16.c
+  thd_euler_dist.c
   thd_fdbrick.c
   thd_fdrcurve.c
   thd_fdto1D.c

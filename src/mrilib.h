@@ -1692,6 +1692,9 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "thd_atlas.h"        /* 22 Feb 2012 [rickr] */
 #include "thd_StatsPDL.h"     /* 22 Jul 2020 [PDL] */
 
+#include "thd_euler_dist.h"   /* 10 Dec 2021 [ptaylor] */
+#include "thd_edge_dog.h"     /* 10 Dec 2021 [ptaylor] */
+
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 
 #endif /* MRILIB_MINI */

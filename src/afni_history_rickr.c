@@ -53,6 +53,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_distmat",
+   "Display nrows x nrows matrix of distances between all vector row pairs.\n"
+   "Option added for jkblujus (AFNI MB)."
+ } ,
+ 
+ {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
+   "further restrict -same_center",
+   "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."
+ } ,
+ 
+ {  9, Dec, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
+   "balls were not verified to be entirely within dset bounds",
+   "Thanks to aclyn11 (AFNI MB) for noting the problem."
+ } ,
+ 
  {  3, Dec, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add -combine_method m_tedana_tedort",
    "Now have MEICA group tedana methods:\n"

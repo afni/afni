@@ -460,7 +460,7 @@ int main( int argc , char *argv[] )
 {
    int narg , ii;
 
-   (void)AFNI_prefilter_args(&argc,argv);
+   (void)AFNI_prefilter_args(&argc,&argv);
 
    afni_port = get_port_named("PLUGOUT_DRIVE_PORT"); /* ZSS June 2011 */
 

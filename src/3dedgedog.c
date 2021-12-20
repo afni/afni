@@ -12,6 +12,10 @@ ver = 1.3;  date = Dec 6, 2021
 ver = 1.31;  date = Dec 6, 2021
 + [PT] ... and scaling now activated: using DOG value at each edge vox
 
+ver = 1.4;  date = Dec 9, 2021
++ [PT] add -only2D opt, for DRG
+
+
 *** still need to add:
   - mask out stuff in low intensity range
   - perhaps multi-spatial scale
@@ -22,11 +26,8 @@ ver = 1.31;  date = Dec 6, 2021
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <float.h>
 #include "debugtrace.h"
 #include "mrilib.h"
-#include "3ddata.h"
-#include "thd_edge_dog.c"
 
 int run_edge_dog( int comline, PARAMS_edge_dog opts,
                   int argc, char *argv[] );
@@ -118,8 +119,8 @@ int usage_3dedgedog()
 "  -ratio_sigma RS  :the ratio of inner and outer Gaussian sigma values.\n"
 "                    That is, RS defines the size of the outer Gaussian,\n"
 "                    by scaling up the inner value.  RS can be any float\n"
-"                    greater than 1 (def: %.2f). Default chosen because\n"
-"                    MH1980 liked this value.\n"
+"                    greater than 1 (def: %.2f). See 'Notes' for more about\n"
+"                    this parameter.\n"
 "\n"
 "  -output_intermed :use this option flag if you would like to output some\n"
 "                    intermediate dataset(s):\n"
@@ -153,6 +154,39 @@ int usage_3dedgedog()
 "                    scaled to have a relative magnitude between 0 and 100\n"
 "                    (NB: the output dset will still be datum=short)\n"
 "                    depending on the gradient value at the edge.\n"
+"\n"
+"  -only2D   SLI    :instead of estimating edges in full 3D volume, calculate\n"
+"                    edges just in 2D, per plane.  Provide the slice plane\n"
+"                    you want to run along as the single argument SLI:\n"
+"                       \"axi\"  -> for axial slice\n"
+"                       \"cor\"  -> for coronal slice\n"
+"                       \"sag\"  -> for sagittal slice\n"
+"\n"
+"==========================================================================\n"
+"\n"
+"Notes ~1~\n"
+"\n"
+"The value of sigma_rad ~2~\n"
+"\n"
+"(... which sounds like the title of a great story, no? Anyways...)\n"
+"This parameter represents the ratio of the width of the two Gaussians that\n"
+"are blurred in the first stage of the DOG estimation.  In the limit that\n"
+"sigma_rad approaches 1, the DOG -> LOG.  So, we want to keep the value of\n"
+"this parameter in the general vicinity of 1 (and it can't be less than 1,\n"
+"because the ratio is of the outer-to-the-inner Gaussian).  MH1980 suggested\n"
+"that sigma_rad=1.6 was optimal 'on engineering grounds' of bandwidth\n"
+"sensitivity of filters.  This is *very approximate* reasoning, but provides\n"
+"another reference datum for selection.\n"
+"\n"
+"Because the DOG approximation used here is for visual purposes of MRI\n"
+"datasets, often even more specifically for alignment purposes, we have\n"
+"chosen a default value that seemed visually appropriate to real data.\n"
+"Values of sigma_rad close to one show much noisier, scattered images---that\n"
+"is, they pick up *lots* of contrast differences, probably too many for most\n"
+"visualization purposes.  Edge images smoothen as sigma_rad increases, but\n"
+"as it gets larger, it can also blend together edges of features---such as\n"
+"gyri of the brain with dura.  So, long story short, the default value here\n"
+"tries to pick a reasonable middle ground.\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -333,6 +367,22 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      // same as in 3dEulerDist
+      if( strcmp(argv[iarg],"-only2D") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '%s'", argv[iarg-1]);
+
+         if( strcmp(argv[iarg],"cor") == 0 || \
+             strcmp(argv[iarg],"axi") == 0 || \
+             strcmp(argv[iarg],"sag") == 0 )
+            InOpts.only2D = strdup(argv[iarg]);
+         else
+            ERROR_exit("Need either \"cor\", \"axi\" or \"sag\" "
+                       "after '%s'", argv[iarg-1]);
+
+         iarg++ ; continue ;
+      }
+
       ERROR_message("Bad option '%s'\n",argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
@@ -374,7 +424,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    ENTRY("run_edge_dog");
 
    dset_input = THD_open_dataset(opts.input_name);
-   if( (dset_input == NULL ))
+   if( dset_input == NULL )
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_input); CHECK_LOAD_ERROR(dset_input);
 
@@ -387,6 +437,12 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       if( THD_dataset_mismatch( dset_input , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
+
+   // if only running in 2D, figure out which slice that is;
+   // same as in 3dEulerDist
+   if ( opts.only2D )
+      i = choose_axes_for_plane( dset_input, opts.only2D,
+                                 opts.axes_to_proc, opts.verb );
 
    // NTS: do we need all these quantities?
    nx = DSET_NX(dset_input);

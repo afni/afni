@@ -1,6 +1,4 @@
 #include "mrilib.h" 
-#include "thd_edge_dog.h"
-#include "thd_euler_dist.c"
 
 
 PARAMS_edge_dog set_edge_dog_defaults(void)
@@ -66,6 +64,14 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.edge_bnd_side_user = "NEG"; 
    defopt.edge_bnd_scale = 0; 
 
+   defopt.verb = 1;
+
+   // same as in PARAMS_euler_dist
+   defopt.only2D = NULL;
+   defopt.axes_to_proc[0] = 1;
+   defopt.axes_to_proc[1] = 1;
+   defopt.axes_to_proc[2] = 1;
+
    return defopt;
 };
 
@@ -113,13 +119,16 @@ int build_edge_dog_suppl_prefix( PARAMS_edge_dog *opts, char *ostr,
   opts     :struct of default/user opts
   Ledge    :fl arr of len=3 of voxel edge lengths (could be NULL for sigma_nvox)
   rad_in   :fl arr of len=3 of inner Gaussian sigmas (basically an output here)
-  rad_out  :fl arr of len=3 of outer Gaussian sigmas (basically an output here)
+  diff_rad_out  :fl arr of len=3 of outer Gaussian sigmas, but these are 
+            *differential* ones, bc applied to the rad_in-blurred data, for
+            computational efficiency (basically an output here)
 
 */
 int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge, 
-                         float *rad_in, float *rad_out)
+                         float *rad_in, float *diff_rad_out)
 {
    int ii;
+   float fac;
 
    ENTRY("calc_edge_dog_sigmas");
 
@@ -133,8 +142,12 @@ int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge,
          rad_in[ii] = opts.sigma_rad[ii];
    }
 
+   // from formula:   sigma_outer**2 = sigma_inner**2 + fac**2,
+   // where sigma_outer = sigma_inner*ratio_sigma.
+   fac = sqrt(opts.ratio_sigma * opts.ratio_sigma  - 1.0);
+
    for( ii=0 ; ii<3 ; ii++ )
-      rad_out[ii] = rad_in[ii] * opts.ratio_sigma;
+      diff_rad_out[ii] = rad_in[ii] * fac;
 
    return 0;
 }
@@ -163,7 +176,7 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    float *fl_im_inner = NULL, *fl_im_outer = NULL;
    float *tmp_arr = NULL;
 
-   float rad_in[3], rad_out[3];
+   float rad_in[3], diff_rad_out[3];
 
    ENTRY("calc_edge_dog_DOG");
 
@@ -176,24 +189,30 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    Ledge[2] = DSET_DZ(dset_input);
 
    // get radii
-   ii = calc_edge_dog_sigmas(opts, Ledge, rad_in, rad_out);
+   ii = calc_edge_dog_sigmas(opts, Ledge, rad_in, diff_rad_out);
 
    // copy the subvolume's image (floatizing, if necessary)
    im_tmp = dset_input->dblk->brick->imarr[ival];
    im_inner = (im_tmp->kind != MRI_float) ? mri_to_float(im_tmp) : \
       mri_copy(im_tmp);
-   im_outer = mri_copy(im_inner);
 
    fl_im_inner = MRI_FLOAT_PTR(im_inner); 
-   fl_im_outer = MRI_FLOAT_PTR(im_outer);
 
    // apply inner and outer blurring
    EDIT_blur_volume_3d( nx, ny, nz, Ledge[0], Ledge[1], Ledge[2],
                         MRI_float, fl_im_inner,
                         rad_in[0], rad_in[1], rad_in[2] );
+
+   /*
+     The Rorden Rule: make the im_outer by applying an *additive* blur
+     to the im_inner.  Saves time, saves money, whitens teeth.
+    */
+   im_outer = mri_copy(im_inner);
+   fl_im_outer = MRI_FLOAT_PTR(im_outer);
+
    EDIT_blur_volume_3d( nx, ny, nz, Ledge[0], Ledge[1], Ledge[2],
                         MRI_float, fl_im_outer,
-                        rad_out[0], rad_out[1], rad_out[2] );
+                        diff_rad_out[0], diff_rad_out[1], diff_rad_out[2] );
 
    // subtract the outer from the inner at each voxel
    tmp_arr = (float *)calloc(nvox, sizeof(float));
@@ -271,6 +290,12 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    EdgeDogOpts.zeros_are_neg = 1;  
    EdgeDogOpts.dist_sq = 1;          // so NN values are directly thresholds
    EdgeDogOpts.verb = 0;
+   if( opts.only2D ){
+      EdgeDogOpts.only2D = strdup(opts.only2D);
+      for( i=0 ; i<3 ; i++ )
+         EdgeDogOpts.axes_to_proc[i] = opts.axes_to_proc[i];
+   }
+
 
    // run EDT
    INFO_message("Calculate EDT for vol %d", ival);

@@ -1,0 +1,97 @@
+https://afni.nimh.nih.gov/bootcamp_history
+------------------------------------------
+Aug-Oct 2001: AFNI analysis training course given in 10 lectures and hands-on workshops, NIH.
+Jan-Mar 2002: AFNI analysis training course given in 10 lectures and hands-on workshops, NIH.
+Sep-Nov 2002: Repeat of FMRI analysis training course from Jan-Mar, NIH.
+Jan-Apr 2003: Another repeat of FMRI analysis training course, NIH.
+July 2003: One day AFNI class at University of Iowa brain mapping workshop.
+Oct 2003: Five day AFNI workshop, Università di Pisa, Italia.
+Feb 2004: Four day AFNI workshop, NIH.
+July 2004: Five day AFNI workshop, NIH.
+Oct 2004: Five day AFNI workshop, Università di Pisa, Italia. [The 1st "bootcamp"!]
+Nov 2004: Two day AFNI workshop, NIH.
+Jan 2005: Three day AFNI workshop, Princeton University.
+Feb 2005: Five day AFNI workshop, NIH.
+Aug 2005: Five day AFNI workshop, NIH.
+Sep 2005: Three day AFNI workshop, Princeton University.
+Sep 2005: Two-and-a-half day AFNI workshop, Aston University, Birmingham UK
+Mar 2006: Five day AFNI workshop, NIH.
+May 2006: Three day AFNI workshop, University of Madison.
+Jun 2006: Five day AFNI workshop, Università di Pisa, Italy.
+Sep 2006: Five day AFNI workshop, NIH.
+Jan 2007: Three day AFNI workshop, Princeton University.
+Feb 2007: Five day AFNI workshop, Hanyang University, Seoul.
+Mar 2007: Five day AFNI workshop, NIH.
+Oct 2007: Five day AFNI workshop, NIH.
+Nov 2007: Three day AFNI workshop, NIH.
+Jan 2008: Three day AFNI workshop, Princeton University.
+Feb 2008: Five day AFNI workshop, NIH.
+Sep 2008: Five day AFNI workshop, NIH.
+Jan 2009: Three day AFNI workshop, Princeton University.
+Feb 2009: Five day AFNI workshop, NIH.
+Mar 2009: Four day AFNI workshop, Dartmouth College.
+May 2009: 1/2 day Advanced AFNI workshop, NIH.
+Jul 2009: 1/2 day Advanced AFNI workshop, NIH.
+Aug 2009: Five day AFNI workshop, UC San Diego.
+Sep 2009: Four day AFNI workshop, NIH.
+Nov 2009: Five day AFNI workshop, National Cheng Kung University, Tainan, Taiwan.
+Jan 2010: Three day AFNI workshop, Princeton University.
+Mar 2010: Four day AFNI workshop, NIH.
+Apr 2010: Five day AFNI workshop, Chinese Academy of Sciences, Beijing.
+Apr 2010: Five day AFNI workshop, Southwest University, Chongqing.
+Jun 2010: Five day AFNI workshop, Università di Pisa, Italy.
+Sep 2010: Four day AFNI workshop, NIH.
+Oct 2010: Five day AFNI workshop, University of Texas Medical School, Houston.
+Feb 2011: Four day AFNI workshop, NIH.
+Mar 2011: One day AFNI workshop, NIH.
+Apr 2011: Five day AFNI workshop, University of Tulsa.
+Aug 2011: Three day AFNI workshop, Dartmouth College.
+Sep 2011: Four day AFNI workshop, NIH.
+Oct 2011: Five day AFNI workshop, National Cheng Kung University, Tainan, Taiwan.
+Nov 2011: Five day AFNI workshop, Seoul National University Hospital, Seoul, Korea.
+Nov 2011: Two day AFNI workshop, NIH.
+Jan 2012: Four day AFNI workshop, Princeton University.
+Feb 2012: Four day AFNI workshop, NIH.
+Jun 2012: Five day AFNI workshop, Beijing Normal University, Beijing, China.
+Oct 2012: Four day AFNI workshop, NIH.
+Nov 2012: Three day AFNI workshop, NIH.
+Feb 2013: Five day AFNI workshop, NIH.
+Nov 2013: Five day AFNI workshop, Universitatea Babeş-Bolyai, Cluj-Napoca, Romania.
+Nov 2013: Four day AFNI workshop, NIH.
+Dec 2013: Five day AFNI workshop, NIH.
+May 2014: Three day AFNI workshop, U Miami Coral Gables.
+May 2014: Two day AFNI workshop, Università di Pisa, Italy.
+May 2014: Four day AFNI workshop, Haskins Laboratory at Yale University.
+Sep 2014: Three day AFNI workshop, Dartmouth College.
+Sep 2014: Five day AFNI workshop, NIH.
+Apr 2015: Five day AFNI workshop, Max Planck Institute for Biological Cybernetics, Tübingen.
+Apr 2015: Five day AFNI workshop, University of Cape Town, South Africa.
+Oct 2015: Five day AFNI workshop, NIH.
+Feb 2016: Five day AFNI workshop, NIH.
+Mar 2016: Five day AFNI workshop, National Institute for Physiological Sciences, Japan.
+Apr 2016: Five day AFNI workshop, Laureate Institute for Brain Research, Tulsa OK.
+May 2016: Five day AFNI workshop, Hangzhou, China.
+Jul 2016: Five day AFNI workshop, University of Nebraska.
+Aug 2016: Five day AFNI workshop, San Diego State University.
+Jan 2017: Five day AFNI workshop, Washington University in St. Louis.
+Feb 2017: Five day AFNI workshop, NIH.
+Apr 2017: Five day AFNI workshop, Vanderbilt University.
+Jul 2017: Five day AFNI workshop, Università degli Studi "G. d'Annunzio" Chieti - Pescara, Italy.
+Sep 2017: Four day AFNI workshop, Dartmouth College.
+Oct 2017: Five day AFNI workshop, NIH.
+Dec 2017: Five day AFNI workshop, Shenzhen University, China.
+Mar 2018: Five day AFNI workshop, NIH.
+May 2018: Five day AFNI workshop, Massachusetts Institute of Technology.
+Jul 2018: Five day AFNI workshop, University of Washington, Seattle, Washington.
+Oct 2018: Five day AFNI workshop, NIH.
+Dec 2018: Five day AFNI workshop, South China Normal University, Guangzhou, China.
+Mar 2019: Five day AFNI workshop, NIH.
+Apr 2019: Three day AFNI workshop, University of Kansas Medical Center, Kansas City, Kansas.
+Apr-May 2019: Five day AFNI workshop, University of Wisconsin–Milwaukee.
+Jun 2019: Five day AFNI workshop, Scuola IMT Alti Studi Lucca, Italy.
+Nov 2019: Five day AFNI workshop, NIH.
+Nov 2019: Three day AFNI workshop, Korea University, South Korea.
+Feb 2020: Three day AFNI-TORTOISE workshop, NIMHANS, Bengaluru, India.
+Feb 2020: Three day AFNI-TORTOISE workshop, PGIMER, Chandigarh, India.
+Mar 2020: Five Day AFNI workshop, Laureate Institute for Brain Research, Tulsa, USA.
+Apr 2020: Start of AFNI Academy, expanded lectures, online.

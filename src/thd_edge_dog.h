@@ -20,6 +20,11 @@ typedef struct {
    int edge_bnd_scale;
    char *edge_bnd_side_user;
 
+   char *only2D; 
+   int axes_to_proc[3];
+
+   int verb;
+
 } PARAMS_edge_dog;
 
 /* function to initialize params */
@@ -31,7 +36,7 @@ int build_edge_dog_suppl_prefix( PARAMS_edge_dog *opts, char *ostr,
                                  char *suffix);
 
 int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge, 
-                         float *rad_in, float *rad_out);
+                         float *rad_in, float *diff_rad_out);
 
 int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
                        THD_3dim_dataset *dset_input, int ival);

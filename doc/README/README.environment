@@ -3778,6 +3778,13 @@ relevant calculation. If you do not set a variable, and you do
 not use the 3dttest++ command line option, you will get whatever
 the default ETAC method(s) are enabled.
 
+---------------------------
+Variable: AFNI_CLUSTIM_MEGA
+---------------------------
+Set this variable to YES to force the use of the '-MEGA' option
+in 3dClustSim. The primary reason for this usage is to force
+'3dttest -Clustsim' to use '-MEGA' rather than the default '-LOTS'.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
