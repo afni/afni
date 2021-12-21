@@ -210,13 +210,14 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
                idx = THREE_TO_IJK(i, j, k, nx, nxy);
                if( THD_get_voxel(dset_roi, ival, idx))
                   arr_dist[i][j][k] = EULER_BIG;
-               }
+            }
    }
-   else
+   else { // PT self-question: is this init necessary in this case?
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ) 
                arr_dist[i][j][k] = EULER_BIG;
+   }
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg (that miiiight have only existed in earlier calc
@@ -504,7 +505,8 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
    int  i, m, n;
    float *line_out = NULL;
    int start, stop, inc, roi;
-   
+   int npts;
+
    float *Df = NULL;
 
    int limit = Na-1;
@@ -522,15 +524,26 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
          n += 1;
       }
       n -= 1;
-      // n now has the index of last matching element
 
-      // copy dist values in this interval
+      /*
+        Now, n stores the index of last matching element; idx stores
+        the index of first matching element.  
+
+        Here and below, pay careful attention to indices and offsets
+        (offsets used so we can apply boundary conditions to each
+        segment of the line).
+      */
+
+      npts = n - idx + 1; // bc line interval of line is [n, idx]
+
+      // copy dist values in this interval; note warr index is offset
+      // by 1 here
       for( m=idx ; m<=n ; m++ )
          warr[m+1] = dist2_line[m];
 
       // left bound
       if( idx==0 ){ // on the FOV edge
-         if(bounds_are_zero && roi != 0)
+         if(roi != 0 && bounds_are_zero)
             warr[idx] = 0; // a change of ROI
          else
             warr[idx] = EULER_BIG; // pretend like ROI keeps going
@@ -540,19 +553,19 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
 
       // right bound
       if( n==limit ){ // on the FOV edge
-         if(bounds_are_zero && roi != 0)
-            warr[n+1] = 0; // a change of ROI
+         if(roi != 0 && bounds_are_zero)
+            warr[n+2] = 0; // a change of ROI
          else
-            warr[n+1] = EULER_BIG; // pretend like ROI keeps going
+            warr[n+2] = EULER_BIG; // pretend like ROI keeps going
       }
       else // inside FOV
-         warr[n+1] = 0; // a change of ROI
+         warr[n+2] = 0; // a change of ROI
 
       // now calc EDT starting from appropriate spot in warr
-      Df = Euclidean_DT_delta(warr+idx, n-idx+1+2, delta);
+      Df = Euclidean_DT_delta(warr+idx, npts+2, delta);
 
       // copy dist values in this interval
-      for( m=0 ; m<n-idx+1 ; m++ )
+      for( m=0 ; m<npts ; m++ )
          dist2_line[idx+m] = Df[m+1];
 
       idx = n+1;
