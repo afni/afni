@@ -5056,8 +5056,8 @@ STATUS("zeropad weight dataset") ;
          float fff = stup.wfunc_param[6].xxx                \
                     *stup.wfunc_param[7].xxx                \
                     *stup.wfunc_param[8].xxx ;              \
-         fprintf(stderr,"  ...  vol3D=%8.4f %s",            \
-           fff ,                                            \
+         fprintf(stderr,"  ...  vol3D=%8.4f=(%.4f)^3 %s",   \
+           fff , cbrt(fff) ,                                \
            (fff < 1.0f )                                    \
             ? "= base bigger than source"                   \
             : "= base smaller than source" ) ;              \
