@@ -533,7 +533,7 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
          if(bounds_are_zero && roi != 0)
             warr[idx] = 0; // a change of ROI
          else
-            warr[idx] = BIG; // pretend like ROI keeps going
+            warr[idx] = EULER_BIG; // pretend like ROI keeps going
       }
       else // inside FOV
          warr[idx] = 0; // a change of ROI
@@ -543,7 +543,7 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
          if(bounds_are_zero && roi != 0)
             warr[n+1] = 0; // a change of ROI
          else
-            warr[n+1] = BIG; // pretend like ROI keeps going
+            warr[n+1] = EULER_BIG; // pretend like ROI keeps going
       }
       else // inside FOV
          warr[n+1] = 0; // a change of ROI
