@@ -28,6 +28,10 @@ ver = 2.4;  date = Dec 9, 2021
 ver = 2.5;  date = Dec 9, 2021
 + [PT] fix 2D selection---was only correct for some dset orientations
 
+ver = 2.6;  date = Dec 21, 2021
++ [PT] change run_EDTD_per_line to use a working array
+  - also start adding in -binary_only opt (not being used yet)
+
 */
 
 #include <stdio.h>
@@ -142,8 +146,34 @@ int usage_3dEulerDist()
 "                       \"cor\"  -> for coronal slice\n"
 "                       \"sag\"  -> for sagittal slice\n"
 "\n"
+"  -binary_only     :if the input is a binary mask or should be treated as\n"
+"                    one (all nonzero voxels -> 1; all zeros stay 0), then\n"
+"                    using this option will speed up the calculation.  See\n"
+"                    Notes below for more explanation of this. NOT ON YET!\n"
+"\n"
 " -verb V           :manage verbosity when running code (def: 1).\n"
 "                    Providing a V of 0 means to run quietly.\n"
+"\n"
+"==========================================================================\n"
+"\n"
+"Notes ~1~\n"
+"\n"
+"The original EDT algorithm of FH2012 was developed for a simple binary\n"
+"mask input (and actually for homogeneous data grids of spacing=1). This\n"
+"program, however, was built to handle more generalized cases of inputs,\n"
+"namely ROI maps (and arbitrary voxel dimensions).\n"
+"\n"
+"The tradeoff of the expansion to handling ROI maps is an increase in\n"
+"processing time---the original binary-mask algorithm is *very* efficient,\n"
+"and the generalized one is still pretty quick but less so.\n"
+"\n"
+"So, if you know that your input should be treated as a binary mask, then\n"
+"you can use the '-binary_only' option to utilize the more efficient\n"
+"(and less generalized) algorithm.  The output dataset should be the same\n"
+"in either case---this option flag is purely about speed of computation.\n"
+"\n"
+"All other options about outputting dist**2 or negative values/etc. can be\n"
+"used in conjunction with the '-binary_only', too.\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -285,6 +315,11 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need either \"cor\", \"axi\" or \"sag\" "
                        "after '%s'", argv[iarg-1]);
 
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-binary_only") == 0) {
+         InOpts.binary_only = 1;
          iarg++ ; continue ;
       }
 

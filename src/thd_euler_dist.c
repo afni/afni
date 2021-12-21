@@ -30,6 +30,8 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.axes_to_proc[1] = 1;
    defopt.axes_to_proc[2] = 1;
 
+   defopt.binary_only = 0;
+
    return defopt;
 };
 
@@ -146,9 +148,10 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    float fldim[3];            // just want max arr len
    int dim_ord_rev[3] = {0,1,2};
 
-   int dim_max = -1;
-   float *flarr = NULL;       // store distances along one dim
-   int *maparr = NULL;        // store ROI map along one dim
+   int   dim_max  = -1;
+   float *flarr   = NULL;     // store distances along one dim
+   float *workarr = NULL;     // has len of flarr, plus 2
+   int   *maparr  = NULL;     // store ROI map along one dim
 
    float ***arr_dist = NULL;  // array that will hold dist values
    float *tmp_arr = NULL;
@@ -196,10 +199,24 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    }
 
    // initialize distance array to EULER_BIG
-   for ( i=0 ; i<nx ; i++ ) 
-      for ( j=0 ; j<ny ; j++ ) 
-         for ( k=0 ; k<nz ; k++ ) 
-            arr_dist[i][j][k] = EULER_BIG;
+   if( opts.binary_only ){
+      /*
+        Treat input dset_roi as a binary mask, and initialize
+        EULER_BIG where it is nonzero
+      */
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ) {
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, ival, idx))
+                  arr_dist[i][j][k] = EULER_BIG;
+               }
+   }
+   else
+      for ( i=0 ; i<nx ; i++ ) 
+         for ( j=0 ; j<ny ; j++ ) 
+            for ( k=0 ; k<nz ; k++ ) 
+               arr_dist[i][j][k] = EULER_BIG;
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg (that miiiight have only existed in earlier calc
@@ -214,9 +231,10 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    qsort_floatint( 3 , fldim , dim_ord_rev );
    dim_max = (int) fldim[2];
    flarr   = (float *) calloc( dim_max, sizeof(float) );
+   workarr = (float *) calloc( dim_max+2, sizeof(float) );
    maparr  = (int *) calloc( dim_max, sizeof(int) );
-   if( flarr == NULL || maparr == NULL ) 
-      ERROR_exit("MemAlloc failure: flarr/maparr\n");
+   if( flarr == NULL || workarr == NULL|| maparr == NULL ) 
+      ERROR_exit("MemAlloc failure: flarr/workarr/maparr\n");
 
    for( i=0 ; i<3 ; i++ ){
 
@@ -238,18 +256,30 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
             // note pairings per case: 0 and nx; 1 and ny; 2 and nz
 
          case 0 :
-            j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
-                                  flarr, maparr );
+            if( opts.binary_only ){
+               INFO_message("TEMP: case 0");
+            }
+            else
+               j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
+                                     flarr, workarr, maparr );
             break;
 
          case 1 :
-            j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
-                                  flarr, maparr );
+            if( opts.binary_only ){
+               INFO_message("TEMP: case 1");
+            }
+            else
+               j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
+                                     flarr, workarr, maparr );
             break;
 
          case 2 :
-            j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
-                                  flarr, maparr );
+            if( opts.binary_only ){
+               INFO_message("TEMP: case 2");
+            }
+            else
+               j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
+                                     flarr, workarr, maparr );
             break;
 
          default:
@@ -260,6 +290,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    } // end of looping over axes
 
    if( flarr) free(flarr);
+   if( workarr) free(workarr);
    if( maparr) free(maparr);
 
    // Apply various user post-proc options
@@ -326,13 +357,15 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
   ival           :subbrick/subvolume index (dset_roi could be 4D)
   flarr          :1D array of distances, getting updated in this specific func
                   (from which arr_dist gets updated)
+  workarr        :1D array of floats; gets constantly overwritten; has len
+                  2+(max dataset dim), so we don't worry about array inds
   maparr         :1D array of ROIs, matched with flarr to guide its calcs
 */
 
 // analyzing along [2]th dimension
 int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr )
+                      float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
@@ -358,7 +391,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
             }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, maparr, nz,
+         ll = run_EDTD_per_line( flarr, workarr, maparr, nz,
                                  delta, opts.bounds_are_zero );
 
          // ... and now put those values back into the distance arr
@@ -372,7 +405,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 // see notes by calc_EDT_3D_dim2(...)
 int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr )
+                      float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
@@ -398,7 +431,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, maparr, ny,
+         ll = run_EDTD_per_line( flarr, workarr, maparr, ny,
                                  delta, opts.bounds_are_zero );
 
          // ... and now put those values back into the distance arr
@@ -412,7 +445,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
 // see notes by calc_EDT_3D_dim2(...)
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr )
+                      float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
@@ -438,7 +471,7 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, maparr, nx,
+         ll = run_EDTD_per_line( flarr, workarr, maparr, nx,
                                  delta, opts.bounds_are_zero );
 
          // ... and now put those values back into the distance arr
@@ -456,12 +489,15 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
   EDT-calculating function.
 
   dist2_line      :float array of 'Na' distance values (gets updated here)
+  warr            :just a work array, so we don't keep allocating/freeing;
+                   len of warr is 2+(max dset dim), so >=2+Na
   roi_line        :int array of 'Na' ROI labels (unchanged)
   Na              :length of 1D arrays used here
   delta           :voxel dim along this 1D array
   bounds_are_zero :option for how to treat FOV boundaries for nonzero ROIs
 */
-int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
+int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, 
+                       int Na,
                        float delta, int bounds_are_zero )
 {
    int  idx = 0;
@@ -470,15 +506,11 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
    int start, stop, inc, roi;
    
    float *Df = NULL;
-   
-   int limit = Na-1;
-   size_t  rowLengthInBytes = Na*sizeof(float);
-   //printf("---%f---",delta);
-   //ENTRY("run_EDTD_per_line");
 
-   if (!(line_out=(float *)malloc(rowLengthInBytes)))
-      ERROR_exit("Memory allocation problem: line_out");
-   
+   int limit = Na-1;
+
+   Df   = (float *) calloc( Na, sizeof(float) );
+
    while (idx < Na){
       // get interval of line with current ROI value
       roi = roi_line[idx];
@@ -492,53 +524,52 @@ int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
       n -= 1;
       // n now has the index of last matching element
 
-      float *paddedLine=(float *)calloc(Na+2,sizeof(float));
-      // actual ROI is in range of indices [start, stop] in
-      // paddedLine.  'inc' will tell us length of distance array
-      // put into Euclidean_DT_delta(), which can include padding at
-      // either end.
-      start = 0;
-      stop  = limit; 
-      inc   = 0;
+      // copy dist values in this interval
+      for( m=idx ; m<=n ; m++ )
+         warr[m+1] = dist2_line[m];
 
-      if (idx != 0 || (bounds_are_zero && roi != 0)){
-         start = 1;
-         inc = 1;
+      // left bound
+      if( idx==0 ){ // on the FOV edge
+         if(bounds_are_zero && roi != 0)
+            warr[idx] = 0; // a change of ROI
+         else
+            warr[idx] = BIG; // pretend like ROI keeps going
       }
-      // put actual values from dist**2 field...
-      for ( m=idx; m<=n; ++m ){
-         paddedLine[inc++] = dist2_line[m];
+      else // inside FOV
+         warr[idx] = 0; // a change of ROI
+
+      // right bound
+      if( n==limit ){ // on the FOV edge
+         if(bounds_are_zero && roi != 0)
+            warr[n+1] = 0; // a change of ROI
+         else
+            warr[n+1] = BIG; // pretend like ROI keeps going
       }
-      // inc finishes 1 greater than the actual end: is length so far
-      stop = inc-1;  // 'stop' is index of actual end of roi
-      // pad at end? 
-      if (n < limit || (bounds_are_zero && roi != 0)){
-         inc+=1;
-      }
+      else // inside FOV
+         warr[n+1] = 0; // a change of ROI
 
-      // [PT] and 'inc' should already have correct value from
-      // above; don't add 1 here
-      Df = Euclidean_DT_delta(paddedLine, inc, delta);
+      // now calc EDT starting from appropriate spot in warr
+      Df = Euclidean_DT_delta(warr+idx, n-idx+1+2, delta);
 
-      memcpy(&(line_out[idx]), &(Df[start]), (stop-start+1)*sizeof(float));
-
-      if( paddedLine )
-         free(paddedLine);
-      if( Df )
-         free(Df);
+      // copy dist values in this interval
+      for( m=0 ; m<n-idx+1 ; m++ )
+         dist2_line[idx+m] = Df[m+1];
 
       idx = n+1;
    }
 
+   if( Df )
+      free(Df);
+
    // DEBUG
-   for ( i=0; i<Na; ++i ) 
-      if (line_out[i]==0){
-         fprintf(stderr, "Zero valued distance\n");
-      }
+   //for ( i=0; i<Na; ++i ) 
+    //  if (line_out[i]==0){
+      //   fprintf(stderr, "Zero valued distance\n");
+     // }
    
-   memcpy(dist2_line, line_out, rowLengthInBytes);
-   if( line_out )
-      free(line_out);
+   //memcpy(dist2_line, line_out, rowLengthInBytes);
+   //if( line_out )
+   //   free(line_out);
    
    return 0;
 }

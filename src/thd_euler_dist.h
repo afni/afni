@@ -41,6 +41,10 @@
     axes_to_proc : (len=3 int arr) switches for running EDT along selected 
                    axes;  default to run with all of them.
 
+    binary_only  : (int) switch to treat input as a binarized mask only,
+                   which leads to faster proc for this special case
+                   (def: 0)
+                   
 */
 typedef struct {
 
@@ -60,6 +64,8 @@ typedef struct {
 
    char *only2D;          
    int axes_to_proc[3];
+
+   int binary_only;
 
    int verb;
 
@@ -84,15 +90,15 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
 
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr );
+                      float *flarr, float *workarr, int *maparr );
 int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr );
+                      float *flarr, float *workarr, int *maparr );
 int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, int *maparr );
+                      float *flarr, float *workarr, int *maparr );
 
-int run_EDTD_per_line( float *dist2_line, int *roi_line, int Na,
+int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, int Na,
                        float delta, int bounds_are_zero );
 
 float * Euclidean_DT_delta(float *f0, int n, float delta);
