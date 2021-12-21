@@ -209,7 +209,9 @@ commands:
           name: Setup on macos
           command: |
             brew  install --cask xquartz
-            brew unlink python@2
+            if [[ -d /usr/local/Cellar/python@2 ]]; then
+                brew unlink python@2
+            fi
 
             # add hack for git upgrade to not raise an error
             set +o pipefail
