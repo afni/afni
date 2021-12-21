@@ -392,8 +392,8 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
             }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, nz,
-                                 delta, opts.bounds_are_zero );
+         ll = run_EDTD_per_line( flarr, workarr, maparr, nz, delta,
+                                 opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( kk=0; kk<nz ; kk++ ) 
@@ -432,8 +432,8 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, ny,
-                                 delta, opts.bounds_are_zero );
+         ll = run_EDTD_per_line( flarr, workarr, maparr, ny, delta, 
+                                 opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( jj=0; jj<ny ; jj++ )
@@ -472,8 +472,8 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, nx,
-                                 delta, opts.bounds_are_zero );
+         ll = run_EDTD_per_line( flarr, workarr, maparr, nx, delta, 
+                                 opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( ii=0; ii<nx ; ii++ )
@@ -496,10 +496,11 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
   Na              :length of 1D arrays used here
   delta           :voxel dim along this 1D array
   bounds_are_zero :option for how to treat FOV boundaries for nonzero ROIs
+  binary_only     :if we treat the ROI map as a binary map only
 */
 int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, 
-                       int Na,
-                       float delta, int bounds_are_zero )
+                       int Na, float delta, 
+                       int bounds_are_zero, int binary_only )
 {
    int  idx = 0;
    int  i, m, n;
@@ -512,6 +513,7 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
    int limit = Na-1;
 
    Df   = (float *) calloc( Na, sizeof(float) );
+
 
    while (idx < Na){
       // get interval of line with current ROI value
@@ -573,16 +575,6 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
 
    if( Df )
       free(Df);
-
-   // DEBUG
-   //for ( i=0; i<Na; ++i ) 
-    //  if (line_out[i]==0){
-      //   fprintf(stderr, "Zero valued distance\n");
-     // }
-   
-   //memcpy(dist2_line, line_out, rowLengthInBytes);
-   //if( line_out )
-   //   free(line_out);
    
    return 0;
 }

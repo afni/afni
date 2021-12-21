@@ -99,7 +99,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
                       float *flarr, float *workarr, int *maparr );
 
 int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, int Na,
-                       float delta, int bounds_are_zero );
+                       float delta, int bounds_are_zero, int binary_only );
 
 float * Euclidean_DT_delta(float *f0, int n, float delta);
 
