@@ -1,5 +1,14 @@
 #include "cox_render.h"
 
+/*
+   -- I have no idea why I wrote this program
+   -- I suppose to test the 3D rendering functions in cox_render.c
+   -- git blame dates it to the year 2000, so that is plausible
+   -- In any case, this program is probably useless except for
+      the eventual biographer of AFNI.
+   -- RWCox
+*/
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *dset ;
