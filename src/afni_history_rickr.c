@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "misc updates for circleCI build based on xcode 12.4.0",
-   "Remove thd_incorrelate.o from cmake libmri; protect enable_mcw_malloc."
+   "Remove thd_incorrelate.o from cmake libmri, etc."
  } ,
  
  { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
