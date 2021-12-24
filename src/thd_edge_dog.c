@@ -300,7 +300,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // run EDT
    INFO_message("Calculate EDT for vol %d", ival);
-   i = calc_EDT_3D( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
+   i = calc_EDT_3D_BIN( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
 
    // can output this intermediate dset for the [0]th volume, if the
    // user asks

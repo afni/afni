@@ -15,6 +15,10 @@ ver = 1.31;  date = Dec 6, 2021
 ver = 1.4;  date = Dec 9, 2021
 + [PT] add -only2D opt, for DRG
 
+ver = 1.5;  date = Dec 23, 2021
++ [PT] run with binarized/optimized EulerDist form.  shd be faster
+
+
 
 *** still need to add:
   - mask out stuff in low intensity range
