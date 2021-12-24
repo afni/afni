@@ -745,7 +745,10 @@ extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *, 
                                          float p[][MAX_CODE_PARAMS+1],
                                          float *reduce_grid, int resam_mode) ;
-extern void THD_localstat_verb(int) ;
+
+extern void THD_localstat_datum(int);
+extern void THD_localstat_verb(int);
+
 extern int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk, 
                                  THD_3dim_dataset *gset, 
                                  int *ii, int *jj, int *kk);

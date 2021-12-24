@@ -308,7 +308,6 @@ add_library(
   thd_getpathprogs.c
   thd_http.c
   thd_idcode.c
-  thd_incorrelate.c
   thd_info.c
   thd_initalldir.c
   thd_initdblk.c

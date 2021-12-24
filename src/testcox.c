@@ -1,3 +1,4 @@
+#include "mcw_malloc.h"
 #include "cox_render.h"
 
 /*
@@ -33,7 +34,9 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+#ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
+#endif
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 

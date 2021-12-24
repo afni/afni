@@ -884,6 +884,8 @@ extern void mri_nbistat_setclip( float, float , float, float ) ;
 extern void mri_bistat_setweight( MRI_IMAGE *wm ) ;  /* 14 Aug 2007 */
 extern void set_mri_nstat_fillvalue(float tf);
 extern void set_mri_nstat_unfillvalue(float tf);
+extern void set_mri_nstat_maskvalue(float tf);
+extern void set_mri_nstat_maskvalue2(float tf);
 
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
