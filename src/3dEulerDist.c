@@ -218,6 +218,14 @@ int usage_3dEulerDist()
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_SQ_VOX.nii.gz                           \n"
 "\n"
+"6) Basic case, with option for speed-up because the input is a binary mask\n"
+"   (i.e., only ones and zeros); any of the other above options can\n"
+"   be combined with this, too:\n"
+"   3dEulerDist                                                     \\\n"
+"       -binary_only                                                \\\n"
+"       -input  roi_mask.nii.gz                                     \\\n"
+"       -prefix roi_mask_EDT.nii.gz                                 \n"
+"\n"
 "==========================================================================\n"
 "\n",
 author );
