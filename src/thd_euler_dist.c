@@ -10,8 +10,8 @@ PARAMS_euler_dist set_euler_dist_defaults(void)
    defopt.prefix = NULL;         
 
    defopt.zeros_are_zeroed = 0;
-   defopt.zeros_are_neg    = 0;
-   defopt.nz_are_neg       = 0;
+   defopt.zero_region_sign = 1;
+   defopt.nz_region_sign   = 1;
    defopt.bounds_are_zero  = 1;
    defopt.ignore_voxdims   = 0;
    defopt.dist_sq          = 0;
@@ -125,6 +125,494 @@ int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
    return 0;
 };
 
+
+
+/*
+  ***This function treats treats in the input "ROI map" as a binary mask***
+
+  dset_edt  :  dset that is filled in here with EDT values
+  opts      :  struct containing default/user options 
+  dset_roi  :  the ROI map (dataset, basically 'im' in lib_EDT.py)
+  dset_mask :  a mask dset to be applied at end (could be NULL)
+  ival      :  index value of the subbrick/subvolume to analyze
+*/
+int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+                     THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
+                     int ival)
+{
+   int i, j, k, idx;
+   int ii, jj, kk;
+   float minmax[2] = {0, 0};
+   int nx, ny, nz, nxy, nvox;
+   int nx2, ny2, nz2;
+   float delta = 1.0;
+
+   float Ledge[3];            // voxel edge lengths ('edims' in lib_EDT.py)
+   int vox_ord_rev[3];
+
+   float fldim[3];            // just want max arr len
+   int dim_ord_rev[3] = {0,1,2};
+
+   int   dim_max  = -1;
+   float *flarr   = NULL;     // store distances along one dim
+   float *workarr = NULL;     // has len of flarr, plus 2
+   int   *maparr  = NULL;     // store ROI map along one dim
+
+   float ***arr_dist = NULL;  // array that will hold dist values
+   float ***arr_distZ = NULL;  // array that will hold dist values in zeros
+   float *tmp_arr = NULL;
+
+   ENTRY("calc_EDT_3D_BIN");
+
+   if( opts.verb )
+      INFO_message("Binary-mask input version");
+
+   // check if a subbrick is const; there are a couple cases where we
+   // would be done at this stage.
+   i = THD_subbrick_minmax( dset_roi, ival, 1, &minmax[0], &minmax[1] );
+
+   if ( minmax[0] == minmax[1] ){
+      if ( minmax[1] == 0.0 ){
+         WARNING_message("Constant (zero) subbrick: %d\n"
+                         "\t-> This volume will have all zero values", ival);
+         return 0;
+      }
+      else if( !opts.bounds_are_zero ){
+         WARNING_message("Constant (nonzero) subbrick, "
+                         "and no bounds_are_zero: %d\n"
+                         "\t-> This volume will have all zero values", ival);
+         return 0;
+      }
+   }
+
+   // dset properties we need to know
+   nx = DSET_NX(dset_roi);
+   ny = DSET_NY(dset_roi);
+   nz = DSET_NZ(dset_roi);
+   nxy = nx*ny;
+   nvox = DSET_NVOX(dset_roi);
+   Ledge[0] = fabs(DSET_DX(dset_roi)); 
+   Ledge[1] = fabs(DSET_DY(dset_roi)); 
+   Ledge[2] = fabs(DSET_DZ(dset_roi)); 
+
+   // dims of array we proc
+   nx2 = nx+2;  
+   ny2 = ny+2;
+   nz2 = nz+2;
+
+   // create arrays to be used
+   tmp_arr = (float *) calloc( nvox, sizeof(float) );
+   arr_dist = (float ***) calloc( nx2, sizeof(float **) );
+   for ( i=0 ; i<nx2 ; i++ ) 
+      arr_dist[i] = (float **) calloc( ny2, sizeof(float *) );
+   for ( i=0 ; i<nx2 ; i++ ) 
+      for ( j=0 ; j<ny2 ; j++ ) 
+         arr_dist[i][j] = (float *) calloc( nz2, sizeof(float) );
+   if( tmp_arr == NULL || arr_dist == NULL ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(12);
+   }
+
+   // array for the distances in zero regions, if calc'ed
+   if( !opts.zeros_are_zeroed ){
+      arr_distZ = (float ***) calloc( nx2, sizeof(float **) );
+      for ( i=0 ; i<nx2 ; i++ ) 
+         arr_distZ[i] = (float **) calloc( ny2, sizeof(float *) );
+      for ( i=0 ; i<nx2 ; i++ ) 
+         for ( j=0 ; j<ny2 ; j++ ) 
+            arr_distZ[i][j] = (float *) calloc( nz2, sizeof(float) );
+
+      if( arr_distZ == NULL ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(12);
+      }
+   }
+
+   /*
+     Initialize distances in main part of padded array to EULER_BIG:
+     where there is a nonzero value, we stick an EULER_BIG.
+     
+     A bit of subtlety, to create ROI boundary conditions: arr_dist is
+     basically the padded-by-one-layer version of dset_roi; we cp over
+     dset_roi values to the middle of it, and then we need to decide
+     whether the ROI boundaries should be extensions of the ROI
+     themselves, or remain zero.  To accomplish the first case, we use
+     two rounds of ternary logic on the indices, trickily.
+   */
+   if( !opts.bounds_are_zero ) { // boundaries where ROIs get extensions
+      if( opts.verb && ival==0 )
+         INFO_message("Copying values WITH extensions for mask boundary.");
+      for ( i=-1 ; i<nx+1 ; i++ ) 
+         for ( j=-1 ; j<ny+1 ; j++ ) 
+            for ( k=-1 ; k<nz+1 ; k++ ) {
+               ii = ( i<0    ) ? 0 : i;
+               ii = ( ii>=nx ) ? nx-1 : ii;
+               jj = ( j<0    ) ? 0 : j;
+               jj = ( jj>=ny ) ? ny-1 : jj;
+               kk = ( k<0    ) ? 0 : k;
+               kk = ( kk>=nz ) ? nz-1 : kk;
+               
+               idx = THREE_TO_IJK(ii, jj, kk, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival))
+                  arr_dist[i+1][j+1][k+1] = EULER_BIG;
+            }
+   }
+   else { // boundaries remain all zero
+      if( opts.verb && ival==0 )
+         INFO_message("Copying values WITHOUT extensions for mask boundary.");
+
+      for( i=0 ; i<nx ; i++ ) 
+         for( j=0 ; j<ny ; j++ ) 
+            for( k=0 ; k<nz ; k++ ) {
+               ii = i+1;
+               jj = j+1;
+               kk = k+1;
+               
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival)){
+                  arr_dist[ii][jj][kk] = EULER_BIG;
+                  //INFO_message("-> %f",arr_dist[ii][jj][kk]);
+               }
+            }
+   }     
+
+   // initialize for distance within zeros, if asked for; this simple
+   // approach works even for the boundaries, because the boundaries
+   // around the zero part are always more zeros (and the boundaries
+   // by where the input ROIs were don't matter here)
+   if( !opts.zeros_are_zeroed ){
+      for( i=0 ; i<nx2 ; i++ ) 
+         for( j=0 ; j<ny2 ; j++ ) 
+            for( k=0 ; k<nz2 ; k++ ) {
+               if( !arr_dist[i][j][k] ){
+                  arr_distZ[i][j][k] = EULER_BIG;
+               }
+            }
+   }
+
+
+
+
+   // PT note: do we need the complementary array to arr_dist, for
+   // filling in the zero-region with mask values?
+
+   // find axis order of decreasing voxel sizes, to avoid pathology in
+   // the EDT alg (that miiiight have only existed in earlier calc
+   // method, but it still makes sense to do---why not?)
+   i = sort_vox_ord_desc(3, Ledge, vox_ord_rev); 
+
+   // len of longest dset dim, so we don't have to keep
+   // allocating/freeing
+   fldim[0] = nx;
+   fldim[1] = ny;
+   fldim[2] = nz;
+   qsort_floatint( 3 , fldim , dim_ord_rev );
+   dim_max = (int) fldim[2];
+   flarr   = (float *) calloc( dim_max+2, sizeof(float) ); // NB the +2 here
+   workarr = (float *) calloc( dim_max+2, sizeof(float) );
+   maparr  = (int *) calloc( dim_max, sizeof(int) );
+   if( flarr == NULL || workarr == NULL|| maparr == NULL ) 
+      ERROR_exit("MemAlloc failure: flarr/workarr/maparr\n");
+
+   for( i=0 ; i<3 ; i++ ){
+      /*
+        This next if-condition allows us to run 2D-only EDT, if the
+        user asks.
+      */
+      if( opts.axes_to_proc[vox_ord_rev[i]] ){
+
+         // report on which axes are processed
+         if ( !ival && opts.verb ){
+            INFO_message("Move along axis %d (delta = %.6f)", 
+                         vox_ord_rev[i], 
+                         Ledge[vox_ord_rev[i]]);
+            if( opts.ignore_voxdims )
+               INFO_message("... but this will be ignored: user wants "
+                            "distances output as voxel counts");
+         }
+
+         switch( vox_ord_rev[i] ){
+            // note pairings per case: 0 and nx; 1 and ny; 2 and nz
+
+         case 0 :
+            if( !opts.ignore_voxdims )
+               delta = fabs(DSET_DX(dset_roi)); 
+            j = calc_EDT_3D_BIN_dim0( arr_dist, opts,
+                                      nx, ny, nz, delta,
+                                      flarr, workarr );
+            if( !opts.zeros_are_zeroed )
+               j = calc_EDT_3D_BIN_dim0( arr_distZ, opts,
+                                         nx, ny, nz, delta,
+                                         flarr, workarr );
+            break;
+
+         case 1 :
+            if( !opts.ignore_voxdims )
+               delta = fabs(DSET_DY(dset_roi)); 
+            j = calc_EDT_3D_BIN_dim1( arr_dist, opts,
+                                      nx, ny, nz, delta,
+                                      flarr, workarr );
+            if( !opts.zeros_are_zeroed )
+               j = calc_EDT_3D_BIN_dim1( arr_distZ, opts,
+                                         nx, ny, nz, delta,
+                                         flarr, workarr );
+            break;
+
+         case 2 :
+            if( !opts.ignore_voxdims )
+               delta = fabs(DSET_DZ(dset_roi)); 
+            j = calc_EDT_3D_BIN_dim2( arr_dist, opts,
+                                      nx, ny, nz, delta,
+                                      flarr, workarr );
+           if( !opts.zeros_are_zeroed )
+               j = calc_EDT_3D_BIN_dim2( arr_distZ, opts,
+                                         nx, ny, nz, delta,
+                                         flarr, workarr );
+            break;
+
+         default:
+            WARNING_message("Should never be here in EDT prog");
+         }
+
+      }
+   } // end of looping over axes
+
+   if( flarr) free(flarr);
+   if( workarr) free(workarr);
+   if( maparr) free(maparr);
+ 
+   // Apply various user post-proc options (zeroing, sign changes, etc.)
+   i = apply_opts_to_edt_arr_BIN( arr_dist, arr_distZ, opts, 
+                                  nx, ny, nz);
+
+   /*
+     At this point, arr_dist should have the correct distance values for
+     this 3D volume.
+   */
+
+   // Copy arr_dist values to tmp_arr, which will be used to
+   // populate the actual dset. 
+   for( i=0 ; i<nx ; i++ )
+      for( j=0 ; j<ny ; j++ ) 
+         for( k=0; k<nz ; k++ ) {
+               ii = i+1;
+               jj = j+1;
+               kk = k+1;
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               tmp_arr[idx] = arr_dist[ii][jj][kk];
+            }
+
+   // the mask is only applied after all calcs
+   if( dset_mask ){
+      for( i=0 ; i<nvox ; i++ ) {
+         if( !THD_get_voxel(dset_mask, i, 0))
+            tmp_arr[i] = 0.0;
+      }
+   }
+
+   // provide volume values from the appropriately-sized array
+   EDIT_substitute_brick(dset_edt, ival, MRI_float, tmp_arr); 
+   tmp_arr=NULL;
+
+   // free arrays
+   if(arr_dist){
+      for ( i=0 ; i<nx2 ; i++ ) 
+         for ( j=0 ; j<ny2 ; j++ ) 
+            free(arr_dist[i][j]);
+      for ( i=0 ; i<nx2 ; i++ ) 
+         free(arr_dist[i]);
+      free(arr_dist);
+   }
+   if(arr_distZ){
+      for ( i=0 ; i<nx2 ; i++ ) 
+         for ( j=0 ; j<ny2 ; j++ ) 
+            free(arr_distZ[i][j]);
+      for ( i=0 ; i<nx2 ; i++ ) 
+         free(arr_distZ[i]);
+      free(arr_distZ);
+   }
+
+   return 0;
+}
+
+
+int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr )
+{
+   int ii, jj, kk, idx;
+
+   ENTRY("calc_EDT_3D_BIN_dim2");
+
+   // make appropriate 1D arrays of dist; note indices in each case
+   for( ii=1 ; ii<=nx ; ii++ )
+      for( jj=1 ; jj<=ny ; jj++ ) {
+         for( kk=0; kk<=nz+1 ; kk++ ) 
+            workarr[kk] = arr_dist[ii][jj][kk];  
+
+         flarr = Euclidean_DT_delta(workarr, nz+2, delta);
+
+         // ... and now put those values back into the distance arr
+         for( kk=1; kk<=nz ; kk++ ) 
+            arr_dist[ii][jj][kk] = flarr[kk];
+      }
+   
+   return 0;
+}
+
+// see notes by calc_EDT_3D_BIN_dim2(...)
+int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr )
+{
+   int ii, jj, kk, idx;
+
+   ENTRY("calc_EDT_3D_BIN_dim1");
+
+   // make appropriate 1D arrays of dist; note indices in each case
+   for( ii=1 ; ii<=nx ; ii++ )
+      for( kk=1; kk<=nz ; kk++ ) {
+         for( jj=0 ; jj<=ny+1 ; jj++ ) 
+            workarr[jj] = arr_dist[ii][jj][kk];
+
+         flarr = Euclidean_DT_delta(workarr, ny+2, delta);
+
+         // ... and now put those values back into the distance arr
+         for( jj=1; jj<=ny ; jj++ )
+            arr_dist[ii][jj][kk] = flarr[jj];
+      }
+   
+   return 0;
+}
+
+// see notes by calc_EDT_3D_BIN_dim2(...)
+int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr )
+{
+   int ii, jj, kk, idx;
+
+   ENTRY("calc_EDT_3D_BIN_dim0");
+
+   // make appropriate 1D arrays of dist; note indices in each case
+   for( kk=1; kk<=nz ; kk++ ) 
+      for( jj=1 ; jj<=ny ; jj++ ) {
+         for( ii=0 ; ii<=nx+1 ; ii++ )
+            workarr[ii] = arr_dist[ii][jj][kk];
+
+         flarr = Euclidean_DT_delta(workarr, nx+2, delta);
+
+         // ... and now put those values back into the distance arr
+         for( ii=1; ii<=nx ; ii++ )
+            arr_dist[ii][jj][kk] = flarr[ii];
+      }
+
+   return 0;
+}
+
+int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ, 
+                               PARAMS_euler_dist opts,
+                               int nx, int ny, int nz )
+{
+   int i, j, k;
+   int zeros_sign;
+   
+   ENTRY("apply_opts_to_edt_arr_BIN");
+
+   zeros_sign = opts.zero_region_sign;
+      
+   // in case user calcs EDT in 2D, replace any remaining EULER_BIG
+   // values (from initialization) with 0; do this before sqrt of
+   // dist**2 or any negating of dists values, for simplicity; padded
+   // edge values don't matter here
+   if( opts.only2D ) {
+      for ( i=1 ; i<=nx ; i++ ) 
+         for ( j=1 ; j<=ny ; j++ ) 
+            for ( k=1 ; k<=nz ; k++ ){
+               if( arr_dist[i][j][k] >= EULER_BIG )
+                  arr_dist[i][j][k] = 0.0;
+            }
+      
+      if( !opts.zeros_are_zeroed ){
+         for ( i=1 ; i<=nx ; i++ ) 
+            for ( j=1 ; j<=ny ; j++ ) 
+               for ( k=1 ; k<=nz ; k++ ){
+                  if( arr_distZ[i][j][k] >= EULER_BIG )
+                     arr_distZ[i][j][k] = 0.0;
+               }
+      }
+   }
+   
+   // Output distance-squared, or just distance (sqrt of what we have
+   // so-far calc'ed); padded edge values don't matter here
+   if( !opts.dist_sq ) {
+      for ( i=1 ; i<=nx ; i++ ) 
+         for ( j=1 ; j<=ny ; j++ ) 
+            for ( k=1 ; k<=nz ; k++ ){
+               if( arr_dist[i][j][k] )
+                  arr_dist[i][j][k] = (float) sqrt(arr_dist[i][j][k]);
+            }
+      
+      if( !opts.zeros_are_zeroed ){
+         for ( i=1 ; i<=nx ; i++ ) 
+            for ( j=1 ; j<=ny ; j++ ) 
+               for ( k=1 ; k<=nz ; k++ ){
+                  if( arr_distZ[i][j][k] )
+                     arr_distZ[i][j][k] = (float) sqrt(arr_distZ[i][j][k]);
+               }
+      }
+   }
+   
+   // negative where input was zero?
+   if( opts.nz_region_sign==-1 ){
+      for ( i=1 ; i<=nx ; i++ ) 
+         for ( j=1 ; j<=ny ; j++ ) 
+            for ( k=1 ; k<=nz ; k++ ){
+               if ( arr_dist[i][j][k] )
+                  arr_dist[i][j][k]*= -1;
+            }
+   }
+   
+   // combine two sets of data, if zeroes weren't zeroed: they should
+   // be perfectly complementary (where dist is zero in one, it should
+   // be nonzero in the other, and vice versa); depending on whether
+   // only2D was used, some extra values may be zeroed out, but that
+   // should be fine.
+   // This step also handles the sign of the zero-region distances
+   if( !opts.zeros_are_zeroed ){
+      for ( i=1 ; i<=nx ; i++ ) 
+         for ( j=1 ; j<=ny ; j++ ) 
+            for ( k=1 ; k<=nz ; k++ ){
+               if( arr_distZ[i][j][k] ) 
+                  arr_dist[i][j][k] = zeros_sign * arr_distZ[i][j][k];
+         }
+   }
+      
+   return 0;
+}
+                           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ---------------------------------------------------------------------------
 
 /*
@@ -199,25 +687,11 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    }
 
    // initialize distance array to EULER_BIG
-   if( opts.binary_only ){
-      /*
-        Treat input dset_roi as a binary mask, and initialize
-        EULER_BIG where it is nonzero
-      */
-      for ( i=0 ; i<nx ; i++ ) 
-         for ( j=0 ; j<ny ; j++ ) 
-            for ( k=0 ; k<nz ; k++ ) {
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( THD_get_voxel(dset_roi, ival, idx))
-                  arr_dist[i][j][k] = EULER_BIG;
-            }
-   }
-   else { // PT self-question: is this init necessary in this case?
+   // PT self-question: is this init necessary in this case?
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ) 
                arr_dist[i][j][k] = EULER_BIG;
-   }
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg (that miiiight have only existed in earlier calc
@@ -238,49 +712,38 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       ERROR_exit("MemAlloc failure: flarr/workarr/maparr\n");
 
    for( i=0 ; i<3 ; i++ ){
-
       /*
-        This if condition allows us to run 2D-only EDT, if the user
-        asks.
-       */
+        This next if-condition allows us to run 2D-only EDT, if the
+        user asks.
+      */
       if( opts.axes_to_proc[vox_ord_rev[i]] ){
+
+         // report on which axes are processed
          if ( !ival && opts.verb ){
             INFO_message("Move along axis %d (delta = %.6f)", 
                          vox_ord_rev[i], 
                          Ledge[vox_ord_rev[i]]);
             if( opts.ignore_voxdims )
-               INFO_message("... but this will be ignored,"
-                            "at user behest");
+               INFO_message("... but this will be ignored: user wants "
+                            "distances output as voxel counts");
          }
 
          switch( vox_ord_rev[i] ){
             // note pairings per case: 0 and nx; 1 and ny; 2 and nz
 
          case 0 :
-            if( opts.binary_only ){
-               INFO_message("TEMP: case 0");
-            }
-            else
-               j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
-                                     flarr, workarr, maparr );
+            j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
+                                  flarr, workarr, maparr );
             break;
 
          case 1 :
-            if( opts.binary_only ){
-               INFO_message("TEMP: case 1");
-            }
-            else
-               j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
-                                     flarr, workarr, maparr );
+            j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
+                                  flarr, workarr, maparr );
             break;
 
          case 2 :
-            if( opts.binary_only ){
-               INFO_message("TEMP: case 2");
-            }
-            else
-               j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
-                                     flarr, workarr, maparr );
+            j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
+                                  flarr, workarr, maparr );
             break;
 
          default:
@@ -294,7 +757,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    if( workarr) free(workarr);
    if( maparr) free(maparr);
 
-   // Apply various user post-proc options
+   // Apply various user post-proc options (zeroing, sign changes, etc.)
    i = apply_opts_to_edt_arr( arr_dist, opts, dset_roi, ival);
 
    /*
@@ -303,14 +766,12 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    */
 
    // Copy arr_dist values to tmp_arr, which will be used to
-   // populate the actual dset.  Then reset arr_dist values (to
-   // prepare for another iteration)
+   // populate the actual dset.  
    for( i=0 ; i<nx ; i++ )
       for( j=0 ; j<ny ; j++ ) 
          for( k=0; k<nz ; k++ ) {
             idx = THREE_TO_IJK(i, j, k, nx, nxy);
             tmp_arr[idx] = arr_dist[i][j][k];
-            arr_dist[i][j][k] = 0.0;
          }
 
    // the mask is only applied after all calcs
@@ -749,7 +1210,7 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
    }
    
    // negative where input was zero?
-   if( opts.zeros_are_neg ) { 
+   if( opts.zero_region_sign == -1 ) { 
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){
@@ -760,7 +1221,7 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
    }
 
    // negative where input was nonzero?
-   if( opts.nz_are_neg ) { 
+   if( opts.nz_region_sign == -1 ) { 
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){

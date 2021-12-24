@@ -32,6 +32,10 @@ ver = 2.6;  date = Dec 21, 2021
 + [PT] change run_EDTD_per_line to use a working array
   - also start adding in -binary_only opt (not being used yet)
 
+ver = 2.7;  date = Dec 23, 2021
++ [PT] -binary_only opt now working well (faster code running for special
+  case of binary input mask)
+
 */
 
 #include <stdio.h>
@@ -279,12 +283,12 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-zeros_are_neg") == 0) {
-         InOpts.zeros_are_neg = 1;
+         InOpts.zero_region_sign = -1;
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-nz_are_neg") == 0) {
-         InOpts.nz_are_neg = 1;
+         InOpts.nz_region_sign = -1;
          iarg++ ; continue ;
       }
 
@@ -356,7 +360,7 @@ int main(int argc, char *argv[]) {
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
-   if ( InOpts.zeros_are_zeroed && InOpts.zeros_are_neg  )
+   if ( InOpts.zeros_are_zeroed && InOpts.zero_region_sign==-1  )
       ERROR_exit("Cannot combine '-zeros_are_zero' and '-zeros_are_neg'.  "
                  "You must choose which you *really* want.\n");
 
@@ -414,10 +418,15 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                    ADN_prefix, opts.prefix,
                    ADN_none );
 
-   for( nn=0 ; nn<nvals ; nn++ ){
-      i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
-   } // end of loop over nvals
-
+   if( opts.binary_only ){
+      for( nn=0 ; nn<nvals ; nn++ )
+         i = calc_EDT_3D_BIN(dset_edt, opts, dset_roi, dset_mask, nn);
+   }
+   else{
+      for( nn=0 ; nn<nvals ; nn++ )
+         i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
+   }
+   
    // free input dset
 	DSET_delete(dset_roi); 
   	free(dset_roi); 

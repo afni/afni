@@ -286,8 +286,9 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // fill EDT option struct with defaults and a couple desired props
    EdgeDogOpts = set_euler_dist_defaults();
+   EdgeDogOpts.binary_only = 1;      // for faster runtime
    EdgeDogOpts.ignore_voxdims = 1;
-   EdgeDogOpts.zeros_are_neg = 1;  
+   EdgeDogOpts.zero_region_sign = -1;  
    EdgeDogOpts.dist_sq = 1;          // so NN values are directly thresholds
    EdgeDogOpts.verb = 0;
    if( opts.only2D ){

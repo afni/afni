@@ -34,6 +34,12 @@
                    just in voxel units (so, delta=1 everywhere), which 
                    using this option will give 'em.                   
 
+    zero_region_sign :(-1 or +1) user can flip sign of distances in zero-valued
+                   region (def: 1)
+
+    nz_region_sign :(-1 or +1) user can flip sign of distances in nonzero-valued
+                   region (def: 1)
+
     edims        : (len=3 fl arr) element dimensions (here, voxel edge lengths)
 
     shape        : (len=3 int arr) matrix size in each direction
@@ -52,9 +58,10 @@ typedef struct {
    char *mask_name;      
    char *prefix;          
 
+   int zero_region_sign;
+   int nz_region_sign;
+
    int zeros_are_zeroed;  
-   int zeros_are_neg;  
-   int nz_are_neg;  
    int bounds_are_zero;   
    int ignore_voxdims;
    int dist_sq;           
@@ -84,10 +91,32 @@ int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
 int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
                            THD_3dim_dataset *dset_roi, int ival);
 
+/*
+  Set of funcs for special case of user saying the input is a binary
+  mask.
+*/
+int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+                     THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
+                     int ival);
+int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr );
+int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr );
+int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+                          int nx, int ny, int nz, float delta,
+                          float *flarr, float *workarr );
+int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ, 
+                               PARAMS_euler_dist opts,
+                               int nx, int ny, int nz );
+
+/*
+  Set of funcs for more general case of ROI map input.
+*/
 int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
                  THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                  int ival);
-
 int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr );
@@ -97,10 +126,16 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
 int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr );
-
 int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, int Na,
                        float delta, int bounds_are_zero, int binary_only );
 
+/*
+  This always applies (whether input is binary mask or ROI map)---
+  it's the heart of the matter, from FH2012.
+*/
 float * Euclidean_DT_delta(float *f0, int n, float delta);
+
+
+
 
 #endif
