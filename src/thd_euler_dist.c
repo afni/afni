@@ -242,40 +242,39 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    if( !opts.bounds_are_zero ) { // boundaries where ROIs get extensions
       if( opts.verb && ival==0 )
          INFO_message("Copying values WITH extensions for mask boundary.");
-      for ( i=-1 ; i<nx+1 ; i++ ) 
-         for ( j=-1 ; j<ny+1 ; j++ ) 
+
+      for ( i=-1 ; i<nx+1 ; i++ ) {
+         ii = ( i<0    ) ? 0 : i;
+         ii = ( ii>=nx ) ? nx-1 : ii;
+         for ( j=-1 ; j<ny+1 ; j++ ) {
+            jj = ( j<0    ) ? 0 : j;
+            jj = ( jj>=ny ) ? ny-1 : jj;
             for ( k=-1 ; k<nz+1 ; k++ ) {
-               ii = ( i<0    ) ? 0 : i;
-               ii = ( ii>=nx ) ? nx-1 : ii;
-               jj = ( j<0    ) ? 0 : j;
-               jj = ( jj>=ny ) ? ny-1 : jj;
                kk = ( k<0    ) ? 0 : k;
                kk = ( kk>=nz ) ? nz-1 : kk;
                
                idx = THREE_TO_IJK(ii, jj, kk, nx, nxy);
                if( THD_get_voxel(dset_roi, idx, ival))
                   arr_dist[i+1][j+1][k+1] = EULER_BIG;
-            }
+            }}}
    }
    else { // boundaries remain all zero
       if( opts.verb && ival==0 )
          INFO_message("Copying values WITHOUT extensions for mask boundary.");
 
-      for( i=0 ; i<nx ; i++ ) 
-         for( j=0 ; j<ny ; j++ ) 
+      for( i=0 ; i<nx ; i++ ) {
+         ii = i+1;
+         for( j=0 ; j<ny ; j++ ) {
+            jj = j+1;
             for( k=0 ; k<nz ; k++ ) {
-               ii = i+1;
-               jj = j+1;
                kk = k+1;
-               
-               idx = THREE_TO_IJK(i, j, k, nx, nxy);
-               if( THD_get_voxel(dset_roi, idx, ival)){
-                  arr_dist[ii][jj][kk] = EULER_BIG;
-                  //INFO_message("-> %f",arr_dist[ii][jj][kk]);
-               }
-            }
-   }     
 
+               idx = THREE_TO_IJK(i, j, k, nx, nxy);
+               if( THD_get_voxel(dset_roi, idx, ival))
+                  arr_dist[ii][jj][kk] = EULER_BIG;
+            }}}
+   }
+   
    // initialize for distance within zeros, if asked for; this simple
    // approach works even for the boundaries, because the boundaries
    // around the zero part are always more zeros (and the boundaries
@@ -392,15 +391,16 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
 
    // Copy arr_dist values to tmp_arr, which will be used to
    // populate the actual dset. 
-   for( i=0 ; i<nx ; i++ )
-      for( j=0 ; j<ny ; j++ ) 
+   for( i=0 ; i<nx ; i++ ) {
+      ii = i+1;
+      for( j=0 ; j<ny ; j++ ) { 
+         jj = j+1;
          for( k=0; k<nz ; k++ ) {
-               ii = i+1;
-               jj = j+1;
                kk = k+1;
+
                idx = THREE_TO_IJK(i, j, k, nx, nxy);
                tmp_arr[idx] = arr_dist[ii][jj][kk];
-            }
+         }}}
 
    // the mask is only applied after all calcs
    if( dset_mask ){

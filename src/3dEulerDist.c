@@ -36,6 +36,9 @@ ver = 2.7;  date = Dec 23, 2021
 + [PT] -binary_only opt now working well (faster code running for special
   case of binary input mask)
 
+ver = 2.71;  date = Dec 24, 2021
++ [PT] minor efficiency increase in some index calcs
+
 */
 
 #include <stdio.h>
