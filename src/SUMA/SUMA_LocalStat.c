@@ -3015,7 +3015,7 @@ static int SUMA_nstat_mode(SUMA_DSET *din, int icol, float *fin_orig,
    float_list    flist;
    char         *lblcp=NULL;
    int           node, bind, bnode; /* node index, neighb index, neighb node */
-   int           nvals, index=0;
+   int           nvals=0, index=0;
    SUMA_Boolean  LocalHead=NOPE;
    
    SUMA_ENTRY;
