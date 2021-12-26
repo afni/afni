@@ -243,10 +243,15 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   opts         :options from the user, with some other quantities calc'ed
   dset_dog     :the input dataset of unthresholded/'raw' DOG values
   ival         :shared index of subvolume of 'dset_bnd' & 'dset_dog' to process
+  argc         :(int) for history of intermed EDT output, if made 
+                (can be 0, to not add to history)
+  argv         :(*char) for history of intermed EDT output, if made 
+                (can be NULL, to not add to history)
 
 */
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
-                       THD_3dim_dataset *dset_dog, int ival)
+                       THD_3dim_dataset *dset_dog, int ival,
+                       int argc, char *argv[])
 {
    int i, idx;
    int nvox;
@@ -311,7 +316,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(dset_edt));
-      tross_Make_History("3dedgedog", 0, NULL, dset_edt);
+      tross_Make_History("3dedgedog", argc, argv, dset_edt);
 
       // write and free dset 
       THD_write_3dim_dataset(NULL, NULL, dset_edt, True);

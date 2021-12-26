@@ -18,6 +18,8 @@ ver = 1.4;  date = Dec 9, 2021
 ver = 1.5;  date = Dec 23, 2021
 + [PT] run with binarized/optimized EulerDist form.  shd be faster
 
+ver = 1.51;  date = Dec 26, 2021
++ [PT] all output dsets get their history full made
 
 
 *** still need to add:
@@ -499,7 +501,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
    // calculate edges/bnds: might be several ways to these from DOG data
    for( nn=0 ; nn<nvals ; nn++ ){
-      i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
+      i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn, argc, argv);
       
       if( opts.edge_bnd_scale ){
          if( !nn )
@@ -514,7 +516,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_bnd)) )
       ERROR_exit("Can't overwrite existing dataset '%s'",
                  DSET_HEADNAME(dset_bnd));
-   tross_Make_History("3dedgedog", 0, NULL, dset_bnd);
+   tross_Make_History("3dedgedog", argc, argv, dset_bnd);
    
    // write edge/bnd
    THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);

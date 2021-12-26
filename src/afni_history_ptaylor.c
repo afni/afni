@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
+   "Full histories in each output dset now.",
+   "Had not been passing argc and argv previously.\n"
+},
+
 { 24, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
    "Because 3dEulerDist has new '-binary_only' opt, this prog is faster.",
    "This is because edgedog at the moment runs EDT on a binary dset.\n"
