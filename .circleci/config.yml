@@ -209,7 +209,9 @@ commands:
           name: Setup on macos
           command: |
             brew  install --cask xquartz
-            brew unlink python@2
+            if [[ -d /usr/local/Cellar/python@2 ]]; then
+                brew unlink python@2
+            fi
 
             # add hack for git upgrade to not raise an error
             set +o pipefail
@@ -417,7 +419,7 @@ jobs:
   macos_build:
     working_directory: /tmp/src/afni
     macos:
-        xcode: "11.2.1"
+        xcode: "12.4.0"
     steps: # a series of commands to run
       - checkout_afni
       - setup_macos_for_afni

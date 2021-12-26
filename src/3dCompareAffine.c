@@ -1344,7 +1344,7 @@ static THD_3dim_dataset *default_MNI152_mask_dataset(void)
 
 static void hollow_out_mask( int nx, int ny, int nz , byte *mask )
 {
-   int ii,jj,kk,qq , nx1=nx-1 , ny1=ny-1 , nz1=nz-1 , nxy=nx*ny ;
+   int ii,jj,kk,qq=0 , nx1=nx-1 , ny1=ny-1 , nz1=nz-1 , nxy=nx*ny ;
    byte *qmask=NULL ;
 
    if( nx < 5 || ny < 5 || nz < 5 || mask == NULL ) return ;
