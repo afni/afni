@@ -404,6 +404,8 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_roi); CHECK_LOAD_ERROR(dset_roi);
 
+
+
    if( opts.mask_name ) {
       dset_mask = THD_open_dataset(opts.mask_name);
       if( dset_mask == NULL )
@@ -413,7 +415,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       if( THD_dataset_mismatch( dset_roi , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
-
+   
    // if only running in 2D, figure out which slice that is
    if ( opts.only2D )
       i = choose_axes_for_plane( dset_roi, opts.only2D,

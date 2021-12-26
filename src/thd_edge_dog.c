@@ -11,6 +11,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.prefix     = NULL;     
    defopt.prefix_dog = NULL;     
 
+   defopt.do_automask        = 0;
    defopt.do_output_intermed = 0;
 
    // units=mm; from typical adult human GM thick.  Will allow this to

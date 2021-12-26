@@ -9,6 +9,7 @@ typedef struct {
    char *prefix;          
    char *prefix_dog; 
 
+   int do_automask;
    int do_output_intermed;
 
    float sigma_rad[3];

@@ -21,6 +21,9 @@ ver = 1.5;  date = Dec 23, 2021
 ver = 1.51;  date = Dec 26, 2021
 + [PT] all output dsets get their history full made
 
+ver = 1.52;  date = Dec 26, 2021
++ [PT] start adding in pieces for masking---have NOT applied yet
+
 
 *** still need to add:
   - mask out stuff in low intensity range
@@ -109,7 +112,14 @@ int usage_3dedgedog()
 "                    the EDT has been calculated.  Therefore, the boundaries\n"
 "                    of this mask have no affect on the calculated distance\n"
 "                    values, except for potentially zeroing some out at the\n"
-"                    end.\n"
+"                    end. Mask only gets made from [0]th vol.\n"
+"                    ** NOT ENABLED YET. **\n"
+"\n"
+"  -automask        :alternative to '-mask ..', for automatic internal\n"
+"                    calculation of a mask in the usual AFNI way. Again, this\n"
+"                    mask is only applied after all calcs (so using this does\n"
+"                    not speed up the calc or affect distance values).\n"
+"                    ** NOT ENABLED YET. **\n"
 "\n"
 "  -sigma_rad RRR   :radius for 'inner' Gaussian, in units of mm; RRR must\n"
 "                    by greater than zero (def: %.2f). Default is chosen to\n"
@@ -277,6 +287,11 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-automask") == 0) {
+         InOpts.do_automask = 1;
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
@@ -408,6 +423,10 @@ int main(int argc, char *argv[]) {
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
+   if ( InOpts.mask_name && InOpts.do_automask )
+      ERROR_exit("Cannot combine '-mask ..' and '-automask'.  "
+                 "You must choose which you *really* want.\n");
+   
    // DONE FILLING, now do the work
    ii = run_edge_dog(1, InOpts, argc, argv);
 
@@ -421,11 +440,16 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    int i, j, k, idx;
    int nn;
    int nx, ny, nz, nxy, nvox, nvals;
+
 	THD_3dim_dataset *dset_input = NULL;        // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
-	THD_3dim_dataset *dset_dog = NULL;         // intermed/out
-   THD_3dim_dataset *dset_bnd = NULL;         // output
+	THD_3dim_dataset *dset_dog = NULL;          // intermed/out
+   THD_3dim_dataset *dset_bnd = NULL;          // output
+
    char prefix_dog[THD_MAX_PREFIX];
+
+   byte *mask_arr = NULL;                      // what mask becomes
+   int nmask = -1;
 
    ENTRY("run_edge_dog");
 
@@ -434,14 +458,44 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_input); CHECK_LOAD_ERROR(dset_input);
 
+   nx = DSET_NX(dset_input);
+   ny = DSET_NY(dset_input);
+   nz = DSET_NZ(dset_input);
+   nxy = nx*ny;
+   nvox = DSET_NVOX(dset_input);
+   nvals = DSET_NVALS(dset_input);
+
+   // get/make mask array, if user asks
    if( opts.mask_name ) {
       dset_mask = THD_open_dataset(opts.mask_name);
       if( dset_mask == NULL )
          ERROR_exit("Can't open dataset '%s'", opts.mask_name);
       DSET_load(dset_mask); CHECK_LOAD_ERROR(dset_mask);
 
-      if( THD_dataset_mismatch( dset_input , dset_mask ) )
+      if( THD_dataset_mismatch( dset_input, dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
+
+      // mask comes from just [0]th vol
+      mask_arr = THD_makemask( dset_mask, 0, 0, -1);
+		if( opts.verb )
+         INFO_message("Number of voxels in automask = %d / %d", nmask, nvox);
+		if( nmask < 1 )
+         ERROR_exit("Automask is too small to process");
+
+      DSET_delete(dset_mask);
+      if(dset_mask)
+         free(dset_mask);
+   }
+   else if( opts.do_automask ) {
+		mask_arr = THD_automask( dset_input );
+		if( mask_arr == NULL )
+			ERROR_exit("Can't create -automask from input dataset?");
+
+		nmask = THD_countmask( nvox, mask_arr );
+		if( opts.verb )
+         INFO_message("Number of voxels in automask = %d / %d", nmask, nvox);
+		if( nmask < 1 )
+         ERROR_exit("Automask is too small to process");
    }
 
    // if only running in 2D, figure out which slice that is;
@@ -449,14 +503,6 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    if ( opts.only2D )
       i = choose_axes_for_plane( dset_input, opts.only2D,
                                  opts.axes_to_proc, opts.verb );
-
-   // NTS: do we need all these quantities?
-   nx = DSET_NX(dset_input);
-   ny = DSET_NY(dset_input);
-   nz = DSET_NZ(dset_input);
-   nxy = nx*ny;
-   nvox = DSET_NVOX(dset_input);
-   nvals = DSET_NVALS(dset_input);
 
    /* Prepare header for output by copying that of input, and then
       changing items as necessary */
@@ -487,7 +533,6 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       THD_write_3dim_dataset(NULL, NULL, dset_dog, True);
    }
 
-
    // ------------------------ calc edge/bnd ---------------------------
 
    dset_bnd = EDIT_empty_copy( dset_input ); 
@@ -510,6 +555,17 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       }
    }
    
+   if ( mask_arr ) {
+      if( opts.verb )
+         INFO_message("Masking");
+
+      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      // need to add here, once decided how best to do so
+      
+   }
+
+
    INFO_message("Output main dset: %s", opts.prefix);
 
    THD_load_statistics( dset_bnd );
@@ -521,8 +577,8 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    // write edge/bnd
    THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);
 
+   // ------------------------- free stuff ---------------------------
 
-   // free dsets
    if( dset_input ){
       DSET_delete(dset_input); 
       free(dset_input); 
@@ -538,13 +594,8 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       free(dset_bnd); 
    }
 
-   if( dset_mask ){
-      DSET_delete(dset_mask);
-      free(dset_mask);
-   }
-
-   // free more
-
+   if( mask_arr )
+      free(mask_arr);
 
    return 0;
 }
