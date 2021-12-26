@@ -39,6 +39,10 @@ ver = 2.7;  date = Dec 23, 2021
 ver = 2.71;  date = Dec 24, 2021
 + [PT] minor efficiency increase in some index calcs
 
+ver = 2.72;  date = Dec 26, 2021
++ [PT] fix help to give correct option name: -bounds_are_not_zero
+  - who knew that missing out 'not' could change meaning so much?
+
 */
 
 #include <stdio.h>
@@ -132,9 +136,10 @@ int usage_3dEulerDist()
 "  -nz_are_neg      :if this option is used, EDT in the nonzero ROI regions\n"
 "                    of the input will be negative (def: they are positive).\n"
 "\n"
-"  -bounds_are_zero :this flag affects how FOV boundaries are treated for\n"
+"  -bounds_are_not_zero :this flag affects how FOV boundaries are treated for\n"
 "                    nonzero ROIs: by default, they are viewed as ROI\n"
-"                    boundaries (so the FOV is a closed boundary for an ROI);\n"
+"                    boundaries (so the FOV is a closed boundary for an ROI,\n"
+"                    as if the FOV were padded by an extra layer of zeros);\n"
 "                    but when this option is used, the ROI behaves as if it\n"
 "                    continued 'infinitely' at the FOV boundary (so it is\n"
 "                    an open boundary).  Zero-valued ROIs (= background)\n"
