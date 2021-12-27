@@ -21030,6 +21030,12 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   // Must have non-null parent
+   if (!(prmpt->daddy)){
+     SUMA_SLP_Crit("Prompt dialog structure has no parent.");
+     SUMA_RETURN(NULL);
+   }
 
    if (!prmpt->dialog) {
       SUMA_LH ("Creating new prompt dialog.");

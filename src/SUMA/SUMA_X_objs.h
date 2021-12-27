@@ -1,6 +1,10 @@
 #ifndef SUMA_SUMA_INCLUDED
 #define SUMA_SUMA_INCLUDED
 
+/* avoid "implicit declaration" issues (and hopefully not introduce others
+ * [23 Dec 2021 rickr] */
+#define GL_GLEXT_PROTOTYPES
+
 /*! includes various include files, no muss no fuss */
 #include <stddef.h>
 #include <stdlib.h>

@@ -2022,6 +2022,45 @@ class Afni1D:
       self.set_cormat()
       self.show_mat(self.cormat, dp=dp, spaces=spaces)
 
+   def show_distmat(self, dp=4, spaces=2, verb=None):
+      """print a distance matrix, to the given number of places
+
+         Treating the input as lines of vectors (coordinates), print out an
+         nrows x nrows distance matrix, the Euclidian distance between the
+         pairs of coordinates.
+
+         verb: integral verbosity level (None : use self.verb)
+
+         return 0 on success
+      """
+      if verb is None:
+         verb = self.verb
+
+      if not self.ready:
+         if verb: print('** no matrix to compute distance matrix from')
+         return 1
+
+      if verb > 2: print("distmat: nvec = %d, nt = %d" % (self.nvec, self.nt))
+
+      # get a transposed matrix, to assume coords are per row
+      trdata = self
+      trdata.transpose()
+      vlen = trdata.nt
+
+      dmat = []
+      for cind, cvect in enumerate(trdata.mat):
+         drow = []
+         for dind, dvect in enumerate(trdata.mat):
+            diff = [cvect[i]-dvect[i] for i in range(vlen)]
+            drow.append(UTIL.euclidean_norm(diff))
+         dmat.append(drow)
+
+      trdata.show_mat(dmat, dp=dp, spaces=spaces)
+
+      del(trdata)
+
+      return 0
+
    def show_mat(self, mat, dp=3, spaces=2):
       """print the correlation matrix, to the given number of places
             dp > 0      : use that to right of decimal

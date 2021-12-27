@@ -49,7 +49,25 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 27 , SEP , 2021 , RWC , "AFNI GUi" , MINOR , TYPE_NEW_ENV ,
+ { 15 , DEC , 2021 , RWC , "3dttest++ and 3dClustSim" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_CLUSTSIM_MEGA" ,
+   "If AFNI_CLUSTSIM_MEGA is set to 'YES', then 3dttest++ will run 3dClustSim\n"
+   "using the '-MEGA' option, which gives a finer grained output table of\n"
+   "cluster size thresholds. Also, a few changes to 3dttest++ help to clarify\n"
+   "that the 12 character limit for set labels is not the same as the 256\n"
+   "character limit for dataset labels." } ,
+
+ { 15 , DEC , 2021 , RWC , "prefiltered args" , MINOR , TYPE_NEW_OPT ,
+   "Bulk input arguments" ,
+   "These '<<XY' arguments are expanded in the prefilter-ing of command\n"
+   "line arguments, to (potentially) add multiple new arguments to the\n"
+   "program. The expansion can either be from filename globbing (X='G')\n"
+   "or by input from a file (X='I'). The purpose of these options is to\n"
+   "provide a way to circumvent the command line length limitations that\n"
+   "Unix imposes, and also to allow internal filename globbing in programs\n"
+   "that do not otherwise support that ability." } ,
+
+ { 27 , SEP , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_NEW_ENV ,
    "AFNI_INSTACORR_JUMP" ,
    "If YES (default), Shift+Ctrl+click sets the instacorr seed and jumps the\n"
    "crosshairs to that location. If NO, sets the instacorr seed but there is\n"
