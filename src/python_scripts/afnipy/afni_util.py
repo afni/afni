@@ -22,6 +22,7 @@ basis_one_regr_l   = basis_known_resp_l[:]
 basis_one_regr_l.append('MION')
 stim_types_one_reg = ['file', 'AM1', 'times']
 g_valid_shells = ['csh','tcsh','sh','bash','zsh']
+g_text_file_suffix_list = ['1D', 'json', 'niml', 'tsv', 'txt']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 

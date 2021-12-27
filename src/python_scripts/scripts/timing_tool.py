@@ -1509,6 +1509,7 @@ class ATInterface:
 
       # user options - single var
       self.timing          = None       # main timing element
+                                        #    AfniTiming:AfniData instance
       self.fname           = 'no file selected'
       self.all_rest_file   = ''         # for -write_all_rest_times
       self.stim_dur        = -1         # apply on read
@@ -1518,7 +1519,7 @@ class ATInterface:
       self.tsv_int         = None       # file to write TSV cols of int to
 
       # user options - multi var
-      self.m_timing        = []
+      self.m_timing        = []         # AfniTiming:AfniData instance list
       self.m_fnames        = []
       self.m_stim_dur      = [] 
 
@@ -1734,6 +1735,151 @@ class ATInterface:
          timing.write_times(fname, nplaces=self.nplaces,
                     mplaces=self.mplaces, force_married=self.write_married)
 
+   def write_simple_tsv(self, prefix='', suffix='', sep=''):
+      """write the multi timing files out using the given prefix, but in a
+         simple TSV format: 
+            onset duration [modulators] trial_type
+         if sep == ''      : separate with a tab
+         if sep == 'space' : align with spaces      ** TODO **
+         else              : use sep
+      """
+      if len(self.m_timing) < 1:
+         print('** no multi_timing to write')
+         return 1
+
+      if prefix == '' and suffix == '':
+         prefix = 'events_'
+      # make sure any prefix has a separator
+      # (allow for -/stdout/stderr)
+      if prefix != '' and prefix[-1] not in ['_','.'] \
+                      and prefix     not in ['-', 'stdout', 'stderr']:
+         prefix = prefix + '_'
+      # and that any suffix has one
+      if suffix != '' and suffix[0] not in ['_','.']:
+         suffix = '_' + suffix
+
+      # get complete list of events (get 0-based class_index values)
+      # format: [ [ [time, [amp mods], dur, class_index] ..events.. ] ..runs.. ]
+      allevents = self.complete_event_list(self.m_timing, nbased=0)
+      lablist = self.get_multi_label_list()
+
+      # get max number of modulators (we will print, so speed is not crucial)
+      # nmods must be consistent per class, of course
+      nmods = 0
+      for rind, runevents in enumerate(allevents):
+         maxmods = max(len(e[1]) for e in runevents)
+         if maxmods > nmods: nmods = maxmods
+
+      if self.verb > 2:
+         print("-- write_simple_tsv: have %d runs of events\n"   \
+               "   prefix '%s', suffix '%s', sep '%s', nmods %d" \
+               % (len(allevents), prefix, suffix, sep, nmods))
+
+      # new format of strings (each run is a rectancular string list)
+      # [ [ [onset, dur, class_label, amp mods, ... ], ... ],  ... ]
+      #                                         mods   events  runs
+      allevents = self.event_list_to_strings(allevents, lablist, nmods)
+
+      # and make matching header array
+      header = ['onset', 'duration', 'trial_type']
+      header.extend(['mod_%02d'%(mind+1) for mind in range(nmods)])
+
+      # set default separator and extension
+      if sep == '': sep = '\t'
+      if sep == '\t': exten = '.tsv'
+      else:           exten = '.txt'
+
+      # note the number of digits used for run index
+      if len(allevents) > 99: rdigits = 4
+      else:                   rdigits = 2
+
+      for rind, runevents in enumerate(allevents):
+         fname = '%srun-%0*d%s%s' % (prefix, rdigits, rind+1, suffix, exten)
+
+         if prefix in ['-', 'stdout']:
+            oname = 'stdout'
+            fp = sys.stdout
+         elif prefix == 'stderr':
+            oname = 'stderr'
+            fp = sys.stderr
+         else:
+            oname = fname
+            try: fp = open(fname, 'w')
+            except:
+               print('** failed to open %s for writing' % fname)
+               return 1
+         if self.verb > 1:
+            print("++ write_simple_tsv: writing run %d to %s" % (rind+1,oname))
+
+         estr = sep.join(header)
+         fp.write(estr+'\n')
+         for eind, event in enumerate(runevents):
+            # todo: handle string alignment
+            estr = sep.join(event)
+            fp.write(estr+'\n')
+
+         if fp in [sys.stdout, sys.stderr]:
+            # if printing to screen, separate runs
+            fp.write('\n')
+         else:
+            fp.close()
+
+      return 0
+
+   def get_multi_label_list(self, prefix=''):
+      """return a list of class labels
+            if timing.name is not unique, try timing.fname
+            else make up from prefix
+      """
+
+      # check for short list
+      nlab = len(self.m_timing)
+      if nlab == 0:
+         return []
+      if nlab == 1:
+         if prefix != '':
+            return prefix
+         else:
+            return self.m_timing[0].name
+
+      # pp is either empty or a '_' padded suffix
+      if prefix.endswith('_') or prefix.endswith('.') :
+         pp = '%s_' % prefix[:-1]
+      else:
+         pp = ''
+
+      # get a list of unique labels
+      lablist = [self.fname_prefix(t.name) for t in self.m_timing]
+      if not UTIL.vals_are_unique(lablist):
+         lablist = [self.fname_prefix(t.fname) for t in self.m_timing]
+      if not UTIL.vals_are_unique(lablist):
+         # create labels, and make sure prefix is not empty
+         # (just use 1-based numbers)
+         if pp == '':
+            pp = 'class_'
+         if nlab > 99: ndigs = 4
+         else:         ndigs = 2
+         lablist = ['%0*d' % (ndigs,ind+1) for ind in range(nlab)]
+
+
+      return ['%s%s' % (pp,lab) for lab in lablist]
+
+   def fname_prefix(self, fname):
+      """return file name prefix
+         if fname ends with known extension, return leading part
+         else return fname
+      """
+
+      suffix = ''
+      for known_suf in UTIL.g_text_file_suffix_list:
+         if fname.endswith('.%s' % known_suf):
+            suffix = known_suf
+            break
+      # if we found a suffix, strip it
+      if suffix != '':
+         return fname[:(len(suffix)+1)]
+      return fname
+      
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
@@ -1860,6 +2006,8 @@ class ATInterface:
                          helpstr='convert to event list (style, filename)')
       self.valid_opts.add_opt('-write_multi_timing', 1, [], 
                          helpstr='write multi timing using the given prefix')
+      self.valid_opts.add_opt('-write_simple_tsv', 1, [], 
+                         helpstr='write multi timing in simple TSV format')
 
 
       # general options (including multi)
@@ -2400,6 +2548,20 @@ class ATInterface:
             if val != None and err: return 1
             self.write_multi_timing(val)
 
+         elif opt.name == '-write_simple_tsv':
+            # allow for single timing input
+            single2multi = 0
+            if len(self.m_timing) == 0 and self.timing is not None:
+               self.m_timing = [self.timing]
+               single2mluti = 1
+            if len(self.m_timing) == 0:
+               print("** '%s' requires -multi_timing*" % opt.name)
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            self.write_simple_tsv(val)
+            if single2multi: self.m_timing = []
+
          else:
             print('** unknown option: %s' % opt.name)
             return 1
@@ -2427,9 +2589,8 @@ class ATInterface:
          print("-- MDFO: using index %d for class %s" % (cindex,cname))
 
       # get complete list of events (get 0-based class_index values)
+      # format: [ [ [time, [amp mods], dur, class_index] ..events.. ] ..runs.. ]
       allevents = self.complete_event_list(self.m_timing, nbased=0)
-
-      # format: [ [ [time, [amp mods], dur, class_index], ... ] ... ]
 
       # build a new mdata
       mdata = []
@@ -2522,6 +2683,58 @@ class ATInterface:
          allruns.append(runevents)
 
       return allruns
+
+      allevents = self.event_list_to_strings(allevents, lablist, nmods)
+
+   def event_list_to_strings(self, allevents, labels, nmods):
+      """similar to complete_event_list, return all events across all runs
+
+            BUT: Each run's event list is a rectangular array of strings of
+                 the form:
+
+                  return [
+                           [ [onset, dur, class_label, amp mods...], ... ]
+                              ... more runs ...
+                           [ [onset, dur, class_label, amp mods...], ... ]
+                         ]
+
+            allevents: from complete_event_list(nbased=0) 
+            labels:    labels to match class_index values
+            nmods:     maximum modulators across classes
+
+         The return format matches that of complete_event_list(), except that:
+
+            - all values are strings
+            - class index will be replaced with label[index]
+            - all events will have the same number of amp_mods
+              (using '0' for any missing)
+            - all run lists are the same rectanbular size
+            - the order matches tsv output order
+      """
+
+      all_str_events = []
+      for runevents in allevents:
+         str_run = []
+         for event in runevents:
+            # init with onset, dur and label
+            onset = '%s' % event[0]
+            dur = '%s' % event[2]
+            label = labels[event[3]]
+            se = [onset, dur, label]
+
+            # and fill with needed mods
+            se.extend(['%s'%m for m in event[1]])
+            mext = nmods - len(event[1])
+            if mext > 0:
+               se.extend(['0' for i in range(mext)])
+
+            # append event to str_run
+            str_run.append(se)
+
+         # append run to all_str_events
+         all_str_events.append(str_run)
+
+      return all_str_events
 
    def multi_timing_to_event_list(self, fname='stdout', style='index'):
       """convert multi-stim_times to 1..N sorted event list
