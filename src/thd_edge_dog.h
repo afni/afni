@@ -9,6 +9,9 @@ typedef struct {
    char *prefix;          
    char *prefix_dog; 
 
+   int do_automask;
+   int amask_ndil;
+
    int do_output_intermed;
 
    float sigma_rad[3];
@@ -42,7 +45,8 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
                        THD_3dim_dataset *dset_input, int ival);
 
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
-                       THD_3dim_dataset *dset_dog, int ival);
+                       THD_3dim_dataset *dset_dog, int ival,
+                       int argc, char *argv[]);
 int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                         THD_3dim_dataset *dset_dog, int ival);
 

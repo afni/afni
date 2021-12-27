@@ -11,6 +11,11 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    defopt.prefix     = NULL;     
    defopt.prefix_dog = NULL;     
 
+   // can do automasking, and have the automask dilated amask_ndil
+   // times (with NN=2 dilation)
+   defopt.do_automask        = 0;
+   defopt.amask_ndil         = 0;
+
    defopt.do_output_intermed = 0;
 
    // units=mm; from typical adult human GM thick.  Will allow this to
@@ -243,10 +248,15 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   opts         :options from the user, with some other quantities calc'ed
   dset_dog     :the input dataset of unthresholded/'raw' DOG values
   ival         :shared index of subvolume of 'dset_bnd' & 'dset_dog' to process
+  argc         :(int) for history of intermed EDT output, if made 
+                (can be 0, to not add to history)
+  argv         :(*char) for history of intermed EDT output, if made 
+                (can be NULL, to not add to history)
 
 */
 int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
-                       THD_3dim_dataset *dset_dog, int ival)
+                       THD_3dim_dataset *dset_dog, int ival,
+                       int argc, char *argv[])
 {
    int i, idx;
    int nvox;
@@ -286,8 +296,9 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // fill EDT option struct with defaults and a couple desired props
    EdgeDogOpts = set_euler_dist_defaults();
+   EdgeDogOpts.binary_only = 1;      // for faster runtime
    EdgeDogOpts.ignore_voxdims = 1;
-   EdgeDogOpts.zeros_are_neg = 1;  
+   EdgeDogOpts.zero_region_sign = -1;  
    EdgeDogOpts.dist_sq = 1;          // so NN values are directly thresholds
    EdgeDogOpts.verb = 0;
    if( opts.only2D ){
@@ -299,7 +310,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
    // run EDT
    INFO_message("Calculate EDT for vol %d", ival);
-   i = calc_EDT_3D( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
+   i = calc_EDT_3D_BIN( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
 
    // can output this intermediate dset for the [0]th volume, if the
    // user asks
@@ -310,7 +321,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(dset_edt));
-      tross_Make_History("3dedgedog", 0, NULL, dset_edt);
+      tross_Make_History("3dedgedog", argc, argv, dset_edt);
 
       // write and free dset 
       THD_write_3dim_dataset(NULL, NULL, dset_edt, True);

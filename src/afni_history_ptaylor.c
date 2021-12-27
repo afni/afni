@@ -69,6 +69,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_NEW_OPT,
+   "The -automask (and -automask+X) functionality is now, well, functional.",
+   "The '-mask ..' option appears to be working, too.\n"
+},
+
+{ 26, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
+   "Give correct name of opt in prog help: -bounds_are_not_zero.",
+   "Had forgotten the '_not' part previously.  Whoops.\n"
+},
+
+{ 26, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
+   "Full histories in each output dset now.",
+   "Had not been passing argc and argv previously.\n"
+},
+
+{ 24, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
+   "Because 3dEulerDist has new '-binary_only' opt, this prog is faster.",
+   "This is because edgedog at the moment runs EDT on a binary dset.\n"
+},
+
+{ 24, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
+   "Can process some dsets much faster now, with opt '-binary_only'.",
+   "This is to flag that the input is a binary mask.\n"
+},
+
 { 9, Dec , 2021 , PT , "3dEulerDist" , MICRO , TYPE_BUG_FIX,
    "Fix new -only2D opt slice selection.",
    "Was not always getting correct planar direction; should be now.\n"

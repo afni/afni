@@ -2,7 +2,6 @@
 
 #undef ALLOW_FILLIN  /* 28 May 2002 */
 
-THD_3dim_dataset *thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *prefix);
 
 int main( int argc , char * argv[] )
 {
@@ -548,98 +547,4 @@ int main( int argc , char * argv[] )
    if( verb ) INFO_message("CPU time = %f sec\n",COX_cpu_time()) ;
 
    exit(0) ;
-}
-
-/* apply a mask dataset to all voxels and across all sub-bricks of a dataset */
-THD_3dim_dataset *
-thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *prefix)
-{
-   THD_3dim_dataset *out_dset;
-
-   int i,j, nbriks, nvox;
-   float *data_fptr, *out_fptr;
-   byte *data_bptr, *out_bptr, *mask_ptr;
-   short *data_iptr, *out_iptr;
-   MRI_IMARR *fim_array;
-   MRI_IMAGE *fim, *data_im, *outdata_im;
-
-   nvox = DSET_NVOX(dset);
-   nbriks =   dset->dblk->nvals;
-   out_dset = EDIT_empty_copy(dset) ;
-   tross_Copy_History (dset, out_dset);
-   EDIT_dset_items( out_dset ,
-            ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
-                        ADN_prefix , prefix ,
-                        ADN_label1 , prefix ,
-	                ADN_datum_all , DSET_BRICK_TYPE(dset,0) ,
-                        ADN_none ) ;
-   /* make new Image Array */
-   INIT_IMARR(fim_array);
-   for(i=0;i<nbriks;i++) {
-      fim = mri_new_conforming( DSET_BRICK(dset,i) , DSET_BRICK_TYPE(dset,i) ) ;
-      ADDTO_IMARR(fim_array, fim);
-   }
-   out_dset->dblk->brick = fim_array;   /* update pointer to data */
-
-
-   for(i=0;i<nbriks;i++) {
-      data_im = DSET_BRICK(dset, i);
-      outdata_im = DSET_BRICK(out_dset, i);
-      mask_ptr = mask;
-      switch(DSET_BRICK_TYPE(dset,i) ){
-         default:
-             return NULL;
-         case MRI_short:{
-            data_iptr = mri_data_pointer(data_im);
-            out_iptr =  mri_data_pointer(outdata_im);
-            for(j=0;j<nvox;j++) {
-               if(*mask_ptr++) {
-                  * out_iptr++ = *data_iptr++;
-                 }
-               else {
-                 *out_iptr++ = 0;
-                 data_iptr++;
-                 }
-            }
-         } 
-         break;
-
-         case MRI_float:{
-            data_fptr = (float *) mri_data_pointer(data_im);
-            out_fptr = (float *) mri_data_pointer(outdata_im);
-            for(j=0;j<nvox;j++) {
-              if(*mask_ptr++) {
-                  *out_fptr++ = *data_fptr++;
-                 }
-              else {
-                 *out_fptr++ = 0.0;
-                 data_fptr++;
-              }
-            }
-         }
-         break;
-
-         case MRI_byte:{
-            data_bptr = (byte *) mri_data_pointer(data_im);
-            out_bptr = (byte *) mri_data_pointer(outdata_im);
-            for(j=0;j<nvox;j++) {
-              if(*mask_ptr++) {
-                  *out_bptr++ = *data_bptr++;
-                 }
-              else {
-                 *out_bptr++ = 0;
-                 data_bptr++;
-              }
-            }
-         }
-         break;
-
-       }
-
-     DSET_BRICK_FACTOR(out_dset, i) = DSET_BRICK_FACTOR(dset,i) ;
-   }
-
-   THD_load_statistics( out_dset );
-   return(out_dset);
-
 }

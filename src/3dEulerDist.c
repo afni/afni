@@ -28,6 +28,21 @@ ver = 2.4;  date = Dec 9, 2021
 ver = 2.5;  date = Dec 9, 2021
 + [PT] fix 2D selection---was only correct for some dset orientations
 
+ver = 2.6;  date = Dec 21, 2021
++ [PT] change run_EDTD_per_line to use a working array
+  - also start adding in -binary_only opt (not being used yet)
+
+ver = 2.7;  date = Dec 23, 2021
++ [PT] -binary_only opt now working well (faster code running for special
+  case of binary input mask)
+
+ver = 2.71;  date = Dec 24, 2021
++ [PT] minor efficiency increase in some index calcs
+
+ver = 2.72;  date = Dec 26, 2021
++ [PT] fix help to give correct option name: -bounds_are_not_zero
+  - who knew that missing out 'not' could change meaning so much?
+
 */
 
 #include <stdio.h>
@@ -121,9 +136,10 @@ int usage_3dEulerDist()
 "  -nz_are_neg      :if this option is used, EDT in the nonzero ROI regions\n"
 "                    of the input will be negative (def: they are positive).\n"
 "\n"
-"  -bounds_are_zero :this flag affects how FOV boundaries are treated for\n"
+"  -bounds_are_not_zero :this flag affects how FOV boundaries are treated for\n"
 "                    nonzero ROIs: by default, they are viewed as ROI\n"
-"                    boundaries (so the FOV is a closed boundary for an ROI);\n"
+"                    boundaries (so the FOV is a closed boundary for an ROI,\n"
+"                    as if the FOV were padded by an extra layer of zeros);\n"
 "                    but when this option is used, the ROI behaves as if it\n"
 "                    continued 'infinitely' at the FOV boundary (so it is\n"
 "                    an open boundary).  Zero-valued ROIs (= background)\n"
@@ -142,8 +158,34 @@ int usage_3dEulerDist()
 "                       \"cor\"  -> for coronal slice\n"
 "                       \"sag\"  -> for sagittal slice\n"
 "\n"
+"  -binary_only     :if the input is a binary mask or should be treated as\n"
+"                    one (all nonzero voxels -> 1; all zeros stay 0), then\n"
+"                    using this option will speed up the calculation.  See\n"
+"                    Notes below for more explanation of this. NOT ON YET!\n"
+"\n"
 " -verb V           :manage verbosity when running code (def: 1).\n"
 "                    Providing a V of 0 means to run quietly.\n"
+"\n"
+"==========================================================================\n"
+"\n"
+"Notes ~1~\n"
+"\n"
+"The original EDT algorithm of FH2012 was developed for a simple binary\n"
+"mask input (and actually for homogeneous data grids of spacing=1). This\n"
+"program, however, was built to handle more generalized cases of inputs,\n"
+"namely ROI maps (and arbitrary voxel dimensions).\n"
+"\n"
+"The tradeoff of the expansion to handling ROI maps is an increase in\n"
+"processing time---the original binary-mask algorithm is *very* efficient,\n"
+"and the generalized one is still pretty quick but less so.\n"
+"\n"
+"So, if you know that your input should be treated as a binary mask, then\n"
+"you can use the '-binary_only' option to utilize the more efficient\n"
+"(and less generalized) algorithm.  The output dataset should be the same\n"
+"in either case---this option flag is purely about speed of computation.\n"
+"\n"
+"All other options about outputting dist**2 or negative values/etc. can be\n"
+"used in conjunction with the '-binary_only', too.\n"
 "\n"
 "==========================================================================\n"
 "\n"
@@ -180,6 +222,14 @@ int usage_3dEulerDist()
 "       -dist_sq                                                    \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_SQ_VOX.nii.gz                           \n"
+"\n"
+"6) Basic case, with option for speed-up because the input is a binary mask\n"
+"   (i.e., only ones and zeros); any of the other above options can\n"
+"   be combined with this, too:\n"
+"   3dEulerDist                                                     \\\n"
+"       -binary_only                                                \\\n"
+"       -input  roi_mask.nii.gz                                     \\\n"
+"       -prefix roi_mask_EDT.nii.gz                                 \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -249,12 +299,12 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-zeros_are_neg") == 0) {
-         InOpts.zeros_are_neg = 1;
+         InOpts.zero_region_sign = -1;
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-nz_are_neg") == 0) {
-         InOpts.nz_are_neg = 1;
+         InOpts.nz_region_sign = -1;
          iarg++ ; continue ;
       }
 
@@ -285,6 +335,11 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Need either \"cor\", \"axi\" or \"sag\" "
                        "after '%s'", argv[iarg-1]);
 
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-binary_only") == 0) {
+         InOpts.binary_only = 1;
          iarg++ ; continue ;
       }
 
@@ -321,7 +376,7 @@ int main(int argc, char *argv[]) {
    if ( !InOpts.prefix )
       ERROR_exit("Need an output name via '-prefix ..'\n");
 
-   if ( InOpts.zeros_are_zeroed && InOpts.zeros_are_neg  )
+   if ( InOpts.zeros_are_zeroed && InOpts.zero_region_sign==-1  )
       ERROR_exit("Cannot combine '-zeros_are_zero' and '-zeros_are_neg'.  "
                  "You must choose which you *really* want.\n");
 
@@ -349,6 +404,8 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       ERROR_exit("Can't open dataset '%s'", opts.input_name);
    DSET_load(dset_roi); CHECK_LOAD_ERROR(dset_roi);
 
+
+
    if( opts.mask_name ) {
       dset_mask = THD_open_dataset(opts.mask_name);
       if( dset_mask == NULL )
@@ -358,7 +415,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
       if( THD_dataset_mismatch( dset_roi , dset_mask ) )
          ERROR_exit("Mismatch between input and mask dsets!\n");
    }
-
+   
    // if only running in 2D, figure out which slice that is
    if ( opts.only2D )
       i = choose_axes_for_plane( dset_roi, opts.only2D,
@@ -379,10 +436,15 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
                    ADN_prefix, opts.prefix,
                    ADN_none );
 
-   for( nn=0 ; nn<nvals ; nn++ ){
-      i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
-   } // end of loop over nvals
-
+   if( opts.binary_only ){
+      for( nn=0 ; nn<nvals ; nn++ )
+         i = calc_EDT_3D_BIN(dset_edt, opts, dset_roi, dset_mask, nn);
+   }
+   else{
+      for( nn=0 ; nn<nvals ; nn++ )
+         i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
+   }
+   
    // free input dset
 	DSET_delete(dset_roi); 
   	free(dset_roi); 
