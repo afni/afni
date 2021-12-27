@@ -2684,7 +2684,6 @@ class ATInterface:
 
       return allruns
 
-      allevents = self.event_list_to_strings(allevents, lablist, nmods)
 
    def event_list_to_strings(self, allevents, labels, nmods):
       """similar to complete_event_list, return all events across all runs
