@@ -5449,6 +5449,10 @@ extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
 extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
 extern byte * mri_automask_image2D( MRI_IMAGE *im ) ;      /* 12 Mar 2010 */
+/* 26 Dec 2021, migrated */
+extern THD_3dim_dataset *thd_apply_mask( THD_3dim_dataset *dset,
+                                         byte *mask,
+                                         char *prefix );
 
 extern THD_3dim_dataset * THD_remove_allzero(THD_3dim_dataset *); /* 25 Jul 2017 */
 
