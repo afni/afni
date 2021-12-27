@@ -388,6 +388,14 @@ examples (very basic for now): ~1~
         1d_tool.py -infile dfile_rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
 
+   Example 15c. Show the entire distance/displacement matrix. ~2~
+
+       Show all pairwise displacements (vector distances) in a (motion param?)
+       row vector file.  Note that the maximum element of this matrix should
+       be the one output by -show_max_displace.
+
+        1d_tool.py -infile coords.1D -show_distmat
+
    Example 16. Randomize a list of numbers, say, those from 1..40. ~2~
 
        The numbers can come from 1deval, with the result piped to
@@ -972,6 +980,10 @@ general options: ~2~
                                   (this does not include baseline terms)
    -show_cormat_warnings_full   : display correlation matrix warnings
                                   (this DOES include baseline terms)
+   -show_distmat                : display distance matrix
+                                  Expect input as one coordinate vector per row.
+                                  Output NROWxNROW matrix of vector distances.
+                                  See Example 15c.
    -show_df_info                : display info about degrees of freedom
                                   (found in in xmat.1D formatted files)
    -show_df_protect yes/no      : protection flag (def=yes)
@@ -1281,9 +1293,10 @@ g_history = """
    2.10 Mar  5, 2021 - added -show_cormat_warnings_full, to include baseline
    2.11 Oct  8, 2021 - added -show_xmat_stim_info, -show_xmat_stim_info
    2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
+   2.13 Dec 19, 2021 - added -show_distmat
 """
 
-g_version = "1d_tool.py version 2.12, October 28, 2021"
+g_version = "1d_tool.py version 2.13, December 19, 2021"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1350,6 +1363,7 @@ class A1DInterface:
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
+      self.show_distmat    = 0          # show distmat
       self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
       self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
@@ -1614,6 +1628,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_cormat_warnings_full', 0, [], 
                       helpstr='cormat warnings include baseline')
+
+      self.valid_opts.add_opt('-show_distmat', 0, [], 
+                      helpstr='display row vector distance matrix (all pairs)')
 
       self.valid_opts.add_opt('-show_df_info', 0, [], 
                       helpstr='show degrees of freedom information from xmat.1D')
@@ -2066,6 +2083,9 @@ class A1DInterface:
          elif opt.name == '-show_cormat':
             self.show_cormat = 1
 
+         elif opt.name == '-show_distmat':
+            self.show_distmat = 1
+
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
          elif opt.name == '-show_cormat_warnings_full':
@@ -2457,6 +2477,8 @@ class A1DInterface:
                                              verb=self.verb)
 
       if self.show_cormat: self.adata.show_cormat()
+
+      if self.show_distmat: self.adata.show_distmat()
 
       if self.show_cormat_warn:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,

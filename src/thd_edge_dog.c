@@ -462,7 +462,7 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 {
    int i, idx;
    int nvox;
-   float bot, top, val;  
+   float bot=0, top=-1, val;  
    short *tmp_arr = NULL;
 
    ENTRY("calc_edge_dog_thr_EDT");

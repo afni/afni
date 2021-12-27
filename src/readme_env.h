@@ -3780,6 +3780,13 @@ static char *readme_env[] = {
    "not use the 3dttest++ command line option, you will get whatever\n" ,
    "the default ETAC method(s) are enabled.\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_CLUSTSIM_MEGA\n" ,
+   "----------------------------\n" ,
+   "Set this variable to YES to force the use of the '-MEGA' option\n" ,
+   "in 3dClustSim. The primary reason for this usage is to force\n" ,
+   "'3dttest -Clustsim' to use '-MEGA' rather than the default '-LOTS'.\n" ,
+   "\n" ,
    "=============================================\n" ,
    "| Robert W Cox, PhD                         |\n" ,
    "| Scientific and Statistical Computing Core |\n" ,
@@ -4499,4 +4506,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4498
+#define NUM_readme_env 4505

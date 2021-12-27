@@ -2306,14 +2306,14 @@ int main( int argc , char *argv[] )
     * and the common main() way: prefilter/machdep  19 Sep 2013 [rickr] */
 
    if( check_string("-get_processed_env_afni",argc,argv) ) {
-     AFNI_prefilter_args( &argc , argv );
+     AFNI_prefilter_args( &argc , &argv );
      machdep();
      system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
      dienow++ ;
    }
    else if( check_string("-get_processed_env",argc,argv) ) {
      machdep();
-     AFNI_prefilter_args( &argc , argv );
+     AFNI_prefilter_args( &argc , &argv );
      system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
      dienow++ ;
    }
@@ -2375,7 +2375,9 @@ int main( int argc , char *argv[] )
    /*------------- Initialize some more stuff -------------*/
 
    machdep() ;
-   AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
+/*** INFO_message("before prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
+   AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
+/*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
 
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 

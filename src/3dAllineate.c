@@ -108,11 +108,11 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 // [PT: 28 Sep 2021] lpb == lpa, but lpb+ does NOT contain ov
 // + leaving off doing more with this, at the moment
-#define DEFAULT_MICHO_LPB_MI  0.0   
+#define DEFAULT_MICHO_LPB_MI  0.0
 #define DEFAULT_MICHO_LPB_NMI 0.2
 #define DEFAULT_MICHO_LPB_CRA 0.4
 #define DEFAULT_MICHO_LPB_HEL 0.4
-#define DEFAULT_MICHO_LPB_OV  0.0   
+#define DEFAULT_MICHO_LPB_OV  0.0
 
 /****/
 
@@ -180,7 +180,7 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns" , "signedPcor" ,
-    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , 
+    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" ,
     "localPcorAbs+Others" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
@@ -213,7 +213,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "nonlinear average of Pearson cc over local neighborhoods" ,
     "1 - abs(lpc)"                                             ,
     "lpc + hel + mi + nmi + crA + overlap"                     ,
-    "lpa + hel +      nmi + crA + overlap"                     
+    "lpa + hel +      nmi + crA + overlap"
   } ;
 
 /* check if method code implies use of BLOKs */
@@ -5056,11 +5056,13 @@ STATUS("zeropad weight dataset") ;
          float fff = stup.wfunc_param[6].xxx                \
                     *stup.wfunc_param[7].xxx                \
                     *stup.wfunc_param[8].xxx ;              \
-         fprintf(stderr,"  ...  vol3D=%8.4f %s",            \
-           fff ,                                            \
-           (fff < 1.0f )                                    \
-            ? "= base bigger than source"                   \
-            : "= base smaller than source" ) ;              \
+         fprintf(stderr,"  ...  vol3D=%8.4f=(%.4f)^3 %s",   \
+           fff , cbrt(fff) ,                                \
+           (fff < 0.97f )                                   \
+            ? "[base bigger than source]"                   \
+          :(fff > 1.03f )                                   \
+            ? "[base smaller than source]"                  \
+            : "[base about same as source]" ) ;             \
         }                                                   \
       }                                                     \
       fprintf(stderr,"\n") ;                                \

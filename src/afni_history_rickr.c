@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "misc updates for circleCI build based on xcode 12.4.0",
+   "Remove thd_incorrelate.o from cmake libmri, etc."
+ } ,
+ 
+ { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_distmat",
+   "Display nrows x nrows matrix of distances between all vector row pairs.\n"
+   "Option added for jkblujus (AFNI MB)."
+ } ,
+ 
  {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
    "further restrict -same_center",
    "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."

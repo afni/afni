@@ -43,7 +43,7 @@ extern char *get_gopt_help();
 extern char *get_help_help();
 void suggest_best_prog_option(char *prog, char *str);
 void print_prog_options(char *prog);
-extern int AFNI_prefilter_args( int *argc , char **argv ) ; /* 11 Dec 2007 */
+extern int AFNI_prefilter_args( int *argc , char ***argv ) ; /* 11 Dec 2007 */
 
 /*-- 22 May 2000: macros for checking for Yes or No --*/
 

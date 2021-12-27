@@ -507,7 +507,8 @@ int SUMA_asterisk_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 SUMA_SetNumFinalSmoothing, (void *)sv,
                                 NULL, NULL,
                                 NULL, NULL,
-                                SUMA_CleanNumString, (void*)1,                                                    SUMAg_CF->X->N_FinalSmooth_prmpt);
+                                SUMA_CleanNumString, (void*)1,                                                    
+                                SUMAg_CF->X->N_FinalSmooth_prmpt);
 
            SUMAg_CF->X->N_FinalSmooth_prmpt =
                  SUMA_CreatePromptDialog("Final color smoothing iterations",
@@ -1817,7 +1818,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    k = SUMA_KeyPress(key, NULL);
 
    // Verbose output
-   if (SUMAg_CF->clippingPlaneVerbose){
+   if (clippingPlaneMode && SUMAg_CF->clippingPlaneVerbose){
        switch (k){
            case 0x0030:
                fprintf(stderr, "### Reset clipping planes\n");
@@ -1985,10 +1986,10 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
      break;
     case XK_8:
-            if (!clippingPlaneMode) {
+            if (!clippingPlaneMode && sv->X->TOPLEVEL) {
                char stmp[100];
                sprintf(stmp, "%d", SUMAg_CF->X->NumForeSmoothing);
-               SUMAg_CF->X->N_ForeSmooth_prmpt =
+               if (!(SUMAg_CF->X->N_ForeSmooth_prmpt =
                   SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL,
                                        "Foreground smoothing iterations",
                                        stmp,
@@ -1998,7 +1999,10 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                        NULL, NULL,
                                        NULL, NULL,
                                        SUMA_CleanNumString, (void*)1,
-                                       SUMAg_CF->X->N_ForeSmooth_prmpt);
+                                       SUMAg_CF->X->N_ForeSmooth_prmpt))){
+                   SUMA_S_Err("Failure to create prompt dialog structure");
+                   SUMA_RETURN(0);
+                }
 
                SUMAg_CF->X->N_ForeSmooth_prmpt =
                      SUMA_CreatePromptDialog("Foreground smoothing iterations",
@@ -2014,6 +2018,27 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+SUMA_Boolean SUMA_SetShownLocalRemixFlagTemp (SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_SetShownLocalRemixFlag"};
+   int k;
+      
+   SUMA_ENTRY;
+   
+   // for (k=1; k < sv->N_ColList; ++k) 
+   for (k=0; k < sv->N_ColList; ++k) /*
+    if (!strstr(sv->ColList[k]->idcode_str, "ClipSquare") &&
+        !strstr(sv->ColList[k]->idcode_str, "axisObject")) */{
+        /**/
+        fprintf(stderr, "sv->ColList[k]->idcode_str = %s\n", sv->ColList[k]->idcode_str);
+        /**/
+      sv->ColList[k]->Remix = YUP;
+   }
+   
+   SUMA_RETURN (YUP);
+}
+
+
 int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_A_Key"};
@@ -2024,6 +2049,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
    XKeyEvent Kev;
+   Widget w = NULL;
 
    SUMA_ENTRY;
 
@@ -2039,26 +2065,40 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_a:
-         /* toggle background attenuation */
-         if (sv->Back_Modfact) {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity OFF.\n", FuncName);
-            sv->Back_Modfact = 0;
-         } else {
-            fprintf (SUMA_STDOUT,
-                     "%s: Modulation by background intensity ON.\n", FuncName);
-            sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
-         }
+        if (clippingPlaneMode){
+                if (!axisObject) makeAxisObject(w, sv);
+                axisObject->ShowMeshAxis = !(axisObject->ShowMeshAxis);
+                /*
+                clipIdentificationPlane[0]->ShowMeshAxis =
+                        !(clipIdentificationPlane[0]->ShowMeshAxis);
+                        */
+                SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
+               } else  {
+             /* toggle background attenuation */
+             if (sv->Back_Modfact) {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity OFF.\n", FuncName);
+                sv->Back_Modfact = 0;
+             } else {
+                fprintf (SUMA_STDOUT,
+                         "%s: Modulation by background intensity ON.\n", FuncName);
+                sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+             }
+             
+             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                    fprintf(stderr, "### SUMA_A_Key: sv->N_ColList = %d\n", sv->N_ColList);
 
-         /* set the remix flag */
-         if (!SUMA_SetShownLocalRemixFlag (sv)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
-                     FuncName);
-            break;
-         }
+             /* set the remix flag */
+             if (!SUMA_SetShownLocalRemixFlagTemp (sv)) {
+             // if (!SUMA_SetShownLocalRemixFlag (sv)) {
+                fprintf (SUMA_STDERR,
+                         "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n",
+                         FuncName);
+                break;
+             }
 
-         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         }
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
@@ -2201,7 +2241,11 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 activeClipPlanes = activeClippingPlanes();
             }
         } else if (SUMA_CTRL_KEY(key)){
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
+            if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+                fprintf(stderr, "### axisObject = %d\n", axisObject);
             if (!axisObject) makeAxisObject(w, sv);
         }else if (clippingPlaneMode) {
 
@@ -4189,14 +4233,14 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
       case XK_w:
             if (clippingPlaneMode){
                 // Save clipping planes to file
-               char stmp[100];
+               char stmp[PATH_MAX+512];
                char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
-                time_t t = time(NULL);
-                struct tm tm = *localtime(&t);
-              if (!(getcwd(cwd, sizeof(cwd)))) {
+               time_t t = time(NULL);
+               struct tm tm = *localtime(&t);
+               if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
-                   SUMA_RETURN(1);
-               }
+                   SUMA_RETURN(0);
+                }
                 sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min);
@@ -4220,9 +4264,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                   sv->X->Title, sv->X->SetRenderOrder_prmpt);
 
                 sv->X->SetRenderOrder_prmpt = NULL;
-            } else if (!SUMA_W_Key(sv, "w", "interactive")) {
-               SUMA_S_Err("Failed in key func.");
-            }
+            } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
@@ -8523,7 +8565,7 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
 
    if (!PR) SUMA_RETURN(PR);
 
-  if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
+   if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### SUMA_free_PickResult: Free PR->primitive\n");
    if (PR->primitive) SUMA_ifree(PR->primitive);
    if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)

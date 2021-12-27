@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.9, July 16, 2021
+Version 0.1.10, Dec 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -735,7 +735,9 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   errex.AFNI(c("At least one of the input files has different dimensions:\n",
+   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
+   "or     (2) some input files have more than one value per voxel.\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
