@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_NEW_OPT,
+   "The -automask (and -automask+X) functionality is now, well, functional.",
+   "The '-mask ..' option appears to be working, too.\n"
+},
+
 { 26, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
    "Give correct name of opt in prog help: -bounds_are_not_zero.",
    "Had forgotten the '_not' part previously.  Whoops.\n"

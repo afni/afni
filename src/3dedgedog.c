@@ -24,10 +24,12 @@ ver = 1.51;  date = Dec 26, 2021
 ver = 1.52;  date = Dec 26, 2021
 + [PT] start adding in pieces for masking---have NOT applied yet
 
+ver = 1.6;  date = Dec 26, 2021
++ [PT] add in -automask, automask+X, and '-mask ..' option behavior
 
-*** still need to add:
-  - mask out stuff in low intensity range
-  - perhaps multi-spatial scale
+
+*** still might add:
+  - multi-spatial scale requests
 
 */
 
@@ -113,13 +115,14 @@ int usage_3dedgedog()
 "                    of this mask have no affect on the calculated distance\n"
 "                    values, except for potentially zeroing some out at the\n"
 "                    end. Mask only gets made from [0]th vol.\n"
-"                    ** NOT ENABLED YET. **\n"
 "\n"
 "  -automask        :alternative to '-mask ..', for automatic internal\n"
 "                    calculation of a mask in the usual AFNI way. Again, this\n"
 "                    mask is only applied after all calcs (so using this does\n"
 "                    not speed up the calc or affect distance values).\n"
-"                    ** NOT ENABLED YET. **\n"
+"                    ** Special note: you can also write '-automask+X', where\n"
+"                    X is some integer; this will dilate the initial automask\n"
+"                    X number of times (as in 3dAllineate); must have X>0.\n"
 "\n"
 "  -sigma_rad RRR   :radius for 'inner' Gaussian, in units of mm; RRR must\n"
 "                    by greater than zero (def: %.2f). Default is chosen to\n"
@@ -234,6 +237,13 @@ int usage_3dedgedog()
 "       -input   anat+orig.HEAD                                     \\\n"
 "       -prefix  anat_EDGE_BOTHS_SCALE.nii.gz                       \n"
 "\n"
+"5) Apply automasking, with a bit of mask dilation so outer boundary is\n"
+"   included:\n"
+"   3dedgedog                                                       \\\n"
+"       -automask+2                                                 \\\n"
+"       -input   anat+orig.HEAD                                     \\\n"
+"       -prefix  anat_EDGE_AMASK.nii.gz                             \n"
+"\n"
 "==========================================================================\n"
 "\n",
 author, opts.sigma_rad[0], opts.ratio_sigma, opts.edge_bnd_NN, 
@@ -249,6 +259,7 @@ int main(int argc, char *argv[]) {
    PARAMS_edge_dog InOpts;
    float tmp;
    int itmp;
+   char *auto_tstring = NULL;
 
    mainENTRY("3dedgedog"); machdep(); 
   
@@ -287,8 +298,17 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-automask") == 0) {
+      if( strncmp(argv[iarg],"-automask", 9) == 0 ) {
          InOpts.do_automask = 1;
+
+         auto_tstring = argv[iarg];
+         if ( auto_tstring[9] == '+' && auto_tstring[10] != '\0' ) {
+            InOpts.amask_ndil = (int) strtod(auto_tstring+10, NULL);
+            if ( InOpts.amask_ndil <= 0 )
+               ERROR_exit("Cannot have number of dilations (%d) <=0.",
+                          InOpts.amask_ndil);
+         }
+
          iarg++ ; continue ;
       }
 
@@ -476,7 +496,8 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
          ERROR_exit("Mismatch between input and mask dsets!\n");
 
       // mask comes from just [0]th vol
-      mask_arr = THD_makemask( dset_mask, 0, 0, -1);
+      mask_arr = THD_makemask( dset_mask, 0, 0, -1 );
+		nmask    = THD_countmask( nvox, mask_arr );
 		if( opts.verb )
          INFO_message("Number of voxels in automask = %d / %d", nmask, nvox);
 		if( nmask < 1 )
@@ -491,6 +512,20 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 		if( mask_arr == NULL )
 			ERROR_exit("Can't create -automask from input dataset?");
 
+      if( opts.amask_ndil ){
+         if( opts.verb )
+            INFO_message("Inflate automask %d times", opts.amask_ndil);
+
+         // a very odd recipe for inflating a mask... mirroring
+         // default 3dAllineate behavior (slightly different than that
+         // of 3dAutomask; commented out)
+         for( i=0 ; i < opts.amask_ndil ; i++ ){
+            j = THD_mask_dilate( nx, ny, nz, mask_arr, 3, 2 );
+            j = THD_mask_fillin_once( nx, ny, nz, mask_arr, 2 );
+            //j = THD_mask_fillin_completely( nx, ny, nz , mask_arr, 1 );
+         }
+      }
+      
 		nmask = THD_countmask( nvox, mask_arr );
 		if( opts.verb )
          INFO_message("Number of voxels in automask = %d / %d", nmask, nvox);
@@ -557,14 +592,15 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    
    if ( mask_arr ) {
       if( opts.verb )
-         INFO_message("Masking");
-
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      // need to add here, once decided how best to do so
+         INFO_message("Apply mask");
+      THD_3dim_dataset *dset_tmp = NULL;
       
+      dset_tmp = thd_apply_mask( dset_bnd, mask_arr, 
+                                 opts.prefix );
+      DSET_delete( dset_bnd ); 
+      dset_bnd = dset_tmp;
+      dset_tmp = NULL;
    }
-
 
    INFO_message("Output main dset: %s", opts.prefix);
 
@@ -577,6 +613,39 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    // write edge/bnd
    THD_write_3dim_dataset(NULL, NULL, dset_bnd, True);
 
+   // ------ write out automask, if used and intermediates are output ------
+   if( opts.do_output_intermed && opts.do_automask ){
+      char prefix_amask[THD_MAX_PREFIX];
+      THD_3dim_dataset *dset_amask = NULL; 
+         
+      dset_amask = EDIT_empty_copy( dset_input ); 
+      i = build_edge_dog_suppl_prefix( &opts, prefix_amask, "_AMASK" );
+
+      if( opts.verb )
+         INFO_message("Write out automask dset: %s", prefix_amask);
+
+      EDIT_dset_items(dset_amask,
+                      ADN_nvals, 1,
+                      ADN_datum_all, MRI_byte,    
+                      ADN_prefix, prefix_amask,
+                      ADN_none );
+         
+      EDIT_substitute_brick(dset_amask, 0, MRI_byte, mask_arr); 
+
+      THD_load_statistics( dset_amask );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_amask)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(dset_amask));
+      tross_Make_History("3dedgedog", argc, argv, dset_amask);
+
+      // write and free dset 
+      THD_write_3dim_dataset(NULL, NULL, dset_amask, True);
+      DSET_delete(dset_amask);
+      free(dset_amask);
+      mask_arr = NULL;
+   }
+
+
    // ------------------------- free stuff ---------------------------
 
    if( dset_input ){
@@ -588,7 +657,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       DSET_delete(dset_dog); 
       free(dset_dog); 
    }
-
+   
    if( dset_bnd ){
       DSET_delete(dset_bnd); 
       free(dset_bnd); 
