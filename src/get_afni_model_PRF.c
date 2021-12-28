@@ -20,7 +20,7 @@ int main(int argc, char * argv[])
    int   nt = 144;
 
    if( argc <= 2 ) {
-      fprintf(stderr, "** usage: %s A x y sigma\n", argv[0]);
+      printf("** usage: %s A x y sigma\n", argv[0]);
       return 0;  /* gentle help-style exit */
    } else if( argc != 5 ) {
       fprintf(stderr, "** usage: %s A x y sigma\n", argv[0]);

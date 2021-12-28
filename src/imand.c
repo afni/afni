@@ -14,9 +14,9 @@ int main( int argc , char * argv[] )
    int nopt=1 , nxim , nyim , ii , kindim , npix , thresh=0 , nout ;
 
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
-      fprintf(stderr,"Usage: imand [-thresh #] input_images ... output_image\n"
-                     "* Only pixels nonzero in all input images\n"
-                     "* (and above the threshold, if given) will be output.\n" ) ;
+      printf("Usage: imand [-thresh #] input_images ... output_image\n"
+             "* Only pixels nonzero in all input images\n"
+             "* (and above the threshold, if given) will be output.\n" ) ;
       exit(0) ;
    }
 

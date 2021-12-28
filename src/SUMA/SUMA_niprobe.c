@@ -18,7 +18,7 @@ void NIML_to_terminal( void *nini, int mode, int do_stderr)
 }
 
 void usage_niprobe(int detail) {
-      fprintf(stderr,
+      printf(
 "\n"
 "   Usage: niprobe [-dup] [-nodata] streamspec\n"
 "\n"
