@@ -1230,7 +1230,7 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
    """
    lines = UTIL.read_text_file(fname, lines=1)
    if len(lines) < 1:
-      print("** failed parse_3col_tsv for '%s'" % fname)
+      print("** failed parse_Ncol_tsv for '%s'" % fname)
       return -1, [], []
 
    # if show_only, be verbose
@@ -1485,61 +1485,6 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
        print("-- index list : %s" % UTIL.int_list_string(lints, sepstr=', '))
 
    return lints
-
-def parse_3col_tsv(fname, verb=1):
-   """Read one 3 column tsv (tab separated value) file, and return:
-        - status (0 if okay)
-        - header list (length 3?)
-        - list of onset, duration, label values
-
-      A 3 column tsv file should have an optional header line,
-      followed by rows of VAL VAL LABEL, separated by tabs.
-   """
-   lines = UTIL.read_text_file(fname, lines=1)
-   if len(lines) < 1:
-      print("** parse_3col_tsv: failed to read text file '%s'" % fname)
-      return 1, [], []
-
-   # pare lines down to useful ones
-   newlines = []
-   for lind, line in enumerate(lines):
-      vv = line.split('\t')
-      if len(vv) == 3:
-         newlines.append(vv)
-      elif len(vv) > 0:
-         print('** skipping bad line %d of 3col tsv file %s' % (lind, fname))
-         if verb > 2: print('   vals[%d] = %s' % (len(vv),vv))
-      elif verb > 2:
-         print('** skipping empty line %d of 3col tsv file %s' % (lind, fname))
-   lines = newlines
-
-   if len(lines) < 1:
-      print("** parse_3col_tsv for '%s' is empty" % fname)
-      return 1, [], []
-
-   # set header list, if a header exists
-   header = []
-   l0 = lines[0]
-   try:
-      onset = float(l0[0])
-      dur   = float(l0[1])
-      lab   = l0[2].replace(' ', '_')   # and convert spaces to underscores
-   except:
-      header = lines.pop(0)
-
-   # now lines should be all: onset, duration, label
-   slist = []
-   for line in lines:
-      try:
-         onset = float(line[0])
-         dur   = float(line[1])
-         lab   = line[2].replace(' ', '_')   # convert spaces to underscores
-      except:
-         print('** bad line 3col tsv file %s: %s' % (fname, ' '.join(line)))
-         return 1, [], []
-      slist.append([onset, dur, lab])
-
-   return 0, header, slist
 
 def read_value_file(fname):
    """read value file, returning generic values in a matrix (no comments)"""
