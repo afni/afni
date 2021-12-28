@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Dec, 2021, RCR, "3dBrickStat", MICRO, TYPE_MODIFY,
+   "commit pull request and further clarify -nan help",
+   "Thanks to L Anderson for the pull request."
+ } ,
+ 
  { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "misc updates for circleCI build based on xcode 12.4.0",
    "Remove thd_incorrelate.o from cmake libmri, etc."

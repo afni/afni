@@ -50,9 +50,11 @@ void usage_3dBrickStat(int detail) {
 "              can be combined with restrictive non-positive, non-negative,\n"
 "              etc. even if not practical. Ignored for percentile and\n"
 "              median computations.\n"
-"  -nan = include only voxel values that are not numbers. \n"
+"  -nan = include only voxel values that are not numbers (e.g., NaN or inf).\n"
+"         This is basically meant for counting bad numbers in a dataset.\n"
 "         -nan forces -slow mode.\n"
 "  -nonan = exclude voxel values that are not numbers\n"
+"           (exclude any NaN or inf values from computations).\n"
 "  -mask dset = use dset as mask to include/exclude voxels\n"
 "  -mrange MIN MAX = Only accept values between MIN and MAX (inclusive)\n"
 "                    from the mask. Default it to accept all non-zero\n"
@@ -785,7 +787,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
                   continue;
                if((nan_flag==0) && (test_flag==0)) // only looking for finites
                   continue;
-               if(test_flag==0) {  /* not a number */
+               if(test_flag==0) { /* not a number (and nan_flag==1, so count)*/
                   ++npts;
                   continue;
                }
