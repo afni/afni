@@ -1114,9 +1114,9 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return str
 
-def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, 
+def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None, 
                         show_only=0, tsv_int=None, verb=1):
-   """Read a set of 3 column tsv (tab separated value) files
+   """Read a set of N column tsv (tab separated value) files
          - one file per run
          - each with a list of events for all classes
       and convert it to list of AfniTiming instances.
@@ -1155,9 +1155,9 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
       # store original header, else check for consistency
       if not h0:
          h0 = header
-         if verb > 1: print('-- RM3CT: header = %s' % header)
+         if verb > 1: print('-- RMNCT: header = %s' % header)
       elif h0 != header and verb:
-         print('** inconsistent column headers in 3 column tsv file %s' % fname)
+         print('** inconsistent column headers in N column tsv file %s' % fname)
          print('   orig:    %s' % ' '.join(h0))
          print('   current: %s' % ' '.join(header))
 
@@ -1168,7 +1168,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
          if cname not in list(cdict.keys()):
             cdict[cname] = [[]]*rind
             if verb > 4:
-               print('++ RM3CT: init cdict[%s] with %s' % (cname, cdict[cname]))
+               print('++ RMNCT: init cdict[%s] with %s' % (cname, cdict[cname]))
 
       # partition elist per known class (should be complete, as all class
       # names were added to dict) - okay if empty

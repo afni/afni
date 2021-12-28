@@ -399,17 +399,17 @@ examples: ~1~
       run.  Such files might exist in a BIDS dataset.  Convert a single run
       to multiple AFNI timing files (or convert multiple runs).
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
+         timing_tool.py -multi_timing_ncol_tsv sing_weather.run*.tsv \\
                         -write_multi_timing AFNI_timing.weather
 
       Consider -write_as_married, if useful.
 
    Example 19b.  extract ISI/duration/TR stats from TSV files ~2~
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
+         timing_tool.py -multi_timing_ncol_tsv sing_weather.run*.tsv \\
                         -multi_show_isi_stats -multi_show_duration_stats
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
+         timing_tool.py -multi_timing_ncol_tsv sing_weather.run*.tsv \\
                         -tr 2 -show_tr_stats
 
    Example 19c.  convert non-standard formatted TSV timing files to AFNI ~2~
@@ -423,7 +423,7 @@ examples: ~1~
       Output is just to an event list.
 
          timing_tool.py -tsv_labels onset RT participant_response           \\
-                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -multi_timing_ncol_tsv sub-001_task-MGT_run*.tsv    \\
                         -write_multi_timing timing.sub-001.C.
 
    Example 19d.  as 19c, but include amplitude modulators ~2~
@@ -431,13 +431,13 @@ examples: ~1~
       Like 19c, but include "gain" and "loss" as amplitude modulators.
 
          timing_tool.py -tsv_labels onset RT participant_response gain loss \\
-                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -multi_timing_ncol_tsv sub-001_task-MGT_run*.tsv    \\
                         -write_multi_timing timing.sub-001.D.
 
    Example 19e.  as 19d, but specify the same columns with 0-based indices ~2~
 
          timing_tool.py -tsv_labels 0 4 5 2 3                               \\
-                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -multi_timing_ncol_tsv sub-001_task-MGT_run*.tsv    \\
                         -write_multi_timing timing.sub-001.E.
 
    Example 19f.  if duration is n/a, specify backup column ~2~
@@ -448,14 +448,14 @@ examples: ~1~
 
          timing_tool.py -tsv_labels onset reaction_time task            \\
                         -tsv_def_dur_label duration                     \\
-                        -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
+                        -multi_timing_ncol_tsv s10517-pamenc_events.tsv \\
                         -write_multi_timing timing.sub-001.F.
 
    Example 19g.  just show the TSV label information ~2~
 
          timing_tool.py -tsv_labels onset reaction_time task            \\
                         -tsv_def_dur_label duration                     \\
-                        -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
+                        -multi_timing_ncol_tsv s10517-pamenc_events.tsv \\
                         -show_tsv_label_details
 
       Consider "-show_events" to view event list.
@@ -594,10 +594,13 @@ options with both single and multi versions (all single first): ~1~
             -run_len
             -write_all_rest_times
 
-   -multi_timing_3col_tsv FILE1 FILE2 ... : read TSV files into multi timing ~2~
+   -multi_timing_ncol_tsv FILE1 FILE2 ... : read TSV files into multi timing ~2~
 
-        e.g. -multi_timing_3col_tsv sing_weather_run*.tsv
-        e.g. -multi_timing_3col_tsv tones.tsv
+            ** this option was previously called -multi_timing_3col_tsv
+               (both work)
+
+        e.g. -multi_timing_ncol_tsv sing_weather_run*.tsv
+        e.g. -multi_timing_ncol_tsv tones.tsv
 
         Tab separated value (TSV) files, as one might find in OpenFMRI data,
         are formatted with a possible header line and 3 tab-separated columns:
@@ -839,7 +842,7 @@ action options (apply to single timing element, only): ~1~
    -show_tsv_label_details      : display column label info for TSV files ~2~
 
         Use this option to display label information for TSV files.  It should
-        be used in conjunction with -multi_timing_3col_tsv and related options.
+        be used in conjunction with -multi_timing_ncol_tsv and related options.
 
    -warn_tr_stats               : display within-TR stats only for warnings ~2~
 
@@ -973,12 +976,12 @@ action options (apply to single timing element, only): ~1~
 
         e.g. -write_tsv_cols_of_interest cols_of_interest.tsv
 
-        This is an esoteric function that goes with -multi_timing_3col_tsv.
+        This is an esoteric function that goes with -multi_timing_ncol_tsv.
         Since the input TSV files often have many columns that make viewing
         difficult, this option can be used to extract only the relevant
         columns and write them to a new TSV file.
 
-            Consider '-multi_timing_3col_tsv'.
+            Consider '-multi_timing_ncol_tsv'.
 
    -write_timing NEW_FILE       : write the current timing to a new file ~2~
 
@@ -1457,7 +1460,7 @@ g_history = """
    2.18 Aug 22, 2017 - -apply_end_times_as_durations and -show_duration_stats
    2.19 Aug 30, 2017 - added -fsl_timing_files and -write_as_married
    2.20 Sep 12, 2017
-        - added -multi_timing_3col_tsv, -write_multi_timing and
+        - added -multi_timing_ncol_tsv, -write_multi_timing and
           -multi_show_duration_stats for TSV files
    3.00 Nov  9, 2017 - python3 compatible
    3.01 Dec 22, 2017 - added -select_runs and -mplaces
@@ -1634,7 +1637,7 @@ class ATInterface:
 
       return 0
 
-   def multi_timing_from_3col_tsv(self, flist):
+   def multi_timing_from_ncol_tsv(self, flist):
       """like multi_set_timing, fill self.mtiming and m_fnames
          do so from a list of 3 column tsv files
 
@@ -1642,12 +1645,12 @@ class ATInterface:
       """
 
       if type(flist) != type([]):
-         print('** multi_timing_from_3col_tsv: list of files required')
+         print('** multi_timing_from_ncol_tsv: list of files required')
          return 1
 
       if len(flist) < 1: return 0
 
-      rv, timing_list = LT.read_multi_3col_tsv(flist, hlabels=self.tsv_labels,
+      rv, timing_list = LT.read_multi_ncol_tsv(flist, hlabels=self.tsv_labels,
                              def_dur_lab=self.tsv_def_dur_lab,
                              show_only=self.tsv_show_details,
                              tsv_int=self.tsv_int, verb=self.verb)
@@ -1988,6 +1991,8 @@ class ATInterface:
                          helpstr='load the given list of timing files')
       self.valid_opts.add_opt('-multi_timing_3col_tsv', -1, [], okdash=0,
                          helpstr='load the 3 column TSV timing files')
+      self.valid_opts.add_opt('-multi_timing_ncol_tsv', -1, [], okdash=0,
+                         helpstr='load the N column TSV timing files')
       self.valid_opts.add_opt('-multi_show_duration_stats', 0, [], 
                          helpstr='display min/mean/max/stdev of event durs')
       self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
@@ -2211,8 +2216,15 @@ class ATInterface:
          else: return 1
          uopts.olist.pop(oind)
 
-      # like multi_timing, but from 3 column tsv files
-      oind = uopts.find_opt_index('-multi_timing_3col_tsv')
+      # --------------------------------------------------
+      # like multi_timing, but from N column tsv files
+      # (allow both ncol_tsv and 3col_tsv)
+      oname = '-multi_timing_ncol_tsv'
+      oind = uopts.find_opt_index(oname)
+      if oind < 0:
+         oname = '-multi_timing_3col_tsv'
+         oind = uopts.find_opt_index(oname)
+
       if oind >= 0:
          # allow for just showing label info (but then no writing)
          if uopts.find_opt('-show_tsv_label_details'):
@@ -2228,11 +2240,13 @@ class ATInterface:
             if val and not err:
                self.tsv_int = val
 
-         val, err = uopts.get_string_list('-multi_timing_3col_tsv')
+         val, err = uopts.get_string_list(oname)
          if type(val) == type([]) and not err:
-            if self.multi_timing_from_3col_tsv(val): return 1
+            if self.multi_timing_from_ncol_tsv(val): return 1
          else: return 1
          uopts.olist.pop(oind)
+      # end '-multi_timing_ncol_tsv'
+      # --------------------------------------------------
 
       oind = uopts.find_opt_index('-multi_stim_dur')
       if oind >= 0:
