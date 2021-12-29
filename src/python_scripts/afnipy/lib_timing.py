@@ -1272,7 +1272,8 @@ def parse_Ncol_tsv(fname, hlabels=None,
    # decide on column extration indices, based on hlabels and lines[0:2]
 
    # if nothing passed, set to defaults
-   # (and let tsv_hlabels_to_col_list append any mod_*)
+   # - let tsv_hlabels_to_col_list append any mod_*
+   # - if appending cols to col_inds, hlables will also be appended to
    if hlabels == None:
       defmods = 1
       hlabels = g_tsv_def_labels[:]
@@ -1408,6 +1409,8 @@ def tsv_hlabels_to_col_list(hlabs, linelists,
 
       if defmods: append any columns with headers starting with mod_prefix
       mod_prefix: prefix for any defmods (default modulator columns)
+
+      ** note: if defmods (and any are found), 'hlabs' will be appended to
 
       if hlabs are integers, extract those columns
       else, try to find in linelists[0]
