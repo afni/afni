@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Dec, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -write_simple_tsv",
+   "Also, read and write default mod_* modifier columns."
+ } ,
+ 
  { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "misc updates for circleCI build based on xcode 12.4.0",
    "Remove thd_incorrelate.o from cmake libmri, etc."

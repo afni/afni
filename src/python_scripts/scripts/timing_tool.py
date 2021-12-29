@@ -653,6 +653,22 @@ options with both single and multi versions (all single first): ~1~
 
             Consider '-write_as_married'.
 
+   -write_simple_tsv PREFIX     : write timing to new TSV files ~2~
+
+        e.g. -write_simple_tsv MT.
+
+        Akin to -write_multi_timing, this writes out what is seen as the stored
+        (and pertinent) timing information.  The (tab-delimited) output is of
+        the form:
+
+            onset duration class [optional modulators...]
+
+        If there are known modulators, they will be output.
+        If some classes have modulators and some do not (or have fewer), the
+        output will still be rectangular, with such modulators output as zeros.
+
+            Consider '-write_multi_timing'.
+
 ------------------------------------------
 action options (apply to multi timing elements, only): ~1~
 ------------------------------------------
@@ -1481,9 +1497,10 @@ g_history = """
    3.13 Dec 26, 2019 - added -timing_to_1D_mods and -show_events
    3.14 Jul 22, 2021 - added -multi_durations_from_offsets
    3.15 Aug 20, 2021 - added -write_tsv_cols_of_interest
+   3.16 Dec 29, 2021 - added -write_simple_tsv (and process mod_* columns)
 """
 
-g_version = "timing_tool.py version 3.15, August 22, 2021"
+g_version = "timing_tool.py version 3.16, December 29, 2021"
 
 
 
