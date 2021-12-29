@@ -1136,10 +1136,6 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
 
    tlist = []   # all AfniTiming instances to return
 
-   # if nothing passed, set default labels
-   if hlabels == None:
-      hlabels = g_tsv_def_labels
-
    h0 = []      # original header, once set
    cdict = {}   # dictionary of events per class type
                 #   - array of event lists, per run
@@ -1202,7 +1198,7 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels, 
+def parse_Ncol_tsv(fname, hlabels=None, 
                    def_dur_lab=None, show_only=0, tsv_int=None, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
@@ -1215,6 +1211,8 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
          onset, duration, type and amplitudes, if any:
 
          onset time, duration, trial type, amp1, amp2, ... ampA
+
+      If hlabels is None, use defaults, plus any mod_*.
 
       def_dur_lab  None     : use default = 'missed'
                    'missed' : add event as "missed_LABEL" class
@@ -1241,8 +1239,9 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
    norig = 0
    for lind, line in enumerate(lines):
       vv = line.split('\t')
+      llen = len(line)
       vlen = len(vv)
-      if len == 0:
+      if vlen == 0 or llen == 0:
          if verb > 2: print('** skipping empty line %d of 3col tsv file %s' \
                             % (lind, fname))
          continue
@@ -1253,9 +1252,9 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
       # require consistency
       if vlen != norig:
          if verb:
-            print('** line %d ncol=%d, mismatch with orig ncol %d' % \
-                  (lind, vlen, norig))
-            print('** skipping bad line: %s' % line)
+            print("** line %d ncol=%d, mismatch with orig ncol %d, v0 = '%s'" \
+                  % (lind, vlen, norig, vv[0]))
+            print('** skipping bad line of len %d: %s' % (len(line),line))
          continue
 
       newlines.append(vv)
@@ -1269,8 +1268,19 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
       if verb: print("** parse_Ncol_tsv: bad ncols = %d in %s" % (norig,fname))
       return -1, [], []
 
+   # ----------------------------------------
    # decide on column extration indices, based on hlabels and lines[0:2]
-   col_inds = tsv_hlabels_to_col_list(hlabels, lines, verb=verb)
+
+   # if nothing passed, set to defaults
+   # (and let tsv_hlabels_to_col_list append any mod_*)
+   if hlabels == None:
+      defmods = 1
+      hlabels = g_tsv_def_labels[:]
+   else:
+      defmods = 0
+
+   col_inds = tsv_hlabels_to_col_list(hlabels, lines, defmods=defmods,
+                                      verb=verb)
    if len(col_inds) < 3:
       if verb: print("** failed to make tsv column index list in %s" % fname)
       return -1, [], []
@@ -1391,9 +1401,13 @@ def write_tsv_cols(table, cols, ofile='stdout'):
 
    return 0
 
-def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
+def tsv_hlabels_to_col_list(hlabs, linelists,
+                            defmods=0, mod_prefix='mod_', verb=1):
    """return a list of columns to extract, in order of:
         onset, duration, label, amplitude1, amplitude2 ...
+
+      if defmods: append any columns with headers starting with mod_prefix
+      mod_prefix: prefix for any defmods (default modulator columns)
 
       if hlabs are integers, extract those columns
       else, try to find in linelists[0]
@@ -1477,6 +1491,13 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
             print("** tsv file has unexpected labels, failing")
             if verb < 3: print("   (consider -verb 3)")
          return []
+
+   # automatically append any columns starting with mod_prefix
+   if defmods and mod_prefix != '':
+      for lind, label in enumerate(line0):
+         if label.startswith(mod_prefix):
+            lints.append(lind)
+            hlabs.append(label)
        
    # all are found, yay!
    if verb > 1: print("++ found expected labels in tsv file")
