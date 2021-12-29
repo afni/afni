@@ -18,11 +18,18 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
 
    defopt.do_output_intermed = 0;
 
-   // units=mm; from typical adult human GM thick.  Will allow this to
-   // be anisotropic, hence array of 3
-   defopt.sigma_rad[0] = 2.0;  
-   defopt.sigma_rad[1] = 2.0;  
-   defopt.sigma_rad[2] = 2.0;  
+   /* 
+      units=mm; from typical adult human GM thick.  Will allow this to
+      be anisotropic, hence array of 3.
+
+      after some checks, rad=1.4 appears to be a better default than 2
+      for human anatomicals; latter misses too many structures,
+      wanders off inappropriately.  Things get noisier for smaller
+      sigma_rad, but getting more detail seems important
+   */
+   defopt.sigma_rad[0] = 1.4;
+   defopt.sigma_rad[1] = 1.4;  
+   defopt.sigma_rad[2] = 1.4;  
 
    // units=none; alt. to sigma_rad, scale vox dims by this factor to
    // get sigma vals.  Will allow this to be anisotropic, hence array

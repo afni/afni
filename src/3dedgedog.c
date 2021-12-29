@@ -27,6 +27,12 @@ ver = 1.52;  date = Dec 26, 2021
 ver = 1.6;  date = Dec 26, 2021
 + [PT] add in -automask, automask+X, and '-mask ..' option behavior
 
+ver = 1.7;  date = Dec 29, 2021
+
++ [PT] change default rad : 2.0 seems much to big to catch details
+  even in a human anatomical dset.  Going for 1.4 now
+
+
 
 *** still might add:
   - multi-spatial scale requests
@@ -126,7 +132,10 @@ int usage_3dedgedog()
 "\n"
 "  -sigma_rad RRR   :radius for 'inner' Gaussian, in units of mm; RRR must\n"
 "                    by greater than zero (def: %.2f). Default is chosen to\n"
-"                    approximate typical GM thickness in human adults.\n"
+"                    capture useful features in typical adult, human GM,\n"
+"                    which has typical thickness of 2-2.5mm.  So, if you are\n"
+"                    analyzing some other kind of data, you might want to\n"
+"                    adapt this value appropriately.\n"
 "\n"
 "  -sigma_nvox NNN  :define radius for 'inner' Gaussian by providing a\n"
 "                    multiplicative factor for voxel edge length, which will\n"

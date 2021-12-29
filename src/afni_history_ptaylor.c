@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_GENERAL,
+   "Change default sigma_rad to be 1.4, not 2.0, to capture more details.",
+   "This is because results look much better in human T1w dset.\n"
+},
+
 { 27, Dec , 2021 , PT , "balloon" , MICRO , TYPE_GENERAL,
    "Use printf(...) to display the program help, not fprintf(stderr, ...).",
    "In this way, the Sphinx help docs can see it.\n"
