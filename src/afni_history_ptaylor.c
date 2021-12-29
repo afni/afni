@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Dec , 2021 , PT , "balloon" , MICRO , TYPE_GENERAL,
+   "Use printf(...) to display the program help, not fprintf(stderr, ...).",
+   "In this way, the Sphinx help docs can see it.\n"
+},
+
 { 26, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_NEW_OPT,
    "The -automask (and -automask+X) functionality is now, well, functional.",
    "The '-mask ..' option appears to be working, too.\n"

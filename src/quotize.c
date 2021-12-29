@@ -18,9 +18,9 @@ int main( int argc , char * argv[] )
    int ll , num=0 , ii , jj ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      fprintf(stderr,"Usage: quotize name < input > output\n"
-                     "Turns a text file into a C array of strings\n"
-                     "initialized into an array 'char *name[]'.\n"
+      printf("Usage: quotize name < input > output\n"
+             "Turns a text file into a C array of strings\n"
+             "initialized into an array 'char *name[]'.\n"
              ) ;
       exit(0) ;
    }

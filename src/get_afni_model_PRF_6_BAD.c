@@ -16,8 +16,8 @@ int main(int argc, char * argv[])
    int     ind, nt = 144;
 
    if( argc != 7 ) {
-      fprintf(stderr, "** usage: %s A x y sigma sigrat theta\n", argv[0]);
-      fprintf(stderr,
+      printf("** usage: %s A x y sigma sigrat theta\n", argv[0]);
+      printf(
 "\n"
 "   consider something like:\n"
 "\n"
