@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Dec, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -write_simple_tsv",
+   "Also, read and write default mod_* modifier columns."
+ } ,
+
  { 28, Dec, 2021, RCR, "3dBrickStat", MICRO, TYPE_MODIFY,
    "commit pull request and further clarify -nan help",
    "Thanks to L Anderson for the pull request."
