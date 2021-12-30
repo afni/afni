@@ -7,7 +7,9 @@
 
 /* Common Block Declarations */
 
-struct {
+/* let the compiler know that these are not local structs */
+/* (done whenever pwritf.c is regenerated from pwritf.f)  */
+extern struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
@@ -18,7 +20,7 @@ struct {
 
 #define zzzplt_1 zzzplt_
 
-struct {
+extern struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
