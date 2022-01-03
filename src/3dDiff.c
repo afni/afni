@@ -1,25 +1,6 @@
 #include "mrilib.h"
 #include "3ddata.h"
 
-/*------------------------------------------------------------------------*/
-/*! Return a measure of the difference between 2 images bim and nim,
-with 0.0 indicating no differences.
-
-The result is the total fraction of elements that diverge,
-dd = sum [ bim[i] != nim[i] ] / NN
-i
-
-where NN is the total number of elements.
-A tolerance of 1e-8 is used to determine "equality."
-A zero would indicate total agreement between the images, and a positive
-value indicates the fraction of elements which agree.
-
-A negative return value indicates one of the following:
-
-- MRI_SIMPLE_DIFF_DIM_DIVERGE indicates diverging voxel dimensions
-- MRI_SIMPLE_DIFF_ERROR indicates some other error
---------------------------------------------------------------------------*/
-
 #define MRI_SIMPLE_DIFF_ERROR -1
 #define MRI_SIMPLE_DIFF_DEFAULT_TOL 1e-8f
 
@@ -59,43 +40,47 @@ printf(
 "\n"
 "1) Diff two images with equivalent grids, no matching elements\n"
 "%% 3dDiff -a a.nii -b b.nii\n"
-"++ Images differ: 42663935 of 42663936 elements disagree (100.000%%)\n"
+"++ Images differ\n"
+"++ Elements differ: 42663935 of 42663936 (100.00%%)\n"
 "\n"
 "2) Diff two images with different dimensions entirely\n"
 "%% 3dDiff -a grid1.nii -b grid2.nii\n"
-"++ Image dimensions differ: (64, 64, 31) vs. (32, 32, 15)\n"
+"++ Images differ\n"
+"++ Dimensions differ: (64, 64, 31) vs. (32, 32, 15)\n"
 "\n"
 "3) Diff two images with different centers, obliquities\n"
 "%% 3dDiff -a ob1.nii -b ob2.nii\n"
-"++ Image centers differ\n"
-"++ Image orientations differ\n"
-"++ Image obliquities differ: 3.783151 apart\n"
+"++ Images differ\n"
+"++ Centers differ\n"
+"++ Orientations differ\n"
+"++ Obliquities differ: 3.783151 apart\n"
 "\n"
 "4) Diff two images with an optional (and more permissive) tolerance\n"
 "%% 3dDiff -tol .5 a.nii -right b.nii\n"
-"++ Images diverge: 23999522 of 42663936 elements differ (56.252%%)\n"
+"++ Images differ\n"
+"++ Elements differ: 23999522 of 42663936 (56.252%%)\n"
 "\n"
 "5) Diff two images that agree completely\n"
 "%% 3dDiff -a a.nii -b a.nii\n"
-"++ Images do not differ\n"
+"++ Images agree\n"
 "\n"
 "6) Brutalist output: a series of numbers only, images do not differ\n"
 "%% 3dDiff -brutalist -a a.nii -b a.nii\n"
-"1 0 0 0 0 0\n"
+"0 0 0 0 0.000000 0 0 42663936\n"
 "\n"
 "7) Brutalist output, images aligned but differ for 42 elements\n"
 "%% 3dDiff -brutalist -a a.nii -b a.nii\n"
-"1 0 0 0 0 42\n"
+"1 0 0 0 0.000000 0 42 42663936\n"
 "\n"
-"8) Brutalist output, image dimensions differ \n"
+"8) Brutalist output, two image dimensions differ \n"
 "%% 3dDiff -brutalist -a a.nii -b a.nii\n"
-"1 0 0 1 0 0\n"
+"1 2 0 0 0.000000 0 -1 -1\n"
 "\n"
 "===========================================================================\n"
 "\n"
 "Brutalist Output ~3~\n"
 "\n"
-"Brutalist output is useful for scripting. The output is a 7-integer \n"
+"Brutalist output is useful for scripting. The output is an 8-integer \n"
 "array with the following elements:\n"
 "\t0:\tSummary (-1 failure, 0 no difference, 1 some difference)\n"
 "\t1:\tDimensions (the number of differing dimensions)\n"
@@ -314,7 +299,7 @@ int main( int argc , char * argv[] )
         else INFO_message("Images agree");
         if ( r.dimensions ) {
             INFO_message(
-                "Dimensions diverge: (%d, %d, %d, %d) vs. (%d, %d, %d, %d)",
+                "Dimensions differ: (%d, %d, %d, %d) vs. (%d, %d, %d, %d)",
                 r.a_nd[0], r.a_nd[1], r.a_nd[2], r.a_nd[3],
                 r.b_nd[0], r.b_nd[1], r.b_nd[2], r.b_nd[3]
             );
@@ -337,9 +322,10 @@ int main( int argc , char * argv[] )
         }
         if ( r.elements != 0 && r.elements != -1) {
             INFO_message(
-                "Elements differ: %d of %d (%2.2f%%)",
+                "Elements differ: %d of %d (%2.2f%%) with tolerance %e",
                 r.elements, r.total_elements,
-                (r.elements / (r.total_elements * 1.0)) * 100.0
+                (r.elements / (r.total_elements * 1.0)) * 100.0,
+                tol
             );
         }
 
