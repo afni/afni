@@ -4,7 +4,7 @@ set stat = 0
 set sdir = $PWD
 
 set demo_download = D99_v2.0_dist
-set demo_download_extract_name = D99_macaque_v2.0_dist
+set demo_download_extract_name = D99_v2.0_dist
 #set demo = D99_macaque
 set demo = $demo_download_extract_name
 

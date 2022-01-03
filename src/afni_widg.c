@@ -1021,7 +1021,7 @@ STATUS("making imag->rowcol") ;
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-                  LABEL_ARG("-Where Am I?") ,
+                  LABEL_ARG("-Where is Bob?") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
