@@ -122,10 +122,10 @@ int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, float eps) {
    ENTRY("THD_count_diffs");
 
    if (!d1 && !d2) RETURN(dd);
-   if (!d1 || !d2) RETURN(-1.0);
+   if (!d1 || !d2) RETURN(-1);
 
    if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
-   if (DSET_NVALS(d1) != DSET_NVALS(d2)) RETURN(-1.0);
+   if (DSET_NVALS(d1) != DSET_NVALS(d2)) RETURN(-1);
 
    DSET_mallocize(d1) ; DSET_load(d1) ;
    DSET_mallocize(d2) ; DSET_load(d2) ;
