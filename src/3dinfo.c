@@ -261,6 +261,7 @@ int Syntax(TFORM targ, int detail)
 "                   command line.\n"
 "   -val_diff: Output the sum of absolute differences of all voxels in the\n"
 "              dataset pair.\n"
+"   -val_ndiff: Output the total number of differing voxels in the pair\n"
 "   -sval_diff: Same as -val_diff, but the sum is divided (scaled) by the \n"
 "               total number of voxels that are not zero in at least one\n"
 "               of the two datasets.\n"
@@ -338,7 +339,9 @@ typedef enum {
    TR, HEADER_NAME, BRICK_NAME, ALL_NAMES,
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER,
-   SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
+   SAME_OBL, SVAL_DIFF, VAL_DIFF,
+   VAL_NDIFF, /* JT: 2022-01-04 */
+   SAME_ALL_GRID, ID, SMODE,
    VOXVOL, INAME, HANDEDNESS,
    EXTENT_R, EXTENT_L, EXTENT_A, EXTENT_P, EXTENT_I, EXTENT_S, EXTENT,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names
@@ -429,6 +432,7 @@ int main( int argc , char *argv[] )
 
    char *ochar_perm=NULL;        // new orient for perm calc
    char perm_pstr[100];
+   float DIFF_TOL = 1e-8f; /* default tolerance for counting diffs */
 
    mainENTRY("3dinfo main") ; machdep() ;
 
@@ -701,6 +705,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = SVAL_DIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-val_diff") == 0) {
          sing[N_sing++] = VAL_DIFF; needpair = 1; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-val_ndiff") == 0) {
+         sing[N_sing++] = VAL_NDIFF; needpair = 1; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-same_all_grid") == 0) {
          sing[N_sing++] = SAME_DIM;
          sing[N_sing++] = SAME_DELTA;
@@ -1318,6 +1324,9 @@ int main( int argc , char *argv[] )
             break;
          case VAL_DIFF:
             fprintf(stdout,"%f",THD_diff_vol_vals(dset, dsetp, 0));
+            break;
+        case VAL_NDIFF:
+            fprintf(stdout, "%d",THD_count_diffs(dset, dsetp, DIFF_TOL));
             break;
          case ID:
             fprintf(stdout,"%s", DSET_IDCODE_STR(dset));
