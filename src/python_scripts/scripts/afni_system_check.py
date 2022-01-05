@@ -229,7 +229,7 @@ g_history = """
    1.12 Feb 18, 2021 - check for reasonable XQuartz version
    1.13 Oct 27, 2021 - warn if less than 5 GB disk space available
    1.14 Oct 29, 2021 - on mac, check for standard R not in PATH
-   1.15 Nov 13, 2021 - new opt to get number of available cpus
+   1.15 Nov 13, 2021 - add -disp_num_cpu opt to show number of available cpus
 """
 
 g_version = "afni_system_check.py version 1.15, Nov 13, 2021"
