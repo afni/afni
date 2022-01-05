@@ -180,7 +180,42 @@ class SysInfo:
          if not self.home_file_exists(f1name):
             cc.append('shell %-4s: missing setup file %s' % (sname, f1name))
 
+         self.check_multi_tcsh_startup_files()
+
       self.comments.extend(cc)
+
+   def check_multi_tcsh_startup_files(self):
+      """if both .cshrc and .tcshrc exist and .t does not source .c, warn
+      """
+      cfile = '.cshrc'
+      tfile = '.tcshrc'
+      if not self.home_file_exists(cfile) or not self.home_file_exists(tfile):
+         return
+      if self.verb > 1:
+         print("-- found both %s and %s" % (cfile,tfile))
+
+      found = 0
+      st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" % (cfile,tfile))
+      # if we find something, test to see if it is valid
+      if st == 0:
+         for line in so:
+            words = line.split()
+            if words[0] in ['.', 'source'] and 'cshrc' in words[1]:
+               found = 1
+               break
+            if self.verb > 2:
+               print("-- have unapplied %s in %s:" % (cfile, tfile))
+               print("   %s" % line)
+
+      if not found:
+         m0 = "have both %s and %s, with former not applied" % (cfile, tfile)
+         m1 = "(consider adding 'source $HOME/%s' to $HOME/%s)" % (cfile, tfile)
+         print("** %s" % m0)
+         print("   %s" % m1)
+         self.comments.append(m0)
+         self.comments.append(" " + m1)
+      elif self.verb > 2:
+         print("-- %s appears to be sourced from %s" % (cfile, tfile))
 
    def home_file_exists(self, fname):
       return(os.path.isfile('%s/%s' % (self.home_dir, fname)))
