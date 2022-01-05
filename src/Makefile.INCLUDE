@@ -743,7 +743,7 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dToyProg 3dToyProg.o $(LFLAGS) $(LLIBS)
 
-3dDiff:3dDiff.o
+3dDiff: 3dDiff.o
 	$(RM) $@
 	$(CC) -o 3dDiff 3dDiff.o $(LFLAGS) $(LLIBS)
 

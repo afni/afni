@@ -4,6 +4,44 @@
 #define MRI_SIMPLE_DIFF_ERROR -1
 #define MRI_SIMPLE_DIFF_DEFAULT_TOL 1e-8f
 
+void repchar(char c, int reps) {
+    for (int i = 0; i < reps; ++i) putchar(c);
+}
+
+int jbt_get_terminal_width() {
+    const int DEFAULT_WIDTH = 79;
+    int width = 0;
+    char * term_width = getenv("COLUMNS");
+    if ( !term_width ) width = DEFAULT_WIDTH;
+    else {
+        width = atoi(term_width);
+        if ( width < 0 ) width = DEFAULT_WIDTH;
+    }
+    return width;
+}
+void dashline() {
+    repchar('-', jbt_get_terminal_width());
+    putchar('\n');
+}
+
+char * random_tps_signoff() {
+    static char signoffs[5][256] = {
+        "Yeahhhhh, if you could look at your data, that'd be greeeat"
+        " --Beefield Lumbergh",
+        "I will analyze this place to the ground"
+        " --Magnilton",
+        "It's just a few p-values, who will notice?"
+        " -- Statisticir",
+        "So, what exactly do you collect here?"
+        " -- the Beep Beeps",
+        "No. No, man. Science, no. I believe you'd get your paper"
+        " rejected saying something like that, man."
+        " -- P-value Gibbons"
+    };
+    srand(time(NULL));
+    return signoffs[rand() % 5];
+}
+
 int help_3dDiff()
 {
 char * author = "JB Teves";
@@ -14,62 +52,26 @@ printf(
 "\n"
 "written by: %s\n"
 "\n"
-"Usage: 3dDiff  [-tol TOLERANCE] [-brutalist] <-a DSET_1> <-b DSET_2>\n"
+"Usage: 3dDiff  [display opt] [-tol TOLERANCE] <-a DSET_1> <-b DSET_2>\n"
 "\n"
 "where: \n"
 "\n"
 "  -tol TOLERANCE   :(opt) the floating-point tolerance/epsilon\n"
-"\n"
-"  -brutalist       :(opt) no text report; only numbers. Heed well the\n"
-"                          tribulations of this option, o Mortals with\n"
-"                          no scripts to bear upon this output!\n"
-"\n"
 "  -a DSET_1        :(req) input dataset a\n"
 "\n"
 "  -b DSET_2        :(req) input dataset b\n"
-"\n"
-"===========================================================================\n"
-"\n"
-"Examples ~2~\n"
-"\n"
-"1) Diff two images with equivalent grids, no matching elements\n"
-"%% 3dDiff -a a.nii -b b.nii\n"
-"++ Images differ: 42663936 of 42663936 elements (100.00%%)\n"
-"\n"
-"2) Diff two images with different dimensions entirely\n"
-"%% 3dDiff -a grid1.nii -b grid2.nii\n"
-"++ Images cannot be compared element-wise.\n"
-"\n"
-"3) Diff two images with an optional (and more permissive) tolerance\n"
-"%% 3dDiff -tol .5 -a a.nii -b b.nii\n"
-"++ Images differ:  23999522 of 42663936 (56.252%%)\n"
-"\n"
-"4) Diff two images that do not differ at all\n"
-"%% 3dDiff -a image.nii -b image_copy.nii\n"
-"++ Images do NOT differ\n"
-"\n"
-"5) Brutalist output: a series of numbers only, images do not differ\n"
-"%% 3dDiff -brutalist -a a.nii -b a.nii\n"
-"0 0 42663936\n"
-"\n"
-"6) Brutalist output, images cannot be element-wise compared\n"
-"%% 3dDiff -brutalist -a grid_a.nii -b grid_b.nii\n"
-"-1 -1 -1\n"
-"\n"
-"8) Brutalist output with permissive tolerance, images differ \n"
-"%% 3dDiff -tol .5 -brutalist -a a.nii -b a.nii\n"
-"1 23999522 42663936\n"
-"\n"
-"===========================================================================\n"
-"\n"
-"Brutalist Output ~2~\n"
-"\n"
-"Brutalist output is useful for scripting. The output is an 3-integer \n"
-"array with the following elements:\n"
-"\t0:\tSummary (-1 failure, 0 no difference, 1 some difference)\n"
-"\t1:\tDiffering (total differing elements, -1 if cannot)\n"
-"\t2:\tTotal Elements (total elements compared, -1 if cannot)\n"
-"\n"
+"with the following (mutually exclusive) display options:\n"
+"  -q               :(opt) quiet mode, indicate 0 for no differences and\n"
+"                          1 for differences. (aka \"Rick Mode\")\n"
+"  -tabular         :(opt) display only a table of differences, plus\n"
+"                          a summary line (the same one as -brutalist)\n"
+"  -brutalist       :(opt) display one-liner. The first number indicates\n"
+"                          whether there is a difference, the second number \n"
+"                          indicates how many elements (3D) or volumes (4D)\n"
+"                          were different, and the last number indicates the\n"
+"                          total number of elements/volumes compared.\n"
+"  -tps_report      :(opt) print a large report with lots of information.\n"
+"If no display options are used, a short message with a summary will print.\n"
 "===========================================================================\n"
 "\n"
 "See Also ~2~\n"
@@ -86,75 +88,35 @@ author );
 return 0;
 }
 
-typedef struct {
-    int summary;
-    int elements;
-    int total_elements;
-} DiffResult;
-
-/* By default, the result indicates all failures */
-#define DEFAULT_DIFFRESULT { -1, -1, -1}
-
-DiffResult diff3d( char * a, char * b, float tolerance) {
-    int diff, nvox, dim_check = 0;
-    THD_3dim_dataset *a_dset, *b_dset = NULL;
-    DiffResult result = DEFAULT_DIFFRESULT;
-
-    ENTRY("diff3d");
-#ifdef USING_MCW_MALLOC
-    enable_mcw_malloc() ;
-#endif
-
-    /* We'll investigate obliquity ourselves */
-    set_obliquity_report(0);
-
-    /* Load things up */
-    a_dset = THD_open_dataset( a ) ;
-    if ( a_dset == NULL )
-        ERROR_exit("Cannot open dataset a!\n") ;
-    DSET_load(a_dset); CHECK_LOAD_ERROR(a_dset);
-    b_dset = THD_open_dataset( b ) ;
-    if ( b_dset == NULL )
-        ERROR_exit("Cannot open dataset b!\n") ;
-    DSET_load(b_dset); CHECK_LOAD_ERROR(b_dset);
-
-    
-    /* Check for dimension mismatch */
-    if ( THD_dataset_mismatch(a_dset, b_dset) ) {
-        RETURN( result );
-    }
-
-    diff = THD_count_diffs(a_dset, b_dset, tolerance);
-    if ( diff == -1 ) {
-        /* Note: this shouldn't really happen because we've checked it
-         * above, but this is included for completeness */
-        RETURN( result );
-    }
-    /* Final check for summary; whether elements agree */
-    result.summary = (diff != 0);
-    result.elements = diff;
-    /* How many voxels did we just diff, anyway? */
-    result.total_elements = DSET_NVOX(a_dset) * DSET_NVALS(a_dset);
-    /* Free the images */
-    DSET_delete(a_dset); free(a_dset);
-    DSET_delete(b_dset); free(b_dset);
-
-    RETURN( result );
-}
-
 int main( int argc , char * argv[] )
 {
-    char *a_fname, *b_fname ;
-    /* iarg counts where we are in the passed args; start at 1 */
-    int iarg=1 ;
-    /* tolerance we'll use; defaults to the value specified above */
-    float tol = MRI_SIMPLE_DIFF_DEFAULT_TOL ;
-    /* whether we are using brutalist output */
-    int brutalist = 0;
-    /* perc_div is the percentage diverging */
-    double perc_div = 0.0;
-    /* the difference object */
-    DiffResult r;
+    /* Variables for reading in the dsets */
+    char *a_fname, *b_fname = NULL;
+    THD_3dim_dataset *ds1, *ds2 = NULL;
+    /* Variables for program args */
+    int iarg=1 ; /* position in argument parser */
+    float tol = MRI_SIMPLE_DIFF_DEFAULT_TOL ; /* tolerance for equality */
+    int brutalist = 0; /* whether we'll just output one line */
+    int tabular = 0; /* whether we'll print a table */
+    int quiet = 0; /* whether to run in quiet mode */
+    int report = 1; /* whether to print a short report */
+    int tps_report = 0;
+    /* TODO: make error summary for all user mistakes simultaneously.
+     * Strategy could be to count up arguments, store each error message in
+     * a 2D char array, and then print it to the terminal in the desired
+     * format*/
+    /* Variables for reporting */
+    int nt = 0;
+    int nv = 0;
+    int * counts;
+    int total_volumes_differing = 0;
+    int64_t total_elements_differing = 0;
+    int64_t total_elements = 0;
+    double frac_elements = 0.0;
+    double frac_volumes = 0.0;
+    /* Variables for 4D reporting */
+    int max_diffs = 0;
+    int min_diffs_nz = INT_MAX;
 
     mainENTRY("3dDiff main");
     machdep();
@@ -179,6 +141,24 @@ int main( int argc , char * argv[] )
             iarg++; continue;
         }
 
+        /* OPTIONAL: tabular */
+        if ( strcmp(argv[iarg],"-tabular") == 0) {
+            tabular = 1;
+            iarg++; continue;
+        }
+
+        /* OPTIONAL: quiet */
+        if ( strcmp(argv[iarg],"-q") == 0) {
+            quiet = 1;
+            iarg++; continue;
+        }
+
+        /* OPTIONAL: tps_report */
+        if ( strcmp(argv[iarg],"-tps_report") == 0) {
+            tps_report = 1;
+            iarg++; continue;
+        }
+
         /* left image */
         if ( strncmp(argv[iarg],"-a",2) == 0) {
             if (++iarg >= argc) ERROR_exit("Need dset after -a");
@@ -198,41 +178,160 @@ int main( int argc , char * argv[] )
         exit(1);
     }
 
-    /* With args parsed, ensure required ones were present */
-    if ( argc < 3 ){
-        help_3dDiff();
-        PRINT_COMPILE_DATE ; exit(0) ;
-    }
-
+    /* Validate args */
     if ( !a_fname )
         ERROR_exit("No dset a supplied!");
     if ( !b_fname )
         ERROR_exit("No dset b supplied!");
-
-    r = diff3d(a_fname, b_fname, tol);
-
-    if ( brutalist ) {
-        printf( "%d %d %d\n", r.summary, r.elements, r.total_elements);
+    /* tolerance is guaranteed to exist, validation performed above */
+    if ( brutalist && ( quiet || tabular || tps_report ) ) {
+        ERROR_exit("-brutalist -q, -tabular, -tps_report are incompatible.");
     }
-    else {
-        switch ( r.summary ) {
-            case -1:
-                INFO_message("Images cannot be compared element-wise");
-                break;
-            case 0:
-                INFO_message("Images do NOT differ");
-                break;
-            case 1:
-                INFO_message(
-                    "Images differ: %d of %d elements (%2.2f%%) ",
-                    r.elements, r.total_elements,
-                    (r.elements / (r.total_elements * 1.0)) * 100.0
-                );
-                break;
+    if ( quiet && ( brutalist || tabular || tps_report ) ) {
+        ERROR_exit("-q and -brutalist, -tabular, -tps_report are incompatible.");
+    }
+    if ( tps_report && ( brutalist || tabular || quiet ) ) {
+        ERROR_exit("-tps_report and -brutalist, -tabular, -q are incompatible.");
+    }
+    /* if any of these options, we don't want a printed report */
+    if ( brutalist || tabular || quiet || tps_report ) {
+        report = 0;
+    }
+
+    /* Load the images and check for mutual compatibility*/
+    set_obliquity_report(0); /* We'll check that ourselves below */
+    ds1 = THD_open_dataset(a_fname);
+    if ( ds1 == NULL ) ERROR_exit("Can't open dataset %s", a_fname);
+    DSET_load(ds1); CHECK_LOAD_ERROR(ds1);
+    ds2 = THD_open_dataset(b_fname);
+    if ( ds2 == NULL ) ERROR_exit("Can't open dataset %s", b_fname);
+    DSET_load(ds2); CHECK_LOAD_ERROR(ds2);
+    if ( THD_dataset_mismatch( ds1, ds2 ) ) {
+        ERROR_exit("Mismatch between dsets!\n");
+    }
+    if ( DSET_NVALS(ds1) != DSET_NVALS(ds2) ) {
+        ERROR_exit(
+            "Incompatible time points: dset %s contains %d timepoints, dset %s contains %d timepoints",
+            a_fname, DSET_NVALS(ds1), b_fname, DSET_NVALS(ds2)
+        );
+    }
+    nt = DSET_NVALS(ds1);
+    nv = DSET_NVOX(ds1);
+    total_elements = (int64_t) nt * nv;
+    /* Allocate array for storing each volume's number of differing
+     * elements, so we can print a table later */
+    counts = calloc(nt, sizeof( int ));
+
+    for (int i = 0; i < nt; ++i) {
+        counts[i] = THD_count_diffs(ds1, ds2, i, tol);
+        if ( counts[i] ) {
+            ++total_volumes_differing;
+            total_elements_differing += counts[i];
         }
     }
+    frac_elements = (double)total_elements_differing / total_elements;
+    frac_volumes = (double)total_volumes_differing / DSET_NVALS(ds1);
 
-    /* Cleanup */
+    /* Do the reporting */
+    if ( tabular ) {
+        for (int i = 0; i < nt; ++i ) {
+            printf(
+                "%*d:\t%d\n",
+                (int)ceil(log10(nt)), i, counts[i]
+            );
+        }
+    }
+    /* Note: in practice, the user would have to scroll up to see this as a
+     * header, so we'll treat it as a footer instead */
+    if ( brutalist || tabular ) {
+        if ( nt == 1 ) {
+            printf(
+                "%d %lld %lld %.5f\n",
+                (total_volumes_differing != 0), total_elements_differing,
+                total_elements, frac_elements
+            );
+        }
+        else {
+            printf(
+                "%d %d %d %.5f\n",
+                (total_volumes_differing != 0), total_volumes_differing,
+                DSET_NVALS(ds1), frac_volumes
+            );
+        }
+    }
+    if ( quiet ) {
+        printf("%d\n", ( total_elements_differing == 0 ));
+    }
+    if ( report ) {
+        if ( total_elements_differing == 0) {
+            INFO_message("Images do NOT differ");
+        }
+        if ( nt == 1 ) {
+            INFO_message(
+                "Images differ: %d of %d elements differ (%5.2f%%)",
+                total_elements_differing, total_elements,
+                frac_elements * 100
+            );
+        }
+        else {
+            INFO_message(
+                "Images differ: %d of %d volumes differ (%5.2f%%).",
+                total_volumes_differing, DSET_NVALS(ds1),
+                frac_elements * 100
+            );
+        }
+    }
+    if ( tps_report ) {
+        dashline();
+        printf("3dDiff TPS Report for %s\n", getenv("USER"));
+        dashline();
+        printf(
+            "Called with options\n  a: %s\n  b: %s\n  tol: %e\n",
+            a_fname, b_fname, tol
+        );
+
+        if ( total_elements_differing == 0) {
+            printf("No image differences!\n");
+        }
+        else {
+            if ( nt > 1 ) {
+                printf(
+                    "%d of %d timepoints (%5.2f%%) contained differences.\n",
+                    total_volumes_differing, DSET_NVALS(ds1),
+                    frac_volumes * 100.0
+                );
+
+                /* Calculate the max number of differing elements */
+                for (int i = 0; i < nt; ++i) {
+                    max_diffs = (counts[i] > max_diffs) ? counts[i] : max_diffs;
+                }
+                /* Calculate the minimum nonzero number of differing
+                 * elements*/
+                for (int i = 0; i < nt; ++i) {
+                    int val = counts[i];
+                    if ( val != 0 ) {
+                        min_diffs_nz = (val < min_diffs_nz) ? val : min_diffs_nz;
+                    }
+                }
+                printf("Statistics\n");
+                printf("  max number of diffs: %d\n", max_diffs);
+                printf("  min number of nonzero diffs: %d\n", min_diffs_nz);
+            }
+            else {
+                printf(
+                    "%lld of %lld elements (%5.2f%%) contained differences.\n",
+                    total_elements_differing, total_elements,
+                    frac_elements * 100.0
+                );
+            }
+
+        }
+        dashline();
+        printf("%s\n", random_tps_signoff());
+        dashline();
+        /* If 4D, calculate summary statistics */
+    }
+    /* Free the memory! */
     free(a_fname);
     free(b_fname);
 }
