@@ -1081,6 +1081,7 @@ static char *gby[] = {
      "It is never too late to be wise"                               ,
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
+     "If you need me, I'll be in my van"                             ,
 
      /* Mistakes? in AFNI? */
 
