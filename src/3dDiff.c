@@ -57,10 +57,13 @@ printf(
 "where: \n"
 "\n"
 "  -tol TOLERANCE   :(opt) the floating-point tolerance/epsilon\n"
+"\n"
 "  -a DSET_1        :(req) input dataset a\n"
 "\n"
 "  -b DSET_2        :(req) input dataset b\n"
-"with the following (mutually exclusive) display options:\n"
+"\n"
+"... and there are the following (mutually exclusive) display options:\n"
+"\n"
 "  -q               :(opt) quiet mode, indicate 0 for no differences and\n"
 "                          1 for differences. (aka \"Rick Mode\")\n"
 "  -tabular         :(opt) display only a table of differences, plus\n"
@@ -71,7 +74,9 @@ printf(
 "                          were different, and the last number indicates the\n"
 "                          total number of elements/volumes compared.\n"
 "  -tps_report      :(opt) print a large report with lots of information.\n"
+"\n"
 "If no display options are used, a short message with a summary will print.\n"
+"\n"
 "===========================================================================\n"
 "\n"
 "See Also ~2~\n"
@@ -96,11 +101,14 @@ int main( int argc , char * argv[] )
     /* Variables for program args */
     int iarg=1 ; /* position in argument parser */
     float tol = MRI_SIMPLE_DIFF_DEFAULT_TOL ; /* tolerance for equality */
-    int brutalist = 0; /* whether we'll just output one line */
-    int tabular = 0; /* whether we'll print a table */
-    int quiet = 0; /* whether to run in quiet mode */
-    int report = 1; /* whether to print a short report */
-    int tps_report = 0;
+
+    int disp_opt_sum = 0;   /* init to zero, to check excl inp opts */
+    int brutalist    = 0;   /* whether we'll just output one line */
+    int tabular      = 0;   /* whether we'll print a table */
+    int quiet        = 0;   /* whether to run in quiet mode */
+    int report       = 0;   /* whether to print a short report */
+    int tps_report   = 0;
+
     /* TODO: make error summary for all user mistakes simultaneously.
      * Strategy could be to count up arguments, store each error message in
      * a 2D char array, and then print it to the terminal in the desired
@@ -184,19 +192,19 @@ int main( int argc , char * argv[] )
     if ( !b_fname )
         ERROR_exit("No dset b supplied!");
     /* tolerance is guaranteed to exist, validation performed above */
-    if ( brutalist && ( quiet || tabular || tps_report ) ) {
-        ERROR_exit("-brutalist -q, -tabular, -tps_report are incompatible.");
+
+    /*   Thanks to PT for simplifying options for me */
+    disp_opt_sum = brutalist + tabular + quiet + tps_report;
+    if ( !disp_opt_sum ){
+        report = 1;
     }
-    if ( quiet && ( brutalist || tabular || tps_report ) ) {
-        ERROR_exit("-q and -brutalist, -tabular, -tps_report are incompatible.");
+    else if ( disp_opt_sum > 1 ){
+       ERROR_exit("Must choose ONLY one of these display opts:"
+                  "  -brutalist, -tabular, -q, -tps_report");
     }
-    if ( tps_report && ( brutalist || tabular || quiet ) ) {
-        ERROR_exit("-tps_report and -brutalist, -tabular, -q are incompatible.");
-    }
-    /* if any of these options, we don't want a printed report */
-    if ( brutalist || tabular || quiet || tps_report ) {
-        report = 0;
-    }
+    // ... and in any other case, one should have exactly 1 option
+    // entered by the user, and be OK
+
 
     /* Load the images and check for mutual compatibility*/
     set_obliquity_report(0); /* We'll check that ourselves below */
