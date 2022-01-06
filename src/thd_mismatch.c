@@ -131,7 +131,6 @@ int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int ival, float 
    a2 = MRI_DOUBLE_PTR(b2);
    if ( !a1 || !a2 ) RETURN(-1);
    for (int i=0; i<DSET_NVOX(d1); ++i) {
-      printf("Iteration %d of %d\n", i, DSET_NVOX(d1));
       count += ( ABS(a1[i]-a2[i]) > eps);
    }
    mri_clear_data_pointer(b1); mri_free(b1) ;

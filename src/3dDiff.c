@@ -259,6 +259,7 @@ int main( int argc , char * argv[] )
     counts = (int*) calloc(nv, sizeof(int));
     /* If there's a mask, validate and apply it to the dsets */
     if ( mask_fname ) {
+        total_elements = 0;
         THD_3dim_dataset * ds_mask = THD_open_dataset(mask_fname);
         DSET_load(ds_mask); CHECK_LOAD_ERROR(ds_mask);
         if ( THD_dataset_mismatch( ds1, ds_mask ) ) {
@@ -276,7 +277,9 @@ int main( int argc , char * argv[] )
         /* Binarize the mask in an array */
         for (int i = 0; i < nv; ++i) {
             maskarr[i] = THD_get_voxel(ds_mask, i, 0) != 0.0;
+            total_elements += maskarr[i];
         }
+        total_elements *= nt;
 
         /* Iterate over volumes and times */
         for (int t = 0; t < nt; ++t) {
@@ -288,15 +291,21 @@ int main( int argc , char * argv[] )
         }
     }
     else {
+        total_elements = (int64_t)nv * nt;
         for (int t = 0; t < nt; ++t) {
             for (int i = 0; i < nv; ++i) {
-                printf("%d\t%d\n", t, i);
-                counts[t] += THD_count_diffs(ds1, ds2, i, tol);
+                float av = THD_get_voxel(ds1, i, t);
+                float bv = THD_get_voxel(ds2, i, t);
+                counts[t] += ABS( THD_get_voxel(ds1, i, t) - THD_get_voxel(ds2, i, t)) > tol;
             }
         }
     }
+    for (int i = 0; i < nt; ++i) {
+        total_volumes_differing += (counts[i] != 0);
+        total_elements_differing += counts[i];
+    }
     frac_elements = (double)total_elements_differing / total_elements;
-    frac_volumes = (double)total_volumes_differing / DSET_NVALS(ds1);
+    frac_volumes = (double)total_volumes_differing / nt;
 
     /* Do the reporting */
     if ( tabular ) {
@@ -345,9 +354,10 @@ int main( int argc , char * argv[] )
             }
             else {
                 INFO_message(
-                    "Images differ: %d of %d volumes differ (%5.2f%%).",
-                    total_volumes_differing, DSET_NVALS(ds1),
-                    frac_elements * 100
+                    "Images differ: %d of %d volumes differ (%5.2f%%) "
+                    "and %lld of %lld elements (%5.2f%%)",
+                    total_volumes_differing, DSET_NVALS(ds1), frac_volumes * 100,
+                    total_elements_differing, total_elements, frac_elements * 100
                 );
             }
         }
@@ -357,8 +367,8 @@ int main( int argc , char * argv[] )
         printf("3dDiff TPS Report for %s\n", getenv("USER"));
         dashline();
         printf(
-            "Called with options\n  a: %s\n  b: %s\n  tol: %e\n",
-            a_fname, b_fname, tol
+            "Called with options\n  a: %s\n  b: %s\n  mask: %s\ntol: %e\n",
+            a_fname, b_fname, ( mask_fname ) ? mask_fname : "None", tol
         );
 
         if ( total_elements_differing == 0) {
@@ -371,6 +381,12 @@ int main( int argc , char * argv[] )
                     total_volumes_differing, DSET_NVALS(ds1),
                     frac_volumes * 100.0
                 );
+                printf(
+                    "%lld of %lld elements (%5.2f%%) contained differences.\n",
+                    total_elements_differing, total_elements,
+                    frac_elements * 100.0
+                );
+
 
                 /* Calculate the max number of differing elements */
                 for (int i = 0; i < nt; ++i) {
