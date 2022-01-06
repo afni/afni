@@ -4,6 +4,22 @@
 #define MRI_SIMPLE_DIFF_ERROR -1
 #define MRI_SIMPLE_DIFF_DEFAULT_TOL 1e-8f
 
+#define diff3d_crash(...) \
+    do { \
+        if ( quiet ) { \
+            printf("-1\n"); \
+            RETURN ( -1 ); \
+        } \
+        if ( brutalist ) { \
+            printf("-1 -1 -1 -1\n"); \
+            RETURN ( -1 ); \
+        } \
+        if ( report || tps_report ) { \
+            ERROR_exit(__VA_ARGS__); \
+        } \
+    } \
+    while ( 0 )
+
 void repchar(char c, int reps) {
     for (int i = 0; i < reps; ++i) putchar(c);
 }
@@ -52,11 +68,13 @@ printf(
 "\n"
 "written by: %s\n"
 "\n"
-"Usage: 3dDiff  [display opt] [-tol TOLERANCE] <-a DSET_1> <-b DSET_2>\n"
+"Usage: 3dDiff  [display opt] [-tol TOLERANCE] [-mask MASK] <DSET_1> <DSET_2>\n"
 "\n"
 "where: \n"
 "\n"
 "  -tol TOLERANCE   :(opt) the floating-point tolerance/epsilon\n"
+"\n"
+"  -mask MASK:      :(opt) the mask to use when comparing\n"
 "\n"
 "  -a DSET_1        :(req) input dataset a\n"
 "\n"
@@ -84,9 +102,7 @@ printf(
 "    If this program reports that the images cannot be element-wise compared,\n"
 "you can examine the header information with 3dinfo. In particular, check out\n"
 "the section, \"Options requiring dataset pairing at input\", most notably\n"
-"options starting with \"same\", for example, -same_grid. You may also use 3dinfo\n"
-"in place of this program, using -val_ndiff. However, options such as -tol and\n"
-"-brutalist will not be available."
+"options starting with \"same\", for example, -same_grid.\n"
 "\n",
 author );
 
@@ -96,7 +112,7 @@ return 0;
 int main( int argc , char * argv[] )
 {
     /* Variables for reading in the dsets */
-    char *a_fname, *b_fname = NULL;
+    char *a_fname, *b_fname, *mask_fname= NULL;
     THD_3dim_dataset *ds1, *ds2 = NULL;
     /* Variables for program args */
     int iarg=1 ; /* position in argument parser */
@@ -134,17 +150,30 @@ int main( int argc , char * argv[] )
     if (argc == 1) { help_3dDiff(); exit(0); } /* No args supplied */
 
     while ( iarg < argc && argv[iarg][0] == '-'){
+        /* Show help if requested */
+        if ( strncmp(argv[iarg],"-h",2) == 0 ||
+             strncmp(argv[iarg],"--help",6) == 0) {
+            help_3dDiff(); exit(0);
+        }
+
         /* OPTIONAL: tolerance */
         if ( strncmp(argv[iarg],"-tol",4) == 0) {
-            if (iarg >= argc) ERROR_exit("Need value after -tol");
+            if (iarg >= argc) diff3d_crash("Need value after -tol");
             if ( sscanf( argv[++iarg] , "%f", &tol ) != 1 ) {
-                ERROR_exit("Cannot parse tolerance!\n") ;
+                diff3d_crash("Cannot parse tolerance!\n") ;
             }
+            iarg++; continue;
+        }
+
+        /* OPTIONAL: mask */
+        if ( strncmp(argv[iarg],"-mask",5) == 0) {
+            if (++iarg >= argc) diff3d_crash("Need dset after -mask");
+            mask_fname = strdup(argv[iarg]);
             iarg++; continue;
         }
         
         /* OPTIONAL: brutalist */
-        if ( strcmp(argv[iarg],"-brutalist") == 0) {
+        if ( strncmp(argv[iarg],"-brutalist",10) == 0) {
             brutalist = 1;
             iarg++; continue;
         }
@@ -169,28 +198,28 @@ int main( int argc , char * argv[] )
 
         /* left image */
         if ( strncmp(argv[iarg],"-a",2) == 0) {
-            if (++iarg >= argc) ERROR_exit("Need dset after -a");
+            if (++iarg >= argc) diff3d_crash("Need dset after -a");
             a_fname = strdup(argv[iarg]);
             iarg++; continue;
         }
 
         /* right image */
         if ( strncmp(argv[iarg],"-b",2) == 0) {
-            if (++iarg >= argc) ERROR_exit("Need dset after -b");
+            if (++iarg >= argc) diff3d_crash("Need dset after -b");
             b_fname = strdup(argv[iarg]);
             iarg++; continue;
         }
-
+        
         ERROR_message("ILLEGAL option: %s\n", argv[iarg]) ;
-                suggest_best_prog_option(argv[0], argv[iarg]);
+        suggest_best_prog_option(argv[0], argv[iarg]);
         exit(1);
     }
 
     /* Validate args */
     if ( !a_fname )
-        ERROR_exit("No dset a supplied!");
+        diff3d_crash("No dset a supplied!");
     if ( !b_fname )
-        ERROR_exit("No dset b supplied!");
+        diff3d_crash("No dset b supplied!");
     /* tolerance is guaranteed to exist, validation performed above */
 
     /*   Thanks to PT for simplifying options for me */
@@ -199,7 +228,7 @@ int main( int argc , char * argv[] )
         report = 1;
     }
     else if ( disp_opt_sum > 1 ){
-       ERROR_exit("Must choose ONLY one of these display opts:"
+       diff3d_crash("Must choose ONLY one of these display opts:"
                   "  -brutalist, -tabular, -q, -tps_report");
     }
     // ... and in any other case, one should have exactly 1 option
@@ -209,32 +238,61 @@ int main( int argc , char * argv[] )
     /* Load the images and check for mutual compatibility*/
     set_obliquity_report(0); /* We'll check that ourselves below */
     ds1 = THD_open_dataset(a_fname);
-    if ( ds1 == NULL ) ERROR_exit("Can't open dataset %s", a_fname);
+    if ( ds1 == NULL ) diff3d_crash("Can't open dataset %s", a_fname);
+    if ( mask_fname ) DSET_mallocize(ds1);
     DSET_load(ds1); CHECK_LOAD_ERROR(ds1);
     ds2 = THD_open_dataset(b_fname);
-    if ( ds2 == NULL ) ERROR_exit("Can't open dataset %s", b_fname);
+    if ( ds2 == NULL ) diff3d_crash("Can't open dataset %s", b_fname);
+    if ( mask_fname ) DSET_mallocize(ds2);
     DSET_load(ds2); CHECK_LOAD_ERROR(ds2);
     if ( THD_dataset_mismatch( ds1, ds2 ) ) {
-        ERROR_exit("Mismatch between dsets!\n");
+        diff3d_crash("Mismatch between dsets!\n");
     }
     if ( DSET_NVALS(ds1) != DSET_NVALS(ds2) ) {
-        ERROR_exit(
+        diff3d_crash(
             "Incompatible time points: dset %s contains %d timepoints, dset %s contains %d timepoints",
             a_fname, DSET_NVALS(ds1), b_fname, DSET_NVALS(ds2)
         );
     }
     nt = DSET_NVALS(ds1);
     nv = DSET_NVOX(ds1);
-    total_elements = (int64_t) nt * nv;
-    /* Allocate array for storing each volume's number of differing
-     * elements, so we can print a table later */
-    counts = calloc(nt, sizeof( int ));
+    /* If there's a mask, validate and apply it to the dsets */
+    if ( mask_fname ) {
+        THD_3dim_dataset * ds_mask = THD_open_dataset(mask_fname);
+        DSET_load(ds_mask); CHECK_LOAD_ERROR(ds_mask);
+        if ( THD_dataset_mismatch( ds1, ds_mask ) ) {
+            diff3d_crash("Mismatch between input and mask dsets!\n");
+        }
+        if ( DSET_NVOX(ds_mask) != nv ) {
+            diff3d_crash("WTF bro?");
+        }
 
-    for (int i = 0; i < nt; ++i) {
-        counts[i] = THD_count_diffs(ds1, ds2, i, tol);
-        if ( counts[i] ) {
-            ++total_volumes_differing;
-            total_elements_differing += counts[i];
+        /* Allocate an array to get a binary mask */
+        float * maskarr = (float*) calloc( nv, sizeof(float));
+        float * ds1_masked = (float*) calloc( nv, sizeof(float));
+        float * ds2_masked = (float*) calloc( nv, sizeof(float));
+
+        /* Binarize the mask in an array */
+        for (int i = 0; i < nv; ++i) {
+            printf("%d of %d good\n", i, nv);
+            maskarr[i] = THD_get_voxel(ds_mask, i, 0) != 0.0;
+        }
+
+        /* Iterate over volumes and times */
+        for (int t = 0; t < nt; ++t) {
+            for (int i = 0; i < nv; ++i) {
+                float av = THD_get_voxel(ds1, i, t) * maskarr[i];
+                float bv = THD_get_voxel(ds2, i, t) * maskarr[i];
+                counts[t] += ABS(av - bv) > tol;
+            }
+        }
+    }
+    else {
+        for (int t = 0; t < nt; ++t) {
+            for (int i = 0; i < nv; ++i) {
+                printf("%d\t%d\n", t, i);
+                counts[t] += THD_count_diffs(ds1, ds2, i, tol);
+            }
         }
     }
     frac_elements = (double)total_elements_differing / total_elements;
@@ -268,25 +326,30 @@ int main( int argc , char * argv[] )
         }
     }
     if ( quiet ) {
+        /* We should short-circuit early and exit, so if we made it here
+         * then there should be no differences; leaving check in place in
+         * case some future JBT or collaborator messes that up. */
         printf("%d\n", ( total_elements_differing != 0 ));
     }
     if ( report ) {
         if ( total_elements_differing == 0) {
             INFO_message("Images do NOT differ");
         }
-        if ( nt == 1 ) {
-            INFO_message(
-                "Images differ: %d of %d elements differ (%5.2f%%)",
-                total_elements_differing, total_elements,
-                frac_elements * 100
-            );
-        }
         else {
-            INFO_message(
-                "Images differ: %d of %d volumes differ (%5.2f%%).",
-                total_volumes_differing, DSET_NVALS(ds1),
-                frac_elements * 100
-            );
+            if ( nt == 1 ) {
+                INFO_message(
+                    "Images differ: %d of %d elements differ (%5.2f%%)",
+                    total_elements_differing, total_elements,
+                    frac_elements * 100
+                );
+            }
+            else {
+                INFO_message(
+                    "Images differ: %d of %d volumes differ (%5.2f%%).",
+                    total_volumes_differing, DSET_NVALS(ds1),
+                    frac_elements * 100
+                );
+            }
         }
     }
     if ( tps_report ) {
@@ -337,9 +400,12 @@ int main( int argc , char * argv[] )
         dashline();
         printf("%s\n", random_tps_signoff());
         dashline();
-        /* If 4D, calculate summary statistics */
     }
     /* Free the memory! */
     free(a_fname);
     free(b_fname);
+    free(mask_fname);
+    free(counts);
+    free(ds1);
+    free(ds2);
 }

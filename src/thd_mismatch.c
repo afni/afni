@@ -113,14 +113,13 @@ double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
            =  n The number of differing voxels
 -----------------------------------------------------------------------*/
 int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int ival, float eps) {
-   double dd=0.0;
    int count=0;
    double *a1=NULL, *a2=NULL;
    MRI_IMAGE *b1 = NULL , *b2 = NULL;
 
    ENTRY("THD_count_diffs");
 
-   if (!d1 && !d2) RETURN(dd);
+   if (!d1 && !d2) RETURN(-1);
    if (!d1 || !d2) RETURN(-1);
 
    if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
@@ -130,9 +129,10 @@ int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int ival, float 
    b2 = THD_extract_double_brick(ival, d2);
    a1 = MRI_DOUBLE_PTR(b1);
    a2 = MRI_DOUBLE_PTR(b2);
-   for (int k=0; k<DSET_NVOX(d1); ++k) {
-      dd = ABS(a1[k]-a2[k]);
-      if (dd > eps) ++count;
+   if ( !a1 || !a2 ) RETURN(-1);
+   for (int i=0; i<DSET_NVOX(d1); ++i) {
+      printf("Iteration %d of %d\n", i, DSET_NVOX(d1));
+      count += ( ABS(a1[i]-a2[i]) > eps);
    }
    mri_clear_data_pointer(b1); mri_free(b1) ;
    mri_clear_data_pointer(b2); mri_free(b2) ;
