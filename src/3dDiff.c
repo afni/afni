@@ -267,7 +267,7 @@ int main( int argc , char * argv[] )
             );
         }
     }
-    if ( quiet ) { // [PT: Jan 5, 2022] pretty sure this needs to be '!='
+    if ( quiet ) {
         printf("%d\n", ( total_elements_differing != 0 ));
     }
     if ( report ) {
