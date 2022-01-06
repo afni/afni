@@ -256,6 +256,7 @@ int main( int argc , char * argv[] )
     }
     nt = DSET_NVALS(ds1);
     nv = DSET_NVOX(ds1);
+    counts = (int*) calloc(nv, sizeof(int));
     /* If there's a mask, validate and apply it to the dsets */
     if ( mask_fname ) {
         THD_3dim_dataset * ds_mask = THD_open_dataset(mask_fname);
@@ -274,7 +275,6 @@ int main( int argc , char * argv[] )
 
         /* Binarize the mask in an array */
         for (int i = 0; i < nv; ++i) {
-            printf("%d of %d good\n", i, nv);
             maskarr[i] = THD_get_voxel(ds_mask, i, 0) != 0.0;
         }
 
