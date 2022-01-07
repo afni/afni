@@ -14,7 +14,7 @@
             printf("-1 -1 -1 -1\n"); \
             RETURN ( -1 ); \
         } \
-        if ( report || tps_report ) { \
+        if ( report || long_report ) { \
             ERROR_exit(__VA_ARGS__); \
         } \
     } \
@@ -38,24 +38,6 @@ int jbt_get_terminal_width() {
 void dashline() {
     repchar('-', jbt_get_terminal_width());
     putchar('\n');
-}
-
-char * random_tps_signoff() {
-    static char signoffs[5][256] = {
-        "Yeahhhhh, if you could look at your data, that'd be greeeat"
-        " --Beefield Lumbergh",
-        "I will analyze this place to the ground"
-        " --Magnilton",
-        "It's just a few p-values, who will notice?"
-        " -- Statisticir",
-        "So, what exactly do you collect here?"
-        " -- the Beep Beeps",
-        "No. No, man. Science, no. I believe you'd get your paper"
-        " rejected saying something like that, man."
-        " -- P-value Gibbons"
-    };
-    srand(time(NULL));
-    return signoffs[rand() % 5];
 }
 
 int help_3dDiff()
@@ -91,7 +73,7 @@ printf(
 "                          indicates how many elements (3D) or volumes (4D)\n"
 "                          were different, and the last number indicates the\n"
 "                          total number of elements/volumes compared.\n"
-"  -tps_report      :(opt) print a large report with lots of information.\n"
+"  -long_report      :(opt) print a large report with lots of information.\n"
 "\n"
 "If no display options are used, a short message with a summary will print.\n"
 "\n"
@@ -123,7 +105,7 @@ int main( int argc , char * argv[] )
     int tabular      = 0;   /* whether we'll print a table */
     int quiet        = 0;   /* whether to run in quiet mode */
     int report       = 0;   /* whether to print a short report */
-    int tps_report   = 0;
+    int long_report   = 0;
 
     /* TODO: make error summary for all user mistakes simultaneously.
      * Strategy could be to count up arguments, store each error message in
@@ -190,9 +172,9 @@ int main( int argc , char * argv[] )
             iarg++; continue;
         }
 
-        /* OPTIONAL: tps_report */
-        if ( strcmp(argv[iarg],"-tps_report") == 0) {
-            tps_report = 1;
+        /* OPTIONAL: long_report */
+        if ( strcmp(argv[iarg],"-long_report") == 0) {
+            long_report = 1;
             iarg++; continue;
         }
 
@@ -223,13 +205,13 @@ int main( int argc , char * argv[] )
     /* tolerance is guaranteed to exist, validation performed above */
 
     /*   Thanks to PT for simplifying options for me */
-    disp_opt_sum = brutalist + tabular + quiet + tps_report;
+    disp_opt_sum = brutalist + tabular + quiet + long_report;
     if ( !disp_opt_sum ){
         report = 1;
     }
     else if ( disp_opt_sum > 1 ){
        diff3d_crash("Must choose ONLY one of these display opts:"
-                  "  -brutalist, -tabular, -q, -tps_report");
+                  "  -brutalist, -tabular, -q, -long_report");
     }
     // ... and in any other case, one should have exactly 1 option
     // entered by the user, and be OK
@@ -362,12 +344,12 @@ int main( int argc , char * argv[] )
             }
         }
     }
-    if ( tps_report ) {
+    if ( long_report ) {
         dashline();
-        printf("3dDiff TPS Report for %s\n", getenv("USER"));
+        printf("3dDiff Report for %s\n", getenv("USER"));
         dashline();
         printf(
-            "Called with options\n  a: %s\n  b: %s\n  mask: %s\ntol: %e\n",
+            "Called with options\n  a: %s\n  b: %s\n  mask: %s\n  tol: %e\n",
             a_fname, b_fname, ( mask_fname ) ? mask_fname : "None", tol
         );
 
@@ -413,8 +395,6 @@ int main( int argc , char * argv[] )
             }
 
         }
-        dashline();
-        printf("%s\n", random_tps_signoff());
         dashline();
     }
     /* Free the memory! */
