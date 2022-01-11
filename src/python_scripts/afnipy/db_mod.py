@@ -41,7 +41,7 @@ g_oc_methods = [
     # https://github.com/ME-ICA/tedana
     'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
     'm_tedana_OC',      # ts_OC.nii              from m_tedana
-    'm_tedana_tedort'   # tedana --tedort
+    'm_tedana_m_tedort' # tedana --tedort (MEICA group tedort)
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -3180,9 +3180,9 @@ def db_cmd_combine(proc, block):
 
    # do we want to use the MEICA group's tedana version?
    if ted_meth == 2:
-      mcstr = ' (tedana from MEICA group)'
+      mcstr = '\n# (tedana from MEICA group)'
    elif ted_meth == 1:
-      mcstr = ' (tedana.py)'
+      mcstr = '\n# (tedana.py from Prantik)'
    else:
       mcstr = ''
 
@@ -3192,8 +3192,8 @@ def db_cmd_combine(proc, block):
          return
 
    # write commands
-   cmd =  '# %s\n'                                            \
-          '# combine multi-echo data per run, using %s%s\n\n' \
+   cmd =  '# %s\n'                                                   \
+          '# combine multi-echo data per run, using method %s%s\n\n' \
           % (block_header('combine'), ocmeth, mcstr)
 
    # handle any MEICA tedana methods separately
@@ -3321,7 +3321,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
       getorts = 0
       dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
-   elif method == 'm_tedana_tedort':
+   elif method == 'm_tedana_m_tedort':
       getorts = 0
       dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
       exopts.append('--tedort')
@@ -3380,9 +3380,8 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
    #             consider --png
    # note: tedana will mask if we don't, so always specify one
-   cmd =                                                                    \
-       '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
-       '#       see also: https://tedana.readthedocs.io\n\n'         \
+   cmd =                                                             \
+       '# see also: https://tedana.readthedocs.io\n\n'               \
        '%s'                                                          \
        '%s'                                                          \
        '# first run tedana commands, to see if they all succeed\n'   \
@@ -3393,8 +3392,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '%s'                                                          \
        '          --out-dir tedana_r$run --convention orig\n'        \
        'end\n\n'                                                     \
-       % (method, vstr, mstr, prev_prefix, proc.mask.nice_input(head=1),
-          exoptstr)
+       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
 
 
    # ----------------------------------------------------------------------
@@ -13314,7 +13312,8 @@ g_help_options = """
 
                 m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
                 m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
-                m_tedana_tedort  : tedana from MEICA group (dn_ts_OC.nii.gz)
+                m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
+                                   "tedort" from MEICA group
                                    (--tedort: "good" projected from "bad")
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
@@ -13330,9 +13329,10 @@ g_help_options = """
             combine the echoes, and the tedort components will be passed on to
             the regress block).
 
-            The 'm_tedana_tedort' method for the MEICA group's passes --tedort
-            to tedana, and tedana does the "good" from "bad" projection before
-            projecting the modified "bad" components from the time series.
+            The 'm_tedanam_m_tedort' method for the MEICA group's passes
+            option --tedort to 'tedana', and tedana does the "good" from "bad"
+            projection before projecting the modified "bad" components from the
+            time series.
 
             Please see '@compute_OC_weights -help' for more information.
             Please see '@extract_meica_ortvec -help' for more information.

@@ -705,9 +705,12 @@ g_history = """
        - update m_tedana/m_tedana_OC combine methods to work with new tedana
          (use 3dcalc to copy results, preserving space/view, use float)
     7.23 Dec  3, 2021: add the m_tedana_tedort -combine_method
+    7.24 Jan 11, 2022:
+       - rename m_tedana_tedort to m_tedana_m_tedort
+         (reserve m_tedana_tedort for AFNI tedort projection)
 """
 
-g_version = "version 7.23, December 3, 2021"
+g_version = "version 7.24, January 11, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

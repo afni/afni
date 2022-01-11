@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "rename -combine_method m_tedana_tedort to m_tedana_m_tedort",
+   "Reserve the former for future tedort projection via AFNI."
+ } ,
+
  { 11, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "add option -disp_ver_matplotlib",
    "Done under the now-even-more-strict-than-before orders from P Taylor."
@@ -277,7 +282,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
-   "turn of local signing in crorden/dcm2niix_console/makefile",
+   "turn off local signing in crorden/dcm2niix_console/makefile",
    NULL
  } ,
 
