@@ -1718,6 +1718,10 @@ static char *gby[] = {
      // Awoonor
      "Who can tell where any bird will fall?"     ,
 
+     // Kurt Goedel
+     "\n  The more I think about language, the more it amazes me\n"
+     "  that people ever understand each other."                                                ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
