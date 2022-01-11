@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jan, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "if no .tcshrc, create one to source .cshrc",
+   "Done under strict orders from P Taylor."
+ } ,
+
  { 29, Dec, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -write_simple_tsv",
    "Also, read and write default mod_* modifier columns."

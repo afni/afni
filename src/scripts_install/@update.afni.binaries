@@ -82,6 +82,7 @@ history for $prog :
   3.15  4 May 2020 : fixed download of test file
   3.16 16 Sep 2020 : populate .zshrc like .bashrc, and with autoload commands
   3.17 21 Oct 2021 : allow for previously set DYLD_LIBRARY_PATH in tcsh
+  3.18 10 Jan 2022 : if no .tcshrc, create one to source .cshrc
 
 -------------------------------------------------------------------------------
 EOF
@@ -90,7 +91,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.16, September 16, 2020"
+set aub_version = "3.18, January 10, 2022"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -1242,14 +1243,29 @@ endif
 set rcfile = ~/.cshrc
 if ( $do_dotfiles && -d $abin && $?USER ) then
    if ( $USER != root ) then
+      # if no .tcshrc, make one
+      set make_tcshrc = 0
+
+      # if .tcshrc, use it, else .cshrc
       if ( -f ~/.tcshrc ) then
          set rcfile = ~/.tcshrc
       else if ( -f ~/.cshrc ) then
          set rcfile = ~/.cshrc
+         set make_tcshrc = 1
       else
          set rcfile = ~/.cshrc
          echo ++ creating empty $rcfile
          touch $rcfile
+         set make_tcshrc = 1
+      endif
+
+      # if no .tcshrc, make a .tcshrc file to source .cshrc
+      if ( $make_tcshrc ) then
+         set rctmp = ~/.tcshrc
+         echo "++ will source .cshrc from newly created $rctmp"
+         echo ''                                              >  $rctmp
+         echo '# auto-inserted by @update.afni.binaries :'    >> $rctmp
+         echo 'source $HOME/.cshrc'                           >> $rctmp
       endif
 
       # tcsh: set path
