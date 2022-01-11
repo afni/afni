@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "add option -disp_ver_matplotlib",
+   "Done under the now-even-more-strict-than-before orders from P Taylor."
+ } ,
+
  { 10, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "matplotlib is required ; check version >= 2.2",
    NULL

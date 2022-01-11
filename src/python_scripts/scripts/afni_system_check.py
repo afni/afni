@@ -52,6 +52,7 @@ action options:
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
    -disp_num_cpu        : display number of CPUs available
+   -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
    -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
@@ -231,10 +232,12 @@ g_history = """
    1.14 Oct 29, 2021 - on mac, check for standard R not in PATH
    1.15 Nov 13, 2021 - add -disp_num_cpu opt to show number of available cpus
    1.16 Jan 05, 2022 - check for having both .cshrc and .tcshrc
-   1.17 Jan 10, 2022 - matplotlib is now required, check version >= 2.2
+   1.17 Jan 11, 2022
+        - add -disp_ver_matplotlib
+        - matplotlib version >= 2.2 is now required in AFNI
 """
 
-g_version = "afni_system_check.py version 1.17, January 10, 2022"
+g_version = "afni_system_check.py version 1.17, January 11, 2022"
 
 
 class CmdInterface:
@@ -293,6 +296,10 @@ class CmdInterface:
                       helpstr='perform all system checks')
       self.valid_opts.add_opt('-data_root', 1, [],
                       helpstr='directory to check for class data')
+      self.valid_opts.add_opt('-disp_num_cpu', 0, [],
+                      helpstr='display number of CPUs available')
+      self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
+                      helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
                       helpstr='list found dot files')
       self.valid_opts.add_opt('-dot_file_pack', 1, [],
@@ -306,8 +313,6 @@ class CmdInterface:
                       helpstr='search path for *PROG*')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set verbosity level (default=1)')
-      self.valid_opts.add_opt('-disp_num_cpu', 0, [],
-                      helpstr='display number of CPUs available')
 
       return 0
 
@@ -371,6 +376,11 @@ class CmdInterface:
          if opt.name == '-disp_num_cpu':
             self.act = 1
             self.sys_disp.append('num_cpu')
+            continue
+
+         if opt.name == '-disp_ver_matplotlib':
+            self.act = 1
+            self.sys_disp.append('ver_matplotlib')
             continue
 
          if opt.name == '-data_root':
@@ -441,6 +451,8 @@ class CmdInterface:
       for x in items:
           if x == 'num_cpu':
               print(self.sinfo.get_cpu_count())
+          if x == 'ver_matplotlib':
+              print(self.sinfo.get_ver_matplotlib())
 
    def check_dotfiles(self, show=0, pack=0):
       global g_dotfiles

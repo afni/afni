@@ -951,9 +951,9 @@ class SysInfo:
 
    def test_python_lib_matplotlib(self, verb=2):
       """check for existence of matplotlib.pyplot and min matplotlib version
-         (2.2)
+         (>= 2.2)
 
-         returnn 0 if happy
+         return 0 if happy
       """
       # actual lib test
       plib = 'matplotlib.pyplot'
@@ -965,24 +965,38 @@ class SysInfo:
          self.comments.append(' (see AFNI install docs for details)')
          return 1
 
-      # have matplotlib, check version
+      # we have matplotlib, try to show and parse version
       warn = 1
-      try:
-         import matplotlib as MP
-         ver = MP.__version__
-         print("   matplotlib version : %s" % ver)
-         vlist = ver.split('.')
-         if int(vlist[0]) > 2:
-            warn = 0
-         elif int(vlist[0]) == 2 and int(vlist[1]) >= 2:
-            warn = 0
-      except:
-         print("** failed to check matplotlib version")
+      mver = self.get_ver_matplotlib()
+      if mver == 'None':
+         print("** failed to get matplotlib version")
+      else:
+         print("   matplotlib version : %s" % mver)
+         try:
+            vlist = mver.split('.')
+            # if version is high enough, turn off warn
+            if int(vlist[0]) > 2:
+               warn = 0
+            elif int(vlist[0]) == 2 and int(vlist[1]) >= 2:
+               warn = 0
+         except:
+            print("** failed to check matplotlib version")
 
       if warn:
          wstr = 'need maptplotlib version 2.2+ for APQC'
          print("** %s\n" % wstr)
          self.comments.append('check for partial install of PyQt4')
+
+   def get_ver_matplotlib(self):
+      """simply return a matplotlib version string, and "None" on failure.
+      """
+      try:
+         import matplotlib as MP
+         ver = MP.__version__
+      except:
+         ver = 'None'
+
+      return ver
 
    def test_python_lib_pyqt4(self, verb=2):
       # actual lib test
