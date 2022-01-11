@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "if missing, init .afnirc/.sumarc",
+   NULL
+ } ,
+
  { 11, Jan, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "rename -combine_method m_tedana_tedort to m_tedana_m_tedort",
    "Reserve the former for future tedort projection via AFNI."

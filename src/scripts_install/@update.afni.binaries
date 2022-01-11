@@ -83,6 +83,7 @@ history for $prog :
   3.16 16 Sep 2020 : populate .zshrc like .bashrc, and with autoload commands
   3.17 21 Oct 2021 : allow for previously set DYLD_LIBRARY_PATH in tcsh
   3.18 10 Jan 2022 : if no .tcshrc, create one to source .cshrc
+  3.19 11 Jan 2022 : if not found, init .afnirc/.sumarc
 
 -------------------------------------------------------------------------------
 EOF
@@ -91,7 +92,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.18, January 10, 2022"
+set aub_version = "3.19, January 11, 2022"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -404,11 +405,15 @@ options:
 
     -do_dotfiles          : if needed, try to initialize dot files
 
-        If .cshrc (or maybe .tcshrc) or .bashrc do not have the
-        AFNI binary directory in the file (grep), add a line to
-        update the PATH in each file.
+        If .cshrc (or maybe .tcshrc) or .bashrc or .zshrc do not have the
+        AFNI binary directory in the file (grep), add a line to update the
+        PATH in each file.
 
-        Both files are updated (if need be).
+        All files are updated (if need be).
+
+        Also, if on a mac, set DYLD_LIBRARY_PATH in similar files.
+
+        Also, init .afnirc and .sumarc if they do not yet exist.
 
       * This option has no effect for the root user.
 
@@ -1392,6 +1397,19 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
             echo '. $HOME/.bashrc'                               >> $brcfile
          endif
       end
+
+      # if .afnirc or .sumarc are not present, initialize them
+      set rcfile = ~/.afnirc
+      if ( ! -f $rcfile ) then
+         echo "++ initializing .afnirc from AFNI.afnirc"
+         \cp $abin/AFNI.afnirc $rcfile
+      endif
+
+      set rcfile = ~/.sumarc
+      if ( ! -f $rcfile ) then
+         echo "++ initializing .sumarc via 'suma -update_env'"
+         $abin/suma -update_env
+      endif
 
    endif
 endif
