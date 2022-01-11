@@ -949,6 +949,41 @@ class SysInfo:
 
       return nfound
 
+   def test_python_lib_matplotlib(self, verb=2):
+      """check for existence of matplotlib.pyplot and min matplotlib version
+         (2.2)
+
+         returnn 0 if happy
+      """
+      # actual lib test
+      plib = 'matplotlib.pyplot'
+      rv = self.test_python_lib(plib, mesg='required', verb=verb)
+
+      # if missing, we are done
+      if rv:
+         self.comments.append('python library matplotlib is required')
+         self.comments.append(' (see AFNI install docs for details)')
+         return 1
+
+      # have matplotlib, check version
+      warn = 1
+      try:
+         import matplotlib as MP
+         ver = MP.__version__
+         print("   matplotlib version : %s" % ver)
+         vlist = ver.split('.')
+         if int(vlist[0]) > 2:
+            warn = 0
+         elif int(vlist[0]) == 2 and int(vlist[1]) >= 2:
+            warn = 0
+      except:
+         print("** failed to check matplotlib version")
+
+      if warn:
+         wstr = 'need maptplotlib version 2.2+ for APQC'
+         print("** %s\n" % wstr)
+         self.comments.append('check for partial install of PyQt4')
+
    def test_python_lib_pyqt4(self, verb=2):
       # actual lib test
       libname = 'PyQt4'
@@ -1000,13 +1035,18 @@ class SysInfo:
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyone main ones
-      extralibs = ['matplotlib.pyplot']
+      # (empty for now, since matplotlib got its own function)
+      extralibs = []
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
 
       # itemize special libraries to test: PyQt4
       self.test_python_lib_pyqt4(verb=verb)
+      print('')
+
+      # itemize special libraries to test: matplotlib.pyplot
+      self.test_python_lib_matplotlib(verb=verb)
       print('')
 
       # then go after any others

@@ -53,9 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "matplotlib is required ; check version >= 2.2",
+   NULL
+ } ,
+
  { 10, Jan, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "if no .tcshrc, create one to source .cshrc",
    "Done under strict orders from P Taylor."
+ } ,
+
+ {  5, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for having both .cshrc and .tcshrc",
+   NULL
  } ,
 
  { 29, Dec, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
