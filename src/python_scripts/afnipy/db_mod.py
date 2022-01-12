@@ -13290,8 +13290,17 @@ g_help_options = """
                 default: OC
 
             When using the 'combine' block to combine echoes (for each run),
-            this option can be used to specify the method used.   Methods:
+            this option can be used to specify the method used.  There are:
 
+                - basic methods
+                - methods using tedana.py (or similar) from Prantik
+                - methods using tedana from the MEICA group
+
+
+            ---- basic combine methods (that do not use any tedana) ----
+
+                methods
+                -------
                 mean             : simple mean of echoes
                 OC               : optimally combined (via @compute_OC_weights)
                                    (current default is OC_A)
@@ -13300,21 +13309,50 @@ g_help_options = """
                                    (there is little difference between OC_A
                                    and OC_B)
 
-                   -- combine methods that use Prantik's "original" tedana.py --
+            ---- combine methods that use Prantik's "original" tedana.py ----
 
+               Prantik's tedana.py is run using the 'tedana*' combine methods.
+
+                  Prantik's tedana.py requires python 2.7.
+
+                  By default, tedana.py will be applied from the AFNI
+                  installation directory.
+
+                  Alternatively, one can specify the location of a different
+                  tedana.py using -combine_tedana_path.  And if it is 
+                  preferable to run it as an executable (as opposed to running
+                  it via 'python PATH/TO/tedana.py'), one can tell this to
+                  tedana_wrapper.py by applying:
+                         -combine_opts_tedwrap -tedana_is_exec
+
+                methods
+                -------
                 OC_tedort        : OC, and pass tedana orts to regression
                 tedana           : run tedana.py, using output dn_ts_OC.nii
                 tedana_OC        : run tedana.py, using output ts_OC.nii
                                    (i.e. use tedana.py for optimally combined)
                 tedana_OC_tedort : tedana_OC, and include tedana orts
 
-                   -- combine methods that use tedana from the MEICA group --
 
+            ---- combine methods that use tedana from the MEICA group ----
+
+               The MEICA group tedana is specified with 'm_tedana*' methods.
+
+                  This tedana requires python 3.6+.
+
+                  AFNI does not distribute this version of tedana, so it must
+                  be in the PATH.  For installation details, please see:
+
+                     https://tedana.readthedocs.io/en/stable/installation.html
+
+                methods
+                -------
                 m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
                 m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
                 m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
                                    "tedort" from MEICA group
                                    (--tedort: "good" projected from "bad")
+
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017
