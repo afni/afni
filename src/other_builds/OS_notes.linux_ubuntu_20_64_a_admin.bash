@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Quick build setup script 1/3.
 # From bash shell:
 #   sudo bash OS_notes.linux_ubuntu_20_64_a_admin.txt 2>&1 | tee o.ubu_20_a.txt
