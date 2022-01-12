@@ -219,7 +219,7 @@ return 0;
 int main( int argc , char * argv[] )
 {
     /* Variables for reading in the dsets */
-    char *a_fname, *b_fname, *mask_fname= NULL;
+    char *a_fname=NULL, *b_fname=NULL, *mask_fname= NULL;
     THD_3dim_dataset *ds1, *ds2 = NULL;
     /* Variables for program args */
     int iarg=1 ; /* position in argument parser */
