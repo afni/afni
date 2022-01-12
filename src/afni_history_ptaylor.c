@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Jan , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
+   "Add '-save_ftype ..' opt to this script, to make @animal_warper happy.",
+   "Thanks, DRG, for pointing this out.\n"
+},
+
 { 29, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_GENERAL,
    "Change default sigma_rad to be 1.4, not 2.0, to capture more details.",
    "This is because results look much better in human T1w dset.\n"
