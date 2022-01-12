@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2022, RCR, "tedana.py", MINOR, TYPE_MODIFY,
+   "even without -seed, always apply a seed (default = 42)",
+   "Now 2 executions should produce the same result, unless -seed is\n"
+   "modified.  This matches the MEICA group tedana."
+ } ,
+
  { 11, Jan, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "if missing, init .afnirc/.sumarc",
    NULL
