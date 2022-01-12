@@ -1,0 +1,19 @@
+# Quick build setup script 1/3.
+# From bash shell:
+#   sudo bash OS_notes.linux_fedora_a_admin.txt 2>&1 | tee o.fedora_a.txt
+# From tcsh shell:
+#   sudo bash OS_notes.linux_fedora_a_admin.txt |& tee o.fedora_a.txt
+
+
+# To be able to install latest packages, copy+paste:
+sudo yum update -y
+
+# main deps
+sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                    PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                    xorg-x11-server-Xvfb firefox                       \
+                    python3-matplotlib
+sudo yum update -y
+
+
+echo "++ Done with sudo-required part"
