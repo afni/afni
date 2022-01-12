@@ -61,6 +61,9 @@ def _interpolate(a, b, fraction):
 def init_random_seeds(seed):
     """if seed is None, init to 42, of course
        else, init with strig coverted to int
+
+       The random and "numx_rand" libraries are used elsewhere in this tree
+       (e.g. meica.libs/mdp/utils/routines.py), so initialize seeds for both.
     """
     import random
     from scipy import random as numx_rand
