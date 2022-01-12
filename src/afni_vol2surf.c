@@ -365,7 +365,8 @@ ENTRY("map_v2s_results");
         /* set the overlay color indices */
         for( ival=0 ; ival < npanes ; ival++ )
             ovc[ival] = pbar->ov_index[ival];   /* from top of pbar down */
-        ovc[npanes] = im3d->vinfo->use_posfunc ? 0 : ovc[npanes-1];
+        /* npanes->ival to remove compile warning    [12 Jan 2022 rickr] */
+        ovc[ival] = im3d->vinfo->use_posfunc ? 0 : ovc[ival-1];
 
         /* get the actual RGB colors of each pane on the pbar */
         for( ival=0 ; ival <= npanes ; ival++ ) /* include npanes 27 Aug 2007 */
@@ -378,7 +379,8 @@ ENTRY("map_v2s_results");
         /* compute the thresholds */
         for( ival=0 ; ival < npanes ; ival++ )
             othr[ival] = pane_scale * pbar->pval[ival+1];
-   othr[npanes] = othr[npanes-1] ;
+        /* npanes->ival to remove compile warning    [12 Jan 2022 rickr] */
+        othr[ival] = othr[ival-1] ;
 
         if ( debug > 2 )
         {
