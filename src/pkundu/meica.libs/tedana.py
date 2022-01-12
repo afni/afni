@@ -59,8 +59,18 @@ def _interpolate(a, b, fraction):
 
 # for reproducibility           15 May 2018 [rickr]
 def init_random_seeds(seed):
+    """if seed is None, init to 42, of course
+       else, init with strig coverted to int
+    """
     import random
     from scipy import random as numx_rand
+
+    # either init to default of 42 or convert from string
+    if seed is None:
+        seed = 42
+    else:
+        seed = int(seed)
+
     print '-- initializing random seed to %s' % seed
     random.seed(seed)
     numx_rand.seed(seed)
@@ -638,9 +648,9 @@ if __name__=='__main__':
 		print "*+ Need at least data and TEs, use -h for help."		
 		sys.exit()
 
-        # maybe init seeds
-        if options.seed is not None:
-                init_random_seeds(int(options.seed))
+        # init seeds (if options.seed is None, use 42, obviously)
+        # changed to always set a seed, and with a default  [11 Jan 2022 rickr]
+        init_random_seeds(options.seed)
 
 	print "++ Loading Data"
 	tes = np.fromstring(options.tes,sep=',',dtype=np.float32)
