@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Jan, 2022, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "got rid of remaining uninit warnings (even if code was okay)",
+   NULL
+ } ,
+
  { 11, Jan, 2022, RCR, "tedana.py", MINOR, TYPE_MODIFY,
    "even without -seed, always apply a seed (default = 42)",
    "Now 2 executions should produce the same result, unless -seed is\n"
