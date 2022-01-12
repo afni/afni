@@ -5019,6 +5019,8 @@ double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im ,
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
+extern int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
+                                int ival, float eps);
 extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
 #define MISMATCH_CENTER  (1<<0)  /* within 0.2 voxel */
