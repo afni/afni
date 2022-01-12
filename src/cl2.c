@@ -9589,7 +9589,7 @@ static real snrm2_(integer *n, real *sx, integer *incx)
 
     /* Local variables */
     integer i__, j, nn;
-    real sum, xmax;
+    real sum, xmax=0.f;
     integer next;
     real hitest;
 
