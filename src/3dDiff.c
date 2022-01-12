@@ -124,7 +124,7 @@ printf(
 "Reporting modes are mutually exclusive, but may be used with any of the\n"
 "other program options without restriction.\n"
 "\n"
-"1) Quiet Mode (-q)\n"
+"1) Quiet Mode (-q) ~2~\n"
 "   Returns a single integer value in the range [-1, 1]:"
 "      -1 indicates a program error (e.g., grids do not match)\n"
 "       0 indicates that the images have no differences\n"
@@ -140,7 +140,7 @@ printf(
 "   $ 3dDiff -q -a mine.nii -b yours.nii # two different images\n"
 "   1\n"
 "\n"
-"2) Tabular Mode (-tabular)\n"
+"2) Tabular Mode (-tabular) ~2~\n"
 "   Prints out a table of values. Useful for 4D data, but not recommended\n"
 "   for 3D data.\n"
 "   Each row of the table will indicate the volume index and number of\n"
@@ -161,7 +161,7 @@ printf(
 "   9:	596520\n"
 "   1 10 10 1.00000\n"
 "\n"
-"3) Brutalist Mode (-brutalist)\n"
+"3) Brutalist Mode (-brutalist) ~2~\n"
 "   Creates a one-line summary of the differences. The numbers appear in the\n"
 "   following order:\n"
 "     Summary         [-1, 1], -1 failure, 1 differences, 0 agreement\n"
@@ -425,7 +425,7 @@ int main( int argc , char * argv[] )
     if ( brutalist || tabular ) {
         if ( nt == 1 ) {
             printf(
-                "%d %lld %lld %.5f\n",
+                "%d %" PRId64 " %" PRId64 " %.5f\n",
                 (total_volumes_differing != 0), total_elements_differing,
                 total_elements, frac_elements
             );
@@ -486,7 +486,8 @@ int main( int argc , char * argv[] )
                     frac_volumes * 100.0
                 );
                 printf(
-                    "%lld of %lld elements (%5.2f%%) contained differences.\n",
+                    "%" PRId64 " of %" PRId64 " elements (%5.2f%%) contained"
+                    " differences.\n",
                     total_elements_differing, total_elements,
                     frac_elements * 100.0
                 );
@@ -510,7 +511,8 @@ int main( int argc , char * argv[] )
             }
             else {
                 printf(
-                    "%lld of %lld elements (%5.2f%%) contained differences.\n",
+                    "%" PRId64 " of %" PRId64 " elements (%5.2f%%) contained"
+                    " differences.\n",
                     total_elements_differing, total_elements,
                     frac_elements * 100.0
                 );
