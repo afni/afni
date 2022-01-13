@@ -1,6 +1,4 @@
-#!/bin/tcsh
-
-# Quick build setup script 2/3.
+# Quick build setup script 2/3. Should match with 'steps_linux_ubuntu20.rst'
 # From bash shell:
 #   tcsh OS_notes.linux_ubuntu_20_64_b_user.tcsh 2>&1 | tee o.ubu_20_b.txt
 # From tcsh shell:
@@ -36,9 +34,8 @@ rPkgsInstall -pkgs ALL
 # in case R's brms didn't install first time
 Rscript -e "install.packages(c('Rcpp','brms'), dependencies = TRUE, INSTALL_opts = '--no-lock')"
 
-set asc  = ~/o.afni_system_check.txt
 echo "++ Run system check, saving to: ${asc}"
-
+set asc  = ~/o.afni_system_check.txt
 afni_system_check.py -check_all > ${asc}
 
 echo "++ Done with 2nd part of install"
