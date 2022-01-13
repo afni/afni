@@ -74,9 +74,14 @@
 # [PT] add new @chauff* opts: '-no_cor', '-no_sag', '-no_axi'
 #    + will be useful for APQC (-no_cor)
 #
-set version   = "1.47";   set rev_dat   = "Sep 27, 2021"
+#set version   = "1.47";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "1.48";   set rev_dat   = "Jan 12, 2022"
+#     + [PT] Because Daniel doesn't like crash/warnings.
+#          + add in '-save_ftype ..' opt, because somehow @animal_warper
+#            is using it
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -139,6 +144,8 @@ set DO_MASK_EDGES    = 0                 # this now OFF by def
 
 set views_off        = ( )
 set all_views        = ( 1 1 1 )
+
+set ftype            = JPEG              # output file format
 
 # ------------------- process options, a la rr ----------------------
 
@@ -252,6 +259,12 @@ while ( $ac <= $#argv )
     # [PT: May 26, 2020] 
     else if ( "$argv[$ac]" == "-mask_olay_edges" ) then
         set DO_MASK_EDGES = 1
+
+    # [PT: Jan 12, 2022] 
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ftype = "$argv[$ac]"
 
     # [PT: Dec 30, 2019] can place coord loc
     else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
@@ -477,7 +490,7 @@ set ethr = ${vvv[2]}
     -prefix   "../${opref}"                 \
     -montx $Nx -monty ${Ny}                 \
     -montgap $mgap -montcolor $mcolor       \
-    -save_ftype JPEG                        \
+    -save_ftype ${ftype}                    \
     -set_xhairs OFF                         \
     -label_mode ${label_mode} -label_size 4 \
     $allclean                               \
@@ -535,6 +548,7 @@ COMMAND OPTIONS ~1~
 -montgap           MG
 -montcolor         MC
 -cbar              CBAR
+-save_ftype        FTYPE
 -set_dicom_xyz     XX YY ZZ
 -ulay_range        umin umax
 -ulay_range_nz     umin umax

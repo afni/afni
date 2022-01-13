@@ -52,12 +52,12 @@ ver = 2.72;  date = Dec 26, 2021
 #include "debugtrace.h"
 #include "mrilib.h"
 
-int run_EDT_3D( int comline, PARAMS_euler_dist opts,
+int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
                 int argc, char *argv[] );
 
 // --------------------------------------------------------------------------
 
-int usage_3dEulerDist() 
+int usage_3dDepthMap() 
 {
    char *author = "PA Taylor and P Lauren (SSCC, NIMH, NIH)";
 
@@ -65,7 +65,8 @@ int usage_3dEulerDist()
 "\n"
 "Overview ~1~ \n"
 "\n"
-"This program calculates the Eulerian Distance Transform (EDT).\n"
+"This program calculates the depth of ROIs, masks and 'background', using\n"
+"the fun Euclidean Distance Transform (EDT).\n"
 "\n"
 "Basically, this means calculating the Euclidean distance of each\n"
 "voxel's centroid to the nearest boundary  with a separate ROI (well, to be\n"
@@ -106,7 +107,7 @@ int usage_3dEulerDist()
 "\n"
 "Command usage and option list ~1~ \n"
 "\n"
-"    3dEulerDist [options] -prefix PREF -input DSET\n"
+"    3dDepthMap [options] -prefix PREF -input DSET\n"
 "\n"
 "where: \n"
 "\n"
@@ -192,32 +193,32 @@ int usage_3dEulerDist()
 "Examples ~1~\n"
 "\n"
 "1) Basic case:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT.nii.gz                                  \n"
 "\n"
 "2) Same as above, but only output distances within nonzero regions/ROIs:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -zeros_are_zero                                             \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_ZZ.nii.gz                               \n"
 "\n"
 "3) Output distance-squared at each voxel:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -dist_sq                                                    \\\n"
 "       -input  mask.nii.gz                                         \\\n"
 "       -prefix mask_EDT_SQ.nii.gz                                  \n"
 "\n"
 "4) Distinguish ROIs from nonzero background by making the former have\n"
 "   negative distance values in output:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -nz_are_neg                                                 \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
 "       -prefix roi_map_EDT_NZNEG.nii.gz                            \n"
 "\n"
 "5) Have output voxel values represent (number of vox)**2 from a boundary;\n"
 "   voxel dimensions are ignored here:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -ignore_voxdims                                             \\\n"
 "       -dist_sq                                                    \\\n"
 "       -input  roi_map.nii.gz                                      \\\n"
@@ -226,7 +227,7 @@ int usage_3dEulerDist()
 "6) Basic case, with option for speed-up because the input is a binary mask\n"
 "   (i.e., only ones and zeros); any of the other above options can\n"
 "   be combined with this, too:\n"
-"   3dEulerDist                                                     \\\n"
+"   3dDepthMap                                                      \\\n"
 "       -binary_only                                                \\\n"
 "       -input  roi_mask.nii.gz                                     \\\n"
 "       -prefix roi_mask_EDT.nii.gz                                 \n"
@@ -242,19 +243,19 @@ int main(int argc, char *argv[]) {
 
    int ii = 0;
    int iarg;
-   PARAMS_euler_dist InOpts;
+   PARAMS_euclid_dist InOpts;
    int itmp;
 
-   mainENTRY("3dEulerDist"); machdep(); 
+   mainENTRY("3dDepthMap"); machdep(); 
   
    // fill option struct with defaults
-   InOpts = set_euler_dist_defaults();
+   InOpts = set_euclid_dist_defaults();
 
    // ****************************************************************
    //                  parse command line arguments
    // ****************************************************************
 	
-   if (argc == 1) { usage_3dEulerDist(); exit(0); }
+   if (argc == 1) { usage_3dDepthMap(); exit(0); }
 
    /* scan through args */
    iarg = 1; 
@@ -262,7 +263,7 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
-         usage_3dEulerDist();
+         usage_3dDepthMap();
          exit(0);
       }
 			 
@@ -387,7 +388,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-int run_EDT_3D( int comline, PARAMS_euler_dist opts,
+int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
                 int argc, char *argv[] )
 {
    int i, j, k, idx;
@@ -454,7 +455,7 @@ int run_EDT_3D( int comline, PARAMS_euler_dist opts,
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_edt)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(dset_edt));
-	tross_Make_History("3dEulerDist", argc, argv, dset_edt);
+	tross_Make_History("3dDepthMap", argc, argv, dset_edt);
 
    // write and free dset 
 	THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
