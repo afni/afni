@@ -1,5 +1,3 @@
-#!/bin/tcsh
-
 # Quick build setup script 2/3.
 # From bash shell:
 #   sudo bash OS_notes.linux_fedora_b_user.txt 2>&1 | tee o.fedora_b.txt
@@ -15,13 +13,21 @@ tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 source ~/.cshrc
 
 
-echo "++ Download Bootcamp data"
+echo "++ Download Bootcamp data, **if** it doesn't appear to exist already"
 
-curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
-tar xvzf CD.tgz
-cd CD
-tcsh s2.cp.files . ~
-cd ..
+if ( 1 && ! -d ~/AFNI_data6 && ! -d ~/AFNI_demos ) then
+   echo "++ No ~/AFNI_data6 and ~/AFNI_demo dirs already,"
+   echo "   so will download+install the Bootcamp data CD.tgz"
+
+   curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
+   tar xvzf CD.tgz
+   cd CD
+   tcsh s2.cp.files . ~
+   cd ..
+else
+   echo "+* WARN: Finding ~/AFNI_data6 and ~/AFNI_demo dirs already,"
+   echo "         so I will *not* download+install the Bootcamp data CD.tgz"
+endif
 
 
 echo "++ Prepare to install R and its packages (will take a while)"
