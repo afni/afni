@@ -718,9 +718,11 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
     Only some attributes have an effect.
     09 May 2005 -- written to support NIfTI-ization, by allowing
                    attributes to be applied AFTER a dataset is created.
+    Jan 2022 -- disco added print some attributes for testing 
+                set "attr_print" env var in afnirc
 -----------------------------------------------------------------------------*/
 
-void THD_datablock_apply_atr( THD_3dim_dataset *dset )
+void THD_datablock_apply_atr( THD_3dim_dataset *dset , int validate )
 {
    THD_datablock     *blk ;
    THD_diskptr       *dkptr ;
@@ -859,11 +861,19 @@ ENTRY("THD_datablock_apply_atr") ;
 
    /*-- ID codes --*/
 
-   if( ATR_IS_STR(ATRNAME_IDSTRING) )
-     MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+   if( ATR_IS_STR(ATRNAME_IDSTRING) ){
+       MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+       if( validate ){               /* disco change */
+           printf("idcode %s\n", dset->idcode.str);
+       }
+    }
 
-   if( ATR_IS_STR(ATRNAME_IDDATE) )
-     MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
+    if( ATR_IS_STR(ATRNAME_IDDATE) ){
+      MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
+      if( validate ){               /* disco change */
+          printf("id date %s\n", dset->idcode.date);
+      }
+     }
 
    if( ATR_IS_STR(ATRNAME_IDANATPAR) )
      MCW_strncpy( dset->anat_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;

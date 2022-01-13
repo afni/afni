@@ -4610,7 +4610,8 @@ extern char * modify_afni_prefix( char * fname , char *pref, char *suf);
 extern char * without_afni_filename_extension( char *fname);
 char * without_afni_filename_view_and_extension( char * fname );
 
-extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
+/* 09 May 2005 */ /* disco change */
+extern void THD_datablock_apply_atr( THD_3dim_dataset * , int validate) ;
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
 extern RwcPointer_array *  THD_fetch_many_datasets(char *) ;

@@ -2398,7 +2398,8 @@ fprintf(stderr,"\n") ; }
          INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
                                   dset->dblk->diskptr->header_name);
-         THD_datablock_apply_atr(dset );
+         THD_datablock_apply_atr(dset , AFNI_yesenv("attr_print") );  /* disco change */
+
       }
 
       if( denote ){ THD_anonymize_write(1); did_something++; VINFO("denote");}   /* 08 Jul 2005 */
