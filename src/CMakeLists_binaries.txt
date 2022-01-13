@@ -50,10 +50,10 @@ foreach(
   3dDTeig
   3dDTtoDWI
   3dDWItoDT
+  3dDepthMap
   3dEmpty
   3dEntropy
   3dErrtsCormat
-  3dEulerDist
   3dExtractGroupInCorr
   3dExtrema
   3dFDR

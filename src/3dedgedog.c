@@ -16,7 +16,7 @@ ver = 1.4;  date = Dec 9, 2021
 + [PT] add -only2D opt, for DRG
 
 ver = 1.5;  date = Dec 23, 2021
-+ [PT] run with binarized/optimized EulerDist form.  shd be faster
++ [PT] run with binarized/optimized Euclidean Dist Transform. Shd be faster
 
 ver = 1.51;  date = Dec 26, 2021
 + [PT] all output dsets get their history full made
@@ -92,8 +92,8 @@ int usage_3dedgedog()
 "\n"
 "The current code here extends/tweaks the MH1980 algorithm a bit.  It runs\n"
 "in 3D by default (a straightforward extension), it also employs the\n"
-"Eulerian Distance Transform (EDT) to pick out the actual edges from the\n"
-"DOG step---see 3dEulerDist for more information about the EDT.\n"
+"Euclidean Distance Transform (EDT) to pick out the actual edges from the\n"
+"DOG step---see 3dDepthMap for more information about the EDT.\n"
 "\n"
 "The DOG-based edges require specifying a couple parameters, the main\n"
 "one being interpretable as a minimal 'scale size' for structures.  In this\n"
@@ -152,9 +152,9 @@ int usage_3dedgedog()
 "\n"
 "  -output_intermed :use this option flag if you would like to output some\n"
 "                    intermediate dataset(s):\n"
-"                         + DOG (difference of Gaussian)\n"
-"                         + EDT2 (Euler Distance Transform, dist**2 values),\n"
-"                           [0]th vol only\n"
+"                        + DOG (difference of Gaussian)\n"
+"                        + EDT2 (Euclidean Distance Transform, dist**2 vals),\n"
+"                          [0]th vol only\n"
 "                    (def: not output).  Output names  will be user-entered\n"
 "                    prefix with a representative suffix appended.\n"
 "\n"
@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      // same as in 3dEulerDist
+      // same as in 3dDepthMap
       if( strcmp(argv[iarg],"-only2D") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
@@ -543,7 +543,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    }
 
    // if only running in 2D, figure out which slice that is;
-   // same as in 3dEulerDist
+   // same as in 3dDepthMap
    if ( opts.only2D )
       i = choose_axes_for_plane( dset_input, opts.only2D,
                                  opts.axes_to_proc, opts.verb );

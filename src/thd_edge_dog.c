@@ -46,7 +46,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
    /*
      EDGE CONTROL PARAMS
      
-     --- For the EDT (Euler-distance based) case ---
+     --- For the EDT (Euclidean Distance Transform-based) case ---
 
        edge_bnd_NN: Use NN value to select "corner-ness" of output
        boundary edges. This will be used to threshold the
@@ -78,7 +78,7 @@ PARAMS_edge_dog set_edge_dog_defaults(void)
 
    defopt.verb = 1;
 
-   // same as in PARAMS_euler_dist
+   // same as in PARAMS_euclid_dist
    defopt.only2D = NULL;
    defopt.axes_to_proc[0] = 1;
    defopt.axes_to_proc[1] = 1;
@@ -270,7 +270,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    short *tmp_arr = NULL;
    THD_3dim_dataset *dset_edt = NULL;   
    char prefix_edt[THD_MAX_PREFIX];
-   PARAMS_euler_dist EdgeDogOpts;
+   PARAMS_euclid_dist EdgeDogOpts;
 
    ENTRY("calc_edge_dog_BND");
 
@@ -302,7 +302,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                    ADN_none );
 
    // fill EDT option struct with defaults and a couple desired props
-   EdgeDogOpts = set_euler_dist_defaults();
+   EdgeDogOpts = set_euclid_dist_defaults();
    EdgeDogOpts.binary_only = 1;      // for faster runtime
    EdgeDogOpts.ignore_voxdims = 1;
    EdgeDogOpts.zero_region_sign = -1;  
@@ -316,7 +316,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
 
 
    // run EDT
-   INFO_message("Calculate EDT for vol %d", ival);
+   INFO_message("Calculate EDT (depth map) for vol %d", ival);
    i = calc_EDT_3D_BIN( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
 
    // can output this intermediate dset for the [0]th volume, if the
