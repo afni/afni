@@ -3,11 +3,11 @@
 
 #include <float.h>
 
-#define EULER_BIG FLT_MAX            // from float.h
+#define EUCLID_BIG FLT_MAX            // from float.h
 
-/* struct of quantities for running Euler Distance Transform (EDT) 
+/* struct of quantities for running Euclidean Distance Transform (EDT) 
 
-    only2D       : (str) name of 2D plane to work within; so EDT is calced
+    only2D       : (str) name of 2D plane to work within; so EDT is calculated
                    across whole FOV, but only planewise with each of the
                    given planes
 
@@ -76,10 +76,10 @@ typedef struct {
 
    int verb;
 
-} PARAMS_euler_dist;
+} PARAMS_euclid_dist;
 
 /* function to initialize EDT params */
-PARAMS_euler_dist set_euler_dist_defaults(void);
+PARAMS_euclid_dist set_euclid_dist_defaults(void);
 
 // ---------------------------------------------------------------------------
 
@@ -88,42 +88,42 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
                            int *onoff_arr, int verb );
 
-int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
+int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euclid_dist opts,
                            THD_3dim_dataset *dset_roi, int ival);
 
 /*
   Set of funcs for special case of user saying the input is a binary
   mask.
 */
-int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
                      THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                      int ival);
-int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr );
-int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr );
-int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr );
 int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ, 
-                               PARAMS_euler_dist opts,
+                               PARAMS_euclid_dist opts,
                                int nx, int ny, int nz );
 
 /*
   Set of funcs for more general case of ROI map input.
 */
-int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
                  THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                  int ival);
-int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr );
-int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr );
-int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr );
 int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, int Na,

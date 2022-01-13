@@ -1,9 +1,9 @@
 #include "mrilib.h" 
 
-PARAMS_euler_dist set_euler_dist_defaults(void)
+PARAMS_euclid_dist set_euclid_dist_defaults(void)
 {
 
-   PARAMS_euler_dist defopt;
+   PARAMS_euclid_dist defopt;
 
    defopt.input_name = NULL;     
    defopt.mask_name = NULL;     
@@ -136,7 +136,7 @@ int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
   dset_mask :  a mask dset to be applied at end (could be NULL)
   ival      :  index value of the subbrick/subvolume to analyze
 */
-int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
                      THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                      int ival)
 {
@@ -229,8 +229,8 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
    }
 
    /*
-     Initialize distances in main part of padded array to EULER_BIG:
-     where there is a nonzero value, we stick an EULER_BIG.
+     Initialize distances in main part of padded array to EUCLID_BIG:
+     where there is a nonzero value, we stick an EUCLID_BIG.
      
      A bit of subtlety, to create ROI boundary conditions: arr_dist is
      basically the padded-by-one-layer version of dset_roi; we cp over
@@ -255,7 +255,7 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
                
                idx = THREE_TO_IJK(ii, jj, kk, nx, nxy);
                if( THD_get_voxel(dset_roi, idx, ival))
-                  arr_dist[i+1][j+1][k+1] = EULER_BIG;
+                  arr_dist[i+1][j+1][k+1] = EUCLID_BIG;
             }}}
    }
    else { // boundaries remain all zero
@@ -271,7 +271,7 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
 
                idx = THREE_TO_IJK(i, j, k, nx, nxy);
                if( THD_get_voxel(dset_roi, idx, ival))
-                  arr_dist[ii][jj][kk] = EULER_BIG;
+                  arr_dist[ii][jj][kk] = EUCLID_BIG;
             }}}
    }
    
@@ -284,7 +284,7 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
          for( j=0 ; j<ny2 ; j++ ) 
             for( k=0 ; k<nz2 ; k++ ) {
                if( !arr_dist[i][j][k] ){
-                  arr_distZ[i][j][k] = EULER_BIG;
+                  arr_distZ[i][j][k] = EUCLID_BIG;
                }
             }
    }
@@ -436,7 +436,7 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
 }
 
 
-int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr )
 {
@@ -461,7 +461,7 @@ int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 }
 
 // see notes by calc_EDT_3D_BIN_dim2(...)
-int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr )
 {
@@ -486,7 +486,7 @@ int calc_EDT_3D_BIN_dim1( float ***arr_dist, PARAMS_euler_dist opts,
 }
 
 // see notes by calc_EDT_3D_BIN_dim2(...)
-int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,
                           float *flarr, float *workarr )
 {
@@ -511,7 +511,7 @@ int calc_EDT_3D_BIN_dim0( float ***arr_dist, PARAMS_euler_dist opts,
 }
 
 int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ, 
-                               PARAMS_euler_dist opts,
+                               PARAMS_euclid_dist opts,
                                int nx, int ny, int nz )
 {
    int i, j, k;
@@ -521,7 +521,7 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
 
    zeros_sign = opts.zero_region_sign;
       
-   // in case user calcs EDT in 2D, replace any remaining EULER_BIG
+   // in case user calcs EDT in 2D, replace any remaining EUCLID_BIG
    // values (from initialization) with 0; do this before sqrt of
    // dist**2 or any negating of dists values, for simplicity; padded
    // edge values don't matter here
@@ -529,7 +529,7 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
       for ( i=1 ; i<=nx ; i++ ) 
          for ( j=1 ; j<=ny ; j++ ) 
             for ( k=1 ; k<=nz ; k++ ){
-               if( arr_dist[i][j][k] >= EULER_BIG )
+               if( arr_dist[i][j][k] >= EUCLID_BIG )
                   arr_dist[i][j][k] = 0.0;
             }
       
@@ -537,7 +537,7 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
          for ( i=1 ; i<=nx ; i++ ) 
             for ( j=1 ; j<=ny ; j++ ) 
                for ( k=1 ; k<=nz ; k++ ){
-                  if( arr_distZ[i][j][k] >= EULER_BIG )
+                  if( arr_distZ[i][j][k] >= EUCLID_BIG )
                      arr_distZ[i][j][k] = 0.0;
                }
       }
@@ -622,7 +622,7 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
   dset_mask :  a mask dset to be applied at end (could be NULL)
   ival      :  index value of the subbrick/subvolume to analyze
 */
-int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
+int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
                  THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                  int ival)
 {
@@ -686,12 +686,12 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
       exit(12);
    }
 
-   // initialize distance array to EULER_BIG
+   // initialize distance array to EUCLID_BIG
    // PT self-question: is this init necessary in this case?
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ) 
-               arr_dist[i][j][k] = EULER_BIG;
+               arr_dist[i][j][k] = EUCLID_BIG;
 
    // find axis order of decreasing voxel sizes, to avoid pathology in
    // the EDT alg (that miiiight have only existed in earlier calc
@@ -825,7 +825,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euler_dist opts,
 */
 
 // analyzing along [2]th dimension
-int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr )
 {
@@ -865,7 +865,7 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euler_dist opts,
 }
 
 // see notes by calc_EDT_3D_dim2(...)
-int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr )
 {
@@ -905,7 +905,7 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euler_dist opts,
 }
 
 // see notes by calc_EDT_3D_dim2(...)
-int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euler_dist opts,
+int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
                       THD_3dim_dataset *dset_roi, int ival,
                       float *flarr, float *workarr, int *maparr )
 {
@@ -1009,7 +1009,7 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
          if(roi != 0 && bounds_are_zero)
             warr[idx] = 0; // a change of ROI
          else
-            warr[idx] = EULER_BIG; // pretend like ROI keeps going
+            warr[idx] = EUCLID_BIG; // pretend like ROI keeps going
       }
       else // inside FOV
          warr[idx] = 0; // a change of ROI
@@ -1019,7 +1019,7 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
          if(roi != 0 && bounds_are_zero)
             warr[n+2] = 0; // a change of ROI
          else
-            warr[n+2] = EULER_BIG; // pretend like ROI keeps going
+            warr[n+2] = EUCLID_BIG; // pretend like ROI keeps going
       }
       else // inside FOV
          warr[n+2] = 0; // a change of ROI
@@ -1057,18 +1057,18 @@ int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line,
   ----------
   
   f0       : 1D array. Either distance**2 values (or, to start,
-             values binarized to 0 or EULER_BIG).
+             values binarized to 0 or EUCLID_BIG).
   
   n        : len of f0 array
 
   delta    : element edge length along this dimension.
   
   To deal with anisotropic and non-unity-edge-length elements, first
-  scale non-EULER_BIG distances to be "as if" there were edge=1 voxels, and
+  scale non-EUCLID_BIG distances to be "as if" there were edge=1 voxels, and
   then at end scale back.
   
   [PT] Comment: unlike in earlier thinking (even before current scale
-  down/up approach), do NOT want to mult 'EULER_BIG' by 'delta', because
+  down/up approach), do NOT want to mult 'EUCLID_BIG' by 'delta', because
   pixels/voxels can be anisotropic here.
 */
 float * Euclidean_DT_delta(float *f0, int n, float delta)
@@ -1091,8 +1091,8 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
    if ( v==NULL || f==NULL || z==NULL || Df==NULL || Df0==NULL ) 
       ERROR_exit("MemAlloc issue: v, f, z, Df or Df0.\n");
 
-   z[0] = -EULER_BIG;
-   z[1] = EULER_BIG;
+   z[0] = -EUCLID_BIG;
+   z[1] = EUCLID_BIG;
 
    delta2 = delta * delta;
 
@@ -1101,7 +1101,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        f[i] = f0[i];           // copy f0  
     if( delta != 1 ){
         for( i=0 ; i<n ; i++ )
-            if(f[i] != EULER_BIG )
+            if(f[i] != EUCLID_BIG )
                 f[i]/= delta2;
         }
 
@@ -1118,7 +1118,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        k++;
        v[k]   = q;
        z[k]   = s;
-       z[k+1] = EULER_BIG;
+       z[k+1] = EUCLID_BIG;
     }
 
     k = 0;
@@ -1133,7 +1133,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
        Df0[i] = Df[i];           // copy Df  
     if (delta != 1 ){
        for( i=0 ; i<n ; i++ )
-            if( Df0[i] != EULER_BIG )
+            if( Df0[i] != EUCLID_BIG )
                 Df0[i]*= delta2;
     }
 
@@ -1162,7 +1162,7 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
   ival     :  index value of the subbrick/subvolume to analyze
 
 */
-int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
+int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euclid_dist opts,
                            THD_3dim_dataset *dset_roi, int ival)
 {
    int i, j, k, idx;
@@ -1176,14 +1176,14 @@ int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euler_dist opts,
    nz = DSET_NZ(dset_roi);
    nxy = nx*ny;
 
-   // in case user calcs EDT in 2D, replace any remaining EULER_BIG values
+   // in case user calcs EDT in 2D, replace any remaining EUCLID_BIG values
    // (from initialization) with 0; do this before sqrt of dist**2 or
    // any negating of dists values, for simplicity
    if( opts.only2D ){
       for ( i=0 ; i<nx ; i++ ) 
          for ( j=0 ; j<ny ; j++ ) 
             for ( k=0 ; k<nz ; k++ ){
-               if( arr_dist[i][j][k] >= EULER_BIG )
+               if( arr_dist[i][j][k] >= EUCLID_BIG )
                   arr_dist[i][j][k] = 0.0;
                }
    }

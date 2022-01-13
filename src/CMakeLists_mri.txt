@@ -32,7 +32,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/thd_euler_dist.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_depth_map_edt.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_edge_dog.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
@@ -292,7 +292,7 @@ add_library(
   thd_edge_dog.c
   thd_editdaxes.c
   thd_entropy16.c
-  thd_euler_dist.c
+  thd_depth_map_edt.c
   thd_fdbrick.c
   thd_fdrcurve.c
   thd_fdto1D.c

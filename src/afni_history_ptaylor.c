@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Jan , 2022 , PT , "3dDepthMap" , MINOR , TYPE_GENERAL,
+   "Rename program:  3dEulerDist -> 3dDepthMap.",
+   "The original name was odd for *Euclidean* Distance Transform, anyways...\n"
+},
+
 { 12, Jan , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
    "Add '-save_ftype ..' opt to this script, to make @animal_warper happy.",
    "Thanks, DRG, for pointing this out.\n"
