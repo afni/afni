@@ -63,19 +63,25 @@
 #      - shell protects '\n' by changing it to '\\n'
 #    + 'svg' an OK output file type
 # 
-ver = '1.92' ; date = 'April 22, 2021' 
+#ver = '1.92' ; date = 'April 22, 2021' 
 # [PT] 
 #    + new opt for 1dplot.py, to control y-axis label length, wrapping:
 #      "-ylabels_maxlen .."
+#
+ver = '1.93' ; date = 'Jan 13, 2022' 
+# [PT] 
+#    + check if user entered 'pythonic', but their system CAN'T HANDLE 
+#      THE TRUTH, and just downgrade to 'basic'
 #
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy, os
-from afnipy import lib_afni1D as LAD
-from afnipy import afni_util  as au
-from afnipy import afni_base  as ab
+from   afnipy import lib_afni1D as LAD
+from   afnipy import afni_util  as au
+from   afnipy import afni_base  as ab
+from   afnipy import module_test_lib
 
 # -------------------------------------------------------------------
 
@@ -88,7 +94,7 @@ ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
-ok_review_styles = ["none", "basic", "pythonic", "java"]
+ok_review_styles = ["none", "basic", "pythonic"]
 
 DEF_dpi           = 150
 DEF_prefix        = "PREFIX"
@@ -1772,6 +1778,12 @@ class apqc_tcsh_opts:
         elif not(ok_review_styles.__contains__(self.revstyle)) :
             print("revstyle '{}' not in allowed list".format(self.revstyle))
             MISS+=1
+        elif self.revstyle == 'pythonic' :
+            # if user asks for Pythonic but sys is not set up for it,
+            # downgrade back to 'basic'
+            checked_style = check_apqc_pythonic_ok()
+            self.set_revstyle(checked_style)
+
         return MISS
 
 # -------------------------------------------------------------------
@@ -1840,6 +1852,57 @@ def parse_tcsh_args(argv):
         sys.exit(1)
         
     return iopts
+
+def check_apqc_pythonic_ok():
+    """Check if we have everything needed to run the 'pythonic' APQC.
+
+    This basically means check if Matplotlib is installed, and if it
+    is modern enough.
+
+    Return
+    ------
+
+    name         : (str) 'pythonic' if possible to run it; else, 'basic'
+
+    """
+
+    # check all module dependencies
+    apqc_pythonic_mods = ['matplotlib']
+    if module_test_lib.num_import_failures(apqc_pythonic_mods, details=0):
+        print("+* WARN: failed to import matplotlib:\n"
+              "   'pythonic' -> 'basic' APQC")
+        return 'basic'
+
+    # check matplotlib
+    MOD = '2.2'                     # the competition
+
+    import matplotlib as mmm
+    mver = mmm.__version__
+
+    if mver == 'None':
+        print("+* WARN: failed to get matplotlib ver:\n"
+              "   'pythonic' -> 'basic' APQC")
+        return 'basic'
+    else:
+        bad_for_pythonic = 1
+        try:
+            ulist = [int(x) for x in MOD.split('.')]
+            vlist = [int(x) for x in mver.split('.')]
+            if vlist[0] > ulist[0]:
+                bad_for_pythonic = 0
+            elif vlist[0] == ulist[0] and vlist[1] >= ulist[1]:
+                bad_for_pythonic = 0
+        except:
+            print("+* WARN: failed to get matplotlib ver (2nd check):\n"
+                  "   'pythonic' -> 'basic' APQC")
+            return 'basic'
+
+        if bad_for_pythonic :
+            print("+* WARN: failed to get modern matplotlib (ver {} < {}):\n"
+                  "   'pythonic' -> 'basic' APQC".format(mver, MOD))
+            return 'basic'
+
+        return 'pythonic'
 
 # ========================================================================
 # ======================== for apqc_make_html ============================

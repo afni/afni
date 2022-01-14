@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Do a check if the user asks for 'pythonic' APQC.",
+   "If their system CAN'T HANDLE THE TRUTH, then downgrade kindly to 'basic'.\n"
+},
+
 { 12, Jan , 2022 , PT , "3dDepthMap" , MINOR , TYPE_GENERAL,
    "Rename program:  3dEulerDist -> 3dDepthMap.",
    "The original name was odd for *Euclidean* Distance Transform, anyways...\n"
