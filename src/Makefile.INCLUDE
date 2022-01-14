@@ -748,6 +748,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dDiff 3dDiff.o $(LFLAGS) $(LLIBS)
 
+afni_diff: afni_diff.o
+	$(RM) $@
+	$(CC) -o afni_diff afni_diff.o $(LFLAGS) $(LLIBS)
+
 3dSynthesize:3dSynthesize.o
 	$(RM) $@
 	$(CC) -o 3dSynthesize 3dSynthesize.o $(LFLAGS) $(LLIBS)
@@ -4164,6 +4168,11 @@ R_io.so: R_io.c $(LIBMRI_OBJ) $(R_MAKEVARS_DEP)
 	R CMD SHLIB -o R_io.so R_io.c ;                                     \
 	else echo WARNING: Cannot build R_io.so because R is not installed; \
 	fi ; )
+
+###
+#Python lib
+afpy_diff.so: afni_diff.o
+	$(CC) afni_diff.o -shared -o libafni_diff.so $(LFLAGS) $(LLIBS)
 
 ####
 # version system:
