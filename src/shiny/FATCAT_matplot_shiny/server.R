@@ -137,7 +137,7 @@ shinyServer(function(input,output,session) {
   ## get the data reorganized with the clustering #################
   heat_data <- reactive({
     
-    if(length(input$rois) < 2){ stop('ERROR: select more than one ROI!') }
+    validate(need(length(input$rois) > 1,'ERROR: select more than one ROI!'))
     
     ## get the data
     net.mat <- mat_read()
