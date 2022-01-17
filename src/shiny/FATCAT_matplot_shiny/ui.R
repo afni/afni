@@ -68,7 +68,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
   ), ## end files tab
   
   ## ROI menu ###############################
-  menuItem("ROIs",tabName="ROIs",icon=icon("code-fork"),
+  menuItem("ROIs",tabName="ROIs",icon=icon("code-branch"),
            selectInput('rois','Select ROIs:',multiple=TRUE,choices=NULL,
                        selected=NULL,selectize=TRUE),br()
   ),  ## end ROIs tab
@@ -112,7 +112,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
   ),   ## end colors
   
   ## heatmap menu ###############################
-  menuItem("Heatmap PNG",tabName="png",icon=icon("file-image-o"),
+  menuItem("Heatmap PNG",tabName="png",icon=icon("file-image"),
            conditionalPanel(
              "input.col_thresh == 'Yes'",br(),
              h5("Data min/max was set manually!",class='badness'),
@@ -130,7 +130,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
   ),  ## end heatmap png tab
   
   ## circos menu ###############################
-  menuItem("Circos PNG",tabName="circos",icon=icon("times-circle-o"),
+  menuItem("Circos PNG",tabName="circos",icon=icon("times-circle"),
            conditionalPanel(
              "input.col_thresh == 'Yes'",br(),
              h5("Data min/max was set manually!",class='badness'),
