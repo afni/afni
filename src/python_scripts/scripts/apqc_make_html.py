@@ -44,8 +44,12 @@
 # [PT] remove dependency on lib_apqc_html_helps.py
 #    + dir_img now from lah
 #
-ver = '2.41' ; date = 'Oct 22, 2021' 
+#ver = '2.41' ; date = 'Oct 22, 2021' 
 # [PT] better path reporting for the "done" message, hopefully
+#
+ver = '2.5' ; date = 'Jan 18, 2022' 
+# [PT] add link buttons
+#    + particular case: mecho QC block, m_tedana link buttons
 #
 #########################################################################
 
@@ -232,6 +236,10 @@ if __name__ == "__main__":
             elif AAII.itemtype == 'DAT':
                 ht+=lah.wrap_dat( lah.read_dat(img),
                                   addclass=" class='datbord' ")
+
+            elif AAII.itemtype == 'BUTTON':
+                ht+=lah.wrap_button( lah.read_dat(img),
+                                     button_type=AAII.itemid )
 
             # 4) Add in any 'subtext'
             if AAII.subtext :

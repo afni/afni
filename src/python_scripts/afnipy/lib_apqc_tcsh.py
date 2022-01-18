@@ -1477,6 +1477,83 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
+# ---------------------------------------------------------------------
+
+# ['combine_method'] -> 'm_tedana'
+def apqc_mecho_mtedana( obase, qcb, qci, comb_meth ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''multi-echo (mecho) processing via MEICA group TEDANA'''
+
+    pre = '''
+    set opref = {}
+    set ofile = ${{odir_img}}/${{opref}}.dat
+    set tjson = _tmp.txt
+    set ojson = ${{odir_img}}/${{opref}}.json
+    set odir_mtedana = ${{odir_qc}}/dir_mtedana
+    '''.format( opref )
+
+    cmd0 = '''
+    echo "++ Copy tedana QC figure dirs to: ${odir_mtedana}"
+    '''
+
+    cmd1 = '''
+    \\mkdir -p ${odir_mtedana}
+    \\cp -rp --parents tedana_r*/figures ${odir_mtedana}/.
+    \\cp -rp --parents tedana_r*/tedana*.html ${odir_mtedana}/.
+    '''
+
+    cmd2 = '''
+printf "" >  ${ofile}
+foreach ted ( tedana_r* )
+    echo "TEXT: Open: ${ted} report"                    >> ${ofile}
+    echo "LINK: dir_mtedana/${ted}/tedana_report.html"  >> ${ofile}
+    echo ""                                             >> ${ofile}
+end
+    '''
+
+    STR_json_text = '''"ME combine_method: {}"'''.format( comb_meth )
+    STR_json_text+= ''' ,, '''   # separator for 2-line text in JSON
+    STR_json_text+= '''"Links to TEDANA QC html pages"'''.format( qci )
+
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: BUTTON
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               STR_json_text)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+    cmd1  = commandize( cmd1, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd2  = commandize( cmd2, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False  )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, cmd2, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
 
 # ---------------------------------------------------------------------
 # [PT: Dec 23, 2018] add in viewing censor dset, if present

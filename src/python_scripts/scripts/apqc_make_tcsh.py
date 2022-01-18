@@ -187,6 +187,10 @@ ver = '3.78' ; date = 'Sep 27, 2021'
 #      23 they have been one size smaller by default); but the new font
 #      will be bolder than previously, due to those imseq.c changes.
 #
+ver = '3.8' ; date = 'Jan 18, 2022'
+# [PT] Add 'mecho' QC block
+#    + pretty much just for combine_method=m_tedana for starters
+#
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
@@ -735,6 +739,27 @@ if __name__ == "__main__":
                                               has_mot_lim=HAS_mot_limit,
                                               has_out_lim=HAS_out_limit,
                                               has_cen_dset=HAS_censor_dset )
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mecho"
+    # item    : multi-echo processing
+
+    ldep = ['combine_method']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # ***For now*** just m_tedana checks available
+        if ap_ssdict['combine_method'] == 'm_tedana':
+            comb_meth = ap_ssdict['combine_method']
+
+            ban      = lat.bannerize('multi-echo, via m_tedana')
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_mecho_mtedana( obase, "mecho", "mtedana",
+                                               comb_meth )
+
             str_FULL+= ban
             str_FULL+= cmd
             idx     += 1

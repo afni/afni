@@ -105,6 +105,8 @@ g_ss_uvar_fields = [ \
                        'out.tent_warn.txt'],
    ['decon_err_dset',  '3dDeconvolve warnings', 
                        '3dDeconvolve.err'],
+   ['combine_method',  'multi-echo info', 
+                       'm_tedana'],
    ['surf_vol',        'surface volume dset', 
                        'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
    ]

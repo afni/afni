@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Add a new QC block:  mecho.",
+   "This is for multi-echo (ME) FMRI; mostly for m_tedana right now.\n"
+},
+
+{ 22, Jan , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "New functions/functionality for the new QC block:  mecho.",
+   "Also tweaked/updated the help.\n"
+},
+
 { 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Do a check if the user asks for 'pythonic' APQC.",
    "If their system CAN'T HANDLE THE TRUTH, then downgrade kindly to 'basic'.\n"

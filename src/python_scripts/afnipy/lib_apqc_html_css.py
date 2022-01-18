@@ -80,7 +80,7 @@ h1 {
     padding-bottom: 0px;
     margin: 0px;
     border: 0px;
-    color: #FFC310; //#ccc;
+    color: #FFC310; /* #ccc; */
     font-weight: bold;
     text-decoration: underline;
     font-size: 26px;
@@ -91,7 +91,7 @@ h2 {
     padding: 0px;
     margin: 0px;
     border: 0px;
-    color: #fff; //#ccc; //#FFC310;
+    color: #fff; /* #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
     font-family: "courier new", courier, monospace;
@@ -101,7 +101,7 @@ h3 {
     padding: 0px;
     margin: 0px;
     border: 0px;
-    color: #ccc; //#FFC310; //#ccc; //#FFC310;
+    color: #ccc; /* #FFC310; #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
     font-family: "courier new", courier, monospace;
@@ -139,8 +139,8 @@ body {
 .hr_sec {
     display: block;
     height: 3px;
-    //border: 0;
-    //border-top: 2px solid #ccc;
+    /* border: 0; */
+    /* border-top: 2px solid #ccc; */
     background-color: #ccc;
     margin: 0px 0px 10px 0px;
     padding: 0;
@@ -214,6 +214,42 @@ css_text+= '''
 }}
 '''.format(**wlevel_colors)
 
+# [mecho] mtedana link button
+css_text+= '''
+
+.btn_mtedana {  
+    background-color: #FFC310;
+    margin-top: 5px;
+    padding: 5px 15px 5px ;
+    color: #014E33;
+    border: solid 2px black;
+    border-radius: 20px;
+    font-family:  Arial, "courier new", courier, monospace;
+    font-size: 16px;
+    font-weight: normal; 
+}
+
+.btn_mtedana:hover:not(.active) {
+    background-color: #014E33;
+    margin-top: 5px;
+    padding: 5px 15px 5px ;
+    color: #FFC310;
+    border: solid 2px #FFC310;
+    border-radius: 20px;
+    font-family:  Arial, "courier new", courier, monospace;
+    font-weight: normal; 
+}
+
+.btn_mtedana:focus:not(.active) {
+    border: dashed 2px #ffea00!important;
+}
+
+
+'''
+
+
+
+
 css_text+= '''
 .container {
     text-align: center;
@@ -269,9 +305,9 @@ img.pbar {
     padding-bottom: 0px;
     height: 70px;
     width:100%;
-    background-color: #000; // #444;
-    border-bottom: 3px solid #222; //#ddd; //#fff ; //; //#fff;
-    //margin: 5px solid #000;
+    background-color: #000; /* #444; */
+    border-bottom: 3px solid #222; /*#ddd; #fff; */
+    /* margin: 5px solid #000; */
 }
 
 table, tr {
@@ -279,20 +315,20 @@ table, tr {
     margin: 0px;
     padding: 0px;
     overflow: hidden;
-    background-color: #000; // #444;
+    background-color: #000; /* #444; */
     border-collapse: collapse;
     border-bottom:  0px solid #ccc;
     top: 0;
     font-family: "courier new", courier, monospace;
     font-size: 20px;
-    //color: #ccc;
+    /* color: #ccc; */
 }
 
 td {
     float: left;
     width: 80px;
     height: 30px;
-    background-color: #000; // #444;
+    background-color: #000; /* #444; */
     border: 0px solid #bbb;
     margin: 0px;
     padding: 1px;
@@ -310,7 +346,7 @@ td a {
 
 td a:hover:not(.active) {
     background-color: #111;
-    color: #ffea00; //yellow;
+    color: #ffea00; /* yellow; */
 }
 
 td a:active {
@@ -321,18 +357,36 @@ td a:active {
 
 css_text+= '''
 
+urlin a {
+    /*padding: 2px;*/
+    border:  2px solid #FFC310;
+    color:  #014E33;
+    background-color: #FFC310;
+}
+
+urlin a:hover:not(.active) {
+    background-color: #014E33;
+    color: #FFC310;
+}
+
+
+'''
+
+
+css_text+= '''
+
 /* Applies to all buttons */
 .button-generic {
     overflow: hidden;
     text-align: center;
-    vertical-align: middle; // text-vertical: center;
+    vertical-align: middle; /* text-vertical: center; */
     font-size: 22px;
     cursor: pointer;
 }
 
 /* Applies to LHS buttons: .btn1, .btn5, .btn0 */
 .button-LHS {
-    background-color: #000; // #444;
+    background-color: #000; /* #444; */
     height: 28px;
     margin: 1px 3px;
     padding: 0px; 
@@ -352,8 +406,8 @@ css_text+= '''
 
 /* QC buttons */
 .btn1 { 
-    color: #000; // #444;
-    border: solid 2px #bbb; //transparent; //none;
+    color: #000; /* #444; */
+    border: solid 2px #bbb; /* transparent; none; */
     border-radius: 12px;
     font-family:  "courier new", courier, monospace;
     font-size: 23px;
@@ -363,18 +417,18 @@ css_text+= '''
 
 /* section labels */
 .btn5 {  
-    color: #FFF; // #ffea00; //#FFF;
+    color: #FFF; /* #ffea00; /#FFF; */
     border: solid 1px transparent;
     border-radius: 0px;
     font-family: Arial, "courier new", courier, monospace;
     font-size: 21px;
-    font-weight: normal; //bold;
+    font-weight: normal; /* bold; */
 }
 '''
 
 css_text+= '''
 
-// see: https://fvsch.com/styling-buttons/
+/* see: https://fvsch.com/styling-buttons/ */
 /* Firefox: removes the inner border shown on focus */
 .btn5::-moz-focus-inner {
   border: none;
@@ -430,16 +484,16 @@ css_text+= '''
 
 button:hover:not(.active) {
     background-color: #333;
-    color: #ffea00; //yellow;
+    color: #ffea00; /* yellow; */
     border: solid 2px #ffea00!important;
-    border-color: #ffea00!important; //yellow;
+    border-color: #ffea00!important; /* yellow; */
 }
 
 button:focus:not(.active) {
-    //background-color: #333;
-    //color: #ffea00; //yellow;
+    /* background-color: #333; */
+    /* color: #ffea00; yellow; */
     border: dashed 1px #ffea00!important;
-    //border-color: #ffea00!important; //yellow;
+    /* border-color: #ffea00!important; yellow; */
 }
 
 button:active {
@@ -456,8 +510,8 @@ button:active {
   height: 75px;
   top: 75px;
   right: 15px;
-  //border: 3px solid #f1f1f1;
-  //z-index: 9;    
+  /* border: 3px solid #f1f1f1; */
+  /* z-index: 9; */
 }
 '''
 
