@@ -11,6 +11,7 @@ import sys, copy
 #
 # -------------------------------------------------------------------------
 # 2022-01-14, ver 1.0 :  creazione
+# 2022-01-14, ver 1.1 :  have afni_niceify_cmd_str() pass along kwargs
 #
 #
 #
@@ -440,8 +441,16 @@ def afni_niceify_cmd_str( sss,
         print("** ERROR: need sss to be a string")
         return ''
 
-    big_list = listify_argv_str(sss)
-    str_nice = pad_argv_list_elements(big_list)
+    big_list = listify_argv_str( sss, 
+                                 search_list=search_list,
+                                 maxcount=maxcount )
+
+    str_nice = pad_argv_list_elements( big_list,
+                                       nindent=nindent, 
+                                       max_lw=max_lw,
+                                       max_harg1=max_harg1,
+                                       comment_start=comment_start )
+
 
     # a quick check, as advertised
     is_diff  = quick_check_argnum(str_nice, sss, verb=verb)
