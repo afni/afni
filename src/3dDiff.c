@@ -21,7 +21,8 @@
     while ( 0 )
 
 void repchar(char c, int reps) {
-    for (int i = 0; i < reps; ++i) putchar(c);
+    int i;
+    for (i = 0; i < reps; ++i) putchar(c);
 }
 
 int jbt_get_terminal_width() {
@@ -219,11 +220,13 @@ return 0;
 int main( int argc , char * argv[] )
 {
     /* Variables for reading in the dsets */
-    char *a_fname=NULL, *b_fname=NULL, *mask_fname= NULL;
-    THD_3dim_dataset *ds1, *ds2 = NULL;
+    char *a_fname=NULL, *b_fname=NULL, *mask_fname=NULL;
+    THD_3dim_dataset *ds1=NULL, *ds2=NULL, *ds_mask=NULL;
     /* Variables for program args */
     int iarg=1 ; /* position in argument parser */
     float tol = MRI_SIMPLE_DIFF_DEFAULT_TOL ; /* tolerance for equality */
+    float av, bv;
+    float *maskarr=NULL, *ds1_masked=NULL, *ds2_masked=NULL;
 
     int disp_opt_sum = 0;   /* init to zero, to check excl inp opts */
     int brutalist    = 0;   /* whether we'll just output one line */
@@ -239,7 +242,7 @@ int main( int argc , char * argv[] )
     /* Variables for reporting */
     int nt = 0;
     int nv = 0;
-    int * counts;
+    int * counts=NULL;
     int total_volumes_differing = 0;
     int64_t total_elements_differing = 0;
     int64_t total_elements = 0;
@@ -248,6 +251,7 @@ int main( int argc , char * argv[] )
     /* Variables for 4D reporting */
     int max_diffs = 0;
     int min_diffs_nz = INT_MAX;
+    int i, t, val;
 
     mainENTRY("3dDiff main");
     machdep();
@@ -367,44 +371,44 @@ int main( int argc , char * argv[] )
     /* If there's a mask, validate and apply it to the dsets */
     if ( mask_fname ) {
         total_elements = 0;
-        THD_3dim_dataset * ds_mask = THD_open_dataset(mask_fname);
+        ds_mask = THD_open_dataset(mask_fname);
         DSET_load(ds_mask); CHECK_LOAD_ERROR(ds_mask);
         if ( THD_dataset_mismatch( ds1, ds_mask ) ) {
             diff3d_crash("Mismatch between input and mask dsets!\n");
         }
 
         /* Allocate an array to get a binary mask */
-        float * maskarr = (float*) calloc( nv, sizeof(float));
-        float * ds1_masked = (float*) calloc( nv, sizeof(float));
-        float * ds2_masked = (float*) calloc( nv, sizeof(float));
+        maskarr = (float*) calloc( nv, sizeof(float));
+        ds1_masked = (float*) calloc( nv, sizeof(float));
+        ds2_masked = (float*) calloc( nv, sizeof(float));
 
         /* Binarize the mask in an array */
-        for (int i = 0; i < nv; ++i) {
+        for (i = 0; i < nv; ++i) {
             maskarr[i] = THD_get_voxel(ds_mask, i, 0) != 0.0;
             total_elements += maskarr[i];
         }
         total_elements *= nt;
 
         /* Iterate over volumes and times */
-        for (int t = 0; t < nt; ++t) {
-            for (int i = 0; i < nv; ++i) {
-                float av = THD_get_voxel(ds1, i, t) * maskarr[i];
-                float bv = THD_get_voxel(ds2, i, t) * maskarr[i];
+        for (t = 0; t < nt; ++t) {
+            for (i = 0; i < nv; ++i) {
+                av = THD_get_voxel(ds1, i, t) * maskarr[i];
+                bv = THD_get_voxel(ds2, i, t) * maskarr[i];
                 counts[t] += ABS(av - bv) > tol;
             }
         }
     }
     else {
         total_elements = (int64_t)nv * nt;
-        for (int t = 0; t < nt; ++t) {
-            for (int i = 0; i < nv; ++i) {
-                float av = THD_get_voxel(ds1, i, t);
-                float bv = THD_get_voxel(ds2, i, t);
+        for (t = 0; t < nt; ++t) {
+            for (i = 0; i < nv; ++i) {
+                av = THD_get_voxel(ds1, i, t);
+                bv = THD_get_voxel(ds2, i, t);
                 counts[t] += ABS( THD_get_voxel(ds1, i, t) - THD_get_voxel(ds2, i, t)) > tol;
             }
         }
     }
-    for (int i = 0; i < nt; ++i) {
+    for (i = 0; i < nt; ++i) {
         total_volumes_differing += (counts[i] != 0);
         total_elements_differing += counts[i];
     }
@@ -413,7 +417,7 @@ int main( int argc , char * argv[] )
 
     /* Do the reporting */
     if ( tabular ) {
-        for (int i = 0; i < nt; ++i ) {
+        for (i = 0; i < nt; ++i ) {
             printf(
                 "%*d:\t%d\n",
                 (int)ceil(log10(nt)), i, counts[i]
@@ -494,13 +498,13 @@ int main( int argc , char * argv[] )
 
 
                 /* Calculate the max number of differing elements */
-                for (int i = 0; i < nt; ++i) {
+                for (i = 0; i < nt; ++i) {
                     max_diffs = (counts[i] > max_diffs) ? counts[i] : max_diffs;
                 }
                 /* Calculate the minimum nonzero number of differing
                  * elements*/
-                for (int i = 0; i < nt; ++i) {
-                    int val = counts[i];
+                for (i = 0; i < nt; ++i) {
+                    val = counts[i];
                     if ( val != 0 ) {
                         min_diffs_nz = (val < min_diffs_nz) ? val : min_diffs_nz;
                     }

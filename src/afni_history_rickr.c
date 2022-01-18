@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2022, RCR, "3dDiff", MINOR, TYPE_MODIFY,
+   "remove declarations after statements and init any free'd pointers",
+   NULL
+ } ,
+
  { 18, Jan, 2022, RCR, "@Install_APMULTI_Demo1_rest", MAJOR, TYPE_NEW_PROG,
    "(w/PT) new install script for APMULTI_Demo1_rest",
    "This is a demo for running various multi-echo processing methods\n"
