@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2022, RCR, "@Install_APMULTI_Demo1_rest", MAJOR, TYPE_NEW_PROG,
+   "(w/PT) new install script for APMULTI_Demo1_rest",
+   "This is a demo for running various multi-echo processing methods\n"
+   "on resting state data via afni_proc.py.\n"
+   "(renamed from @Install_AP_MULTI_DEMO1)"
+ } ,
+
  { 12, Jan, 2022, RCR, "afni-general", MINOR, TYPE_GENERAL,
    "got rid of remaining uninit warnings (even if code was okay)",
    NULL

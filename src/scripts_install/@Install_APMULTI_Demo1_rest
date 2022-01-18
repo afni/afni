@@ -4,7 +4,11 @@ set stat = 0
 set sdir = $PWD
 
 # [PT: June 18, 2021] creation
-set demo = AP_MULTI_DEMO1
+# [RR: Jan 18, 2022] prep for release as APMULTI_Demo1_rest
+
+set demo = APMULTI_Demo1_rest
+set demo_link = https://afni.nimh.nih.gov/pub/dist/data/afni_demos/$demo.tgz
+set readme = README_welcome.txt
 
 goto PARSE
 RET_PARSE:
@@ -14,15 +18,17 @@ echo ""
 echo "ERROR:"
 echo "   Directory ./$demo exists already"
 echo "   If you want to recreate it, remove it with:"
-echo "\rm -rf ./$demo"
-echo "   then run `basename $0` $argv[*] again."
 echo ""
-echo "Otherwise to run demos, see content of ./$demo/README.txt"
+echo "rm -rf $demo"
+echo ""
+echo "   then run `basename $0` $argv again."
+echo ""
+echo "Otherwise to run demos, see contents of ${demo}/${readme}"
 echo ""
 goto END
    endif
 
-echo "++ Going to fetch demo:  ${demo}"
+echo "++ Going to fetch demo: ${demo}"
 
 if ($use_curl == -1) then
    which curl
@@ -33,16 +39,26 @@ if ($use_curl == -1) then
    endif
 endif
 
+# download
 if ($use_curl == 0) then
-   wget https://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
+   set cmd = ( wget $demo_link )
 else
-   curl -O https://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
+   set cmd = ( curl -O $demo_link )
 endif
+echo $cmd
+$cmd
+
+# and unpack
+echo tar xvzf $demo.tgz
 tar xvzf $demo.tgz
 cd $demo
 
-echo "Follow examples in ./${demo}/README.txt "
-echo "********************************************************"
+if ( -f ${readme} ) then
+   cat ${readme}
+else
+   echo "Please see ${demo}/${readme}"
+   echo "********************************************************"
+endif
 
 cd -
 
@@ -93,7 +109,7 @@ corresponds to the Demo first presented at OHBM 2021:
     "Multiple ways to process multi-echo FMRI data with AFNI"
     by RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor
 
-After the archive is downloaded and unpacked, see its README.txt
+After the archive is downloaded and unpacked, see its ${readme}
 for details.
 
 Options ~1~
@@ -107,11 +123,11 @@ Examples ~1~
 
 1) Just get everything, default operation:
 
-    @Install_AP_MULTI_DEMO1
+    @Install_${demo}
 
 2) Get everything, specify download tool:
 
-    @Install_AP_MULTI_DEMO1 -wget
+    @Install_${demo} -wget
 
 
 EOF
@@ -125,3 +141,4 @@ BEND:
    
 END:
    exit $stat
+
