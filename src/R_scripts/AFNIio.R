@@ -520,6 +520,7 @@ parse.AFNI.name <- function(filename, verb = 0) {
    return(an)
 }
 
+# See also parse.AFNI.name
 exists.AFNI.name <- function(an) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    

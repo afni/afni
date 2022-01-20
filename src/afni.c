@@ -1327,6 +1327,9 @@ ENTRY("AFNI_parse_args") ;
    /* 04/06/2020 discoraj */
    GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
+   /* Jan 2022 ZSS */
+   GLOBAL_argopt.read_tcsv = !AFNI_yesenv("AFNI_SKIP_TCSV_SCAN") ;
+
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
