@@ -180,13 +180,8 @@ MAKE_TABLE:
       # get the value index
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       # get the longname if there is one
-<<<<<<< HEAD
-      if($lncol) then
-         set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
-=======
       if ($lncol) then
-         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
->>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
+         set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
       else
          set ln =  ""
       endif
@@ -296,13 +291,8 @@ MAKE_ATLAS_TABLE:
       set ll = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_`
 
       # get the longname if there is one
-<<<<<<< HEAD
-      if($lncol) then
-         set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
-=======
       if ($lncol) then
-         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
->>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
+         set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
       else
          set ln =  ""
       endif
@@ -1072,28 +1062,19 @@ PARSE_LABEL_FILE:
 	    if ($lncol) then
 	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
 	#          sed 's/^ *//g' | sed 's/ *$//g' | \
-<<<<<<< HEAD
 	#          sed '/^ *$/d' > /tmp/TMPLIST_${RNS}_ln_
-	# new way gets all columns after longname column to handle extra spaces
-	       awk -v N=$lncol \
-	          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
-	          > /tmp/TMPLIST_${RNS}_ln_
-	        set N_lnlist = `\wc -l /tmp/TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
-=======
-	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
 	# awk way gets all columns after longname column to handle extra spaces
 	#       awk -F "$delim" -v N=$lncol \
 	#          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
-	#          > TMPLIST_${RNS}_ln_
+	#          > /tmp/TMPLIST_${RNS}_ln_
     # cut way - simpler with cut command and works with other delimiters and comma
     # also supports last column selector
            ### [PT: Sep 29, 2021] need quotes around ${delim}
            # unfortunately, mac version doesn't support --delimiter
-    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
+    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > /tmp/TMPLIST_${RNS}_ln_
     # squeeze multiple spaces down to single space
-           cat  $flab | tr -s " " | cut -d"${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
-	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
->>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
+           cat  $flab | tr -s " " | cut -d"${delim}" -f${lncol}-${last_lncol} > /tmp/TMPLIST_${RNS}_ln_
+	       set N_lnlist = `\wc -l /tmp/TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
 	    endif
 
 	    set llistmax = ($llistmin)
@@ -1276,18 +1257,12 @@ BEND:
    goto END
 
 END:
-<<<<<<< HEAD
 \rm -f /tmp/TMPLIST_${RNS}_ >& /dev/null
-if ($stat == 0 && -f $log) then
-   \rm /tmp/${RNS}.$log:t
-=======
-\rm -f TMPLIST_${RNS}_ >& /dev/null
 if ($stat == 0) then
    if (-f $log) then
        \rm /tmp/${RNS}.$log:t  >& /dev/null
    endif
    # delete some of the temporary files
-   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* /tmp/${RNS}*  >& /dev/null
->>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
+   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* /tmp/TMPLIST_${RNS}* /tmp/${RNS}*  >& /dev/null
 endif
 exit $stat
