@@ -32,6 +32,8 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_depth_map_edt.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_edge_dog.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_StatsPDL.h
@@ -39,6 +41,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vol2surf.h
+
 )
 target_include_directories(
   libheaders
@@ -52,8 +55,10 @@ target_include_directories(
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/rickr
 )
-target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
-
+target_compile_definitions(libheaders
+  INTERFACE
+    "REPLACE_XT"
+    )
 # Make gifti use configurable
 set(USE_GIFTI ON)
 if(USE_GIFTI)
@@ -97,9 +102,11 @@ target_include_directories(
   PRIVATE
           $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
           $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+          $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
           ${CMAKE_CURRENT_SOURCE_DIR}
           ${PCOR_DIR}
 )
+target_link_libraries(pcor_objs PRIVATE libheaders)
 
 foreach(type byte float short)
   set(output_file "${CMAKE_CURRENT_BINARY_DIR}/configured_pcor/afni_pcor_${type}.c")
@@ -144,6 +151,7 @@ target_compile_definitions(parser PRIVATE REPLACE_XT)
 set_source_files_properties(
   thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
 )
+target_link_libraries(parser PRIVATE libheaders)
 set_os_flags(thd_filestuff.c)
 set_os_flags(machdep.c)
 
@@ -190,8 +198,10 @@ add_library(
   cs_sort_dv.c
   cs_sort_ff.c
   cs_sort_fi.c
+  cs_sort_fi64.c
   cs_sort_fv.c
   cs_sort_ii.c
+  cs_sort_ii64.c
   cs_sort_iv.c
   cs_sort_str.c
   cs_symeig.c
@@ -279,8 +289,10 @@ add_library(
   thd_dsetto1D.c
   thd_dsetto3D.c
   thd_dumdset.c
+  thd_edge_dog.c
   thd_editdaxes.c
   thd_entropy16.c
+  thd_depth_map_edt.c
   thd_fdbrick.c
   thd_fdrcurve.c
   thd_fdto1D.c
@@ -296,7 +308,6 @@ add_library(
   thd_getpathprogs.c
   thd_http.c
   thd_idcode.c
-  thd_incorrelate.c
   thd_info.c
   thd_initalldir.c
   thd_initdblk.c

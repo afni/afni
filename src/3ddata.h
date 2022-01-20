@@ -1600,6 +1600,7 @@ extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
 extern void THD_set_daxes_to_dicomm( THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
+int THD_fill_orient_int_3_rlpais( THD_dataxes *, int [3] ); // [PT: Nov 2, 2020]
 int THD_fill_orient_str_3( THD_dataxes *, char [4] );/* 23 Jan 2013 [rickr] */
 int THD_fill_orient_str_6( THD_dataxes *, char [7] );/* 23 Jan 2013 [rickr] */
 
@@ -1962,6 +1963,27 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
       AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
+// vecmat.h oddly already contains a DUMP_MAT33, but I want one with
+// less formatting.
+#undef  DUMP_MAT33b
+#define DUMP_MAT33b(SS,AA)                              \
+     printf("# mat33 %s:\n"                            \
+            " %13.6f %13.6f %13.6f\n"                  \
+            " %13.6f %13.6f %13.6f\n"                  \
+            " %13.6f %13.6f %13.6f\n" ,                \
+  SS, AA.m[0][0], AA.m[0][1], AA.m[0][2],              \
+      AA.m[1][0], AA.m[1][1], AA.m[1][2],              \
+      AA.m[2][0], AA.m[2][1], AA.m[2][2] )
+
+#undef  DUMP_MAT44_ONELINE
+#define DUMP_MAT44_ONELINE(AA)                         \
+     printf(" %13.6f %13.6f %13.6f  %13.6f"            \
+            " %13.6f %13.6f %13.6f  %13.6f"            \
+            " %13.6f %13.6f %13.6f  %13.6f " ,         \
+            AA.m[0][0], AA.m[0][1], AA.m[0][2], AA.m[0][3], \
+            AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3], \
+            AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
+
 /* modify the last column of a mat44 struct so that the
    same spatial coords apply to an image with pp,qq,rr
    elements added at the lower edges [01 Sep 2006 - RWCox] */
@@ -2135,6 +2157,14 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
      M[i][j] =    A[i][0] * B[0][j] + A[i][1] * B[1][j]   \
                 + A[i][2] * B[2][j] + A[i][3] * B[3][j] ; \
    M[3][0] = M[3][1] = M[3][2] = 0.0 ; M[3][3] = 1.0 ;  \
+}
+
+#undef MAT44_COPY
+#define MAT44_COPY( C, A ) {\
+   int i,j ;   \
+   for( i=0 ; i < 4 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     C.m[i][j] =    A.m[i][j] ; \
 }
 
 #undef AFF44_COPY
@@ -3492,19 +3522,12 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 #define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
                            fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->zzdel)   )
 
-#if 0  /* 22 Sep 2000 */
-#define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
-                             (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
-                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
-#else
 /*! Determine if a graph window can be opened for dataset ds.
-
     Cannot graph warp-on-demand datasets.
 */
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False                            && \
-                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
-#endif
+                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) || DSET_LOCKED(ds) ) )
 
 /*! Return the TR for dataset ts; will be 0 if not time-dependent. */
 
@@ -3590,10 +3613,10 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 */
 #if 1  /* 18 Dec 2017 */
 
-#define DSET_BRICK_STATCODE(ds,iv)                                         \
-   ( ((ds)->dblk->brick_statcode != NULL)                                  \
-      ? (ds)->dblk->brick_statcode[iv]                                     \
-      : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])               \
+#define DSET_BRICK_STATCODE(ds,iv)                                        \
+      ( (((ds)->dblk->brick_statcode != NULL) && (iv >= 0))          \
+      ? (ds)->dblk->brick_statcode[iv]                                         \
+      : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])        \
         ? (ds)->func_type : -1                               )
 
 #else  /* Ye Olde Waye */
@@ -4110,6 +4133,8 @@ typedef struct {
 
 extern char * THD_get_space(THD_3dim_dataset *dset);
 extern int THD_space_code(char *space);
+extern int space_to_NIFTI_code(THD_3dim_dataset *dset);
+
 
 extern int is_surface_storage_mode( int smode ) ;
 
@@ -4508,6 +4533,8 @@ extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
+extern float THD_dset_extent_rlpais(THD_3dim_dataset *dset, char ret,
+                                    float *RL_PA_IS);
 
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
@@ -4986,12 +5013,14 @@ extern THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz);
 THD_fvec3 THD_Dcent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz);
-double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im , 
+double THD_xyz_distance( THD_3dim_dataset *xset , MRI_IMAGE *im ,
    double xcm, double ycm, double zcm);
 
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
+extern int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
+                                int ival, float eps);
 extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 
 #define MISMATCH_CENTER  (1<<0)  /* within 0.2 voxel */
@@ -5186,6 +5215,11 @@ extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 
 extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
 
+extern MRI_IMAGE * THD_temp_subim_from_vectim( MRI_vectim *vim ,
+                                               int istart , int numi ) ; /* 19 Nov 2021 */
+
+#define VECTIM_TEMP_IMAGE(vvv) THD_temp_subim_from_vectim( (vvv) , 0 , 0 )
+
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
@@ -5282,6 +5316,7 @@ extern floatvec * THD_sqrtlasso_L2fit( int npt    , float *far   ,
                                        int nref   , float *ref[] ,
                                        float *lam , float *ccon   ) ;
 
+extern void THD_lasso_add_centro_block( intvec *mb ) ; /* 06 Aug 2021 */
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
@@ -5350,6 +5385,13 @@ extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 20
 extern size_t thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
 extern size_t thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 
+#undef  MRI_floatscan
+#define MRI_floatscan(imm)                                                                       \
+ do{ if( (imm) != NULL ){                                                                        \
+           if( (imm)->kind== MRI_float   ) thd_floatscan  ((imm)->nvox,MRI_FLOAT_PTR  ((imm))) ; \
+      else if( (imm)->kind== MRI_complex ) thd_complexscan((imm)->nvox,MRI_COMPLEX_PTR((imm))) ; \
+   }} while(0)
+
 #undef floatfix
 #ifdef isfinite
 # define floatfix(x) if( !isfinite(x) ) (x) = 0.0f ; else
@@ -5409,6 +5451,10 @@ extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
 extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
 extern byte * mri_automask_image2D( MRI_IMAGE *im ) ;      /* 12 Mar 2010 */
+/* 26 Dec 2021, migrated */
+extern THD_3dim_dataset *thd_apply_mask( THD_3dim_dataset *dset,
+                                         byte *mask,
+                                         char *prefix );
 
 extern THD_3dim_dataset * THD_remove_allzero(THD_3dim_dataset *); /* 25 Jul 2017 */
 
@@ -5426,6 +5472,9 @@ extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
 extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
 extern void THD_autobbox_npad(int) ;
 extern void THD_autobbox_noexpand(int) ;                   /* 08 Jan 2019 */
+
+void MRI_autobbox_byte( MRI_IMAGE *qim ,                   /* 18 Mar 2021 */
+                        int *xm, int *xp , int *ym, int *yp , int *zm, int *zp ) ;
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
@@ -5537,14 +5586,39 @@ extern THD_dvecmat DLSQ_rotscl   ( int, THD_dfvec3 *, THD_dfvec3 *, int      );
 
 extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 
-  /* cf. thd_coords.c for cardinal transformation matrix */
+   /* cf. thd_coords.c for cardinal transformation matrix */
 extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics );
+                                  THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern void THD_dicom_real_xform (THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics );
+                                  THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern int  THD_dicom_real_to_card(THD_3dim_dataset *dset, /* 23 Mar 2020 */
-                      THD_fvec3 * coords, int rnd);
+                                   THD_fvec3 * coords, int rnd);
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
+
+/* coordinate converters - moved from afni.h  17 Feb 2021 [rickr] */
+extern void AFNI_ijk_to_xyz( THD_3dim_dataset * ,
+                             int,int,int, float *,float *,float *) ;
+extern void AFNI_xyz_to_ijk( THD_3dim_dataset * ,
+                             float,float,float , int *,int *,int *) ;
+extern void AFNI_xyz_to_dicomm( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
+                                float,float,float , float *,float *,float *) ;
+
+/* [PT: Nov 4, 2020] functions for reorienting dset via
+   ijk_to_dicom_real */
+extern int   is_valid_orient_char( char ochar[3] );
+extern int   is_valid_orient_int( int oint[3] );
+extern void  THD_orient_to_int_rlpais( char ochar[4], int oint[3] );
+extern void  THD_int_to_orient_rlpais( int oint[3], char ochar[4] );
+extern mat33 THD_char_reorient_perm_mat33( char *ocharA, char *ocharB );
+extern mat33 THD_int_reorient_perm_mat33( int *ointA, int *ointB );
+extern mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA,
+                                           char *ocharB );
+extern mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA,
+                                                 char *ocharB );
+extern mat44 nifti_orthogonalize_mat44( mat44 Min);
+extern int is_mat44_orthogonal(mat44 A);
 
 
 extern void THD_report_obliquity(THD_3dim_dataset *dset);
@@ -5688,12 +5762,13 @@ extern MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis * , MRI_IMARR * ,
   /*-- see mri_warp3D_align.c for these routines --*/
 
 #undef  PARAM_MAXTRIAL
-#define PARAM_MAXTRIAL 22
+#define PARAM_MAXTRIAL 29
 typedef struct {
   float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed , val_pinit ;
   int fixed ;
   float val_trial[PARAM_MAXTRIAL] ;
+  int   idx_trial[PARAM_MAXTRIAL] ; /* 24 Jun 2021 */
   char name[32] ;
 } MRI_warp3D_param_def ;
 
@@ -5795,6 +5870,16 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int, char *, int );
+
+THD_3dim_dataset * THD_volume_to_dataset( THD_3dim_dataset *mset  ,
+                                          MRI_IMAGE *imin         ,
+                                          char *prefix            ,
+                                          int pad_xm , int pad_xp ,
+                                          int pad_ym , int pad_yp ,
+                                          int pad_zm , int pad_zp  ) ; /* 25 Jan 2021 */
+
+THD_3dim_dataset * THD_imarr_to_dataset( MRI_IMARR *imar, char *prefix ) ; /* 05 Mar 2021 */
+THD_3dim_dataset * THD_image_to_dataset( MRI_IMAGE *imin, char *prefix ) ;
 
 extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
                      THD_3dim_dataset *,

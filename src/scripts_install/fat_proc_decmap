@@ -36,9 +36,13 @@
 #set version   = "3.2b"; set rev_dat   = "Mar 2, 2018"
 #   + update rel path loc of QC/ dir
 #
-set version   = "3.3";   set rev_dat   = "Feb 12, 2019"
+#set version   = "3.3";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "3.31";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -396,7 +400,7 @@ endif
 if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc${postfix0}
         set vpref1 = ${opref}_qc${postfix1}"$p_thr_fa"
         set vpref2 = ${opref}_qc${postfix2}"$p_sca_fa"
@@ -411,7 +415,7 @@ if ( $DO_VIEWER ) then
                     -prefix "${odirqc_wdir}/$vpref0" \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
-                    -label_mode 1 -label_size 3     \
+                    -label_mode 1 -label_size 4     \
                     -globalrange ""                 \
                     -do_clean
 
@@ -420,7 +424,7 @@ if ( $DO_VIEWER ) then
                     -prefix "${odirqc_wdir}/$vpref1" \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
-                    -label_mode 1 -label_size 3     \
+                    -label_mode 1 -label_size 4     \
                     -globalrange ""                 \
                     -do_clean
 
@@ -431,7 +435,7 @@ if ( $DO_VIEWER ) then
                         -prefix "${odirqc_wdir}/$vpref2" \
                         -montx 5 -monty 3               \
                         -set_xhairs OFF                 \
-                        -label_mode 1 -label_size 3     \
+                        -label_mode 1 -label_size 4     \
                         -globalrange ""                 \
                         -do_clean
     endif

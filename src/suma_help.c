@@ -10,6 +10,8 @@ be used from AFNI */
 #include "niml.h"
 #include "../niml/niml_private.h"
 #include "suma_objs.h" /* 21 Apr 2020 */
+#include <X11/Intrinsic.h>
+
 /*------------------------------------------------------------*/
 #ifndef _MCW_XUTIL_HEADER_   /* 10 Jul 2020 */
 extern void MCW_register_hint( RwcWidget , char * ) ;
@@ -814,7 +816,7 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help,
    }
    /* copy last one */
    strncpy(gwh->name[gwh->name_lvl], sstmp, 63); 
-                     gwh->name[gwh->name_lvl][64] = '\0'; 
+                     gwh->name[gwh->name_lvl][63] = '\0'; 
    ++gwh->name_lvl;
    
    /* store the hint */

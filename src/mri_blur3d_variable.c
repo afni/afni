@@ -423,10 +423,70 @@ ENTRY("mri_blur3D_addfwhm") ;
    dz = im->dz; if( dz == 0.0f ) dz = 1.0f; else if( dz < 0.0f ) dz = -dz;
 
    mri_blur3D_getfac( fwhm , dx,dy,dz , &nrep,&fx,&fy,&fz ) ;
+
+   if( 1 || MRILIB_verb )
+     INFO_message("mri_blur3D: #iter=%d fx=%.5f fy=%.5f fz=%.5f",nrep,fx,fy,fz) ;
    if( nrep < 0 || fx < 0.0f || fy < 0.0f || fz < 0.0f ) EXRETURN ;
 
-   if( MRILIB_verb )
+   mri_blur3D_inmask( im , mask , fx,fy,fz , nrep ) ;
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* 24 Mar 2021 */
+
+void mri_blur3D_getfac3( float fwhmx, float fwhmy, float fwhmz ,
+                         float dx   , float dy   , float dz    ,
+                         int *nrep , float *fx , float *fy , float *fz )
+{
+   float fxx  =0.0f , fyy  =0.0f , fzz  =0.0f ;
+   int   nrepx=0    , nrepy=0    , nrepz=0    , nrepout=0 ;
+
+   if( fwhmx > 0.0f && dx > 0.0f ) nrepx = 2 + (int)(fwhmx*fwhmx/(dx*dx)) ;
+   if( fwhmy > 0.0f && dy > 0.0f ) nrepy = 2 + (int)(fwhmy*fwhmy/(dy*dy)) ;
+   if( fwhmz > 0.0f && dz > 0.0f ) nrepz = 2 + (int)(fwhmz*fwhmz/(dz*dz)) ;
+
+   if( nrepx > nrepout ) nrepout = nrepx ;
+   if( nrepy > nrepout ) nrepout = nrepy ;
+   if( nrepz > nrepout ) nrepout = nrepz ;
+
+   if( fwhmx > 0.0f && dx > 0.0f ) fxx = 0.045084f*(fwhmx*fwhmx)/(nrepout*dx*dx) ;
+   if( fwhmy > 0.0f && dy > 0.0f ) fyy = 0.045084f*(fwhmy*fwhmy)/(nrepout*dy*dy) ;
+   if( fwhmz > 0.0f && dz > 0.0f ) fzz = 0.045084f*(fwhmz*fwhmz)/(nrepout*dz*dz) ;
+
+   *fx = fxx ; *fy = fyy ; *fz = fzz ; *nrep = nrepout ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* 24 Mar 2021 */
+
+void mri_blur3D_addfwhm3( MRI_IMAGE *im , byte *mask , float fwhmx,float fwhmy,float fwhmz )
+{
+   int nrep=-1 ;
+   float fx=-1.0f,fy=-1.0f,fz=-1.0f , dx,dy,dz ;
+
+ENTRY("mri_blur3D_addfwhm3") ;
+
+   if( im == NULL ) EXRETURN ;
+
+#if 0
+   if( fwhmx == fwhmy && fwhmx == fwhmz ){
+     mri_blur3D_addfwhm( im , mask , fwhmx ) ;
+     EXRETURN ;
+   }
+#endif
+
+   dx = im->dx; if( dx == 0.0f ) dx = 1.0f; else if( dx < 0.0f ) dx = -dx;
+   dy = im->dy; if( dy == 0.0f ) dy = 1.0f; else if( dy < 0.0f ) dy = -dy;
+   dz = im->dz; if( dz == 0.0f ) dz = 1.0f; else if( dz < 0.0f ) dz = -dz;
+
+   mri_blur3D_getfac3( fwhmx,fwhmy,fwhmz , dx,dy,dz , &nrep,&fx,&fy,&fz ) ;
+
+   if( 1 || MRILIB_verb )
      INFO_message("mri_blur3D: #iter=%d fx=%.5f fy=%.5f fz=%.5f",nrep,fx,fy,fz) ;
+   if( nrep <= 0 || (fx <= 0.0f && fy <= 0.0f && fz <= 0.0f) ) EXRETURN ;
 
    mri_blur3D_inmask( im , mask , fx,fy,fz , nrep ) ;
 
@@ -468,6 +528,8 @@ ENTRY("mri_blur3D_addfwhm_speedy") ;
    EXRETURN ;
 }
 
+
+#ifndef MRILIB_MINI
 /*----------------------------------------------------------------------------*/
 /*! Blur a vectim, by converting each time point to a 3D image,
     blurring that image, and then putting it back into the vectim.
@@ -534,3 +596,4 @@ ENTRY("mri_blur3d_vectim") ;
 
    free(mmm) ; EXRETURN ;
 }
+#endif /* MRILIB_MINI */

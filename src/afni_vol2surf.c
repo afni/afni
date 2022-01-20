@@ -27,7 +27,7 @@
 #include "vol2surf.h"
 
 static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
-			   SUMA_irgba **map, int debug, int dnode );
+                           SUMA_irgba **map, int debug, int dnode );
 /*-----------------------------------------------------------------------*/
 /*! Create a nodal color overlay from a voxel map.
     - Surface index(es) come from global v2s_plugin_opts struct
@@ -52,7 +52,7 @@ static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
 int AFNI_vol2surf_func_overlay(Three_D_View *im3d, SUMA_irgba **map,
          int surfA, int surfB, int use_defaults, float ** Rdata, float * Rthr )
 {
-    THD_3dim_dataset * oset;		/* overlay dataset */
+    THD_3dim_dataset * oset;            /* overlay dataset */
     THD_slist_find     find;
     THD_session      * ss;
     SUMA_surface     * sA, * sB;
@@ -70,7 +70,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     go = &gv2s_plug_opts;
     if ( ! use_defaults && ! go->ready ) RETURN(-1);
 
-    debug = go->sopt.debug;	    /* because I'm lazy */
+    debug = go->sopt.debug;         /* because I'm lazy */
 
     ss = im3d->ss_now;              /* session must have needed surface(s) */
     if( ss                 == NULL      ||
@@ -81,15 +81,15 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
         ss->su_surf[surfA] == NULL      ||
         (surfB >= 0 && ss->su_surf[surfB] == NULL) )
     {
-	if ( debug > 1 )
-	{
-	    if ( !ss ) fprintf(stderr,"** v2s: NULL session\n");
-	    else
-		fprintf(stderr,"** v2s: bad session data:\n"
-			"   su_num, surfA, surfB = %d, %d, %d\n",
-			ss->su_num, surfA, surfB);
-	}
-	RETURN(-1);
+        if ( debug > 1 )
+        {
+            if ( !ss ) fprintf(stderr,"** v2s: NULL session\n");
+            else
+                fprintf(stderr,"** v2s: bad session data:\n"
+                        "   su_num, surfA, surfB = %d, %d, %d\n",
+                        ss->su_num, surfA, surfB);
+        }
+        RETURN(-1);
     }
 
     /* init return values */
@@ -106,11 +106,11 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 
     if ( debug )
     {
-	fprintf(stderr,"++ v2s overlay: sa,sb = %d,%d\n", surfA, surfB);
-	if ( debug > 1 )
-	    fprintf(stderr,"  surfA is %s, surfB is %s\n",
-		sA->label[0] ? sA->label : "<no label>",
-		sB ? (sB->label[0] ? sB->label : "<no label>") : "<not used>");
+        fprintf(stderr,"++ v2s overlay: sa,sb = %d,%d\n", surfA, surfB);
+        if ( debug > 1 )
+            fprintf(stderr,"  surfA is %s, surfB is %s\n",
+                sA->label[0] ? sA->label : "<no label>",
+                sB ? (sB->label[0] ? sB->label : "<no label>") : "<not used>");
     }
 
     /*-------------------- overlay image --------------------*/
@@ -119,17 +119,17 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 
     if( oset == NULL )
     {
-	if ( debug > 1 ) fprintf(stderr,"** v2s: no overlay dset\n");
-	RETURN(-1);
+        if ( debug > 1 ) fprintf(stderr,"** v2s: no overlay dset\n");
+        RETURN(-1);
     }
     im_oim = DSET_BRICK(oset,oind);
 
     if( ! im_oim || ! AFNI_GOOD_FUNC_DTYPE(im_oim->kind) )
     {
-	if ( debug > 1 ) fprintf(stderr,"** v2s: no overlay image\n");
-	RETURN(-1);
+        if ( debug > 1 ) fprintf(stderr,"** v2s: no overlay image\n");
+        RETURN(-1);
     }
-    DSET_load(oset);			/* to be sure */
+    DSET_load(oset);                    /* to be sure */
     if( !DSET_LOADED(oset) ) RETURN(-1);
 
     /*-------------------- mask from threshold --------------------*/
@@ -163,41 +163,41 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
         if( debug > 1 ) fprintf(stderr,"++ applying mask from edited image\n");
     }
     else if( im3d->vinfo->func_threshold > 0.0 &&
-             im3d->vinfo->thr_onoff )	            /* then want a threshold */
+             im3d->vinfo->thr_onoff )               /* then want a threshold */
     {
-	MRI_IMAGE * im_thr;
+        MRI_IMAGE * im_thr;
         float       thresh;
-	int         tind = im3d->vinfo->thr_index;
+        int         tind = im3d->vinfo->thr_index;
 
-	im_thr = DSET_BRICK(oset,tind);
+        im_thr = DSET_BRICK(oset,tind);
 
- 	/* note real threshold */
+        /* note real threshold */
         thresh = get_3Dview_func_thresh(im3d,1) ;
 
         /* maybe we want to return this */
         if ( Rthr ) *Rthr = thresh;
 
-	if( im_thr && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) )
-	    im_thr = NULL;
+        if( im_thr && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) )
+            im_thr = NULL;
 
-	/* create the mask, if this fails, just continue... */
-	if( im_thr != NULL )
-	{
-	    int nset;
-	    if ( debug > 1 )
-		fprintf(stderr,"++ mask from index %d and thresh %f\n",
-			tind,thresh);
-	    nset = thd_mask_from_brick(oset, tind, thresh, &cmask, 1);
-	    if ( debug > 1 )
-	    {
-		if ( ! cmask )
-		    fprintf(stderr,"-- no mask created\n");
-		else
-		    fprintf(stderr,"++ mask has %d set voxels\n", nset);
-	    }
-	}
-	else if ( debug > 1 )
-	    fprintf(stderr,"-- no threshold mask\n");
+        /* create the mask, if this fails, just continue... */
+        if( im_thr != NULL )
+        {
+            int nset;
+            if ( debug > 1 )
+                fprintf(stderr,"++ mask from index %d and thresh %f\n",
+                        tind,thresh);
+            nset = thd_mask_from_brick(oset, tind, thresh, &cmask, 1);
+            if ( debug > 1 )
+            {
+                if ( ! cmask )
+                    fprintf(stderr,"-- no mask created\n");
+                else
+                    fprintf(stderr,"++ mask has %d set voxels\n", nset);
+            }
+        }
+        else if ( debug > 1 )
+            fprintf(stderr,"-- no threshold mask\n");
 
         /* note mask options for v2s command output  9 Aug 2006 [rickr] */
         if( cmask ) { go->gpt_index = tind; go->gpt_thresh = thresh; }
@@ -211,20 +211,20 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     /*-------------------- vol2surf computation --------------------*/
     results = afni_vol2surf(oset, oind, sA, sB, cmask, use_defaults);
 
-    if ( cmask ) free(cmask);	/* we're done with the mask */
+    if ( cmask ) free(cmask);   /* we're done with the mask */
     if ( ! results )
     {
-	if ( debug ) fprintf(stderr,"-- vol2surf failure\n");
-	RETURN(-1);		/* failure? */
+        if ( debug ) fprintf(stderr,"-- vol2surf failure\n");
+        RETURN(-1);             /* failure? */
     }
 
     /*-------------------- lose old vnlist --------------------*/
     /* vol2surf has no method for counting voxels (right now)  */
     if( sA->vn )
     {
-	if ( debug > 1 ) fprintf(stderr,"-- destroying vnlist\n");
-	SUMA_destroy_vnlist( sA->vn ) ;
-	sA->vn = NULL;
+        if ( debug > 1 ) fprintf(stderr,"-- destroying vnlist\n");
+        SUMA_destroy_vnlist( sA->vn ) ;
+        sA->vn = NULL;
     }
 
     /*-------------------- set overlay colors --------------------*/
@@ -233,8 +233,8 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     /* before free()ing results, check whether we want to return the values */
     if ( Rdata )
     {
-	*Rdata = results->vals[0];
-	results->vals[0] = NULL;   /* do not let free_v2s_results() free it */
+        *Rdata = results->vals[0];
+        results->vals[0] = NULL;   /* do not let free_v2s_results() free it */
     }
 
     free_v2s_results(results);
@@ -249,7 +249,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 
 /*! given vol2surf results, fill SUMA_irgba struct */
 static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
-			   SUMA_irgba **map, int debug, int dnode )
+                           SUMA_irgba **map, int debug, int dnode )
 {
     SUMA_irgba * mptr;
     MCW_pbar   * pbar;
@@ -268,8 +268,8 @@ ENTRY("map_v2s_results");
     mptr = (SUMA_irgba *) calloc(res->nused, sizeof(SUMA_irgba));
     if ( ! mptr )
     {
-	fprintf(stderr,"** malloc failure: %d irgba's\n", res->nused);
-	RETURN(-1);
+        fprintf(stderr,"** malloc failure: %d irgba's\n", res->nused);
+        RETURN(-1);
     }
     *map = mptr;  /* and store the address */
 
@@ -293,141 +293,143 @@ ENTRY("map_v2s_results");
     }
 
     if ( debug > 1 ) {
-	fprintf(stderr,"+d mvr: npanes = %d, pane_scale = %f\n",
-		pbar->bigmode ? NPANE_BIG : npanes, pane_scale);
+        fprintf(stderr,"+d mvr: npanes = %d, pane_scale = %f\n",
+                pbar->bigmode ? NPANE_BIG : npanes, pane_scale);
         fprintf(stderr,"   fim_range = %f, fim_autorange = %f\n",
                 im3d->vinfo->fim_range, im3d->vinfo->fim_autorange);
     }
 
-    result_vals = res->vals[0];	/* for typing and potential speed */
+    result_vals = res->vals[0]; /* for typing and potential speed */
 
-    if( pbar->bigmode )		/* colorscale */
+    if( pbar->bigmode )         /* colorscale */
     {
-	int zbot;
+        int zbot;
 
-	bbot = pane_scale*pbar->bigbot;
-	btop = pane_scale*pbar->bigtop;
-	fac  = NPANE_BIG / (btop-bbot);
-	cmap = pbar->bigcolor;
-	zbot = (bbot == 0.0);
+        bbot = pane_scale*pbar->bigbot;
+        btop = pane_scale*pbar->bigtop;
+        fac  = NPANE_BIG / (btop-bbot);
+        cmap = pbar->bigcolor;
+        zbot = (bbot == 0.0);
 
-	if ( debug > 1 ) {
-	    fprintf(stderr,"+d bigmode: bbot,btop,fac, zbot = %f,%f,%f, %d\n",
-		    bbot, btop, fac, zbot);
+        if ( debug > 1 ) {
+            fprintf(stderr,"+d bigmode: bbot,btop,fac, zbot = %f,%f,%f, %d\n",
+                    bbot, btop, fac, zbot);
             fprintf(stderr,"   NPANE_BIG = %d, BIGGEST = %d\n",
                             NPANE_BIG, NPANE_BIGGEST);
         }
 
-	for ( nindex = 0; nindex < res->nused; nindex++ )
-	{
-	    if ( res->nodes ) node = res->nodes[nindex];
-	    else              node = nindex;
+        for ( nindex = 0; nindex < res->nused; nindex++ )
+        {
+            if ( res->nodes ) node = res->nodes[nindex];
+            else              node = nindex;
 
-	    /* note value, and check to ignore */
-	    fval = result_vals[nindex];
+            /* note value, and check to ignore */
+            fval = result_vals[nindex];
 
-	    if ( debug > 1 && node == dnode )
-		fprintf(stderr, "+d dnode %d, fval %f\n", dnode, fval);
+            if ( debug > 1 && node == dnode )
+                fprintf(stderr, "+d dnode %d, fval %f\n", dnode, fval);
 
-	    if ( zbot && fval < 0 ) continue;
+            if ( zbot && fval < 0 ) continue;
 
-	    /* note the color panel index, and bound it in [0,NPANE_BIG-1] */
+            /* note the color panel index, and bound it in [0,NPANE_BIG-1] */
             if( fval >= btop ) ival = 0;        /* guard against overflow */
             else if ( fval <= bbot ) ival = NPANE_BIG - 1;
             /* trunc: matching afni_func.c    [20 May 2019 rickr] */
             else ival = (int)(fac * (btop - fval));
 
-	    if ( ival < 0 ) ival = 0;
-	    if ( ival >= NPANE_BIG ) ival = NPANE_BIG - 1;
+            if ( ival < 0 ) ival = 0;
+            if ( ival >= NPANE_BIG ) ival = NPANE_BIG - 1;
 
-	    /* get color map, and check if non-zero */
-	    r = cmap[ival].r;  g = cmap[ival].g;  b = cmap[ival].b;
+            /* get color map, and check if non-zero */
+            r = cmap[ival].r;  g = cmap[ival].g;  b = cmap[ival].b;
 
-	    if ( debug > 1 && node == dnode )
-		fprintf(stderr, "+d pane, r,g,b : %d, %d,%d,%d\n",ival,r,g,b);
+            if ( debug > 1 && node == dnode )
+                fprintf(stderr, "+d pane, r,g,b : %d, %d,%d,%d\n",ival,r,g,b);
 
-	    if ( r == 0 && g == 0 && b == 0 ) continue;
-
-	    /* we are set, fill the SUMA_irgba struct  */
-	    mptr->id = res->nodes[nindex];
-	    mptr->r = r;  mptr->g = g;  mptr->b = b;  mptr->a = 255;
-
-	    /* increment pointer and counter (okay, so counter is unneeded) */
-	    mptr++;  map_index++;
-	}
-    }
-    else        /* indexed colors */
-    {
-	float othr[NPANE_MAX+1];	/* threshold */
-	short ovc[NPANE_MAX+1];	/* color */
-	byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1];
-
-	/* set the overlay color indices */
-	for( ival=0 ; ival < npanes ; ival++ )
-	    ovc[ival] = pbar->ov_index[ival];   /* from top of pbar down */
-	ovc[npanes] = im3d->vinfo->use_posfunc ? 0 : ovc[npanes-1];
-
-	/* get the actual RGB colors of each pane on the pbar */
-        for( ival=0 ; ival <= npanes ; ival++ ) /* include npanes 27 Aug 2007 */
-	{
-	    ovc_r[ival] = DCOV_REDBYTE  (im3d->dc,ovc[ival]);
-	    ovc_g[ival] = DCOV_GREENBYTE(im3d->dc,ovc[ival]);
-	    ovc_b[ival] = DCOV_BLUEBYTE (im3d->dc,ovc[ival]);
-	}
-
-	/* compute the thresholds */
-	for( ival=0 ; ival < npanes ; ival++ )
-	    othr[ival] = pane_scale * pbar->pval[ival+1];
-   othr[npanes] = othr[npanes-1] ;
-
-	if ( debug > 2 )
-	{
-	    for( ival=0 ; ival <= npanes ; ival++ )
-		fprintf(stderr,"+d pane #%2d, ovc = %d, othr = %f\n",
-			ival, ovc[ival], othr[ival]);
-	}
-
-	for ( nindex = 0; nindex < res->nused; nindex++ )
-	{
-	    if ( res->nodes ) node = res->nodes[nindex];
-	    else              node = nindex;
-
-	    /* note value, and check to ignore */
-	    fval = result_vals[nindex];
-
-	    if ( debug > 1 && node == dnode )
-		fprintf(stderr, "+d dnode %d, fval %f\n", dnode, fval);
-
-	    if ( fval == 0.0 ) continue;
-
-	    for ( ival = 0; ival < npanes && fval < othr[ival]; ival++ )
-		;
-	    if ( ovc[ival] == 0 ) continue;  /* no color in this pane */
-	    r = ovc_r[ival];  g = ovc_g[ival];  b = ovc_b[ival]; 
+            if ( r == 0 && g == 0 && b == 0 ) continue;
 
             /* we are set, fill the SUMA_irgba struct  */
             mptr->id = res->nodes[nindex];
             mptr->r = r;  mptr->g = g;  mptr->b = b;  mptr->a = 255;
 
-	    if ( debug > 1 && node == dnode )
-		fprintf(stderr, "+d pane, r,g,b = %d, %d,%d,%d\n",ival,r,g,b);
+            /* increment pointer and counter (okay, so counter is unneeded) */
+            mptr++;  map_index++;
+        }
+    }
+    else        /* indexed colors */
+    {
+        float othr[NPANE_MAX+1];        /* threshold */
+        short ovc[NPANE_MAX+1]; /* color */
+        byte  ovc_r[NPANE_MAX+1], ovc_g[NPANE_MAX+1], ovc_b[NPANE_MAX+1];
 
-	    if ( r == 0 && g == 0 && b == 0 ) continue;
+        /* set the overlay color indices */
+        for( ival=0 ; ival < npanes ; ival++ )
+            ovc[ival] = pbar->ov_index[ival];   /* from top of pbar down */
+        /* npanes->ival to remove compile warning    [12 Jan 2022 rickr] */
+        ovc[ival] = im3d->vinfo->use_posfunc ? 0 : ovc[ival-1];
+
+        /* get the actual RGB colors of each pane on the pbar */
+        for( ival=0 ; ival <= npanes ; ival++ ) /* include npanes 27 Aug 2007 */
+        {
+            ovc_r[ival] = DCOV_REDBYTE  (im3d->dc,ovc[ival]);
+            ovc_g[ival] = DCOV_GREENBYTE(im3d->dc,ovc[ival]);
+            ovc_b[ival] = DCOV_BLUEBYTE (im3d->dc,ovc[ival]);
+        }
+
+        /* compute the thresholds */
+        for( ival=0 ; ival < npanes ; ival++ )
+            othr[ival] = pane_scale * pbar->pval[ival+1];
+        /* npanes->ival to remove compile warning    [12 Jan 2022 rickr] */
+        othr[ival] = othr[ival-1] ;
+
+        if ( debug > 2 )
+        {
+            for( ival=0 ; ival <= npanes ; ival++ )
+                fprintf(stderr,"+d pane #%2d, ovc = %d, othr = %f\n",
+                        ival, ovc[ival], othr[ival]);
+        }
+
+        for ( nindex = 0; nindex < res->nused; nindex++ )
+        {
+            if ( res->nodes ) node = res->nodes[nindex];
+            else              node = nindex;
+
+            /* note value, and check to ignore */
+            fval = result_vals[nindex];
+
+            if ( debug > 1 && node == dnode )
+                fprintf(stderr, "+d dnode %d, fval %f\n", dnode, fval);
+
+            if ( fval == 0.0 ) continue;
+
+            for ( ival = 0; ival < npanes && fval < othr[ival]; ival++ )
+                ;
+            if ( ovc[ival] == 0 ) continue;  /* no color in this pane */
+            r = ovc_r[ival];  g = ovc_g[ival];  b = ovc_b[ival]; 
+
+            /* we are set, fill the SUMA_irgba struct  */
+            mptr->id = res->nodes[nindex];
+            mptr->r = r;  mptr->g = g;  mptr->b = b;  mptr->a = 255;
+
+            if ( debug > 1 && node == dnode )
+                fprintf(stderr, "+d pane, r,g,b = %d, %d,%d,%d\n",ival,r,g,b);
+
+            if ( r == 0 && g == 0 && b == 0 ) continue;
 
             /* increment pointer and counter (okay, so counter is unneeded) */
             mptr++;  map_index++;
-	}
+        }
    }
 
     if ( debug > 0 )
-	fprintf(stderr,"+d mvr v2s map size = %d\n", map_index);
+        fprintf(stderr,"+d mvr v2s map size = %d\n", map_index);
 
    /* forfeit unused memory */
    *map = (SUMA_irgba *)realloc(*map, sizeof(SUMA_irgba)*map_index);
    if ( ! *map )
    {
-	fprintf(stderr,"** mvr: failed realloc of map, %d irgba's\n",map_index);
-	map_index = -1;
+        fprintf(stderr,"** mvr: failed realloc of map, %d irgba's\n",map_index);
+        map_index = -1;
    }
 
    RETURN(map_index) ;  /* number of entries in map */

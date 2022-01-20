@@ -832,9 +832,9 @@ int main( int argc , char *argv[] )
             if( by > 1.01f*bx && by >= fwhm_subgoal ) ydone = 1;  /* stop y */
        else if( bx > 1.01f*by && bx >= fwhm_subgoal ) xdone = 1;  /* stop y */
      } else if( !fwhm_2D && !xdone && !ydone && !zdone ){
-            if( bz > 1.01f*by & bz > 1.01f*bx && bz >= fwhm_subgoal ) zdone = 1; /* stop z */
-       else if( by > 1.01f*bx & by > 1.01f*bz && by >= fwhm_subgoal ) ydone = 1; /* stop y */
-       else if( bx > 1.01f*by & bx > 1.01f*bz && bx >= fwhm_subgoal ) xdone = 1; /* stop x */
+            if( bz > 1.01f*by && bz > 1.01f*bx && bz >= fwhm_subgoal ) zdone = 1; /* stop z */
+       else if( by > 1.01f*bx && by > 1.01f*bz && by >= fwhm_subgoal ) ydone = 1; /* stop y */
+       else if( bx > 1.01f*by && bx > 1.01f*bz && bx >= fwhm_subgoal ) xdone = 1; /* stop x */
      }
 
      /** if global blurring is going too fast

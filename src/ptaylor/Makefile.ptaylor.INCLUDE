@@ -13,7 +13,7 @@ PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
                   -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf \
                  -I../nifti/znzlib -I../3DEdge/src -I../rickr \
-                 -I../ -I../niml/ -Igts/src -I../SUMA/ -I../f2c
+                 -I../ -I../niml/  -I../SUMA/ -I../f2c
 
 PTAYLOR_LINK_PATH = -L.. ${LFLAGS} -L/usr/lib -L/usr/local/lib 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
@@ -21,26 +21,6 @@ PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h diffusiony.h FuncTrac.h \
                roiing.h Fat_Labels.h colorbasic.h LS_funcs.h   \
                checks_and_balances.h readglob.h basic_boring.h
-
-AFNI_OBJS = ../xutil.o ../LiteClue.o
-AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
-            ../afni_fimmer.o \
-				../afni_slice_short.o ../afni_slice_float.o        	\
-				../afni_slice_byte.o  ../afni_slice_complex.o     		\
-				../afni_pcor.o ../afni_pcor_float.o ../afni_transforms.o        	\
-				../pbar.o ../afni_graph.o ../afni_plugin.o                      	\
-				../parser.o ../parser_int.o ../afni_plugout.o ../afni_fimfunc.o 	\
-				../afni_setup.o ../afni_receive.o ../mcw_graf.o ../afni_splash.o	\
-				../afni_pplug_env.o ../afni_pplug_2dfunc.o ../afni_friends.o    	\
-				../afni_ttren.o ../afni_pplug_1dfunc.o ../afni_driver.o         	\
-				../afni_niml.o ../afni_sumafunc.o ../afni_slice_rgbyte.o        	\
-				../afni_version.o
-
-AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
-				../afni_slice_float.o ../afni_slice_complex.o               \
-				../afni_slice_rgbyte.o
-             
-AFNI_3dOBJS = ../parser.o ../parser_int.o
 
 WARNTOPT = ${WARNOPT}
 
@@ -70,159 +50,159 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 ### From Paul Taylor
 
 # not distributed 25 Aug 2020
-3dProbTrackID:3dProbTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dProbTrackID:3dProbTrackID.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dProbTrackID 3dProbTrackID.o ${AFNI_3dOBJS} \
+	$(CC) -o 3dProbTrackID 3dProbTrackID.o  \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH} $(LFLAGS) \
 		$(LLIBS) ${PTAYLORLIB} \
       -lgsl -lgslcblas -lm
 
-3dTrackID:3dTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dTrackID:3dTrackID.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dTrackID 3dTrackID.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dTrackID 3dTrackID.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-#3dDWUncert:3dDWUncert.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+#3dDWUncert:3dDWUncert.o  ${PTAYLORLIB}
 #	$(RM) $@
-#	$(CC) -o 3dDWUncert 3dDWUncert.o  ${AFNI_3dOBJS} \
+#	$(CC) -o 3dDWUncert 3dDWUncert.o   \
 #		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 #		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
 #     -lgsl -lgslcblas -lm
 
-3dEigsToDT:3dEigsToDT.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dEigsToDT:3dEigsToDT.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dEigsToDT 3dEigsToDT.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dEigsToDT 3dEigsToDT.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dDTtoNoisyDWI:3dDTtoNoisyDWI.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dDTtoNoisyDWI:3dDTtoNoisyDWI.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dDTtoNoisyDWI 3dDTtoNoisyDWI.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dDTtoNoisyDWI 3dDTtoNoisyDWI.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dTORTOISEtoHere:3dTORTOISEtoHere.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dTORTOISEtoHere:3dTORTOISEtoHere.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dTORTOISEtoHere 3dTORTOISEtoHere.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dTORTOISEtoHere 3dTORTOISEtoHere.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dReHo: 3dReHo.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dReHo: 3dReHo.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dReHo 3dReHo.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dReHo 3dReHo.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dRSFC: 3dRSFC.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dRSFC: 3dRSFC.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dRSFC 3dRSFC.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dRSFC 3dRSFC.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dROIMaker: 3dROIMaker.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dROIMaker: 3dROIMaker.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dROIMaker 3dROIMaker.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dROIMaker 3dROIMaker.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
       
 #@pt_sept_2012
-map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+map_TrackID:map_TrackID.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o map_TrackID map_TrackID.o ${AFNI_3dOBJS} \
+	$(CC) -o map_TrackID map_TrackID.o  \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm 
       
 
-3dMatch: 3dMatch.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dMatch: 3dMatch.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dMatch 3dMatch.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dMatch 3dMatch.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dNetCorr: 3dNetCorr.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dNetCorr: 3dNetCorr.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dNetCorr 3dNetCorr.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dNetCorr 3dNetCorr.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
 # not distributed 25 Aug 2020
-1dDW_Grad_o_Mat: 1dDW_Grad_o_Mat.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+1dDW_Grad_o_Mat: 1dDW_Grad_o_Mat.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 1dDW_Grad_o_Mat 1dDW_Grad_o_Mat.o  ${AFNI_3dOBJS} \
+	$(CC) -o 1dDW_Grad_o_Mat 1dDW_Grad_o_Mat.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-1dDW_Grad_o_Mat++: 1dDW_Grad_o_Mat++.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+1dDW_Grad_o_Mat++: 1dDW_Grad_o_Mat++.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 1dDW_Grad_o_Mat++ 1dDW_Grad_o_Mat++.o  ${AFNI_3dOBJS} \
+	$(CC) -o 1dDW_Grad_o_Mat++ 1dDW_Grad_o_Mat++.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dVecRGB_to_HSL:3dVecRGB_to_HSL.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dVecRGB_to_HSL:3dVecRGB_to_HSL.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dVecRGB_to_HSL 3dVecRGB_to_HSL.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dVecRGB_to_HSL 3dVecRGB_to_HSL.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3ddot_beta: 3ddot_beta.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3ddot_beta: 3ddot_beta.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3ddot_beta 3ddot_beta.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3ddot_beta 3ddot_beta.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dLombScargle: 3dLombScargle.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dLombScargle: 3dLombScargle.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dLombScargle 3dLombScargle.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dLombScargle 3dLombScargle.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dAmpToRSFC: 3dAmpToRSFC.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dAmpToRSFC: 3dAmpToRSFC.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dAmpToRSFC 3dAmpToRSFC.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dAmpToRSFC 3dAmpToRSFC.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dSpaceTimeCorr: 3dSpaceTimeCorr.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dSpaceTimeCorr: 3dSpaceTimeCorr.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dSpaceTimeCorr 3dSpaceTimeCorr.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dSpaceTimeCorr 3dSpaceTimeCorr.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dZipperZapper: 3dZipperZapper.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dZipperZapper: 3dZipperZapper.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dZipperZapper 3dZipperZapper.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dZipperZapper 3dZipperZapper.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dSliceNDice: 3dSliceNDice.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dSliceNDice: 3dSliceNDice.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dSliceNDice 3dSliceNDice.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dSliceNDice 3dSliceNDice.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-3dClusterize: 3dClusterize.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dClusterize: 3dClusterize.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dClusterize 3dClusterize.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dClusterize 3dClusterize.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
@@ -231,11 +211,11 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 
 3dDWUncert.o: 3dDWUncert.c
 	$(RM) $@
-	$(CCOMP_PT) -c -fopenmp 3dDWUncert.c $(PTAYLOR_INCLUDE_PATH)
+	$(CCOMP_PT) -c  3dDWUncert.c $(PTAYLOR_INCLUDE_PATH)
 
-3dDWUncert:3dDWUncert.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dDWUncert:3dDWUncert.o  ${PTAYLORLIB}
 	$(RM) $@
-	$(CCOMP_PT) -fopenmp -o 3dDWUncert 3dDWUncert.o  ${AFNI_3dOBJS} \
+	$(CCOMP_PT) -o 3dDWUncert 3dDWUncert.o   \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
      -lgsl -lgslcblas -lm

@@ -141,6 +141,9 @@ int main( int argc , char * argv[] )
       printf ("\n");
       printf(
   "3dclust - performs simple-minded cluster detection in 3D datasets       \n"
+  "\n"
+  "         *** PLEASE NOTE THAT THE NEWER PROGRAM 3dClusterize ***\n"
+  "         *** IS BETTER AND YOU SHOULD USE THAT FROM NOW ON!! ***\n"
   "                                                                        \n"
   "     This program can be used to find clusters of 'active' voxels and   \n"
   "     print out a report about them.                                     \n"
@@ -273,8 +276,8 @@ int main( int argc , char * argv[] )
   "           N.B.1: The MNI template brain is about 5 mm higher (in S),   \n"
   "                  10 mm lower (in I), 5 mm longer (in PA), and tilted   \n"
   "                  about 3 degrees backwards, relative to the Talairach- \n"
-  "                  Tournoux Atlas brain.  For more details, see          \n"
-  "                    http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html  \n"
+  "                  Tournoux Atlas brain.  For more details, see, e.g.:   \n"
+  "                  https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach\n"
   "           N.B.2: If the input dataset does not have the +tlrc view,    \n"
   "                  then the only effect is to flip the output coordinates\n"
   "                  to the 'LPI' (neuroscience) orientation, as if you    \n"
@@ -409,6 +412,7 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dclust main"); machdep(); AFNI_logger("3dclust",argc,argv);
    PRINT_VERSION("3dclust") ; AUTHOR(PROGRAM_AUTHOR) ;
+   INFO_message("*** Consider using program 3dClusterize instead of 3dclust ***") ;
 
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord ) ; /* July 1997 */
    CL_read_opts( argc , argv ) ;

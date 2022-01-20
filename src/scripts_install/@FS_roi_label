@@ -85,9 +85,15 @@ else
       else
          set fsp = $bin:h
          #peel off a couple of layers
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
+         if ( ! -f $fsp/${fsdb}) then
+            set fsp = $fsp:h
+         endif
          if ( ! -f $fsp/${fsdb}) then
             echo "Cannot find LUT"
             goto END
@@ -160,7 +166,7 @@ if ($name != "") then
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $cnt_lt >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      if($rankmap != "") then
+      if ($rankmap != "") then
          uniq /tmp/${tmpP}lt.txt >> $labeltable
       else
          cat /tmp/${tmpP}lt.txt |sed 's/^#//' >> $labeltable

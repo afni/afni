@@ -425,9 +425,11 @@ PLUGIN_interface * ENV_init(void)
                    "Graph display of complex time series" ,
                    NUM_cx2r_list , cx2r_list , NULL  ) ;
 
+#if 0                                                     /* removed 11 Jan 2021 */
    ENV_add_string( "AFNI_GRAPH_BOXLAB" ,                          /* 18 Apr 2011 */
                    "Box graph display of brick labels" ,
                    NUM_boxlab_list , boxlab_list , NULL  ) ;
+#endif
 
    ENV_add_yesno( "AFNI_PBAR_LOCK" , "Lock Color Pbars together?" ) ; /* 07 Feb 2004 */
    ENV_add_yesno( "AFNI_RANGE_LOCK", "Lock OLay Ranges together?" ) ; /* 23 Feb 2004 */
@@ -548,6 +550,10 @@ PLUGIN_interface * ENV_init(void)
    /* 11 May 2009 [RWCox] */
    ENV_add_yesno( "AFNI_INSTACORR_FDR" ,
                   "Compute FDR curve for InstaCorr correlations?" ) ;
+
+   /* 24 Sep 2021 [RWCox] */
+   ENV_add_yesno( "AFNI_INSTACORR_JUMP" ,
+                  "Shift+Ctrl click jumps crosshairs before doing InstaCorr?") ;
 
    /* 27 Aug 2009 [RWCox] */
    ENV_add_numeric( "AFNI_IMAGE_CROPSTEP" ,

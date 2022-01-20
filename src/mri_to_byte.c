@@ -230,7 +230,7 @@ ENTRY("mri_to_bytemask") ;
             if( mask_bot >= maxval || mask_top <= -maxval ) empty = 1;
             mbot = BYTEIZE(mask_bot); mtop = BYTEIZE(mask_top);
          } else {
-            mbot = (byte) -MRI_TYPE_maxval[MRI_byte];
+            mbot = (byte)  0; /* unsigned, so zero */
             mtop = (byte)  MRI_TYPE_maxval[MRI_byte];
          }
          if( !empty )

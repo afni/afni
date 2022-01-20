@@ -397,8 +397,8 @@ main (int argc, char *argv[])
 "                 method. If mname is 'hybrid', use combination of methods.\n"
 "                 MJD Powell, \"The NEWUOA software for unconstrained \n"
 "                 optimization without derivatives\", Technical report DAMTP\n"
-"                 2004/NA08, Cambridge University Numerical Analysis Group --\n"
-"                 http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
+"                 2004/NA08, Cambridge University Numerical Analysis Group:\n"
+"                 See:  http://www.ii.uib.no/~lennart/drgrad/Powell2004.pdf\n\n"
 "   -mean_b0 = use mean of all b=0 volumes for linear computation and initial\n"
 "              linear for nonlinear method\n\n"
 " Example:\n"
@@ -1091,7 +1091,7 @@ main (int argc, char *argv[])
       for(i=0 ; i<2 ; i++) 
          ccc[i] = calloc( nxyz, sizeof(float)); 
       
-      if( (ccc == NULL) ) { 
+      if( ccc == NULL ) { 
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(4);
       } 

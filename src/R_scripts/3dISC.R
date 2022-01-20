@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Sept 27, 2020
+Version 1.0.3, Dec 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -302,48 +302,64 @@ Introduction
          ...
      \n"
 
-   ex5 <-
-"Example 5 --- ISC analysis with two conditions (C1 and C2). Three ISCs can be
-  inferred at the population level, C11 (ISC within the first condition C1), 
-  C22 (ISC within the second condition C2), and C12 (ISC between the first
-  condition C1 and the second condition C2). The research interest can be 
-  various comparisons among C11, C22 and C12. Use three columns to code the
-  condition pairing. The first column ('cond' below) to indicate the condition
-  pair, and the second and third columns show the condition for the first and
-  second subject, respectively. Be careful that a factor (categorical variable) 
-  is internally quantified in the model using deviation coding with alphabetically
-  the last level (C22 in this case) as the reference. If different labels (e.g.,
-  house, face, facehouse) are used, make sure that the weights in the option
-  -gltCode are associated with the order of the three pairs (e.g., face, 
-  facehouse, house).
+    ex5 <-
+"Example 5 --- ISC analysis with two conditions (C1 and C2). The research interest
+  is regarding the contrast of ISC between the two conditions. The basic strategy
+  is to convert the data to the contrast between the conditions. In other words,
+  obtain the contrast of ISC after the Fisher-transformation between the two
+  conditions for each subject pair with a command like the following:
 
--------------------------------------------------------------------------
-    3dISC -prefix ISC5 -jobs 12                \\
-          -mask myMask+tlrc                     \\
-          -model  'cond+(0+cond1|Subj1)+(0+cond2|Subj2)'     \\
-          -gltCode ave     '1 0 -0.5'           \\
-          -gltCode C11     '1 1 0'              \\
-          -gltCode C12     '1 0 1'              \\
-          -gltCode C22     '1 -1 -1'            \\
-          -gltCode C11vC22 '0 2 1'              \\
-          -gltCode C11vC12 '0 1 -2'             \\
-          -gltCode C12vC22 '0 1 2'              \\
-          -gltCode ave-C12 '0 0 -1.5'           \\
-          -dataTable                            \\
-          Subj1 Subj2    cond cond1 cond2   InputFile     \\
-          s1     s2      C11   C1     C1    s1_2+tlrc     \\
-          s1     s3      C11   C1     C2    s1_3+tlrc     \\
-          s1     s4      C11   C1     C2    s1_4+tlrc     \\
-          ...            
-          s1     s25     C12   C1     C2    s1_25+tlr     \\
-          s1     s26     C12   C1     C2    s1_26+tlr     \\
-          s1     s27     C12   C1     C2    s1_26+tlr     \\
-          ...            
-          s25    s26     C22   C2     C2   s25_26+tlr     \\
-          s25    s27     C22   C2     C2   s25_27+tlr     \\
-          s25    s48     C22   C2     C2   s51_28+tlr     \\
-         ...
+  3dcalc -a subj1_subj2_cond1 -b subj1_subj2_cond2 -expr 'atanh(a)-atanh(b)'
+     -prefix subj1_subj2
+
+  The function of inverse hyperbolic tangent 'atanh' is the same as the Fisher
+  z-transform. Then follow Example 1 with the contrasts from the above 3dcalc output
+  as input.
      \n"
+
+# The scenario does not work properly. Needs to be fixed with the dataset by Dan 
+# Zhao on morgoth
+#"Example 5 --- ISC analysis with two conditions (C1 and C2). Three ISCs can be
+#  inferred at the population level, C11 (ISC within the first condition C1), 
+#  C22 (ISC within the second condition C2), and C12 (ISC between the first
+#  condition C1 and the second condition C2). The research interest can be 
+#  various comparisons among C11, C22 and C12. Use three columns to code the
+#  condition pairing. The first column ('cond' below) to indicate the condition
+#  pair, and the second and third columns show the condition for the first and
+#  second subject, respectively. Be careful that a factor (categorical variable) 
+#  is internally quantified in the model using deviation coding with alphabetically
+#  the last level (C22 in this case) as the reference. If different labels (e.g.,
+#  house, face, facehouse) are used, make sure that the weights in the option
+#  -gltCode are associated with the order of the three pairs (e.g., face, 
+#  facehouse, house).
+#
+#-------------------------------------------------------------------------
+#    3dISC -prefix ISC5 -jobs 12                \\
+#          -mask myMask+tlrc                     \\
+#          -model  'cond+(0+cond1|Subj1)+(0+cond2|Subj2)'     \\
+#          -gltCode ave     '1 0 -0.5'           \\
+#          -gltCode C11     '1 1 0'              \\
+#          -gltCode C12     '1 0 1'              \\
+#          -gltCode C22     '1 -1 -1'            \\
+#          -gltCode C11vC22 '0 2 1'              \\
+#          -gltCode C11vC12 '0 1 -2'             \\
+#          -gltCode C12vC22 '0 1 2'              \\
+#          -gltCode ave-C12 '0 0 -1.5'           \\
+#          -dataTable                            \\
+#          Subj1 Subj2    cond cond1 cond2   InputFile     \\
+#          s1     s2      C11   C1     C1    s1_2+tlrc     \\
+#          s1     s3      C11   C1     C2    s1_3+tlrc     \\
+#          s1     s4      C11   C1     C2    s1_4+tlrc     \\
+#          ...            
+#          s1     s25     C12   C1     C2    s1_25+tlr     \\
+#          s1     s26     C12   C1     C2    s1_26+tlr     \\
+#          s1     s27     C12   C1     C2    s1_26+tlr     \\
+#          ...            
+#          s25    s26     C22   C2     C2   s25_26+tlr     \\
+#          s25    s27     C22   C2     C2   s25_27+tlr     \\
+#          s25    s48     C22   C2     C2   s51_28+tlr     \\
+#         ...
+#     \n"
 
 
    parnames <- names(params)
@@ -724,13 +740,14 @@ process.ISC.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
-   if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN)) 
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 
@@ -958,12 +975,14 @@ dimy <- inData$dim[2]
 dimz <- inData$dim[3]
 # for writing output purpose
 head <- inData
-
+NoFile <- dim(lop$dataStr[1])[1]
 
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   errex.AFNI(c("At least one of the input files has different dimensions:\n",
+   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
+   "or     (2) some input files have more than one value per voxel.\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
@@ -971,6 +990,8 @@ cat('Reading input files for effect estimates: Done!\n\n')
 
 if (!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
@@ -1027,11 +1048,12 @@ cat('is likely inappropriate.\n\n')
 if(!is.na(lop$maskFN)) {
    idx <- which(lop$maskData == 1, arr.ind = T)
    idx <- idx[floor(dim(idx)[1]/2),1:3]
-   ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
+   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
-   if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-   if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+   if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+   if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
    ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1082,45 +1104,79 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 ###############################
 #options(warn = -1) # suppress warnings!
 #getOption('warn')
-
 options(contrasts = c("contr.sum", "contr.poly"))
-
-   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
+if(dimy==1 & dimz==1) { # 1D data
+   nSeg <- 20
+   # drop the dimensions with a length of 1
+   inData <- inData[, , ,]
+   # break into 20 segments, leading to 5% increamental in parallel computing
+   dimx_n <- dimx%/%nSeg + 1
+   # number of datasets need to be filled
+   fill <- nSeg-dimx%%nSeg
+   # pad with extra 0s
+   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+   # break input multiple segments for parrel computation
+   dim(inData) <- c(dimx_n, nSeg, NoFile)
+   Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+   if (lop$nNodes==1) for(kk in 1:nSeg) {
+      for(kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, ModelForm=lop$model,
+               DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,1))
+         cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+      } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+   }
+   if (lop$nNodes>1) {
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterExport(cl, "z2r", envir=environment())
+      clusterEvalQ(cl, library(lme4))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      for(kk in 1:nSeg) {
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, ModelForm=lop$model,
+               DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,1)) 
+         cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+      } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+      stopCluster(cl)
+   }
+   # convert to 4D
+   dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+   # remove the trailers (padded 0s)
+   Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+} else { # volumetric data
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
 
    if (lop$nNodes==1) for (kk in 1:dimz) {
-      # 2/9/2016: for 1D input files. Should do this for other scenarios
-      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, ranFormMeta=lop$ranFormMeta, nBrk=lop$NoBrick, tag=0), c(2,1)) else
-      Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runMeta, dataframe=lop$dataStr, ranFormMeta=lop$ranFormMeta, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
+         DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1))
       cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
    }         
 
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "z2r", envir=environment())
-   clusterEvalQ(cl, library(lme4))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
+   if (lop$nNodes>1) {
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterExport(cl, "z2r", envir=environment())
+      clusterEvalQ(cl, library(lme4))
+      clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+      for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
                   DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1)) 
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-    stopCluster(cl)
-}
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      } # for (kk in 1:dimz)
+      stopCluster(cl)
+   } # if (lop$nNodes>1)
+} # if(dimy==1 & dimz==1) else
+
 # runLME(inData[30,30,30,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
-Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
 
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-1)))
 
-write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+#write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
+write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 

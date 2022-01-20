@@ -7,6 +7,8 @@
 
 /* Common Block Declarations */
 
+/* let the compiler know that these are not local structs */
+/* (done whenever pwritf.c is regenerated from pwritf.f)  */
 extern struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
@@ -171,8 +173,8 @@ L20:
 	xorg = zzzplt_1.xtop;
 	yorg = (zzzplt_1.ybot + zzzplt_1.ytop) * .5f;
     } else if (*icent == -3) {
-	xorg = 0.f;
-	yorg = 0.f;
+	xorg = dmax(zzzplt_1.xbot,0.f);
+	yorg = dmax(zzzplt_1.ybot,0.f);
     } else {
 	xorg = zzzplt_1.xbot;
 	yorg = zzzplt_1.ybot;
@@ -1044,7 +1046,7 @@ L100:
 
     } else if (ich == 10) {
 	xcur = 0.f;
-	ycur += -1.1f;
+	ycur += -1.36f;
 /* ...................................................................
 .. */
 /*  Otherwise, this is a real character with real strokes */
@@ -1137,7 +1139,7 @@ L100:
     static char chnesc[15] = "\\noesc         ";
     static char chcolr[15] = "\\color         ";
     static char chcoln[15] = ":              ";
-    static char chtex[15*115] = "\\Plus          " "\\Cross         " "\\Dia"
+    static char chtex[15*116] = "\\Plus          " "\\Cross         " "\\Dia"
 	    "mond       " "\\Box           " "\\FDiamond      " "\\FBox      "
 	    "    " "\\FPlus         " "\\FCross        " "\\Burst         " 
 	    "\\Octagon       " "\\alpha         " "\\beta          " "\\gamm"
@@ -1171,15 +1173,16 @@ L100:
 	    "          " "\\}             " "\\\\             " "\\cents     "
 	    "    " "\\black         " "\\red           " "\\blue          " 
 	    "\\green         " "\\yellow        " "\\magenta       " "\\cyan"
-	    "          " "\\small         " "\\large         ";
-    static integer ichext[115] = { 176,177,178,179,180,181,182,183,184,185,
+	    "          " "\\small         " "\\large         " "\\newline    "
+	    "   ";
+    static integer ichext[116] = { 176,177,178,179,180,181,182,183,184,185,
 	    225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,
 	    241,242,243,244,245,246,247,248,193,194,195,196,197,198,199,200,
 	    201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,
 	    128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
 	    160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
 	    186,187,188,189,190,191,255,96,35,36,37,38,123,125,92,94,148,149,
-	    150,151,152,153,154,155,156 };
+	    150,151,152,153,154,155,156,10 };
 
     /* System generated locals */
     integer i__1;
@@ -1367,7 +1370,7 @@ t also */
 	nused = itop - inc + 1;
 	s_copy(chcont, chin + (inc - 1), 15L, itop - (inc - 1));
 
-	for (i__ = 1; i__ <= 115; ++i__) {
+	for (i__ = 1; i__ <= 116; ++i__) {
 	    if (s_cmp(chcont, chtex + (i__ - 1) * 15, 15L, 15L) == 0) {
 		goto L410;
 	    }

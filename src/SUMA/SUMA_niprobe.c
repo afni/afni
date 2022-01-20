@@ -1,6 +1,6 @@
 #include "niml.h"
 #include "afni.h"
-#include "suma_suma.h"
+#include "SUMA_X_objs.h"
 
 /* can't modify that poor niccc anymore */
 
@@ -18,7 +18,7 @@ void NIML_to_terminal( void *nini, int mode, int do_stderr)
 }
 
 void usage_niprobe(int detail) {
-      fprintf(stderr,
+      printf(
 "\n"
 "   Usage: niprobe [-dup] [-nodata] streamspec\n"
 "\n"

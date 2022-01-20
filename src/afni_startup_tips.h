@@ -138,6 +138,21 @@ static char *tip[] = {
    "settings in your .afnirc file; with some work, you can setup the\n"
    "graph viewer to look the way you want it to be permanently."
  ,
+   "In the graph viewer, the keypress Ctrl-B will cycle the Data plotting\n"
+   " between the available modes, which are\n"
+   "    Lines         = the default graphing mode\n"
+   "    Points        = points only, plotted at each data value\n"
+   "    Points+Lines  = points plotted with lines between them\n"
+   "    Boxes         = a bar graph\n"
+   "    Box+LabelUp   = with sub-brick labels at top of mini-graph\n"
+   "    Box+LabelTop  = labels on top of each box\n"
+   "    Box+LabelDown = labels at bottom of mini-graph\n"
+   "Labels for the boxes are taken from the sub-brick labels of the\n"
+   " underlay dataset. Thus, you might want to re-label the dataset\n"
+   " to have more meaningful labels on your graphs. This can be done\n"
+   " with the '3drefit -relabel_all' command.\n"
+   "The B key alone will toggle between 'Lines' and 'Boxes' (no labels)."
+ ,
    "The graph viewer 'Opt->Detrend' menu item lets you choose a polynomial degree\n"
    "for detrending the graph data. This can help you visualize the features of the\n"
    "data you want to see without be distracted by long term trends up or down.\n"
@@ -425,6 +440,28 @@ static char *tip[] = {
   "   the ~/.afnirc file.\n"
   "* All AFNI environment variables (including many that do not affect the GUI)\n"
   "   are described in the README.environment file."
+,
+  "In a main AFNI controller window, the 'Index' field (left-middle) shows the\n"
+  "sub-brick/volume/time index currently being displayed in the image viewers.\n"
+  "If you right-click on the 'Index' label, a hidden popup control window\n"
+  "opens, with these occasionally useful items:\n"
+  "  Index Step     : Lets you set the stepsize for the Index arrow buttons.\n"
+  "  SLAVE_FUNCTIME : Lets you turn off or on the 'slaving' of the\n"
+  "                   overlay volume index to the underlay volume index;\n"
+  "                   this feature is useful when the overlay is a time-\n"
+  "                   dependent dataset itself.\n"
+  "  Thr = Olay?+1?   Lets you lock the Define Overlay 'Thr' volume\n"
+  "                   index chooser to the 'OLay' volume index chooser,\n"
+  "                   so that as you change which overlay dataset volume\n"
+  "                   you are colorizing, the threshold volume changes\n"
+  "                   in lockstep. The choices on this item are\n"
+  "                     free : Thr and OLay indexes are not locked\n"
+  "                      ==  : Thr and OLay indexes are locked to be equal\n"
+  "                      +1  : Thr index is locked to be OLay index + 1\n"
+  "                            which is useful for the Coef/t-statistic\n"
+  "                            volume pairs output by various AFNI codes.\n"
+  "                   When the Thr and OLay indexes are locked, the 'Thr'\n"
+  "                   label in Define Overlay will change to 'Thr*'."
 
 /*----------------- tips below here are for non-GUI programs -----------------*/
  ,
@@ -631,16 +668,18 @@ static char *tip[] = {
  ,
    "Did someone give you a dataset with the spatial orientation 'flipped',\n"
    "so that the subject's left is marked as being the right?\n"
-   " * Program 3dLRflip can flip the data rows to rearrange the data so the\n"
-   "   dataset header information and the actual data match again.\n"
+   "* Program 3dLRflip can flip the data rows to rearrange the data so the\n"
+   "  dataset header information and the actual data match again.\n"
    "* Processing scripts afni_proc.py and align_epi_anat.py can check\n"
-   "   if the EPI and T1w anatomical datasets appear to be left-right flipped."
+   "  if the EPI and T1w anatomical datasets appear to be left-right flipped.\n"
+   "* See Glen et al. (2020):\n"
+   "  https://www.frontiersin.org/articles/10.3389/fninf.2020.00018/full"
  ,
    "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
    "is a good starting point. It shows how to read, calculate, and write\n"
    "datasets, and is heavily commented."
  ,
-  "Almost all AFNI command line programs take '-help' as an option; for example\n"
+  "Almost all AFNI command line programs take '-help' as an option, e.g.:\n"
   "  3dTstat -help\n"
   "This method is how you can get the most up-to-date information about using\n"
   "an AFNI program. All '-help' output are also formatted as Web pages and\n"
@@ -657,7 +696,7 @@ static char *tip[] = {
  ,
   "Interested in the AFNI source code? You can get it here:\n"
   "  git clone https://github.com/afni/afni.git\n"
-  "This will create a directory called 'afni' in your current working directory.\n"
+  "This creates a directory called 'afni' in your current working directory.\n"
   "You will find the source code for AFNI (1 million+ lines) in afni/src.\n"
   "Have fun!"
 
@@ -745,6 +784,7 @@ static char *gby[] = {
      "No time for pleasantries, Kyle; we have a Level 5 emergency!"  ,
      "Digitize me, Fred"                                             ,
      "Well, nobody's perfect"                                        ,
+     "Well, pobody's nerfect"                                        ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
@@ -853,6 +893,7 @@ static char *gby[] = {
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- Man but walks in a vain shadow"                    ,
      "Remember -- The laws of physics always win"                    ,
      "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
@@ -898,7 +939,6 @@ static char *gby[] = {
      "I didn't fail the test, I just found 100 ways to do it wrong"  ,
      "Wise people don't need advice; fools won't take it"            ,
      "Half a truth is often a great lie"                             ,
-     "Will you help 'Make AFNI Great Again'?"                        ,
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
@@ -985,7 +1025,7 @@ static char *gby[] = {
      "Statistics are no substitute for judgment"                     ,
      "There's never enough time to do all the nothing you want"      ,
      "When life gives you lemons, throw them right back at it"       ,
-     "Happiness isn't good enough for me; I demand euphoria"         ,
+     "Happiness isn't good enough for me; I demand EUPHORIA"         ,
      "Judge a person by her questions, rather than her answers"      ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
@@ -1041,6 +1081,7 @@ static char *gby[] = {
      "It is never too late to be wise"                               ,
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
+     "If you need me, I'll be in my van"                             ,
 
      /* Mistakes? in AFNI? */
 
@@ -1153,6 +1194,8 @@ static char *gby[] = {
      "If you don't know where you are sailing, no wind will be favorable"             ,
      "The greatest remedy for anger is delay"                                         ,
      "It is more fitting to laugh at life than to lament over it"                     ,
+     "Remember: There are more things that frighten us than injure us"                ,
+     "Remember: Time heals what reason cannot"                                        ,
 
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
@@ -1201,6 +1244,16 @@ static char *gby[] = {
      "  And then there shall be a fire that knows the naming of you, and in the\n"
      "  presence of the strangling fruit, its dark flame shall acquire every\n"
      "  part of you that remains"                                                     ,
+
+     "Some questions will ruin you if you are denied the answer long enough"          ,  /* 20 May 2021 */
+
+     "A brain map is a form of misdirection, for what is a map but a way\n"
+     "     of emphasizing some things and making other things invisible?"             ,  /* 20 May 2021 */
+
+     "When you are too close to the center of a mystery there is no way\n"
+     "     pull back and see the shape of it entire"                                  ,  /* 20 May 2021 */
+
+     "What can you do when your five senses are not enough?"                          ,  /* 20 May 2021 */
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1485,10 +1538,18 @@ static char *gby[] = {
      "Your results may be mathematical nonsense ... but is undoubtedly neuroscience at its best"        ,
 
      "If you torture the data long enough, it will confess to anything"                 ,
+     "Data that is loved tends to survive"                                              ,
      "To purify the earth, one should purify the heart first"                           ,
      "The key to everything is to focus on one thing at a time"                         ,
      "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
      "The essence of mathematics lies in its freedom"                                   ,
+     "Maybe it's not YOU that's the impostor, it's your DATA that's faking it"          ,
+     "More's law for MRI: More Tesla is better"                                         ,
+
+     "\n  Data is not information;"
+     "\n   Information is not knowledge;"
+     "\n    Knowledge is not understanding;"
+     "\n     Understanding is not wisdom"                                               ,
 
      "Every person can become the sculptor of their own brain"                 , /* Cajal (sort of) */
      "As long as the brain is a mystery, the universe will also be a mystery"  ,
@@ -1497,6 +1558,7 @@ static char *gby[] = {
 
      "Many are stubborn in pursuit of the path they have chosen; few in pursuit of the goal" ,
      "Idleness is the beginning of all psychology - is psychology is a vice?"                ,
+     "Good judgment comes from experience; experience comes from bad judgment"               ,
 
      /* Grateful Dead (mostly) */
 
@@ -1528,6 +1590,9 @@ static char *gby[] = {
 
      /* Multi-line quotes */
 
+     "\n  Once in a while you get shown the light,\n"
+     " in the strangest of places if you look at it right"               ,
+
      "\n  One clear result from FMRI resting state connectivity:\n"
      " Some people have their brains together, and some people do not"   ,
 
@@ -1543,10 +1608,10 @@ static char *gby[] = {
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
-     "\n  We shall not cease from exploration\n"
-     "  And the end of all our exploring\n"
-     "  Will be to arrive where we started\n"
-     "  And know the place for the first time"                                                ,
+     "\n We shall not cease from exploration\n"
+     "   And the end of all our exploring\n"
+     "   Will be to arrive where we started\n"
+     "   And know the place for the first time"                                               ,
 
      "Remember --\n"
      "  To argue with those who have renounced the use and authority\n"
@@ -1616,6 +1681,11 @@ static char *gby[] = {
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     "\n  Distinguishing the signal from the noise requires both scientific\n"
+     "   knowledge and self-knowledge: the serenity to accept the things we\n"
+     "   cannot predict, the courage to predict the things we can, and the\n"
+     "   wisdom to know the difference"                                                       ,
+
      // Galois
      "Apres cela, il y aura, j'espere, des gens qui\n"
      "  trouveront leur profit a dechiffrer tout ce gachis"                                   ,
@@ -1625,7 +1695,7 @@ static char *gby[] = {
 
      // Eliot
      "                           Not fare well,\n"
-     "But fare forward, voyagers."                                                            ,
+     "But fare forward, voyagers"                                                             ,
 
      // Lem
      "\n"
@@ -1640,13 +1710,17 @@ static char *gby[] = {
      "in an entirely different way"                                                           ,
 
      // Morpheus
-     "Remember: all I'm offering you is the truth, nothing more."                             ,
+     "Remember: all I'm offering you is the truth, nothing more"                              ,
 
      // *Not* No. 6
      "I am not a number-- I am a free program!"                                               ,
 
      // Awoonor
      "Who can tell where any bird will fall?"     ,
+
+     // Kurt Goedel
+     "\n  The more I think about language, the more it amazes me\n"
+     "  that people ever understand each other."                                                ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
@@ -1668,7 +1742,8 @@ static char *gby[] = {
      "     0.08  = Very suggestive\n"
      "     0.09  = Significant at the p < 0.1 level (send more funding)\n"
      "     > 0.1 = Hey! Look at this interesting subgroup analysis\n"
-     "     > 0.2 = Significant in an alternate reality"                     ,
+     "     > 0.2 = Significant in an alternate reality\n"
+     "  sqrt(-1) = It was significant in my dream last night"  ,
 
      "\n Possible answers to a binary question:\n"
      "     Yes\n"
@@ -1686,7 +1761,7 @@ static char *gby[] = {
      "     Please repeat the question more slowly\n"
      "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
-     "     From which branch of reality would you like the answer?\n"
+     "     From which branch manifold of reality would you like the answer?\n"
      "     That depends on the truth of the Riemann Hypothesis\n"
      "     Is there an odd perfect number?\n"
      "     Forty seven\n"
@@ -1704,7 +1779,7 @@ static char *gby[] = {
      "   Say 'Oh crap' over and over and over" ,
 
      "\n    Never should I forget this event\n"
-     "    in the life of my fatigued retinas\n" ,
+     "    in the life of my fatigued retinas" ,
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
@@ -1713,6 +1788,10 @@ static char *gby[] = {
      "  S. Holmes:   The past and the present are within the field of my inquiry,\n"
      "               but what a man may do in the future is a hard question to answer.\n"
      "  Free Energy: Fokker-Planck equation to the rescue" ,
+
+     "\n"
+     "  Humor can be dissected, as a frog can, but the thing dies in the\n"
+     "  process and the innards are discouraging to any but the pure scientific mind" ,
 
      /* from Quentin Crisp */
 
@@ -1853,7 +1932,129 @@ static char *gby[] = {
      "One of the drawbacks to life is that it contains moments when\n"
      "   one is compelled to tell the truth"                                           ,
 
-     "I always advise people never to give advice"
+     "I always advise people never to give advice"                                     ,
+
+     /* Ben Franklin (sort of) [30 May 2021] */
+
+     "He that falls in love with himself will have no rivals"                          ,
+     "Data well gathered is better than data well cleaned up"                          ,
+     "Never confuse beautiful abstractions with hard reality"                          ,
+     "Never mistake a beautiful brain map with the truth of the brain's operation"     ,
+
+     /* Misc */
+
+    "It is amazing how many problems go away if you just do nothing about them for a while" ,  /* 12 May 2021 */
+
+    "\n  It is not enough to be in the right place at the right time.\n"
+    "    You should also have an open mind at the right time"                               ,
+
+    "Sometimes the Bluebird of Happiness is in your own back yard"                          ,  /* 12 May 2021 */
+
+    "Better than the Gold standard for FMRI -- I'm the Bitcoin standard"                    ,  /* 21 May 2021 */
+
+    "When you discover that you are riding a dead horse, the best strategy is to dismount"  ,  /* 21 May 2021 */
+
+    "The mountains are calling, and I must go"                                              ,  /* 30 May 2021 */
+
+    "Despite what they tell you, there are simply no moral absolutes in a complex world"             ,  /* 10 Jun 2021 */
+    "The trouble with having an open mind is that people keep coming along and sticking ideas in it" ,
+    "Somehow it is always right now until suddenly it's later"                                       ,
+    "Visualizing the conceptualization process is always the hardest part of a project"              ,
+    "I have faced all the reality I need to face for today"                                          ,
+    "You cannot stand outside yourself to check the functioning of your internal processes"          ,  /* 17 Jun 2021 */
+    "Five exclamation marks, the sure sign of an insane mind!!!!"                                    ,
+
+    "\n  I'd be more interested in thinking outside the box\n"
+    "    if I could figure out thinking INSIDE the box first"                        ,
+    "Real stupidity beats artificial intelligence, every time"                       ,
+    "Sometimes it's better to light a flamethrower than curse the darkness"          ,
+    "You can shut your eyes but you can't shut your brain"                           ,
+    "Having a wonderful time. Please send more grant money"                          , /* 22 Jun 2021 */
+    "I don't mind being this old. I just thought it would take longer to get here"   , /* 08 Jul 2021 */
+
+    "\n"
+    " Substitutions to understand yourself better:\n"
+    "   Obsessive  => Passionate\n"
+    "   Rigid      => Structured\n"
+    "   Fussy      => Specific\n"
+    "   Demanding  => Self-Protective\n"
+    "   Dramatic   => Sensitive\n"
+    "   Childish   => Youthful\n"
+    "   Unsociable => Independent\n"
+    "   Weird      => Unique\n"
+    "   Lazy       => Out of Energy\n"
+    "   Stubborn   => Consistent\n"
+    " And remember, AFNI is ALL of these things at the same time"                      , /* 12 Jul 2021 */
+
+    "Be Warned:\n"
+    "  Any observed statistical regularity will tend to collapse\n"
+    "  once pressure is placed upon it for control purposes"                           , /* 13 Jul 2021 */
+
+    "Tell me, what is it you plan to do with your one wild and precious life?"         ,
+    "Anything which can be used can be misused; anything which can be misused will be" ,
+    "It's hard to accept the truth when the lies were exactly what you wanted to hear" ,
+
+    "\n"
+    " The problem with connections is that the right ones are necessary,\n"
+    "   but there are too many possible wrong ones out there.\n"
+    "    Oh well, I guess that's what evolution and experience are for"                , /* 30 Jul 2021 */
+
+    "\n"
+    " What I tell you three times is true:\n"
+    "   p < 0.05 is arbitrary and confusing;\n"
+    "     p < 0.05 is arbitrary and confusing;\n"
+    "       p < 0.05 is arbitrary and confusing!!\n"
+    "   Life can only be understood after it is Lived;\n"
+    "     Life can only be understood after it is Lived;\n"
+    "       Lived is it after understood be only can Life!!\n"
+    "   The brain is not a computer and it is not running software;\n"
+    "     The brain is not a computer and it is not running software;\n"
+    "       The brain is not a computer and it is not running software!"               ,
+
+    "\n"
+    "  When I was 20, I thought a lot about what other people thought of me;\n"
+    "   When I was 40, I found I didn't think so much about what they thought of me;\n"
+    "    When I was 60, I figured out that they didn't spend much effort thinking about me" , /* 09 Aug 2021 */
+
+    "\n"
+    "  When the airless wind shall sing,\n"
+    "   When the broken circle mends,\n"
+    "    When the brightest day dawns without light,\n"
+    "     And the brittle night comes softly without darkness\n"
+    "      -- I shall yet remember"                                 , /* 10 Aug 2021 */
+
+    "Remember: He who wills the ends, wills the means"              , /* 23 Aug 2021 */
+
+    "Just because you're paranoid doesn't mean THEY aren't out to get you" , /* 24 Aug 2021 */
+    "Your destiny is decades away, until suddenly it is NOW"               ,
+
+    "Do not wear yourself out to get a smaller p-value; do not trust your own cleverness" , /* 25 Aug 2021 */
+    "Remember: Do not speak to fools" ,
+    "I always have a quotation for everything -- it saves original thinking" ,
+    "Program glitches are like cows: if you stare at them long enough, they go away" ,
+    "It's good to do things neatly and properly, even stupid things" ,
+    "I'm not just sure of my results, I'm abso-bally-lutely positive" ,
+    "Remember: Trouble shared is trouble halved" ,
+    "Good news: Your problem is fixed -- Bad News: You can now rush ahead to the NEXT problem" ,
+    "No important change comes calmly over the world" ,
+
+    "One thing that humbles me deeply is to see that human genius has its limits while human stupidity does not" ,
+
+    "It's been fun - let's do it again soon" ,
+
+    "\n"                                                        /* 20 Oct 2021 */
+    "  Statements and questions that are never a good sign:\n"
+    "    We need to talk\n"
+    "    I don't mean to worry you\n"
+    "    I've been thinking\n"
+    "    The ceiling looks wet\n"
+    "    Stay extremely still\n"
+    "    What's that buzzing?\n"
+    "    Honestly, I'm fine, really"                            ,
+
+    /**** Keep this one last ****/
+
+    "You are VERY lucky - This is the ultimate AFNI goodbye message - So long and thanks for all the smoked salmon!!"
 
 } ;
 

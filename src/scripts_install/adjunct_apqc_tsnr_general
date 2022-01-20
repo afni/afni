@@ -1,0 +1,625 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.1";  set rev_dat   = "Feb 22, 2021"
+# [PT] start of this program in program form.  Programmatically speaking.
+#
+#set version   = "0.2";  set rev_dat   = "Feb 22, 2021"
+# [PT] program up and running.
+#    + requires a mask
+#
+#set version   = "0.3";  set rev_dat   = "Mar 10, 2021"
+# [PT] add in more @chauffeur_afni options
+#
+#set version   = "0.4";  set rev_dat   = "Mar 10, 2021"
+# [PT] even more @chauffeur_afni options
+#
+#set version   = "0.5";  set rev_dat   = "April 16, 2021"
+# [PT] generalize, and absorb no-mask case here, as well as specifying
+# limits
+#
+#set version   = "1.0";  set rev_dat   = "April 16, 2021"
+# [PT] generalized to both mask and non-mask case, and to user setting
+#      cbar range for both continuous and discrete (hot/cold) cbar
+#    + can also add in a continuous cbar of own choosing
+#
+#set version   = "1.1";  set rev_dat   = "April 16, 2021"
+# [PT] add several more @chauffeur_afni opts to pass along. Sigh.
+#
+#set version   = "1.2";  set rev_dat   = "Sep 21, 2021"
+# [PT] add new @chauff* opts: '-no_cor', '-no_sag', '-no_axi'
+#    + will be useful for APQC (-no_cor)
+#
+set version   = "1.21";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_apqc_tsnr_general"
+set tpname    = "${this_prog:gas/adjunct_//}"
+set here      = $PWD
+
+set ulay  = ""
+set olay  = ""
+set focus = ""
+set mask  = ""
+set opref = ""
+set opref_cbar = ""
+
+set SET_LIMITS_MODE = 1     # controls where color ranges come from
+                            # 1 -> no mask, auto limits, smooth cbar
+                            # 2 -> limits come from user
+                            # 10 -> mask input, known %iles, discrete cbar
+                            # 3 -> ... will see
+
+set subbb          = ( 0 0 0 ) # def: [0]th vol for all
+set save_ftype     = JPEG      # def for HTML
+set blowup         = 2         # def in @chauffeur_afni
+set cbar_cont      = Viridis   # def cbar for continuous case
+set olay_alpha     = "No"      
+set olay_boxed     = "No"      
+set thrnew         = "0"                 # threshold value (zero default)
+
+set urange_meth    = "-ulay_range"       # ulay properties
+set umin           = "0%"
+set umax           = "120%"
+
+set opacity        = ""
+set Nx             = 7                   # num of mont wins, b/c Ny=1
+set Ny             = 1                   
+set mgap           = 1                   # gapsize (in px) bt montage slices
+set mcolor         = 'black'             # color of montage gap
+
+set user_coors     = "-pass"
+set label_mode     = 1
+
+set delta_slices   = "-pass"
+
+set views_off        = ( )
+set all_views        = ( 1 1 1 )
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mask = "$argv[$ac]"
+        set SET_LIMITS_MODE = 10
+
+    else if ( "$argv[$ac]" == "-focus" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set focus = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix_cbar" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref_cbar = "$argv[$ac]"
+
+    # --------------------- opts ------------------
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
+    else if ( "$argv[$ac]" == "-montgap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mgap = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-montcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-montx" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Nx = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-monty" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Ny = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-opacity" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opacity = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-label_mode" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set label_mode = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_dicom_xyz "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_ijk" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set user_coors = "-set_ijk "
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+        @ ac += 1
+        set user_coors = "$user_coors $argv[$ac]"
+    else if ( "$argv[$ac]" == "-ulay_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-ulay_range_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set urange_meth = "-ulay_range_nz"
+
+    else if ( "$argv[$ac]" == "-delta_slices" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set delta_slices = "-delta_slices "
+        set delta_slices = "$delta_slices $argv[$ac]"
+        @ ac += 1
+        set delta_slices = "$delta_slices $argv[$ac]"
+        @ ac += 1
+        set delta_slices = "$delta_slices $argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-blowup" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set blowup = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set save_ftype = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-set_subbricks" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set subbb[1] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[2] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[3] = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay_alpha" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_alpha = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-olay_boxed" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_boxed = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-thr_olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set thrnew = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_axi" ) then
+        set views_off = ( ${views_off} -no_axi )
+        set all_views[1] = 0
+
+    else if ( "$argv[$ac]" == "-no_cor" ) then
+        set views_off = ( ${views_off} -no_cor )
+        set all_views[2] = 0
+
+    else if ( "$argv[$ac]" == "-no_sag" ) then
+        set views_off = ( ${views_off} -no_sag )
+        set all_views[3] = 0
+
+    # --------- extra control 
+
+    else if ( "$argv[$ac]" == "-cbar_cont" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cbar_cont = "$argv[$ac]"
+
+    # use continuous cbar with: max = cbar max
+    else if ( "$argv[$ac]" == "-olay_cont_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_cont_max = "$argv[$ac]"
+
+        set SET_LIMITS_MODE = 2
+
+    # use cold/hot discrete bar with: 
+    # hcmid = hot-cold break; max = cbar max
+    else if ( "$argv[$ac]" == "-olay_disc_hot_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_disc_hcmid = "$argv[$ac]"
+        @ ac += 1
+        set olay_disc_max   = "$argv[$ac]"
+
+        set SET_LIMITS_MODE = 11
+
+    # ------- end
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Prepare for running ${this_prog} (ver = ${version})"
+
+if ( `echo "${all_views[1]}+${all_views[2]}+${all_views[3]} == 0" | bc` ) then
+    echo "** ERROR: not allowed to turn off 3 view planes"
+    echo "   Can only use 2 of: -no_cor, -no_sag, -no_axi"
+    goto BAD_EXIT
+endif
+
+if ( "${ulay}" == "" ) then
+    echo "** ERROR: use '-ulay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${olay}" == "" ) then
+    echo "** ERROR: use '-olay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${focus}" == "" ) then
+    echo "** ERROR: use '-focus ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${SET_LIMITS_MODE}" == "10" ) then
+    if ( "${mask}" == "" ) then
+        echo "** ERROR: use '-mask ..'"
+        goto BAD_EXIT
+    endif
+endif
+
+if ( "${opref}" == "" ) then
+    echo "** ERROR: use '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${opref_cbar}" == "" ) then
+    echo "** ERROR: use '-prefix_cbar ..'"
+    goto BAD_EXIT
+endif
+
+echo "++ MODE: ${SET_LIMITS_MODE}"
+
+# ======================== prep by mode ==========================
+
+if ( "${SET_LIMITS_MODE}" == "1" || "${SET_LIMITS_MODE}" == "2") then
+    # no mask, auto limits (across whole vol), continuous cbar
+
+    if ( "${opacity}" == "" ) then
+        set opacity = 5
+    endif 
+
+    set cbar_str = "${cbar_cont}"
+
+    if ( "${SET_LIMITS_MODE}" == "1" ) then
+        ### pre-chosen percentiles
+        # what percentiles to use, and then get vals from them
+        set hot_min = 90                        # %ile
+        set hot_max = 98                        # %ile
+        set list_ps = ( ${hot_min} ${hot_max} )
+        
+        set percvs  = `3dBrickStat -slow                  \
+                        -perc_quiet                       \
+                        -perclist ${#list_ps} ${list_ps}  \
+                        ${olay}`
+
+        # round values to nearest int; easier for presentation/reporting
+        foreach ii ( `seq 1 1 ${#percvs}` )
+            set percvs[$ii] = `echo "scale=0; ${percvs[$ii]} / 1.0" | bc`
+        end
+
+        # max val, for func_range
+        set frange_max = ${percvs[${#percvs}]}
+
+        set loc        = "in volume"
+        set range_comm = "${hot_max}%ile ${loc}"
+
+        set range      = "`printf ': %3d - %3d' ${percvs[1]} ${percvs[2]}`"
+        set gen_comm   = " info: ${hot_min}-${hot_max}%ile TSNR ${loc}"
+        set gen_comm   = "${gen_comm}${range}" 
+
+    else if ( "${SET_LIMITS_MODE}" == "2" ) then
+        ### user gives max value
+
+        # max val, for func_range
+        set frange_max = "${olay_cont_max}"
+
+        set loc        = "in volume"
+        set range_comm = "user-selected range"
+
+        # [PT] not very informative here, might add more info later 
+        #set range      = "`printf ': %3d - %3d' ${percvs[1]} ${percvs[2]}`"
+        set gen_comm   = " info: user-selected range" 
+
+    endif
+
+    set cbar_DEETS = ""
+
+# --------------------------------------------------------------------
+else if ( "${SET_LIMITS_MODE}" == "10" || "${SET_LIMITS_MODE}" == "11") then
+    # have mask, auto limits, discrete cbar
+
+    if ( "${opacity}" == "" ) then
+        set opacity = 4
+    endif 
+
+    if ( "${SET_LIMITS_MODE}" == "10" ) then
+        ### where we get ranges from hard-wired percentiles in a mask
+        # what percentiles to use, and then get vals from them
+        set hot_min =  5                        # %ile
+        set hot_max = 95                        # %ile
+        set list_ps = ( 1 ${hot_min} ${hot_max} )
+
+        set percvs  = `3dBrickStat -slow                  \
+                        -non-zero                         \
+                        -perc_quiet                       \
+                        -mask "${mask}"                   \
+                        -perclist ${#list_ps} ${list_ps}  \
+                        ${olay}`
+
+        # round values to nearest int; easier for presentation/reporting
+        foreach ii ( `seq 1 1 ${#percvs}` )
+            set percvs[$ii] = `echo "scale=0; ${percvs[$ii]} / 1.0" | bc`
+        end
+
+    else if ( "${SET_LIMITS_MODE}" == "11" ) then
+        ### where we let the user specify boundary points: NOT percentiles
+
+        # get cold midpoint
+        set cold_mid = `echo "scale=3; ${olay_disc_hcmid} / 2.0" | bc`
+
+        set percvs   = ( "${cold_mid}" "${olay_disc_hcmid}" \
+                         "${olay_disc_max}" )
+    endif
+
+    # max val, for func_range
+    set frange_max = ${percvs[${#percvs}]}
+
+    # ------------- make disc cbar
+
+    set colors   = ( red        oran-red   orange    \
+                     oran-yell  yell-oran  yellow    \
+                     lt-blue2   blue )
+
+    # calc size of spacing within hot-colorbar range
+    @   ncol     = ${#colors} - 2
+    set col_step = `echo "scale=3; ($percvs[3]-$percvs[2])/(${ncol}*1.0)" | bc`
+
+    # make colorstring 
+    set cbar_ncol = 0
+    set cbar_str  = ""
+
+    foreach kk ( `seq 0 1 ${ncol}` )
+        @ cbar_ncol += 1
+        set val = `echo "scale=0; ($percvs[3] - ${kk} * ${col_step})/1.0" | bc`
+        set cbar_str = "${cbar_str}  ${val}=${colors[${cbar_ncol}]}"
+    end
+
+    # add the bottom values to colorstring
+    @ cbar_ncol += 1
+    set cbar_str = "${cbar_str}  ${percvs[1]}=${colors[${cbar_ncol}]}"
+    set cbar_str = "${cbar_str}  0=none"
+    set cbar_DEETS = "-cbar_ncolors ${cbar_ncol} -cbar_topval EMPTY"
+    
+    if ( "${SET_LIMITS_MODE}" == "10" ) then
+        set loc        = "in mask"
+        set range_comm = "${hot_max}%ile ${loc}"
+
+        set range      = "`printf ': %3d - %3d' ${percvs[2]} ${percvs[3]}`"
+        set gen_comm   = " cbar: hot color range (${hot_min}-${hot_max}%ile"
+        set gen_comm   = "${gen_comm} TSNR ${loc})"
+        set gen_comm   = "${gen_comm}${range}" 
+
+    else if ( "${SET_LIMITS_MODE}" == "11" ) then
+        set range_comm = "user-selected range"
+
+        set range      = "`printf ': %3d - %3d' ${percvs[2]} ${percvs[3]}`"
+        set gen_comm   = " cbar: hot color range (user-selected)"
+        set gen_comm   = "${gen_comm}${range}" 
+    endif
+
+# --------------------------------------------------------------------
+else
+    echo "** ERROR: unrecognized mode"
+    exit 1
+endif
+
+# =========================== plot ==============================
+
+@chauffeur_afni                                             \
+    -ulay             "${ulay}"                             \
+    -olay             "${olay}"                             \
+    "${urange_meth}"  "${umin}" "${umax}"                   \
+    -func_range       "${frange_max}"                       \
+    -box_focus_slices "${focus}"                            \
+    -set_subbricks     ${subbb}                             \
+    -pbar_posonly                                           \
+    -blowup           "${blowup}"                           \
+    -cbar             "${cbar_str}"  ${cbar_DEETS}          \
+    -opacity          "${opacity}"                          \
+    -olay_alpha       "${olay_alpha}"                       \
+    -olay_boxed       "${olay_boxed}"                       \
+    -thr_olay         "${thrnew}"                           \
+    -pbar_saveim      "${opref_cbar}"                       \
+    -pbar_comm_range  "${range_comm}"                       \
+    -pbar_comm_gen    "${gen_comm}"                         \
+    -prefix           "${opref}"                            \
+    -save_ftype       "${save_ftype}"                       \
+    -montx    ${Nx}   -monty     ${Ny}                      \
+    -montgap  ${mgap} -montcolor ${mcolor}                  \
+    -set_xhairs  OFF                                        \
+    -label_mode  ${label_mode}   -label_size 4              \
+    ${views_off}                                            \
+    -do_clean                                               \
+    ${user_coors}                                           \
+    ${delta_slices}
+
+
+# ---------------------------------
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+Just an adjunct program for making TSNR plots for APQC.
+
+Ceci n'est pas un fichier d'aide utile!
+
+written by PA Taylor.
+
+EXTRA OPTS ~1~
+
+-montgap        A
+-montcolor      A 
+-montx          A
+-monty          A
+-opacity        A
+-blowup         A
+-save_ftype     A
+-set_dicom_xyz  A B C
+-set_ijk        A B C
+-set_subbricks  A B C
+-olay_alpha     A
+-olay_boxed     A
+-thr_olay       A
+-ulay_range_nz  A B 
+-ulay_range     A B
+-delta_slices   A B C
+-olay_disc_hot_range  A B
+-olay_cont_max  A 
+-cbar_cont      A
+-no_cor
+-no_sag
+-no_axi
+-echo 
+
+EXAMPLE ~1~
+
+1) case of having a mask (output will have discrete cbar, with ranges
+   determined by percentiles within the mask):
+
+    adjunct_apqc_tsnr                                 \
+        -ulay         MNI152_2009_template_SSW.nii.gz \
+        -focus        MNI152_2009_template_SSW.nii.gz \
+        -olay         TSNR*HEAD                       \
+        -mask         mask_epi_anat.*HEAD             \
+        -prefix       img1                            \
+        -prefix_cbar  img1.cbar
+
+2) case of NOT having a mask (output will have a continuous cbar, with
+   ranges determined by percentiles within the whole volume):
+
+    adjunct_apqc_tsnr                                 \
+        -ulay         MNI152_2009_template_SSW.nii.gz \
+        -focus        MNI152_2009_template_SSW.nii.gz \
+        -olay         TSNR*HEAD                       \
+        -prefix       img2                            \
+        -prefix_cbar  img2.cbar
+
+3) case of using the discrete hot/cold color cbar, but user puts in
+   the range for the colorbar (does not need/use mask):
+
+    adjunct_apqc_tsnr                                 \
+        -ulay         MNI152_2009_template_SSW.nii.gz \
+        -focus        MNI152_2009_template_SSW.nii.gz \
+        -olay         TSNR*HEAD                       \
+        -olay_disc_hot_range  50 200                  \
+        -prefix       img3                            \
+        -prefix_cbar  img3.cbar
+
+4) case of using continuous cbar, and user puts in the range for it
+   (does not need/use mask); you can also specify a continuous
+   colorbar of choice here (not req):
+
+    adjunct_apqc_tsnr                                 \
+        -ulay         MNI152_2009_template_SSW.nii.gz \
+        -focus        MNI152_2009_template_SSW.nii.gz \
+        -olay         TSNR*HEAD                       \
+        -olay_cont_max  200                           \
+        -cbar_cont    Magma                           \
+        -prefix       img4                            \
+        -prefix_cbar  img4.cbar
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

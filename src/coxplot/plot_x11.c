@@ -107,7 +107,6 @@ static void (*memplot_to_X11_substitute_function)() = NULL ;
 void memplot_to_X11_set_substitute( void (*msf)() )
 {
    memplot_to_X11_substitute_function = msf ;
-/* INFO_message("substitute set to %p",(void *)msf) ; */
    return ;
 }
 
@@ -115,6 +114,23 @@ void * memplot_to_X11_get_substitute(void)
 {
    return (void *)memplot_to_X11_substitute_function ;
 }
+
+/*--------------------------------------------------------------------------*/
+
+static void (*memplot_XDrawLines_substitute_function)() = NULL ;
+
+void memplot_XDrawLines_set_substitute( void (*msf)() )
+{
+   memplot_XDrawLines_substitute_function = msf ;
+   return ;
+}
+
+void * memplot_XDrawLines_get_substitute(void)
+{
+   return (void *)memplot_XDrawLines_substitute_function ;
+}
+
+/*--------------------------------------------------------------------------*/
 
 static int   nxdlist = 0 ;
 static XID   *xdlist = NULL ;
@@ -437,7 +453,12 @@ for( ii=0 ; ii < nseg ; ii++ )
          for( ii=0 ; ii < nj ; ii++ ){
             xpt[ii+1].x = xseg[jbot+ii].x2 ; xpt[ii+1].y = xseg[jbot+ii].y2 ;
          }
-         XDrawLines( old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin ) ;
+         if( memplot_XDrawLines_substitute_function != NULL ){  /* 30 Aug 2021 */
+           memplot_XDrawLines_substitute_function(
+             old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin , 4 ) ;
+         } else {
+           XDrawLines( old_dpy,old_w,old_GC , xpt,nj+1 , CoordModeOrigin ) ;
+        }
 
 #if 0
 fprintf(stderr,"draw_xseg: XDrawLines for %d\n",nj) ;

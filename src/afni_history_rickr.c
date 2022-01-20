@@ -53,6 +53,440 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2022, RCR, "3dDiff", MINOR, TYPE_MODIFY,
+   "remove declarations after statements and init any free'd pointers",
+   NULL
+ } ,
+
+ { 18, Jan, 2022, RCR, "@Install_APMULTI_Demo1_rest", MAJOR, TYPE_NEW_PROG,
+   "(w/PT) new install script for APMULTI_Demo1_rest",
+   "This is a demo for running various multi-echo processing methods\n"
+   "on resting state data via afni_proc.py.\n"
+   "(renamed from @Install_AP_MULTI_DEMO1)"
+ } ,
+
+ { 12, Jan, 2022, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "got rid of remaining uninit warnings (even if code was okay)",
+   NULL
+ } ,
+
+ { 11, Jan, 2022, RCR, "tedana.py", MINOR, TYPE_MODIFY,
+   "even without -seed, always apply a seed (default = 42)",
+   "Now 2 executions should produce the same result, unless -seed is\n"
+   "modified.  This matches the MEICA group tedana."
+ } ,
+
+ { 11, Jan, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "if missing, init .afnirc/.sumarc",
+   NULL
+ } ,
+
+ { 11, Jan, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "rename -combine_method m_tedana_tedort to m_tedana_m_tedort",
+   "Reserve the former for future tedort projection via AFNI."
+ } ,
+
+ { 11, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "add option -disp_ver_matplotlib",
+   "Done under the now-even-more-strict-than-before orders from P Taylor."
+ } ,
+
+ { 10, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "matplotlib is required ; check version >= 2.2",
+   NULL
+ } ,
+
+ { 10, Jan, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "if no .tcshrc, create one to source .cshrc",
+   "Done under strict orders from P Taylor."
+ } ,
+
+ {  5, Jan, 2022, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for having both .cshrc and .tcshrc",
+   NULL
+ } ,
+
+ { 29, Dec, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -write_simple_tsv",
+   "Also, read and write default mod_* modifier columns."
+ } ,
+
+ { 28, Dec, 2021, RCR, "3dBrickStat", MICRO, TYPE_MODIFY,
+   "commit pull request and further clarify -nan help",
+   "Thanks to L Anderson for the pull request."
+ } ,
+ 
+ { 19, Dec, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "misc updates for circleCI build based on xcode 12.4.0",
+   "Remove thd_incorrelate.o from cmake libmri, etc."
+ } ,
+ 
+ { 19, Dec, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_distmat",
+   "Display nrows x nrows matrix of distances between all vector row pairs.\n"
+   "Option added for jkblujus (AFNI MB)."
+ } ,
+ 
+ {  9, Dec, 2021, RCR, "3dinfo", MINOR, TYPE_MODIFY,
+   "further restrict -same_center",
+   "Change def limit from 0.1*sum_vox_diags to 0.001*ave_vox_diag."
+ } ,
+ 
+ {  9, Dec, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
+   "balls were not verified to be entirely within dset bounds",
+   "Thanks to aclyn11 (AFNI MB) for noting the problem."
+ } ,
+ 
+ {  3, Dec, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -combine_method m_tedana_tedort",
+   "Now have MEICA group tedana methods:\n"
+   "    m_tedana, m_tedana_OC, m_tedana_tedort"
+ } ,
+ 
+ { 26, Nov, 2021, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
+   "cs_pv.c: xt no longer malloc'd",
+   NULL
+ } ,
+ 
+ { 24, Nov, 2021, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "put space_to_NIFTI_code() into libmri",
+   "To satisfy the evil designs of afni_proc.py."
+ } ,
+ 
+ { 24, Nov, 2021, RCR, "3dmaskdump", MINOR, TYPE_BUG_FIX,
+   "make boxes tight; scale radius to voxel counts",
+   "Tighten boxes and balls to not include unrequested voxels.\n"
+   "Scaling the radius allows for sub-mm voxels."
+ } ,
+ 
+ { 21, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add updates for current tedana; add -help_tedana_files",
+   NULL
+ } ,
+ 
+ { 17, Nov, 2021, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "handle uninit and if block in debugtrace.c, suma_datasets.c",
+   NULL
+ } ,
+ 
+ { 15, Nov, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "pull THD_nifti_process_afni_ext() out of thd_niftiread.c:THD_open_nifti()",
+   "This should have no effect.\n"
+   "It is preparation for testing the AFNI extension in NIFTI against dset."
+ } ,
+ 
+ {  8, Nov, 2021, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -milestones, to show interesting milestones for the program",
+   NULL
+ } ,
+ 
+ {  8, Nov, 2021, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -milestones",
+   NULL
+ } ,
+ 
+ {  7, Nov, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -regress_opts_fwhmx (for adding options to 3dFWHMx)",
+   "Added on the authority of S Torrisi."
+ } ,
+ 
+ { 29, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "on mac, check for standard R not in PATH",
+   NULL
+ } ,
+ 
+ { 28, Oct, 2021, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "remove 2-run polort 0 cormat IDENTICAL automatic warnings",
+   "Done for P Taylor, as they were getting flagged in APQC."
+ } ,
+
+ { 27, Oct, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "try to warn on insufficient disk space",
+   "Check if any data partition has less than 5 GB available.\n"
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 21, Oct, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "allow for previously set DYLD_LIBRARY_PATH",
+   NULL
+ } ,
+
+ { 20, Oct, 2021, RCR, "3dDeconvolve", MINOR, TYPE_ENHANCE,
+   "do not allocate errts/fitts on -x1D_stop",
+   NULL
+ } ,
+
+ { 18, Oct, 2021, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow user-defined ROIs/masks to be used with -mask_apply",
+   "Thank to D Picchioni for the suggestion."
+ } ,
+
+ {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_xmat_stype_cols",
+   "Display xmat columns for speicified -stim_* regressor classes."
+ } ,
+
+ {  1, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_xmat_stim_info",
+   "Display xmat info for -stim_* regressor classes."
+ } ,
+
+ { 23, Sep, 2021, RCR, "3dTshift", MICRO, TYPE_ENHANCE,
+   "update help to connect tzero to stimulus timing in 3dDeconvolve",
+   "Might want to subtract 'tzero' from stimulus event times."
+ } ,
+
+ { 21, Sep, 2021, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
+   "propagate toffset, if not zero",
+   NULL
+ } ,
+
+ { 10, Sep, 2021, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
+   "add web formatting to help",
+   NULL
+ } ,
+
+ { 31, Aug, 2021, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add option -gert_chan_digits, to specify num digits for channel in name",
+   NULL
+ } ,
+
+ { 20, Aug, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_tsv_cols_of_interest",
+   NULL
+ } ,
+
+ { 14, Aug, 2021, RCR, "coxplot", MICRO, TYPE_BUG_FIX,
+   "remove duplicate symbols zzzplt_ and zzpltr_",
+   "Done at the behest of D Glen."
+ } ,
+
+ { 27, Jul, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Done with P Taylor."
+ } ,
+
+ { 26, Jul, 2021, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add options -dcx, -dcy, -dcz, dc3",
+   "This provides the center of the volumetric grid, in DICOM coords."
+ } ,
+
+ { 22, Jul, 2021, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -multi_durations_from_offsets",
+   "Added on the authority of W-L Tseng."
+ } ,
+
+ { 16, Jul, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "unindent EOF command terminator in example",
+   "Thanks to I Berteletti for noting the problem."
+ } ,
+
+ { 15, Jul, 2021, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -empty_is_outlier, to treat empty fields as outliers",
+   "The default reporting of blank outlier test vals is now as non-outliers.\n"
+   "Use this option to report as outliers.\n"
+   "Added for the mighty P Taylor."
+ } ,
+
+ { 13, Jul, 2021, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
+   "fix '-separator whitespace' in the case of blank lines",
+   "Thanks to P Taylor for noting the problem."
+ } ,
+
+ { 25, Jun, 2021, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add -rand_post_elist_partition",
+   "This will partition an already defined stim class into new ones.\n"
+   "Added on the authority of S Haller."
+ } ,
+
+ { 22, Jun, 2021, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
+   "without -datum, the output now depends on the map func, not the BRIK",
+   "Done to appease the mysterious D Glen.\n"
+ } ,
+
+ { 22, Jun, 2021, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
+   "calm those grumpy compilers",
+   "Issues noted by P Taylor.\n"
+ } ,
+
+ { 14, Jun, 2021, RCR, "dcm2niix_afni", MICRO, TYPE_BUG_FIX,
+   "turn off local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
+ { 10, Jun, 2021, RCR, "SurfLocalstat", MINOR, TYPE_NEW_PROG,
+   "add Ziad's program to the default build",
+   "This is to allow use of the 'mode' stat."
+ } ,
+
+ { 10, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "rename src/suma_suma.h to src/SUMA/SUMA_X_objs.h",
+   "This is to avoid glorious case-insensitive name conflicts on Macs.\n"
+   "As suggested by the merciful D Glen."
+ } ,
+
+ {  3, Jun, 2021, RCR, "dcm2niix_afni", MINOR, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20210317",
+   "Thanks to C Rorden for suggesting the update."
+ } ,
+
+ {  1, Jun, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "AFNI_COMPRESSOR no longer affects NIFTI (seems AFNI_AUTOGZIP never did)",
+   NULL
+ } ,
+
+ { 29, May, 2021, RCR, "SurfLocalstat", MICRO, TYPE_NEW_OPT,
+   "add 'mode' stat modal smoothing",
+   NULL
+ } ,
+
+ { 19, May, 2021, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix volreg TSNR computation in surface analysis (TSNR still in volume)",
+   NULL
+ } ,
+
+ {  1, May, 2021, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix niml.dset suffix in the case of -regress_compute_fitts on the surface",
+   "Thanks to the all-seeing S Torrisi for noting the problem."
+ } ,
+
+ {  6, Apr, 2021, RCR, "ap_run_simple_rest.tcsh", MAJOR, TYPE_NEW_PROG,
+   "run a quick afni_proc.py resting state analysis for QC",
+   NULL
+ } ,
+
+ { 16, Mar, 2021, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "simplify logic in THD_mask_erode(), with negligible slowdown",
+   NULL
+ } ,
+
+ { 15, Mar, 2021, RCR, "3dBrickStat", MINOR, TYPE_NEW_OPT,
+   "add convenience options -perclist and -perc_quiet",
+   NULL
+ } ,
+
+ { 13, Mar, 2021, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "distribute libXp.6.dylib, since XQuartz has stopped doing it",
+   "Thanks to C Gaillard and others on the MB."
+ } ,
+
+ { 10, Mar, 2021, RCR, "lib_tsv.py", MINOR, TYPE_NEW_PROG,
+   "new TSV class library, geared toward BIDS event files",
+   NULL
+ } ,
+
+ {  8, Mar, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "applying NIFTI scale_slope to dset must be after setting ADN_datum",
+   "Previously, NIFTI scalars were applied only after a DSET_load().\n"
+   "Thanks to D Glen for reporting the issue."
+ } ,
+
+ {  5, Mar, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_cormat_warnings_full",
+   "This version includes the baseline terms in the warning list."
+ } ,
+
+ {  4, Mar, 2021, RCR, "3dROIstats", MINOR, TYPE_BUG_FIX,
+   "fix surprising slowness",
+   "This would previously unload/mallocize/reload every time point,\n"
+   "possibly to free completed data.  Then NIFTI input would be re-read\n"
+   "every time point (this might have changed due to something else).\n"
+   "Instead, mallocize in the first place, not per time point.\n"
+   "Also, avoid scaling floats by 1.0.\n"
+   "Thanks to C Craddock for reporting the problem."
+ } ,
+
+ {  3, Mar, 2021, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "update dotfiles for 'complete' files before running apsearch",
+   "Do this so apsearch will not tell users to update the dotfiles again.\n"
+   "Thanks to D Glen."
+ } ,
+
+ {  3, Mar, 2021, RCR, "@clean_help_dir", MINOR, TYPE_MODIFY,
+   "warn on any error in 'cat *.complete* > xx' commands",
+   "In MacOS 11 Rosetta terminals, those commands are *sometimes* crashing.\n"
+   "Warn on any such failure.\n"
+   "Such a crash could cause trouble for other programs, too.\n"
+   "Thanks to D Glen."
+ } ,
+
+ { 24, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -regress_extra_ortvec, -regress_extra_ortvec_labels",
+   "Pass sets of regressors of no interest, to go into the baseline.\n"
+   "Requested by multiple people, including Carolin31 on MB."
+ } ,
+
+ { 22, Feb, 2021, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "masking is no longer applied to TSNR dset; pass mask_dset to gen_ss",
+   "Requested by P Taylor."
+ } ,
+
+ { 21, Feb, 2021, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "remove actual targets in RM for LIBMRI_*",
+   NULL
+ } ,
+
+ { 21, Feb, 2021, RCR, "@djunct_glue_imgs_vert", MICRO, TYPE_MODIFY,
+   "allow -help without deps, so move dependency tests",
+   NULL
+ } ,
+
+ { 19, Feb, 2021, RCR, "suma-general", MINOR, TYPE_MODIFY,
+   "updates for ShowMode in SUMA_xColBar.c",
+   "Resolve compiler warnings, but avoid logic changes at the same time\n"
+   "as XQuartz beta issues.  So temporarily keep original logic.\n"
+   "Once we feel stable with XQuartz, look into expected fixes.\n"
+   "Search for 'todo: apply ShowMode' in SUMA_xColBar.c."
+ } ,
+
+ { 18, Feb, 2021, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "warn about problematic version of XQuartz",
+   "Bad versions seem to be 2.8.0_alpa*, 2.8.0_betas[12] (3+ okay?).\n"
+   "With improvements we have seen, maybe we should warn on any beta."
+ } ,
+
+ { 17, Feb, 2021, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "moved AFNI_ijk_* protos from afni.h to 3ddata.h",
+   "All thd_coords.c protos are in 3ddata.h now."
+ } ,
+
+ { 26, Jan, 2021, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "do not convert NIFTI scaled shorts to float",
+   "If slope!=0 && inter==0, pass slope as brick_fac.\n"
+   "Thanks to C Caballero and S Moia for reporting this."
+ } ,
+
+ {  3, Jan, 2021, RCR, "SurfMeasures", MINOR, TYPE_MODIFY,
+   "shift memory allocation/free around, mostly to match libSUMA",
+   "Inspired by C Rorden via sanitizer warnings."
+ } ,
+
+ { 31, Dec, 2020, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "modify help: be more clear about bandpassing being undesirable",
+   "Also, add example of high-pass filter to model slow drift.\n"
+   "See help for option -regress_polort."
+ } ,
+
+ { 29, Dec, 2020, RCR, "nifti_tool", MICRO, TYPE_ENHANCE,
+   "add help example for creating a new dataset given a raw data file",
+   NULL
+ } ,
+
+ { 29, Dec, 2020, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
+ { 22, Dec, 2020, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed 6 copy-and-paste errors using MRI_TYPE_maxval",
+   "Thanks to C Rorden for bringing this up and suggesting code fixes."
+ } ,
+
+ { 17, Dec, 2020, RCR, "1dBport", MICRO, TYPE_BUG_FIX,
+   "guard against silent failure of int overflow for ftop",
+   NULL
+ } ,
+
  { 29, Sep, 2020, RCR, "3dANOVA3", MICRO, TYPE_ENHANCE,
    "be specific about limits for 'param must be in' error messages",
    NULL
@@ -343,11 +777,6 @@ afni_history_struct rickr_history[] = {
    "add env var control over pre-comp e2x, limit and pieces",
    "See AFNI_MODEL_PRF_PRECOMPUTE_EX, AFNI_MODEL_PRF_MAX_EXP and\n"
    "AFNI_MODEL_PRF_MAX_EXP_PIECES.\n"
- } ,
-
- { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
-   "add initial NT parameter",
-   NULL
  } ,
 
  { 21, Jul, 2020, RCR, "get_afni_model_PRF_6", MINOR, TYPE_ENHANCE,
@@ -5013,7 +5442,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
+   "madd initial NT parametercw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
    "Apparently it does not like inconsistent declaration in same file,\n"
    "and mcw_malloc.h does not offer prototypes to many functions in the\n"
    "case of DONT_USE_MCW_MALLOC, including this one."

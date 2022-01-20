@@ -20,6 +20,12 @@ void Syntax(void)
     "       3dnewid -fun11\n"
     "       to get an 11 character ID code (for use in scripting).\n"
     " or\n"
+    "       3dnewid -int\n"
+    "       to get a random positive integer.\n"
+    "       The values are usually between 1 million and 1 billion.\n"
+    "       Such a value could be used as a random seeds in various AFNI\n"
+    "       programs, such as 3dttest++ -seed.\n"
+    " or\n"
     "       3dnewid -hash STR\n"
     "       to get a unique hashcode of STR\n"
     "       (Unlike the other ways of using 3dnewid, if STR is the)\n"
@@ -90,6 +96,16 @@ int main( int argc , char * argv[] )
      if( nid <= 0 ) nid = 1 ;
      for( ii=0 ; ii < nid ; ii++ ){
        eee = UNIQ_idcode_11(); printf("%s\n",eee); free(eee);
+     }
+     exit(0) ;
+   } else if ( strcmp(argv[1],"-int") == 0 ){ /* 19 Jan 2021 */
+     int nid=0 , ii ; char *eee ; int val ;
+     if( argc > 2 ) nid = strtol(argv[2],NULL,10) ;
+     if( nid <= 0 ) nid = 1 ;
+     for( ii=0 ; ii < nid ; ii++ ){
+       eee = UNIQ_idcode_11(); eee[5] = '\0';
+       val = 3*(int)strtol(eee+0,NULL,36) + 5*(int)strtol(eee+6,NULL,36) ;
+       printf("%d\n",val) ;
      }
      exit(0) ;
    } else if ( strcmp(argv[1],"-hash") == 0 ){ /* Oct. 2011:for repeatable fun */

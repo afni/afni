@@ -820,7 +820,7 @@ C  Check if this is a newline character
 C
          ELSEIF( ICH .EQ. 10 )THEN
             XCUR = 0.0
-            YCUR = YCUR - 1.1
+            YCUR = YCUR - 1.36
 C.....................................................................
 C  Otherwise, this is a real character with real strokes
 C
@@ -864,7 +864,7 @@ C
       INTEGER       NCHIN , NCHOUT
 C.......................................................................
       INTEGER     NTABLE
-      PARAMETER ( NTABLE = 115 )
+      PARAMETER ( NTABLE = 116 )
       INTEGER      ICHEXT(NTABLE)
       CHARACTER*15 CHTEX(NTABLE) , CHCONT , CHESC,CHNESC
       CHARACTER*15 CHCOLR,CHCOLN,CHCOLX
@@ -915,7 +915,7 @@ C
      X '\\neq'      , '\\supset'    , '\\infty'         , '\\uparrow'  ,
      X '\\#','\\$','\\%','\\&','\\{','\\}','\\\\','\\cents'            ,
      X '\\black','\\red','\\blue','\\green','\\yellow','\\magenta'     ,
-     X '\\cyan' , '\\small' , '\\large' /
+     X '\\cyan' , '\\small' , '\\large' , '\\newline' /
 C
 C  Corresponding extended character set bytes
 C
@@ -937,7 +937,7 @@ C
      X   16#ba , 16#bb ,16#bc , 16#bd ,16#be , 16#bf ,16#ff , 16#60 ,
      X   16#23 , 16#24 , 16#25 , 16#26 , 16#7b , 16#7d , 16#5c , 16#5e ,
      X   16#94 , 16#95 , 16#96 , 16#97 , 16#98 , 16#99 , 16#9a ,
-     X   16#9b , 16#9c /
+     X   16#9b , 16#9c , 16#0a /
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C  Test if a character is alphabetic
 C

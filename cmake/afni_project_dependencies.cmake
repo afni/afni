@@ -6,8 +6,40 @@ find_package(ZLIB REQUIRED)
 optional_bundle(src/f2c)
 set_if_not_defined(USE_SYSTEM_QHULL ON)
 
-if(USE_OMP)
-  find_package(OpenMP COMPONENTS C REQUIRED)
+# Check that the appropriate setup script has been sourced, otherwise some
+# linking issues with libirc etc. will occur. Current strategy for diagnosing
+# this is to check for the environnment variable MKLROOT
+if("${CMAKE_COMPILER_ID}" STREQUAL Intel OR "$ENV{CC}" MATCHES "icc$")
+  if(NOT DEFINED ENV{MKLROOT})
+    message(FATAL_ERROR "
+      You are using the Intel compiler but MKLROOT does not exist as an
+      environment variable. This suggests you have not sourced the appropriate
+      setup shell script in the intel bin directory. Please do so before using
+      the build system with the Intel compiler. The command you need will be
+      something like: 'source /opt/intel/bin/compilervars.sh  intel64'"
+      )
+  endif()
+endif()
+
+if(NOT DEFINED USE_OMP OR USE_OMP)
+  find_package(OpenMP COMPONENTS C)
+endif()
+
+# By default USE_OMP will be set based on whether omp is found.
+if(OpenMP_FOUND)
+  set_if_not_defined(USE_OMP ON)
+else()
+  set_if_not_defined(USE_OMP OFF)
+endif()
+mark_as_advanced(USE_OMP)
+
+# Fail if USE_OMP has been explicitly set and OMP was not found
+if(USE_OMP AND NOT OpenMP_FOUND)
+  message(FATAL_ERROR "
+  OMP was not found. There are various solutions: do not set USE_OMP=ON, add
+  your compiler's lib directory to LDFLAGS, if using MacOS have a look through
+  the toolchain file in the cmake directory in the root project directory,
+  check that you have libomp or similar appropriate library installed.")
 endif()
 
 if(COMP_RSTATS)

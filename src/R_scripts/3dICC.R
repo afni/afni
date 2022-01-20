@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.4, Oct 6, 2020
+Version 0.1.10, Dec 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -538,13 +538,14 @@ process.ICC.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
-   if(!is.na(lop$maskFN)) 
-      if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN)) 
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3])) 
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 
@@ -734,7 +735,9 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   errex.AFNI(c("At least one of the input files has different dimensions:\n",
+   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
+   "or     (2) some input files have more than one value per voxel.\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
@@ -753,8 +756,10 @@ if(!is.na(lop$tStat)) {
 
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
-   if(!is.na(lop$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
+   if(!is.na(lop$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
   
 # voxel-wise covariate files
@@ -817,11 +822,12 @@ cat('is likely inappropriate.\n\n')
 if(!is.na(lop$maskFN)) {
    idx <- which(lop$maskData == 1, arr.ind = T)
    idx <- idx[floor(dim(idx)[1]/2),1:3]
-   ii <- idx[1]; jj <- idx[2]; kk <- idx[3] 
+   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
+   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
    xinit <- dimx%/%3
-   if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-   if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+   if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+   if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
    ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -1016,17 +1022,13 @@ if(dimy == 1 & dimz == 1) {  # 1D scenarios
    }
 }  
 
-Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top  
-Stat[Stat < (-Top)] <- -Top  
-
 outLabel <- c("ICC", "ICC F")
 statsym <- NULL
 statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))

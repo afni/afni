@@ -29,10 +29,12 @@ cd $adoc_build
 
 if ( $do_push ) then
     echo "++ Build&push"
-    do_doc_build_and_copy.tcsh -build -push |& tee o.doc_build_push.$thedate
+    tcsh do_doc_build_and_copy.tcsh -build -push \
+    |& tee o.doc_build_push.${thedate}.txt
 else
     echo "++ Build only"
-    do_doc_build_and_copy.tcsh -build |& tee o.doc_build_push.$thedate
+    tcsh do_doc_build_and_copy.tcsh -build \
+    |& tee o.doc_build_push.${thedate}.txt
 endif 
 
 # ... WILL ADD PUSH, AS WELL!

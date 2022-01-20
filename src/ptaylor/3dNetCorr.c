@@ -40,6 +40,11 @@
 
    [PT: July 15, 2020] from include "suma_suma.h" -> "suma_objs.h"
 
+   2021-08-30 : [PT] new opts: '-allow_roi_zeros' and '-automask_off',
+                so for an N ROI map, one can always get a NxN matrix out,
+                even if some rows/cols are zeros.
+
+
 */
 
 
@@ -72,6 +77,8 @@ void usage_NetCorr(int detail)
 {
    printf(
 "\n"
+"Overview ~1~\n"
+"\n"
 "  Calculate correlation matrix of a set of ROIs (using mean time series of\n"
 "  each). Several networks may be analyzed simultaneously, one per brick.\n"
 "\n"
@@ -80,21 +87,16 @@ void usage_NetCorr(int detail)
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  \n"
-"  + USAGE: Input a set of 4D data and a set of ROI masks (i.e., a bunch of \n"
-"         ROIs in a brik each labelled with a distinct integer), and get a\n"
-"         matrix of correlation values for it.\n"
+"Usage ~1~\n"
+"\n"
+"  Input a set of 4D data and a set of ROI masks (i.e., a bunch of \n"
+"  ROIs in a brik each labelled with a distinct integer), and get a\n"
+"  matrix of correlation values for it.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr} \\\n"
-"                -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
-"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
-"                {-push_thru_many_zeros} {-ts_wb_strlabel}                 \\\n"
-"                {-output_mask_nonnull} {-weight_ts WTS}\n"
+"Output ~1~\n"
 "\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-"  + OUTPUT: \n"
 "        Output will be a simple text file, first with the number N of ROIs\n"
 "        in the set, then an empty line, then a list of the ROI labels in the\n"
 "        file (i.e., col/row labels), empty line, and then an NxN matrix of\n"
@@ -143,15 +145,32 @@ void usage_NetCorr(int detail)
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + RUNNING, need to provide:\n"
-"    -prefix PREFIX   :output file name part (see description below).\n"
-"    -inset  FILE     :time series file (4D data set). \n\n"
+"Command ~1~\n"
+"\n"
+"  3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr}        \\\n"
+"            -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
+"            {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
+"            {-push_thru_many_zeros} {-ts_wb_strlabel}                 \\\n"
+"            {-output_mask_nonnull} {-weight_ts WTS}\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"Running ~1~\n"
+"\n"
+"    -prefix PREFIX   :(req) output file name part (see description below).\n"
+"\n"
+"    -inset  FILE     :(req) time series file (4D data set). \n\n"
+"\n"
+"    -in_rois INROIS  :(req) can input a set of ROIs, each labelled with\n"
+"                      distinct integers. Multiple subbricks can be input,\n"
+"                      each will be treated as a separate network.\n"
+"\n"
 "    -mask   MASK     :can include a whole brain mask within which to\n"
-"                      calculate correlation. (Otherwise, data should be\n"
-"                      masked already; the program will try to analyze.)\n"
-"    -in_rois INROIS  :can input a set of ROIs, each labelled with distinct\n"
-"                      integers. Multiple subbricks can be input, each will\n"
-"                      be treated as a separate network.\n"
+"                      calculate correlation. If no mask is input, then\n"
+"                      the program will internally 'automask', based on\n"
+"                      when non-uniformly-zero time series are.\n"
+"                      If you want to neither put in a mask *nor* have the\n"
+"                      automasking occur, see '-automask_off', below.\n"
 "\n"
 "    -fish_z          :switch to also output a matrix of Fisher Z-transform\n"
 "                      values for the corr coefs (r):\n"
@@ -160,6 +179,7 @@ void usage_NetCorr(int detail)
 "                      r=1, as the r-to-Z conversion is ceilinged at \n"
 "                      Z = atanh(r=0.999329) = 4, which is still *quite* a\n"
 "                      high Pearson-r value.\n"
+"\n"
 "    -part_corr       :output the partial correlation matrix. It is \n"
 "                      calculated from the inverse of regular Pearson\n"
 "                      matrix, R, as follows: let M = R^{I} be in the inverse\n"
@@ -176,12 +196,14 @@ void usage_NetCorr(int detail)
 "                      have been used to generate the correlation matrices.\n"
 "                      Output filenames mirror those of the correlation\n"
 "                      matrix files, with a '.netts' postfix.\n"
+"\n"
 "    -ts_label        :additional switch when using '-ts_out'. Using this\n"
 "                      option will insert the integer ROI label at the start\n"
 "                      of each line of the *.netts file created. Thus, for\n"
 "                      a time series of length N, each line will have N+1\n"
 "                      numbers, where the first is the integer ROI label\n"
 "                      and the subsequent N are scientific notation values.\n"
+"\n"
 "    -ts_indiv        :switch to create a directory for each network that\n"
 "                      contains the average time series for each ROI in\n"
 "                      individual files (each file has one line).\n"
@@ -190,6 +212,7 @@ void usage_NetCorr(int detail)
 "                      directory, the files are labelled ROI_001.netts,\n"
 "                      ROI_002.netts, etc., with the numbers given by the\n"
 "                      actual ROI integer labels.\n"
+"\n"
 "    -ts_wb_corr      :switch to perform whole brain correlation for each\n"
 "                      ROI's average time series; this will automatically\n"
 "                      create a directory for each network that contains the\n"
@@ -198,6 +221,7 @@ void usage_NetCorr(int detail)
 "                      Within each directory, the files are labelled\n"
 "                      WB_CORR_ROI_001+orig, WB_CORR_ROI_002+orig, etc., with\n"
 "                      the numbers given by the actual ROI integer labels.\n"
+"\n"
 "    -ts_wb_Z         :same as above in '-ts_wb_corr', except that the maps\n"
 "                      have been Fisher transformed to Z-scores the relation:\n"
 "                      Z=atanh(r). \n"
@@ -205,6 +229,7 @@ void usage_NetCorr(int detail)
 "                      are effectively capped at |r| = 0.999329 (where\n"
 "                      |Z| = 4.0;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"\n"
 "    -weight_ts WTS   :input a 1D file WTS of weights that will be applied\n"
 "                      multiplicatively to each ROI's average time series.\n"
 "                      WTS can be a column- or row-file of values, but it\n"
@@ -221,6 +246,7 @@ void usage_NetCorr(int detail)
 "                      with this option, one can replace the int (such as\n"
 "                      '001') with the string label (such as 'L-thalamus')\n"
 "                      *if* one has a labeltable attached to the file.\n"
+"\n"
 "    -nifti           :output any correlation map files as NIFTI files\n"
 "                      (default is BRIK/HEAD). Only useful if using\n"
 "                      '-ts_wb_corr' and/or '-ts_wb_Z'.\n"
@@ -230,6 +256,7 @@ void usage_NetCorr(int detail)
 "                      nonnull time series, because we don't like those, in\n"
 "                      general.  With this flag, the user can output the\n"
 "                      determined mask of non-null time series.\n"
+"\n"
 "   -push_thru_many_zeros\n"
 "                     :by default, this program will grind to a halt and\n"
 "                      refuse to calculate if any ROI contains >10 percent\n"
@@ -243,19 +270,81 @@ void usage_NetCorr(int detail)
 "                      user will really, really, really need to address\n"
 "                      their masking.\n"
 "\n"
+"  -allow_roi_zeros   :by default, this program will end unhappily if any ROI\n"
+"                      contains only time series that are all zeros (which\n"
+"                      might occur if you applied a mask to your data that\n"
+"                      is smaller than your ROI map).  This is because the\n"
+"                      correlation with an all-zero time series is undefined.\n"
+"                      However, if you want to allow ROIs to have all-zero\n"
+"                      time series, use this option; each row and column\n"
+"                      element in the Pearson and Fisher-Z transformed\n"
+"                      matrices for this ROI will be 0.  NB: you cannot\n"
+"                      use -part_corr when this option is used, to avoid\n"
+"                      of mathematical badness.\n"
+"                      See the NOTE about this option, below\n"
+"\n"
+"  -automask_off      :if you do not enter a mask, this program will\n"
+"                      make an internal automask of where time series are\n"
+"                      not uniformly zero.  However, if you don't want this\n"
+"                      done (e.g., you have a map of N ROIs that has greater\n"
+"                      extent than your masked EPI data, and you are using\n"
+"                      '-allow_roi_zeros' to get a full NxN matrix, even if\n"
+"                      some rows and columns are zero), then use this option.\n"
+"\n"
 "    -ignore_LT       :switch to ignore any label table labels in the \n"
 "                      '-in_rois' file, if there are any labels attached.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + EXAMPLE:\n"
-"      3dNetCorr                                  \\\n"
-"         -inset REST_in_DWI.nii.gz               \\\n"
-"         -in_rois ROI_ICMAP_GM+orig              \\\n"
-"         -fish_z                                 \\\n"
-"         -ts_wb_corr                             \\\n"
-"         -mask mask_DWI+orig                     \\\n"
-"         -prefix FMRI/REST_corr\n"
+"NOTES ~1~\n"
+"\n"
+"Re. Allowing zero-filled ROIs ('-allow_roi_zeros') ~2~\n"
+"\n"
+"  If you use the '-allow_roi_zeros' option, you can get rows and columns\n"
+"  of all zeros in the output *.netcc matrices (indeed, you are probably\n"
+"  using it specifically to have the 'full' NxN matrix from N input ROIs,\n"
+"  even with ROIs that only contain all-zero time series).\n"
+"\n"
+"  Note that, at present, you should NOT put *.netcc files that contain\n"
+"  such rows/columns of zeros into the fat_proc* pipeline, because 0 is a\n"
+"  valid correlation (or Fisher Z-transform) value, and the pipeline is not\n"
+"  designed to filter these values out (like it would for *.grid files).\n"
+"  Therefore, the zeros will be included as 'real' correlation values,\n"
+"  which would not be correct.\n"
+"\n"
+"  So, these matrices could be output into OTHER analyses fine, but for\n"
+"  preparing to do fat_proc_* comparisons, you would want to run this\n"
+"  program without '-allow_roi_zeros'.  So, sometimes you might run it\n"
+"  twice, with and without that option, which should be OK, because it\n"
+"  is not a very time consuming program.\n"
+"\n"
+"  Also note that if an average ROI time series is zero (which will occur\n"
+"  when all voxel time series within it are zero and the '-allow_roi_zeros'\n"
+"  is being utilized) and the user has asked for WB correlation maps with\n"
+"  '-ts_wb_cor' and/or '-ts_wb_Z', no volume will be output for any ROI\n"
+"  that is all-zeros.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"\n"
+"Examples ~1~\n"
+"\n"
+"  3dNetCorr                                   \\\n"
+"      -inset REST_in_DWI.nii.gz               \\\n"
+"      -in_rois ROI_ICMAP_GM+orig              \\\n"
+"      -fish_z                                 \\\n"
+"      -ts_wb_corr                             \\\n"
+"      -mask mask_DWI+orig                     \\\n"
+"      -prefix FMRI/REST_corr\n"
+"\n"
+"  3dNetCorr                                   \\\n"
+"      -inset REST_in_DWI.nii.gz               \\\n"
+"      -in_rois ROI_ICMAP_GM+orig              \\\n"
+"      -fish_z                                 \\\n"
+"      -ts_wb_corr                             \\\n"
+"      -automask_off                           \\\n"
+"      -all_roi_zeros                          \\\n"
+"      -prefix FMRI/out\n"
+"\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -276,12 +365,12 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *MASK=NULL;
    THD_3dim_dataset *ROIS=NULL;
    char *prefix="NETCORR" ;
-   char in_name[300];
-   char in_mask[300];
-   char in_rois[300];
-   char OUT_grid[300];
-   char OUT_indiv[300];
-   char OUT_indiv0[300];
+   char in_name[THD_MAX_NAME];
+   char in_mask[THD_MAX_NAME];
+   char in_rois[THD_MAX_NAME];
+   char OUT_grid[THD_MAX_NAME];
+   char OUT_indiv[THD_MAX_NAME];
+   char OUT_indiv0[THD_MAX_NAME-15];
    //  int *SELROI=NULL; // if selecting subset of ROIs
    //  int HAVE_SELROI=0;
    
@@ -290,6 +379,7 @@ int main(int argc, char *argv[]) {
    byte ***mskd=NULL; // define mask of where time series are nonzero
    byte *mskd2=NULL; // not great, but another format of mask
    int HAVE_MASK=0;
+   int DO_AUTOMASK=1;
    int HAVE_ROIS=0;
    int FISH_OUT=0;
    int PART_CORR=0;
@@ -319,7 +409,7 @@ int main(int argc, char *argv[]) {
    SUMA_DSET *gset=NULL;
    float ***flat_matr=NULL;
    float *xyz=NULL;
-   char OUT_gdset[300];
+   char OUT_gdset[THD_MAX_NAME];
    NI_group *GDSET_netngrlink=NULL;
    char *NAME_gdset=NULL;
    int Noutmat = 1;  // num of matr to output: start with CC for sure
@@ -333,10 +423,11 @@ int main(int argc, char *argv[]) {
    byte ***mskdnz=NULL; // use to check for nonzero locs
    byte *mskd2nz=NULL; // use to check for nonzero locs: use for mask app
    int DO_PUSH = 0;
+   int DO_ROI_ZEROS = 0;
    int *FLAG_nulls=NULL;
    int DO_STRLABEL = 0;
    int DO_OUTPUT_NONNULL=0;
-   char prefix_nonnull[300];
+   char prefix_nonnull[THD_MAX_NAME];
    THD_3dim_dataset *MASK_nonnull=NULL;  // output nonnull mask, if
                                          // user wants
 
@@ -386,7 +477,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_name,"%s", argv[iarg]); 
          insetTIME = THD_open_dataset(in_name) ;
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
          // just 0th time point for output...
 
@@ -406,7 +497,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -420,7 +511,7 @@ int main(int argc, char *argv[]) {
       
          sprintf(in_rois,"%s", argv[iarg]); 
          ROIS = THD_open_dataset(in_rois) ;
-         if( (ROIS == NULL ))
+         if( ROIS == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_rois);
       
          DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
@@ -446,6 +537,18 @@ int main(int argc, char *argv[]) {
       // [Apr, 2017, PT]
       if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
          DO_PUSH=1;
+         iarg++ ; continue ;
+      }
+
+      // [Aug, 2021, PT]
+      if( strcmp(argv[iarg],"-allow_roi_zeros") == 0) {
+         DO_ROI_ZEROS=1;
+         iarg++ ; continue ;
+      }
+
+      // [Aug, 2021, PT]
+      if( strcmp(argv[iarg],"-automask_off") == 0) {
+         DO_AUTOMASK=0;
          iarg++ ; continue ;
       }
 
@@ -568,7 +671,15 @@ int main(int argc, char *argv[]) {
       exit(1);
    }
 
-	
+   if( PART_CORR && DO_ROI_ZEROS ) {
+      ERROR_message("Cannot combine '-allow_rois_zero' with '-part_corr'.\n\t"
+                    "The former can lead to columns and rows of all zeros \n\t"
+                    "in the correlation matrix, which leads to badness \n\t"
+                    "in partial correlation calcs.");
+
+      exit(1);
+   }
+
    // ****************************************************************
    // ****************************************************************
    //                    make storage
@@ -610,6 +721,8 @@ int main(int argc, char *argv[]) {
 
    if( HAVE_MASK ) 
       INFO_message("Applying user's mask");
+   else if( !DO_AUTOMASK )
+      INFO_message("No user-supplied mask, AND automasking was turned off.");
    else
       INFO_message("User didn't enter mask: will make my own, "
                    "based on where I find nonzero time series.");
@@ -638,7 +751,7 @@ int main(int argc, char *argv[]) {
                }
             }
             else    // ... use checksum results for nonzero time series
-               if( checksum > EPS_V ) {
+               if( checksum > EPS_V || DO_AUTOMASK ) {
                   mskd[i][j][k] = 1;
                   mskd2[idx] = 1;
                   Nmask++;
@@ -767,7 +880,7 @@ int main(int argc, char *argv[]) {
       for ( i=0 ; i<HAVE_ROIS ; i++ ) 
          for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
-      if(  (ROI_STR_LABELS == NULL)) {
+      if( ROI_STR_LABELS == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -881,40 +994,38 @@ int main(int argc, char *argv[]) {
 
       for( k=0 ; k<HAVE_ROIS ; k++) {
          if( FLAG_nulls[k] < 0 ) {
-            WARNING_message("Some null/empty time series in ROIs. See file:"
-                            "\n\t%s_%03d.roivol", prefix, k);
-            ERROR_message("Network [%d] has at least one ROI with null "
-                          "time series! If you want, you *can* "
-                          "\n\t use the '-push_thru_many_zeros' option "
-                          "(see the help), but it ain't recommended.",
-                          k, FLAG_nulls[k]); 
-            exit(1);
-         }
-         else if( FLAG_nulls[k] > 0 ) {
-            WARNING_message("Some null/empty time series in ROIs. See file:"
-                            "\n\t %s_%03d.roivol", prefix, k);
-            if ( DO_PUSH ) {
-               WARNING_message("Network [%d] has %d ROIs with >10 percent "
-                               "null time series!", k, FLAG_nulls[k]);
+            WARNING_message("Some null/empty ROIs in network %d."
+                            "\n\tSee file: %s_%03d.roivol", k, prefix, k);
+            if ( DO_ROI_ZEROS ) {
+               INFO_message("Network [%d] has ROIs with entirely \n\t"
+                            "null time series! But you want to continue,\n\t"
+                            "so we will.", k);
             }
             else {
-               ERROR_message("Network [%d] has %d ROIs with >10 percent "
-                             "null time series! If you want, you *can*"
-                             "\n\t use the '-push_thru_many_zeros' option "
+               ERROR_message("Network [%d] has at least one ROI with all \n\t"
+                             "null time series! If you want, you *can* \n\t"
+                             "use '-allow_roi_zeros' option (see the help),\n\t"
+                             "but it ain't necessarily recommended.", k); 
+               exit(1);
+            }
+         }
+         else if( FLAG_nulls[k] > 0 ) {
+            WARNING_message("Some null/empty time series ROIs in network %d."
+                            "\n\tSee file: %s_%03d.roivol", k, prefix, k);
+            if ( DO_PUSH ) {
+               INFO_message("Network [%d] has %d ROIs with >10 percent \n\t"
+                            "null time series!", k, FLAG_nulls[k]);
+            }
+            else {
+               ERROR_message("Network [%d] has %d ROIs with >10 percent \n\t"
+                             "null time series! If you want, you *can* \n\t"
+                             "use the '-push_thru_many_zeros' option \n\t"
                              "(see the help), but it ain't recommended.",
                              k, FLAG_nulls[k]); 
                exit(1);
             }
          }
       }
-
-
-
-
-
-
-
-
 
 
       // make list of vox per ROI
@@ -1021,8 +1132,14 @@ int main(int argc, char *argv[]) {
    for(i=0 ; i<HAVE_ROIS ; i++) {
       for( j=0 ; j<NROI_REF[i] ; j++ ) 
          for( k=j ; k<NROI_REF[i] ; k++ ) {
-            Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
-               CORR_FUN(ROI_AVE_TS[i][j], ROI_AVE_TS[i][k], Dim[3]);
+            // if either ROI time series is all zeros, set corr value to 0 (sigh)
+            if ( ROI_COUNTnz[i][j] == 0 || ROI_COUNTnz[i][k] == 0 ) {
+               Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = 0.0;
+            }
+            else{                                                       
+               Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
+                  CORR_FUN(ROI_AVE_TS[i][j], ROI_AVE_TS[i][k], Dim[3]);
+               }
          }
 
       if(PART_CORR)
@@ -1048,7 +1165,7 @@ int main(int argc, char *argv[]) {
    ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
    for (j=0; j<Noutmat; ++j) 
       ParLab[j] = (char *)calloc(32, sizeof(char));
-   if( (ParLab == NULL) ) {
+   if( ParLab == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(121);
    }
@@ -1235,7 +1352,7 @@ int main(int argc, char *argv[]) {
          mkdir(OUT_indiv0, 0777);
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
             sprintf(OUT_indiv,"%s/ROI_%03d.netts",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+                    OUT_indiv0, ROI_LABELS_REF[k][i+1]);
             if( (fout2 = fopen(OUT_indiv, "w")) == NULL) {
                fprintf(stderr, "\nError opening file '%s'.\n",OUT_indiv);
                exit(19);
@@ -1261,6 +1378,7 @@ int main(int argc, char *argv[]) {
                         NIFTI_OUT,
                         NROI_REF,
                         Dim,
+                        ROI_COUNTnz,
                         ROI_AVE_TS,
                         ROI_LABELS_REF,
                         ROI_STR_LABELS,

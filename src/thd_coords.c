@@ -754,6 +754,387 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
    return(ang_merit);
 }
 
+/*
+  [PT: Nov 3, 2020] more funcs for dealing with obliquity matrix
+  (dset->daxes->ijk_to_dicom_real)
+
+  [PT: Nov 12, 2020] adopting the following language/terminology for
+  systematically approaching these mats, summarizing conversation with
+  RCR:
+
+  aform_real : mat44 that is the AFNI equivalent of NIFTI sform matrix
+               ('a'form for AFNI), what we typically call
+               ijk_to_dicom_real in the AFNI extension/header; likely
+               only difference is that aform_* are RAI, while sform
+               matrix is LPI (sigh).  aform_real, like sform, is not
+               restricted to being orthogonal -- can represent any
+               linear affine transform.
+
+  aform_orth : mat44 that is the orthogonalized version of aform_real,
+               which should correspond to the NIFTI quaternion, since
+               the NIFTI quaternion is inherently orthogonalized when
+               created from the NIFTI sform matrix; we even use the
+               NIFTI2 mat44->quaternion->mat44 functions to calc
+               aform_orth, so it really should agree, EXCEPT that,
+               like all good things, it is RAI.  While orthogonal,
+               this matrix might still contain obliquity information
+               (i.e., rotation information: it need not be diagonal).
+
+               In most cases in AFNI-generated programs, aform_orth
+               should be the same as aform_real (as of the writing of
+               this note).  But we allow for reading in more general
+               matrix info.  
+
+  aform_card : mat44 that is the unrotated (diagonalized) form of
+               aform_orth, what we typically call ijk_to_dicom in the
+               AFNI extension/header.  This is the matrix mostly used
+               to display data in the GUI, and when we ignore
+               obliquity information in transformations, etc.  Is also
+               RAI.  We aim now to create this in a way that the (i*,
+               j*, k*) location where (x, y, z) = (0, 0, 0) in
+               aform_orth is preserved.  That is, we preserve the
+               coordinate origin (hoping it is good!).
+*/
+
+// get the integer form of orientation in RLPAIS ordering.  So, a dset
+// with "RAI" -> {0, 3, 4}.
+void THD_orient_to_int_rlpais( char ochar[4], int oint[3] )
+{
+   int i, j;
+
+   ENTRY("THD_orient_to_int_rlpais");
+
+   // translate new orient to int form
+   for( i=0 ; i<3 ; i++)
+      for( j=0 ; j<6 ; j++ ) {
+         if( strncmp(&ochar[i], &ORIENT_first[j], 1) == 0 ) {
+            oint[i] = j;
+            break;
+         }
+         if( j == 6 )
+            ERROR_message("Perm calc, couldn't find orient char match\n"
+                          "\tCheck inp orient string: %s", ochar);
+      }
+
+   EXRETURN;
+}
+
+// get the char form of orientation from int array in RLPAIS ordering.
+// So, a dset with {0, 3, 4} -> "RAI".
+void THD_int_to_orient_rlpais( int oint[3], char ochar[4])
+{
+   int i, j;
+
+   ENTRY("THD_int_to_orient_rlpais");
+
+   for( i=0 ; i<3 ; i++)
+      ochar[i] = ORIENT_first[oint[i]];
+   ochar[3] = '\0';
+
+   EXRETURN;
+}
+
+/* Check if orient is valid: must contain exactly one member of each
+   of the following pairs:  LR, AP, IS.
+   Return 0 if valid, 1 otherwise.
+*/
+int is_valid_orient_char(char ochar[3]) 
+{
+   int ii; 
+   int oint[3] = {0, 0, 0}; 
+
+   ENTRY("is_valid_orient_char");
+
+   THD_orient_to_int_rlpais(ochar, oint);  // get int form of orient
+   ii = is_valid_orient_int(oint);         // ... and check this
+
+   return ii;
+}
+
+/* Check if orient is valid: must contain exactly one member of each
+   of the following pairs:  01, 23, 45.
+   Return 0 if valid, 1 otherwise.
+*/
+int is_valid_orient_int(int oint[3]) 
+{
+   int i, j; 
+   int score[3] = {0, 0, 0}; 
+   int score_sum = 0;
+   char ochar[4]; 
+
+   ENTRY("is_valid_orient_int");
+
+   for( i=0 ; i<3 ; i++ )
+      score[ ORIENT_xyzint[ oint[i]]-1 ] = 1;
+
+   for( i=0 ; i<3 ; i++ )
+      score_sum+= score[i];
+   
+   THD_int_to_orient_rlpais( oint, ochar );
+
+   if( score_sum == 3 )  return 1;   // valid
+   else                  return 0;   // invalid
+}
+
+// Calc permutation mat33 needed when changing dset orientation from
+// orient A (e.g., "SLP") to orient B (e.g., "RAI").  
+mat33 THD_char_reorient_perm_mat33(char *ocharA, char *ocharB)
+{
+   int   i, j;
+   int   ointA[3]  = {-1, -1, -1};  // int form of orient
+   int   ointB[3]  = {-1, -1, -1};  
+   mat33 P33;
+
+   ENTRY("THD_char_reorient_perm_mat33");
+
+   INFO_message("CHECKING %s -> %s", ocharA, ocharB);
+   if( !is_valid_orient_char(ocharA) || !is_valid_orient_char(ocharB) )
+      ERROR_exit("Invalid orientation for permuting: %s -> %s", 
+                 ocharA, ocharB);
+
+   // translate new orient to int form
+   THD_orient_to_int_rlpais(ocharA, ointA);
+   THD_orient_to_int_rlpais(ocharB, ointB);
+
+   P33 = THD_int_reorient_perm_mat33(ointA, ointB);
+
+   return P33;
+}
+
+// Calc permutation mat33 needed when changing dset orientation from
+// orient A (e.g., "531") to orient B (e.g., "024").  
+mat33 THD_int_reorient_perm_mat33(int *ointA, int *ointB)
+{
+   int   i, j;
+   mat33 PA, PB, PAINV, PBINV;   // intermediate
+   mat33 P33;
+   char ocharA[4], ocharB[4];
+
+   char ochar_rai[4] = "RAI\0";
+   int   oint_rai[3] = {-1, -1, -1};  // int form of orient
+
+   ENTRY("THD_int_reorient_perm_mat33");
+
+   THD_orient_to_int_rlpais(ochar_rai, oint_rai);
+
+   LOAD_ZERO_MAT33(PA);  // init mat
+   LOAD_ZERO_MAT33(PB);  // init mat
+   LOAD_ZERO_MAT33(P33);  // init mat
+
+   if( !is_valid_orient_int(ointA) ) {
+      THD_int_to_orient_rlpais( ointA, ocharA );
+      ERROR_exit("Dset has invalid orientation for permuting: %s", ocharA);
+   }
+
+   if( !is_valid_orient_int(ointB) ) {
+      THD_int_to_orient_rlpais( ointB, ocharB );
+      ERROR_exit("Specified orientation is invalid for permuting: %s", ocharB);
+   }
+
+   // make permutation matrix; will be applied as first arg in
+   // multiplications, such as: MAT33_MUL(P33, dset_mat33)
+   for( i=0 ; i<3 ; i++ )
+      for( j=0 ; j<3 ; j++ ){
+         if( oint_rai[i] == ointA[j] )
+            PA.m[i][j] = 1;
+         else if ( ORIENT_OPPOSITE(oint_rai[i]) == ointA[j] ) 
+            PA.m[i][j] = -1;
+      }
+   for( i=0 ; i<3 ; i++ )
+      for( j=0 ; j<3 ; j++ ){
+         if( oint_rai[i] == ointB[j] )
+            PB.m[i][j] = 1;
+         else if ( ORIENT_OPPOSITE(oint_rai[i]) == ointB[j] ) 
+            PB.m[i][j] = -1;
+      }
+
+   PAINV = MAT33_INV(PA);
+   P33   = MAT33_MUL(PB, PAINV);
+
+   return P33;
+}
+
+
+/* OLD, apparently broken way of thinking about this
+
+
+// Calc permutation mat33 needed when changing dset orientation from
+// orient A (e.g., "531") to orient B (e.g., "024").  
+mat33 THD_int_reorient_perm_mat33(int *ointA, int *ointB)
+{
+   int   i, j;
+   mat33 P33;
+   char ocharA[4], ocharB[4];
+
+   ENTRY("THD_int_reorient_perm_mat33");
+
+   LOAD_ZERO_MAT33(P33);  // init mat
+
+   if( !is_valid_orient_int(ointA) ) {
+      THD_int_to_orient_rlpais( ointA, ocharA );
+      ERROR_exit("Dset has invalid orientation for permuting: %s", ocharA);
+   }
+
+   if( !is_valid_orient_int(ointB) ) {
+      THD_int_to_orient_rlpais( ointB, ocharB );
+      ERROR_exit("Specified orientation is invalid for permuting: %s", ocharB);
+   }
+
+   // make permutation matrix; will be applied as first arg in
+   // multiplications, such as: MAT33_MUL(P33, dset_mat33)
+   for( i=0 ; i<3 ; i++ )
+      for( j=0 ; j<3 ; j++ ){
+         if( ointA[i] == ointB[j] )
+            P33.m[i][j] = 1;
+         else if ( ORIENT_OPPOSITE(ointA[i]) == ointB[j] ) 
+            P33.m[i][j] = -1;
+      }
+
+   return P33;
+}
+*/
+
+
+// Calc permutation mat33 needed for ijk_to_dicom_real when changing
+// orientation from what a current dset has to some new_ori.  'P33' is
+// essentially calc'ed here for input dset and new_ori.
+mat33 THD_dset_reorient_perm_mat33( THD_3dim_dataset *dsetA, char *ocharB)
+{
+   int   i, j;
+   int   ointA[3] = {-1, -1, -1};  // current dset orient (int form)
+   int   ointB[3] = {-1, -1, -1};  // new orient (int form)
+   mat33 P33;
+
+   ENTRY("THD_dset_reorient_perm_mat33");
+
+   LOAD_ZERO_MAT33(P33);  // init mat
+
+   if( !ISVALID_DSET(dsetA) ) return(P33);
+
+   THD_fill_orient_int_3_rlpais( dsetA->daxes, ointA );  // dset orient as ints
+   THD_orient_to_int_rlpais(ocharB, ointB);              // new orient as ints
+
+   P33 = THD_int_reorient_perm_mat33(ointA, ointB);
+
+   return P33;
+}
+
+// apply permutation+new orientation to dset, calc+return new
+// ijk_to_dicom_real mat
+mat44 THD_refit_orient_ijk_to_dicom_real( THD_3dim_dataset *dsetA, 
+                                          char *ocharB )
+{
+   int   i, j;
+   float origA[3], origB[3];
+   mat33 P33;
+   mat33 dsetA_mat33, dsetA_mat33_P; 
+   mat44 dsetA_mat44_P;
+
+   ENTRY("THD_refit_orient_ijk_to_dicom_real");
+
+   ZERO_MAT44(dsetA_mat44_P);  // init mat
+
+   // checks
+   if( !ISVALID_DSET(dsetA) || oblique_report_repeat==0 ) return(dsetA_mat44_P);
+   THD_check_oblique_field(dsetA);
+
+   MAT44_TO_MAT33(dsetA->daxes->ijk_to_dicom_real, dsetA_mat33); // get current
+
+   P33 = THD_dset_reorient_perm_mat33( dsetA, ocharB);  // perm from old to new
+
+   // INITIAL 
+   //INFO_message("OLD mats");
+   //DUMP_MAT44("IJK_TO_DICOM_REAL", dsetA->daxes->ijk_to_dicom_real);
+   //DUMP_MAT44("IJK_TO_DICOM", dsetA->daxes->ijk_to_dicom);
+
+   for( i=0 ; i<3 ; i++ ) 
+      origA[i] = dsetA->daxes->ijk_to_dicom_real.m[i][3];
+   MAT33_VEC(P33, origA[0], origA[1], origA[2], 
+             origB[0], origB[1], origB[2]);
+
+   //INFO_message("BEFORE AND AFTER");
+   //INFO_message("%f %f %f", origA[0], origA[1], origA[2]);
+   //INFO_message("%f %f %f", origB[0], origB[1], origB[2]);
+
+   // apply permutation to mat33, and then make M44
+   dsetA_mat33_P = MAT33_MUL(P33, dsetA_mat33);
+   MAT33_TO_MAT44(dsetA_mat33_P, dsetA_mat44_P);
+   LOAD_MAT44_VEC(dsetA_mat44_P, 
+                  origB[0], origB[1], origB[2]);
+
+   // FINAL
+   //INFO_message("NEW mat");
+   //DUMP_MAT44("", dsetA_mat44_P);
+
+   return dsetA_mat44_P;
+}
+
+/*
+  [PT: Nov 16, 2020] Use the fact that nifti_mat44_to_quatern produces
+  a quaternion representation of the input matrix that is
+  orthogonalized, even if the input mat isn't. Thus, when converting
+  quatern -> mat44, the output mat should be orthogonalized.
+
+  Use this to calculate aform_orth (Mout) from aform_real (Min).
+*/
+mat44 nifti_orthogonalize_mat44( mat44 Min )
+{
+   mat44 Mout;
+   float qb, qc, qd;
+   float qx, qy, qz;
+   float dx, dy, dz, qfac;
+
+   nifti_mat44_to_quatern( Min,
+                           &qb,  &qc,  &qd,
+                           &qx,  &qy,  &qz,
+                           &dx,  &dy,  &dz,  &qfac );
+      
+   Mout = nifti_quatern_to_mat44(  qb,  qc,  qd,
+                                   qx,  qy,  qz,
+                                   dx,  dy,  dz,  qfac );
+
+   return Mout;
+}
+
+/*
+  [PT: Nov 16, 2020] Test orthogonality by orthogonalizing the mat44,
+  and then comparing sum of elementwise diffs.  Could be done
+  differently, but typically this should be fine.
+*/
+int is_mat44_orthogonal(mat44 A)
+{
+   mat44 B;
+
+   B = nifti_orthogonalize_mat44( A );
+
+   return MAT44_FLEQ(A, B);
+}
+
+
+/*
+  Calc the cardinal 3x3 matrix of a dset in RAI ordering based on
+  voxelsize 
+
+mat33 THD_dset_card_mat33( THD_3dim_dataset *dset )
+{
+   int i,j;
+   mat33 M;
+   THD_dmat33 tmat;
+   THD_dfvec3 dics;
+
+   THD_dicom_card_xform( dset,
+                         &tmat, &dics );
+
+   
+
+   return M;
+}
+
+*/
+
+
+
+
 void THD_report_obliquity(THD_3dim_dataset *dset)
 {
    double angle;
@@ -770,7 +1151,7 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
    if(oblique_report_index<oblique_report_repeat) {
       if(first_oblique) {
          WARNING_message(
-         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  If you are performing spatial transformations on an oblique dset,\n"
          "  such as %s,\n"
          "  or viewing/combining it with volumes of differing obliquity,\n"
          "  you should consider running: \n"
@@ -849,13 +1230,15 @@ void THD_check_oblique_field(THD_3dim_dataset *dset)
       THD_make_cardinal(dset);
 }
 
-/* allow for updating of obliquity - IJK_TO_DICOM_REAL attribute and structure */
+/* allow for updating of obliquity - IJK_TO_DICOM_REAL attribute and
+   structure */
 void THD_updating_obliquity(int update)
 {
    oblique_update = update;
 }
 
-/* accessor function to get current status - can we update ijk_to_dicom_real*/
+/* accessor function to get current status - can we update
+   ijk_to_dicom_real*/
 int THD_update_obliquity_status()
 {
    return(oblique_update);

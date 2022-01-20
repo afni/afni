@@ -1402,7 +1402,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    SUMA_DSET *gset=NULL;
    float ***flat_matr=NULL;
    float *xyz=NULL;
-   char OUT_gdset[300];
+   char OUT_gdset[THD_MAX_NAME];
    NI_group *GDSET_netngrlink=NULL;
    char *NAME_gdset=NULL;
 
@@ -1422,10 +1422,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
 	int EXTRAFILE=0; // switch for whether other file is input as WM map
 
-	char OUT_grid[300];
-	char OUT_map[300];
-	char OUT_mask[300];
-	char OUT_rois[300];
+	char OUT_grid[THD_MAX_NAME];
+	char OUT_map[THD_MAX_NAME];
+	char OUT_mask[THD_MAX_NAME];
+	char OUT_rois[THD_MAX_NAME];
 	FILE *fin4, *fout1;
 
 	float MaxAng=0.;
@@ -1501,7 +1501,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    int start_loc=0;
    int trL=0;
    char **prefix_det=NULL;
-	char OUT_bin[300];
+	char OUT_bin[THD_MAX_NAME];
    FILE **fout0=NULL;
    tv_io_header headerDTI = {.id_string = "TRACK\0", 
                              .origin = {0,0,0},   
@@ -1687,15 +1687,15 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       for ( i=0 ; i<N_nets ; i++ ) 
          for ( j=0 ; j<NROI[i]+1 ; j++ ) 
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
-      if(  (ROI_STR_LABELS == NULL)) {
+      if( ROI_STR_LABELS == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
 
       // Sept 2014:  Labeltable stuff
-      if ((ROI_set->Label_Dtable = DSET_Label_Dtable(ROI_set))) {
-         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROI_set),
-                                                "VALUE_LABEL_DTABLE"))) {
+      if ( ROI_set->Label_Dtable = DSET_Label_Dtable(ROI_set) ) {
+         if ( LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROI_set),
+                                                "VALUE_LABEL_DTABLE") ) {
             //fprintf(stdout,"%s", LabTabStr);
             if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
                ERROR_exit("Could not parse labeltable.");
@@ -1748,7 +1748,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    
    if( opts.NAMEIN_mask ){
       MASK = THD_open_dataset(opts.NAMEIN_mask) ;
-      if( (MASK == NULL ))
+      if( MASK == NULL )
          ERROR_exit("Can't open time series dataset '%s'.",opts.NAMEIN_mask);
       
       DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -1896,7 +1896,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    wild_names = (char **)calloc(N_DTI_MAX_PARS, sizeof(char *)); 
    for (j=0; j<N_DTI_MAX_PARS; ++j) 
       wild_names[j] = (char *)calloc(32, sizeof(char));
-   if( (wild_names == NULL) ){
+   if( wild_names == NULL ){
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
    }
@@ -1948,7 +1948,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             PARS_BOT = 0;
 
             insetPARS[0] = THD_open_dataset(opts.in_EXTRA);
-            if( (insetPARS[0] == NULL ) )
+            if( insetPARS[0] == NULL )
                ERROR_exit("Can't open 'extra' listed dataset '%s': ",
                           opts.in_EXTRA);
 
@@ -2022,7 +2022,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       PARS_N = PARS_TOP = nsort + 1; // GFA + number of files         
       insetPARS = (THD_3dim_dataset **)calloc(PARS_N,
                                               sizeof(THD_3dim_dataset *));
-      if(  (insetPARS == NULL)  ){
+      if( insetPARS == NULL ){
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -2127,7 +2127,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
      
       insetVECS = (THD_3dim_dataset **)calloc(N_HAR,
                                               sizeof(THD_3dim_dataset *) );
-      if( (insetVECS == NULL) ){
+      if( insetVECS == NULL ){
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -2165,7 +2165,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
    for (j=0; j<Noutmat; ++j) 
       ParLab[j] = (char *)calloc(32, sizeof(char));
-   if( (ParLab == NULL) ) {
+   if( ParLab == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(121);
    }
@@ -2434,7 +2434,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       for(i=0 ; i<opts.Nseed ; i++) 
          LocSeed[i] = calloc(3,sizeof(float)); 
      
-      if( (LocSeed == NULL) ){
+      if( LocSeed == NULL ){
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -2473,7 +2473,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
       prefix_det = calloc( N_nets,sizeof(prefix_det));  
       for(i=0 ; i<N_nets ; i++) 
-         prefix_det[i] = calloc( 300,sizeof(char)); 
+         prefix_det[i] = calloc( THD_MAX_NAME,sizeof(char)); 
 
       if( opts.OUTPUT_TRK)
          fout0 = (FILE **)calloc(N_nets, sizeof(FILE)); 
@@ -2649,7 +2649,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    //INFO_message("Ndata: %d.  Nvox: %d",Ndata,Nvox);
 
    DirPerVox = ( short *)calloc((Ndata+1), sizeof(short)); 
-   if( (DirPerVox == NULL) ) {
+   if( DirPerVox == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
    }
@@ -2785,7 +2785,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          for ( j=0 ; j<N_nets ; j++ ) 
             TROUT[i][j] = (float *) calloc( 2 , sizeof(float) );
      
-      if(  (TROUT == NULL) ) {
+      if( TROUT == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(14);
       }
@@ -2830,7 +2830,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          for ( j=0 ; j<INVROI[i]+1 ; j++ ) 
             ROI_SIZES[i][j] = (int *) calloc( 3 , sizeof(int) );
       
-      if(  (ROI_SIZES == NULL) ) {
+      if( ROI_SIZES == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(14);
       }
@@ -3085,7 +3085,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                  // whether we made it all the way
                                  // through track, or ran
                                  // into a NOTvox; max vB here should be vB0 still.
-                                 if( (n==totlen) ) {
+                                 if( n == totlen ) {
                                     vB = totlen-2;
                                     vB1 = 1; // check extra one
                                  }
@@ -3385,13 +3385,15 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    } // end of Monte Carlo loop
 
    if( TR_MODE == 2 )
-      if( ni<opts.Nmonte )
+      if( ni<opts.Nmonte ){
          fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
                  "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
-      else if( TR_MODE ==1 )
+      }
+      else if( TR_MODE ==1 ) {
          fprintf(stderr,"\t%s %2d/%-2d %s -> %.2f min\n",
                  "[", opts.Nmonte,opts.Nmonte,"]", 
                  (float) difftime(time(NULL), t_start)/60.);
+      }
 
    if(DETNET){
       INFO_message("Done tracking, tidying up outputs...");

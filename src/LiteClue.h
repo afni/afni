@@ -75,6 +75,11 @@ void XcgLiteClueSetSensitive(Widget w, Widget watch, Boolean sensitive);
 Boolean XcgLiteClueGetSensitive(Widget w, Widget watch);
 Boolean XcgLiteClueDispatchEvent(Widget w, XEvent  *event);
 
+#if 0
+extern void RWC_fixup_fontset(Widget cw,Widget www) ; /* 09 Jan 2021 */
+#endif
+extern int RWC_liteclue_has_fontset( Widget cw ) ; /* 10 Jan 2021 */
+
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif

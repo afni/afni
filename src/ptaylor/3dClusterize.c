@@ -38,6 +38,18 @@
    2018 08 10: + [PT] allow non-stat brick to be thresholdable
                  - check istatfunc differently now
 
+   2020 12 21: + [PT] fix "-orient .." behavior
+                 - ... that is, it actually affects (table) output now
+                   -> Thanks to C. Gaillard for pointing out this issue!
+
+   2021 04 29: + [PT] fix some odd output behavior, raised by on MB
+                 by: AFNIuser007.  Thanks!
+                 - scale the "data" values in the output table, if a scale
+                   is used for the relevant brick.
+                 - previously, the Mean value in the table was actually
+                   |Mean|, unless '-noabs' opt was used.  Now, default
+                   will actually be Mean, unless '-abs_table_data' is used
+
 */
 
 
@@ -299,14 +311,28 @@ void usage_Clusterize(int detail)
 "                 as above in order to output any volumes with this opt.\n"
 "                 (def: no volumes output if no clusters found).\n"
 "\n"
-" -orient OOO    :change the coordinate output order to 'OOO' (def:\n"
-"                 is DICOM, RAI); alternatively, one could set the\n"
-"                 environment variable AFNI_ORIENT (see the file\n"
-"                 README.environment).\n"
+" -orient OOO    :in the output report table, make the coordinate\n"
+"                 order be 'OOO' (def: RAI, the DICOM standard); \n"
+"                 alternatively, one could set the environment variable\n"
+"                 AFNI_ORIENT (see the file README.environment).\n"
+"                 NB: this only affects the coordinate orientation in the\n"
+"                 *text table*;  the dset orientation of the output\n"
+"                 cluster maps and other volumetric data will match that\n"
+"                 of the input dataset.\n"
 " \n"
-" -noabs         :Use the signed voxel intensities (not the absolute\n"
-"                 value) for calculation of the mean and Standard\n"
-"                 Error of the Mean (SEM)\n"
+" -abs_table_data :(new, from Apr 29, 2021) Use the absolute value of voxel\n"
+"                 intensities (not the raw values) for calculation of the\n"
+"                 mean and Standard Error of the Mean (SEM) in the report\n"
+"                 table. Prior to the cited date, this was default behavior\n"
+"                 (with '-noabs' switching out of it) but no longer.\n"
+"\n"
+" ### -noabs     :(as of Apr 29, 2021, this option is no longer needed)\n"
+"                 Previously this option switched from using default absolute\n"
+"                 values of voxel intensities for calculation of the mean\n"
+"                 and Standard Error of the Mean (SEM). But this has now\n"
+"                 changed, and the default is to just use the signed values\n"
+"                 themselves; this option will not cause an error, but is not\n"
+"                 needed.  See '-abs_table_data' for reporting abs values.\n"
 " \n"
 " -binary        :This turns the output map of cluster ROIs into a binary\n"
 "                 (0 or 1) mask, rather than a cluster-index mask.\n"
@@ -505,9 +531,16 @@ int main(int argc, char *argv[]) {
    char *CL_mritype = NULL;
    int CL_quiet     = 0;
    int CL_summarize = 0;
-   int CL_do_mni    = 0;
+   int CL_do_mni    = 0;     /* PT: at the moment, this STAYS 0-- prob
+                                a good thing. I don't see that this
+                                should ever be used -- use "-orient
+                                .." instead */
+
+   // [PT: Apr 29, 2021] CHANGING the default behavior, so this abs
+   // value is NOT applied unless user asks for it to be.
+   int CL_noabs     = 1;     
+
    int CL_1Dform    = 1;
-   int CL_noabs     = 0;
    int do_binary    = 0;
    THD_coorder CL_cord;
    float dx, dy, dz, xx, yy, zz, mm, ms, fimfac=0.0,
@@ -525,6 +558,8 @@ int main(int argc, char *argv[]) {
    int FOUND_CLUSTERS = 0;
    int OUTVOL_IF_NO_CLUST = 0;
    int STAT_nsides = -1;
+   
+   int HAVE_USER_ORIENT = 0;
 
    mainENTRY("3dClusterize"); machdep();
 
@@ -537,25 +572,25 @@ int main(int argc, char *argv[]) {
    /** scan args **/
    if (argc == 1) { usage_Clusterize(1); exit(0); }
    iarg = 1;
-   while( iarg < argc && argv[iarg][0] == '-' ){
+   while( iarg < argc ) { //&& argv[iarg][0] == '-' ){
       if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_Clusterize(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
 		
-      if( strcmp(argv[iarg],"-inset") == 0 ){
+      else if( strcmp(argv[iarg],"-inset") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-inset'");
 
          insetA = THD_open_dataset(argv[iarg]);
-         if( (insetA == NULL ))
+         if( insetA == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-pref_map") == 0 ){
+      else if( strcmp(argv[iarg],"-pref_map") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-pref_map'");
          prefix = strdup(argv[iarg]);
@@ -564,7 +599,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-pref_dat") == 0 ){
+      else if( strcmp(argv[iarg],"-pref_dat") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-pref_dat'");
          CL_prefix = strdup(argv[iarg]);
@@ -573,7 +608,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-out_mask") == 0 ){
+      else if( strcmp(argv[iarg],"-out_mask") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '%s'",
                                 argv[iarg-1]);
@@ -583,7 +618,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-mask") == 0 ){
+      else if( strcmp(argv[iarg],"-mask") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
 
@@ -597,7 +632,7 @@ int main(int argc, char *argv[]) {
       }
 
       // the same as "-inmask" in 3dclust
-      if( strcmp(argv[iarg],"-mask_from_hdr") == 0) {
+      else if( strcmp(argv[iarg],"-mask_from_hdr") == 0) {
          no_inmask = 0;
          sprintf(repmask,"(mask from header)");
          iarg++ ; continue ;
@@ -606,7 +641,7 @@ int main(int argc, char *argv[]) {
       // ---------- which vols are data and thr vols
 
       // index for vol to be thresholded; can also be brick_label str
-      if( strcmp(argv[iarg],"-ithr") == 0 ){
+      else if( strcmp(argv[iarg],"-ithr") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-ithr'");   
          if( mycheck_is_int(argv[iarg]) )
@@ -617,7 +652,7 @@ int main(int argc, char *argv[]) {
       }
 
       // index for vol to be clusterized; can also be brick_label str
-      if( strcmp(argv[iarg],"-idat") == 0 ){
+      else if( strcmp(argv[iarg],"-idat") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-idat'");   
          if( mycheck_is_int(argv[iarg]) )
@@ -630,7 +665,7 @@ int main(int argc, char *argv[]) {
       // ---------- sidedness ----------------------
 
       // 2 necessary args needed after this opt
-      if( strcmp(argv[iarg],"-1sided") == 0 ){
+      else if( strcmp(argv[iarg],"-1sided") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need 2 arguments after '-1sided'");
          // get first arg
@@ -680,7 +715,7 @@ int main(int argc, char *argv[]) {
       // if 'p=..' is entered, just one argument; else, 2 args
       // necessary; 2sided, bisided and within_range all have same
       // input syntax!
-      if( ( strcmp(argv[iarg],"-2sided") == 0 ) ||
+      else if( ( strcmp(argv[iarg],"-2sided") == 0 ) ||
           ( strcmp(argv[iarg],"-bisided") == 0 ) ||
           ( strcmp(argv[iarg],"-within_range") == 0 ) ) {
          iarg++ ; if( iarg >= argc )
@@ -728,7 +763,7 @@ int main(int argc, char *argv[]) {
       
       // ---------- control pars
 
-      if( strcmp(argv[iarg],"-NN") == 0 ) {
+      else if( strcmp(argv[iarg],"-NN") == 0 ) {
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-NN'");
          NNTYPE = atoi(argv[iarg]);
@@ -745,7 +780,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-clust_nvox") == 0 ){
+      else if( strcmp(argv[iarg],"-clust_nvox") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-clust_nvox'");
          vmul = atof(argv[iarg]);
@@ -760,7 +795,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-clust_vol") == 0 ){
+      else if( strcmp(argv[iarg],"-clust_vol") == 0 ){
          iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-clust_vol'");
          vmul = atof(argv[iarg]);
@@ -775,57 +810,66 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-outvol_if_no_clust") == 0 ) {
+      else if( strcmp(argv[iarg],"-outvol_if_no_clust") == 0 ) {
          OUTVOL_IF_NO_CLUST = 1 ;
          iarg++ ; continue ;
       }
 
       // ------------- boring opts from original 3dclust
 
-      if( strcmp(argv[iarg],"-1Dformat") == 0 ){
+      else if( strcmp(argv[iarg],"-1Dformat") == 0 ){
          CL_1Dform = 1 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-no_1Dformat") == 0 ){
+      else if( strcmp(argv[iarg],"-no_1Dformat") == 0 ){
          CL_1Dform = 0 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-summarize") == 0 ){
+      else if( strcmp(argv[iarg],"-summarize") == 0 ){
          CL_summarize = 1 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-nosum") == 0 ){
+      else if( strcmp(argv[iarg],"-nosum") == 0 ){
          CL_summarize = -1 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-quiet") == 0 ){
+      else if( strcmp(argv[iarg],"-quiet") == 0 ){
          CL_quiet = 1 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-orient") == 0 ){
+      else if( strcmp(argv[iarg],"-orient") == 0 ){
+         HAVE_USER_ORIENT = 1;
          THD_coorder_fill( argv[++iarg] , &CL_cord );
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-noabs") == 0 ){
+      else if( strcmp(argv[iarg],"-noabs") == 0 ){
          CL_noabs = 1 ;
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-binary") == 0 ){
-         do_binary = 1 ;
+      else if( strcmp(argv[iarg],"-abs_table_data") == 0 ){
+         CL_noabs = 0 ;
+         iarg++ ; continue ;
+      }
+
+      else if( strcmp(argv[iarg],"-binary") == 0 ){
+         do_binary = 1 ; 
          iarg++ ; continue ;
       }
       // ------------- fin
 
-      ERROR_message("Bad option '%s'\n",argv[iarg]) ;
-      suggest_best_prog_option(argv[0], argv[iarg]);
-      exit(1);
+      else{
+         ERROR_message("Bad option '%s'\n",argv[iarg]) ;
+         suggest_best_prog_option(argv[0], argv[iarg]);
+         exit(1);
+      }
+
    }
 
    // ****************************************************************
@@ -846,7 +890,7 @@ int main(int argc, char *argv[]) {
    THD_load_no_mmap();
    DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
    Dim = (int *)calloc(4, sizeof(int));
-   if( (Dim == NULL) )
+   if( Dim == NULL )
       ERROR_exit("MemAlloc failure (arrs).\n\n");
    Nvox = Basic_Info_Dim_and_Nvox( insetA, Dim, 4);
 
@@ -1115,7 +1159,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Badness in first internal copy");
    }
 
-   if( (thr_type==-2 ) ) { // in case of bisidedness
+   if( thr_type == -2 ) { // in case of bisidedness
       if( ival < 0 ) // i.e., no data set input: use only thr dset
          cim2 = mri_copy(tim);
       else // use extra dset
@@ -1400,7 +1444,15 @@ int main(int argc, char *argv[]) {
    if ( FOUND_CLUSTERS ) { // still only if clusters found
 
       do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
-      THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
+
+      // [PT: Dec 21, 2020] allow user's opt above to transmit through
+      if( ! HAVE_USER_ORIENT ) 
+         THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
+
+      // [PT] comment: at the moment, the next condition should
+      // *never* be true.  Also, if someone wants to start using this,
+      // perhaps they would want to test "do_mni", instead, which
+      // seems what would likely be intended
       if( CL_do_mni )
          THD_coorder_fill( "LPI", &CL_cord );
 
@@ -1458,7 +1510,7 @@ int main(int argc, char *argv[]) {
                printf ("%s[ Mean and SEM based on "
                        "signed voxel intensities ]\n%s\n", c1d, c1d);
             else
-               printf ("%s Mean and SEM based on absolute value "
+               printf ("%s[ Mean and SEM based on absolute value "
                        "of voxel intensities ]\n%s\n", c1d, c1d);
 
             printf (
@@ -1576,6 +1628,10 @@ int main(int argc, char *argv[]) {
             mean = mssum / cl->num_pt;
          else      
             mean = mmsum / cl->num_pt;
+
+         // [PT: Apr 29, 2021] The Rickian solution for scaling not
+         // being applied in the table, if present
+         fimfac = DSET_BRICK_FACTOR(insetA, ival);
 
          if( fimfac != 0.0 ) {
             mean  *= fimfac;

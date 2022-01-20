@@ -805,6 +805,12 @@ int main(int argc, char *argv[])
                ,argv[narg], 
                DSET_HEADNAME(mask_dset), DSET_HEADNAME(input_dset)) ;
 
+      /* Previously, float dsets would unload/mallocize/reload every volume
+       * (mallocize was because dataset values would be altered if ffac!=0).
+       * That might have been (with the hope) to free volumes as they are done.
+       * Now, NIFTI datasets re-read from disk due to this.  Why the change?
+       * To avoid, let's just mallocize in general.       4 Mar 2021 [rickr] */
+      DSET_mallocize(input_dset);
       DSET_load(input_dset);
 
       if (summary)
@@ -859,11 +865,15 @@ int main(int argc, char *argv[])
                   float fac = DSET_BRICK_FACTOR(input_dset, brik);
                   input_data = (float *) DSET_ARRAY(input_dset, brik);
 
-                  if (fac == 0)
+                  /* check fac==1.0, to avoid scaling data by 1.0 */
+                  if (fac == 0.0 || fac == 1.0)
                      fac = 1.0;
                   else {
-                     DSET_unload(input_dset); 
-                     DSET_mallocize(input_dset); DSET_load(input_dset);
+                     /* avoid reload NIFTI slowness, just do once, above */
+                     /*                               4 Mar 2021 [rickr]
+                        DSET_unload(input_dset); 
+                        DSET_mallocize(input_dset); DSET_load(input_dset);
+                     */
                      input_data = (float *) DSET_ARRAY(input_dset, brik);
                      for (i = 0; i < nvox; input_data[i++] *= fac);
                   }

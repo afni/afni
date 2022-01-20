@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -8,6 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
+set last_lncol = ""
 set centertype = "-Icent" # internal center - default (DRG - 03/06/2020)
 set centermask = "" # BTJ - 09/15/2020
 set iL = 2
@@ -25,6 +26,11 @@ if ("$mode" == 1) then
    goto PUT_ATLAS_TABLE
 else if ("$mode" == 2) then
    goto ADD_ATLAS_ENTRY
+endif
+
+# set labeltable if it's not set already
+if  ($labeltable == "LABEL_TABLE_NOT_SET") then
+                 set labeltable = lt_${RNS}.niml.alt
 endif
 
 if ($autolab == 1) then
@@ -45,7 +51,9 @@ if ($ltdset != '') then
 endif
 
 if ($showlabels) then
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    if ($KeysLabel != '') then
       niccc -quiet '-#' -stdout file:$labeltable \
          | \grep $gopt $KeysLabel \
@@ -61,7 +69,9 @@ if ($showlabels) then
 endif
 
 if ($showkeys) then
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    if ($KeysLabel != '') then
       niccc -quiet '-#' -stdout file:$labeltable \
          | \grep $gopt $KeysLabel \
@@ -95,7 +105,9 @@ if ($KeysLabel != '') then
    endif
 
    #get the numbers
-   if ($word_match == 1) set gopt = ("$gopt" "-w")
+   if ($word_match == 1) then
+      set gopt = ("$gopt" "-w")
+   endif
    set keys = `niccc -quiet '-#' -stdout file:$labeltable \
       | \grep $gopt $KeysLabel \
       | \sed 's/^ //g' | \sed 's/"//g' \
@@ -168,8 +180,13 @@ MAKE_TABLE:
       # get the value index
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       # get the longname if there is one
+<<<<<<< HEAD
       if($lncol) then
          set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
+=======
+      if ($lncol) then
+         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+>>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
       else
          set ln =  ""
       endif
@@ -246,7 +263,8 @@ MAKE_TABLE:
       printf 'ni_type="2*String"\n' >> $labeltable
       printf 'ni_dimen="%d"\n' $nu[1] >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
-      uniq /tmp/${RNS}.___lt.txt >> $labeltable
+      # take index and label, each in quotes, not longnames if any to labeltable 
+      uniq /tmp/${RNS}.___lt.txt | awk '{print $1 " " $2}' >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
 
 PUT_TABLE:
@@ -278,8 +296,13 @@ MAKE_ATLAS_TABLE:
       set ll = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_`
 
       # get the longname if there is one
+<<<<<<< HEAD
       if($lncol) then
          set ln = `sed -n "${cnt}p" /tmp/TMPLIST_${RNS}_ln_`
+=======
+      if ($lncol) then
+         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+>>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
       else
          set ln =  ""
       endif
@@ -359,26 +382,33 @@ MAKE_ATLAS_TABLE:
          set cogval = `echo $lln[1] |tr -d \"`
          if ($SKIPNOVOX) then
             set count = `3dBrickStat -count -non-zero $target_dset"<$cogval>"`
-            if("$count" == "0") then
+            if ("$count" == "0") then
                echo "WARNING: no voxels at $cogval ($lln[2-]), skipping"
                continue
             endif
          endif
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
+         # remove any trailing spaces from the short structure name
+         set lln[2] = `echo $lln[2] | tr -d ' $'`
          # might have a long name in the last column
-         if($lncol) then
+         if ($lncol) then
             printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2]`" $lln[1] \
                               >> $labeltable
             # remove tabs, carriage returns, line feeds
             # these show up here if no long name
-            set lln[3] =  `echo $lln[3] | \tr -d \"|tr -d '\011\012\015'`
-            set ln_len = `echo $lln[3] |wc -c`
-            if ("$ln_len" != "1") then
-               printf ' LONGNAME="%s"\n' "$lln[3-]"  >> $labeltable
+#            set lln[3] =  `echo $lln[3-] | \tr -d \"|tr -d '\011\012\015'`
+#            set ln_len = `echo $lln[3-] |wc -c`
+            set lname = ( "${lln[3-]}")
+
+            set clname = `echo "$lname" |tr -d \"`
+            if (("$lname" != "") && (${%clname} != 0) && ($#lname >= 1)) then
+               echo ' LONGNAME='\""$clname"\"  >> $labeltable
             endif
          else
-            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
-                              >> $labeltable
+            # remove any trailing spaces from the short structure name
+            set longshortname = `echo $lln[2-] | tr -d ' $'`
+            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $longshortname`" $lln[1] \
+                              >> $labeltable                             
          endif
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
@@ -678,7 +708,7 @@ PARSE:
             3dUndump -dimen 3 3 3 -prefix $ttdset >& /dev/null
             3drefit -labeltable $argv[$cnt] $ttdset*HEAD >& /dev/null
             3dinfo -labeltable_as_atlas_points $ttdset*HEAD > $labeltable
-            \rm -f dset_*
+            \rm -f dset_${RNS}*
             echo "Atlas point list now in file $labeltable"
             goto END
 			endif
@@ -914,6 +944,17 @@ PARSE:
          goto CONTINUE
       endif
 
+      if ("$argv[$cnt]" == "-last_longname_col") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need to specify column index after -last_longname_col"
+            goto BEND
+         endif
+         @ cnt ++
+         set last_lncol = `ccalc -i $argv[$cnt]+1`
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -1028,15 +1069,31 @@ PARSE_LABEL_FILE:
 	    set llistmax = ($llistmin)
 
 	    # get long names from label file
-	    if($lncol) then
+	    if ($lncol) then
 	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
 	#          sed 's/^ *//g' | sed 's/ *$//g' | \
+<<<<<<< HEAD
 	#          sed '/^ *$/d' > /tmp/TMPLIST_${RNS}_ln_
 	# new way gets all columns after longname column to handle extra spaces
 	       awk -v N=$lncol \
 	          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
 	          > /tmp/TMPLIST_${RNS}_ln_
 	        set N_lnlist = `\wc -l /tmp/TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+=======
+	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+	# awk way gets all columns after longname column to handle extra spaces
+	#       awk -F "$delim" -v N=$lncol \
+	#          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
+	#          > TMPLIST_${RNS}_ln_
+    # cut way - simpler with cut command and works with other delimiters and comma
+    # also supports last column selector
+           ### [PT: Sep 29, 2021] need quotes around ${delim}
+           # unfortunately, mac version doesn't support --delimiter
+    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
+    # squeeze multiple spaces down to single space
+           cat  $flab | tr -s " " | cut -d"${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
+	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+>>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
 	    endif
 
 	    set llistmax = ($llistmin)
@@ -1115,7 +1172,9 @@ HELP:
    echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
    echo "                names for regions, e.g. amygdala for AMY"
    echo "                cLONGNAME is the starting column for the longname continuing"
-   echo "                to the last name of the output"
+   echo "                to the last name of the output (0-based column index)."
+   echo "                Using this option requires using '-atlas_pointlist ..'"
+   echo "   -last_longname_col cLASTLONGNAME: limit longnames to nth column"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
 #   echo "   -dset_autolab DSET SUFFIX: Create a labeltable from the unique"
@@ -1217,8 +1276,18 @@ BEND:
    goto END
 
 END:
+<<<<<<< HEAD
 \rm -f /tmp/TMPLIST_${RNS}_ >& /dev/null
 if ($stat == 0 && -f $log) then
    \rm /tmp/${RNS}.$log:t
+=======
+\rm -f TMPLIST_${RNS}_ >& /dev/null
+if ($stat == 0) then
+   if (-f $log) then
+       \rm /tmp/${RNS}.$log:t  >& /dev/null
+   endif
+   # delete some of the temporary files
+   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* /tmp/${RNS}*  >& /dev/null
+>>>>>>> 5e003a99d7847ef3f9af051bec075d8a92c0ea1c
 endif
 exit $stat

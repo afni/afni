@@ -30,8 +30,10 @@ int main( int argc , char *argv[] )
       "\n"
       "This program reads in a nonlinear 3D warp (from 3dQwarp, etc.) and\n"
       "computes some functions of the displacements.  See the OPTIONS below\n"
-      "for information on what can be computed.\n"
+      "for information on what can be computed. The NOTES sections describes\n"
+      "the formulae of the functions that are available.\n"
       "\n"
+      "--------\n"
       "OPTIONS:\n"
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
@@ -42,12 +44,15 @@ int main( int argc , char *argv[] )
       "\n"
       " -bulk        = Compute the (fractional) bulk volume change.\n"
       "               ++ e.g., Jacobian determinant minus 1.\n"
+      "               ++ see 'MORE...' (below) for interpreting the sign of '-bulk'.\n"
       " -shear       = Compute the shear energy.\n"
       " -vorticity   = Compute the vorticity enerty.\n"
+      " -all         = Compute all 3 of these fun fun functions.\n"
       "\n"
       "If none of '-bulk', '-shear', or '-vorticity' are given, then '-bulk'\n"
       "will be assumed.\n"
       "\n"
+      "------\n"
       "NOTES:\n"
       "------\n"
       "Denote the displacement vector field (warp) by\n"
@@ -59,7 +64,9 @@ int main( int argc , char *argv[] )
       "      [  dr/dx    dr/dy   1+dr/dz ]   [ Jzx Jzy Jzz ]\n"
       "\n"
       "* The '-bulk' output is the determinant of this matrix (det[J]), minus 1.\n"
-      "* It measures the amount of volume distortion.\n"
+      "* It measures the fractional amount of volume distortion.\n"
+      "* Negative means the warped coordinates are shrunken (closer together)\n"
+      "  than the input coordinates. Also see the 'MORE...' section below.\n"
       "\n"
       "* The '-shear' output is the sum of squares of the J matrix elements --\n"
       "  which equals the sum of squares of its eigenvalues -- divided by\n"
@@ -75,6 +82,32 @@ int main( int argc , char *argv[] )
       "\n"
       "* The penalty used in 3dQwarp is a combination of the bulk, shear,\n"
       "  and vorticity functions.\n"
+      "\n"
+      "------------------------------\n"
+      "MORE about interpreting -bulk:\n"
+      "------------------------------\n"
+      "If the warp N(x,y,z) is the '_WARP' output from 3dQwarp, then N(x,y,z)\n"
+      "maps the base dataset (x,y,z) coordinates to the source dataset (x,y,z)\n"
+      "coordinates. If the source dataset has to expand in size to match\n"
+      "the base dataset, then going from base coordinates to source must\n"
+      "be a shrinkage. Thus, negative '-bulk' in this '_WARP' dataset\n"
+      "corresponds to expansion going from source to base. Conversely,\n"
+      "in this situation, positive '-bulk' will show up in the '_WARPINV'\n"
+      "dataset from 3dQwarp as that is the map from source (x,y,z) to\n"
+      "base (x,y,z).\n"
+      "\n"
+      "The situation above happens a lot when using one of the MNI152 human\n"
+      "brain templates as the base dataset. This family of datasets is larger\n"
+      "than the average human brain, due to the averaging process used to\n"
+      "define the first MNI152 template back in the 1990s.\n"
+      "\n"
+      "I have no easy interpretation handy for the '-shear' and '-vorticity'\n"
+      "outputs, alas. They are computed as part of the penalty function used\n"
+      "to control weirdness in the 3dQwarp optimization process.\n"
+      "\n"
+      "---------------------------\n"
+      "AUTHOR -- RWCox == @AFNIman\n"
+      "---------------------------\n"
      ) ;
 
      PRINT_COMPILE_DATE ;
@@ -137,6 +170,9 @@ int main( int argc , char *argv[] )
      }
      if( strncasecmp(argv[iarg],"-vort",4) == 0 ){
        do_vort = 1 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-all")     == 0 ) {
+       do_bulk = do_shear = do_vort = 1 ; iarg++ ; continue ;
      }
 
      /*---------------*/

@@ -57,20 +57,31 @@
 #ver = '1.9' ; date = 'June 17, 2020' 
 # [PT] add in legend, legend_label and legend_loc functionality
 #
-ver = '1.91' ; date = 'Nov 2, 2020' 
+#ver = '1.91' ; date = 'Nov 2, 2020' 
 # [PT] 
 #    + deal with passing escape sequences from commandline
 #      - shell protects '\n' by changing it to '\\n'
 #    + 'svg' an OK output file type
 # 
+#ver = '1.92' ; date = 'April 22, 2021' 
+# [PT] 
+#    + new opt for 1dplot.py, to control y-axis label length, wrapping:
+#      "-ylabels_maxlen .."
+#
+ver = '1.93' ; date = 'Jan 13, 2022' 
+# [PT] 
+#    + check if user entered 'pythonic', but their system CAN'T HANDLE 
+#      THE TRUTH, and just downgrade to 'basic'
+#
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
 import sys, copy, os
-from afnipy import lib_afni1D as LAD
-from afnipy import afni_util  as au
-from afnipy import afni_base  as ab
+from   afnipy import lib_afni1D as LAD
+from   afnipy import afni_util  as au
+from   afnipy import afni_base  as ab
+from   afnipy import module_test_lib
 
 # -------------------------------------------------------------------
 
@@ -83,7 +94,7 @@ ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
-ok_review_styles = ["none", "basic", "pythonic", "java"]
+ok_review_styles = ["none", "basic", "pythonic"]
 
 DEF_dpi           = 150
 DEF_prefix        = "PREFIX"
@@ -254,6 +265,15 @@ COMMAND OPTIONS ~1~
                should match the order of infiles.
                These labels are plotted vertically along the y-axis of the
                plot.
+
+-ylabels_maxlen MM
+              :y-axis labels can get long; this opt allows you to have
+               them wrap into multiple rows, each of length <=MM.  At the
+               moment, this wrapping is done with some "logic" that tries
+               to be helpful (e.g., split at underscores where possible), 
+               as long as that helpfulness doesn't increase line numbers
+               a lot.  The value entered here will apply to all y-axis 
+               labels in the plot.
 
 -legend_on    :turn on the plotting of a legend in the plot(s).  Legend
                will not be shown in the boxplot panels, if using.
@@ -512,6 +532,7 @@ class figplobj:
         self.bplot_view   = ''
         self.boxplot_ycen = DEF_boxplot_ycen
         self.legend_on    = False
+        self.ylabels_maxlen = None
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
@@ -521,6 +542,9 @@ class figplobj:
 
     def set_legend_on(self, c):
         self.legend_on = c
+
+    def set_ylabels_maxlen(self, c):
+        self.ylabels_maxlen = c
 
     def set_boxplot(self, c):
         self.boxplot_on = c
@@ -778,6 +802,7 @@ class apqc_1dplot_opts:
         # opt input
         self.ylabels  = []
         self.nylabels = 0    
+        self.ylabels_maxlen = False
         self.xlabel  = ""
         self.onescl  = True
         self.one_graph  = False
@@ -894,6 +919,9 @@ class apqc_1dplot_opts:
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
+
+    def set_ylabels_maxlen(self, ml):
+        self.ylabels_maxlen = int(ml)
 
     def add_censor_hline(self, hh):
         val = set_valid_censor_hline_val(hh)
@@ -1420,6 +1448,12 @@ def parse_1dplot_args(full_argv):
             if not(count):
                 ARG_missing_arg(argv[i])
 
+        elif argv[i] == "-ylabels_maxlen":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_ylabels_maxlen(argv[i])
+
         elif argv[i] == "-legend_on":
             iopts.legend_on = True
 
@@ -1744,6 +1778,12 @@ class apqc_tcsh_opts:
         elif not(ok_review_styles.__contains__(self.revstyle)) :
             print("revstyle '{}' not in allowed list".format(self.revstyle))
             MISS+=1
+        elif self.revstyle == 'pythonic' :
+            # if user asks for Pythonic but sys is not set up for it,
+            # downgrade back to 'basic'
+            checked_style = check_apqc_pythonic_ok()
+            self.set_revstyle(checked_style)
+
         return MISS
 
 # -------------------------------------------------------------------
@@ -1812,6 +1852,57 @@ def parse_tcsh_args(argv):
         sys.exit(1)
         
     return iopts
+
+def check_apqc_pythonic_ok():
+    """Check if we have everything needed to run the 'pythonic' APQC.
+
+    This basically means check if Matplotlib is installed, and if it
+    is modern enough.
+
+    Return
+    ------
+
+    name         : (str) 'pythonic' if possible to run it; else, 'basic'
+
+    """
+
+    # check all module dependencies
+    apqc_pythonic_mods = ['matplotlib']
+    if module_test_lib.num_import_failures(apqc_pythonic_mods, details=0):
+        print("+* WARN: failed to import matplotlib:\n"
+              "   'pythonic' -> 'basic' APQC")
+        return 'basic'
+
+    # check matplotlib
+    MOD = '2.2'                     # the competition
+
+    import matplotlib as mmm
+    mver = mmm.__version__
+
+    if mver == 'None':
+        print("+* WARN: failed to get matplotlib ver:\n"
+              "   'pythonic' -> 'basic' APQC")
+        return 'basic'
+    else:
+        bad_for_pythonic = 1
+        try:
+            ulist = [int(x) for x in MOD.split('.')]
+            vlist = [int(x) for x in mver.split('.')]
+            if vlist[0] > ulist[0]:
+                bad_for_pythonic = 0
+            elif vlist[0] == ulist[0] and vlist[1] >= ulist[1]:
+                bad_for_pythonic = 0
+        except:
+            print("+* WARN: failed to get matplotlib ver (2nd check):\n"
+                  "   'pythonic' -> 'basic' APQC")
+            return 'basic'
+
+        if bad_for_pythonic :
+            print("+* WARN: failed to get modern matplotlib (ver {} < {}):\n"
+                  "   'pythonic' -> 'basic' APQC".format(mver, MOD))
+            return 'basic'
+
+        return 'pythonic'
 
 # ========================================================================
 # ======================== for apqc_make_html ============================

@@ -1,8 +1,10 @@
 #!/bin/tcsh
 
 ### Script to put all afni program -help outputs
-###  into one big PostScript file AFNI.help.ps
-### Uses the mpage utility for formatting
+###   into one big PostScript file AFNI.help.ps
+###   and thence into AFNI.help.pdf
+### Uses the mpage utility for formatting,
+###   and then gs utility for conversion to PDF
 
 setenv AFNI_ENVIRON_WARNINGS NO
 
@@ -10,7 +12,7 @@ setenv AFNI_ENVIRON_WARNINGS NO
 
 find ~/abin -depth 1 -name '[13]d*' > qhelp.txt
 find ~/abin -depth 1 -name '*.py'  >> qhelp.txt
-find ~/abin -depth 1 -name '@*'    >> qhelp.txt
+find ~/abin -depth 1 -name '@*'    |  grep -v '@Install_' | grep -v 'OLD' >> qhelp.txt
 
 # cast out duplicates
 
@@ -32,6 +34,7 @@ foreach fred ( $plist )
 
   if( -f qhelp.txt ) \rm qhelp.txt
 
+  echo "++ running $fred -help"
 # make a help text file
   $fred -help >& qhelp.txt
 
@@ -43,13 +46,17 @@ foreach fred ( $plist )
   cat qhelp.txt >> AFNI.help.txt
   echo ''     >> AFNI.help.txt
 
+  echo " + `wc -l < AFNI.help.txt`" " lines of help so far"
+
 end
 
 # convert big text file to the PostScript output
 mpage -1H AFNI.help.txt > AFNI.help.ps
 
+# convert to PDF
+gs -sDEVICE=pdfwrite -sOutputFile=AFNI.help.pdf -dNOPAUSE -q - < AFNI.help.ps
+
 # take out the trash
-\rm AFNI.help.txt
 if( -f qhelp.txt ) \rm qhelp.txt
 
 exit 0

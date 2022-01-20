@@ -50,9 +50,11 @@ ENTRY("THD_dataset_mismatch") ;
    dv  = SUB_FVEC3(fv1,fv2) ; cd = SIZE_FVEC3(dv) ;
 
    LOAD_FVEC3(fv1,dax1->xxdel,dax1->yydel,dax1->zzdel) ; c1 = SIZE_FVEC3(fv1) ;
-   LOAD_FVEC3(fv2,dax2->xxdel,dax2->yydel,dax2->zzdel) ; c2 = SIZE_FVEC3(fv1) ;
+   LOAD_FVEC3(fv2,dax2->xxdel,dax2->yydel,dax2->zzdel) ; c2 = SIZE_FVEC3(fv2) ;
 
-   if( cd > 0.1*(c1+c2) ) code |= MISMATCH_CENTER ;
+   /* change default limit from 0.1 * vox diag sum  to  0.001 * ave_vox_diag */
+   /* done to appease the mighty ZSS                      [9 Dec 2021 rickr] */
+   if( cd > 0.0005*(c1+c2) ) code |= MISMATCH_CENTER ;
 
    /* check if the obliquity is the same */
    /* (allow for truncation differnces)   22 May 2015 [rickr] */
@@ -103,4 +105,39 @@ double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
    if (scl && denom>0.0) dd /= denom;
    
    RETURN(dd);   
-}  
+}
+
+/*---------------------------------------------------------------------
+  07 Dec 2021: Return the total number of differing voxels within the
+               given tolerance.
+    return = -1 ERROR
+           =  0 Exactly the same
+           =  n The number of differing voxels
+-----------------------------------------------------------------------*/
+int THD_count_diffs(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int ival, float eps) {
+   int i;
+   int count=0;
+   double *a1=NULL, *a2=NULL;
+   MRI_IMAGE *b1 = NULL , *b2 = NULL;
+
+   ENTRY("THD_count_diffs");
+
+   if (!d1 && !d2) RETURN(-1);
+   if (!d1 || !d2) RETURN(-1);
+
+   if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
+   if (DSET_NVALS(d1) != DSET_NVALS(d2)) RETURN(-1);
+
+   b1 = THD_extract_double_brick(ival, d1);
+   b2 = THD_extract_double_brick(ival, d2);
+   a1 = MRI_DOUBLE_PTR(b1);
+   a2 = MRI_DOUBLE_PTR(b2);
+   if ( !a1 || !a2 ) RETURN(-1);
+   for (i=0; i<DSET_NVOX(d1); ++i) {
+      count += ( ABS(a1[i]-a2[i]) > eps);
+   }
+   mri_clear_data_pointer(b1); mri_free(b1) ;
+   mri_clear_data_pointer(b2); mri_free(b2) ;
+
+   RETURN(count);
+}

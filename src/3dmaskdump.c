@@ -35,6 +35,7 @@ int main( int argc , char * argv[] )
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx=0,ny=0,nz=0,nxy=0,nxyz ;
    unsigned int nrandseed = 1234u;
+   float dx, dy, dz;   /* scale mm to voxels  [24 Nov 2021 rickr] */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -136,6 +137,8 @@ int main( int argc , char * argv[] )
  "                  the command line.\n"
  "              * Coordinates (for -xbox, -dbox, and -nbox) are relative\n"
  "                  to the first dataset on the command line.\n"
+ "              * It may be helpful to slightly pad boxes, to be sure they\n"
+ "                contain the desired voxel centers.\n"
  "\n"
  "  -xball x y z r  Means to put a ball (sphere) mask down at dataset\n"
  "                    coordinates (x,y,z) with radius r.\n"
@@ -145,6 +148,9 @@ int main( int argc , char * argv[] )
  "                is created first.  Then, if a -mask and/or -cmask\n"
  "                option was used, then the ball+box mask will be\n"
  "                INTERSECTED with the existing mask.\n"
+ "              * Balls not centered over voxels, or those applied to\n"
+ "                anisotropic volumes may not appear symmetric.\n"
+ "              * Consider slight padding to handle truncation.\n"
  "\n"
  "  -nozero       Means to skip output of any voxel where all the\n"
  "                  data values are zero.\n"
@@ -496,11 +502,15 @@ int main( int argc , char * argv[] )
          xv = THD_3dmm_to_3dfind( dset , dv ) ;
          UNLOAD_FVEC3(xv,xtop,ytop,ztop) ;
        }
-       ibot = rint(xbot) ; jbot = rint(ybot) ; kbot = rint(zbot) ;  /* round */
-       itop = rint(xtop) ; jtop = rint(ytop) ; ktop = rint(ztop) ;
-       if( ibot > itop ){ btyp = ibot; ibot = itop; itop = btyp; }  /* flip? */
-       if( jbot > jtop ){ btyp = jbot; jbot = jtop; jtop = btyp; }
-       if( kbot > ktop ){ btyp = kbot; kbot = ktop; ktop = btyp; }
+
+       /* flip as float indices, before truncating   [24 Nov 2021 rickr] */
+       if( xbot > xtop ){ dx = xbot; xbot = xtop; xtop = dx; }
+       if( ybot > ytop ){ dx = ybot; ybot = ytop; ytop = dx; }
+       if( zbot > ztop ){ dx = zbot; zbot = ztop; ztop = dx; }
+
+       /* do not round, it could add unrequested voxels [24 Nov 2021 rickr] */
+       ibot = ceilf(xbot) ;  jbot = ceilf(ybot) ;  kbot = ceilf(zbot) ;
+       itop = floorf(xtop) ; jtop = floorf(ytop) ; ktop = floorf(ztop) ;
 
        /* skip box if outside dataset */
        if ( itop < 0 || ibot >= nx ) continue;
@@ -557,9 +567,24 @@ int main( int argc , char * argv[] )
        xv = THD_3dmm_to_3dfind( dset , dv ) ;   /* coords from dataset to index */
        UNLOAD_FVEC3(xv,icen,jcen,kcen) ;
 
-       ibot = rint(icen-rad) ; itop = rint(icen+rad) ; /* box around ball */
-       jbot = rint(jcen-rad) ; jtop = rint(jcen+rad) ;
-       kbot = rint(kcen-rad) ; ktop = rint(kcen+rad) ;
+       /* create a bounding box around the ball to add */
+       /* scale radius to voxels, and do not round [24 Nov 2021 rickr] */
+       dx = fabs(DSET_DX(dset));
+       dy = fabs(DSET_DY(dset));
+       dz = fabs(DSET_DZ(dset));
+       ibot = ceilf(icen-rad/dx) ; itop = floorf(icen+rad/dx) ;
+       jbot = ceilf(jcen-rad/dy) ; jtop = floorf(jcen+rad/dy) ;
+       kbot = ceilf(kcen-rad/dz) ; ktop = floorf(kcen+rad/dz) ;
+
+       /* skip test box if outside dataset   [9 Dec 2021 rickr] */
+       if ( itop < 0 || ibot >= nx ) continue;
+       if ( jtop < 0 || jbot >= ny ) continue;
+       if ( ktop < 0 || kbot >= nz ) continue;
+
+       /* constrain values to dataset dimensions   [9 Dec 2021 rickr] */
+       if ( ibot < 0 ) ibot = 0;  if ( itop >= nx ) itop = nx-1;
+       if ( jbot < 0 ) jbot = 0;  if ( jtop >= ny ) jtop = ny-1;
+       if ( kbot < 0 ) kbot = 0;  if ( ktop >= nz ) ktop = nz-1;
 
        rad = rad*rad ;
 

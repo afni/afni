@@ -224,16 +224,14 @@ extern MCW_DC *first_dc ;                     /* 26 Jun 2003 */
 #define DC_GRAYBYTE(dc,i)    ((dc)->gray_im[i])
 #endif
 
-/* text fonts to try if the defaults fail */
+/* text fonts to look for if the defaults fail */
 
 static char *tfont_hopefuls[] = {
                 "-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"   ,
-                "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1" ,
                 "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"    ,
-                "-misc-fixed-medium-r-normal--13-100-100-100-c-70-iso8859-1"  ,
                 "lucidasanstypewriter-bold-10" ,
-                "lucidasanstypewriter-10"      ,
-                "7x14bold" , "7x14" , "6x13bold" , "6x13" , "fixed" ,
+                "9x15bold" , "8x13bold" , "7x14bold" , "6x13bold" ,
+                "fixed" ,                 /* this is the font of last resort */
               NULL } ;
 
 /*** Macro for text widths ***/

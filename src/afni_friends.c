@@ -110,6 +110,7 @@ static AFNI_friend afni_friends[] = {
   { "P Molfese"      ,      (    8 | 16 |               128             ) } ,
   { "E Leibenluft"   ,      ( 2                                         ) } ,
   { "D Pine"         ,      ( 2                                         ) } ,
+  { "P Kohn"         ,      ( 2 | 8                                     ) } ,
   { "C Baker"        ,      ( 2                                         ) }
 } ;
 
@@ -1287,7 +1288,7 @@ static mday holiday[] = {
    {SEP, 6, "Celebrate National Rice Month" } ,
    {SEP, 7, "National Acorn Squash Day" } ,
    {SEP, 8, "National Date Nut Bread Day" } ,
-   {SEP, 9, "National Weiner schnitzel Day" } ,
+   {SEP, 9, "National Wiener Schnitzel Day" } ,
    {SEP, 10, "National TV dinner Day" } ,
    {SEP, 11, "National Hot Cross Bun Day" } ,
    {SEP, 12, "National Chocolate Milkshake Day" } ,

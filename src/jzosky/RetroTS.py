@@ -172,30 +172,38 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             main_info["slice_offset"][i] = tt
             tt += dtt
-    elif main_info["slice_order"] in ["Custom", "custom"]:
-        # if slice_order is custom, parse from slice_offset string
-        #                                      30 Nov 2020 [rickr]
-        if type(slice_offset) == str:
+    elif main_info["slice_order"] in ["Custom", "custom"] \
+        and type(slice_offset) == str:
+
+        # If slice_order is custom, parse from slice_offset string.
+        # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
+        try:
+           offlist = eval(slice_offset)
+           noff = len(offlist)
+        except:
            try:
-              slice_offset = [float(v) for v in slice_offset.split()]
+              offlist = [float(v) for v in slice_offset.split()]
            except:
               print("** failed to apply custom slice timing from: %s" \
                     % slice_offset)
               return
-           if len(main_info["slice_offset"]) == main_info["number_of_slices"]:
-              print("applying custom slice timing, min = %g, max = %g" \
-                    % (min(slice_offset), max(slice_offset)))
-              main_info["slice_offset"] = slice_offset
-           else:
-              print("** error: slice_offset len = %d, but %d slices" \
-                 % (len(main_info["slice_offset"]), main_info["number_of_slices"]))
-              return
+        if len(offlist) != main_info["number_of_slices"]:
+           print("** error: slice_offset len = %d, but %d slices" \
+              % (len(offlist), main_info["number_of_slices"]))
+           return
+
+        # success, report and apply
+        print("applying custom slice timing, min = %g, max = %g" \
+              % (min(offlist), max(offlist)))
+        slice_offset = offlist
+        main_info["slice_offset"] = offlist
 
     else:  # Open external file specified in argument line,
         # fill SliceFileList with values, then load into main_info['slice_offset']
         with open(main_info["slice_order"], "r") as f:
             for i in f.readlines():
-                slice_file_list.append(int(i))
+                # read times, in seconds
+                slice_file_list.append(float(i))
 
             # Check that slice acquisition times match the number of slices
             if len(slice_file_list) != main_info["number_of_slices"]:
@@ -232,6 +240,9 @@ def retro_ts(
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
     # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    cardiac_peak = {}
+    respiration_peak = {}
     if phys_file:
         if phys_json is None:
             phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
@@ -251,22 +262,33 @@ def retro_ts(
         for k in phys_meta['Columns']:
             phys_dat[k] = array(phys_dat[k])
             if k.lower() == 'respiratory':
-                if not main_info['phys_fs']:
-                    respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                respiration_peak, error = peak_finder(respiration_info, v=phys_dat[k])
-                if error:
-                    print("Died in respiratory PeakFinder")
-                    return
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["respiration_out"] or main_info["rvt_out"]:
+                   if not main_info['phys_fs']:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   respiration_peak, error = peak_finder(respiration_info,
+                                                         v=phys_dat[k])
+                   if error:
+                       print("Died in respiratory PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   respiration_peak = {}
             elif k.lower() == 'cardiac':
-                if not main_info['phys_fs']:
-                    cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                cardiac_peak, error = peak_finder(cardiac_info, v=phys_dat[k])
-                if error:
-                    print("Died in cardiac PeakFinder")
-                    return
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["cardiac_out"] != 0:
+                   if not main_info['phys_fs']:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
+                   if error:
+                       print("Died in cardiac PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   cardiac_peak = {}
             else:
-                Warning('phys data contains a {s} column, but RetroTS will'
-                        ' only handle cardiac or reipiratory data.')
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or reipiratory data" % k)
     else:
         if respiration_file:
             respiration_peak, error = peak_finder(respiration_info, respiration_file)
@@ -556,6 +578,33 @@ Input
                             extension; e.g. slice_file.dat
                             (expecting a 1D / text file containing the times for
                             each slice in seconds)
+
+            For example, the following 4 commands would produce identical
+            output, based on 10 slices using a (non-default) alt-z slice order:
+
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order alt-z
+
+               set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order custom              \\
+                          -slice_offset "$offlist"
+
+               set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order custom              \\
+                          -slice_offset "$offlist"
+
+               # put those same offsets into a text file (vertically)
+               echo $offlist | tr ' ' '\\n' > slice_offsets.txt
+               RetroTS.py -c ECG.1D -r Resp.1D             \\
+                          -v 2 -p 50 -n 10 -prefix fred    \\
+                          -slice_order slice_offsets.txt
+
+
     ============================================================================
     :param -zero_phase_offset:
     ============================================================================

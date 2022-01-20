@@ -3,8 +3,10 @@
 set stat = 0
 set sdir = $PWD
 
-set demo = D99_macaque
-set demo_download = macaqueatlas_1.2b
+set demo_download = D99_v2.0_dist
+set demo_download_extract_name = D99_v2.0_dist
+#set demo = D99_macaque
+set demo = $demo_download_extract_name
 
 goto PARSE
 RET_PARSE:
@@ -33,14 +35,14 @@ if ($use_curl == -1) then
 endif
 
 if ($use_curl == 0) then
-   wget https://afni.nimh.nih.gov/pub/dist/atlases/macaque/$demo_download.tgz
+   wget https://afni.nimh.nih.gov/pub/dist/atlases/macaque/D99_Saleem/$demo_download.tgz
 else
-   curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/$demo_download.tgz
+   curl -O https://afni.nimh.nih.gov/pub/dist/atlases/macaque/D99_Saleem/$demo_download.tgz
 endif
 tar -xvzf $demo_download.tgz
 # change name to simpler one here
-mv $demo_download $demo
-cd $demo
+#mv $demo_download $demo
+cd $demo_download_extract_name
    echo "********************************************************"
    echo "Follow examples in ./$demo/README.txt "
    #echo "---------------------------------------------------------"
@@ -53,7 +55,7 @@ cd $demo
 set atlas_dir = `pwd`
 @AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
 @AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
-@AfniEnv -set AFNI_ATLAS_COLORS D99_atlas
+@AfniEnv -set AFNI_ATLAS_COLORS Saleem_D99_v2.0
 @AfniEnv -set AFNI_TEMPLATE_SPACE_LIST D99_Macaque,D99_Macaque_book
 @AfniEnv -set AFNI_WEBBY_WAMI YES
 cd -
@@ -94,12 +96,23 @@ goto RET_PARSE
 
 HELP:
 cat << EOF
-   Installs the D99 macaque atlas described
-   in:
-       "Three-dimensional digital template atlas of the macaque brain"
-       Reveley, Gruslys, Ye, Samaha, Glen, Russ, Saad, Seth, Leopold, Saleem,
-       Cerebral Cortex, 2016, in press
-   
+   Installs the D99 macaque version 2 atlases described in:
+      High-resolution mapping and digital atlas of subcortical regions in
+      the macaque monkey based on matched MAP-MRI and histology 
+      Saleem, Avram, Glen, Yen, Ye, Komlosh, Basser
+      NeuroImage, Nov. 2021
+      https://doi.org/10.1016/j.neuroimage.2021.118759
+
+      Three-dimensional digital template atlas of the macaque brain
+      Reveley, Gruslys, Ye, Glen, Samaha, Russ, Saad, Seth, Leopold, Saleem
+      Cerebral Cortex, Aug. 2016.
+      https://doi.org/10.1093/cercor/bhw248
+
+      Note the atlas datasets may not be modified or redistributed without prior
+      consent from the authors.
+      Please contact glend@mail.nih.gov or saleemks@mail.nih.gov with questions,
+      comments and suggestions.
+
    After the archive is downloaded and unpacked, see its README.txt
    for details.
    Options:

@@ -1,5 +1,11 @@
 #include "SUMA_suma.h"
 
+// drg - mac os 10.15 build needs explicit declaration
+// this should be in glext.h. If warnings appear on 10.15 and higher Macs
+// can remove this prototype
+#ifdef DARWIN
+  extern void glWindowPos2s (GLshort x, GLshort y);
+#endif  
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
@@ -8,8 +14,6 @@ extern int SUMAg_N_DOv;
 
 /* Volume rendering code, based on GLUT-3.7's advanced97/volume.c 
 See also SUMA_GLUT_volumedemo.c*/
-
-
 
 static GLfloat lightpos[4] = {150., 150., 150., 1.f};
 

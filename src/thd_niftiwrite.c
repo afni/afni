@@ -9,8 +9,6 @@ void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 static int get_slice_timing_pattern( float * times, int len, float * delta );
 static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn);
-static int space_to_NIFTI_code(THD_3dim_dataset *dset);
-extern int THD_space_code(char *space);
 
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIfTI file.
@@ -652,8 +650,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    /* 12 May 2005: add a signature to check the file on input to AFNI */
 
    /* n2   10 Jul, 2015 [rickr] */
-   sprintf(buf,"%ld,%ld,%ld,%ld,%ld,%d" ,
-           nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype ) ;
+   sprintf(buf,"%d,%d,%d,%d,%d,%d" ,
+           (int)nim->nx, (int)nim->ny, (int)nim->nz, (int)nim->nt, (int)nim->nu, (int)nim->datatype ) ;
    NI_set_attribute( ngr , "NIfTI_nums" , buf ) ;
 
    /** now, scan attribute elements in the group, and mark some
@@ -665,6 +663,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
      if( ngr->part_typ[ii] != NI_ELEMENT_TYPE ) continue ;
      nel = (NI_element *) ngr->part[ii] ;
      if( strcmp(nel->name,"AFNI_atr") != 0 )    continue ;
+
+     /* to make this effective, change AFNI_name -> atr_name */
      rhs = NI_get_attribute( nel , "AFNI_name" ) ;
      if( rhs == NULL )                          continue ;
 
@@ -810,7 +810,7 @@ ENTRY("get_slice_timing_pattern");
 }
 
 /* set NIFTI sform code  based on atlas space */
-static int space_to_NIFTI_code(THD_3dim_dataset *dset)
+int space_to_NIFTI_code(THD_3dim_dataset *dset)
 {
     char *genspc = NULL;
     /* several changes for generic spaces and defaults 05/02/2012 -mod drg */

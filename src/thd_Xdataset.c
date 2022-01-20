@@ -39,10 +39,10 @@ typedef struct {
 
 Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
 {
-   Xdataset *xds ; int ids,fdes,nvtot,pp,qq ; int64_t fsiz ;
+   Xdataset *xds ; int ids,fdes,nvtot,pp,qq ; int64_t fsiz ; int nbad=0 ;
 
    if( mask_fname == NULL || sdat_fname == NULL )
-     ERROR_exit("bad inputs to open_Xdataset") ;
+     ERROR_exit("open_Xdataset: bad input filenames") ;
 
    xds = (Xdataset *)calloc(sizeof(Xdataset),1) ;
 
@@ -50,21 +50,22 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
 
    xds->mask_dset = THD_open_dataset(mask_fname) ;
    if( xds->mask_dset == NULL )
-     ERROR_exit("can't open mask dataset '%s'",mask_fname) ;
+     ERROR_exit("open_Xdataset: can't open mask dataset '%s'",mask_fname) ;
+
    DSET_load(xds->mask_dset) ; CHECK_LOAD_ERROR(xds->mask_dset) ;
 
    if( DSET_NX(xds->mask_dset) > 1u+MAX_IND ||
        DSET_NY(xds->mask_dset) > 1u+MAX_IND ||
        DSET_NZ(xds->mask_dset) > 1u+MAX_IND   )
 #ifdef USE_UBYTE
-     ERROR_exit("dataset grid too big -- must recompile to use shorts as indexes :(") ;
+     ERROR_exit("open_Xdataset: dataset grid too big -- must recompile to use shorts as indexes :(") ;
 #else
-     ERROR_exit("dataset grid too big -- what ARE you doing?") ; /* should never happen */
+     ERROR_exit("open_Xdataset: dataset grid too big -- what ARE you doing?") ; /* should never happen */
  #endif
 
    xds->mask_vol = THD_makemask( xds->mask_dset , 0 , 1.0,0.0 ) ;
    if( xds->mask_vol == NULL )
-     ERROR_exit("can't use -mask dataset '%s'",mask_fname) ;
+     ERROR_exit("open_Xdataset: can't use -mask dataset '%s' -- it is empty",mask_fname) ;
    DSET_unload(xds->mask_dset) ;
 
    xds->nvox  = DSET_NVOX(xds->mask_dset) ;
@@ -73,7 +74,7 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
    /* check mask for finger licking goodness */
 
    if( xds->ngood < 2 )
-     ERROR_exit("mask has only %d good voxels -- cannot continue",xds->ngood) ;
+     ERROR_exit("open_Xdataset: mask count is only %d -- cannot continue",xds->ngood) ;
 
    xds->ijkmask = (int *)malloc(sizeof(int)*xds->nvox) ;
    for( pp=qq=0 ; qq < xds->nvox ; qq++ ){
@@ -93,22 +94,29 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
 
    for( ids=0 ; ids < nsdat ; ids++ ){
 
-     if( sdat_fname[ids] == NULL ) ERROR_exit("NULL .sdat filename [%d] :-(",ids) ;
+     if( sdat_fname[ids] == NULL ){
+       ERROR_message("open_Xdataset: NULL .sdat filename [%d] :-(",ids) ; nbad++ ; continue ;
+     }
 
      xds->sname[ids] = strdup(sdat_fname[ids]) ;
 
      fsiz = (int64_t)THD_filesize(xds->sname[ids]) ;  /* in bytes */
-     if( fsiz <= 0 )
-       ERROR_exit("can't find any data in file '%s'",xds->sname[ids]) ;
+     if( fsiz <= 0 ){
+       ERROR_message("open_Xdataset: can't find ANY data in file '%s'",xds->sname[ids]) ; nbad++ ; continue ;
+     }
 
      xds->nvol[ids] = (int)( fsiz /(sizeof(short)*xds->ngood) ); /* num volumes */
-     if( xds->nvol[ids] == 0 )                                   /* in file */
-       ERROR_exit("data file '%s' isn't long enough",xds->sname[ids]) ;
+     if( xds->nvol[ids] == 0 ){                                  /* in file */
+       ERROR_exit("open_Xdataset: file '%s' isn't long enough - only %lld bytes in file but need 2*%d for mask %s",
+                  xds->sname[ids] , (long long)fsiz , xds->ngood , mask_fname ) ;
+       nbad++ ; continue ;
+     }
      nvtot += xds->nvol[ids] ;
 
      fdes = open( xds->sname[ids] , O_RDONLY ) ; /* open, get file descriptor */
-     if( fdes < 0 )
-       ERROR_exit("can't open data file '%s'",xds->sname[ids]) ;
+     if( fdes < 0 ){
+       ERROR_message("open_Xdataset: can't open file '%s'",xds->sname[ids]) ; nbad++ ; continue ;
+     }
 
      /* memory map the data file */
 
@@ -116,9 +124,11 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
      xds->totsiz   += xds->ssiz[ids] ;
      xds->sdat[ids] = (short *)mmap( 0, (size_t)fsiz, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
      close(fdes) ;
-     if( xds->sdat[ids] == (short *)(-1) )
-       ERROR_exit("can't mmap() data file '%s' -- memory space exhausted?",
-                  xds->sname[ids]) ;
+     if( xds->sdat[ids] == (short *)(-1) ){
+       ERROR_message("open_Xdataset: can't mmap() data file '%s' -- memory space exhausted?",
+                     xds->sname[ids]) ;
+       nbad++ ; continue ;
+     }
 
      /* page fault the data into memory */
 
@@ -135,6 +145,10 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
      }
 #endif
    } /* end of loop over input .sdat files */
+
+   if( nbad > 0 ){
+     ERROR_exit("Cannot continue after above error%s",(nbad==1)?"\0":"s") ;
+   }
 
    xds->nvtot = nvtot ;
 
@@ -172,15 +186,15 @@ void remap_Xdataset( Xdataset *xds )  /* undo the unmap [22 Aug 2017] */
 
      fsiz = (int64_t)THD_filesize(xds->sname[ids]) ;  /* in bytes */
      if( fsiz <= 0 )
-       ERROR_exit("can't re-find any data in file '%s'",xds->sname[ids]) ;
+       ERROR_exit("remap_Xdataset: can't re-find any data in file '%s'",xds->sname[ids]) ;
 
      xds->nvol[ids] = (int)( fsiz /(sizeof(short)*xds->ngood) ); /* num volumes */
      if( xds->nvol[ids] == 0 )                                   /* in file */
-       ERROR_exit("re-data file '%s' isn't long enough",xds->sname[ids]) ;
+       ERROR_exit("remap_Xdataset: re-data file '%s' isn't long enough",xds->sname[ids]) ;
 
      fdes = open( xds->sname[ids] , O_RDONLY ) ; /* open, get file descriptor */
      if( fdes < 0 )
-       ERROR_exit("can't re-open data file '%s'",xds->sname[ids]) ;
+       ERROR_exit("remap_Xdataset: can't re-open file '%s'",xds->sname[ids]) ;
 
      /* memory map the data file */
 
@@ -188,7 +202,7 @@ void remap_Xdataset( Xdataset *xds )  /* undo the unmap [22 Aug 2017] */
      xds->sdat[ids] = (short *)mmap( 0, (size_t)fsiz, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
      close(fdes) ;
      if( xds->sdat[ids] == (short *)(-1) )
-       ERROR_exit("can't re-mmap() data file '%s' -- memory space exhausted?",
+       ERROR_exit("remap_Xdataset: can't re-mmap() file '%s' -- memory space exhausted?",
                   xds->sname[ids]) ;
 
    } /* end of loop over input .sdat files */

@@ -108,6 +108,7 @@ track_tools, suma
 3dEigsToDT, suma
 3dEmpty, corebinaries
 3dEntropy, corebinaries
+3dDepthMap, corebinaries
 3dErrtsCormat, corebinaries
 3dExchange, gui
 3dExtractGroupInCorr, corebinaries
@@ -226,6 +227,7 @@ track_tools, suma
 3ddot, corebinaries
 3ddot_beta, suma
 3ddup, corebinaries
+3dedgedog, corebinaries
 3dedge3, corebinaries
 3dfim+, corebinaries
 3dfim, corebinaries

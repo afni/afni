@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, Oct 5, 2020 
+Version 1.0.9, March 13, 2021 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -66,10 +66,11 @@ Usage: ~1~
  S2     BNST    0.3762    16
  ...
 
- 0) You are performing Bayesian analysis!!! So, you will directly obtain
-    the probability of an effect being positive or negative with your data,
-    instead of witch hunt-hunting the straw man of p-value (weirdness of your
-    data when pretending that absolutely nothing exists).
+ 0) You are performing Bayesian analysis. So, you will directly obtain the
+    probability of the respective effect being positive or negative with your 
+    data and adopted model, instead of looking for the p-value (weirdness of 
+    your data under the modeling assumptions when pretending that absolutely 
+    no effect exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter. You can specify those column names as you
@@ -133,6 +134,18 @@ Usage: ~1~
 
  install.packages("brms")
 
+ *** To take full advantage of parallelization, install both \'cmdstan\' and 
+ \'cmdstanr\' and use the option -WCP in MBA. However, extra stpes are required: 
+ both \'cmdstan\' and \'cmdstanr\' have to be installed. To install \'cmdstanir\',
+ execute the following command in R:
+ 
+ install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
+    
+ Follow the instruction here for the installation of \'cmdstan\': 
+    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
+ If \'cmdstan\' is installed in a directory other than home, use option -StanPath 
+ to specify the path (e.g., -StanPath \'~/my/stan/path\').
+
  In addition, if you want to show the ridge plots of the posterior distributions
  through option -ridgePlot, make sure that the following R packages are installed:
 
@@ -179,6 +192,15 @@ Example 1 --- Simplest scenario. Values from regions are the input from
    RBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
    -distY 'student' -dataTable myData.txt  \\
 
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the options -WCP and -StanPath. For example, the script assumes a 
+   computer with 24 CPUs (6 CPUs per chain):
+
+   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' \\
+   -dataTable myData.txt  \\
+
    The input file 'myData.txt' is a data table in pure text format as below: 
                                                              
      Subj  ROI          Y
@@ -187,6 +209,22 @@ Example 1 --- Simplest scenario. Values from regions are the input from
      S03   DMNLAG     0.249
      S04   DMNPCC     0.568
      ...
+
+   If t-statistic (or standard error) values corresponding to the response variable
+   Y are available, add the t-statistic (or standard error) values as a column in the input
+   data table so that they can be incorporated into the BML model using the option -tstat
+   or -se with the following script (assuming the tstat column is named as 'tvalue),
+
+   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -tstat tvalue \\
+   -dataTable myData.txt  \\
+
+   or (assuming the se column is named as 'SE'),
+
+   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -se SE \\
+   -dataTable myData.txt  \\
+
  \n"         
      
    ex2 <-
@@ -197,6 +235,11 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
+
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the options -WCP and -StanPath. For example, For example, consider adding 
+   '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
    
@@ -224,6 +267,11 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    RBA -prefix result -ridgePlot 8 6 -Subj Subj -ROI region -Y value \\
    -chains 4 -iterations 1000 -model '1+sex+age+SA' -qVars 'sex,age,SA' \\
    -EOI 'Intercept,sex,age,SA' -dataTable myData.txt
+
+   If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
+   ...), a speedup feature can be adopted through within-chain parallelization
+   with the optionis -WCP and -StanPath. For example, For example, consider 
+   adding '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
    
@@ -397,6 +445,22 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        invoked) is 'Y'.\n", sep = '\n'
                      ) ),
 
+
+      '-tstat' = apl(n = 1, d = NA,  h = paste(
+   "-tstat var_name: var_name is used to specify the column name that lists",
+   "        the t-statistic values, if available, for the response variable 'Y'.", 
+   "        In the case where standard errors are available for the effect", 
+   "        estiamtes of 'Y', use the option -se.\n", sep = '\n'
+                     ) ),
+
+      '-se'  = apl(n = 1, d = 0, h = paste(
+   "-se: This option indicates that standard error for the response variable is",
+   "         available as input, and a column is designated for the standard error",
+   "         in the data table. If effect estimates and their t-statistics are the",
+   "         output from preceding analysis, standard errors can be obtained by",
+   "         dividing the effect estimatrs ('betas') by their t-statistics. The",
+   "         default assumes that standard error is not part of the input.\n", sep='\n')),
+
       '-distY' = apl(n = 1, d = NA,  h = paste(
    "-distY distr_name: Use this option to specify the distribution for the response",
    "        variable. The default is Gaussian when this option is not invoked. When",
@@ -430,6 +494,24 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        as the region variable. The default (when this option is not invoked) is",
    "        'ROI'.\n", sep = '\n'
                      ) ),
+
+      '-WCP' = apl(n = 1, d = 1, h = paste(
+   "-WCP k: This option will invoke within-chain parallelization to speed up runtime.",
+   "         To take advantage of this feature, you need the following: 1) at least 8",
+   "         or more CPUs; 2) install 'cmdstan'; 3) install 'cmdstanr'. The value 'k'",
+   "         is the number of thread per chain that is requested. For example, with 4",
+   "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
+   "         chain will be assigned with 6 threads.\n", sep='\n')),
+
+   '-StanPath' = apl(n = 1, d = 1, h = paste(
+   "-StanPath dir: Use this option to specify the path (directory) where 'cmdstan' is",
+   "         is installed on the computer. Together with option '-WCP', within-chain",
+   "         parallelization can be used to speed up runtime. To take advantage of",
+   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
+   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
+   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
+   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
+   "         '-StanPath \"~/here/is/myStanPath\"'.\n", sep='\n')),
 
       '-PDP' = apl(n = 2, d = NA, h = paste(
    "-PDP nr nc: Specify the layout of posterior distribution plot (PDP) with nr rows",
@@ -486,6 +568,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    #initialize with defaults
       lop <- AFNI.new.options.list(history = '', parsed_args = ops)
       lop$chains <- 1
+      lop$WCP    <- FALSE
+      lop$StanPath   <- NULL
       lop$iterations <- 1000
       lop$model  <- 1
       lop$cVars  <- NULL
@@ -493,6 +577,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
       lop$qContr <- NA
+      lop$se     <- NULL
+      lop$tstat  <- NULL
       lop$Y      <- 'Y'
       lop$distY  <- 'gaussian'
       lop$distROI  <- NA
@@ -515,6 +601,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
+             WCP        = lop$WCP    <- ops[[i]],
+             StanPath   = lop$StanPath   <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
              verb   = lop$verb   <- ops[[i]],
              model  = lop$model  <- ops[[i]],
@@ -525,6 +613,8 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              qContr = lop$qContr <- ops[[i]],
              Y      = lop$Y      <- ops[[i]],
              distY  = lop$distY  <- ops[[i]],
+             se         = lop$se     <- ops[[i]],
+             tstat      = lop$tstat  <- ops[[i]],
              distROI   = lop$distROI   <- ops[[i]],
              distSubj  = lop$distSubj  <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
@@ -681,11 +771,29 @@ if(!is.na(lop$qContr)) {
       stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
 }
 
+# change the se column name when se is provided as input
+if(!is.null(lop$se)) names(lop$dataTable)[which(names(lop$dataTable)==lop$se)] <- 'se'
+
+# convert tstat to se when tstat is provided as input
+if(!is.null(lop$tstat)) {
+   lop$se <- TRUE
+   lop$dataTable$se <- lop$dataTable$Y/lop$dataTable[[lop$tstat]]
+}
+
 # deviation coding: -1/0/1 - the intercept is associated with the mean across the levels of the factor
 # each coding variable corresponds to the level relative to the mean: alphabetically last level is
 # is baseline or reference level
 options(contrasts = c("contr.sum", "contr.poly"))
 options(mc.cores = parallel::detectCores())
+
+# within-chain parallelization?
+if(lop$WCP) {
+   require('cmdstanr')
+   if(!grepl('\\/$', lop$StanPath)) lop$StanPath <- paste0(lop$StanPath, '/') # make sure / is added to the path
+   path <- ifelse(is.null(lop$StanPath), '~/cmdstan', paste0(lop$StanPath, 'cmdstan'))
+   set_cmdstan_path(path)
+   #set_cmdstan_path('~/cmdstan') # where is this located for the user?
+}
 
 # Fisher transformation
 fisher <- function(r) ifelse(abs(r) < .995, 0.5*(log(1+r)-log(1-r)), stop('Are you sure that you have correlation values so close to 1 or -1?'))
@@ -717,23 +825,50 @@ ptm <- proc.time()
 #lop$model <- '1+V1+V2'
 
 ##################### MCMC ####################
-if(!is.na(lop$distROI) & lop$distROI == 'student') {
-   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))  
-   } else {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+
+##### model formulation #####
+if(is.null(lop$se))  { # model without standard errors
+
+   if(!is.na(lop$distROI) & lop$distROI == 'student') {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))  
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      }
+   } else { 
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
+         modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))  
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
+            modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      }
    }
-} else { 
-   if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
-      modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))  
+
+} else { # model with standard errors
+
+   if(!is.na(lop$distROI) & lop$distROI == 'student') {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(ROI, dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(ROI, dist=\'student\'))'))
+      }
    } else {
-      if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
-         modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|ROI)')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|ROI)'))
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|ROI)')) else
+            modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
+      }
    }
+
 }
+
 
 if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 
@@ -743,9 +878,14 @@ if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 #      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
 #      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distY, inits=0, 
+if(lop$WCP) {
+   fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distY, inits=0, 
+      iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15),
+      backend = "cmdstanr", threads = threading(lop$WCP))
+} else {
+   fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, family=lop$distY, inits=0,
       iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
-
+}
 #   fm <- brm(modelForm, data=lop$dataTable,
 #      prior=c(prior(normal(0, 1), class = "Intercept"), prior(gamma(2, 0.5), class = "sd")),
 #      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
@@ -1187,7 +1327,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    #   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    #}
    
-   cat(sprintf('===== Summary of region effects inder GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects under GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) {
       cat(sprintf('----- level comparison: %i vs reference level', jj), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat(capture.output(ss[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)

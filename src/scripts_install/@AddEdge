@@ -3,6 +3,9 @@
 # script to compute and display composite edge enhanced datasets for the
 # purpose of assessing alignment
 
+# modifications
+# drg - 06 March 2021 bug fix pbar change in AFNI broke the display in script
+
 set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
@@ -246,7 +249,7 @@ foreach ana ($analist)
    else
       # want data in AFNI format here
       set afni_type = `@CheckForAfniDset $ana`
-      if($afni_type == 3) then
+      if ($afni_type == 3) then
          echo "Copying dataset to AFNI format"
          3dcopy $ana $anapref
       endif
@@ -384,12 +387,12 @@ foreach anain ($analist)
                -inset ${epipref}_${anatpref}_e+orig 
    set olist = (  $olist \
                   ${ooo}+orig.HEAD)               
-   if($rm_ae_temp == 1) then
+   if ($rm_ae_temp == 1) then
      rm -f ${anatpref}_e+orig* ${epipref}_${anatpref}_e+orig* 
    endif
 end
 
-if($rm_ae_temp == 1) then
+if ($rm_ae_temp == 1) then
    rm -f ${prs}*
    rm -f ${prs}epi_sc* >& /dev/null
    rm -f tmp_box+orig* tmp_avg+orig*
@@ -425,7 +428,9 @@ endif
 
 # read the listlog file that contains only the names of the input datasets
 # in a single row
-if ("$olist" == "") set olist = (`cat ${listlog}`)
+if ("$olist" == "") then
+    set olist = (`cat ${listlog}`)
+endif
 #trim what is not desired from list
 # testing required removing some datasets from consideration
 if ($remove_SPM == 1) then
@@ -433,7 +438,9 @@ if ($remove_SPM == 1) then
    set olist = ()
    foreach ll ($qlist)
       if (  "$ll" !~ *SPM*norm* &&  \
-            "$ll" !~ *SPM*seg* ) set olist = ($olist $ll)
+            "$ll" !~ *SPM*seg* ) then
+          set olist = ($olist $ll)
+      endif
    end
 endif
 #Number of elements must be odd
@@ -525,12 +532,15 @@ while ($cnt < $#olist)
    else
       set FUNC_RANGE = "SET_FUNC_RANGE A.0"
    endif
+# mod -drg 06 Mar 2021
+# pbar setting was +99 1.0 Add_Edge but PBAR settings
+# have changed in AFNI
    plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
-      -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
+      -com "SET_PBAR_ALL A.+99 255 Add_Edge" \
       -com "$FUNC_RANGE"   \
       -quit
    if ($unlayed) then
@@ -561,6 +571,15 @@ while ($cnt < $#olist)
          end
       endif
       set unlayed = 0 
+      # adding extra drive command to show for slower montages and dsets above
+      plugout_drive $NPB -pif ADD_EDGE_PROCESSES $hostopt  \
+         -com "SWITCH_UNDERLAY $ana"   \
+         -com "SWITCH_OVERLAY  $ep"    \
+         -com "SEE_OVERLAY +"          \
+         -com "SET_THRESHOLD A.0"      \
+         -com "SET_PBAR_ALL A.+99 255 Add_Edge" \
+         -com "$FUNC_RANGE"   \
+         -quit
    endif
    set ilst = 2
    set iii  = 0
@@ -571,6 +590,7 @@ while ($cnt < $#olist)
       @ ilst ++
    end
    set stay = 1
+
    while ($stay == 1)
       # next label number
       @ nextlbl = $ilbl + 1
@@ -670,7 +690,9 @@ while ($cnt < $#olist)
    if ($nx >= 1) then
       set cnt = `ccalc -form int $nx\*2`
    endif
-   if ($cnt > $#olist) set cnt = 2 
+   if ($cnt > $#olist) then
+      set cnt = 2 
+   endif
    echo "Opening "`@GetAfniPrefix $olist[$cnt]`" results"
 end
 

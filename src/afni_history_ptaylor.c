@@ -69,6 +69,1226 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Add a new QC block:  mecho.",
+   "This is for multi-echo (ME) FMRI; mostly for m_tedana right now.\n"
+},
+
+{ 22, Jan , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "New functions/functionality for the new QC block:  mecho.",
+   "Also tweaked/updated the help.\n"
+},
+
+{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Do a check if the user asks for 'pythonic' APQC.",
+   "If their system CAN'T HANDLE THE TRUTH, then downgrade kindly to 'basic'.\n"
+},
+
+{ 12, Jan , 2022 , PT , "3dDepthMap" , MINOR , TYPE_GENERAL,
+   "Rename program:  3dEulerDist -> 3dDepthMap.",
+   "The original name was odd for *Euclidean* Distance Transform, anyways...\n"
+},
+
+{ 12, Jan , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_BUG_FIX,
+   "Add '-save_ftype ..' opt to this script, to make @animal_warper happy.",
+   "Thanks, DRG, for pointing this out.\n"
+},
+
+{ 29, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_GENERAL,
+   "Change default sigma_rad to be 1.4, not 2.0, to capture more details.",
+   "This is because results look much better in human T1w dset.\n"
+},
+
+{ 27, Dec , 2021 , PT , "balloon" , MICRO , TYPE_GENERAL,
+   "Use printf(...) to display the program help, not fprintf(stderr, ...).",
+   "In this way, the Sphinx help docs can see it.\n"
+},
+
+{ 26, Dec , 2021 , PT , "3dedgedog" , MINOR , TYPE_NEW_OPT,
+   "The -automask (and -automask+X) functionality is now, well, functional.",
+   "The '-mask ..' option appears to be working, too.\n"
+},
+
+{ 26, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
+   "Give correct name of opt in prog help: -bounds_are_not_zero.",
+   "Had forgotten the '_not' part previously.  Whoops.\n"
+},
+
+{ 26, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
+   "Full histories in each output dset now.",
+   "Had not been passing argc and argv previously.\n"
+},
+
+{ 24, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_GENERAL,
+   "Because 3dEulerDist has new '-binary_only' opt, this prog is faster.",
+   "This is because edgedog at the moment runs EDT on a binary dset.\n"
+},
+
+{ 24, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
+   "Can process some dsets much faster now, with opt '-binary_only'.",
+   "This is to flag that the input is a binary mask.\n"
+},
+
+{ 9, Dec , 2021 , PT , "3dEulerDist" , MICRO , TYPE_BUG_FIX,
+   "Fix new -only2D opt slice selection.",
+   "Was not always getting correct planar direction; should be now.\n"
+},
+ 
+{ 9, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
+   "Add in '-only2D ..' opt, similar to 3dEulerDist's one.",
+   "Now can get planar edges, instead of always volumetric ones.\n"
+},
+
+{ 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_GENERAL,
+   "Already change something internally about only2D calcs.",
+   "Should just be simple change, being more general.\n"
+},
+
+{ 8, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_OPT,
+   "Can run in 2D now, with opt '-only2D ..'.",
+   "For Daniel Glen.\n"
+},
+
+{ 7, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_OPT,
+   "Add in optional scaling of edges, via '-edge_bnd_scale'. B",
+   "Related but slightly different scaling based on '-edge_bnd_side' opt.\n"
+},
+ 
+{ 3, Dec , 2021 , PT , "3dedgedog" , MICRO , TYPE_NEW_PROG,
+   "Calculate edges with the Difference of Gaussian (DOG) approach.",
+   "Thanks to DR Glen and C Rorden for discussions/suggestions on this.\n"
+},
+
+{ 2, Dec , 2021 , PT , "afni" , MICRO , TYPE_GENERAL,
+   "Adding the description of existing option(s) in the program help.",
+   "The opts are the synonyms: '-notcsv', '-notsv', '-nocsv'.\n"
+},
+
+{ 1, Dec , 2021 , PT , "3dEulerDist" , MINOR , TYPE_BUG_FIX,
+   "Was getting incorrect voxel scaling along a couple axes---fixed now.",
+   "Also re-arrange functions to be easier to call from other funcs.\n"
+},
+
+{ 30, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
+   "Added many more internal comments, e.g., codebase references.",
+   "Thanks for the discussion+suggestions, J Teves!\n"
+},
+
+{ 30, Nov , 2021 , PT , "3dEulerDist" , MINOR , TYPE_NEW_PROG,
+   "New C prog for Eulerian Distance Transform (EDT) for ROI-based dsets.",
+   "Calculate distances to boundaries within a FOV.\n"
+},
+
+{ 26, Nov , 2021 , PT , "3dEdu_01_scale" , MICRO , TYPE_GENERAL,
+   "Renaming of 3dEduProg.  Simplifying some inner workings",
+   "Basic AFNI program example.\n"
+},
+
+{ 26, Nov , 2021 , PT , "3dEduProg" , MICRO , TYPE_NEW_PROG,
+   "A new program for people to learn to write AFNI progs.",
+   "Perhaps a bit more basic I/O and usage than 3dToyProg.\n"
+},
+
+{ 16, Nov , 2021 , PT , "afni_system_check.py" , MICRO , TYPE_GENERAL,
+   "Add 'SLURM cluster'-specific check for number of CPUs.",
+   "Phase two of secret plan to steal all of Rick's programs.  Bwahahahaha.\n"
+},
+
+{ 13, Nov , 2021 , PT , "afni_system_check.py" , MICRO , TYPE_NEW_OPT,
+   "New '-disp_num_cpu' opt to display number of available CPUs.",
+   "Phase one of secret plan to steal all of Rick's programs.  Bwahahaha.\n"
+},
+
+{ 29, Oct , 2021 , PT , "@Install_NMT" , MINOR , TYPE_GENERAL,
+   "Update macaque template+atlas data.",
+   "Now working/defaulting to NMT v2.1.\n"
+},
+
+{ 29, Oct , 2021 , PT , "@Install_MACAQUE_DEMO_REST" , MINOR , TYPE_GENERAL,
+   "Update macaque demo for resting state FMRI processing.",
+   "New scripts, now working/defaulting to NMT v2.1.\n"
+},
+
+{ 27, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_BUG_FIX,
+   "Opt '-extra_qw_opts ..' had wrong name in help file, '-qw_opts ..'.",
+   "Corrected this, as well as usage.\n"
+},
+
+{ 25, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Improve QC outputs, and fix some chauffeur ranges.",
+   "Hopefully easier to evaluate alignment now, among other features.\n"
+},
+
+{ 23, Oct , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "For ROI image QC, use ROI_glasbey_2048 now by default.",
+   "CHARM has ROI values >256, so might as well go all in.\n"
+},
+
+{ 22, Oct , 2021 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
+   "Report a better output path in the 'done' message.",
+   "The originally-output relative path was often not useful.\n"
+},
+
+{ 21, Oct , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Max blowup factor is actually 8, not 4.",
+   "So, allow that fuller range in the internal number check.\n"
+},
+
+{ 2, Oct , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Copy input anat (and any mask_ss) into the output directory.",
+   "Can be useful for checking if things went awry (do they ever?!?).\n"
+},
+
+{ 29, Sep , 2021 , PT , "3dAllineate" , MAJOR , TYPE_GENERAL,
+   "3dAllineate: set -lpa+ to re-include 'ov' in its recipe---for stability.",
+   "This makes it closer to historical form (but no 'mi' still).\n"
+},
+
+{ 29, Sep , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_BUG_FIX,
+   "Fix behavior with longnames---just needed a quote around var.",
+   "Should work now.  Also update help.\n"
+},
+
+{ 29, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Just running '-help' leads to lesion_outs.txt to be created and populated.",
+   "... and it also got overwritten oddly.  Move those lines further down.\n"
+},
+
+{ 27, Sep , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_4d_imager" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@afni_refacer_run" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 27, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "On/about Aug 23, 2021, default label_sizes in image windows changed.",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 23, Sep , 2021 , PT , "@epi_b0_corr.py" , MINOR , TYPE_NEW_OPT,
+   "Had been missing the internal processing of option '-epi_pe_bwpp'.",
+   "... which has now been added in.\n"
+},
+
+{ 23, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can now perform clusterizing, with Alpha+Boxed on, like in GUI.",
+   "New opt '-clusterize ..' for some commands; see help/NOTES for full info.\n"
+},
+
+{ 21, Sep , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 21, Sep , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Add in new opts to turn off images in particular view planes being made.",
+   "These are '-no_cor', '-no_axi', '-no_sag'.  First will help APQC.\n"
+},
+
+{ 20, Sep , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "apsearchize.",
+   "Make help visible in editor with '@grayplot -hview'.\n"
+},
+
+{ 20, Sep , 2021 , PT , "3dGrayplot" , MINOR , TYPE_NEW_OPT,
+   "Add '-raw_with_bounds ..' to display raw values in arbitrary interval.",
+   "Maybe most useful if data have been scaled.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@4Daverage" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@FindAfniDsetPath" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@Purify_1D" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@RenamePanga" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_glue_imgs_vert" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 9, Sep , 2021 , PT , "@djunct_anonymize" , MICRO , TYPE_GENERAL,
+   "Shebang changed from csh to tcsh.",
+   "For uniformity/simplicity, and to avoid issues on occasional system.\n"
+},
+
+{ 31, Aug , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Change default cost function to 'lpa', from 'ls'.",
+   "Should be better? There is an opt to change, as necessary.\n"
+},
+
+{ 30, Aug , 2021 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-all_roi_zeros' and '-automask_off'.",
+   "Basically, N ROIs can have NxN mat, even if ROI ave is all zeros.\n"
+},
+
+{ 22, Aug , 2021 , PT , "lib_afni1D.py" , MICRO , TYPE_BUG_FIX,
+   "Afni1D.uncensor_from_vector() had a syntax error in one print call').",
+   "Was missing a %, now fixed.\n"
+},
+
+{ 10, Aug , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
+   "No longer worry about even/odd slice output (and remove '-no_fs_prep').",
+   "Dealt with an old non-issue.\n"
+},
+
+{ 29, July , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
+   "Add in @chauffeur_afni functionality:  -edgy_ulay.",
+   NULL
+},
+
+{ 27, Jul, 2021, PT, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix typo in cubic resampling for viewer/3dresample (afni_slice.c)",
+   "Copying Rick's fix. Thanks to user 'ymao' for raising this issue on the MB."
+ } ,
+
+{ 9, July , 2021 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "New: '-aff_move_opt ..' to use more than just giant_move in aff step.",
+   "Also bug fix for when no followers were entered.\n"
+},
+
+{ 30, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
+   "Tweak column names *again*.",
+   "Add in extra check that 3D vols are specified (e.g., with selectors).\n"
+},
+
+{ 28, June, 2021 , PT , "adjunct_aw_tableize_roi_info.py", MINOR, TYPE_GENERAL,
+   "Reformat report*.1D tables a bit: match key and col names.",
+   "Also, improve/simplify/clarify names of cols.  Thanks, Adam Messinger.\n"
+},
+
+{ 28, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Well, OK, not *really* a new opt---new values accepted for existing opt.",
+   "The '-olay_alpha ..' can now take Linear or Quadratic (grazie, Bob).\n"
+},
+
+{ 24, June , 2021 , PT , "@djunct_overlap_check" , MINOR , TYPE_GENERAL,
+   "Silence 3drefit warns if changing space of dsets (might confuse users).",
+   "Unnecessary warning for these temp dsets within the script.\n"
+},
+
+{ 22, June , 2021 , PT , "3dNwarpCalc" , MINOR , TYPE_GENERAL,
+   "Put in std includes to be able to build on Mac with Clang.",
+   "Though this program isn't even built...\n"
+},
+
+{ 22, June , 2021 , PT , "SurfLayers" , MINOR , TYPE_GENERAL,
+   "Capture verbose output from ConvertSurface.",
+   "Also add -no_clean opt.\n"
+},
+
+{ 18, June , 2021 , PT , "@Install_AP_MULTI_DEMO1" , MINOR , TYPE_GENERAL,
+   "Adding install script for afni_proc.py multi-echo FMRI demo (OHBM, 2021).",
+   "Demo authors: RC Reynolds, SJ Gotts, AW Gilmore, DR Glen, PA Taylor.\n"
+},
+
+{ 18, June , 2021 , PT , "@Install_SURFLAYERS_DEMO1" , MINOR , TYPE_GENERAL,
+   "Created by Sam Torrisi.  Help added, temp placeholder data now in place.",
+   "Will add full demo data soon...\n"
+},
+
+{ 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_BUG_FIX,
+   "Minor bug fix (never hit?), and avoid single line 'if' conds.",
+   "Latter to avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@clean_help_dir" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@RetinoProc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_Caret" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@build_afni_Xlib" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@fix_FSsphere" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "ap_run_simple_rest.tcsh" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Reorder" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_SF" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@T1scale" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni.run.me" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.files" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@get.afni.version" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@parse_afni_name" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@parse_name" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@simulate_motion" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@update.afni.binaries" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@2dwarper.Allin" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ExamineGenFeatDists" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_InstaCorr_Demo" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_Make_Spec_SF" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ScaleVolume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@clip_volume" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@compute_gcor" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@fix_FSsphere" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@move.to.series.dirs" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@update.afni.binaries" , MINOR , TYPE_GENERAL,
+   "Avoid single line 'if' conds.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Clean up some spacing; avoid single line 'if' conds; use unaliased rm.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "lesion_align" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_imit2w_from_t1w" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_decmap" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_convert_dcm_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Awarp" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@radial_correlate" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_in2out" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_erosion_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@measure_bb_thick" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_slice_space" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.tree" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@diff.files" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_master" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SUMA_AlignToExperiment" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@MakeLabelTable" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Install_ClustScat_Demo" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@GradFlipTest" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FindAfniDsetPath" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@FS_roi_label" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@Atlasize" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@AddEdge" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@toMNI_Qwarpar" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@grayplot" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@global_parse" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@get.afni.version" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@djunct_glue_imgs_vert" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@afni_refacer_make_onebigA12" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@ROI_decluster" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@1dDiffMag" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 15, June , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Put spaces in if-conditions after 'if' and before 'then'.",
+   "To avoid badness in some (older?) tcsh versions.\n"
+},
+
+{ 14, June , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Space before 'then' in if-cond; also remove all exclamations in comments.",
+   "Resolved *very* weird opt parsing on *some* old tcsh.\n"
+},
+
+{ 10, June , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New opt '-echo', for odd-behavior-on-other-systems-investigtion-purposes.",
+   "Also print AFNI and program version numbers at top.\n"
+},
+
+{ 2, June , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
+   "Undo previous tweak to db_mod.py (for auto_warp.py); back to using *.nii.",
+   "Reverting, because AFNI_COMPRESSOR has been updated.\n"
+},
+
+{ 2, June , 2021 , PT , "auto_warp.py" , MINOR , TYPE_GENERAL,
+   "Undo previous tweak to auto_warp.py; back to using *.nii.",
+   "Reverting, because AFNI_COMPRESSOR has been updated.\n"
+},
+
+{ 30, May , 2021 , PT , "afni_proc.py" , MICRO , TYPE_GENERAL,
+   "Tweak db_mod.py: prep for auto_warp.py to now always use *.nii.gz.",
+   "Just mv *.nii.gz files, rather than *.nii, from auto_warp output dir.\n"
+},
+
+{ 30, May , 2021 , PT , "auto_warp.py" , MINOR , TYPE_GENERAL,
+   "Use *.nii.gz, not *.nii, because of current AFNI_COMPRESSOR = GZIP.",
+   "With current AFNI_COMPRESSOR = GZIP, get problems; now, no more.\n"
+},
+
+{ 30, May , 2021 , PT , "@auto_tlrc" , MINOR , TYPE_NEW_OPT,
+   "New opt '-use_gz' to output gzipped NIFTI even with '-suffix ..'.",
+   "Part of updating auto_warp.py to use *.nii.gz, not *.nii.\n"
+},
+
+{ 24, May , 2021 , PT , "@animal_warper" , MAJOR , TYPE_GENERAL,
+   "Several small updates for convenience and organization: help updated...",
+   "more QC images; split intermediate text desc; new cmd_log.\n"
+},
+
+{ 20, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Clean up exiting from help and version checking.",
+   "Doesn't go via the verbose GOOD_EXIT route anymore, which it shouldn't.\n"
+},
+
+{ 12, May , 2021 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+   "Remove old/unnecessary comment from help of -NIFTI opt.",
+   "Referred to earlier misconcept (need even mat dims for anatomical dset).\n"
+},
+
+{ 11, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Set env var to turn off NIFTI warnings.",
+   "That is, AFNI_NIFTI_TYPE_WARN -> NO.\n"
+},
+
+{ 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved for backward compatability to Python 2.7.",
+   "So, for task FMRI, individual stim label plots work again in Py2.7.\n"
+},
+
+{ 11, May , 2021 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Replace str.isnumeric() with str.isdigit(), for backward compatability.",
+   "Python 2.7 didn't have that method for str type.\n"
+},
+
+{ 10, May , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "New opt: '-set_xhair_gap ..', to allow setting crosshair gap.",
+   "Default value is -1.\n"
+},
+
+{ 3, May , 2021 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Add bracket to meta-text above table in case of abs value in table.",
+   "Thanks, watchful AFNI user YurBoiRene.\n"
+},
+
+{ 29, Apr , 2021 , PT , "3dClusterize" , MINOR , TYPE_NEW_OPT,
+   "Forgot to actually add in the new opt for data scaling in last change...",
+   "Now opt '-abs_table_data' is in the code.\n"
+},
+
+{ 29, Apr , 2021 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "1) Now apply any scaling to 'data' in table (wasn't scaling, before).",
+   "2) Change table def: don't abs val Mean and SEM; use opt for that.\n"
+},
+
+{ 23, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "1dplot.py improved, so stimulus labels on y-axis will wrap.",
+   "Reduce/remove overlap of long stim labels.\n"
+},
+
+{ 23, Apr , 2021 , PT , "1dplot.py" , MINOR , TYPE_NEW_OPT,
+   "Can force ylabels to wrap at a certain num of chars (-ylabels_maxlen ..).",
+   "For APQC, so long stimulus labels don't run into each other.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_OPT,
+   "More options from @chauffeur_afni here.",
+   "Tryin' to make nicer images.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
+   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "The new version is more... general.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Use newer adjunct_apqc_tsnr_general for TSNR images.",
+   "Single/more adjunct general prog than previous separate ones.\n"
+},
+
+{ 16, Apr , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Internal logic for making TSNR dsets tweaked.",
+   "TSNR images in QC*/media/ dir get unique name, too (no change for user).\n"
+},
+
+{ 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_general" , MINOR , TYPE_NEW_PROG,
+   "Made to replace adjunct_apqc_tsnr_with_mask and adjunct_apqc_tsnr_no_mask.",
+   "Also expands/generalizes this functionality.\n"
+},
+
+{ 16, Apr , 2021 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "New keyword EMPTY for '-topval ..' opt, make scripting easier.",
+   "Corrected discrete cbar help example, too.\n"
+},
+
+{ 24, Mar , 2021 , PT , "3dinfo" , MICRO , TYPE_NEW_OPT,
+   "New opt: -is_atlas_or_labeltable.",
+   "1 if dset has an atlas or labeltable;  otherwise, 0.\n"
+},
+
+{ 24, Mar , 2021 , PT , "3dBrickStat" , MAJOR , TYPE_BUG_FIX,
+   "Fix bug: having non-full-FOV mask + perc calcs affected other calcs.",
+   "Calcs should now be consistent even with those opts used. Thanks, RCR.\n"
+},
+
+{ 23, Mar , 2021 , PT , "3dBrickStat" , MICRO , TYPE_GENERAL,
+   "Uniformize internal spacing. Should be no change in behavior.",
+   "Just a few comments stretch far still.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_4d_imager" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 16, Mar , 2021 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_NEW_OPT,
+   "Set env AFNI_COMPRESSOR to NONE.",
+   "Avoid minor badnesses occasionally.\n"
+},
+
+{ 10, Mar , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_OPT,
+   "Add in more control features, so can apply in more cases.",
+   "Basically just allowing more chauffeur control.\n"
+},
+
+{ 8, Mar , 2021 , PT , "3dRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "map_TrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dZipperZapper" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dNetCorr" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dDWUncert" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dLombScargle" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dMatch" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dROIMaker" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3ddot_beta" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dAmpToRSFC" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dReHo" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 8, Mar , 2021 , PT , "3dTrackID" , MICRO , TYPE_MODIFY,
+   "I/O strings now up to THD_MAX_NAME length; requested by L Waller.",
+   NULL
+},
+
+{ 6, Mar , 2021 , PT , "@fat_tract_colorize" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.  And tweak help to be more useful.\n"
+},
+
+{ 6, Mar , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
+{ 6, Mar , 2021 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Run a bit more quietly, setting ENV vars and GUI opts.",
+   "Fewer warnings and messages.\n"
+},
+
+{ 5, Mar , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Have APQC copy the ss_review_basic text file into the QC dir.",
+   "Might want this text info available for easy parsing at group level.\n"
+},
+
+{ 3, Mar , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_BUG_FIX,
+   "Had an early exit from earlier debugging.",
+   "Ironic, really, that a debugging line became a bug.  Go figure.\n"
+},
+
+{ 3, Mar , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "Make nice new WB mask, make some QC images of mask/segs/ROIs.",
+   "Also make tables of ROI info (size stuff).\n"
+},
+
+{ 3, Mar, 2021, PT , "gen_ss_review_scripts.py" , MINOR, TYPE_GENERAL,
+   "Add sswarper2 to name of recognized progs for getting template dset.",
+   "Can get uvar for APQC for this top secret NL alignment prog.\n"
+},
+
+{ 3, Mar, 2021, PT , "@djunct_modal_smoothing_with_rep" , MINOR, TYPE_BUG_FIX,
+   "On one system an instrutable error message 'Unknown user: 1~.' occurred.",
+   "This change (doublequote file name? remove EOL in backticks?) fixed it.\n"
+},
+
+{ 1, Mar , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Fix output dir of an intermediate QC image.",
+   "The init*uaff* should now be in the usual QC/ dir.\n"
+},
+
+{ 25, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "With non-nonlinear warps, processing now goes all they way through.",
+   "Bit more *.txt output, fixed mapping of anat follower non-ROI dset.\n"
+},
+
+{ 24, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add more TSNR plotting: if vreg TSNR is calc'ed, or if no mask exists.",
+   "Also a bug fix in HAVE_MASK definition; fix ranges in some plots.\n"
+},
+
+{ 24, Feb , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, for when *no* mask exists.\n"
+},
+
+{ 22, Feb , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_NEW_PROG,
+   "Now used in APQC to make TSNR plot.",
+   "Has mostly required olay/ulay args, as well as mask.\n"
+},
+
+{ 22, Feb , 2021 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "New part of regr block: TSNR plot.",
+   "Shows brain slices.\n"
+},
+
+{ 22, Feb , 2021 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: -pbar_comm_gen, for APQC.",
+   "Also remove warning about ffmpeg unless using MPEG.\n"
+},
+
+{ 10, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Add in -mask_ss option, to replace skullstripping with a mask.",
+   "For example, using fs*mask*nii from @SUMA_Make_Spec_FS after FS.\n"
+},
+
+{ 10, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "More QC images: WM and GM tissue, solo.",
+   "Thanks for suggestions, P Molfese.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "New column of ROI vol fraction, relative to fs_parc_wb_mask.nii.gz.",
+   "This prog should always be run after adjunct_suma_fs_mask_and_qc.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_mask_and_qc" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_fs_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_roi_info" , MINOR , TYPE_GENERAL,
+   "Renamed, from adjunct_suma_rois_qc.tcsh.",
+   "Removing extension.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Make new mask dset from parcellation.",
+   "Add new image of new dset.\n"
+},
+
+{ 9, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_GENERAL,
+   "Add fractional volume info to the text file.",
+   "This makes 2 new columns in the output *.1D files.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_rois_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes *.1D files of voxel counts of parcellations and segs.\n"
+},
+
+{ 8, Feb , 2021 , PT , "adjunct_suma_fs_qc.tcsh" , MINOR , TYPE_NEW_PROG,
+   "Will add to @SUMA_Make_Spec_FS for automatic QC output.",
+   "This makes images of the brain mask, tissue segs and parcellation.\n"
+},
+
+{ 5, Feb , 2021 , PT , "@SSwarper" , MINOR , TYPE_GENERAL,
+   "Add in more intermediate QC snapshots (intermed align): init*jpg ",
+   "Also add '-echo' opt for verbose terminal stuff.\n"
+},
+
+{ 3, Feb , 2021 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New QC image, of affine warping.",
+   "Also pass along '-echo' opt to modal smoo/report script.\n"
+},
+
+{ 27, Jan , 2021 , PT , "3dAttribute" , MINOR , TYPE_GENERAL,
+   "Update help to have fancy sections and more examples.",
+   "Also provide link to README.attributes file, for user reference.\n"
+},
+
+{ 27, Jan , 2021 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_ENHANCE,
+   "New run script created (run_01*) in L_MAKE_DRIVE_SCRIPT block.",
+   "Opens std.141*both*spec in SUMA and SurfVol in AFNI, and starts talking.\n"
+},
+
+{ 22, Dec , 2020 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New default feature_size: 0.5.  (Old default: was unset).",
+   "Made almost no dif in mac demo, but should be slightly more robust, in gen.\n"
+},
+
+{ 22, Dec , 2020 , PT , "3dmaskave" , MINOR , TYPE_BUG_FIX,
+   "MRI_TYPE_maxval fixed for byte case-- thanks, C Rorden!",
+   "Same fix applied in: plug_maskave.c and thd_makemask.c.\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dROIMaker" , MICRO , TYPE_GENERAL,
+   "Tweak internal handling of reading inputs, prohibit hanging args.",
+   "Now, hanging args should produce error (not just be silently ignored).\n"
+},
+
+{ 21, Dec , 2020 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "The '-orient ..' opt wasn't working-- that has been fixed.",
+   "Now user can specify table coords with this opt.\n"
+},
+
+{ 1, Dec , 2020 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Tweaked default temp 'junk' filename to avoid low-probability badness ",
+   "New opt '-tmp_name_nice' for, well, read opt name. Improved help, too.\n"
+},
+
 { 12, Nov , 2020 , PT , "fat_proc_connec_vis" , MICRO , TYPE_GENERAL,
    "Set some env vars at top of script to turn off compression.",
    "Was causing odd error in one case.\n"

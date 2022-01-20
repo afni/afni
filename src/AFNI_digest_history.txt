@@ -1,30 +1,261 @@
+AFNI Digest, week of 2021/06/11.
+
+0) Disabling AFNI_COMPRESSOR for NIFTI files
+1) Commentary: Dichotomous thinking and informational waste in neuroimaging
+2) 3dClusterize table report update
+3) 3dAllineate updates (to mainly deal with some marginal cases)
+4) NaN data values
+
+++ Code comments in this Digest relate to version release:  AFNI_21.1.10
+
+0) Disabling AFNI_COMPRESSOR for NIFTI files
+Automatic compression of NIFTI datasets via environment variables has
+been disabled, reverting to a "get what you ask for" approach (i.e.,
+specify .nii.gz for output when compression is desired).  Using
+AFNI_COMPRESSOR for this caused trouble for scripting.
+AFNI_COMPRESSOR will still apply in creating BRIK.gz files.
+
+1) Commentary: Dichotomous thinking and informational waste in neuroimaging 
+   preprint: https://www.biorxiv.org/content/10.1101/2021.05.09.443246v1
+Neuroimaging relies on separate statistical inferences at tens of
+thousands of spatial locations. Such massively univariate analysis
+typically requires adjustment for multiple testing in an attempt to
+maintain the family-wise error rate at a nominal level of 5%. We
+discuss how this approach is associated with substantial information
+loss because of an implicit but questionable assumption about the
+effect distribution across spatial units. To improve inference
+efficiency, predictive accuracy, and generalizability, we propose a
+Bayesian multilevel modeling framework. In addition, we make four
+actionable suggestions to alleviate information waste and to improve
+reproducibility: (1) abandon strict dichotomization, (2) report full
+results, (3) quantify effects, and (4) model data hierarchy.
+
+2) 3dClusterize table report update
+3dClusterize outputs a data table about clusters by default.
+Traditionally, the program internally used absolute-valued voxel
+values before calculating Mean and SEM column values, unless the
+'-noabs' option was used.  The new default is that Mean and SEM is
+each calculated from the raw values; to mirror the old behavior of
+having abs vals, one would use the new '-abs_table_data' value.  This
+only affects table values (in 1- or bi-sided clustering, this would
+only affect sign, not magnitude).  The GUI's Clusterize menu follows
+this new behavior.
+
+3) 3dAllineate updates (to mainly deal with some marginal cases)
+Some internal changes to 3dAllineate were made to make the
+optimization of alignment parameters more robust in some
+situations. In particular, when aligning a pair of T1-weighted
+volumes, one of the best cost function choices has been
+lpa+ZZ. However, in a small subset of cases, lpa+ZZ did not always
+give good results. For example, if the source image is a whole-head
+volume and the coordinates are weird (the xyz origin not anywhere near
+the center of the brain), while the base image is the MNI template,
+covering only the upper part of the head, the huge extraneous volume
+below the brain could sometimes confuse the optimizer. Changes to
+3dAllineate to help with this situation were: (1) reformulate lpa+ZZ
+to be more robust, and (2) use more trial parameter sets in the coarse
+alignment phase. These changes will make the program somewhat slower,
+but (Insha'Allah) more reliable across these marginal cases.
+
+4) NaN data values
+AFNI programs have no special code to deal with NaN values in datasets
+- NaN is the acronym for Not a Number, which is a special bit pattern
+marking an illegal floating point value (e.g., the result of
+sqrtf(-1.0f)). On input to AFNI programs, NIfTI and some more obscure
+data formats are, if in float format, scanned to turn NaN and infinite
+values to 0s before being stored internally. However, AFNI-format
+.BRIK files are not automatically scanned/fixed on input, unless the
+environment variable AFNI_FLOATSCAN is set to YES. If you read in a
+floating point dataset with NaN values, AFNI programs will probably
+not behave well, as the computations with NaNs will propagate and
+contaminate the results. The AFNI program float_scan can be used to
+patch float point files, or you can set AFNI_FLOATSCAN = YES in your
+~/.afnirc file's ***ENVIRONMENT section to avoid this potential
+issue. But please don't worry about NaNs in AFNI until/unless they
+start to bother you!
+
+
+========================================================================
+
+AFNI Digest, week of 2021/04/12.
+
+0) afni_proc.py updates.
+1) 3dROIstats updates.
+2) Bug fix for (rare) NIFTI occurrences.
+3) Mac OS binaries update, re. XQuartz/libXp.
+4) New old notes on various AFNI stats programs.
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+
+0) afni_proc.py updates.
+++ Computed TSNR volumes are no longer masked by default, so one can
+   better evaluate things like dropout.  And images of TSNR volumes
+   (after volreg and at end) are now part of the APQC HTML.
+++ afni_proc.py: one can now pass single files with many regressors of
+   no interest via -regress_extra_ortvec and
+   -regress_extra_ortvec_labels.
+
+1) 3dROIstats updates.
+Slowness has been fixed in the processing of NIFTI float time series
+datasets.  Thanks to C Craddock for reporting the issue.
+
+2) Bug fix for (rare) NIFTI occurrences.
+A bug has been fixed in the handling of NIFTI float datasets with
+scalars attached (this is uncommon).  From 2021.01.26 to 2021.03.08,
+some programs would not apply the scalars.
+
+3) Mac OS binaries update, re. XQuartz/libXp.
+AFNI now includes libXp with the macos_10.12_local binaries, as
+XQuartz no longer distributes it.  That is required for the AFNI
+binaries to work on newer systems.  Thanks to C Gaillard for reporting
+and testing.
+
+4) New old notes on various AFNI stats programs.
+There are some new documentations for AFNI stats programs, some dating
+back to The Beginning when they were written.  These typically include
+both general theory and program-specific notes.  The current list of
+descriptions is:
++ When and how to center a variable?
++ Deconvolution Analysis of FMRI Time Series Data
++ Nonlinear Regression Analysis of FMRI Time Series Data (NLfim)
++ Notes on 3dREMLfit
++ Analysis of Variance (ANOVA)
++ Multivariate modeling (MVM) approach for group analysis
++ Linear Mixed-Effects (LME) Modeling
++ Mixed-Effects Meta Analysis (MEMA)
++ False Discovery Rate (FDR)
++ Nonparametric Statistical Analysis of FMRI Data
+... which are available here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html
+
+5) Scripts, notes and description for integrating FreeSurfer and AFNI.
+FreeSurfer's (FS's) recon-all performs useful parcellation and surface
+creation for T1w anatomicals.  This tutorial describes combining this
+with AFNI (via @SUMA_Make_Spec_FS), including notes on
+parallelization, speed, avoiding crashes, running on NIH's Biowulf,
+and the full set of extra dsets and QC info that @SUMA_Make_Spec_FS
+creates.  If that is of interest, check out:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/fs/main_toc.html
+
+========================================================================
+
+AFNI Digest, week of 2021/04/06.
+
+0)   Sign up for Zoom consultations occuring April 19-23, 2021.
+1-2) Useful programs (3dMSS, PTA) for capturing nonlinearity in stats modeling
+3-4) Useful programs (3dLMEr, TRR) for estimating test-retest reliability 
+5)   The India Brain Templates and Atlases (IBTAs)
+6)   More AFNI Academy online video lecture/tutorials
+
+0) Sign-up open for Zoom consults, in the week of April 19-23, 2021.  
+The form for doing so is here:
+    https://forms.gle/ZeUSau2hpQVovwHbA
+It is a good opportunity to discuss MRI/FMRI/DTI processing questions,
+esp. being able to share screens looking at data.  Discussions can
+even involve *planning* a study, going over considerations beforehand
+to make later processing easier.
+
+1) 3dMSS:  multilevel smoothing splines (MSS).
+When a quantitative predictor's effect is non-monotonic, the typical
+approach of handling it as a covariate through linear modeling can be
+inappropriate or even misleading.  As a more flexible and adaptive
+approach, multilevel smoothing splines (MSS) offer a more powerful
+analytical tool for capturing nonlinearity. More details can be found
+in:
+Chen et al., 2021. Beyond linearity in neuroimaging: Capturing
+nonlinear relationships with application to longitudinal
+studies. NeuroImage 233, 117891.
+https://doi.org/10.1016/j.neuroimage.2021.117891
+
+2) PTA:  Same nonlinear modeling approach as 3dMSS, but for 1D data.
+
+3) 3dLMEr with option "-TRR" for test-retest reliability estimates.
+The new option -TRR in 3dLMEr estimates the test-retest reliability at
+the whole-brain voxel level based on trial-level effect estimates
+instead of the conventional condition-level approach. The conventional
+intraclass correlation coefficient (ICC) tends to underestimate the
+test-retest reliability, as demonstrated in the following manuscript:
+Chen et al., 2021. Beyond the intraclass correlation: A hierarchical
+modeling approach to test-retest assessment. bioRxiv
+2021.01.04.425305. https://doi.org/10.1101/2021.01.04.425305
+
+4) TRR:  Same test-retest reliability modeling as 3dLMEr -TRR, but for ROIs.
+
+5) Indian Brain Templates and Atlases (IBTAs) available.
+Working with Drs. Bharath Holla, Rose Dawn Bharath (NIMHANS, the other
+NIMH) and colleagues, we have generated a new set of brain templates
+and atlases for studies focusing on a billion-plus people. There are
+several templates with corresponding atlases, covering various age
+ranges from 5-60 years, combining data from subjects across India.
+For more information, please see:
+https://onlinelibrary.wiley.com/doi/10.1002/hbm.25182
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/ibt.html
+
+6) More AFNI Academy online video lecture/tutorials
+"MBA: Analyzing matrix data through Bayesian multilevel modeling", by G Chen:
+https://www.youtube.com/watch?v=K2nW8M3sYNY&list=PL_CD549H9kgr42Cc0Uoo6o64sPlu6c3Qz
+"Advanced Visualization - atlases as surfaces in SUMA", by D Glen:
+https://www.youtube.com/watch?v=y-6hJ8iDy5o
+
+========================================================================
+
+AFNI Digest, week of 2020/12/17. 
+ 
+0)  Sign up for Zoom consultations in January, 2021 (!).
+1)  New tutorial on making plus/minus plots in the GUI Graphs.
+2)  New AFNI Academy videos on stats from Gang "Santa" Chen.
+ 
+0) The first go-round of Zoom consultations seemed useful (looking at
+data simultaneously and asking questions in realtime can be useful--
+who knew?).  So we are opening sign-up for another, in the week of Jan
+11-15, 2021.  The form for doing so is here:
+    https://forms.gle/noNfdoPH8pKRBzy37
+Basically, tell us some of your woes or questions, and we will try to
+find a way to resolve them.  (Esp. if you are trying to finish your
+abstracts for OHBM, due a couple weeks later...)
+ 
+1) One or two Digests ago, we advertised some new fun plotting
+capability to show plus/minus lines or background color in the GUI's
+Graph windows.  Now that you have had ample time to guess at the
+mechanics of it, we are ready to reveal the secrets of carrying this
+out in greater detail -- see this tutorial from The Bob:
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/gui/pm_plot.html
+ 
+2) If all you ever wanted for the holidays was some introduction to
+group analysis methods, then Gang Chen is the new Santa.  Here are
+some of his thoughts on "population-level" modeling (the hip term, for
+those in the know) in the AFNI Academy video series:
+    https://www.youtube.com/watch?v=2hP4hamIqLM&list=PL_CD549H9kgrA_GGQkVAulFJLiv05z2tv
+
+========================================================================
+
 AFNI Digest, week of 2020/11/20.
-
+ 
 And now for something completely different...
-
+ 
 In normal times, we often discuss MRI processing issues with people in
 person either at NIH, at a Bootcamp, or during a collaboration visit.
 If you haven't noticed, these aren't normal times.
-
+ 
 So, we brainstormed a mechanism to still try to have this
 functionality, since looking at data makes a big difference in
 understanding it.  The result: we will try to schedule some
 Zoom-consultations in the week of Nov. 30 - Dec 4, 2020, seeing how a
 30 min window works.
-
+ 
 If you or your lab has some question(s) or processing that you would
 like to discuss screen-to-screen, then please fill in the form here:
-  https://forms.gle/jLxgtq8xYHxoexXh9
+    https://forms.gle/jLxgtq8xYHxoexXh9
 ... and we will see if we can find overlapping times.
-
+ 
 **Disclaimer: we haven't done this previously, we don't know how well
-it will work, and we really hope not to hurt anyone's feelings if a
-particular Guru's schedule fills up quickly (=Gang!).  We will check
-incoming requests and try to see if there is a mutually available time
-slot, until a Guru's consulting timecard is maxed out.  It might then
-be possible to chat with a different Guru who might have available
-time and also be able to help, or that consultation might just have to
-wait for a later date.  Again, please bear with us in this.
+  it will work, and we really hope not to hurt anyone's feelings if a
+  particular Guru's schedule fills up quickly (=Gang!).  We will check
+  incoming requests and try to see if there is a mutually available
+  time slot, until a Guru's consulting timecard is maxed out.  It
+  might then be possible to chat with a different Guru who might have
+  available time and also be able to help, or that consultation might
+  just have to wait for a later date.  Again, please bear with us in
+  this.
 
 ========================================================================
 
@@ -1174,7 +1405,7 @@ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_det_2018_ChenEtal.html
 
 01) There are a couple of new scripts to deal with BIDS data and json files.
 They all start with "abids". Short for afni BIDS. There are a few
-changes that need to be made, so they won’t be up to date until the
+changes that need to be made, so they won't be up to date until the
 next update...
 + abids_tool.py is basically a wrapper for 3drefit that pulls info
   from the matching .json file and modifies the NIFTI dataset.

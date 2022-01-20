@@ -57,6 +57,7 @@ ENTRY("THD_extract_series") ;
       im->xo = 0.0 ; im->dx = 1.0 ;  /* 08 Nov 1996 */
    }
 
+   MRI_floatscan(im) ; /* 10 Jun 2021 */
    RETURN(im) ;
 }
 
@@ -181,6 +182,8 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
 
    if( raw ){ memcpy(uar,tar,nb1); free(tar); return(0); }
 
+   thd_floatscan(nv,far) ; /* 10 Jun 2021 */
+
    if( THD_need_brick_factor(dset) ){
      for( ival=0 ; ival < nv ; ival++ )
        if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
@@ -251,6 +254,8 @@ int THD_extract_float_array( int ind, THD_3dim_dataset *dset, float *far )
 
    }
 
+   thd_floatscan(nv,far) ; /* 10 Jun 2021 */
+
    if( THD_need_brick_factor(dset) ){
      for( ival=0 ; ival < nv ; ival++ )
        if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
@@ -274,7 +279,7 @@ float THD_get_float_value( int ind , int ival , THD_3dim_dataset *dset )
    switch( typ ){
 
       default:           /* don't know what to do --> return nada */
-         return(-1);
+         return(0.0f);
       break ;
 
       case MRI_byte:{
@@ -310,6 +315,7 @@ float THD_get_float_value( int ind , int ival , THD_3dim_dataset *dset )
    if( DSET_BRICK_FACTOR(dset,ival) > 0.0f )
      val *= DSET_BRICK_FACTOR(dset,ival) ;
 
+   thd_floatscan(1,&val) ; /* 10 Jun 2021 */
    return val ;
 }
 
@@ -345,7 +351,7 @@ MRI_IMARR * THD_extract_many_series( int ns, int *ind, THD_3dim_dataset *dset )
 
 ENTRY("THD_extract_many_series") ;
 
-   if( ns <= 0 || ind == NULL | dset == NULL ) RETURN( NULL );
+   if( ns <= 0 || ind == NULL || dset == NULL ) RETURN( NULL );
 
    /* try to load dataset */
 
@@ -462,6 +468,11 @@ ENTRY("THD_extract_many_series") ;
 
    }
 
+   for( kk=0 ; kk < ns ; kk++ ){  /* 10 Jun 2021 */
+     im = IMARR_SUBIM(imar,kk) ;
+     MRI_floatscan(im) ;
+   }
+
    /* scale outputs, if needed */
 
    if( THD_need_brick_factor(dset) ){
@@ -550,7 +561,7 @@ void THD_extract_many_arrays( int ns , int *ind ,
 
 ENTRY("THD_extract_many_arrays") ;
 
-   if( ns <= 0 || ind == NULL | dset == NULL || dsar == NULL ) EXRETURN ;
+   if( ns <= 0 || ind == NULL || dset == NULL || dsar == NULL ) EXRETURN ;
 
    /* try to load dataset */
 
@@ -634,6 +645,8 @@ ENTRY("THD_extract_many_arrays") ;
        for( kk=0 ; kk < ns ; kk++ ) far[kk][ival] *= fac ;
      }
    }
+
+   thd_floatscan( (size_t)(ns)*(size_t)nv , dsar ) ;  /* 10 Jun 2021 */
 
    free(far) ; EXRETURN ;
 }

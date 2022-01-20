@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, Aug 15, 2020
+Version 0.1.5, Dec 19, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -74,6 +74,15 @@ Introduction
  Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). Linear
  Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage 73:176-190.
  http://dx.doi.org/10.1016/j.neuroimage.2013.01.047
+
+ Cite the following if test-retest analysis is performed using the trial-level
+ effect estimates as input with 3dLEMr through the option -TRR:
+ 
+ Chen G, et al., Beyond the intraclass correlation: A hierarchical modeling
+ approach to test-retest assessment.
+ https://www.biorxiv.org/content/10.1101/2021.01.04.425305v1
+
+ To be added soon---
 
  Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain
  the output int the same format of the input, append a proper suffix to the
@@ -245,6 +254,58 @@ Introduction
           ...
    \n"
 
+   ex4 <-
+"Example 4 --- Test-retest reliability. LME model can be adopted for test-
+  retest reliability analysis if trial-level effect estimates (e.g., using
+  option -stim_times_IM in 3dDeconvolve/3dREMLfit) are available from each
+  subjects. The following script demonstrates a situation where each subject
+  performed same two tasks across two sessions. The goal is to obtain the
+  test-retest reliability at the whole-brain voxel level for the contrast
+  between the two tasks with the test-retest reliability for the average 
+  effect between the two tasks as a byproduct. 
+
+  WARNING: numerical failures may occur, especially for a contrast between 
+  two conditions. The failures manifest with a large portion of 0, 1 and -1
+  values in the output. In that case, use the program TRR to conduct 
+  region-level test-retest reliability analysis.
+
+-------------------------------------------------------------------------
+     3dLMEr -prefix output -TRR -jobs 16 \
+             -qVars 'cond'        \
+             -bounds -2 2         \
+             -model '0+sess+cond:sess+(0+sess|Subj)+(0+cond:sess|Subj)' \
+             -dataTable @data.tbl
+
+  With many trials per condition, it is recommended that the data table
+  is saved as a separate file in pure text of long format with condition 
+  (variable 'cond' in the script above) through dummy coding of -0.5 and
+  0.5 with the option -qVars 'cond'. Code subject and session as factor
+  labels with labels. Below is an example of the data table. There is no 
+  need to add backslash at the end of each line. If sub-brick selector
+  is used, do NOT use gziped files (otherwise the file reading time would
+  be too long) and do NOT add quotes around the square brackets [] for the
+  sub-brick selector.
+ 
+  Subj   sess cond      InputFile
+  Subj1   s1  -0.5  Subj1s1c1_trial1.nii
+  Subj1   s1  -0.5  Subj1s1c1_trial2.nii
+  ...
+  Subj1   s1  -0.5  Subj1s1c1_trial40.nii  
+  Subj1   s1   0.5  Subj1s1c2_trial1.nii
+  Subj1   s1   0.5  Subj1s1c2_trial2.nii
+  ...
+  Subj1   s1   0.5  Subj1s1c2_trial40.nii
+  Subj1   s2  -0.5  Subj1s2c1_trial1.nii
+  Subj1   s2  -0.5  Subj1s2c1_trial2.nii
+  ...
+  Subj1   s2  -0.5  Subj1s2c1_trial40.nii
+  Subj1   s2   0.5  Subj1s2c2_trial1.nii
+  Subj1   s2   0.5  Subj1s2c2_trial2.nii
+  ...
+  Subj1   s2   0.5  Subj1s2c2_trial40.nii
+  ...
+\n"
+
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
@@ -258,7 +319,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
@@ -272,15 +333,15 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         .nii attached (otherwise the output would be saved in AFNI format).\n", sep = '\n'
       ) ),
 
-#      '-resid' = apl(n = 1, d = NA,  h = paste(
-#   "-resid PREFIX: Output file name for the residuals. For AFNI format, provide",
-#   "         prefix only without view+suffix. Filename for NIfTI format should",
-#   "         have .nii attached, while file name for surface data is expected",
-#   "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
-#   "         if present, should be interpreted as the effect with each factor",
-#   "         at the reference level (alphabetically the lowest level) for each",
-#   "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
-#                     ) ),
+      '-resid' = apl(n = 1, d = NA,  h = paste(
+   "-resid PREFIX: Output file name for the residuals. For AFNI format, provide",
+   "         prefix only without view+suffix. Filename for NIfTI format should",
+   "         have .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
+   "         if present, should be interpreted as the effect with each factor",
+   "         at the reference level (alphabetically the lowest level) for each",
+   "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
+                     ) ),
 
       '-mask' = apl(n=1,  d = NA, h = paste(
    "-mask MASK: Process voxels inside this mask only.\n",
@@ -318,6 +379,18 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         file called .3dLMEr.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
 
+       '-TRR' = apl(n=0, h = paste(
+   "-TRR: This option will allow the analyst to perform test-retest reliability analysis",
+   "         at the whole-brain voxel level. To be able to adopt this modeling approach,",
+   "         trial-level effect estimates have to be provided from each subject (e.g.,",
+   "         using option -stim_times_IM in 3dDeconvolve/3dREMLfit). Currently it works",
+   "         with the situation with two conditions for a group of subjects that went",
+   "         two sessions. The analytical goal to assess test-retest reliability across",
+   "         the two sessions for the contrast between the two conditions. Check out",
+   "         Example 4 for model specification. It is possible that numerical failures",
+   "         may occur for a contrast between two conditions with values of 0, 1 or -1 in",
+   "         the output. Use program TRR for ROI-level test-retest reliability analysis.\n", sep='\n')),
+
        '-bounds' = apl(n=2, h = paste(
    "-bounds lb ub: This option is for outlier removal. Two numbers are expected from",
    "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
@@ -340,6 +413,28 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         \n",
              sep = '\n'
              ) ),
+
+      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
+   "-vVars variable_list: Identify voxel-wise covariates with this option.",
+   "         Currently one voxel-wise covariate is allowed only. By default",
+   "         mean centering is performed voxel-wise across all subjects.",
+   "         Alternatively centering can be specified through a global value",
+   "         under -vVarsCenters. If the voxel-wise covariates have already",
+   "         been centered, set the centers at 0 with -vVarsCenters.\n",
+             sep = '\n'
+             ) ),
+
+     '-vVarCenters' = apl(n=1, d=NA, h = paste(
+   "-vVarCenters VALUES: Specify centering values for voxel-wise covariates",
+   "         identified under -vVars. Multiple centers are separated by ",
+   "         commas (,) within (single or double) quotes. The order of the",
+   "         values should match that of the quantitative variables in -qVars.",
+   "         Default (absence of option -vVarsCenters) means centering on the",
+   "         average of the variable across ALL subjects regardless their",
+   "         grouping. If within-group centering is desirable, center the",
+   "         variable yourself first before the files are fed under -dataTable.\n",
+             sep = '\n'
+                     ) ),
 
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-gltCode label weights: Specify the label and weights of interest in a general",
@@ -383,16 +478,6 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 #             sep = '\n'
 #             ) ),
 #
-#      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
-#   "-vVars variable_list: Identify voxel-wise covariates with this option.",
-#   "         Currently one voxel-wise covariate is allowed only, but this",
-#   "         may change if demand occurs...",
-#   "         By default mean centering is performed voxel-wise across all",
-#   "         subjects. Alternatively centering can be specified through a",
-#   "         global value under -vVarsCenters. If the voxel-wise covariates",
-#   "         have already been centered, set the centers at 0 with -vVarsCenters.\n",
-#             sep = '\n'
-#             ) ),
 
      '-qVarCenters' = apl(n=c(1,100), d=NA, h = paste(
    "-qVarCenters VALUES: Specify centering values for quantitative variables",
@@ -406,19 +491,6 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
              sep = '\n'
                      ) ),
-
-#     '-vVarCenters' = apl(n=1, d=NA, h = paste(
-#   "-vVarCenters VALUES: Specify centering values for voxel-wise covariates",
-#   "         identified under -vVars. Multiple centers are separated by ",
-#   "         commas (,) within (single or double) quotes. The order of the",
-#   "         values should match that of the quantitative variables in -qVars.",
-#   "         Default (absence of option -vVarsCetners) means centering on the",
-#   "         average of the variable across ALL subjects regardless their",
-#   "         grouping. If within-group centering is desirable, center the",
-#   "         variable YOURSELF first before the files are fed into -dataTable.\n",
-#             sep = '\n'
-#
-#) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure with a header as the first line.\n",
@@ -482,16 +554,17 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$model  <- NA
       lop$qVars  <- NA
       lop$bounds <- NULL
-      #lop$vVars  <- NA
-      #lop$vQV    <- NA
+      lop$vVars  <- NA
+      lop$vQV    <- NA
       lop$qVarCenters <- NA
-      #lop$vVarCenters <- NA
+      lop$vVarCenters <- NA
       lop$gltCode    <- NULL
       lop$glfCode  <- NULL
       lop$dataTable <- NULL
 
-      lop$iometh <- 'clib'
-      lop$dbgArgs  <- FALSE # for debugging purpose
+      lop$iometh  <- 'clib'
+      lop$dbgArgs <- FALSE # for debugging purpose
+      lop$TRR     <- FALSE # for test-retest reliability
       lop$verb <- 0
 
    #Get user's input
@@ -510,13 +583,14 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 	     glfCode  = lop$glfCode <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
              bounds = lop$bounds <- ops[[i]],
-             #vVars  = lop$vVars  <- ops[[i]],
+             vVars  = lop$vVars  <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
-             #vVarCenters = lop$vVarCenters <- ops[[i]],
+             vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
 
              help = help.LME.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
+             TRR     = lop$TRR     <- TRUE,
 
              cio = lop$iometh<-'clib',
              Rio = lop$iometh<-'Rlib'
@@ -594,7 +668,7 @@ process.LME.opts <- function (lop, verb = 0) {
    }
    # assume the quantitative variables are separated by + here
    if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
-   #if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+   if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!(is.null(lop$bounds))) {
       if(lop$bounds[1] > lop$bounds[2]) 
@@ -614,7 +688,7 @@ process.LME.opts <- function (lop, verb = 0) {
       # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
-      #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
    }
@@ -665,13 +739,14 @@ process.LME.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE)
          return(NULL)
       }
-      lop$maskData <- mm$brk[,,,1]
+      #lop$maskData <- mm$brk[,,,1]
+      lop$maskData <- mm$brk
       if(verb) cat("Done read ", lop$maskFN,'\n')
+      if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
-   if(!is.na(lop$maskFN))
-      if(!all(dim(lop$maskData)==lop$myDim[1:3]))
-         stop("Mask dimensions don't match the input files!")
-
+   #if(!is.na(lop$maskFN))
+   #   if(!all(dim(lop$maskData)==lop$myDim[1:3]))
+   #      stop("Mask dimensions don't match the input files!")
    return(lop)
 }
 # process.LME.opts(lop, 0)
@@ -684,8 +759,16 @@ process.LME.opts <- function (lop, verb = 0) {
 runLME <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$NoBrick)
+   if(!is.null(lop$resid)) {
+      resid <- rep(0, length(myData))
+      res.na <- which(is.na(myData)) # indices for missing data
+   }
+   if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
+      DM <- assVV2(DM, lop$vQV, myData[(length(myData)/2+1):length(myData)], all(is.na(lop$vVarCenters)))
+   }
+
    if(!all(myData == 0)) {
-      DM$yy <- myData
+      DM$yy <- myData[1:nrow(DM)]
       fm <- NULL
       options(warn=-1)
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
@@ -717,11 +800,46 @@ runLME <- function(myData, DM, tag) {
                Stat[lop$nF[1]+2*lop$num_glt+ii] <- qchisq(ff[2,'Pr(>Chisq)'], 2, lower.tail = F) # glf[2,2]  # convert chisq to Z
             }
          }
+         if(!is.null(lop$resid)) {
+            resid <- unname(residuals(fm))
+            if(!is.null(res.na)) for(aa in res.na) resid <- append(resid, 0, after=aa-1) # fill in missing data with 0s 
+         }
+      }
+   }
+   if(!is.null(lop$resid)) Stat <- c(Stat, resid)
+   return(Stat)
+}
+# runLME(inData[30,30,30,], lop$dataStr, 0)
+
+# for LME only, not TRR yet
+assVV2 <- function(DF, vQV, value, c) {
+      # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
+   #browser()
+   if(is.na(c)) DF[, vQV] <- scale(value, center=TRUE, scale=F) else
+       DF[, vQV] <- scale(value, center=c, scale=F)
+   DF[, vQV] <- as.numeric(DF[, vQV])
+   return(DF)
+}
+
+runTRR <- function(myData, DM, tag) { # assuming 2 conditions and 2 sessions
+   #browser()
+   Stat <- rep(0, lop$NoBrick)
+   if(!all(myData[!is.na(myData)] == 0)) {
+      DM$yy <- myData
+      fm <- NULL
+      options(warn=-1)
+      try(fm <- lmer(lop$model, data=DM), silent=TRUE)
+
+      if(!is.null(fm)) {
+         mm <- summary(fm)
+         es <- mm$coefficients[,'Estimate']
+         zz <- sign(es)*abs(qnorm(mm$coefficients[,'Pr(>|t|)']/2))
+         Stat <- c(c(rbind(es, zz)), attr(mm$varcor[[1]], "correlation")[1,2], attr(mm$varcor[[2]], "correlation")[1,2])
       }
    }
    return(Stat)
 }
-# runLME(inData[30,30,30,], lop$dataStr, 0)
+# runTRR(inData[30,30,30,], lop$dataStr, 0)
 
 #################################################################################
 ########################## Begin LME main ######################################
@@ -791,6 +909,7 @@ lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 #if(is.null(lop$Tstat)) lop$dataStr$Tstat <-  as.character(lop$dataStr$Tstat)
 
 # center on user-speficied value or mean
+if(!lop$TRR)
 if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters)))
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F)[,,drop=T] else
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)[,,drop=T]
@@ -828,7 +947,9 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   errex.AFNI(c("At least one of the input files has different dimensions:\n",
+   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
+   "or     (2) some input files have more than one value per voxel.\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
@@ -837,9 +958,33 @@ cat('Reading input files for effect estimates: Done!\n\n')
 # masking
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
+   if(!all(c(dimx, dimy, dimz)==dim(lop$maskData)[1:3])) stop("Mask dimensions don't match the input files!")
+   lop$maskData <- array(lop$maskData, dim=c(dimx, dimy, dimz))
    inData <- array(apply(inData, 4, function(x) x*(abs(lop$maskData)>tolL)), dim=c(dimx,dimy,dimz,nF))
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
+
+# voxel-wise covariate files: for LME only; not TRR yet
+if(!is.na(lop$vQV)) {
+   tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+   dimx <- tmpDat$dim[1]
+   dimy <- tmpDat$dim[2]
+   dimz <- tmpDat$dim[3]
+   head <- tmpDat
+   #for(ii in lop$vQV)
+   #if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
+   #   errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
+   #             "allowed to have one volume; that is, the covariate has to be at the\n",
+   #             "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
+      #vQV <- unlist(lapply(lapply(unique(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+      vQV <- unlist(lapply(lapply(as.character(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+      #dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
+      dim(vQV) <- c(dimx, dimy, dimz, length(lop$dataStr[,lop$vQV[1]]))
+      inData <- c(inData, vQV)
+      #dim(inData) <- c(dimx, dimy, dimz, lop$nVVars+lop$nSubj)
+      dim(inData) <- c(dimx, dimy, dimz, 2*length(lop$dataStr[,lop$vQV[1]]))
+   #}
+} else vQV <- NULL
 
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's
 # for t tests (and catch potential problems as well)
@@ -873,11 +1018,12 @@ cat('is likely inappropriate.\n\n')
 if(!is.na(lop$maskFN)) {
   idx <- which(lop$maskData == 1, arr.ind = T)
   idx <- idx[floor(dim(idx)[1]/2),1:3]
-  ii <- idx[1]; jj <- idx[2]; kk <- idx[3]
+  xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
+  ii <- xinit; jj <- yinit; kk <- zinit
 } else {
   xinit <- dimx%/%3
-  if(dimy==1) yinit <- 1 else yinit <- dimy%/%3
-  if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
+  if(dimy==1) {xinit <-1; yinit <- 1} else yinit <- dimy%/%3
+  if(dimz==1) {xinit <-1; zinit <- 1} else zinit <- dimz%/%3
   ii <- xinit; jj <- yinit; kk <- zinit
 }
 
@@ -891,15 +1037,21 @@ if(!is.na(lop$maskFN)) {
 
 lop$model <- as.formula(paste('yy ~ ', lop$model))
 require(lmerTest)
-require(phia)
+if(!lop$TRR) require(phia)
 fm<-NULL
+if(any(!is.na(lop$vQV))) {
+     lop$dataStr <- assVV2(lop$dataStr, lop$vQV, inData[ii,jj,kk,(nrow(lop$dataStr)+1):(2*nrow(lop$dataStr))], all(is.na(lop$vVarCenters)))
+}
+
 if(lop$num_glt > 0) gltRes <- vector('list', lop$num_glt)
 if(lop$num_glf > 0) glfRes <- vector('list', lop$num_glf)
 #chi_DF <- NULL
 while(is.null(fm)) {
-   lop$dataStr$yy <- inData[ii, jj, kk,]
+   #lop$dataStr$yy <- inData[ii, jj, kk,]
+   lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    try(fm <- lmer(lop$model, data=lop$dataStr), silent=TRUE)
+   if(!lop$TRR) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
@@ -922,11 +1074,17 @@ while(is.null(fm)) {
          n <- n+1
       }
    }
+   } # if(!lop$TRR)
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-      lop$nF      <- nrow(anova(fm))    # total number of F-stat
-      nT          <- 2*lop$num_glt
-      lop$NoBrick <- lop$nF + nT + lop$num_glf
+      if(lop$TRR) {
+         nT          <- 2*nrow(summary(fm)$coefficients)
+         lop$NoBrick <- nT + 2 # 2 ICC values: one for avefage and one for contrast
+      } else {
+         lop$nF      <- nrow(anova(fm))    # total number of F-stat
+         nT          <- 2*lop$num_glt
+         lop$NoBrick <- lop$nF + nT + lop$num_glf
+      }
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
@@ -954,56 +1112,167 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 
 options(contrasts = c("contr.sum", "contr.poly"))
 
-   if(dimy==1 & dimz==1) Stat <- array(0, dim=c(dimx, lop$NoBrick)) else
-   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
-
-   if (lop$nNodes==1) for (kk in 1:dimz) {
-      if(dimy==1 & dimz==1) Stat <- aperm(apply(drop(comArr[,,kk,]), 1, runMeta, dataframe=lop$dataStr, tag=0), c(2,1)) else
-      Stat[,,kk,] <- aperm(apply(comArr[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-
-if (lop$nNodes>1) {
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterExport(cl, "lop", envir=environment())
-   clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
-   clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-   for (kk in 1:dimz) {
-      Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+if(lop$TRR) { # test-retest analysis
+   # no single CPU yet
+   if(dimy==1 & dimz==1) { # TRR with 1D data
+      nSeg <- 20
+      # drop the dimensions with a length of 1
+      inData <- inData[, , ,]
+      # break into 20 segments, leading to 5% increamental in parallel computing
+      dimx_n <- dimx%/%nSeg + 1
+      # number of datasets need to be filled
+      fill <- nSeg-dimx%%nSeg
+      # pad with extra 0s
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
+      # break input multiple segments for parrel computation
+      dim(inData) <- c(dimx_n, nSeg, nF)
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      if (lop$nNodes==1) for(kk in 1:nSeg) {
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(apply(inData[,,kk,], 1, runTRR, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         } #  for(kk in 1:nSeg)
+      } else { # parallelization
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, "z2r", envir=environment())
+         clusterEvalQ(cl, library(lme4))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(parApply(cl, inData[,,kk,], 1, runTRR, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+         stopCluster(cl)
+      } # if (lop$nNodes>1)
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailers (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+   } else { # TRR with volumetric data
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+      if (lop$nNodes==1) {
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runTRR,
                   DM=lop$dataStr, tag=0), c(2,3,1))
-      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-    stopCluster(cl)
-}
-# runLME(inData[30,30,30,], lop$model, lop$dataStr, lop$glt, nF, 0)
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         } 
+      } else {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, "lop", envir=environment())
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for (kk in 1:dimz) {
+            Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runTRR,
+                  DM=lop$dataStr, tag=0), c(2,3,1))
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }
+      # runTRR(inData[30,30,30,], lop$model, lop$dataStr, lop$glt, nF, 0)
+   } # TRR with volumetric data
+} else {  # typical LME modeling
+   if(dimy==1 & dimz==1) { # 1D data
+      nSeg <- 20
+      # drop the dimensions with a length of 1
+      inData <- inData[, , ,]
+      # break into 20 segments, leading to 5% increamental in parallel computing
+      dimx_n <- dimx%/%nSeg + 1
+      # number of datasets need to be filled
+      fill <- nSeg-dimx%%nSeg
+      # pad with extra 0s
+      inData <- rbind(inData, array(0, dim=c(fill, nF)))
+      # break input multiple segments for parrel computation
+      dim(inData) <- c(dimx_n, nSeg, nF)
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      if (lop$nNodes==1) for(kk in 1:nSeg) {
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
+         }
+      } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+      
+      if (lop$nNodes>1) {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, c("lop", "assVV2"), envir=environment())
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for(kk in 1:nSeg) {
+            Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
+            cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+         } # runLME(inData[30,1,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
+         stopCluster(cl)
+      }
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
+      # remove the trailers (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+   } else { # volumetric data
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      if (lop$nNodes==1) {
+         for (kk in 1:dimz) {
+            if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1)) else
+            Stat[,,kk,1] <- apply(inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+      } else {
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterExport(cl, c("lop", "assVV2"), envir=environment())
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
+         for (kk in 1:dimz) {
+            if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
+               DM=lop$dataStr, tag=0), c(2,3,1)) else
+            Stat[,,kk,1] <- parApply(cl, inData[,,kk,], c(1,2), runLME, DM=lop$dataStr, tag=0)
+            cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      } # volumetric data
+      # runLME(inData[30,30,30,], lop$dataStr, 0)
+   } # if (lop$nNodes>1)
+} # LME modeling
 
-Top <- 100
+#Top <- 100
 Stat[is.nan(Stat)] <- 0
-Stat[Stat > Top] <- Top
-Stat[Stat < (-Top)] <- -Top
+#Stat[Stat > Top] <- Top
+#Stat[Stat < (-Top)] <- -Top
 
-brickNames <- paste(rownames(anova(fm)), 'Chi-sq')
-if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
-   brickNames <- append(brickNames, lop$gltLabel[n])
-   brickNames <- append(brickNames, paste(lop$gltLabel[n], "Z"))
-}
-if(lop$num_glf > 0) for (n in 1:lop$num_glf) {
-   brickNames <- append(brickNames, paste(lop$glfLabel[n], "Chi-sq"))
-}
+if(lop$TRR) {
+   brickNames <- c(c(rbind(rownames(summary(fm)$coefficients), 
+      paste0(rownames(summary(fm)$coefficients), '-Z'))), 'TRR-ave', 'TRR-con')
 
-statsym <- NULL
-if(lop$nF > 0) for (n in 1:lop$nF)
-   statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=2)))
-#   statsym <- c(statsym, list(list(sb=n-1, typ="fizt", par=NULL)))
-if(lop$num_glt > 0) for (n in 1:lop$num_glt)
-   statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
-if(lop$num_glf > 0) for (n in 1:lop$num_glf)
-   statsym <- c(statsym, list(list(sb=lop$nF+lop$num_glt+n-1, typ="fict", par=2)))
+   statsym <- NULL
+   for(n in 1:nrow(summary(fm)$coefficients)) 
+      statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt", par=NULL)))
+} else {
+   brickNames <- paste(rownames(anova(fm)), 'Chi-sq')
+   if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
+      brickNames <- append(brickNames, lop$gltLabel[n])
+      brickNames <- append(brickNames, paste(lop$gltLabel[n], "Z"))
+   }
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf) {
+      brickNames <- append(brickNames, paste(lop$glfLabel[n], "Chi-sq"))
+   }
+   statsym <- NULL
+   if(lop$nF > 0) for (n in 1:lop$nF)
+      statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=2)))
+   #   statsym <- c(statsym, list(list(sb=n-1, typ="fizt", par=NULL)))
+   if(lop$num_glt > 0) for (n in 1:lop$num_glt)
+      statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf)
+      statsym <- c(statsym, list(list(sb=lop$nF+lop$num_glt+n-1, typ="fict", par=2)))
 #      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n, typ="fizt", par=NULL)))
+}
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
-   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
+
+if(!is.null(lop$resid))
+   write.AFNI(lop$resid, Stat[,,,(lop$NoBrick+1):(lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
+      label=0:(dim(lop$dataStr)[1]-1), defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 

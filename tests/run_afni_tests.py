@@ -100,7 +100,7 @@ def main(user_args=None):
             " take a while because the test data has to be downloaded"
         )
         # Modify path and sys.path as required
-        minfuncs.modify_path_and_env_if_not_using_cmake(TESTS_DIR, **args_dict)
+        minfuncs.modify_path_and_env_if_not_using_cmake(**args_dict)
         # Execute the tests in the local environment
         run_tests(TESTS_DIR, **args_dict)
 

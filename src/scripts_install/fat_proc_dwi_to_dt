@@ -85,9 +85,13 @@
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
 #
-set version   = "3.2";   set rev_dat   = "Jan 29, 2020"
+#set version   = "3.2";   set rev_dat   = "Jan 29, 2020"
 #     + [PT] make output images with olay=b0 have 95%ile (in volume)
 #            value for top of colorbar: easier to see structure.
+#
+set version   = "3.21";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -701,7 +705,7 @@ if ( "$iref" != "" ) then
             set ffo = "struc"
         endif
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vpref0 = ${opref}_qc_ref_$ffo
         else
             set vpref0 = ${qc_prefix}_qc_ref_$ffo
@@ -723,7 +727,7 @@ if ( "$iref" != "" ) then
             -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
 
     endif
@@ -841,7 +845,7 @@ if ( $DO_VIEWER ) then
             -prefix $b0edge             \
             -input  $b0mskd
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vpref0 = ${opref}_qc_ref_b0e
         else
             set vpref0 = ${qc_prefix}_qc_ref_b0e
@@ -862,7 +866,7 @@ if ( $DO_VIEWER ) then
             -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
 
         # -------------
@@ -891,7 +895,7 @@ if ( $DO_VIEWER ) then
             -input $odir/$odwi'[0]'
 
             
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vpref0b = ${opref}_qc_b0_refe
         else
             set vpref0b = ${qc_prefix}_qc_b0_refe
@@ -912,7 +916,7 @@ if ( $DO_VIEWER ) then
             -prefix "$odirqc/$vpref0b"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
 
     endif
@@ -941,7 +945,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_ref_b0
         set vpref1 = ${opref}_qc_MD_FA${qc_fa_thr:gas/.//}
     else
@@ -949,7 +953,7 @@ if ( $DO_VIEWER ) then
         set vpref1 = ${qc_prefix}_qc_MD_FA${qc_fa_thr:gas/.//}
     endif
 
-    if( "$iref" != "" ) then
+    if ( "$iref" != "" ) then
 
         echo "\n\n"
         echo "++ QC image 02 ($odir/${odwi}[0] on $iref): $vpref0"
@@ -964,7 +968,7 @@ if ( $DO_VIEWER ) then
             -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
     endif
 
@@ -984,7 +988,7 @@ if ( $DO_VIEWER ) then
         -prefix "$odirqc/$vpref1"           \
         -montx 5 -monty 3                   \
         -set_xhairs OFF                     \
-        -label_mode 1 -label_size 3         \
+        -label_mode 1 -label_size 4         \
         -do_clean    
 
 endif
@@ -1005,7 +1009,7 @@ if ( $DO_UNCERT ) then
 
     if ( $DO_VIEWER ) then
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vpref4 = ${opref}_qc_b0_uncV12
             set vpref5 = ${opref}_qc_b0_uncFA
         else
@@ -1029,7 +1033,7 @@ if ( $DO_UNCERT ) then
             -prefix "$odirqc/$vpref4"           \
             -montx 5 -monty 3                   \
             -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3         \
+            -label_mode 1 -label_size 4         \
             -do_clean    
 
         echo "\n\n"
@@ -1048,7 +1052,7 @@ if ( $DO_UNCERT ) then
             -prefix "$odirqc/$vpref5"           \
             -montx 5 -monty 3                   \
             -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3         \
+            -label_mode 1 -label_size 4         \
             -do_clean    
     endif
 endif

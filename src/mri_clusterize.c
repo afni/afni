@@ -24,13 +24,15 @@ MCW_cluster_array * mri_clusterize_array(int clear)
 /*---------------------------------------------------------------------*/
 /*! Cluster-edit volume bim, possibly thresholding with tim, and
     produce a new output image.  [05 Sep 2006]
+
+    Modified [12 Jul 2021] to allow 1-voxel 'clusters' (for DRG).
 -----------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                             float thb , float tht  , MRI_IMAGE *tim ,
                             int posonly , byte *mask )
 {
-   float dx,dy,dz , dbot , vmin ;
+   float dx,dy,dz , dbot ;
    int   nx,ny,nz , ptmin,iclu , nkeep,nkill,ncgood , nbot,ntop , ii ;
    MRI_IMAGE *cim ; void *car ;
    MCW_cluster *cl , *dl ; MCW_cluster_array *clar ;
@@ -61,7 +63,6 @@ ENTRY("mri_clusterize") ;
        case -3:  rmm = 1.75f ; nnlev = 3 ;break ;   /* NN3 */
      }
    }
-   vmin = 2.0f*dx*dy*dz ; if( vmul < vmin ) vmul = vmin ;
 
    /* create copy of input image (this will be edited below) */
 
@@ -81,6 +82,7 @@ ENTRY("mri_clusterize") ;
    /* smallest cluster to keep */
 
    ptmin = (int)( vmul/(dx*dy*dz) + 0.99f ) ;
+   if( ptmin < 1 ) ptmin = 1 ;
 
    /* find all clusters */
 
@@ -136,7 +138,7 @@ MRI_IMAGE * mri_bi_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                                float thb , float tht  , MRI_IMAGE *tim ,
                                byte *mask )
 {
-   float dx,dy,dz , dbot , vmin ;
+   float dx,dy,dz , dbot ;
    int   nx,ny,nz , ptmin,iclu , nkeep=0,nkill=0,ncgood=0 ;
    int   nbot=9999999,ntop=0 , ii , pclust=0,nclust=0 ;
    MRI_IMAGE *cim , *dim ; void *car , *dar ;
@@ -170,8 +172,8 @@ ENTRY("mri_bi_clusterize") ;
        case -3:  rmm = 1.75f ; nnlev = 3 ;break ;   /* NN3 */
      }
    }
-   vmin  = 2.0f*dx*dy*dz ; if( vmul < vmin ) vmul = vmin ;
    ptmin = (int)( vmul/(dx*dy*dz) + 0.99f ) ; /* smallest cluster to keep */
+   if( ptmin < 1 ) ptmin = 1 ;
 
    /* 0-filled copy of input == will be output image */
 

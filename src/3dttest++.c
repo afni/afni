@@ -216,6 +216,8 @@ static char *name_mask = NULL ; /* 10 Feb 2016 */
 
 static int ttest_opcode = 0 ;  /* 0=pooled, 1=unpooled, 2=paired */
 
+#define IS_PAIRED (ttest_opcode == 2)   /* 15 Dec 2021 */
+
 static int               ndset_AAA=0 , nval_AAA=0 ;
 static char              *snam_AAA=NULL , *lnam_AAA=NULL ;
 static char             **name_AAA=NULL ;  /* argv names for input datasets */
@@ -253,6 +255,13 @@ static int       do_5percent = 1 ;   /* 24 May 2017 */
 
 static int dryrun = 0 ;
 
+/* number of simulations for -Clustsim and -ETAC */
+
+#define NCSIM_NORM 10080             /* 15 Dec 2021 */
+#define NCSIM_MEGA 30240
+
+static int use_mega = 0 ;
+
 typedef struct {
   int nnlev , sid , npthr ;
   int do_hpow0 , do_hpow1 , do_hpow2 ;
@@ -265,10 +274,14 @@ typedef struct {
 
 /* lines directly below copied from 3dXClustSim.c:
    only change these if you change them there as well! */
-#define NFARP 9
-static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
-static float min_fgoal = 1.f ;
-static float max_fgoal = 9.f ;
+#define NFARP   9
+#define NMUCHO 25                /* Expand gamut [15 Jan 2021] */
+static float farplist[NMUCHO] =
+   {        1.f,  2.f,  3.f,  4.f,  5.f,  6.f,  7.f,  8.f,  9.f,
+     10.f, 11.f, 12.f, 13.f, 14.f, 15.f, 16.f, 17.f, 18.f, 19.f,
+     20.f, 21.f, 22.f, 23.f, 24.f, 25.f                         } ;
+static float min_fgoal =  1.0f ;
+static float max_fgoal = 25.0f ;
 
 #undef MENTION_LOCAL_ETAC
 
@@ -488,6 +501,11 @@ void display_help_menu(void)
       "      [* more sophisticated type of 't-test' that also takes  *]\n"
       "      [* into account the variance map of each input dataset. *]\n"
       "\n"
+      "\n"
+      "      [* When constructing 3dttest++ commands consider using  *]\n"
+      "      [* gen_group_command.py to build your command FOR you,  *]\n"
+      "      [* which can simplify the syntax/process. *]\n"
+      "\n"
       "* Usage can be similar (not identical) to the old 3dttest;\n"
       "  for example [SHORT form of dataset input]:\n"
       "\n"
@@ -519,6 +537,27 @@ void display_help_menu(void)
       "    the label 'Nor-Pat_Tstat'.\n"
       " ++ See the section 'STRUCTURE OF THE OUTPUT DATASET' (far below) for\n"
       "    more infomation on how the results are formatted.\n"
+      "\n"
+      "   ** NOTES on the labels above:\n"
+      "      ++ The '-setX' label (above: 'Green') will be limited to 12 characters\n"
+      "         -- this label is used in the sub-brick labels in the output files,\n"
+      "         which are shown in the AFNI GUI 'Define Overlay' buttons for\n"
+      "         choosing the volumes (sub-bricks) you want to look at.\n"
+      "      ++ However, the dataset labels (above: 'sub001', etc) are only limited\n"
+      "         to 256 characters. These labels are used to pick values out of the\n"
+      "         covariates table.\n"
+      "      ++ In the 'LONG' form input illustrated above, the set label and the\n"
+      "         dataset labels are given explicitly.\n"
+      "      ++ In the 'SHORT' form input, the set label must be given separately,\n"
+      "         using option '-labelA' and/or '-labelB'. The dataset labels are\n"
+      "         taken from the dataset input filenames -- to be precise, the 'prefix'\n"
+      "         part of the filename, as in:\n"
+      "           'Ethel/Fred.nii' -> 'Fred'  and  'Lucy/Ricky+tlrc.HEAD' -> 'Lucy'\n"
+      "         If you are using covariates and are using the 'SHORT' form of input\n"
+      "         (the most common usage), the prefixes of the dataset filename must\n"
+      "         be unique within their first 256 characters, or trouble will happen.\n"
+      "      ++ I added this note [15 Dec 2021] because failing to distinguish between\n"
+      "         these labels and their limits was causing some confusion and angst.\n"
       "\n"
       "* You can input 1 or 2 sets of data (labeled 'A' and 'B' by default).\n"
       "\n"
@@ -575,7 +614,7 @@ void display_help_menu(void)
       "   is just followed by a list of datasets to use.\n"
       "\n"
       "* The second (long) form is similar to the 3dMEMA program, where you specify\n"
-      "   a label for each input dataset sub-brick (a difference between this\n"
+      "   a distinct label for each input dataset sub-brick (a difference between this\n"
       "   option and the version in 3dMEMA is only that you do not give a second\n"
       "   dataset ('T_DSET') with each sample in this program).\n"
       "\n"
@@ -593,6 +632,13 @@ void display_help_menu(void)
       "   *** on how multiple sub-brick datasets will be processed herein. ***\n"
       "  ++ If multiple sub-bricks are input from a single dataset, then\n"
       "     covariates cannot be used (sorry, Charlie).\n"
+      "  ++ In the short form input, the 'prefix' for each dataset is its label\n"
+      "     if '-covariates' is used. The prefix is the dataset file name with\n"
+      "     any leading directory name removed, and everything at and after\n"
+      "     '+' or '.nii' cut off:\n"
+      "       Zork/Fred.nii -> Fred  *OR*   Zork/Fred+tlrc.HEAD -> Fred\n"
+      "  ++ In the long form input (described below), you provied each dataset\n"
+      "     with a label on the command line directly.\n"
       "  ++ For some limited compatibility with 3dttest, you can use '-set2' in\n"
       "     place of '-setA', and '-set1' in place of '-setB'.\n"
       "  ++ [19 Jun 2012, from Beijing Normal University, during AFNI Bootcamp]\n"
@@ -623,8 +669,10 @@ void display_help_menu(void)
       "   BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n"
       "             ++ only 1 sub-brick can be specified here!\n"
       "    ** Note that the label 'SETNAME' is limited to %d characters,\n"
-      "       and the labels 'LABL_K' are limited to %d characters\n"
-      "       -- any more will be thrown away without warning.\n"
+      "       and the dataset labels 'LABL_K' are limited to %d characters.\n"
+      "       -- Any more will be thrown away without warning.\n"
+      "       -- This limit also applies to the dataset labels taken\n"
+      "          from the dataset filenames in the short form input.\n"
       "    ** Only the first %d characters of the covariate labels can be\n"
       "       used in the sub-brick labels, due to limitations in the AFNI\n"
       "       dataset structure and AFNI GUI. Any covariate labels longer than\n"
@@ -1038,7 +1086,7 @@ void display_help_menu(void)
       "             ++ If you don't understand the difference between a\n"
       "                paired and unpaired t-test, I'm not going to teach you\n"
       "                in this help file. But please consult someone or you\n"
-      "                will undoubtedly come to grief.\n"
+      "                will undoubtedly come to grief!\n"
       "\n"
       " -unpooled = Specifies that the variance estimates for setA and\n"
       "              setB be computed separately (not pooled together).\n"
@@ -1088,13 +1136,23 @@ void display_help_menu(void)
       "                 (for no good reason).\n"
       "             ++ At this time, you can't use -zskip with -covariates,\n"
       "                 because that would require more extensive re-thinking\n"
-      "                 and then re-programming.\n"
-      "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
+      "                 and then serious re-programming.\n"
+      "             ++ You CAN use -zskip with -paired, but it works slightly\n"
+      "                 differently than with a non-paired test [06 May 2021]:\n"
+      "                 -- In a non-paired test, setA and setB are pruned of\n"
+      "                    zero values separately; e.g., setA could lose 3\n"
+      "                    values at a given voxel, while setB loses 5 there.\n"
+      "                 -- In a paired test, if EITHER setA or setB has a zero\n"
+      "                    value at a given voxel, both paired values are discarded.\n"
+      "                    This choice is necessary, since a paired t-test\n"
+      "                    requires subtracting the setA/setB values pairwise\n"
+      "                    and if one element of a pair is invalid, then the\n"
+      "                    other element has nothing to be paired with.\n"
       "             ++ You can also put a decimal fraction between 0 and 1 in\n"
       "                 place of 'n' (e.g., '0.9', or '90%%'). Such a value\n"
       "                 indicates that at least 90%% (e.g.) of the values in each\n"
       "                 set must be nonzero for the t-test to proceed. [08 Nov 2010]\n"
-      "                 -- In no case will the number of values tested fall below 2!\n"
+      "                 -- In no case will the number of values tested fall below 3!\n"
       "                 -- You can use '100%%' for 'n', to indicate that all data\n"
       "                    values must be nonzero for the test to proceed.\n"
 #ifdef ALLOW_RANK
@@ -1368,6 +1426,14 @@ void display_help_menu(void)
       "                 to extract a value from the table having a voxelwise p-value\n"
       "                 ('-csim_pthr ..') and an FDR alpha level ('-csim_alpha ..').\n"
       "                 Be sure to check out those options in 1d_tool.py's help!\n"
+      "        **-->>++ NOTE: The default operation of 3dClustSim when used from\n"
+      "                       3dttest++ is with the '-LOTS' option controlling\n"
+      "                       the thresholds used for the tabular output.\n"
+      "                       You can change that to the '-MEGA' option = a larger\n"
+      "                       table, by setting Unix environment variable\n"
+      "                       AFNI_CLUSTSIM_MEGA to YES. You can do that in several\n"
+      "                       ways, including on the command line with the option\n"
+      "                       '-DAFNI_CLUSTSIM_MEGA=YES'.     [15 Dec 2021 - RWCox]\n"
       "\n"
       "  ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
       "  ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
@@ -1678,6 +1744,8 @@ void display_help_menu(void)
       "                                         } - must be an integer\n"
       "                                         } - or the word 'ALL' to output\n"
       "                                         }   results for 1, 2, 3, 4, ..., 9.\n"
+      "                                         } - or the word 'MUCHO' to output\n"
+      "                                         }   result for 1, 2, ..., 24, 25.\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -1794,10 +1862,10 @@ void display_help_menu(void)
       "Px.B4.0.5percent.txt                voxel-wise threshold list for a variety\n"
       "Px.B7.0.5percent.txt                  of global FPRs, for blurs 4 and 7\n"
       "                                      (not computed if '-no5percent' is given)\n"
-      "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
-      "Px.N.ETAC.mthresh.B7.0.5perc.nii      for overall 5%% global false positive rate\n"
-      "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
-      "PX.N.ETACmaskALL.2sid.5perc.nii.gz  Multi-volume mask showing which ETAC\n"
+      "Px.N.ETAC.mthresh.B4.0.05perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
+      "Px.N.ETAC.mthresh.B7.0.05perc.nii     for overall 5%% global false positive rate\n"
+      "Px.N.ETACmask.2sid.05perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
+      "PX.N.ETACmaskALL.2sid.05perc.nii.gz  Multi-volume mask showing which ETAC\n"
       "                                      sub-method(s) passed in each voxel:\n"
       "                                      There is one sub-brick per p-value,\n"
       "                                      per blur case (e.g., 5*2=10), and each\n"
@@ -1813,7 +1881,8 @@ void display_help_menu(void)
       "                                      with pthr=0.01.\n"
       "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
       "  'ETAC' will have the '5perc' component changed to that value (e.g., '4perc').\n"
-      "* If 'fpr=ALL', there would be outputs for '1perc', '2perc', ... '9perc'.\n"
+      "* If 'fpr=ALL', there would be outputs for '01perc', '02perc', ... '09perc'.\n"
+      "* If 'fpr=MUCHO', outputs for '01perc' up to '25perc' will be computed.\n"
       "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
       "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
@@ -2052,7 +2121,7 @@ void display_help_menu(void)
       "(4) Consider the test statistic\n"
       "      tau = y0 / sqrt(s^2)\n"
       "    Under the null hypothesis, this has the distribution of a random variable\n"
-      "      Normal(0,1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m-1)/(N-m-1) )\n"
+      "      Normal(0,(1 + [c]'[Xi][c]) / sqrt( ChiSquared(N-m-1)/(N-m-1) )\n"
       "    So tau is not quite t-distributed, but dividing out the scale factor works:\n"
       "      t = y0 / sqrt( s^2 * (1 + [c]'[Xi][c]) )\n"
       "    and under the null hypothesis, this value t has a Student(N-m-1) distribution.\n"
@@ -2062,7 +2131,7 @@ void display_help_menu(void)
       "    we'd have\n"
       "      t_con = y / sqrt( s^2 / (N-1) )\n"
       "    which shows that the t statistic for the '-singletonA' test will usually be\n"
-      "    much smaller than the t statistic for the 'test against constant' case --\n"
+      "    smaller than the t statistic for the 'test against constant' case --\n"
       "    because we have to allow for the variance of the singleton dataset value y.\n"
       "\n"
       "Please note that the singleton dataset is assumed to be statistically\n"
@@ -2142,10 +2211,10 @@ void display_help_menu(void)
       "     is it that you would get the p-value of 0.0442, versus how\n"
       "     likely is p=0.0442 when the null hypothesis is true?\n"
       "This is the question addressed in the paper\n"
-      "     Calibration of p Values for Testing Precise Null Hypotheses.\n"
+      "     Calibration of p Values for Testing Precise Null Hypothese.s\n"
       "     T Sellke, MJ Bayarri, and JO Berger.\n"
       "     The American Statistician v.55:62-71, 2001.\n"
-      "     http://www.stat.duke.edu/courses/Spring10/sta122/Labs/Lab6.pdf\n"
+      "     www2.stat.duke.edu/~berger/papers/99-13.ps\n"
       "The exact interpretation of what the above question means is somewhat\n"
       "tricky, depending on if you are a Bayesian heretic or a Frequentist\n"
       "true believer. But in either case, one reasonable answer is given by\n"
@@ -2207,7 +2276,7 @@ void display_help_menu(void)
       "     Default Bayes Factors for Nonnested Hypthesis Testing.\n"
       "     JO Berger and J Mortera. J Am Stat Assoc v:94:542-554, 1999.\n"
       "     http://www.jstor.org/stable/2670175 [PDF]\n"
-      "     http://ftp.isds.duke.edu/WorkingPapers/97-44.ps [PS preprint]\n"
+      "     https://www2.stat.duke.edu/~berger/papers/mortera.ps [PS preprint]\n"
       "What I have tried to do herein is outline the p-value interpretation issue\n"
       "using (mostly) non-technical words.\n"
       "\n"
@@ -2243,11 +2312,18 @@ void display_help_menu(void)
 
       "\n"
       "-------------------------\n"
+      "CONVENIENCE NOTE ~1~\n"
+      "-------------------------\n"
+      "\n"
+      "When constructing 3dttest++ commands, consider using gen_group_command.py\n"
+      "to simplify the process!\n"
+      "\n"
+      "-------------------------\n"
       "VARIOUS LINKS OF INTEREST   ~1~\n"
       "-------------------------\n"
       "\n"
       "* http://en.wikipedia.org/wiki/T_test\n"
-      "* http://www.statsoft.com/textbook/basic-statistics/\n"
+      "* https://open.umn.edu/opentextbooks/textbooks/459\n"
       "* http://en.wikipedia.org/wiki/Mutatis_mutandis\n"
       "\n"
       "---------------------------------------------------\n"
@@ -2382,7 +2458,7 @@ int main( int argc , char *argv[] )
    int have_cov=0 ; /* 17 Mar 2017 */
    char *snam_PPP=NULL, *snam_MMM=NULL ;
    static int iwarn=0;
-   FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ;
+   FILE *fp_sdat = NULL ; short *sdatar=NULL ; char *sdat_prefix=NULL ; int num_sdat=0 ;
 
    /*--- help the piteous luser? ---*/
 
@@ -2516,6 +2592,7 @@ int main( int argc , char *argv[] )
          zzz = (float)strtod(argv[nopt++],&cpt) ;
          if( zzz > 1.0f && *cpt == '%' ) zzz *= 0.01f ;
          if( zzz > 1.0f ){
+           if( zzz < 3.0f ) zzz = 3.0f ;
            zskip_AAA = zskip_BBB = (int)zzz ; zskip_fff = 0.0f ; do_zskip = 1 ;
          } else {
            if( zzz <= 0.0f || zzz > 1.0f ){
@@ -2838,6 +2915,8 @@ int main( int argc , char *argv[] )
          float fgoal ;
          if( strncasecmp(cpt+4,"ALL",3) == 0 ){  /* 23 Aug 2017 */
            fgoal = -666.0f ;
+         } else if( strncasecmp(cpt+4,"MUCHO",5) == 0 ){ /* 15 Jan 2021 */
+           fgoal = -777.0f ;
          } else {
            fgoal = (float)rint(strtod(cpt+4,NULL)) ;
            if( fgoal < min_fgoal ){
@@ -2846,8 +2925,8 @@ int main( int argc , char *argv[] )
              fgoal = min_fgoal ;
            } else if( fgoal > max_fgoal ){
              WARNING_message("fpr=%.1f%% too large in -ETAC_opt name=%s: setting fpr=%.1f%%",
-                             fgoal , opx->name , max_fgoal ) ;
-             fgoal = 9.0f ;
+                             fgoal , opx->name , 5.0f ) ;
+             fgoal = 5.0f ;
            }
          }
          opx->farp_goal = fgoal ;
@@ -3690,7 +3769,7 @@ int main( int argc , char *argv[] )
      center_code = CENTER_DIFF ;
    }
 
-   if( nval_AAA != nval_BBB && ttest_opcode == 2 )
+   if( nval_AAA != nval_BBB && IS_PAIRED )
      ERROR_exit("Cannot do '-paired' with unequal set sizes: #A=%d #B=%d",
                 nval_AAA , nval_BBB ) ;
 
@@ -3709,7 +3788,7 @@ int main( int argc , char *argv[] )
      nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
    }
 
-   if( nBwt > 0 && nval_BBB > 0 && ttest_opcode == 2 ){   /* paired test? */
+   if( nBwt > 0 && nval_BBB > 0 && IS_PAIRED ){   /* paired test? */
      WARNING_message(  "-setweightB used with -paired ==> ignoring [uses -setweightA]") ;
      nBwt = 0 ; mri_free(Bwtim) ; Bwtar = NULL ;
      if( nAwt == 0 )
@@ -3751,7 +3830,7 @@ int main( int argc , char *argv[] )
        WARNING_message("-setweightB has %d values, more than %d -setB values to test",
                        nBwt , nval_BBB ) ;
        nBwt = nval_BBB ;
-     } else if( nBwt == 0 && nval_BBB > 0 && ttest_opcode != 2 ){  /* none at all */
+     } else if( nBwt == 0 && nval_BBB > 0 && !IS_PAIRED ){  /* none at all */
        INFO_message("-setweightB not given ==> using all 1 weights for -setB") ;
      }
 
@@ -3769,7 +3848,7 @@ int main( int argc , char *argv[] )
        SCALE_wtar(Bwtar,nval_BBB) ; /* scaling macro */
        Bwtim->nx = nval_BBB ; Bwtim->ny = Bwtim->nz = 1 ;
        Bwtstring = mri_1D_tostring( Bwtim ) ;
-     } else if( nAwt > 0 && ttest_opcode == 2 ){ /* paired == copy A weights */
+     } else if( nAwt > 0 && IS_PAIRED ){ /* paired == copy A weights */
        nBwt = nAwt ; Bwtar = Awtar ; Bwtim = Awtim ;
        INFO_message("-paired and -setweightA ==> -setB will copy weights from -setA") ;
      }
@@ -3803,15 +3882,19 @@ int main( int argc , char *argv[] )
    /* zskip checks */
 
    if( do_zskip && mcov > 0 )
-     ERROR_exit("-zskip and -covariates cannot be used together [yet] /:(") ;
+     ERROR_exit("-zskip and -covariates cannot be used together /:(") ;
 
-   if( do_zskip && ttest_opcode == 2 )
+#if 0  /* No longer true [06 May 2021]*/
+   if( do_zskip && IS_PAIRED == 2 )
      ERROR_exit("-zskip and -paired cannot be used together /:(") ;
+#endif
+
+   /* adjust zskip values to be a fraction of each set's size */
 
    if( do_zskip && zskip_fff > 0.0f && zskip_fff <= 1.0f ){
-     zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 2 ) zskip_AAA = 2 ;
+     zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 3 ) zskip_AAA = 3 ;
      if( nval_BBB > 0 ){
-       zskip_BBB = (int)(zskip_fff*nval_BBB) ; if( zskip_BBB < 2 ) zskip_BBB = 2 ;
+       zskip_BBB = (int)(zskip_fff*nval_BBB) ; if( zskip_BBB < 3 ) zskip_BBB = 3 ;
      }
    }
 
@@ -3823,12 +3906,19 @@ int main( int argc , char *argv[] )
      ERROR_exit("-zskip (%d) is more than number of data values in setB (%d)",
                 nval_BBB ) ;
 
+   /* send a message about -zskip */
+
    if( do_zskip ){
-     INFO_message("-zskip: require %d (out of %d) nonzero values for setA",
-                  zskip_AAA,nval_AAA) ;
-     if( nval_BBB > 0 )
-       ININFO_message("    and require %d (out of %d) nonzero values for setB",
-                      zskip_BBB,nval_BBB) ;
+     if( IS_PAIRED ){ /* paired case [06 May 2021] */
+       INFO_message("-zskip and -paired: require at least %d (out of %d) nonzero pairs in setA+setB",
+                    zskip_AAA,nval_AAA) ;
+     } else {
+       INFO_message("-zskip: require at least %d (out of %d) nonzero values for setA",
+                    zskip_AAA,nval_AAA) ;
+       if( nval_BBB > 0 )
+         ININFO_message("    and require at least %d (out of %d) nonzero values for setB",
+                        zskip_BBB,nval_BBB) ;
+     }
    }
 
    /* covariate count checks */
@@ -3903,6 +3993,9 @@ int main( int argc , char *argv[] )
    if( do_Xclustsim && nval_AAA+nval_BBB < 14 )
      ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
                 clustsim_opt,nval_AAA+nval_BBB) ;
+   if( do_Xclustsim && nval_AAA+nval_BBB < 28 && IS_PAIRED )
+     ERROR_exit("You can't use %s in a paired 2-sample test with nval_AAA+nval_BBB=%d < 28",
+                clustsim_opt,nval_AAA+nval_BBB) ;
 
    if( (do_Xclustsim || do_clustsim) && singletonA )  /* 21 Nov 2017 */
      ERROR_exit("You can't use -singletonA with -Clustsim OR with -ETAC :(") ;
@@ -3936,7 +4029,7 @@ int main( int argc , char *argv[] )
      do_permute = 0 ; wtar_permute = 0 ;
    }
 
-   if( wtar_permute && 
+   if( wtar_permute &&
        AFNI_yesenv("AFNI_DONT_PERMUTE_WTAR") ) wtar_permute = 0 ; /* 30 Mar 2020 */
 
    if( do_permute ){
@@ -3957,7 +4050,7 @@ int main( int argc , char *argv[] )
          WARNING_message("-permute with -unpooled is somewhat weird\n"
                          "           -- but since you asked for it, you'll get it :)") ;
      }
-     if( ttest_opcode == 2 ){         /* -paired -- disable -permute */
+     if( IS_PAIRED ){                 /* -paired -- disable -permute */
        if( do_permute > 1 )
          WARNING_message("-permute is turned off for -paired t-test") ;
        do_permute = 0 ; dont_permute = 1 ; wtar_permute = 0 ;
@@ -3975,13 +4068,19 @@ int main( int argc , char *argv[] )
 
    /*----- ETAC memory check [22 Aug 2017] -----*/
 
+   use_mega = ( do_clustsim && AFNI_yesenv("AFNI_CLUSTSIM_MEGA") ) ;
+
    if( do_Xclustsim ){
      int64_t nsdat , nsysmem ;
-     int ncsim , ncase , ncmin = (do_local_etac) ? 30000 : 10000 ;
+     int ncsim , ncase ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? NCSIM_MEGA : NCSIM_NORM ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
           if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
+
+     if( use_mega )   /* 15 Dec 2021 */
+       ncsim = MAX(ncsim,NCSIM_MEGA) ;
 
      ncase = (Xclu_nblur == 0) ? 1 : Xclu_nblur ;
 
@@ -4053,7 +4152,7 @@ int main( int argc , char *argv[] )
        INFO_message("results will be %s - %s", snam_PPP,snam_MMM) ;
      else
        INFO_message("%s test: results will be %s - %s",
-                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
+                    IS_PAIRED ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
    /*----- set up covariates/regression matrices in a very lengthy aside now -----*/
@@ -4079,6 +4178,7 @@ int main( int argc , char *argv[] )
 
        nbad = 0 ; /* total error count */
        if( twosam ){  /* do setB covariates now */
+         char *mylab ;
          qset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset_BBB) ;
          covvim_BBB = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*mcov) ;
          covvec_BBB = (floatvec   **)malloc(sizeof(floatvec   *)*mcov) ;
@@ -4086,7 +4186,8 @@ int main( int argc , char *argv[] )
            covvim_BBB[jj] = NULL ;         /* initialize output vectors to NULL */
            covvec_BBB[jj] = NULL ;
            for( nkbad=kk=0 ; kk < ndset_BBB ; kk++ ){     /* loop over datasets */
-             ii = string_search( labl_BBB[kk] ,     /* ii = covariate row index */
+             mylab = (IS_PAIRED) ? labl_AAA[kk] : labl_BBB[kk] ; /* 15 Dec 2021 */
+             ii = string_search( mylab ,            /* ii = covariate row index */
                                  covnel->vec_len ,
                                  (char **)covnel->vec[0] ) ;
              if( ii < 0 ){                     /* can't find it ==> this is bad */
@@ -4102,7 +4203,7 @@ int main( int argc , char *argv[] )
                  ERROR_message("Cannot open dataset '%s' from covariates file" ,
                                qpt[ii] ) ; nbad++ ; nkbad++ ;
                } else if( DSET_NVALS(qset[kk]) > 1 ){
-                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks",
+                 ERROR_message("Dataset '%s' from covariates file has %d sub-bricks (should be 1)",
                                qpt[ii] , DSET_NVALS(qset[kk]) ) ; nbad++ ; nkbad++ ;
                }
              } /* end of creating dataset #kk in column #jj */
@@ -4203,11 +4304,11 @@ int main( int argc , char *argv[] )
 
      /*-- setB matrix --*/
 
-     if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
+     if( twosam && !IS_PAIRED ){        /* un-paired 2-sample case */
        Bxxim = mri_new( nval_BBB , mcov+1 , MRI_float ) ;
        Bxx   = MRI_FLOAT_PTR(Bxxim) ;
-     } else if( twosam && ttest_opcode == 2 ){  /* paired case */
-       Bxxim = Axxim ; Bxx = Axx ;   /* identical matrix to setA */
+     } else if( twosam && IS_PAIRED ){  /* paired case */
+       Bxxim = Axxim ; Bxx = Axx ;      /* identical matrix to setA */
      }
 
      /*-- fill them in and (pseudo)invert them --*/
@@ -4216,7 +4317,7 @@ int main( int argc , char *argv[] )
 
      if( num_covset_col > 0 ) MEMORY_CHECK ;
 
-     if( twosam && mcov > 0 && num_covset_col < mcov && !singletonA ){ /* 19 Oct 2010 */
+     if( twosam && !IS_PAIRED && mcov > 0 && num_covset_col < mcov && !singletonA ){ /* 19 Oct 2010 */
        int toz_sav = toz ; float pp ; /* test covariates for equality-ishness */
 
        toz = 1 ;
@@ -4667,7 +4768,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( do_resid ){
          if( bb == 0 ) rimout->ivec[kout] = ivox ;
          ABresid = VECTIM_PTR(rimout,kout) ;
-         memset( ABresid , 0 , sizeof(float)*(nval_AAA+nval_BBB) ) ;
+         memset( ABresid , 0 , sizeof(float)*(nval_AAA+nval_BBB) ) ; /* set to 0 */
          Aresid = ABresid ;
          if( nval_BBB > 0 ) Bresid = ABresid + nval_AAA ;
        }
@@ -4709,11 +4810,37 @@ LABELS_ARE_DONE:  /* target for goto above */
          int   *iAAA=NULL  , *iBBB=NULL , fix_resid=0 ;
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
-           if( !singletonA ){
+
+           if( IS_PAIRED ){  /* -zskip for -paired [06 May 2021] */
+                             /* -paired implies nval_AAA == nval_BBB */
+             for( ii=nz=0 ; ii < nval_AAA ; ii++ ){ /* 'bad' count: if either setA or set B is 0 */
+               nz += ( (datAAA[ii] == 0.0f) || (datBBB[ii] == 0.0f) ) ;
+             }
+/* if( nz > 0 ) ININFO_message("paired zskip: kout=%d ivox=%d nz=%d\n",kout,ivox,nz) ; */
+             if( nz > 0 ){ /* copy nonzero vals (if have enuf) to new arrays */
+               nAAA = nBBB = nval_AAA - nz ;   /* will keep fewer values than input */
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; } /* not enuf */
+               zAAA = (float *)calloc(sizeof(float),nAAA) ; /* new set A data array */
+               iAAA = (int   *)calloc(sizeof(int)  ,nAAA) ;
+               if( do_resid ){ rAAA = (float *)calloc(sizeof(float),nAAA); fix_resid++; }
+               zBBB = (float *)calloc(sizeof(float),nBBB) ; /* new set B data array */
+               iBBB = (int   *)calloc(sizeof(int)  ,nBBB) ;
+               if( do_resid ){ rBBB = (float *)calloc(sizeof(float),nBBB); fix_resid++; }
+               for( ii=qq=0 ; ii < nval_AAA ; ii++ ){ /* extract the data we're keeping */
+                 if( datAAA[ii] != 0.0f && datBBB[ii] != 0.0f ){
+                   iAAA[qq] = iBBB[qq]   = ii ; /* index where data came from */
+                   zAAA[qq] = datAAA[ii] ;      /* copies of t-test-able data */
+                   zBBB[qq] = datBBB[ii] ; qq++ ;
+                 }
+               }
+             }
+           }
+
+           if( !singletonA ){  /* -zskip for setA separately from setB */
              for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nAAA = nval_AAA - nz ;
-               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
+               if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; } /* not enuf */
                zAAA = (float *)calloc(sizeof(float),nAAA) ;
                iAAA = (int   *)calloc(sizeof(int)  ,nAAA) ;
                if( do_resid ){ rAAA = (float *)calloc(sizeof(float),nAAA); fix_resid++; }
@@ -4721,11 +4848,12 @@ LABELS_ARE_DONE:  /* target for goto above */
                  if( datAAA[ii] != 0.0f ){ iAAA[qq] = ii; zAAA[qq++] = datAAA[ii]; }
              }
            }
-           if( twosam ){
+
+           if( !IS_PAIRED && twosam ){  /* -zskip for setB separately from setA */
              for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nBBB = nval_BBB - nz ;
-               if( nBBB < zskip_BBB ){
+               if( nBBB < zskip_BBB ){ /* not enuf */
                  if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
                  kout++ ; nzskip++ ; continue ;
                }
@@ -4737,7 +4865,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              }
            }
            if( (zAAA != datAAA && zAAA != NULL) || (zBBB != datBBB && zBBB != NULL) )
-             nzred++ ; /* count of reduced cases */
+             nzred++ ; /* count of reduced cases (where -zskip applied) */
          }
 
          if( twosam ){
@@ -4765,7 +4893,9 @@ LABELS_ARE_DONE:  /* target for goto above */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          }
-         if( fix_resid ){ /* 26 Sep 2017 */
+         if( fix_resid ){ /* -zskip => don't have all residuals [26 Sep 2017] */
+                          /* note residual arrays were initialized to zero, */
+                          /* so values not assigned here will be zero, as advertised */
            if( nAAA < nval_AAA && rAAA != NULL && rAAA != Aresid ){
              for( qq=0 ; qq < nAAA ; qq++ ) Aresid[iAAA[qq]] = rAAA[qq] ;
            }
@@ -4774,10 +4904,10 @@ LABELS_ARE_DONE:  /* target for goto above */
            }
          }
 
-         if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
-         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
-         if( rAAA != Aresid && rAAA != NULL ) free(rAAA) ;
-         if( rBBB != Bresid && rBBB != NULL ) free(rBBB) ;
+         if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;  /* free stuff */
+         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;  /* that was */
+         if( rAAA != Aresid && rAAA != NULL ) free(rAAA) ;  /* created */
+         if( rBBB != Bresid && rBBB != NULL ) free(rBBB) ;  /* for -zskip */
          if( iAAA != NULL )                   free(iAAA) ;
          if( iBBB != NULL )                   free(iBBB) ;
 
@@ -4855,17 +4985,18 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( vstep > 0 ) fprintf(stderr,"!\n") ;
 
      if( brickwise_num == 1 ){
+       char *ppp = (ttest_opcode==2) ? "pairs" : "values" ;
        if( nconst > 0 )
          ININFO_message("skipped %d voxel%s completely for having constant data" ,
                         nconst , (nconst==1) ? "\0" : "s" ) ;
 
        if( nzred > 0 )
-         ININFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
-                        nzred , (nzred==1) ? "\0" : "s" ) ;
+         ININFO_message("-zskip: %d voxel%s had some %s skipped in their t-tests",
+                        nzred  , ((nzred==1)  ? "\0" : "s") , ppp ) ;
 
        if( nzskip > 0 )
-         ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
-                        nzskip , (nzskip==1) ? "\0" : "s" ) ;
+         ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero %s" ,
+                        nzskip , ((nzskip==1) ? "\0" : "s") , ppp ) ;
      }
 
      /*--- load results from vimout into output dataset ---*/
@@ -4899,7 +5030,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          rval  = resar[ss] / SFAC ;
          sdatar[kout] = SHORTIZE(rval) ;
        }
-       fwrite(sdatar,sizeof(short),nmask_hits,fp_sdat) ;
+       fwrite(sdatar,sizeof(short),nmask_hits,fp_sdat) ; num_sdat++ ;
      }
 
      /* and load residual dataset [07 Dec 2015] */
@@ -4928,8 +5059,17 @@ LABELS_ARE_DONE:  /* target for goto above */
    }
 
    if( do_sdat ){      /*----- 29 Aug 2016 -----*/
+     int64_t fsiz ; int nnnn ;
      fclose(fp_sdat) ;
-     INFO_message("output short-ized file %s",sdat_prefix) ;
+     INFO_message("output short-ized file %s with %d values for each of %d volumes",
+                  sdat_prefix,nmask_hits,num_sdat) ;
+     fsiz = (int64_t)THD_filesize(sdat_prefix) ;
+     nnnn = (int)( fsiz /(sizeof(short)*nmask_hits) ) ;
+     if( nnnn != num_sdat ){
+       ERROR_message("  Output error? file size = %lld   num volumes = %d ???",
+                     (long long)fsiz , nnnn ) ;
+     }
+     ININFO_message("======= end of .sdat output run of 3dttest++ =======") ;
      exit(0) ;
    }
 
@@ -5014,24 +5154,58 @@ LABELS_ARE_DONE:  /* target for goto above */
      ININFO_message("results are %s - %s", snam_PPP,snam_MMM) ;
    else if( twosam )
      ININFO_message("%s test: results are %s - %s",
-                    ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
+                    IS_PAIRED ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
    /*------------------------------------------------------------------------*/
    /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
    /*----------- This is where ETAC and ClustSim are implemented ------------*/
    /*------------- do_Xclustsim == ETAC  do_clustsim == ClustSim ------------*/
    /*------------------------------------------------------------------------*/
+   /*-- Basically, what comes next is a scripting of various programs that --*/
+   /*-- together add up to ETAC. First, a bunch of 3dttest++ runs are made --*/
+   /*-- with randomization/permutation, to get the simulated 'noise' data. --*/
+   /*-- Second, 3dClustSim may be run using those simulations as inputs,   --*/
+   /*-- which finds the tables for cluster-size vs. p-value threshold.     --*/
+   /*-- Third, 3dXClustSim may be run to do the ETAC multi-thresholding,   --*/
+   /*-- which is followed by 3dMultiThresh to actually threshold the       --*/
+   /*-- primary statistics dataset output above, and then by 3dmask_tool   --*/
+   /*-- to build the various ETAC output masks. The code is long and looks --*/
+   /*-- daunting, but it is actually simple in concept; it is just that    --*/
+   /*-- there are a lot of contingencies to deal with:                     --*/
+   /*--   creating the command line for each noise simulation, taking      --*/
+   /*--     into account existing 3dttest++ options that require           --*/
+   /*--     some special treatment in the randomization runs               --*/
+   /*--   breaking the simulations into multiple jobs to take advantage    --*/
+   /*--     of multiple CPUs                                               --*/
+   /*--   local and global ETAC                                            --*/
+   /*--   multiple ETAC cases to run -- each one requires a new run of     --*/
+   /*--     program 3dXClustsim                                            --*/
+   /*--   multiple blur cases - requires looping over those, as well as    --*/
+   /*--     looping over the separate simulation jobs                      --*/
+   /*--   using the efficient .sdat format for transmitting datasets       --*/
+   /*--     to 3dClustSim, or using the .nii format for compatibility      --*/
+   /*--     with other software (Note: ETAC/3dXClustSim requires .sdat)    --*/
+   /*--   And things I've undoubtedly overlooked at this moment :(         --*/
+   /*------------------------------------------------------------------------*/
 
    if( do_clustsim || do_Xclustsim ){  /* this will take a while */
 
-     char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
-     int ncsim , ncase , icase ; float cblur ;
-     int use_sdat ;
+     char fname[1024] , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
+     char  *cmd ;   /* string for commands */
+     size_t clen ;  /* length of string for commands */
+     int ncase , icase ; float cblur ;
+     int use_sdat ; /* use the .sdat format? */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
-     int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 10000 ;
-     size_t clen ;
+     char *csim_mode = "-LOTS" ; /* 15 Dec 2021 */
 
+     /* min number of iterations (need more for local ETAC).
+        why these particular values?
+        that's an exercise for the student! (hint: prime factorization) */
+     int ncmin = (do_Xclustsim && do_local_etac) ? NCSIM_MEGA : NCSIM_NORM ;
+     int ncsim ; /* number of iterations to run */
+
+     /* using the .sdat format, unless ordered not to */
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
 
@@ -5040,6 +5214,12 @@ LABELS_ARE_DONE:  /* target for goto above */
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;  /* 0 if not set */
           if( ncsim <     1000 ) ncsim =  ncmin ;
      else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
+
+     if( use_mega && ncsim < NCSIM_MEGA ){   /* 15 Dec 2021 */
+       INFO_message("NOTE: Use of AFNI_CLUSTSIM_MEGA ==> ncsim raised from %d to %d",ncsim,NCSIM_MEGA) ;
+       ncsim = NCSIM_MEGA ;
+     }
+     if( use_mega ) csim_mode = "-MEGA" ;    /* 15 Dec 2021 */
 
      /* how many cases? */
 
@@ -5124,7 +5304,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( bmd+strlen(bmd) , " -mask %s",name_mask) ;
          if( ttest_opcode == 1 )
            sprintf( bmd+strlen(bmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
+         if( IS_PAIRED )
            sprintf( bmd+strlen(bmd) , " -paired") ;
 
          sprintf( fname , ".%s" , clab[icase] ) ;
@@ -5147,7 +5327,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          qmd = (pp==0) ? bmd : NULL ;  /* re-blur command? (only once) [19 Apr 2017] */
 
-         /* format the command to run 3dttest++ with the residuals as input */
+         /* format the command to run 3dttest++ with the residuals as input;
+            note that .sdat output is ordered via -RANDOMSIGN vs. -randomsign;
+            note that we only want z-scores, not mean estimates               */
 
          if( !use_sdat )
            sprintf( cmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES"
@@ -5191,7 +5373,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
          if( ttest_opcode == 1 )
            sprintf( cmd+strlen(cmd) , " -unpooled") ;
-         if( ttest_opcode == 2 )
+         if( IS_PAIRED )
            sprintf( cmd+strlen(cmd) , " -paired") ;
 
          if( CS_arg != NULL )     /* any extra arguments from the user */
@@ -5327,11 +5509,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( nbad < num_clustsim*ncase ){ /* if at least some files were OK */
          if( nbad > 0 ){
            ININFO_message(
-             " %d/%d minmax.1D files failed: will try to proceed with 5percent.txt anyway",
+             " %d/%d minmax.1D files failed: will try to proceed with *5percent.txt anyway",
              nbad , num_clustsim*ncase ) ;
          } else {
            ININFO_message(
-             " successfully read all %d minmax.1D files; computing 5percent.txt outputs",
+             " successfully read all %d minmax.1D files; computing *5percent.txt outputs",
              num_clustsim*ncase ) ;
          }
          for( icase=0 ; icase < ncase ; icase++ ){
@@ -5387,7 +5569,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
        } else {
          WARNING_message("COULD NOT read any .minmax.1D files for unknown reasons!") ;
-         ININFO_message ("  ==> no global threshold .5percent.txt files are output  :(") ;
+         ININFO_message ("  ==> no global threshold *.5percent.txt files are output  :(") ;
          ININFO_message ("  ... this failure does not affect any other Clustim/ETAC results!") ;
        }
        DESTROY_IMARR(inar) ;
@@ -5401,8 +5583,8 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(fname,"%s.CSim%s.cmd",prefix_clustsim,clab[icase]) ;
          if( !use_sdat ){
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -inset" ,
-                          prefix_clustsim , clab[icase] , fname ) ;
+                          " -prefix %s.CSim%s %s -both -nodec -cmd %s -inset" ,
+                          prefix_clustsim , clab[icase] , csim_mode , fname ) ;
            sprintf( cmd+strlen(cmd) , " \\\n   ") ;
            if( name_mask != NULL )
              sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
@@ -5412,8 +5594,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            }
          } else {
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -insdat %s" ,
-                          prefix_clustsim , clab[icase] , fname , name_mask ) ;
+                          " -prefix %s.CSim%s %s -both -nodec -cmd %s -insdat %s" ,
+                          prefix_clustsim , clab[icase] , csim_mode , fname , name_mask ) ;
            sprintf( cmd+strlen(cmd) , " \\\n   ") ;
            for( pp=0 ; pp < num_clustsim ; pp++ ){
              qq = pp + icase*num_clustsim ;
@@ -5432,25 +5614,26 @@ LABELS_ARE_DONE:  /* target for goto above */
            /* load the 3drefit command from 3dClustSim */
 
            ccc = AFNI_suck_file(fname) ;
-           if( ccc == NULL )
-             ERROR_exit("===== 3dClustSim command failed :-((( =====") ;
+           if( ccc == NULL ){
+             ERROR_message("===== 3dClustSim command failed to output 3drefit stub :-((( =====") ;
+           } else {
+             /* crop whitespace off the end */
 
-           /* crop whitespace off the end */
+             for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
+             if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
 
-           for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
-           if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
-
-           /* and run 3drefit */
+             /* and run 3drefit */
 #if 0
-           ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
+             ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
 #endif
-           if( cprefix == NULL )
-             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
-           else
-             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
+             if( cprefix == NULL )
+               sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
+             else
+               sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
 
-           if( debug ) ININFO_message("Running\n  %s",cmd) ;
-           system(cmd) ;
+             if( debug ) ININFO_message("Running\n  %s",cmd) ;
+             system(cmd) ;
+           }
          }
 
        } /* end of loop over icase */
@@ -5511,9 +5694,14 @@ LABELS_ARE_DONE:  /* target for goto above */
            numfarp = 1 ;
            flist   = &fgoal ;
          } else {
-           sprintf( cmd+strlen(cmd) , " -multiFPR" ) ;
-           numfarp = NFARP ;
-           flist   = farplist ;
+           if( fgoal > -700.0f ){
+             sprintf( cmd+strlen(cmd) , " -multiFPR" ) ;
+             numfarp = NFARP ;
+           } else {
+             sprintf( cmd+strlen(cmd) , " -muchoFPR" ) ;   /* 15 Jan 2021 */
+             numfarp = NMUCHO ;
+           }
+           flist = farplist ;
          }
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
@@ -5572,7 +5760,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              int ifarp , farp ; char sfarp[8] ;
              for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* loop over FPR goals [23 Aug 2017] */
                farp = (int)rintf(flist[ifarp]) ;
-               sprintf(sfarp,"%dperc",farp) ;
+               sprintf(sfarp,"%02dperc",farp) ;
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
@@ -5603,24 +5791,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,  /* combine the masks */
-                            "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.*.nii* -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,  /* combine the masks */
-                            "3dmask_tool -input %s.ETACtmask.global.*.nii -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.*.nii* -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the amasks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
@@ -5655,24 +5843,24 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.1pos.*.nii* -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii* -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
@@ -5706,31 +5894,31 @@ LABELS_ARE_DONE:  /* target for goto above */
                  }
                  if( do_local_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.1neg.*.nii* -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
                                   prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                  if( do_global_etac ){
                    sprintf( cmd ,
-                            "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
+                            "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii* -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
                             prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                    sprintf( cmd ,  /* cat the masks */
-                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii" ,
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii*" ,
                             prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    if( debug ) ININFO_message("Running\n  %s",cmd) ;
                    system(cmd) ;
                  }
                }
 #if 1
-               sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim,prefix_clustsim );
+               sprintf( cmd , "\\rm %s.ETACtmask.*.nii* %s.ETACamask.*.nii*" , prefix_clustsim,prefix_clustsim );
                if( debug ) ININFO_message("Running\n  %s",cmd) ;
                system(cmd);
 #endif
@@ -6459,7 +6647,7 @@ ENTRY("TT_centerize") ;
        }
      }
 
-     if( Bxx != NULL & Bxx != Axx ){
+     if( Bxx != NULL && Bxx != Axx ){
        for( jj=1 ; jj <= mcov ; jj++ ){
          for( kk=0 ; kk < nval_BBB ; kk++ ) vv[kk] = BXX(kk,jj) ;
          if( center_meth == CMETH_MEDIAN ) sum = qmed_float (nval_BBB,vv) ;
@@ -6522,7 +6710,7 @@ ENTRY("TT_matrix_setup") ;
 #ifdef ALLOW_RANK
    if( do_ranks ){
      for( jj=1 ; jj <= mcov ; jj++ ){
-       if( twosam && ttest_opcode != 2 )
+       if( twosam && !IS_PAIRED )
          rank_order_2floats( nval_AAA , &(AXX(0,jj)) , nval_BBB , &(BXX(0,jj)) ) ;
        else
          rank_order_float( nval_AAA , &(AXX(0,jj)) ) ;
@@ -6558,7 +6746,7 @@ ENTRY("TT_matrix_setup") ;
    if( debug ){
      sprintf(label,"setA voxel#%d",kout) ;
      mri_matrix_print(stderr,Axxim,label) ;
-     if( twosam && ttest_opcode != 2 ){
+     if( twosam && !IS_PAIRED ){
        sprintf(label,"setB voxel#%d",kout) ;
        mri_matrix_print(stderr,Bxxim,label) ;
      }
@@ -6589,7 +6777,7 @@ ENTRY("TT_matrix_setup") ;
 
    /* and for setB, if needed */
 
-   if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
+   if( twosam && !IS_PAIRED ){  /* un-paired 2-sample case */
      if( imprB != NULL ) DESTROY_IMARR(imprB) ;
      imprB = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
      if( imprB == NULL ) ERROR_exit("Cannot invert setB covariate matrix?! \\:(") ;
@@ -6603,7 +6791,7 @@ ENTRY("TT_matrix_setup") ;
        mri_matrix_print(stderr,IMARR_SUBIM(imprB,1),label) ;
      }
 
-   } else if( twosam && ttest_opcode == 2 ){
+   } else if( twosam && IS_PAIRED ){
      Bxx_psinv = Axx_psinv ; Bxx_xtxinv = Axx_xtxinv ;
    }
 

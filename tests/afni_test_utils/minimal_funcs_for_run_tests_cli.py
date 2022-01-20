@@ -26,7 +26,7 @@ VALID_VERBOSITY_MODES = [
 ]
 
 
-def get_parser(tests_dir=None,return_subparsers=False):
+def get_parser(tests_dir=None, return_subparsers=False):
     parser = argparse.ArgumentParser(
         description="""
         run_afni_tests.py is a wrapper script to help run tests for the AFNI
@@ -180,6 +180,12 @@ def get_parser(tests_dir=None,return_subparsers=False):
     )
 
     pytest_mod.add_argument(
+        "--runall",
+        help=("Ignore all test markers and run everything."),
+        action="store_true",
+    )
+
+    pytest_mod.add_argument(
         "--create-sample-output",
         "-c",
         help=(
@@ -197,7 +203,6 @@ def get_parser(tests_dir=None,return_subparsers=False):
             "compare against that is not the default data saved in the "
             "datalad repository afni_ci_test_data. "
         ),
-        action="store_true",
     )
 
     pytest_mod.add_argument(
@@ -321,13 +326,15 @@ def get_parser(tests_dir=None,return_subparsers=False):
         help="Include a verbose explanation along with the examples",
     )
     if return_subparsers:
-        return parser,local, container, examples
+        return parser, subparsers, local, container, examples
     else:
         return parser
 
 
 def parse_user_args(user_args=None, tests_dir=None):
-    parser, local, container, examples = get_parser(tests_dir=tests_dir,return_subparsers=True)
+    parser, subparsers, local, container, examples = get_parser(
+        tests_dir=tests_dir, return_subparsers=True
+    )
     args = parser.parse_args(user_args or sys.argv[1:])
     if args.help:
         parser.print_help()
@@ -342,12 +349,11 @@ def parse_user_args(user_args=None, tests_dir=None):
         print((tests_dir / "README.rst").read_text())
         sys.exit(0)
     if not args.subparser:
-        sys.exit(
-            ValueError(
-                "Unless requesting help you must specify a subcommand "
-                f"one of {list(subparsers.choices.keys())} "
-            )
+        print(
+            "Unless requesting help you must specify a subcommand "
+            f"one of {list(subparsers.choices.keys())} "
         )
+        sys.exit(2)
 
     # verbosity breaks exception hook so check not used together
     if args.debug and args.verbosity not in ["normal", "quiet"]:
@@ -369,6 +375,21 @@ def parse_user_args(user_args=None, tests_dir=None):
         raise ValueError(
             "Use pytest execution modifiers or manual pytest management, not both"
         )
+
+    # runslow and runveryslow options are shortcuts... more extensive
+    # selection should use -m and -k options (marker and keyword expressions).
+    # The latter pair cannont be combined with the shortcuts.
+    if (args.runall or args.runslow or args.runveryslow) and (
+        args.marker_expression or args.filter_expr
+    ):
+        print(
+            "ERROR: Cannot use marker or keyword filtering with the "
+            "--runslow, --runveryslow, --runall options. You can instead "
+            "include the slow and veryslow markers in the expression "
+            "passed to --marker-expression. e.g. run_afni_tests.py -m 'slow and "
+            "combinations' "
+        )
+        sys.exit(1)
 
     return args
 
@@ -472,7 +493,7 @@ def get_dependency_requirements(tests_dir):
     """
 
     if len(sys.argv) == 1 or any(
-        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help"]
+        x in sys.argv for x in ["-h", "-help", "--help", "--installation-help", "", " "]
     ):
         return "minimal"
 
@@ -667,6 +688,9 @@ def get_test_cmd_args(**kwargs):
     if kwargs.get("runveryslow"):
         cmd_args.append("--runveryslow")
 
+    if kwargs.get("runall"):
+        cmd_args.append("--runall")
+
     if kwargs.get("create_sample_output"):
         cmd_args.append("--create-sample-output")
 
@@ -715,7 +739,7 @@ def make_sure_afnipy_not_importable():
     )
 
 
-def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
+def modify_path_and_env_if_not_using_cmake(**args_dict):
     """
     This function does some path/environment modifications to deal with the
     different installation configurations that the tests might be run under.
@@ -762,7 +786,7 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
                 "Usage of cmake build for testing was "
                 "inferred from the usage of --build-dir. "
                 "Currently afnipy is not importable... you should be install it "
-                "into the current python interpreter. "
+                "into the current python interpreter. (something like pip install -e ../src/python_scripts)"
             )
         return
     elif test_bin_path:
@@ -780,8 +804,10 @@ def modify_path_and_env_if_not_using_cmake(tests_dir, **args_dict):
 
             return
 
-    #  Now just situation 3. and 4 remaining.
+    # Now just situation 3 and 4 remaining.
     make_sure_afnipy_not_importable()
+    if not args_dict.get("abin") and not test_bin_path:
+        raise EnvironmentError("Cannot find local AFNI binaries. ")
     abin = args_dict.get("abin") or str(Path(test_bin_path).parent)
 
     # Modify sys.path and os.environ. Makes afnipy importable

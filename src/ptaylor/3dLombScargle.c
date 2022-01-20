@@ -271,23 +271,21 @@ int main(int argc, char *argv[]) {
    int idx;
    int iarg;
    THD_3dim_dataset *insetTIME = NULL;
-   //THD_3dim_dataset *inset0 = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix=NULL ;
-   //   char in_name[300];
-   char in_mask[300];
+   char in_mask[THD_MAX_NAME];
    char *in_censor=NULL;
    char *str_censor=NULL;
    int  *int_cens=NULL;
    THD_3dim_dataset *outset_LS=NULL;
-   char outset_name[300];
+   char outset_name[THD_MAX_NAME];
 
    char *out_type[2] = {"pow","amp"};
 
    float temp_sum = 0.;
 
-   char out_TS[300];
-   char out_LS[300];
+   char out_TS[THD_MAX_NAME];
+   char out_LS[THD_MAX_NAME];
 
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero
@@ -373,7 +371,7 @@ int main(int argc, char *argv[]) {
 
          //sprintf(in_name,"%s", argv[iarg]); 
          insetTIME = THD_open_dataset(argv[iarg]);
-         if( (insetTIME == NULL ))
+         if( insetTIME == NULL )
             ERROR_exit("Can't open time series dataset '%s'.", argv[iarg]); 
 
          Dim = (int *)calloc(4,sizeof(int));
@@ -400,7 +398,7 @@ int main(int argc, char *argv[]) {
 
          sprintf(in_mask,"%s", argv[iarg]); 
          MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
+         if( MASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -581,7 +579,7 @@ int main(int argc, char *argv[]) {
    else {
 
       censor_sh = (short *)calloc( Dim[3], sizeof(short) );
-      if( (censor_sh == NULL) ) {
+      if( censor_sh == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(233);
       }
@@ -630,7 +628,7 @@ int main(int argc, char *argv[]) {
    }
    censor_flt = (float *)calloc(Npts_cen, sizeof(float));
    
-   if( (censor_flt == NULL) ) {
+   if( censor_flt == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(233);
    }
@@ -664,7 +662,7 @@ int main(int argc, char *argv[]) {
    for ( i = 0 ; i < Dim[0] ; i++ ) 
       for ( j = 0 ; j < Dim[1] ; j++ ) 
          mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
-   if( (mskd == NULL) ) {
+   if( mskd == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure (mask).\n\n");
       exit(233);
    }

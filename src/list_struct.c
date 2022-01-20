@@ -426,6 +426,20 @@ int free_int_list( int_list * d_list )
 }
 
 /* keep list intact, but clear values */
+int clear_float_list( float_list * d_list )
+{
+    int ind;
+
+    if ( ! d_list ) return -1;
+    if ( d_list->nall <= 0 || ! d_list->list ) return 0;
+
+    memset(d_list->list, '\0', d_list->nall*sizeof(float));
+    d_list->num = 0;
+
+    return 0;
+}
+
+/* keep list intact, but clear values */
 int clear_int_list( int_list * d_list )
 {
     int ind;

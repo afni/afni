@@ -1,0 +1,1115 @@
+#!/bin/tcsh
+# lesion_align
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# affine alignment of lesion lesion dataset (T1) to a template# usage example:
+#     lesion_align  -input Subj2+orig                      \
+#	      -base ~/abin/MNI152_T1_2009c+tlrc 				\
+#	      -atlas ~/abin/MNI_Glasser_HCP_v1.0.nii.gz 
+# see help section at end for options
+
+set progname = lesion_align
+# --------------------- version history with changes -----------------------
+#
+#set version = "1.00"
+#
+#set version = 1.01
+# adding healed and mirrored brain output
+# name changes from @stroke_align to lesion_align
+#set version = 1.02
+# bug fix for name change in unifized affine mirror output section
+#set version = 1.03
+# change affine alignment to use align_epi_anat.py instead of @auto_tlrc
+# and added cost options
+#set version = 1.04
+# input lesion mask for simple automatic good/bad side determination
+#set version = 1.05
+# made left and right both include x=0 symmetry line to avoid gaps
+#set version = 1.06
+# center_split option to allow splitting of input for affine alignment
+#set version = 1.07
+# warp lesion mask
+#set version = 1.08
+# unifize option, lesion mask transformation
+#set version = 1.09
+# [pt] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes down one level
+set version = 1.10
+# [pt] $lesion_outs text file made with just "-help", populated with 
+#      non-useful info.  Also, immediately would overwrite itself...
+#      moved creation of ${lesion_outs} further down in code to prevent this
+#    + ** guessing it should also create this text file wherever the actual
+#      output will go
+
+# get parsed and we can still get at script version number
+if ("$#" <  "1") then
+   goto HELP
+endif
+
+setenv AFNI_COMPRESSOR GZIP
+
+set dset = ""
+set base = ""
+set segset = ""
+set lesion_mask = ""
+set outdir = ""
+set templatename = ""
+set ok_to_exist = "0"
+set template_followers = ()
+set seg_followers = ()
+set keep_temp = ""
+set lesion_outs = "lesion_outs.txt"
+set cost = "lpa"
+set maxlev = "11"
+set goodside = ""
+set centersplit = "0"
+set exclusion = ""
+set unifize = "1"
+
+# process user options
+set ac = 1
+while ($ac <= $#argv)
+    if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+        goto HELP
+    else if ("$argv[$ac]" == "-ver") then
+        echo $version
+        exit 0
+    else if ("$argv[$ac]" == "-input") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-dset'"
+            exit 1
+        endif
+        set dset =  $argv[$ac]
+    else if ("$argv[$ac]" == "-base") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-base'"
+            exit 1
+        endif
+        set base =  $argv[$ac]
+     else if ("$argv[$ac]" == "-atlas") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-atlas'"
+            exit 1
+        endif
+        set segset =  $argv[$ac]
+    else if ("$argv[$ac]" == "-lesion_mask") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-lesion_mask'"
+            exit 1
+        endif
+        set lesion_mask =  $argv[$ac]
+    else if ("$argv[$ac]" == "-outdir") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-outdir'"
+            exit 1
+        endif
+        set outdir =  $argv[$ac]
+    else if ("$argv[$ac]" == "-template_prefix") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-template_prefix'"
+            exit 1
+        endif
+        set templatename =  $argv[$ac]
+    else if ("$argv[$ac]" == "-cost") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-cost'"
+            exit 1
+        endif
+        set cost =  $argv[$ac]
+    else if ("$argv[$ac]" == "-maxlev") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxlev'"
+            exit 1
+        endif
+        set maxlev =  $argv[$ac]
+    else if ("$argv[$ac]" == "-goodside") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-goodside'"
+            exit 1
+        endif
+        set goodside =  $argv[$ac]
+    else if (("$argv[$ac]" == "-center_split") || \
+             ("$argv[$ac]" == "-centersplit")) then
+        set centersplit = "1"
+    else if ("$argv[$ac]" == "-no_unifize") then
+        set unifize = "0"
+    else if ("$argv[$ac]" == "-ok_to_exist") then
+        set ok_to_exist = "1"
+    else if ("$argv[$ac]" == "-keep_temp") then
+        set keep_temp = "1"
+    else
+        echo "** unknown option $argv[$ac]"
+        exit 1
+    endif        
+    @ ac ++
+end
+
+# check for basic necessities
+if ($dset == "") then
+    echo "No input dataset provided"
+    exit 1
+endif
+
+if ($base == "") then
+    echo "No base template dataset provided"
+    exit 1
+endif
+
+# put output in user specified name or default output directory
+#  relative to current directoy
+if ($outdir == "") then
+   set outdir = "./lesion_align"
+endif
+
+if (($ok_to_exist == 1) && (-f ${outdir})) then
+    echo "reusing ${outdir}"
+else
+   \mkdir -p $outdir
+endif
+
+# allow for base to be in a standard directory or specified
+#   expand @FindAfniDsetPath to allow for AFNI_SUPP_ATLAS_DIR
+# is there a path in the name of the dataset
+#set basedir = `dirname $base`
+# is the dataset somewhere else or current directory
+set base = `@FindAfniDsetPath -full_path -append_file $base`
+
+if ($segset != "") then
+   # is there a path in the name of the dataset
+#   set segdir = `dirname $segset`
+   # is the dataset somewhere else or current directory
+   set segset = `@FindAfniDsetPath -full_path -append_file $segset`
+endif
+
+# get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
+set dsetprefix = `3dinfo -prefix_noext $dset`
+
+# which afni view is used even if NIFTI dataset is used as base
+# usually +tlrc
+#set baseview = `3dinfo -av_space $base`
+
+# input datasets may not be +orig
+# so match input view equivalent even for NIFTI
+set origview = `3dinfo -av_space $dset |tr -d +`
+set origspace = `3dinfo -space $dset`
+
+
+# if input dataset is NIFTI vs AFNI format
+set dset_nifti = `3dinfo -is_nifti $dset`
+
+# copy from AFNI format or from uncompressed data
+if (($outdir != ".") || ($dset_nifti != "1") ) then
+   if (($ok_to_exist == 1) && (-f ${outdir}/${dsetprefix}.nii.gz)) then
+      echo "reusing ${outdir}/${dsetprefix}.nii.gz"
+   else
+      3dcopy $dset ${outdir}/${dsetprefix}.nii.gz
+   endif 
+endif
+
+if ($outdir != ".") then
+   set outbase = `basename $base`
+   if (($ok_to_exist == 1) && (`3dinfo -exists ${outdir}/${outbase}` == "1")) then
+      echo "reusing ${outdir}/$base"
+   else
+      3dcopy $base $outdir/
+   endif
+   
+   if ($segset != "") then
+      set outseg = `basename $segset`
+      if (($ok_to_exist == 1) && (`3dinfo -exists ${outdir}/${outseg}` == "1")) then
+         echo "reusing ${outdir}/$outseg"
+      else
+         3dcopy $segset $outdir/
+      endif 
+   endif
+   if ($lesion_mask != "") then
+      set lesion_prefix = `3dinfo -prefix_noext ${lesion_mask}`
+      set outlesion = "${lesion_prefix}.nii.gz"
+      if (($ok_to_exist == 1) && (`3dinfo -exists ${outdir}/${outlesion}` == "1")) then
+         echo "reusing ${outdir}/${outlesion}"
+      else
+         3dcopy $lesion_mask $outdir/${outlesion}
+      endif 
+      set lesion_mask = ${outlesion}
+   endif
+endif
+
+cd $outdir
+
+set dset = ${dsetprefix}.nii.gz
+set finalmaster = $dset
+
+set origdsetprefix = $dsetprefix
+
+set afni_pack = `afni -package`
+set afni_vnum = `afni -vnum`
+set tbase     = `basename $base`
+
+# set up output text file with file descriptions
+echo "# Command  :  $argv"                             >  ${lesion_outs}
+echo ""                                                >> ${lesion_outs}
+echo "# List of inputs and outputs from lesion_align"  >> ${lesion_outs}
+echo "AFNI package                 : $afni_pack"       >> ${lesion_outs}
+echo "AFNI version number          : $afni_vnum"       >> ${lesion_outs}
+echo "lesion_align ver             : $version"         >> ${lesion_outs}
+echo ""                                                >> ${lesion_outs}
+echo "Input dset (orig)            : $dset"            >> ${lesion_outs}
+echo "Template dset (templ)        : $tbase"           >> ${lesion_outs}
+echo "Atlas/seg dset               : $segset"          >> ${lesion_outs}
+echo ""                                                >> ${lesion_outs}
+
+# make an output directory for QC images and html pages
+\mkdir -p QC
+
+# figure out short name for template to insert into output files
+if ($templatename == "") then
+   set template_space = `3dinfo -space $base`
+   if (($template_space != "ORIG") && ($template_space != "")) then
+      set templatename = $template_space
+   else
+      set templatename = "template"
+   endif
+endif
+  
+if ($segset != "") then
+   #set segsetprefix = `@GetAfniPrefix $segset`
+   set segsetdir = `dirname $segset`
+   # if a template prefix has been selected by user, use that
+   # for segmentation name output too 
+   if ($templatename != "") then
+      set segname = "${templatename}_atlas"
+   else
+      set segname = "atlas"
+   endif
+endif
+
+# make unifized dataset in native subject space
+if ($unifize == "1") then
+    set unif_dset = ${dsetprefix}_un.nii.gz
+    if (($ok_to_exist == "1") && (-f $unif_dset)) then
+       echo "reusing unifized original  $unif_dset"
+    else 
+       3dUnifize                                     \
+        -overwrite                                   \
+        -input  $dset  -GM                           \
+        -prefix $unif_dset
+    endif
+else
+   set unif_dset = $dset
+endif
+
+   # guess good side and bad side based on lesion mask
+   if ($lesion_mask != "") then
+      set CMdset = `3dCM $dset`
+      set CMlesion = `3dCM $lesion_mask`
+      set sidechoice = `ccalc -int -expr "step($CMdset[1]-$CMlesion[1])"`
+      if ($sidechoice == "1") then
+         set lesion_goodside = "left"
+      else
+         set lesion_goodside = "right"
+      endif
+      echo "Good side choice by lesion mask: $lesion_goodside"
+      echo "Good side choice by lesion mask: $lesion_goodside" \
+        >> ${lesion_outs}
+      if ($goodside == "") then
+         set goodside = $lesion_goodside
+         echo "Good side matches lesion mask: $goodside" >> ${lesion_outs}
+      else
+         if ($goodside != $lesion_goodside) then
+            echo "WARNING:****Good side choice does not match lesion mask****"
+            echo "WARNING Good side does not match: $goodside" \
+              >> ${lesion_outs}
+         endif
+      endif
+   else
+      if ($goodside == "") then
+         set goodside = "both"
+      endif
+   endif
+
+   # put the center of the dataset on top of the center of the template
+   if (($ok_to_exist == "1") && (-f  ${dsetprefix}_shft.nii.gz)) then
+      echo "reusing center aligned  ${dsetprefix}_shft.nii.gz"
+   else 
+      @Align_Centers -base $base -dset $dset -overwrite
+   endif
+   
+   # keep a copy of the inverse translation too
+   # (should just be negation of translation column)
+   cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
+   
+   set dset = ${dsetprefix}_shft.nii.gz
+   set dsetprefix = ${dsetprefix}_shft
+   
+   echo "Dset, center-shifted to templ : $dset" >> ${lesion_outs}
+   
+   if (($goodside == "right") || ($goodside == "left") || ($goodside == "both")) then
+      if ($goodside == "right") then
+         set xside = "*(step(-x)+equals(x,0))"
+      endif
+      if ($goodside == "left") then
+         set xside = "*(step(x)+equals(x,0))"
+      endif
+      if ($goodside == "both") then
+         set xside = ""
+      endif
+   else
+      echo "Can not select $goodside as a reference side."
+      echo "Please select left, right or both"
+      exit 1 
+   endif
+            
+   # make a template with either just the left or right
+   # assumes template can be split at x=0
+   if (($ok_to_exist == "1") && (-f  ${templatename}_${goodside}.nii.gz)) then
+      echo "reusing half template ${templatename}_${goodside}.nii.gz"
+   else
+      # keep goodside - xside evaluates to +/-x values and x=0 or all x
+      3dcalc -RAI -a $base -expr "a $xside" \
+              -overwrite -prefix ${templatename}_${goodside}.nii.gz
+   endif
+
+   if ($lesion_mask != "") then
+       # Move center of lesion mask with same 1D shift as original dataset.
+       # option has '_inv', but that appears to be correct!
+       if (($ok_to_exist == "1") && (-f ${lesion_prefix}_shft.nii.gz)) then
+          echo "reusing shifted lesion mask dataset"
+       else
+          @Align_Centers -base $base -dset $lesion_mask -overwrite \
+          -shift_xform_inv ${dsetprefix}.1D 
+       endif
+       echo "center shifted lesion mask dataset: ${lesion_prefix}_shft.nii.gz" \
+           >> ${lesion_outs}
+   endif
+
+   # split input dataset for affine alignment only optionally
+   if (($centersplit == "1") && ($goodside != "both")) then
+      set dset_aff_input = ${dsetprefix}_${goodside}.nii.gz
+      set outprefix = $dset_aff_input
+      if (($ok_to_exist == "1") && (-f ${dset_aff_input})) then
+         echo "reusing affine input center split $goodside subject $outprefix"
+      else 
+         set CM = `3dCM $dset`
+         if ($goodside == "left") then
+           3dcalc -a $dset -RAI -expr "a*(step(x-${CM[1]})+equals(x,${CM[1]}))" \
+             -prefix ${dsetprefix}_${goodside}.nii.gz -overwrite
+         else
+           3dcalc -a $dset -RAI -expr "a*(step(${CM[1]}-x)+equals(x,${CM[1]}))" \
+             -prefix ${dsetprefix}_${goodside}.nii.gz -overwrite
+         endif 
+      endif
+      echo "affine input center split subject: ${dsetprefix}_${goodside}.nii.gz" \
+           >> ${lesion_outs}
+      set dset_aff_prefix = ${dsetprefix}_${goodside}
+   else
+      set dset_aff_input = $dset
+      set dset_aff_prefix = $dsetprefix
+   endif
+ 
+   # affine align subject to good half of template
+   set outprefix = ${dsetprefix}_at.nii.gz
+   if (($ok_to_exist == "1") && (-f ${dsetprefix}_at.nii.gz )) then
+     echo "reusing affine aligned subject $outprefix"
+   else 
+     # do affine alignment here with align_epi_anat.py
+     align_epi_anat.py -dset1 ${dset_aff_input} -dset2 ${templatename}_${goodside}.nii.gz \
+       -dset1_strip None -dset2_strip None -suffix _at -cost ${cost} \
+       -giant_move -overwrite -master_dset2 ${templatename}_${goodside}.nii.gz
+     # rename the matrix output to simpler name
+     mv ${dset_aff_prefix}_at_mat.aff12.1D ${dsetprefix}_at.aff12.1D
+     # make output NIFTI format
+     3dAllineate -1Dmatrix_apply ${dsetprefix}_at.aff12.1D \
+       -master ${templatename}_${goodside}.nii.gz -overwrite \
+       -input  ${dset} -prefix $outprefix
+     #3dcopy ${dsetprefix}_at+*.HEAD  $outprefix
+     # delete the AFNI format version
+     \rm "${dset_aff_prefix}_at+tlrc.*" 
+#     @auto_tlrc -input ${dset} -no_ss -base ${templatename}_${goodside}.nii.gz \
+#        -prefix $outprefix -3dAllineate -overwrite
+   endif   
+   echo "Matrix, affine xform         : ${dsetprefix}_at.aff12.1D" \
+        >> ${lesion_outs}
+   echo "Dset, aff-xformed to templ (orig res) : $outprefix" \
+        >> ${lesion_outs}
+   
+   # dilate the affine result in template space a little here by 3 voxel layers
+   set outprefix = "${dsetprefix}_at_d3.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing dilated affine aligned subject $outprefix"
+   else 
+     3dmask_tool -inputs ${dsetprefix}_at.nii.gz -dilate_result 3  \
+      -prefix $outprefix -overwrite
+   endif
+ 
+   # apply the dilated mask to the original template and use that for the nonlinear warp base
+   set outprefix = "${templatename}_nonlesion.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing masked template $outprefix"
+   else 
+     3dcalc -a ${dsetprefix}_at_d3.nii.gz -b $base -expr 'b*step(a)' \
+       -prefix $outprefix  -overwrite
+   endif
+
+   if (($lesion_mask != "") && ($exclusion != "")) then
+      set outprefix = ${lesion_prefix}_at.nii.gz
+      if (($ok_to_exist == "1") && (-f $outprefix )) then
+        echo "reusing affine transformed lesion mask $outprefix"
+      else 
+        3dAllineate -1Dmatrix_apply ${dsetprefix}_at.aff12.1D \
+        -master ${templatename}_${goodside}.nii.gz -overwrite \
+        -input  ${lesion_prefix}_shft.nii.gz \
+        -prefix $outprefix
+      endif
+#      set exclusion_opt = "-emask $outprefix"
+#   else
+#      set exclusion_opt = "" 
+   endif
+
+   # align the affinely aligned subject to the masked template
+   # nopenalty is used to allow for dramatically misshapen brains
+   set outprefix = "${dsetprefix}_qw.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing nonlinear aligned subject $outprefix"
+   else 
+     3dQwarp -base ${templatename}_nonlesion.nii.gz -source ${dsetprefix}_at.nii.gz \
+       -prefix $outprefix -nopenalty -overwrite -maxlev $maxlev 
+   endif
+
+   # apply the concatenated affine transformation and nonlinear warp
+   set outprefix = "${origdsetprefix}_nl.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing nonlinear aligned transforms combined subject $outprefix"
+   else 
+     3dNwarpApply -source $dset -master $base -prefix $outprefix -overwrite \
+       -nwarp "${dsetprefix}_qw_WARP.nii.gz ${dsetprefix}_at.aff12.1D"
+     echo "Dset, nl-xformed to templ : ${origdsetprefix}_nl.nii.gz" \
+        >> ${lesion_outs}
+   endif
+
+   # apply the concatenated warp to lesion mask too
+   if ($lesion_mask != "") then
+     set outprefix = "${lesion_prefix}_nl.nii.gz"
+     if (($ok_to_exist == "1") && (-f $outprefix )) then
+       echo "reusing nonlinear aligned lesion mask $outprefix"
+     else 
+       3dNwarpApply -source ${lesion_prefix}_shft.nii.gz -master $base \
+       -prefix $outprefix -overwrite \
+       -nwarp "${dsetprefix}_qw_WARP.nii.gz ${dsetprefix}_at.aff12.1D"
+       echo "Lesion mask, nl-xformed to templ : ${outprefix}" \
+         >> ${lesion_outs}
+     endif
+   endif
+ 
+   # make masked version of orig dset in template space, using the template
+   # itself.
+   set outprefix = "${origdsetprefix}_nl_ns.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing nonlinear aligned masked (skullstripped) subject $outprefix"
+   else 
+     3dcalc -overwrite                               \
+      -a ${origdsetprefix}_nl.nii.gz                 \
+      -b $base                                       \
+      -expr 'a*step(b)'                              \
+      -prefix $outprefix
+     echo "Dset, skull-stripped nl-xformed to templ : ${origdsetprefix}_nl_ns.nii.gz" \
+        >> ${lesion_outs}
+   endif
+
+   # nicer version for viewing in template space: 
+   # this could be passed along to AP to be ulay at times
+   echo "unifizing anatomical dset in template space"
+   set outprefix = "${origdsetprefix}_nl_nsu.nii.gz"
+   if (($ok_to_exist == "1") && (-f $outprefix )) then
+     echo "reusing nonlinear aligned transforms combined subject $outprefix"
+   else 
+     3dUnifize                                       \
+      -overwrite  -GM                                \
+      -input  ${origdsetprefix}_nl_ns.nii.gz         \
+      -prefix $outprefix
+     echo "Dset, unifized, skull-stripped nl-xformed to templ : ${origdsetprefix}_nl_nsu.nii.gz" \
+        >> ${lesion_outs}
+   endif
+
+   # ... and put a note in its history, so that
+   # gen_ss_review_scripts.py knows the name of the template
+   set tbase = `basename $base`
+   3dNotes \
+      -h "$progname aligned this dset to standard space: -base $base" \
+      $outprefix
+
+
+   # Image   : [ulay] edges of template; [olay] orig dset, warped to template
+   # This is in template space, so use the template (which has no skull)
+   # as a refbox
+   set ulay  = "$base"
+   set olay  = "${origdsetprefix}_nl.nii.gz"
+   set opref = QC/qc_00_e_temp+wrpd_inp
+
+   @chauffeur_afni                            \
+       -ulay "${ulay}"                        \
+       -edgy_ulay                             \
+       -ulay_range_nz 0% 30%                  \
+       -set_subbricks 0 0 0                   \
+       -olay "${olay}"                        \
+       -box_focus_slices AMASK_FOCUS_ULAY     \
+       -cbar Spectrum:red_to_blue             \
+       -func_range_perc_nz 95                 \
+       -montgap 1                             \
+       -montcolor 'black'                     \
+       -pbar_posonly                          \
+       -pbar_saveim ${opref}                  \
+       -prefix      ${opref}                  \
+       -opacity 4                             \
+       -montx 5 -monty 3                      \
+       -set_xhairs OFF                        \
+       -label_mode 1 -label_size 4
+
+# put template into original subject space
+if ( ($ok_to_exist == "1") && \
+     (-f  ${templatename}_in_${origdsetprefix}.nii.gz) ) then
+   echo "transforming template to native space dataset"
+else
+   \rm ${templatename}_in_${origdsetprefix}.nii.gz
+    cat_matvec ${dsetprefix}_at.aff12.1D -I > ${dsetprefix}_at_inv.aff12.1D
+    # use concatenated affine and nonlinear warp to go back to
+    # shifted original space
+    3dNwarpApply -ainterp linear -short -overwrite -nwarp \
+      "${dsetprefix}_at_inv.aff12.1D INV(${dsetprefix}_qw_WARP.nii.gz)" \
+       -source $base -master ${dsetprefix}.nii.gz \
+       -prefix ${templatename}_in_${origdsetprefix}.nii.gz
+
+    # put back in non-shifted version (really native space) 
+    @Align_Centers -base ${finalmaster} \
+         -dset  ${templatename}_in_${origdsetprefix}.nii.gz -no_cp
+
+    # copy any obliquity from the original to the template in native space 
+    3drefit -atrcopy ${finalmaster} IJK_TO_DICOM_REAL  \
+        ${templatename}_in_${origdsetprefix}.nii.gz
+endif
+
+# put half template into original subject space too
+if ( ($ok_to_exist == "1") && \
+     (-f  half_${templatename}_in_${origdsetprefix}.nii.gz) ) then
+   echo "transforming half template to native space dataset"
+else
+   \rm half_${templatename}_in_${origdsetprefix}.nii.gz
+#    cat_matvec ${dsetprefix}_at.aff12.1D -I > ${dsetprefix}_at_inv.aff12.1D
+    # use concatenated affine and nonlinear warp to go back to
+    # shifted original space
+    3dNwarpApply -ainterp linear -short -overwrite -nwarp \
+      "${dsetprefix}_at_inv.aff12.1D INV(${dsetprefix}_qw_WARP.nii.gz)" \
+       -source  ${templatename}_${goodside}.nii.gz -master ${dsetprefix}.nii.gz \
+       -prefix half_${templatename}_in_${origdsetprefix}.nii.gz
+
+    # put back in non-shifted version (really native space) 
+    @Align_Centers -base ${finalmaster} \
+         -dset half_${templatename}_in_${origdsetprefix}.nii.gz -no_cp
+
+    # copy any obliquity from the original to the template in native space 
+    3drefit -atrcopy ${finalmaster} IJK_TO_DICOM_REAL  \
+        half_${templatename}_in_${origdsetprefix}.nii.gz
+
+   echo "Half template in subject space : half_${templatename}_in_${origdsetprefix}.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+#compute median values for scaling
+set om = `3dBrickStat -median -non-zero $unif_dset`
+set om = $om[2]
+set tm = `3dBrickStat -median -non-zero ${templatename}_in_${origdsetprefix}.nii.gz`
+set tm = $tm[2]
+
+# make template filled dataset
+# depending on size of lesion, the template will fill in the subject space
+# blend with the unifized version of original dataset to match intensities
+# of unifized templates
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_basefill.nii.gz) ) then
+   echo "reusing template filled subject dataset"
+else 
+   # fill in original whereever zero with template scaled by ratio of medians
+   3dcalc -a $unif_dset -b ${templatename}_in_${origdsetprefix}.nii.gz \
+   -expr "a+b*not(a)*${om}/${tm}" -prefix ${origdsetprefix}_basefill.nii.gz -overwrite
+   echo "template-filled subject in subject space : ${origdsetprefix}_basefill.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+# make half-template, half-subject dataset, two-face, Jekyl-Hyde,
+#  DrMoreau...?
+# half the template moves to subject space, 
+# the other half is the original good side
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_basefill_half.nii.gz) ) then
+   echo "reusing half-template filled subject dataset"
+else
+   # keep original data (unifized) in transformed template hemisphere
+   # keep transformed template whole brain everywhere else
+   # template data scaled by medians to match subject
+   3dcalc -a $unif_dset -b ${templatename}_in_${origdsetprefix}.nii.gz \
+   -c half_${templatename}_in_${origdsetprefix}.nii.gz \
+   -expr "a*step(c)+b*not(step(c))*${om}/${tm}" \
+   -prefix ${origdsetprefix}_basefill_half.nii.gz -overwrite
+   echo "half-template, half-subject in subject space : ${origdsetprefix}_basefill_half.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+#***** mirrored subject in template space ******************************
+# make mirror image of good side
+# Flip good side to bad side and merge
+# transform template space subject brain back to its native subject space
+# put half template into original subject space too
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_template_mirror.nii.gz) ) then
+   echo "transforming mirrored subject back to native space dataset"
+else
+   \rm ${origdsetprefix}_template_mirror.nii.gz
+   # mask the dataset to only the goodside
+   3dcalc -a ${origdsetprefix}_nl_nsu.nii.gz     \
+          -b ${templatename}_${goodside}.nii.gz \
+          -expr 'a*step(b)' -overwrite          \
+          -prefix ${origdsetprefix}_${templatename}_${goodside}.nii.gz 
+   # flip unifized,skullstripped dataset left-right inside the volume
+   # by reversing the data in each row of x direction
+   3dLRflip -prefix ${origdsetprefix}_${templatename}_${goodside}_lr.nii.gz \
+      ${origdsetprefix}_${templatename}_${goodside}.nii.gz -overwrite
+   # make a healed brain in template space
+   3dcalc -a ${origdsetprefix}_${templatename}_${goodside}.nii.gz \
+          -b ${origdsetprefix}_${templatename}_${goodside}_lr.nii.gz \
+          -expr 'a+b*not(a)' -overwrite \
+          -prefix ${origdsetprefix}_${templatename}_mirror.nii.gz
+   echo "mirrored subject in template space : ${origdsetprefix}_${templatename}_mirror.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+#****** mirrored subject in native space ******************************
+# transform template space subject brain back to its native subject space
+# put half template into original subject space too
+# note warp here is not symmetric, so mirrored original is no longer symmetric
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_mirror.nii.gz) ) then
+   echo "transforming mirrored subject back to native space dataset"
+else
+   \rm ${origdsetprefix}_mirror.nii.gz
+#    cat_matvec ${dsetprefix}_at.aff12.1D -I > ${dsetprefix}_at_inv.aff12.1D
+   # use concatenated affine and nonlinear warp to go back to
+   # shifted original space
+   3dNwarpApply -short -overwrite -nwarp \
+     "${dsetprefix}_at_inv.aff12.1D INV(${dsetprefix}_qw_WARP.nii.gz)" \
+      -source  ${origdsetprefix}_${templatename}_mirror.nii.gz -master ${dsetprefix}.nii.gz \
+      -prefix ${origdsetprefix}_mirror.nii.gz
+   # put back in non-shifted version (really native space) 
+   @Align_Centers -base ${finalmaster} \
+        -dset ${origdsetprefix}_mirror.nii.gz -no_cp
+
+   # copy any obliquity from the original to mirrored subject in native space 
+   3drefit -atrcopy ${finalmaster} IJK_TO_DICOM_REAL  \
+        ${origdsetprefix}_mirror.nii.gz
+
+   echo "mirrored subject transformed to subject space : ${origdsetprefix}_mirror.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+#***** mirrored subject in native space - unifized original good side **
+# mask unifized original with mirrored giving preference to data in the
+# original good side. Mirrored transformed subject gets remainder
+# transform template space subject brain back to its native subject space
+# put half template into original subject space too
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_mirror_original.nii.gz) ) then
+   echo "transforming mirrored subject back to native space dataset"
+else
+   \rm ${origdsetprefix}_mirror_original.nii.gz
+   3dcalc -a $unif_dset -b ${origdsetprefix}_mirror.nii.gz -overwrite \
+      -expr 'a*not(b)+b' -prefix ${origdsetprefix}_mirror_original.nii.gz
+   echo "mirrored subject in subject space : ${origdsetprefix}_mirror_original.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+
+# ***** affine mirrored subject in template space **********************
+# make mirror image of good side
+# Flip good side to bad side and merge
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_${templatename}_aff_mirror.nii.gz) ) then
+   echo "transforming mirrored subject back to native space dataset"
+else
+   \rm ${origdsetprefix}_${templatename}_aff_mirror.nii.gz
+   if ($unifize == "1") then 
+      3dUnifize -GM -prefix ${origdsetprefix}_at_un.nii.gz \
+      -input ${dsetprefix}_at.nii.gz
+      set unif_at_dset = ${origdsetprefix}_at_un.nii.gz
+   else
+      set unif_at_dset = ${origdsetprefix}_at.nii.gz
+   endif 
+   # mask the dataset to only the goodside
+   3dcalc -a $unif_at_dset                      \
+          -b ${templatename}_${goodside}.nii.gz \
+          -expr 'a*step(b)' -overwrite          \
+          -prefix ${origdsetprefix}_${templatename}_aff_${goodside}.nii.gz 
+   # flip unifized,skullstripped dataset left-right inside the volume
+   # by reversing the data in each row of x direction
+   3dLRflip -prefix ${origdsetprefix}_${templatename}_aff_${goodside}_lr.nii.gz \
+      ${origdsetprefix}_${templatename}_aff_${goodside}.nii.gz -overwrite
+   # make an affine healed brain in template space
+   3dcalc -a ${origdsetprefix}_${templatename}_aff_${goodside}.nii.gz \
+          -b ${origdsetprefix}_${templatename}_aff_${goodside}_lr.nii.gz \
+          -expr 'a+b*not(a)' -overwrite \
+          -prefix ${origdsetprefix}_${templatename}_aff_mirror.nii.gz
+   echo "affine mirrored subject in template space : ${origdsetprefix}_${templatename}_mirror.nii.gz"  \
+        >> ${lesion_outs}
+endif
+
+#***** affine mirror in native space with goodside original ************
+# transform template space subject brain back to its native subject space
+# put half template into original subject space too
+# mirrored original is no longer symmetric
+if ( ($ok_to_exist == "1") && \
+     (-f  ${origdsetprefix}_aff_orig_mirror.nii.gz) ) then
+   echo "transforming affine mirrored subject back to native space dataset affinely"
+else
+   \rm ${origdsetprefix}_aff_orig_mirror.nii.gz
+
+   # try affine version to get symmetric version in native subject space
+   3dAllineate -1Dmatrix_apply ${dsetprefix}_at_inv.aff12.1D \
+      -source ${origdsetprefix}_${templatename}_aff_mirror.nii.gz \
+      -master ${dsetprefix}.nii.gz \
+      -prefix ${origdsetprefix}_aff_mirror.nii.gz
+   # put back in non-shifted version (really native space) 
+   @Align_Centers -base ${finalmaster} \
+        -dset ${origdsetprefix}_aff_mirror.nii.gz -no_cp
+   echo "affine mirrored subject transformed to subject space : ${origdsetprefix}_aff_mirror.nii.gz"  \
+        >> ${lesion_outs}
+
+   # take original data preferably in goodside hemi
+   3dcalc -a $unif_dset -b ${origdsetprefix}_aff_mirror.nii.gz \
+   -c half_${templatename}_in_${origdsetprefix}.nii.gz \
+   -expr "a*step(c)+b*not(step(c))" \
+   -prefix ${origdsetprefix}_aff_orig_mirror.nii.gz -overwrite
+   echo "affine mirrored+original subject : ${origdsetprefix}_aff_orig_mirror.nii.gz"  \
+        >> ${lesion_outs}
+
+endif
+#***********************************************************************
+# end of mirrors and healing methods
+
+# move segmentation datasets (atlases) to native space
+if ($segset != "") then
+    foreach segm_dset ($segset $seg_followers)     
+       if ($segm_dset == $segset) then
+          set seg_prefix = $segname
+       else
+          set seg_prefix = `3dinfo -prefix_noext $segm_dset`
+       endif
+       
+       if ( ($ok_to_exist == "1") && \
+            (-f  ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz) ) then
+          echo "reusing segmentation transformed to native space dataset"
+       else 
+          \rm ${seg_prefix}_in_${origdsetprefix}.nii.gz
+           cat_matvec ${dsetprefix}_at.aff12.1D -I > ${dsetprefix}_at_inv.aff12.1D
+           # use concatenated affine and nonlinear warp to go back to
+           # shifted original space
+           3dNwarpApply -ainterp NN -short -overwrite -nwarp \
+             "${dsetprefix}_at_inv.aff12.1D INV(${dsetprefix}_qw_WARP.nii.gz)" \
+              -source $segm_dset -master ${dsetprefix}.nii.gz \
+              -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
+       
+           # put back in non-shifted version (really native space) 
+           @Align_Centers -base ${finalmaster} \
+                -dset  ${seg_prefix}_in_${origdsetprefix}.nii.gz -no_cp
+
+           # copy any obliquity from the original to the native atlas 
+           3drefit -atrcopy ${finalmaster} IJK_TO_DICOM_REAL  \
+                ${seg_prefix}_in_${origdsetprefix}.nii.gz
+       
+           # change the datum type to byte to save space if values
+           # range from 0 to 255 this step also gets removes the shift
+           # transform information in the header overwriting original
+           # dataset just created
+           set segminmax = `3dBrickStat -min -max -slow \
+                                ${seg_prefix}_in_${origdsetprefix}.nii.gz`
+           if (($segminmax[2] <= 255) && ($segminmax[1] >= 0)) then
+              3dcalc \
+                -a ${seg_prefix}_in_${origdsetprefix}.nii.gz \
+                -expr a -datum byte -nscale                  \
+              -overwrite -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
+           endif
+           
+           # copy segmentation information from atlas to this native-space
+           #   segmentation dataset and mark to be shown with integer colormap
+           3drefit -cmap INT_CMAP -space \
+                $origspace ${seg_prefix}_in_${origdsetprefix}.nii.gz
+           3drefit -copytables $segm_dset \
+                ${seg_prefix}_in_${origdsetprefix}.nii.gz
+
+           # the segmentation will be distorted by the nonlinear warping
+           # and possibly non-contiguous. Try to fix that with modal smoothing
+           3dLocalstat -stat mode -nbhd 'SPHERE(2.0)' -datum short \
+                -prefix ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz \
+                ${seg_prefix}_in_${origdsetprefix}.nii.gz
+           3drefit -cmap INT_CMAP -space \
+                $origspace ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz
+           3drefit -copytables $segm_dset \
+                ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz
+
+           # Image : [ulay] edge enhanced orig dset; 
+           #         [olay] atlas warped to orig space
+           set ulay  = "${origdsetprefix}.nii.gz"
+           set olay  = "${seg_prefix}_in_${origdsetprefix}_mode.nii.gz"
+           set focus = ${origdsetprefix}.nii.gz
+           set opref = QC/qc_03_ee_orig_inp+wrpd_atlas
+                    
+           @chauffeur_afni                             \
+                -ulay "${ulay}"                        \
+                -edge_enhance_ulay 0.5                 \
+                -set_subbricks 0 0 0                   \
+                -olay "${olay}"                        \
+                -box_focus_slices "${focus}"           \
+                -montgap 1                             \
+                -montcolor 'black'                     \
+                -cbar ROI_i256                         \
+                -pbar_posonly                          \
+                -pbar_saveim "${opref}"                \
+                -prefix      "${opref}"                \
+                -opacity 4                             \
+                -montx 5 -monty 3                      \
+                -set_xhairs OFF                        \
+                -label_mode 1 -label_size 4 
+
+       endif
+    echo "Atlas/seg, NL-warped to orig : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
+            >> ${lesion_outs}
+    echo "Atlas/seg, NL-warped to orig modal smoothed: ${seg_prefix}_in_${origdsetprefix}_mode.nii.gz"\
+            >> ${lesion_outs}
+    end        
+
+
+goto FINISH_OUTS
+
+HELP:
+
+cat << SCRIPT_HELP_STRING
+
+Overview ~1~
+
+Script to align a subject structural data with large lesion lesions 
+to a template and invert the warps to compute the segmentation in the
+subject's original, native space.
+
+This program uses basic AFNI commands to compute affine and nonlinear
+alignments. The program works by first aligning centers of the subject
+to that of the template. Affine and nonlinear alignment follow. The 
+inverse warp is computed to bring the template and atlas segmentation
+into the center-shifted grid. Skullstripping is provided by masking 
+with the template. Finally, the grids are adjusted back to the
+original center. Mirrored brains with "repaired" lesions are also
+computed.
+
+Usage Example ~1~
+
+      lesion_align -input Subj2+orig                \
+      -base MNI152_T1_2009c+tlrc                    \
+      -atlas MNI_Glasser_HCP_v1.0.nii.gz            \
+      -outdir lesion_align -goodside right
+   
+   Note only the input dset and template_dset are required. If no
+   segmentation is given, then only the alignment steps are performed.
+
+Options ~1~
+
+    -input dset         :required input dataset to align to template
+
+    -goodside left/right/both : specify good side of brain 
+
+    -base  base_dataset :required template. Can be in a standard AFNI 
+                         location or fully specified path. 
+                         Note, if the template has no skull, then a
+                         masked (skullstripped) version of the input
+                         is produced in the output
+
+    -atlas atlas_dataset :atlas can also be in a standard AFNI location 
+                         or fully specified
+
+    -outdir outputdir   :create new directory and do all processing there.
+                         Default is template_align
+
+    -template_prefix templatename 
+                        :select name for template and segmentation for
+                         output naming. Uses template space of template
+                         if available in template header
+
+    -seg_followers segdset1 segdset2 ...
+                        :warp related datasets back to native space
+                         
+    -cost costfunction  :cost function for affine transformation.
+                         Default is lpa. Choose nmi, lpa+ZZ, cru for
+                         noisy or difficult datasets. See 3dAllineate
+                         help for more information.
+
+    -lesion_mask ldset  :provide lesion mask as input dataset.
+                         Used to determine bad and good sides
+
+    -center_split       :split input dataset on left-right center for affine
+                         alignment keeping either the left or right side for
+                         the computation. Nonlinear alignment uses the full
+                         dataset
+
+    -maxlev nn          :maximum level for nonlinear warping. Determines
+                         neighborhood size that is searched. See 3dQwarp
+                         help for information on maxlev. Default is 11.
+                         Use smaller values for testing
+
+    -no_unifize         :turn off unifizing for mirror/heal output
+ 
+    -keep_temp          :keep temporary files including awpy directory and 
+                         other intermediate datasets
+
+    -ok_to_exist        :reuse and do not overwrite existing datasets.
+                         This option is used for faster restarts or with
+                         limited alignment options 
+
+Comments ~1~
+
+    lesion_align provides multiple outputs to assist in registering your
+    anatomicals and associated MRI data to the template:
+
+    Subject scans registered to the template
+   	+ mydset_shft.nii.gz - dataset center aligned to the template center
+   	+ mydset_shft_at.nii.gz - dataset affine aligned to the template
+                                   and on the template grid
+   	+ mydset_nl.nii.gz - dataset nonlinearly warped to the template
+
+    Registration datasets for alignment to template
+   	+ mydset_shft_at.aff12.1D  - affine transformation to the template
+   	+ mydset_shft_qw_WARP.nii.gz - warp deformations to the template from
+                                nonlinear alignment only
+
+    Registration datasets for Template alignment to Subject
+   	+ mydset_shft_inv.aff12.1D - inverse of mydset_shft_at.aff12.1D
+
+    Atlas aligned to Subject (Optional - only if atlas provided)
+   	+ seg_in_mydset.nii.gz - atlas segmentation aligned to native scan
+
+    Template aligned_to Subject
+    + template_in_mydset.nii.gz** - template (e.g. TT_N27,MNI152_2009c)
+                              aligned to native scan
+    Mirrored/Healed brains - see descriptions below of output datasets
+
+
+    Text description of output
+    + lesion_outs.txt - list of important datasets and transforms in
+                        output directory
+     
+    ***-NOTE: lesion_align is part of the AFNI software package  ***
+    Here all occurrences of mydset in the output file names would be replaced
+       with the name of your dataset.
+
+To help with other kinds of processing, the program also computes
+"healed" brains in native and subject spaces using these methods.
+1. template-filled subject - template values fill in values of subject
+2. template-half subject - template values fill in half of the subject
+3. mirrored transformed subject - subject is masked, left-right flipped,
+   and transformed to native space. Interpolated in both directions
+   will make this a little blurrier
+4. mirrored - filled subject. Blends original subject with the mirrored
+   subject
+
+QC images ~1~
+
+The following quality control (QC) images are automatically generated
+during processing, to help with speedy checking of processing.  In
+each case, there are three sets of montages (one for sag, cor and axi
+views) and a copy of the colorbar used (same prefix as file name,
+*.jpg).  Additionally, there is also a *.txt file of ranges of values
+related to the ulay and olay, which might be useful for QC or
+figure-generation.
+
+Inside the output directory is a subdirectory called QC/ that contains
+the following semi-cryptically named files:
+
+  qc_00_e_temp+wrpd_inp.* 
+    [ulay] edges of the template (in template space)
+    [olay] warped input dset
+
+  qc_01_e_wrpd_temp+orig_inp.*
+    [ulay] edges of the template (warped to orig space)
+    [olay] original input dset 
+
+  qc_02_orig_inp+mask.*
+    [ulay] original input dset (in orig space)
+    [olay] estimated mask, showing skullstripping
+
+  qc_03_ee_orig_inp+wrpd_atlas.*
+    [ulay] 'edge enhanced' original input dset (in orig space)
+    [olay] warped atlas dset
+
+
+References ~1~
+Please cite:
+Maallo, AMS, et al. Large-scale resculpting of cortical circuits in
+   children after surgical resection. Sci Rep 10, 21589 (2020).
+   https://doi.org/10.1038/s41598-020-78394-z
+
+For questions about this program, please ask on AFNI message board or
+   email glend at mail.nih.gov
+
+SCRIPT_HELP_STRING
+
+   exit 0
+
+# ---------------------------------------
+
+FINISH_OUTS:
+
+echo "List of outputs (this file)  : ${lesion_outs}" >> ${lesion_outs}
+echo ""                                              >> ${lesion_outs}
+echo "# Command  :  lesion_align $argv"              >> ${lesion_outs}
+
+echo "Highlights of the output:"
+# show list of outputs
+cat ${lesion_outs}
+  
+exit 0
+
+
+# original simple script that started this off
+# set up input
+set input = "Subj2"
+set goodside = right
+set template = ~/abin/TT_N27+tlrc
+set base_name = "TTN27"
+
+if ($goodside == "right") then
+   3dcalc -a $template -expr 'a*step(-x)' -prefix ${base_name}_right
+else
+   3dcalc -a $template -expr 'a*step(x)' -prefix ${base_name}_left
+endif
+
+# affine align subject to good half of template
+@auto_tlrc -input ${dsetprefix}+orig. -no_ss -base ${base_name}_${goodside}+tlrc. \
+   -prefix temp_${dsetprefix}_at -overwrite
+
+# dilate the affine result in template space a little here by 3 voxel layers
+3dmask_tool -inputs temp_${dsetprefix}_at+tlrc. -dilate_result 3  \
+   -prefix temp_${dsetprefix}_at_d3 -overwrite
+
+# apply the dilated mask to the template and use that for the nonlinear warp base
+3dcalc -a temp_${dsetprefix}_at_d3+tlrc. -b $template -expr 'b*step(a)' \
+    -prefix temp_${base_name}_nonlesion -overwrite
+
+# align the affinely aligned subject to the masked template
+3dQwarp -base temp_${base_name}_nonlesion+tlrc. -source temp_${dsetprefix}_at+tlrc. \
+    -prefix temp_${dsetprefix}_qw -nopenalty -overwrite
+
+# apply the concatenated affine transformation and nonlinear warp
+3dNwarpApply -source ${dsetprefix}+orig -master $template -prefix ${dsetprefix}_qw \
+    -nwarp "temp_${dsetprefix}_qw_WARP+tlrc temp_${dsetprefix}_at.aff12.1D"

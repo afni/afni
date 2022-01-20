@@ -4,6 +4,11 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*---------------------------------------------------------------------------*/
+/* This is the header file for imseq.c, the AFNI image viewer.
+   Please see that file for more commentary.
+*//*-------------------------------------------------------------------------*/
+
 #ifndef _MCW_IMSEQ_HEADER_
 #define _MCW_IMSEQ_HEADER_
 
@@ -47,8 +52,13 @@ extern "C" {
 
 #ifndef HAVE_GET_PTR_TYPEDEF
 #  define HAVE_GET_PTR_TYPEDEF
-   typedef XtPointer (*get_ptr)() ;  /* function type */
+   typedef XtPointer (*get_ptr)() ;  /* function type that returns a pointer */
 #endif
+
+/* This struct is returned from AFNI to indicate the general
+   'status' or setup of the images to be displayed.
+   Other stuff is stuffed into here, such as the lists of
+   image transformation function that AFNI provides for fun. */
 
 typedef struct {
       int num_total , num_series ;  /* # of images, # in "series" */
@@ -62,9 +72,15 @@ typedef struct {
       XtPointer parent , aux ;
 } MCW_imseq_status ;
 
+/* macro to see if a viewer is doing slice projection
+   -- which is controlled from the 'Disp' popup menu. */
+
 #define ISQ_DOING_SLICE_PROJ(ss)      \
  ( (ss)->slice_proj_range >  0   &&   \
    (ss)->slice_proj_func  != NULL   )
+
+/* macros for image physical size --
+   not pixels but pixels time physical width per pixels (mm) */
 
 #define IM_WIDTH(im) \
   ( ((im)->dx > 0) ? ((im)->nx * (im)->dx) : ((im)->nx) )
@@ -74,19 +90,23 @@ typedef struct {
 
 /* define dimensions used in the window */
 
-#define FORM_FRAC_BASE  1000
-#define IMAGE_FRAC      0.8
-#define DFRAC           0.01
+#define FORM_FRAC_BASE  1000   /* for positioning things in the Form */
+#define IMAGE_FRAC      0.8    /* default image fraction as size of Form */
+#define DFRAC           0.01   /* parameters for changing image fraction */
 #define FRAC_MAX        0.95
 #define FRAC_MIN        0.25
 
-#define COLOR_BAR_WIDTH 16
-#define COLOR_BAR_SPACE  4
+#define COLOR_BAR_WIDTH 16     /* size of the 'bar' next to the image */
+#define COLOR_BAR_SPACE  4     /* space between bar and image */
 
 /* button stuff */
 
 #define NBUTTON_BOT 4   /* # buttons at bottom */
 #define NBUTTON_RIG 3   /* # buttons at right  */
+
+/* Motif things for how to attach buttons (Widgets)
+   to each other in the bottom array and in the right array,
+   so that they remain together as the viewer window is resized */
 
 #define LEADING_BOT        XmNleftAttachment
 #define LEADING_WIDGET_BOT XmNleftWidget
@@ -104,6 +124,10 @@ typedef struct {
 
 /* image destruction stuff */
 
+/* for deleting XImages, which are a struct created in xim.c
+   from an AFNI internal MRI_IMAGE
+   -- XImage is something that X11 knows how to put to the display */
+
 #define KILL_2XIM(one,two)                          \
    do { if( (two) != (one) ) MCW_kill_XImage(two) ; \
         MCW_kill_XImage(one) ; (one) = (two) = NULL ; } while(0)
@@ -112,13 +136,18 @@ typedef struct {
    do { if( (two) != (one) ) MCW_kill_XImage(two) ; \
         (two) = NULL ; } while(0)
 
+/* kill a MRI_IMAGE, and set its pointer to NULL */
+
 #define KILL_1MRI(one) \
    do{ if( (one) != NULL ){ mri_free(one) ; (one) = NULL ; }} while(0)
+
+/* an image viewer can be VALID, which means created successfully,
+   and it can also be REALiZed, meaning it is actually open for business */
 
 #define ISQ_VALID(seq) ((seq)!=NULL && ((seq)->valid)>0)
 #define ISQ_REALZ(seq) ((seq)!=NULL && ((seq)->valid)>1)
 
-/*----------------------- button box stuff -----------------------*/
+/*--------------------- button box stuff for Disp menu ---------------------*/
 
 typedef struct {
       int nbut ;
@@ -164,6 +193,8 @@ typedef struct {
 #define ISQ_CX_REAL       4
 #define ISQ_CX_IMAG       8
 
+/* This struct stores the options settable from the Disp menu */
+
 typedef struct {
       int mirror , rot , no_overlay ,
           scale_group , scale_range , free_aspect ,
@@ -190,6 +221,9 @@ typedef struct {
 #define RAW_MODE      5
 #define RAWMONT_MODE  6
 
+/* check to see if two Disp options structs have
+   the same entries -- if so, we can sometimes avoid a redisplay */
+
 #define ISQ_OPT_EQUAL(opta,optb)                    \
     ( ((opta).mirror      == (optb).mirror     ) && \
       ((opta).rot         == (optb).rot        ) && \
@@ -200,7 +234,7 @@ typedef struct {
       ((opta).improc_code == (optb).improc_code) && \
       ((opta).cx_code     == (optb).cx_code    )     )
 
-/* 09 Oct 1998 */
+/* Set the default Disp options [09 Oct 1998] */
 
 #define ISQ_DEFAULT_OPT(opt) do{ (opt).mirror      = FALSE ;            \
                                  (opt).rot         = ISQ_ROT_0 ;        \
@@ -224,6 +258,8 @@ typedef struct {
 
 #define NHISTOG 500
 
+/* This struct stores some statistics for a single image (slice),
+   which can be used to determine the value-to-grayscale mapping. */
 typedef struct {
       RwcBoolean one_done , glob_done ;
       float   min,max , per02,per98 ,
@@ -232,6 +268,10 @@ typedef struct {
 
       XtPointer parent , aux ;
 } ISQ_indiv_statistics ;
+
+/* This struct is for a now disabled ability
+   in the image viewer -- to scan thru all the
+   images and set global statistics from them. */
 
 typedef struct {
       RwcBoolean mm_done , per_done ;
@@ -242,6 +282,8 @@ typedef struct {
 
       XtPointer parent , aux ;
 } ISQ_glob_statistics ;
+
+/* macro to compute 'level' and 'scale' factors for image display */
 
 #define ISQ_SCLEV(mn,mx,dp,sc,lv) \
   ( (lv) = (mn) , (sc) = (((mx)>(mn)) ? (((dp)-0.49)/((mx)-(mn))) : 1.0) )
@@ -261,6 +303,10 @@ typedef struct {
 
       XtPointer parent , aux ;
 } ISQ_cbs ;
+
+/* Here is where the Callback Reasons (CRs) used to tell
+   AFNI what kind of information is being sent and/or requested
+   when the get_image() function is invoked in imseq.c somewhere. */
 
 #define isqCR_buttonpress 1   /* button press in image */
 #define isqCR_keypress    2   /* key press in image */
@@ -301,6 +347,11 @@ typedef struct {
 #define isqCR_opacitychange     607 /* 06 Jun 2019 */
 #define isqCR_zoomchange        608 /* 10 Dec 2019 */
 
+/* what to do if the colormap (or grayscale map) changes:
+    If we are actually part of the AFNI GUI, let AFNI handle the
+     necessary redisplay (for all image viewers).
+    Otherwise, just force a redisplay internally. */
+
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
          if( (sq)->status->send_CB != NULL ){                        \
@@ -315,6 +366,8 @@ typedef struct {
             ISQ_redisplay( (sq) , -1 , isqDR_display ) ;             \
          }                                                           \
     } } while(0)
+
+/* Ditto for opacity change */
 
 #define OPACITY_CHANGE(sq,oval)                                      \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
@@ -332,6 +385,8 @@ typedef struct {
          }                                                           \
     } } while(0)
 
+/* and for Zoom change */
+
 #define ZOOM_CHANGE(sq)                                              \
   do{ if( ISQ_REALZ((sq)) ){                                         \
          if( (sq)->status->send_CB != NULL ){                        \
@@ -346,6 +401,7 @@ typedef struct {
     } } while(0)
 
 /*------------------------------*/
+/* Montage-ization */
 
 #ifndef MONT_NMAX
 #define MONT_NMAX 199  /* up from 13 [18 Nov 2017] */
@@ -377,7 +433,9 @@ extern void ISQ_montage_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_set_anim_dup( int ) ;  /* 09 Feb 2009 */
 
-/*------------- the central data type -------------*/
+/*------------------------------------------------------------*/
+/*------------- the central data type: MCW_imseq -------------*/
+/*------------------------------------------------------------*/
 
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
@@ -530,7 +588,7 @@ typedef struct MCW_imseq {
      int record_status ;
      int record_method ;
      int record_mode ;
-     struct MCW_imseq *record_imseq ;
+     struct MCW_imseq *record_imseq ;  /* an image viewer inside an image viewer! */
      MRI_IMARR        *record_imarr ;
      MEM_plotdata    **record_mplot ;  /* 05 Jan 2005 */
 
@@ -607,21 +665,27 @@ typedef struct MCW_imseq {
      char *overlay_label ;                            /* 23 Dec 2011 */
 } MCW_imseq ;
 
+/* codes for how the underlay and overlay images are to be combined */
+
 #define RENDER_DEFAULT     0
-#define RENDER_CHECK_UO    1
+#define RENDER_CHECK_UO    1   /* checkerboard */
 #define RENDER_CHECK_OU    2
-#define RENDER_WIPE_LEFT   3
+#define RENDER_WIPE_LEFT   3   /* wipers */
 #define RENDER_WIPE_BOT    4
-#define RENDER_MIX         5
+#define RENDER_MIX         5   /* blending */
 #define RENDER_WIPE_RIGHT  6
 #define RENDER_WIPE_TOP    7
 #define RENDER_LASTMODE    7
+
+/* Stuff for the timer functions, like the 'v' key produces */
 
 #define ISQ_TIMERFUNC_INDEX  701
 #define ISQ_TIMERFUNC_BOUNCE 702
 
 extern void ISQ_timer_CB( XtPointer , XtIntervalId * ) ; /* 03 Dec 2003 */
 extern void ISQ_timer_stop( MCW_imseq * ) ;
+
+/* Callbacks for zooming, cropping */
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
@@ -632,6 +696,8 @@ extern void ISQ_center_zoom( MCW_imseq *seq ) ; /* 27 Aug 2009 */
 
 extern void ISQ_adjust_crop( MCW_imseq *,int,int,int,int,int) ; /* 25 Aug 2009 */
 extern void ISQ_set_crop_hint( MCW_imseq *seq ) ;
+
+/* changing the cursor in the image, for cropping or drawing */
 
 #define CURSOR_NORMAL    0                            /* 10 Mar 2003 */
 #define CURSOR_PENCIL    1
@@ -652,6 +718,7 @@ extern void ISQ_pen_bbox_CB( Widget, XtPointer, XtPointer ) ; /* 18 Jul 2003 */
 #define ISQ_LABEL_DNMD 6
 
 /*--------------------------------------------------------------------*/
+/* For the 'left=Left' stuff at the bottom of an image */
 
 #define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
                              (isq)->winfo_sides[1][0] != '\0' || \
@@ -750,6 +817,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_save_pngall     709  /* 15 Dec 2006 */
 #define isqDR_save_raw        710  /* 13 Nov 2007 */
 #define isqDR_save_rawmont    711  /* 13 Nov 2007 */
+
+/* function to 'drive' an image viewer with one of the isqDR codes above */
 
 extern RwcBoolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -911,7 +980,7 @@ extern void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val ) ;
 
 extern MEM_plotdata * ISQ_plot_label( MCW_imseq *, char * ) ; /* 20 Sep 2001 */
 
-/*---- 24 Apr 2001: recording stuff ----*/
+/*---- 24 Apr 2001: image recorder stuff (the viewer within a viewer) ----*/
 
 #define RECORD_STATUS_OFF         (1<<0)
 #define RECORD_STATUS_NEXTONE     (1<<1)
@@ -945,6 +1014,9 @@ extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 #define MINCROP 9  /* moved here 03 May 2007 */
 
+/* Stuff for makeing snapshots of Widgets, etc.
+   Also see functions in xim.c for snapshots directly to disk files. */
+
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 extern MRI_IMAGE * ISQ_snap_to_mri_image( int  , int  , byte *); /* Dec 2011 */
@@ -957,6 +1029,8 @@ extern void ISQ_snap_agif_rng( char *,int,int ) ;      /* 07 Dec 2006 */
 extern void ISQ_snap_mpeg_rng( char *,int,int ) ;
 extern void ISQ_snap_jpeg_rng( char *,int,int ) ;
 extern void ISQ_snap_png_rng ( char *,int,int ) ;
+
+/* for dealing with keypress events */
 
 extern int ISQ_handle_keypress( MCW_imseq *, unsigned long, unsigned int ); /* 18 Feb 2005 */
 

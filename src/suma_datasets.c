@@ -2896,7 +2896,7 @@ int SUMA_AddDsetIndexCol(SUMA_DSET *dset, int *icolu, int *icolp1, int *icolp2)
       if (SUMA_isCIFTIDset(dset)) { /* no guessing either */
          SUMA_RETURN(YUP);
       }
-      if (!(icol = (int *)SUMA_malloc(sizeof(int)*SDSET_VECLEN(dset)))) {
+      if (!(icol = (int *)SUMA_malloc(sizeof(int)*SDSET_VECALLOC(dset)))) {
          SUMA_S_Err("Failed to icolate");
          SUMA_RETURN(NOPE); 
       }
@@ -3231,7 +3231,7 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(
       SUMA_RETURN(NULL);
    }
     
-   Tb = (byte *) SUMA_calloc(SDSET_VECLEN(odset), sizeof(byte));
+   Tb = (byte *) SUMA_calloc(SDSET_VECALLOC(odset), sizeof(byte));
    for (j=0; j<N_indexlist; ++j) {
       if (  indexmap[indexlist[j]] >=0 && 
             indexmap[indexlist[j]] < SDSET_VECFILLED(odset) &&
@@ -3301,7 +3301,7 @@ SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
    }
    /* trim index list of bad indices */
    if (SDSET_VECLEN(dset_uo) < N_indexlist_orig) {
-      indexlist = (int *)SUMA_calloc(SDSET_VECLEN(dset_uo), sizeof(int));
+      indexlist = (int *)SUMA_calloc(SDSET_VECALLOC(dset_uo), sizeof(int));
       N_indexlist = 0;
       while (i < N_indexlist_orig) {
          if (  indexlist_orig[i] >= (int)range[0] && 
@@ -10074,7 +10074,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
       OKfirstCol = NOPE;
       if (!T) { SUMA_LH("First column does not cut it"); OKfirstCol = NOPE;}
       else {
-         Ti = (int *)SUMA_malloc(sizeof(int)*SDSET_VECLEN(dset));
+         Ti = (int *)SUMA_malloc(sizeof(int)*SDSET_VECALLOC(dset));
          vis = (byte *)SUMA_calloc(N_Node, sizeof(byte));
          SUMA_LH("Testing if node indices can be in 1st column...");
          /* check if all values are ints and if they are within 0 and N_Node -1 
@@ -10181,9 +10181,9 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
                             dset->Aux->matrix_size[0], dset->Aux->matrix_size[1],
                             SDSET_VECLEN(dset),dset->Aux->matrix_shape);
          }
-         Ti = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
-         P1 = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
-         P2 = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
+         Ti = (int *) SUMA_calloc(SDSET_VECALLOC(dset), sizeof(int));
+         P1 = (int *) SUMA_calloc(SDSET_VECALLOC(dset), sizeof(int));
+         P2 = (int *) SUMA_calloc(SDSET_VECALLOC(dset), sizeof(int));
          for (i=0; i <SDSET_VECLEN(dset); ++i) Ti[i]=i;
          switch (dset->Aux->matrix_shape) {
             case MAT_HEEHAW:
@@ -10242,7 +10242,7 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
                         "is explicit. \n"
                         "1st row is for node 0\n"
                         "2nd is for node 1, etc.\n" );
-         Ti = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
+         Ti = (int *) SUMA_calloc(SDSET_VECALLOC(dset), sizeof(int));
          for (i=0; i <SDSET_VECLEN(dset); ++i) Ti[i]=i;
          if (!SUMA_AddDsetNelCol (  dset, "Node Index (inferred)", 
                                     SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
@@ -10720,12 +10720,12 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
          /* try them all */
          exists = -1;
          {  
-            SUMA_DSET_FORMAT aform=SUMA_NO_DSET_FORMAT+1;
-            while (exists != 1 && aform < SUMA_N_DSET_FORMATS) {
+            SUMA_DSET_FORMAT zform=SUMA_NO_DSET_FORMAT+1;
+            while (exists != 1 && zform < SUMA_N_DSET_FORMATS) {
                exists = SUMA_WriteDset_NameCheck_eng(
-                           Name, dset, aform, verb, &NameOut); 
-               if (exists == 1) form=aform;
-               ++aform;
+                           Name, dset, zform, verb, &NameOut); 
+               if (exists == 1) form=zform;
+               ++zform;
             }
          }
          break;
@@ -14836,7 +14836,7 @@ SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **pdset, char *mtype,
          }
          
          if (!ie) {
-            if (!(ieu = (int *)SUMA_calloc(SDSET_VECLEN(dset), sizeof(int)))) {
+            if (!(ieu = (int *)SUMA_calloc(SDSET_VECALLOC(dset), sizeof(int)))) {
                SUMA_S_Errv("Failed to allocate for %d elements\n", 
                            SDSET_VECLEN(dset));
                SUMA_RETURN(NOPE);
@@ -15112,8 +15112,8 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          
          /* catenate second column to unique of first */
          ii  = SDSET_EDGE_P2_INDEX_COL(dset);
-         iu = (int *)realloc(iu, (SDSET_VECLEN(dset)+N_iu)*sizeof(int));
-         memcpy(iu+N_iu, ii, SDSET_VECLEN(dset)*sizeof(int));
+         iu = (int *)realloc(iu, (SDSET_VECALLOC(dset)+N_iu)*sizeof(int));
+         memcpy(iu+N_iu, ii, SDSET_VECALLOC(dset)*sizeof(int));
          
          /* find unique of both */
          ii = iu;
@@ -16281,10 +16281,11 @@ SUMA_Boolean SUMA_CIFTI_Set_Domains(SUMA_DSET *dset, int N_doms,
    for (i=0; i<N_doms; ++i) {
       ind = dind+dindoff[i]; N=dindoff[i+1]-dindoff[i];
       min = max = ind[0];
+      imin = imax = 0;
       for (k=0; k<N; ++k) {
          if (sorted && k<N-1 && ind[k] >= ind[k+1]) sorted = 0;
-         if (ind[k] < min) min = ind[k]; imin = k+dindoff[i];
-         if (ind[k] > max) max = ind[k]; imax = k+dindoff[i];
+         if (ind[k] < min) { min = ind[k]; imin = k+dindoff[i]; }
+         if (ind[k] > max) { max = ind[k]; imax = k+dindoff[i]; }
       }
       snprintf(buff, 500*sizeof(char),"%d %d %d %d", 
                      min, max, imin, imax);
@@ -16480,7 +16481,7 @@ SUMA_DSET *SUMA_CIFTI_2_edset(SUMA_DSET *dset, int i, byte *colmask,
       SUMA_S_Err("Bad input to  SUMA_CIFTI_2_edset");
       SUMA_RETURN(edset);  
    }
-   if (!(rowmask = (byte *)SUMA_calloc(SDSET_VECLEN(dset), sizeof(byte)))) {
+   if (!(rowmask = (byte *)SUMA_calloc(SDSET_VECALLOC(dset), sizeof(byte)))) {
       SUMA_S_Err("Failed to create rowmask"); 
       SUMA_RETURN(edset);
    }

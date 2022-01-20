@@ -577,6 +577,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      int isfunc , nvals ;
 
      dset->taxis = myRwcNew( THD_timeaxis ) ;
+     ADDTO_KILL(dset->kl,dset->taxis) ;
 
      dset->taxis->type    = TIMEAXIS_TYPE ;
      dset->taxis->ntt     = atr_int->in[0] ;
@@ -601,6 +602,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
        } else {
          int ii ;
          dset->taxis->toff_sl = (float *) RwcMalloc(sizeof(float)*dset->taxis->nsl) ;
+         ADDTO_KILL(dset->kl,dset->taxis->toff_sl) ;
          for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
            dset->taxis->toff_sl[ii] = atr_flo->fl[ii] ;
        }

@@ -251,15 +251,18 @@ gpointer         gts_object_check_cast     (gpointer object,
 					    gpointer klass);
 gpointer         gts_object_class_check_cast (gpointer klass, 
 					      gpointer from);
-G_INLINE_FUNC
+                          
+// drg -  22 Feb 2021 - changing to static inline to avoid warnings
+//G_INLINE_FUNC
+static inline 
 gpointer         gts_object_is_from_class  (gpointer object,
 					    gpointer klass);
-G_INLINE_FUNC
+static inline
 gpointer         gts_object_class_is_from_class (gpointer klass,
 						 gpointer from);
 
 #ifdef	G_CAN_INLINE
-G_INLINE_FUNC
+static inline
 gpointer gts_object_is_from_class (gpointer object,
 				   gpointer klass)
 {
@@ -283,7 +286,7 @@ gpointer gts_object_is_from_class (gpointer object,
   return NULL;
 }
 
-G_INLINE_FUNC
+static inline
 gpointer gts_object_class_is_from_class (gpointer klass,
 					 gpointer from)
 {

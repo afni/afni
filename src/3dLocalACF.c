@@ -595,7 +595,7 @@ static float_quint ACF_nbhd_vec_to_modelE( int nt , int nvec ,
 
    for( pp=1 ; pp < nvec-1 ; pp++ ){
      vp = ccar[pp] ; rp = rrar[pp]*1.01f ;
-     for( qq=pp+1 ; qq < nvec & rrar[qq] <= rp ; qq++ ) ; /*nada*/
+     for( qq=pp+1 ; qq < nvec && rrar[qq] <= rp ; qq++ ) ; /*nada*/
      if( qq > pp+1 ){
        for( vs=0.0f,ss=pp ; ss < qq ; ss++ ) vs += ccar[ss] ;
        ccar[pp] = vs/(qq-pp) ;

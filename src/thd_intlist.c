@@ -24,7 +24,7 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
 
 int * get_count_intlist ( char *str , int *nret, int maxval )
 {
-   get_count_intlist_eng( str, nret, maxval, allow_negative );
+   return get_count_intlist_eng( str, nret, maxval, allow_negative );
 }
 
 int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
@@ -352,7 +352,7 @@ int * MCW_get_intlist( int nvals , char *str )
          ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
-      /** otherwise, must have '..' or '-' as next inputs **/
+      /** otherwise, must have '..' or '-' or ':' as next inputs **/
 
       if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;
@@ -637,7 +637,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
-      /** otherwise, must have '..' or '-' as next inputs **/
+      /** otherwise, must have '..' or '-' or ':' as next inputs **/
 
       if( str[ipos] == '-' || str[ipos] == ':' ){
          ipos++ ;

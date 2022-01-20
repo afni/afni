@@ -364,8 +364,8 @@ void L1F_worker( int nt , double dt , float *vec , int dofit , char **label )
       strcat(lbuf,sbuf) ;
 
       for( ; ir <= polort ; ){
-         sprintf(sbuf,"Coef of t**%d = %g\n" , ir,fit[ir++] ) ;
-         strcat(lbuf,sbuf) ;
+         sprintf(sbuf,"Coef of t**%d = %g\n" , ir,fit[ir] ) ;
+         ir++ ; strcat(lbuf,sbuf) ;
       }
 
       for( ks=0 ; ks < nrsin ; ks++ ){

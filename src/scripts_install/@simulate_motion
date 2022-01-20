@@ -120,7 +120,9 @@ end
 
 
 # set output levels based on $verb
-if ( $verb > 3 ) set echo
+if ( $verb > 3 ) then
+    set echo
+endif
 if ( $verb > 2 ) then
    set redir = ''
 else
@@ -249,7 +251,9 @@ if ( $tr <= 0 ) then
    echo "-- TR = 0, skipping slice timing"
 else
    set dset = "$epi_timing_in"
-   if ( "$dset" == "" ) set dset = "$epi_in"
+   if ( "$dset" == "" ) then
+       set dset = "$epi_in"
+   endif
    set slice_times = ( `3dinfo -slice_timing -sb_delim ' ' "$dset"` )
    if ( $status ) goto FAIL_TIMING
    # hide status garbage about reading stdin

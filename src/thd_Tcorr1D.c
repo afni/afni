@@ -28,10 +28,11 @@ THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
 {
    THD_3dim_dataset *cset = NULL;
    int method=PEARSON ;
-   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f,sfac=0.0f ;
+   int ny, kk, datum=MRI_float ; char fmt[32] ; float cfac=0.0f,sfac=0.0f ;
    float (*corfun)(int,float *,float *) = NULL ;  /* ptr to corr function */
    int nvox , nvals , ii;
    int nconst=0 ;
+   char blab[128], alab[192] ; /* 31 Aug 2021 */
 
 ENTRY("THD_Tcorr1D");
 
@@ -39,19 +40,23 @@ ENTRY("THD_Tcorr1D");
 
    if (!smethod || smethod[0] == '\0') {
      method = PEARSON;
-   } else if (!strcmp(smethod,"pearson")) {
+   } else if (!strcasecmp(smethod,"pearson")) {
      method = PEARSON;
-   } else if (!strcmp(smethod,"spearman")) {
+   } else if (!strcasecmp(smethod,"spearman")) {
      method = SPEARMAN;
-   } else if (!strcmp(smethod,"quadrant")) {
+   } else if (!strcasecmp(smethod,"quadrant")) {
      method = QUADRANT;
-   } else if (!strcmp(smethod,"ktaub")) {
+   } else if (!strcasecmp(smethod,"ktaub")) {
      method = KTAUB;
-   } else if (!strcmp(smethod,"dot")) {
+   } else if (!strcasecmp(smethod,"dot")) {
      method = DOT;
+     if( do_atanh ){
+       WARNING_message("Method %s disables the Fishter transformation",smethod) ;
+       do_atanh = 0 ;
+     }
    } else {
-     ERROR_message("Bad value %s for correlation method", smethod);
-     RETURN(NULL);
+     WARNING_message("Bad value %s for correlation method ==> PEARSON", smethod);
+     method = PEARSON;
    }
 
    if (!prefix) prefix = "Tcorr1D";
@@ -101,8 +106,8 @@ ENTRY("THD_Tcorr1D");
    else if( ny <=   100 ) kk = 2 ;  /* brick label string */
    else if( ny <=  1000 ) kk = 3 ;
    else if( ny <= 10000 ) kk = 4 ;
-   else                   kk = 5 ;
-   switch( method ){              /* brick label string format */
+   else                   kk = 5 ;  /* unlikely! */
+   switch( method ){                /* make brick label string format */
      default:
      case PEARSON:  sprintf(fmt,"PearCorr#%%0%dd",kk) ; break ;
      case SPEARMAN: sprintf(fmt,"SpmnCorr#%%0%dd",kk) ; break ;
@@ -115,14 +120,29 @@ ENTRY("THD_Tcorr1D");
       sfac = 1.0f/cfac + 0.111f ;
    }
 
-   /* for each sub-brick in output file */
+   /* for each sub-brick in output file:
+         create empty volume
+         mark volume with statistic code
+         set volume scale factor
+         set volume label                */
 
    for( kk=0 ; kk < ny ; kk++ ){
      EDIT_substitute_brick(cset,kk,datum,NULL) ; /* make brick */
-     EDIT_BRICK_TO_FICO(cset,kk,nvals,1,1) ;    /* stat params */
-     EDIT_BRICK_FACTOR(cset,kk,cfac) ;     /* set brick factor */
-     sprintf(str,fmt,kk) ;
-     EDIT_BRICK_LABEL(cset,kk,str) ;         /* labelize brick */
+     if( do_atanh ){
+       EDIT_BRICK_TO_FIZT(cset,kk) ;
+     } else if( method != DOT ){
+       EDIT_BRICK_TO_FICO(cset,kk,nvals,1,1) ;  /* stat params */
+     } else {
+       EDIT_BRICK_TO_NOSTAT(cset,kk) ;
+     }
+     EDIT_BRICK_FACTOR(cset,kk,cfac) ;         /* set brick factor */
+     sprintf(blab,fmt,kk) ;                    /* manufacture label */
+     if( do_atanh ){
+       sprintf(alab,"atanh_%s",blab) ;
+     } else {
+       strcpy(alab,blab) ;
+     }
+     EDIT_BRICK_LABEL(cset,kk,alab) ;         /* labelize brick */
    }
 
    switch( method ){               /* set correlation function */

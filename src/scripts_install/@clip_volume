@@ -93,7 +93,9 @@ PARSE:
       
       if ($donext && ("$argv[$cnt]" == "-box" || \
                       "$argv[$cnt]" == "-mask_box") ) then
-         if ("$argv[$cnt]" == "-mask_box") set binarize = 1
+         if ("$argv[$cnt]" == "-mask_box") then
+            set binarize = 1
+         endif
          set aneeded = `ccalc -i $cnt + 6`
          set pLoc = $cnt		
 		   if ($aneeded > $Narg) then
@@ -333,7 +335,9 @@ PARSE:
 DOIT:
    echo "Clipping"
    set val = "a"
-   if ($binarize == 1) set val = "1"
+   if ($binarize == 1) then
+     set val = "1"
+   endif
    if ($crop == 1) then
       if ($verb) then
          set noglob

@@ -10,6 +10,11 @@
      #endif
 ***/
 
+#ifndef USE_OMP
+static int omp_get_thread_num(void) { return 0 ; }
+static int omp_get_max_threads(void){ return 1 ; }
+#endif
+
 typedef struct {
   int meth ;
 } INCOR_generic ;

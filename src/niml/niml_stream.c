@@ -325,7 +325,7 @@ static int tcp_alivecheck( int sd )
 
 static int tcp_connect( char *host , int port )
 {
-   int sd , l , q,qq ;
+   int sd , l , q ; socklen_t qq ;
    struct sockaddr_in sin ;
    struct hostent    *hostp ;
 
@@ -418,21 +418,28 @@ static int tcp_connect( char *host , int port )
    The return value is the descriptor for the listening socket.
 ----------------------------------------------------------------------------*/
 
+#ifdef MRILIB_MINI
+#define get_port_numbered(x)  (x)
+#define get_port_numbered(x) (x)
+
+int get_user_np(){ return 0; }
+#endif
+
 static int tcp_listen( int port )
 {
-   int sd , l , q,qq ;
+   int sd , l , q ; socklen_t qq ;
    struct sockaddr_in sin ;
    char serr[128]={""};
-   
+
    if( port < 1 ) return -1 ; /* bad input */
 
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ 
-      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)", 
+   if( sd == -1 ){
+      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)",
                get_port_numbered(port), port);
-      PERROR(serr); return -1; 
+      PERROR(serr); return -1;
    }
 
    /** set socket options (no delays, large buffers) **/
@@ -472,13 +479,13 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)", 
+     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)",
                get_port_numbered(port), port, sd);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)", 
+     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)",
                get_port_numbered(port), port);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
@@ -519,7 +526,7 @@ static int tcp_listen( int port )
 static int tcp_accept( int sd , char **hostname , char **hostaddr )
 {
    struct sockaddr_in pin ;
-   int addrlen , sd_new ;
+   int sd_new ; socklen_t addrlen ;
    struct hostent *hostp ;
    char *str ;
 
@@ -831,11 +838,11 @@ static int SHM_nattach( int shmid )
    static struct shmid_ds buf ;
    char *eee = getenv( "NIML_DNAME" ) ;
    static int nid=0;
-   
+ 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
-     if( eee != NULL ) 
+     if( eee != NULL )
       fprintf(stderr,
   "SHM_nattach (%s): (shmid=%d, buf.shm_nattach %d, errno %d), trying again!\n"
   "                     EACCES %d, EFAULT %d, EINVAL %d, EPERM %d\n",
@@ -861,12 +868,13 @@ static int SHM_nattach( int shmid )
      nid = 0;
      free((void *)ppp); return -1;
    } else if( eee != NULL ){
-     if (!nid) 
+     if (!nid) {
       fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n"
                      "  Similar messages muted until SHM_nattach fails again.\n",
              eee,
              (unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
-             (int)buf.shm_nattch ) ; 
+             (int)buf.shm_nattch ) ;
+     }
       ++nid;
    }
    return (int)buf.shm_nattch ;
@@ -2142,14 +2150,14 @@ NI_dpr("NI_stream_reopen: closing old stream\n") ;
       - Also clears the stream buffer.
 -------------------------------------------------------------------------*/
 
-void NI_stream_seek( NI_stream_type *ns , int offset , int whence )
+void NI_stream_seek( NI_stream_type *ns , int64_t offset , int whence )
 {
    if( ns          == NULL             ||
        ns->bad     == MARKED_FOR_DEATH ||
        ns->type    != NI_FILE_TYPE     ||
        ns->fp      == NULL               ) return ;
 
-   fseek( ns->fp , offset , whence ) ;   /* seek file */
+   fseeko( ns->fp , offset , whence ) ;   /* seek file */
    ns->nbuf = ns->npos = 0 ;             /* clear buffer */
 }
 
@@ -2583,7 +2591,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
       /** file: ==> check current file position and length of file **/
 
       case NI_FILE_TYPE:{
-         long f_len , f_pos ;
+         int64_t f_len , f_pos ;
 
          if( ns->fp == NULL                ||
              ns->io_mode == NI_OUTPUT_MODE   ) return -1 ; /* never? */
@@ -2591,7 +2599,7 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
          f_len = ns->fsize ;               /* length of file      */
          if( f_len < 0 ) return -1 ;       /* file not found (?)  */
 
-         f_pos = ftell( ns->fp ) ;         /* where are we now?   */
+         f_pos = ftello( ns->fp ) ;        /* where are we now?   */
          if( f_pos < 0 ) return -1 ;       /* should never happen */
 
          return (f_pos < f_len) ? 1 : -1 ; /* is good or bad, but */
@@ -2903,7 +2911,17 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    int nn , ii=0 , ntot=0 , ngood=0 , mwait=0 ;
    int start_msec = NI_clock_time() ;
 
-   if( NI_stream_goodcheck(ns,0) < 0 ) return -1 ;   /* bad input */
+#ifdef NIML_DEBUG
+   NI_dpr("   ENTER NI_stream_fillbuf(%s,%d,%d)\n" , ns->orig_name , minread , msec ) ;
+   NI_dpr("         nbuf = %d  bufsize = %d" , ns->nbuf , ns->bufsize ) ;
+#endif
+
+   if( NI_stream_goodcheck(ns,0) < 0 ){
+#ifdef NIML_DEBUG
+   NI_dpr("        goodcheck fails immediately :(") ;
+#endif
+     return -1 ;   /* bad input */
+   }
 
    if( ns->type == NI_STRING_TYPE ) return -1 ;      /* goofy input */
    if( ns->type == NI_REMOTE_TYPE ) return -1 ;      /* goofy input */
@@ -2917,18 +2935,25 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    while(1){
 
       ngood = NI_stream_readcheck(ns,mwait); /* check if data can be read */
-
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf gets readcheck = %d",ngood) ;
+#endif
       if( ngood < 0 ) break ;                /* data stream gone bad, so exit */
 
       ii = 0 ;
       if( ngood > 0 ){                       /* we can read ==> */
                                              /* try to fill buffer completely */
-
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf trying to read data") ;
+#endif
          ii = NI_stream_read( ns, ns->buf+ns->nbuf, ns->bufsize-ns->nbuf ) ;
 
          if( ii > 0 ){                 /* we got data! */
             ns->nbuf += ii ;           /* buffer is now longer */
             ntot     += ii ;           /* total bytes read here so far */
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf got %d bytes") ;
+#endif
 
             /* if buffer is full,
                or we have all the data that was asked for, then exit */
@@ -2936,6 +2961,9 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
             if( ns->nbuf >= ns->bufsize || ntot >= minread ) break ;
 
          } else if( ii < 0 ){          /* stream suddenly died horribly? */
+#ifdef NIML_DEBUG
+   NI_dpr("      NI_stream_fillbuf stream died horribly") ;
+#endif
             ngood = -1 ; break ;
          }
       }

@@ -6,6 +6,16 @@
 
 /***** 3dREMLfit.c *****/
 
+/* [PT: Dec 18, 2020] Online links to Bob's notes have been migrated here:
+   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/remlfit.html
+
+   He still has an internal directory of useful things here:
+   https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/
+   ... which is mostly linked within the aforementioned link in the
+   main AFNI RST pages.
+*/
+
+
 #ifdef USE_OMP
    int maxthr = 1 ;  /* max number of threads [16 Jun 2009] */
 #else
@@ -671,7 +681,7 @@ int main( int argc , char *argv[] )
       "                 which time points are to be censored, and the\n"
       "                 matrix stored therein is already censored.\n"
       "              * The doc below has a discussion of censoring in 3dREMLfit:\n"
-      " https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
+      "   https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/remlfit.html\n"
       "\n"
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
@@ -750,7 +760,7 @@ int main( int argc , char *argv[] )
       "  * StimLabels   = names for each stimulus\n"
       "  * CommandLine  = string of command used to create the file\n"
       "See the doc below for a lengthier description of the matrix format:\n"
-      " https://docs.google.com/document/d/1zpujpZYuleB7HuIFjb2vC4sYXG5M97hJ655ceAj4vE0\n"
+      "  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/remlfit.html\n"
       " ----------------------------------------------------------------------------\n"
      ) ;
 
@@ -1374,8 +1384,7 @@ int main( int argc , char *argv[] )
       "\n"
       "* If you like linear algebra, see my scanned math notes about 3dREMLfit:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
-      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
-      "    https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/remlfit.html\n"
       "\n"
       "* I have been asked if 3dREMLfit prewhitens the design matrix as well as\n"
       "    the data. The short answer to this somewhat uninformed question is YES.\n"
@@ -1443,8 +1452,7 @@ int main( int argc , char *argv[] )
       "\n"
       "* Again, see the math notes for more fun fun algorithmic details:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
-      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
-      "    https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/remlfit.html\n"
       "\n"
       "----------------\n"
       "Other Commentary ~1\n"
@@ -1607,7 +1615,7 @@ int main( int argc , char *argv[] )
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, please see the contents of\n"
-      "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
+      "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
       "  which includes comparisons of 3dDeconvolve and 3dREMLfit\n"
       "  activations (individual subject and group maps), and an\n"
       "  outline of the mathematics implemented in this program.\n"
@@ -3025,7 +3033,7 @@ STATUS("make GLTs from matrix file") ;
      if( ndone == 0 && verb > 1 && nallz > 0 )
        ININFO_message("No GLT matrices neededed editing") ;
    }
-   if( allz != NULL ){ free(allz) ; allz == NULL ; }
+   if( allz != NULL ){ free(allz) ; allz = NULL ; }
 
    /***--------- done with nelmat ---------***/
 

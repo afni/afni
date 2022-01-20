@@ -121,6 +121,8 @@ int ROI_make_inflate( int *Dim,
 		}
       
 	}
+
+   RETURN(1);
 }
 
 
@@ -177,8 +179,7 @@ int Make_SepLabels( int *Dim,
 		list1[j] = (int *) calloc( 3, sizeof(int) );
    //VOX = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik,var
  
-   if( (list1 == NULL) //|| (VOX == NULL)   
-       ) { 
+   if( list1 == NULL ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(15);
 	}		

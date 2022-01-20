@@ -72,7 +72,7 @@
 #define FMAD2_rgba(p,d1,bb,d2,e) ( (e).r = (p)*(d1).r + (bb)*(d2).r, \
                                    (e).g = (p)*(d1).g + (bb)*(d2).g, \
                                    (e).b = (p)*(d1).b + (bb)*(d2).b, \
-                                   (e).b = (p)*(d1).b + (bb)*(d2).a   )
+                                   (e).a = (p)*(d1).a + (bb)*(d2).a   )
 
 #define FMAD2 TWO_TWO(FMAD2_,DTYPE)
 
@@ -150,8 +150,8 @@
 #define FZERO_float(b)             (b)=0.0
 #define FZERO_double               FZERO_float
 #define FZERO_complex(b)           ( (b).r = 0.0 , (b).i = 0.0 )
-#define FZERO_rgbyte(bb)           ( (bb).r=(bb).g=(bb).g = 0 )
-#define FZERO_rgba(bb)             ( (bb).r=(bb).g=(bb).g=(bb).a = 0 )
+#define FZERO_rgbyte(bb)           ( (bb).r=(bb).g=(bb).b = 0 )
+#define FZERO_rgba(bb)             ( (bb).r=(bb).g=(bb).b=(bb).a = 0 )
 #define FZERO TWO_TWO(FZERO_,DTYPE)
 
 /** macros for a zero value **/
@@ -827,7 +827,7 @@ if(PRINT_TRACING){
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [PT: 27 Jul 2021] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,
@@ -1484,7 +1484,7 @@ STATUS("beginning NN outer loop") ;
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [PT: 27 Jul 2021] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,
@@ -2154,7 +2154,7 @@ STATUS("beginning NN outer loop") ;
                in_jp1_km1 =  jstep-  kstep ,
                in_jp1_k00 =  jstep         ,
                in_jp1_kp1 =  jstep+  kstep ,
-               in_jp1_kp2 =2*jstep+2*kstep ,
+               in_jp1_kp2 =  jstep+2*kstep ,  /* no '2*' [27 Jul 2021 rickr] */
                in_jp2_km1 =2*jstep-  kstep ,
                in_jp2_k00 =2*jstep         ,
                in_jp2_kp1 =2*jstep+  kstep ,

@@ -105,7 +105,6 @@ examples (very basic for now): ~1~
         i) .... apparently I forgot to do this...
 
 
-         1d_tool.py -infile X.xmat.1D -write X.bandpass.1D    \\
 
    Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
@@ -138,11 +137,11 @@ examples (very basic for now): ~1~
          1d_tool.py -infile X.xmat.1D -show_rows_cols
          1d_tool.py -infile X.xmat.1D -show_rows_cols -verb 0
 
-       b. Display indices of regressors of interest.
+       b. Display indices of regressors of interest from an X-matrix.
 
          1d_tool.py -infile X.xmat.1D -show_indices_interest
 
-       c. Display labels by group.
+       c. Display X-matrix labels by group.
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
@@ -150,13 +149,33 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -show_df_info
 
+       e. Display X-matrix stimulus class information (for one class or ALL).
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stim_info aud
+         1d_tool.py -infile X.xmat.1D -show_xmat_stim_info ALL
+
+       f. Display X-matrix column index list for those of the given classes.
+          Display regressor labels or in encoded column index format.
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols AM IM
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols ALL \\
+                    -show_regs_style encoded
+
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
+
+       This option does not include warnings from baseline regressors,
+       which are common (from polort 0, from similar motion, etc).
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
    Example 6b.  Show entire correlation matrix. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat
+
+   Example 6c.  Like 6a, but include warnings for baseline regressors. ~2~
+
+         1d_tool.py -infile X.xmat.1D -show_cormat_warnings_full
 
    Example 7a. Output temporal derivative of motion regressors. ~2~
 
@@ -368,6 +387,14 @@ examples (very basic for now): ~1~
 
         1d_tool.py -infile dfile_rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
+
+   Example 15c. Show the entire distance/displacement matrix. ~2~
+
+       Show all pairwise displacements (vector distances) in a (motion param?)
+       row vector file.  Note that the maximum element of this matrix should
+       be the one output by -show_max_displace.
+
+        1d_tool.py -infile coords.1D -show_distmat
 
    Example 16. Randomize a list of numbers, say, those from 1..40. ~2~
 
@@ -950,7 +977,15 @@ general options: ~2~
                                   file, and zeros are simply counted.
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
-   -show_df_info                : display info about degrees of freedom in xmat.1D file
+                                  (this does not include baseline terms)
+   -show_cormat_warnings_full   : display correlation matrix warnings
+                                  (this DOES include baseline terms)
+   -show_distmat                : display distance matrix
+                                  Expect input as one coordinate vector per row.
+                                  Output NROWxNROW matrix of vector distances.
+                                  See Example 15c.
+   -show_df_info                : display info about degrees of freedom
+                                  (found in in xmat.1D formatted files)
    -show_df_protect yes/no      : protection flag (def=yes)
    -show_gcor                   : display GCOR: the average correlation
    -show_gcor_all               : display many ways of computing (a) GCOR
@@ -1016,6 +1051,35 @@ general options: ~2~
                                   1-based run
    -show_trs_to_zero            : display number of TRs before final zero value
                                   (e.g. length of response curve)
+
+   -show_xmat_stype_cols T1 ... : display columns of the given class types
+
+        Display the columns (labels, indices or encoded) of the given stimulus
+        types.  These types refer specifically to those with basis functions,
+        and correspond with 3dDeconvolve -stim_* options as follows:
+
+            times :     -stim_times
+            AM    :     -stim_times_AM1 or -stim_times_AM2
+            AM1   :     -stim_times_AM1
+            AM2   :     -stim_times_AM2
+            IM    :     -stim_times_IM
+
+        Multiple types can be provided.
+
+        See example 5f.
+        See also -show_regs_style.
+
+   -show_xmat_stim_info CLASS   : display information for the given stim class
+                                  (CLASS can be a specific one, or 'ALL')
+
+        Display information for a specific (3dDeconvolve -stim_*) stim class.
+        This includes the class Name, the 3dDeconvolve Option, the basis
+        Function, and the relevant Columns of the X-matrix.
+
+        See example 5e.
+        See also -show_regs_style.
+
+   -show_group_labels           : display group and label, per column
 
    -slice_order_to_times        : convert a list of slice indices to times
 
@@ -1226,9 +1290,13 @@ g_history = """
    2.07 Aug  9, 2019 - tiny: make formatting more specific
    2.08 Dec 17, 2019 - allow labels as column selectors when reading xmat.1D
    2.09 Jun  1, 2020 - added -show_regs and -show_regs_style
+   2.10 Mar  5, 2021 - added -show_cormat_warnings_full, to include baseline
+   2.11 Oct  8, 2021 - added -show_xmat_stim_info, -show_xmat_stim_info
+   2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
+   2.13 Dec 19, 2021 - added -show_distmat
 """
 
-g_version = "1d_tool.py version 2.09, June 1, 2020"
+g_version = "1d_tool.py version 2.13, December 19, 2021"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1293,7 +1361,9 @@ class A1DInterface:
       self.show_clustsize  = 0          # show min clust size for corrected p
       self.show_cormat     = 0          # show cormat
       self.show_cormat_warn= 0          # show cormat warnings
+      self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
+      self.show_distmat    = 0          # show distmat
       self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
       self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
@@ -1314,6 +1384,8 @@ class A1DInterface:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.show_trs_run    = -1         # restrict 'show_trs' to (0-based) run
       self.show_trs_to_zero= 0          # show iresp length
+      self.show_xmat_stim_info = ''     # show xmat stimulus information
+      self.show_xmat_stype_cols = []    # show columns of given stim types
       self.slice_order_to_times = 0     # re-sort slices indices to times
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
@@ -1554,6 +1626,12 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
 
+      self.valid_opts.add_opt('-show_cormat_warnings_full', 0, [], 
+                      helpstr='cormat warnings include baseline')
+
+      self.valid_opts.add_opt('-show_distmat', 0, [], 
+                      helpstr='display row vector distance matrix (all pairs)')
+
       self.valid_opts.add_opt('-show_df_info', 0, [], 
                       helpstr='show degrees of freedom information from xmat.1D')
 
@@ -1625,6 +1703,12 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
                    helpstr='show length of data until constant zero')
+
+      self.valid_opts.add_opt('-show_xmat_stype_cols', -1, [], 
+                      helpstr='display xmat cols for given stim types')
+
+      self.valid_opts.add_opt('-show_xmat_stim_info', 1, [], 
+                      helpstr='display xmat stim class info for class')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
                    helpstr='convert slice indices to slice times')
@@ -1999,8 +2083,13 @@ class A1DInterface:
          elif opt.name == '-show_cormat':
             self.show_cormat = 1
 
+         elif opt.name == '-show_distmat':
+            self.show_distmat = 1
+
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
+         elif opt.name == '-show_cormat_warnings_full':
+            self.show_corwarnfull = 1
 
          elif opt.name == '-show_censor_count':
             self.show_censor_count = 1
@@ -2023,6 +2112,16 @@ class A1DInterface:
 
          elif opt.name == '-show_group_labels':
             self.show_group_labels = 1
+
+         elif opt.name == '-show_xmat_stype_cols':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            self.show_xmat_stype_cols = val
+
+         elif opt.name == '-show_xmat_stim_info':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_xmat_stim_info = val
 
          elif opt.name == '-show_indices_baseline':
             self.show_indices |= 1
@@ -2311,6 +2410,10 @@ class A1DInterface:
       if self.global_index >= 0: self.show_index_to_run_tr()
       if self.show_df_info:
          self.adata.show_df_info(protect=self.show_df_protect)
+      if len(self.show_xmat_stype_cols) > 0:
+         self.show_regressors(stypes=self.show_xmat_stype_cols)
+      if self.show_xmat_stim_info != '':
+         self.adata.show_xmat_stim_info(label=self.show_xmat_stim_info)
 
       # treat reverse as a toggle
       if self.reverse_rank:
@@ -2358,7 +2461,7 @@ class A1DInterface:
 
       if self.show_num_runs: self.show_nruns()
 
-      if self.show_regs != '': self.show_regressors()
+      if self.show_regs != '': self.show_regressors(show=self.show_regs)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
@@ -2375,9 +2478,15 @@ class A1DInterface:
 
       if self.show_cormat: self.adata.show_cormat()
 
+      if self.show_distmat: self.adata.show_distmat()
+
       if self.show_cormat_warn:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
+         print(wstr)
+      if self.show_corwarnfull:
+         err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
+                                            name=self.infile, skip_expected=0)
          print(wstr)
 
       # ---- possibly write: last option -----
@@ -2459,7 +2568,7 @@ class A1DInterface:
          print('** invalid -show_tr_run_counts STYLE %s' \
                % self.show_tr_run_counts)
 
-   def show_regressors(self):
+   def show_regressors(self, show='', stypes=[]):
       """show regressors (indices or labels) according to the given style
             self.show_regs : one of {'allzero', 'set'}
             self.show_regs_style : comma, space, encoded, label
@@ -2467,14 +2576,8 @@ class A1DInterface:
 
          return status (0 == success)
       """
-      show = self.show_regs
       style = self.show_regs_style
       verb = self.verb
-
-      if show not in g_show_regs_list \
-            or style not in g_show_regs_style_list:
-         print("** bad show_regs opts %s, %s" % (show, style))
-         return 1
 
       # pass only 'label' or 'index' here
       if style == 'label':
@@ -2482,22 +2585,33 @@ class A1DInterface:
       else:
          gstyle = 'index'
 
-      # ----------- decide which columns to show -------------------
+      # ============================================================
+      # decide which columns to show, based on either show or stypes
 
-      rv, tlist = self.adata.get_allzero_cols()
-      if rv: return 1
+      # for regressor-based options
+      if show != '':
+         if show not in g_show_regs_list \
+               or style not in g_show_regs_style_list:
+            print("** bad show_regs opts %s, %s" % (show, style))
+            return 1
 
-      # if showing 'set' columns, invert the allzero list
-      if show == 'set':
-         tlist = UTIL.invert_int_list(tlist, top=(self.adata.nvec-1))
+         rv, tlist = self.adata.get_allzero_cols()
+         if rv: return 1
+
+         # if showing 'set' columns, invert the allzero list
+         if show == 'set':
+            tlist = UTIL.invert_int_list(tlist, top=(self.adata.nvec-1))
+
+      # for -stim_* option types
+      elif len(stypes) > 0:
+         show = '-stim_* types'
+         tlist = self.adata.get_xmat_stype_cols(stypes)
 
       # ----------- prepare to print -------------------------------
 
       # get header string, based on verbosity
       if self.verb > 1:
          hstr = "have %d %s columns : " % (len(tlist), show)
-      elif self.verb == 1:
-         hstr = "%d " % len(tlist)
       else:
          hstr = ''
 

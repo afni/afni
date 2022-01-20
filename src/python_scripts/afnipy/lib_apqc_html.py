@@ -22,9 +22,18 @@
 # + [PT] QC block ID now in QC block titles
 # + [PT] added more help descriptions
 #
-ver = '2.4' ; date = 'March 27, 2020' 
+#ver = '2.4' ; date = 'March 27, 2020' 
 # [PT] remove dependency on lib_apqc_html_helps.py
 #    + absorb those lahh.* functions and variables here
+#
+#ver = '2.5' ; date = 'Feb 23, 2021' 
+# [PT] update helps, reorder
+#
+ver = '2.6' ; date = 'Jan 18, 2022' 
+# [PT] several changes
+# + add mecho QC block help
+# + tweak some text
+# + add embedded URLs, where appropriate
 #
 #########################################################################
 
@@ -70,31 +79,33 @@ qc_title["Top"]    = [ "Top of page for:&#10${subj}",
 qc_blocks          = coll.OrderedDict()
 qc_blocks["vorig"]  = [ "vols in orig space", 
                         "Check vols in original space" ]
-#                        "Check: vols in orig space" ]
+
 qc_blocks["ve2a" ]  = [ "vol alignment (EPI-anat)", 
                         "Check vol alignment (EPI to anat)" ]
-#                        "Check: vol alignment (EPI-anat)" ]
+
 qc_blocks["va2t" ]  = [ "vol alignment (anat-template)", 
                         "Check vol alignment (anat to template)" ]
-#                        "Check: vol alignment (anat-template)" ]
+
 qc_blocks["vstat"]  = [ "statistics vols", 
                         "Check statistics vols (and effect estimates)" ]
-#                        "Check: statistics vols" ]
+
 qc_blocks["mot"  ]  = [ "motion and outliers", 
                         "Check motion and outliers" ] 
-#                        "Check: motion and outliers" ] 
+
+qc_blocks["mecho" ]  = [ "multi-echo", 
+                        "Check multi-echo data and processing" ]
+
 qc_blocks["regr" ]  = [ "regressors", 
                         "Check regressors, DFs and residuals" ]
-#                        "Check: regressors (combined and individual)" ]
-qc_blocks["warns"]  = [ "all warnings from processing", 
-                        "Check all warnings from processing" ]
-#                        "Check: all warnings from processing" ]
+
 qc_blocks["radcor"] = [ "@radial_correlate vols", 
                         "Check extent of local correlation" ]
-#                        "Check: extent of local correlation" ]
+
+qc_blocks["warns"]  = [ "all warnings from processing", 
+                        "Check all warnings from processing" ]
+
 qc_blocks["qsumm"]  = [ "summary quantities from @ss_review_basic", 
                         "Check summary quantities from @ss_review_basic" ]
-#                        "Check: summary quantities from @ss_review_basic" ]
 
 qc_link_final       = [ "FINAL", 
                        "overall subject rating" ] 
@@ -155,14 +166,6 @@ and light gray.
 
 Boxplots summarize parameter values, both before censoring (BC) and
 after censoring (AC).
-'''
-
-qcb_helps["regr" ]  = '''
-When processing with stimulus time series, both individual and
-combined stimulus plots are generated (with any censoring also shown).
-
-The degrees of freedom (DF) summary is also provided, so one can check
-if too many get used up during processing (careful with bandpassing!).
 
 And a grayplot of residuals (with motion/outliers/censoring) is
 provided.  The '-pvorder' is used for output, placing the time series
@@ -172,7 +175,61 @@ the value at which a standard normal distribution N(0,1) has a
 two-sided tail probability of 0.001.  The grayplot's top row contains
 a plot of the motion enorm and outlier frac across time, for reference
 with the grayplot series.
+'''
 
+qcb_helps["mecho"]  = '''
+
+There are many ways to process multi-echo (ME) EPI data.  Fortunately,
+afni_proc.py provides the ability to include most of them in your FMRI
+processing.  Please see the afni_proc.py help for the full argument
+list of '-combine_method ..'.
+
+The OC/OC_A ('optimally combined') methods were proposed by Posse et
+al. (1999).
+
+When any of the 'tedana*' or 'OC_tedort' methods is chosen, then
+processing uses outputs from the Kundu et al. (2011) work.
+
+When any of the 'm_tedana*' methods is chosen, then processing uses
+outputs from the MEICA group's tedana tool.  For more details, see the
+<urlin><a href="https://tedana.readthedocs.io/en/stable/" target="_blank">TEDANA project webpage</a></urlin>.
+'''
+
+qcb_helps["regr" ]  = '''
+When processing with stimulus time series, both individual and
+combined stimulus plots are generated (with any censoring also shown).
+
+The degrees of freedom (DF) summary is also provided, so one can check
+if too many get used up during processing (careful with bandpassing!).
+
+The "corr_brain" plot shows correlation of each voxel with the errts
+average within the whole brain mask (what could be called the 'global
+signal').
+
+Two TSNR dsets can be shown.  In each case, voxelwise TSNR is shown
+throughout the full FOV, and any brain mask dset is just used for
+defining a region within which percentiles are calculated. The generic 
+formula for TSNR is:
+            TSNR = average(signal) / stdev(noise)
++ First, the TSNR of r01 after volreg is shown if the user used the
+  '-volreg_compute_tsnr yes' opt in AP. Here, the "signal" is the time
+  series and the "noise" is the detrended time series.
++ Second, the TSNR of the combined runs after regression modeling is
+  shown. Here, the "signal" is the all_runs dset and the "noise" is
+  the errts time series.
+
+When a mask is present, the olay's hot colors (yellow-orange-red) are
+defined by the 5-95%ile range of TSNR in the mask.  The 1-5%ile values
+within the mask are shown in light blue, and the lower values are
+shown in dark blue.  In the absence of a mask, then the colorbar goes
+from 0 to the 98%ile value within the whole dset.
+'''
+
+qcb_helps["radcor"] = '''
+@radial_correlate plots (per run, per block). These can show
+scanner coil artifacts, as well as large subject motion; both factors
+can lead to large areas of very high correlation, which would be
+highlighted here.  
 '''
 
 qcb_helps["warns"]  = '''
@@ -187,13 +244,6 @@ The warning level is written, with color coding, at the top of each
 warning's text box.  The QC block label 'warns' at the top of the page
 is also colored according to the maximum warning level present.  
 '''.format( lahc.wlevel_str )
-
-qcb_helps["radcor"] = '''
-@radial_correlate plots (per run, per block). These can show
-scanner coil artifacts, as well as large subject motion; both factors
-can lead to large areas of very high correlation, which would be
-highlighted here.  
-'''
 
 qcb_helps["qsumm"]  = '''
 This is the output of @ss_review_basic, which contains a loooot of
@@ -213,8 +263,12 @@ for x in qcb_helps.keys():
 # -----------------------------------------------------------------------
 
 apqc_help = [ 
-['HELP FILE FOR AP-QC', 
- '''afni_proc.py's single subject QC report form'''], 
+['HELP FILE FOR APQC', 
+ '''      *** afni_proc.py's single subject QC report form ***
+
+For questions about afni_proc.py (AP), please see the program or
+<urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">webpage help</a></urlin>.
+'''], 
 ['OVERVIEW', 
 '''QC organization
     The quality control (QC) is organized into thematic blocks to
@@ -248,9 +302,8 @@ Saving
     settings.)
 
 See also
-    The online web tutorial:
-    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html
-    It's more verbose and pictorial, if that's useful.
+    There is an online <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">web tutorial</a></urlin>. It's more verbose and pictorial, 
+    if that's useful.
 '''
 ],
 ['''DEFINITIONS''', 
@@ -539,9 +592,9 @@ def make_inline_pbar_str(ss) :
         if pbar_dict['vthr_comm'] :
             out+= ''' ({vthr_comm})'''.format(**pbar_dict)
 
-#    if pbar_dict['gen_comm'] :
-#        out+= '''\n'''
-#        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
+    if pbar_dict['gen_comm'] :
+        out+= '''\n'''
+        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
 
     return out
 
@@ -1094,8 +1147,8 @@ window.addEventListener("scroll", function(event) {
     var newi = findTopSectionIdx();
 
     if ( newi != topi ) {
-        setTd1Border(newi, "#ffea00"); //"yellow");
-        setTd1Border(topi,  "inherit");      ; //"#FFF", "#444");
+        setTd1Border(newi, "#ffea00"); /* "yellow ");*/
+        setTd1Border(topi,  "inherit");    /*  ; //"#FFF", "#444"); */
         previ = topi;
         topi  = newi;
     }
@@ -1503,6 +1556,12 @@ function doShowHelp() {
     window.open('help.html', '_blank');
 
 } 
+
+function doShowMtedana(link) {
+    window.open(link, '_blank');
+} 
+
+
 '''
 
     # Step 1 of saving the dataset: push button vals to JSON
@@ -1709,6 +1768,68 @@ def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
     <pre {} ><left><b>{}{}</b></left></pre>
 </div>'''.format(addclass, top_line, newx)
     y+= vpad*'\n'
+
+    return y
+
+# -------------------------------------------------------------------
+
+# item is a button (with a link)
+def wrap_button(x, vpad=0, button_type=""):
+
+    # current format of text is:
+    #     TEXT: ...
+    #     LINK: ...
+    #
+    #     TEXT: ...
+    #     LINK: ...
+    # etc.
+
+    text_list = x.split("\n")
+    nlines = len(text_list)
+
+    # got through text and get text+link pairs
+    list_buttons = []
+    i = 0
+    while i < nlines:
+        ttt = text_list[i].strip()
+        if ttt.startswith('TEXT:') :
+            text = ttt[5:].strip()
+            lll = text_list[i+1].strip()
+            if lll.startswith('LINK:') :
+                link = lll[5:].strip()
+            else:
+                print("** ERROR in looking for link in button text (i={})"
+                      "".format(i))
+
+            list_buttons.append([text, link])
+        elif ttt == '':
+            i = nlines+1
+        else:
+            print("** ERROR in looking for text in button text (i={})"
+                  "".format(i))
+        i+= 3
+
+    nbutton = len(list_buttons)
+
+    y = ''
+
+    for n in range(nbutton):
+        text = list_buttons[n][0]
+        link = list_buttons[n][1]
+        if button_type == 'mtedana' :
+            button_type = 'btn_' + button_type
+            onclick = '''onclick="doShowMtedana('{link}')"'''.format(link=link)
+            title   = 'title="Click to open TEDANA HTML."'
+
+        y+= vpad*'\n'
+        y+= '''
+        <td style="width: 1800px; white-space:nowrap;" id=asdf>
+            <center><button class="button-generic {button_type}" 
+                    {title}
+                    {onclick}>{text}</button></center>
+        </td>'''.format( text=text, onclick=onclick, title=title,
+                         button_type=button_type )
+        y+= vpad*'\n'
 
     return y
 

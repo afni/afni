@@ -8,6 +8,44 @@ else
 SUMALIB = libSUMA.a
 endif
 
+# for compiling directly from this Makefile instead of SUMA_Makefile or AFNI's Makefile
+# where the CPU_TYPE should be set; otherwise get errors on ARM M1 like this:
+#config.status: creating test/coarsen/Makefile
+#sed: 24: ./confstatWn4LFR/subs-2.sed: unescaped newline inside substitute pattern
+# check against environment variable for cpu type for default settings
+ifeq ($(CPUTYPE), arm64)
+   CPU_TYPE ?= ARM_M1
+else
+# set default CPU_TYPE if not set already
+   CPU_TYPE ?= x86_64
+endif
+
+# these are needed to run directly from this file 
+# should be safe because they only get assigned if not set already
+RANLIB ?= ranlib
+CP ?= cp
+
+# and possibly init CFLAGS based on CPU_TYPE
+# updated glib to 2.68.1 from previous 2.66 directory
+# then switched to pkg-config figuring this out
+# pkg-config --cflags --libs glib-2.0
+#   -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0 -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include \
+#   -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/Cellar/pcre/8.44/include \
+#   -L/opt/homebrew/Cellar/glib/2.68.1/lib -L/opt/homebrew/opt/gettext/lib -lglib-2.0 -lintl
+
+ifeq ($(CPU_TYPE), ARM_M1)
+GLIBCFLAGS = `pkg-config --cflags --libs glib-2.0`
+CFLAGS = -g -O2 -L/opt/homebrew/lib -lpcre                               \
+         -Wall -Werror-implicit-function-declaration -Wstrict-prototypes \
+         -Wmissing-prototypes -Wmissing-declarations                       \
+         $(GLIBCFLAGS)
+# previous manually found includes - update versions
+#         -I/opt/homebrew/Cellar/glib/2.68.1/include/glib-2.0             \
+#         -I/opt/homebrew/Cellar/glib/2.68.1/lib/glib-2.0/include         \
+#         -I/opt/homebrew/opt/gettext/include                                     \
+#        -I/opt/homebrew/Cellar/pcre/8.44/include
+endif
+
 SUMASLIB = libSUMAseg.a
 SUMAGTSLIB = libSUMAGTS.a
 AFNILIB = -lmrix -lcoxplot -lmri -ltracktools -lf2c -l3DEdge
@@ -19,7 +57,7 @@ GLWLIB = libGLws.a
 
 SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr -IGLUT -I../f2c -I.. -I../niml -I../coxplot -I../ptaylor
 
-SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
+SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_clippingPlanes.c \
 		 SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c SUMA_SurfNorm.c SUMA_DOmanip.c \
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c \
@@ -105,7 +143,7 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 SUMA_SRCS_OBJS = ${SUMA_SRCS_MAIN:.c=.o}
 
-SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
+SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_clippingPlanes.h SUMA_MiscFunc.h SUMA_suma.h SUMA_trackball.h	\
 		 SUMA_define.h SUMA_gen_include.h SUMA_Macros.h SUMA_prototype.h SUMA_SVmanip.h SUMA_SphericalMapping.h  \
 		 SUMA_DataSets.h SUMA_Homer.h
 
@@ -707,14 +745,40 @@ libply.a:
 #     in netpbm-devel version 10.47
 #   - until then: "yum downgrade netpbm netpbm-devel" to go back to 10.35
 #   - or look for corresponding GTS update
+# ***** for MAC ARM-M1 and 10.15 clang x86_64 builds    09 Mar 2021 [drg]
+#   once again have confusing problem with pgm.h missing from standard
+#   kinds of places, so libgts has errors
+#   solve with symbolic link to Cellar versions in homebrew
+#   ARM_M1 version
+#   sudo ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h  \
+#     /opt/homebrew/include/pgm.h
+#   x86_64 version should be something like this one, but haven't tried
+#   sudo ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h     \
+#     /usr/local/homebrew/include/pgm.h
+
 
 libgts.a:
-	( cd gts ;	\
-	  ./configure --includedir /usr/include/netpbm ;	\
-	  $(MAKE) clean ; \
-	  $(MAKE) ; \
-	  $(RANLIB) src/.libs/$@ ;	\
+#	  ./configure --includedir /usr/include/netpbm  --libdir /opt/homebrew/lib ;	\#
+# for ARM_M1, brew is installed elsewhere, and CFLAGS don't include the libpcre properly
+#      $(MAKE) 'CFLAGS=$(CFLAGS)' ; \
+#	  ./configure --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	\
+#
+
+ifeq ($(CPU_TYPE), ARM_M1)
+	( cd gts ;	                     \
+     ./configure 'LDFLAGS=$(SUMA_LINK_PATH)' --includedir /opt/homebrew/include/  --libdir /opt/homebrew/lib ;	     \
+	  $(MAKE) clean ;                \
+	  $(MAKE) 'CFLAGS=$(CFLAGS)' ;   \
+	  $(RANLIB) src/.libs/$@ ;	      \
 	  $(CP) -p src/.libs/$@ .. ; )
+else
+	( cd gts ;	                                     \
+	  ./configure --includedir /usr/include/netpbm ; \
+	  $(MAKE) clean ;                                \
+     $(MAKE) ;                                      \
+	  $(RANLIB) src/.libs/$@ ;	                      \
+	  $(CP) -p src/.libs/$@ .. ; )
+endif
 
 #remove soon
 AddGTS: ${SUMA_GTS_OBJS}

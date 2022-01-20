@@ -365,7 +365,7 @@ typedef struct {
    int sd ;          /*!< TCP only: socket descriptor */
 
    FILE *fp ;        /*!< FILE only: pointer to open file */
-   int fsize ;       /*!< FILE only: length of file for input */
+   int64_t fsize ;   /*!< FILE only: length of file for input */
 
    char name[256] ;  /*!< Hostname or filename */
 
@@ -586,7 +586,7 @@ extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern char * NI_strdup( char * ) ;
 extern char * NI_strdup_len( char *, int ) ;
 extern int    NI_strlen( char * ) ;
-extern long   NI_filesize( char * ) ;
+extern int64_t NI_filesize( char * ) ;  /* changed to int64_t 20 Jul 2021 */
 extern int    NI_is_fifo( char * ) ;            /* 27 Aug 2019 */
 extern int    NI_clock_time(void) ;
 extern int    NI_byteorder(void) ;
@@ -690,7 +690,7 @@ extern char * NI_stream_name( NI_stream_type * ) ;
 extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
 extern int NI_stream_hasinput( NI_stream_type * , int ) ;
-extern void NI_stream_seek( NI_stream_type * , int , int ) ; /* 24 Mar 2003 */
+extern void NI_stream_seek( NI_stream_type * , int64_t , int ) ; /* 24 Mar 2003 */
 extern int NI_stream_writestring( NI_stream_type * , char * ) ;
 
 extern int NI_stream_setbufsize( NI_stream_type *, int ) ; /* 03 Jan 2003 */
@@ -707,11 +707,11 @@ extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
 extern char * NI_suck_file( char * ) ;                    /* 27 Aug 2019 */
 extern void * NI_read_element ( NI_stream_type *, int ) ;
-extern int    NI_write_element( NI_stream_type *, void *, int ) ;
+extern int64_t  NI_write_element( NI_stream_type *, void *, int ) ;
 extern int    NI_write_procins( NI_stream_type *, char * ) ; /* 17 Mar 2005 */
-extern int    NI_write_columns( NI_stream_type * ,
+extern int64_t NI_write_columns( NI_stream_type * ,
                                 int , int * , int , void ** , int ) ;
-extern int    NI_write_rowtype( NI_stream_type * ,
+extern int64_t NI_write_rowtype( NI_stream_type * ,
                                 NI_rowtype * , int , void * , int ) ;
 extern int    NI_read_columns ( NI_stream_type *,
                                 int, int *, int, void **, int,int ) ;
@@ -724,7 +724,7 @@ extern int    NI_get_read_header_only( void );                 /* 24 Feb. 2012 *
 extern void * NI_read_element_header( NI_stream_type *, int ); /* 26 Mar 2003 */
 extern void   NI_skip_procins( int ) ;                         /* 03 Jun 2005 */
 
-extern int NI_write_element_tofile( char *, void *, int ) ;    /* 07 Mar 2007 */
+extern int64_t NI_write_element_tofile( char *, void *, int ) ;    /* 07 Mar 2007 */
 extern void * NI_read_element_fromfile( char * ) ;             /* 12 Mar 2007 */
 extern void * NI_read_element_fromstring( char *nstr );     /* 26 Feb 2010 ZSS*/
 extern char * NI_write_element_tostring( void *nel ); /* Oct 2011 ZSS */

@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
       printf("\n"
              "Usage: 3dTcorr1D [options] xset y1D   ~1~\n"
              "\n"
@@ -45,9 +45,9 @@ int main( int argc , char *argv[] )
              "                calculates the dot product between the y1D vector(s)\n"
              "                and the dataset time series.\n"
              "\n"
-             "  -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
-             "                to the results.\n"
-             "              ++ It does not make sense to use this with '-ktaub', but if\n"
+             "  -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent = arctanh)\n"
+             "                transformation to the results.\n"
+             "              ++ It does NOT make sense to use this with '-ktaub', but if\n"
              "                 you want to do it, the program will not stop you.\n"
              "              ++ Cannot be used with '-dot'!\n"
              "\n"
@@ -100,7 +100,7 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-     if( strcmp(argv[nopt],"-mask") == 0 ){  /* 28 Jun 2010 */
+     if( strcasecmp(argv[nopt],"-mask") == 0 ){  /* 28 Jun 2010 */
        THD_3dim_dataset *mset ;
        if( ++nopt >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL )   ERROR_exit("Can't have two mask inputs") ;
@@ -131,7 +131,6 @@ int main( int argc , char *argv[] )
         smethod = "dot" ; nopt++ ; continue ;
       }
 
-
       if( strcasecmp(argv[nopt],"-spearman") == 0 || strcasecmp(argv[nopt],"-rank") == 0 ){
         smethod = "spearman" ; nopt++ ; continue ;
       }
@@ -148,7 +147,7 @@ int main( int argc , char *argv[] )
         do_atanh = 1 ; nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-prefix") == 0 ){
+      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
         prefix = argv[++nopt] ;
         if( !THD_filename_ok(prefix) ) ERROR_exit("Illegal value after -prefix!") ;
         nopt++ ; continue ;
@@ -188,7 +187,7 @@ int main( int argc , char *argv[] )
    }
 
    nvals = DSET_NVALS(xset) ;  /* number of time points */
-   ii    = (strcmp(smethod,"dot")==0) ? 2 : 3 ;
+   ii    = (strcasecmp(smethod,"dot")==0) ? 2 : 3 ;
    if( nvals < ii )
      ERROR_exit("Input dataset %s length is less than ii?!",xnam,ii) ;
 
@@ -206,10 +205,10 @@ int main( int argc , char *argv[] )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
                    ynam,ysim->ny) ;
 
-   if( strcmp(smethod,"dot") == 0 && do_atanh ){
+   if( strcasecmp(smethod,"dot") == 0 && do_atanh ){
      WARNING_message("'-dot' turns off '-Fisher'") ; do_atanh = 0 ;
    }
-   if( strcmp(smethod,"dot") == 0 && datum == MRI_short ){
+   if( strcasecmp(smethod,"dot") == 0 && datum == MRI_short ){
      WARNING_message("'-dot' turns off '-short'") ; datum = MRI_float ;
    }
 

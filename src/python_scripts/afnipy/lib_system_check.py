@@ -17,6 +17,21 @@ import platform, glob
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
 
+# ------------------------------ globals ------------------------------
+
+# ---- sites   e.g. https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/
+#                           background_install/install_instructs/steps_mac.html
+
+g_site_afnidoc      = 'https://afni.nimh.nih.gov/pub/dist/doc/htmldoc'
+g_site_install_root = '%s/background_install/install_instructs' % g_site_afnidoc
+g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
+
+# only run 'df' once per root directory
+g_fs_space_checked  = []
+g_fs_space_whine    = 1         # do we whine about fs space? (only once)
+
+# ------------------------------ main class  ------------------------------
+
 class SysInfo:
    """system info class"""
 
@@ -165,7 +180,42 @@ class SysInfo:
          if not self.home_file_exists(f1name):
             cc.append('shell %-4s: missing setup file %s' % (sname, f1name))
 
+         self.check_multi_tcsh_startup_files()
+
       self.comments.extend(cc)
+
+   def check_multi_tcsh_startup_files(self):
+      """if both .cshrc and .tcshrc exist and .t does not source .c, warn
+      """
+      cfile = '.cshrc'
+      tfile = '.tcshrc'
+      if not self.home_file_exists(cfile) or not self.home_file_exists(tfile):
+         return
+      if self.verb > 1:
+         print("-- found both %s and %s" % (cfile,tfile))
+
+      found = 0
+      st, so, se = UTIL.limited_shell_exec("\grep %s $HOME/%s" % (cfile,tfile))
+      # if we find something, test to see if it is valid
+      if st == 0:
+         for line in so:
+            words = line.split()
+            if words[0] in ['.', 'source'] and 'cshrc' in words[1]:
+               found = 1
+               break
+            if self.verb > 2:
+               print("-- have unapplied %s in %s:" % (cfile, tfile))
+               print("   %s" % line)
+
+      if not found:
+         m0 = "have both %s and %s, with former not applied" % (cfile, tfile)
+         m1 = "(consider adding 'source $HOME/%s' to $HOME/%s)" % (cfile, tfile)
+         print("** %s" % m0)
+         print("   %s" % m1)
+         self.comments.append(m0)
+         self.comments.append(" " + m1)
+      elif self.verb > 2:
+         print("-- %s appears to be sourced from %s" % (cfile, tfile))
 
    def home_file_exists(self, fname):
       return(os.path.isfile('%s/%s' % (self.home_dir, fname)))
@@ -185,15 +235,27 @@ class SysInfo:
 
          return 0 if found, else 1
       """
+      global g_fs_space_whine
 
       status, droot = self.find_data_root(ddir, hvar=0)
       if status:
          print('data dir : missing %s' % ddir)
          return 1
 
-      # have a directory, show it
+      # have a directory, show it (and check file system space)
+      m_min = 5000
+      status, space = self.get_partition_space(droot, m_min=m_min)
+      if space:
+         sstr = ' (%s Avail)' % space
+      else:
+         sstr = ''
       dhome = droot.replace(self.home_dir, '$HOME')
-      print('data dir : found %-12s under %s' % (ddir, dhome))
+      print('data dir : found %-12s under %s%s' % (ddir, dhome, sstr))
+      # if we detect insufficient space, warn (but only once)
+      if status and g_fs_space_whine:
+         self.comments.append('possibly insufficient disk space for bootcamp')
+         self.comments.append(' (prefer >= %d MB for data analysis)' % m_min)
+         g_fs_space_whine = 0
 
       # possibly show histfile
       if histfile == '': return 0
@@ -203,9 +265,78 @@ class SysInfo:
       try:
          self.show_top_line(hname, prefix=prefix, last=76-len(prefix))
       except UnicodeDecodeError:
-         print("Unicode decoding error occurred when trying to read %s. No info retrieved"%hname)
+         print("Unicode decoding error occurred when trying to read %s." \
+               " No info retrieved"%hname)
 
       return 0
+
+   def get_partition_space(self, dname, m_min=-1):
+      """run df -hm $dname, and return the value in '1M-blocks' column
+                            (if no such column, use Avail)
+
+            dname   : directory name to run df on
+            m_min   : if 1M-blocks and m_min >= 0, the min cutoff for failure
+
+         - find offset of header in first line of text
+         - starting at that position in the last line, return the first word
+           (it might not be the second line, in case Filesystem is too wide
+
+         Only run this once per dname, so track in g_fs_space_checked list.
+
+         return status and the size string
+                status: 1 on insufficient space, else 0
+      """
+
+      # do not check any dname more than once
+      global g_fs_space_checked
+      if dname in g_fs_space_checked:
+         return 0, ''
+      g_fs_space_checked.append(dname)
+
+      # try for an integral number of 1M-blocks
+      m = 1
+      cmd = 'df -hm %s' % dname
+      s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+      hsearch = '1M-blocks'
+
+      # if we fail at first, just get a value, probably in G
+      if s:
+         cmd = 'df -h %s' % dname
+         s, so, se = UTIL.limited_shell_exec(cmd, nlines=3)
+         hsearch = 'Avail'
+      if s: return 0, ''
+    
+      if len(so) < 2: return 0, ''
+
+      hstr = so[0]
+      astr = so[-1]
+
+      posn = hstr.find(hsearch)
+      if posn < 0: return 0, ''
+      if len(astr) <= posn: return 0, ''
+
+      # start from position of desired header string
+      astr = astr[posn:]
+      alist = astr.split()
+      if len(alist) == 0:
+         return 0, ''
+      astr = alist[0]
+
+      # if 'm' and this is an int, check for insufficient space
+      status = 0
+      if m and m_min >= 0:
+         try:
+            nmeg = int(astr)
+         except:
+            nmeg = -1
+         # failure
+         if nmeg >= 0 and nmeg < m_min:
+            status = 1
+      # if m, append a unit
+      if m:
+         astr = '%sM' % astr
+            
+      return status, astr
 
    def show_data_info(self, header=1):
       """checks that are specific to data
@@ -225,7 +356,9 @@ class SysInfo:
       rv += self.show_data_dir_info('suma_demo', 'README.archive_creation')
       rv += self.show_data_dir_info('afni_handouts')
 
-      if rv: self.comments.append('insufficient data for AFNI bootcamp')
+      if rv:
+        self.comments.append('insufficient data for AFNI bootcamp')
+        self.comments.append(' (see "Prepare for Bootcamp" on install pages)')
 
       evar = 'AFNI_ATLAS_DIR'
       tryenv = 0                        # might suggest setting evar
@@ -321,7 +454,7 @@ class SysInfo:
       if header: print(UTIL.section_divider('OS specific', hchar='-'))
 
       if   self.system == 'Linux':  self.show_spec_linux()
-      elif self.system == 'Darwin': self.show_spec_osx()
+      elif self.system == 'Darwin': self.show_spec_macos()
 
       print('')
 
@@ -358,7 +491,7 @@ class SysInfo:
          else:
             self.comments.append('consider installing PyQt4')
 
-   def show_spec_osx(self):
+   def show_spec_macos(self):
       """look for fink, macports, homebrew, PyQt4"""
 
       # first check on XQuartz (and Xcode?)
@@ -371,7 +504,7 @@ class SysInfo:
          # self.comments.append('consider installing fink')
          print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
-      if self.get_osx_ver() < 7:
+      if self.get_macos_ver() < 7:
          self.comments.append('OS X version might be old')
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
@@ -429,6 +562,8 @@ class SysInfo:
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
       self.check_for_flat_namespace()
 
+      self.check_for_macos_R_in_path()
+
       # forget this function - I forgot that the problem was a non-flat version
       #                        of libXt6, not a 6 vs 7 issue...
       # self.check_for_libXt7()
@@ -460,7 +595,7 @@ class SysInfo:
       if self.afni_fails < 2: return
             
       # this check only applis to OS X 10.7 through 10.10 (and if that)
-      osver = self.get_osx_ver()
+      osver = self.get_macos_ver()
       if osver < 7 or osver > 10:
          return
 
@@ -471,7 +606,8 @@ class SysInfo:
       # if set, check if any dylibs exist
       fvar = 'DYLD_FALLBACK_LIBRARY_PATH'
       if fvar not in os.environ:
-         print('** AFNI program failures and DYLD_FALLBACK_LIBRARY_PATH not set')
+         print('** AFNI program failures' \
+               ' and DYLD_FALLBACK_LIBRARY_PATH not set')
          if nadylib > 0:
             self.comments.append('consider setting DYLD_FALLBACK_LIBRARY_PATH'\
                                  ' to abin, e.g.\n   '                        \
@@ -495,6 +631,32 @@ class SysInfo:
          elif fvar != self.afni_dir:
             self.comments.append('not sure about DYLD_FALLBACK_LIBRARY_PATH')
 
+   def check_for_macos_R_in_path(self):
+      """if R is not in PATH, but it exists, suggest the directory to the user
+
+         check:
+            /Library/Frameworks/R.framework/Versions/3.6/Resources/bin
+            /Library/Frameworks/R.framework/Versions/Current/Resources/bin
+
+         this function is just to possibly add to self.comments
+      """
+      # if R is in PATH, we are done
+      if UTIL.num_found_in_path('R', mtype=1) > 0:
+         return
+
+      # so no R in PATH, but check in case it actually exists
+      rroot = '/Library/Frameworks/R.framework/Versions'
+      rbin_36 = '%s/3.6/Resources/bin' % rroot
+      rbin_cur = '%s/Current/Resources/bin' % rroot
+      ex36 = os.path.exists('%s/R'%rbin_36)
+      excur = os.path.exists('%s/R'%rbin_cur)
+
+      if ex36:
+         self.comments.append("have R, but need to add dir to PATH")
+         self.comments.append(" add dir: %s" % rbin_36)
+      elif excur:
+         self.comments.append("have R, but need to add dir to PATH")
+         self.comments.append(" add dir: %s" % rbin_cur)
 
    def check_for_10_11_lib(self, libname, wpath='gcc/*/lib/gcc/*'):
       """in 10.11, check for library under homebrew
@@ -508,7 +670,7 @@ class SysInfo:
          return 0
 
       # require 10.11, unless being verbose
-      if self.get_osx_ver() < 11 and self.verb <= 1:
+      if self.get_macos_ver() < 11 and self.verb <= 1:
          return 0
 
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
@@ -569,7 +731,7 @@ class SysInfo:
       """
 
       # require 10.9, unless being verbose (nah, just check...)
-      # if self.get_osx_ver() < 9 and self.verb <= 1:
+      # if self.get_macos_ver() < 9 and self.verb <= 1:
       #    return 0
 
       flatdir = '/opt/X11/lib/flat_namespace'
@@ -606,7 +768,7 @@ class SysInfo:
          print('   (so afni and suma might fail)')
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         if self.get_osx_ver() >= 11:
+         if self.get_macos_ver() >= 11:
             self.check_evar_path_for_val(edir, flatdir)
             if self.cur_shell.find('csh') < 0:
                self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
@@ -701,7 +863,7 @@ class SysInfo:
 
       return s, so
 
-   def get_osx_ver(self):
+   def get_macos_ver(self):
       if self.system != "Darwin": return 0
       verlist = self.os_dist.split()
       if len(verlist) < 1: return 0
@@ -787,6 +949,55 @@ class SysInfo:
 
       return nfound
 
+   def test_python_lib_matplotlib(self, verb=2):
+      """check for existence of matplotlib.pyplot and min matplotlib version
+         (>= 2.2)
+
+         return 0 if happy
+      """
+      # actual lib test
+      plib = 'matplotlib.pyplot'
+      rv = self.test_python_lib(plib, mesg='required', verb=verb)
+
+      # if missing, we are done
+      if rv:
+         self.comments.append('python library matplotlib is required')
+         self.comments.append(' (see AFNI install docs for details)')
+         return 1
+
+      # we have matplotlib, try to show and parse version
+      warn = 1
+      mver = self.get_ver_matplotlib()
+      if mver == 'None':
+         print("** failed to get matplotlib version")
+      else:
+         print("   matplotlib version : %s" % mver)
+         try:
+            vlist = mver.split('.')
+            # if version is high enough, turn off warn
+            if int(vlist[0]) > 2:
+               warn = 0
+            elif int(vlist[0]) == 2 and int(vlist[1]) >= 2:
+               warn = 0
+         except:
+            print("** failed to check matplotlib version")
+
+      if warn:
+         wstr = 'need maptplotlib version 2.2+ for APQC'
+         print("** %s\n" % wstr)
+         self.comments.append('check for partial install of PyQt4')
+
+   def get_ver_matplotlib(self):
+      """simply return a matplotlib version string, and "None" on failure.
+      """
+      try:
+         import matplotlib as MP
+         ver = MP.__version__
+      except:
+         ver = 'None'
+
+      return ver
+
    def test_python_lib_pyqt4(self, verb=2):
       # actual lib test
       libname = 'PyQt4'
@@ -838,13 +1049,18 @@ class SysInfo:
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyone main ones
-      extralibs = ['matplotlib.pyplot']
+      # (empty for now, since matplotlib got its own function)
+      extralibs = []
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
 
       # itemize special libraries to test: PyQt4
       self.test_python_lib_pyqt4(verb=verb)
+      print('')
+
+      # itemize special libraries to test: matplotlib.pyplot
+      self.test_python_lib_matplotlib(verb=verb)
       print('')
 
       # then go after any others
@@ -876,7 +1092,7 @@ class SysInfo:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
             print("%s = %s\n" % (evar, os.environ[evar]))
-         elif evar.startswith('DY') and self.get_osx_ver() >= 11:
+         elif evar.startswith('DY') and self.get_macos_ver() >= 11:
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
@@ -976,6 +1192,7 @@ class SysInfo:
                if len(files) > 0:
                   if os.stat(files[0]).st_uid == 0:
                      self.comments.append("'afni' executable is owned by root")
+
       print('')
 
       # explicit python2 vs python3 check    7 Dec 2016
@@ -1170,6 +1387,11 @@ class SysInfo:
             # clear on failure
             if vstr == '': dstr = ''
 
+         # some vesions are not considered good
+         if self.check_xquartz_version(vstr, warn=1): 
+            print("  ** for macos install instructions, see:\n\n    %s\n" \
+                  % g_site_install_mac)
+
          return 1, (dstr+vstr)
 
       elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
@@ -1181,6 +1403,85 @@ class SysInfo:
       else:
          print('** no version method for prog : %s' % prog)
          return -1, ''
+
+   def check_xquartz_version(self, vstr, warn=1):
+      """bad versions:
+             <= 2.6*
+             == 2.8.0_alpha*
+             == 2.8.0_beta[12] (so 3+ is good)
+
+         return 0 on ok, 1 on bad version or problem
+      """
+      # -------- set vnlist and vtype, and fail on errors
+      try:
+         vlist = vstr.split('_')
+         vnlist = [int(v) for v in vlist[0].split('.')]
+      except:
+         print("** failed to parse X version string, '%s'" % vstr)
+         self.comments.append("strange XQuartz version: %s" % vstr)
+         return 1
+
+      if len(vnlist) != 3:
+         print("** failed to parse X version levels in '%s'" % vstr)
+         self.comments.append("strange XQuartz version: %s" % vstr)
+         return 1
+
+      # and note any sub-type, e.g. 'alpha*'
+      if len(vlist) < 2:
+         vtype = ""
+      else:
+         vtype = vlist[1]
+
+      # -------- check for major version 2, (warn if less)
+      if vnlist[0] < 2:
+         self.comments.append("strange XQuartz major version: %s" % vstr)
+         return 1
+
+      if vnlist[0] > 2:
+         return 0
+
+      # -------- so the major version is 2
+
+      # check minor version 7 or 8
+      if vnlist[1] < 7:
+         estr = "early XQuartz version, but might be okay: %s" % vstr
+         self.comments.append(estr)
+         return 0
+
+      if vnlist[1] == 7:
+         return 0
+
+      # now only worry about 2.8.0, can expand later
+      if vnlist[1] > 8 or vnlist[2] > 0:
+         return 0
+
+      # -------- now have 2.8.0, check vtype
+
+      if vtype == "":
+         return 0
+
+      if vtype.startswith('alpha'):
+         estr = "XQuartz is an alpha release, and should be updated"
+         print("** %s" % estr)
+         self.comments.append(estr)
+         return 1
+
+      if vtype.startswith('beta'):
+         # get trailer
+         btype = vtype[4:]
+
+         # see if there is a number attached
+         if btype in ['1', '2']:
+            estr = "XQuartz is an early beta release, and should be updated"
+            print("** %s" % estr)
+            self.comments.append(estr)
+            return 1
+
+         # beta 3+ (or empty?) is okay, for now
+         return 0
+
+      # currently another future condition: neither alpha nor beta
+      return 0
 
    def get_kmdi_version(self, path, verb=1):
       """for the given program, run: mdls -name kMDItemVersion
@@ -1219,6 +1520,12 @@ class SysInfo:
        from phihag @ stackoverflow.com, partially via other users
        """
        import re,subprocess
+
+       # SLURM cluster (e.g., Biowulf)
+       if 'SLURM_JOB_CPUS_PER_NODE' in os.environ:
+           return os.environ['SLURM_JOB_CPUS_PER_NODE']
+       if 'SLURM_CPUS_PER_TASK' in os.environ:
+           return os.environ['SLURM_CPUS_PER_TASK']
 
        # Python 2.6+
        try:
@@ -1274,7 +1581,8 @@ class SysInfo:
            try:
                dmesg = open('/var/run/dmesg.boot').read()
            except IOError:
-               dmesgProcess = subprocess.Popen(['dmesg'], stdout=subprocess.PIPE)
+               dmesgProcess = subprocess.Popen(['dmesg'],
+                                               stdout=subprocess.PIPE)
                dmesg = dmesgProcess.communicate()[0]
            res = 0
            while '\ncpu' + str(res) + ':' in dmesg:
@@ -1327,6 +1635,8 @@ class SysInfo:
       self.show_os_specific()
 
       self.show_comments()
+
+# non-class functions
 
 def tup_str(some_tuple):
    """just listify some string tuple"""

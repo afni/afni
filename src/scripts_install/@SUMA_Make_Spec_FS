@@ -33,9 +33,17 @@
 #    + also, -extra_annot_labels output is passed on to -extra_fs_dsets
 # [Mar  5, 2020] RCR/DRG: for extra annot's, pass along without colormap
 #    + use mris_convert/3dcopy for now, instead of FSread_annot/ConvertDset
-#     
+# [Jan 27, 2021] PT : add another driving script in L_MAKE_DRIVE_SCRIPT block
+#    + has both AFNI+SUMA run, plus talk 
+# [Mar  3, 2021] PT : add some functionality in new L_MASK_QC_ROIS block
+#    + make a nice WB mask
+#    + make some QC images of mask(s), segmentations and ROIs
+#    + make some tables of ROI info
+# [May 12, 2021] PT : remove old NIFTI message about needing even matrix
+#      dimensions for anatomical input to recon-all.  Yikes, that wasn't
+#      need, just the way we were viewing it...
 
-set ver = 2.2.1
+set ver = 2.2.4
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -74,9 +82,17 @@ goto L_ICO
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
 
+# PT added [Jan 27, 2021]
+goto L_MAKE_DRIVE_SCRIPT
+     L_MAKE_DRIVE_SCRIPT_DONE:
+
 # PT added [Dec 30, 2016]
 goto L_RENUMBER_ROIS
      L_RENUMBER_ROIS_DONE:
+
+# PT added [Mar 3, 2021]
+goto L_MASK_QC_ROIS
+     L_MASK_QC_ROIS_DONE:
 
 # [27 Jan 2020 rickr]
 goto L_COMPRESS_FILES
@@ -357,8 +373,12 @@ L_PARSE_COMMAND:
                 @ count ++
                 set debug = $argv[$count]
 
-                if ( "$debug" > 2 ) set debug = 2
-                if ( "$debug" < 0 ) set debug = 0
+                if ( "$debug" > 2 ) then
+                    set debug = 2
+                endif
+                if ( "$debug" < 0 ) then
+                    set debug = 0
+                endif
 
             breaksw
 
@@ -374,9 +394,13 @@ L_PARSE_COMMAND:
                 @ count ++
                 set ff = 0
                 foreach inf ($inflates)
-                    if ($inf == "$argv[$count]") set ff = 1
+                    if ($inf == "$argv[$count]") then
+                        set ff = 1
+                    endif
                 end
-                if ($ff == 0) set inflates = ($inflates $argv[$count])
+                if ($ff == 0) then
+                    set inflates = ($inflates $argv[$count])
+                endif
 
             breaksw
 
@@ -508,11 +532,17 @@ L_PARSE_COMMAND:
     # to input other dsets from surf/ dir
     set fsdsets = (thickness curv sulc $fsdsets_extra ) 
 
-    if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
+    if ($#inflates == 0 && $neuro_ori == -1) then
+        set inflates = ($inflates 200) 
+    endif
 
     if ( $debug ) echo "-- usage okay"
-    if ( $debug > 1 ) set echo
-    if ( $#ldu ) set ldlist = ($ldu)
+    if ( $debug > 1 ) then
+        set echo
+    endif
+    if ( $#ldu ) then
+        set ldlist = ($ldu)
+    endif
     if ($#ldpref == 0 && $#ldlist != 0) then
         set ldpref = ()
         foreach lldd ($ldlist)
@@ -787,8 +817,12 @@ L_LOOK_FOR_SURF:
     set list_rh = "X"
 
     foreach attrib ( $surf_attribs )
-        if ( -f lh.$attrib ) set list_lh = ( $list_lh lh.$attrib )
-        if ( -f rh.$attrib ) set list_rh = ( $list_rh rh.$attrib )
+        if ( -f lh.$attrib ) then
+            set list_lh = ( $list_lh lh.$attrib )
+        endif
+        if ( -f rh.$attrib ) then
+            set list_rh = ( $list_rh rh.$attrib )
+        endif
     end
 
     set list_lh = ( $list_lh[2-] )   # now remove the leading "X"
@@ -1557,6 +1591,69 @@ L_TEST_SURF_VOL:
 goto L_TEST_SURF_VOL_DONE
 
 ####################################################################
+# [PT, Jan 26, 2020]
+# have an AFNI+suma driving script made
+
+L_MAKE_DRIVE_SCRIPT:
+
+printf "" >   $suma_dir/run_suma_01_with_afni.tcsh
+cat << EOF >> $suma_dir/run_suma_01_with_afni.tcsh
+#!/bin/tcsh
+
+# This is an example script for driving AFNI+SUMA and having them talk
+
+set suma_spec = std.141.*_both.spec
+set all_sv    = ( *SurfVol*{nii,HEAD}* )
+set dset_sv   = \${all_sv[1]}
+
+if ( \$status || "\${?suma_spec}" == "0" ) then
+    echo "** Some badness with finding files"
+    exit 1
+endif
+
+# --------------------- preliminary settings -----------------------
+
+# you can set other env vars if you want
+setenv AFNI_ENVIRON_WARNINGS       NO
+setenv SUMA_DriveSumaMaxCloseWait   6
+setenv SUMA_DriveSumaMaxWait        6
+
+set portnum = `afni -available_npb_quiet`
+
+# ------------------------- open the GUIs --------------------------
+
+afni -npb \${portnum} -niml  &
+
+sleep 2
+
+suma                                                    \
+    -onestate                                           \
+    -npb   \${portnum}                                   \
+    -spec  \${suma_spec}                                 \
+    -sv    \${dset_sv} &
+
+sleep 2
+
+DriveSuma                                               \
+    -npb \${portnum}                                     \
+    -com viewer_cont -key 't' -key '.' 
+
+# ------------------------- Finish up ---------------------------
+
+if ( \$status ) then
+    echo "** Some badness with driving SUMA"
+    exit 1
+endif
+
+echo ""
+echo "++ AFNI+SUMA should be up and talking now..."
+echo ""
+
+EOF
+
+goto L_MAKE_DRIVE_SCRIPT_DONE
+
+####################################################################
 # [PT, Dec 30, 2016]
 # finally replacing rank utility.
 
@@ -1569,6 +1666,26 @@ L_RENUMBER_ROIS:
     @SUMA_renumber_FS $suma_dir
 
 goto L_RENUMBER_ROIS_DONE
+
+####################################################################
+# [PT, Mar 3 2021]
+# Make a useful WB mask and QC images;  also make tables of ROI info.
+
+L_MASK_QC_ROIS:
+
+    echo "\n\n++ Going to make a nice WB mask."
+    echo "       ... and some useful QC images."
+    echo "       ... and some useful ROI info tables.\n\n"
+
+    adjunct_suma_fs_mask_and_qc             \
+        -sid       ${subj_id}               \
+        -suma_dir  $suma_dir
+
+    adjunct_suma_fs_roi_info                \
+        -sid       ${subj_id}               \
+        -suma_dir  $suma_dir
+
+goto L_MASK_QC_ROIS_DONE
 
 ####################################################################
 # [27 Jan 2020 rickr]
@@ -1684,7 +1801,7 @@ OPTIONS ~1~
     -extra_annot_labels L1 L2 ...  : convert extra annot files into ROI dsets
           e.g. -extra_annot_labels aparc
 
-          FS typically outputs annotaion files:
+          FS typically outputs annotation files:
                 lh.aparc.a2005s.annot
                 rh.aparc.a2005s.annot
                 lh.aparc.a2009s.annot
@@ -1781,30 +1898,6 @@ OPTIONS ~1~
 
                 * If you are seeing this message, that problem was fixed
                   years ago.
-
-    NOTE for -NIFTI:
-        If you really care that the volumes in SUMA/ are in exact
-        register with the volume you passed to FreeSurfer, you 
-        should be sure that the volume passed to FreeSurfer has 
-        an even number of slices in all directions and a voxel
-        resolution of 1x1x1, otherwise the resultant volumes in
-        SUMA/ might be off by half a voxel or less in directions
-        with odd number of slices. The reason has to do (I think)
-        with FreeSurfer's resampling and volume centering approach.
-        In either case, surfaces and volumes under SUMA/ will be in
-        proper register.
-
-        For example, when creating a surface model of the TT_N27 brain
-        I padded the TT_N27+tlrc volume before submitting it to 
-        FreeSurfer with the following command:
-           3dZeropad -L 1 -P 1 -S 1 -prefix anat.nii TT_N27+tlrc.HEAD
-
-        After zeropadding, anat.nii remains in perfect register with
-        TT_N27+tlrc by it has an even number of slices in all
-        directions.  For example, running:
-            3dinfo -n4  -d3 -prefix anat.nii
-        produces:
-            162  192  152   1    1.0     1.0     1.0     anat.nii
 
     -inflate INF: Create modereately inflated surfaces using
                   SurfSmooth. INF controls the amount of smoothness

@@ -1,0 +1,608 @@
+#!/bin/tcsh 
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# Performs equi-distant interpolation between two FreeSurfer surfaces,
+# usually wm and pial.
+# Intended for layer-specific exploration and visualization on whole
+# surfaces or patches thereof.
+# Creates interpolated GIFTI surfaces. A companion program
+# quickspecSL makes a .spec file for SUMA.
+# With SurfLayers, if one specifies 2 new surfaces ("-n_intermed_surfs 2"), 
+# then 2 new intermediate surfaces are created, making the total number of 
+# relevant surfaces, including 2 boundary surfaces, 4.
+# Assumes @SUMA_Make_Spec_FS has been run, although is not required.
+# Zoomed use in SUMA recommended with "SUMA_FreezeFOVAcrossStates =
+# YES" in ~/.sumarc
+
+# [SJT] initial version: made intermediate surfaces and kludgily
+#       modified a .spec file
+#set ver = 0.00
+# [DRG] moved Sam's script to a user-distributed version with options
+#set ver = 0.01
+# [DRG] made spec input path specification less fickle
+#set ver = 0.02
+# [SJT] add functions to make a spec w/ only -surf_? inputs + other
+#       minor changes
+#set ver = 0.03
+# [DRG] small bug fixes - endif and removed check for existing spec
+#       files in output directory
+#set ver = 0.04
+# [SJT] minor bug fixes and input checks. user can also name
+#       interpolated surfs
+#set ver = 0.05
+# [SJT] major change: split script in two: quickspecSL now makes the .spec
+#set ver = 0.06
+# [DRG] minor changes to allow hemispheres again
+#set ver = 0.07
+# [DRG] bug fix for second hemisphere to really work with spec file
+#       ... +other tiny clean up
+#set ver = 0.08
+# [SJT] more tiny clean ups focused on terminal outputs
+#set ver = 0.09
+# [DRG] hemis fix for both_lr to mean a both spec file, hemis for the
+#       hemispheres
+#set ver = 0.10
+# [SJT] formatting and option name fixes from PT
+#set ver = 0.11
+# [PT]  spacing < 80 chars (except for messages)
+#set ver = 0.12
+# [PT]  put run*tcsh script into the outdir, instead of having text in term
+#       "-bothlr" -> "-both_lr", for clarity
+#       run quickspecSL automatically-- why just suggest it?
+#set ver = 0.13
+# [SJT] changed old "-nlayers" option name to "-n_intermed_surfs" and altered
+#       HELP text, terminal outputs, and some variable names to fit.
+#       Although "layers" is still in the program name, its definition
+#       in the surface context is dubious, therefore the agnosticism.
+#set ver = 0.14
+# [PT]  Tweak call to suma program---put ampersand at end, so ensuing
+#       text shows up
+#set ver = 0.15
+# [PT]  simplify input handling, and GOOD_EXIT and BAD_EXITs
+#     + fix clipping plane message to new keystrokes
+#set ver = 0.16
+#
+# [SJT] corrected a gifti check loop error
+#set ver = 0.17
+#
+#set ver = 0.18
+# [PT]  run quickspecSL
+#
+#set ver = 0.19
+# [PT]  update var names, and work with quickspecSL name updates
+#
+set ver = 0.20
+# [PT]  redirect ConvertSurface "Nodes ..." text into temporary text files
+#    +  add a "-no_clean" option, too, to get at intermed files, if necessary
+#
+# ========================================================================
+
+# set some defaults
+set nisurfs    = 2 
+set surf       = ( "" "" )
+set specin     = ( "" ) 
+set hemis      = ( "" )
+set both_lr    = ""
+set surfstates = ( "smoothwm" "pial" )
+set stateline  = ( "" "" )
+set outdir     = surflayers
+set s00        = run_00_sl_suma.tcsh     # script for suma
+set prog_name  = $0:t
+set surf_imed_pref  = "isurf"
+set specstem   = ( "" )
+
+set DO_CLEAN   = 1
+
+# ------------------------ process user options --------------------------
+
+if ("$#" <  "1") then
+   goto SHOW_HELP
+endif
+
+set ac = 1
+while ($ac <= $#argv)
+    if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+        goto SHOW_HELP
+    endif
+
+    if ("$argv[$ac]" == "-ver") then
+        goto SHOW_VERSION
+    endif
+
+    # -------------------
+
+    if ("$argv[$ac]" == "-echo") then
+        set echo
+
+    else if ("$argv[$ac]" == "-spec") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        if -e $argv[$ac] then
+            set specin = $argv[$ac]
+            set specstem =  `basename -s .spec $argv[$ac]`
+        else
+            echo "** spec file ${this_opt} doesn't exist"
+            goto BAD_EXIT
+        endif
+
+    # User can specify number of new intermediate surfaces to make
+    else if ("$argv[$ac]" == "-n_intermed_surfs") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set nisurfs = $argv[$ac] 
+
+    # User can specify hemispheres to make new surfaces
+    else if ("$argv[$ac]" == "-hemi") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set hemis = $argv[$ac] 
+
+    else if ("$argv[$ac]" == "-surf_A") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set surf[1] = $argv[$ac]
+
+    else if ("$argv[$ac]" == "-surf_B") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set surf[2] = $argv[$ac]
+
+    # User can name interpolated surfaces
+    else if ("$argv[$ac]" == "-surf_intermed_pref") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set surf_imed_pref = $argv[$ac]
+
+    else if ("$argv[$ac]" == "-outdir") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set outdir = $argv[$ac]
+
+    else if ("$argv[$ac]" == "-states") then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac ++
+        set surfstates = ( `echo "$argv[$ac]"` )
+        if ( $#surfstates != 2 ) then
+            echo "** need two states to specify inner and outer surfaces"
+            goto BAD_EXIT
+        endif
+
+    else if ("$argv[$ac]" == "-no_clean") then
+        set DO_CLEAN = 0
+
+    # ---------- fin ------------------
+
+    else
+        echo "** unknown option $argv[$ac]"
+        goto BAD_EXIT
+    endif
+    @ ac ++
+end
+
+
+# ------------------------------ checks -----------------------------------
+
+if ($specin == "" && $surf[1] == "") then
+   echo "No inputs: Need -spec or -surf_? options"
+   goto BAD_EXIT
+endif
+
+if ($specin != "" && $surf[1] != "") then
+    echo "Please use -spec or -surf_? options, not both"
+    goto BAD_EXIT
+endif
+
+set numeral = `echo $nisurfs | grep -c '^[0-9]*$'`
+if ("$numeral" == 0) then
+    echo "Please enter a number"
+    goto BAD_EXIT
+endif
+
+# check spec file name to get stem name and hemis
+if ( $specstem != "") then
+    echo $specstem |grep '_lh$' > /dev/null
+    if ($status == 0) then
+        set hemis    = "lh"
+        set specstem = `basename -s _lh $specstem`
+    else 
+        echo $specstem |grep '_rh$' > /dev/null
+        if ($status == 0) then
+            set hemis    = "rh"
+            set specstem = `basename -s _rh $specstem`
+        endif
+        echo $specstem |grep '_both$' > /dev/null
+        if ($status == 0) then
+            if ("$hemis" == "") then
+                set hemis = "lh rh"
+            endif
+            set specstem = `basename -s _rh $specstem`
+            set both_lr  = 1
+        endif
+    endif
+endif
+
+# check for valid hemis - may be set by spec or by surface names
+if ("$hemis" != "") then
+   if (("$hemis" == "lh") || ("$hemis" == "rh")) then
+      echo Using $hemis for hemisphere
+   else if (("$hemis" == "lh rh") || ("$hemis" == "rh lh") || \
+            ("$hemis" == "both")) then
+      set hemis = "lh rh"
+      # flag for both hemispheres and loop through both below
+      set both_lr = 1
+   else
+      echo "Please use lh, rh or lh rh for hemis"
+      exit 1
+   endif
+else
+   # set a default that isn't used except to go through the loop once
+   set hemis = "lh"
+endif 
+
+# ------------------------------ begin -----------------------------------
+
+# do all the work in a new directory
+\mkdir -p $outdir
+
+# copy spec file and surfaces from input spec directory to output directory
+if ($specin != "") then
+    set snames = `grep SurfaceName $specin| awk '{print $3}'`
+    set specdir = `dirname $specin`
+    \cp $specin $outdir/
+
+    foreach sname ( $snames )
+        \cp ${specdir}/${sname} $outdir/
+    end
+
+    # copy any annotation label datasets over too
+    set dnames = `grep "LabelDset =" $specin| awk '{print $3}'`
+    set specdir = `dirname $specin`
+    foreach dname ( $dnames )
+        \cp ${specdir}/${dname} $outdir/
+    end
+else
+    foreach state ( 1 2 )
+        \cp $surf[$state] $outdir/
+
+        # check lateralization of surfs from filenames
+        # these greps imply @SUMA_Make_Spec_FS made them
+        set statelat = `echo $surf[$state] | grep -i 'lh\.'`
+        set statelat2 = `echo $surf[$state] | grep -i 'rh\.'`
+        
+        if ($statelat != "") then
+            set hemis = "lh"
+        endif
+        if ($statelat2 != "") then
+            set hemis = "rh"
+        endif
+    end
+endif
+
+# -------------------- move into outdir
+
+cd $outdir
+
+# use spec file copy in outdir instead, for path simplicity. 
+if ("$specin" != "") then
+   set specin = `basename $specin`
+endif
+
+# but first check for valid GIFTIs
+foreach giifile (`ls -1 *.gii`)
+    set validity = `gifti_tool -infile $giifile | awk '{print $NF}'`
+    if ( "$validity" != "VALID" ) then
+        echo "Not a valid GIFTI file"
+        goto BAD_EXIT
+    endif
+end
+
+# Begin linear interpolation. Distance is in coordinate units and
+# inflates at each iteration.
+echo ""
+echo "Dividing cortex with $nisurfs intermediate surfaces..."
+echo ""
+
+set distance    = `echo "scale=6; 1/(${nisurfs}+1)" | bc`
+set numnewsurfs = ${nisurfs}
+
+# in the case of looping through both hemispheres, make it clearer
+# with a flag
+if ("$hemis" == "lh rh") then
+   set both_lr = 1
+endif
+
+foreach hemi ( $hemis ) #(lh rh)
+    # find the two input surface datasets
+    foreach state ( 1 2 )
+       # if either input surface is set directly, then skip trying to
+       # find it
+       if ($surf[$state] != "") then
+          continue
+       endif
+       # otherwise we have to find the surface from the surfstate (pial, wm)
+       #   and optionally for the hemisphere
+       # in "both.spec" files, the SurfaceStates are repeated for lh and rh
+       # so we have to find something like:
+       #   "SurfaceName = std.60.rh.smoothwm.gii"
+       if ( "$both_lr" != "" ) then
+          set surf[$state] = `grep "SurfaceName =" $specin  | \
+                                grep ${hemi}.${surfstates[$state]}.gii | \
+                                awk '{print $3}' `
+       else
+          set stateline[$state] = `grep SurfaceState $specin | \
+                                    grep $surfstates[$state]`
+          set surf[$state] = `grep -C3 "$stateline[$state]" $specin | \
+                                grep SurfaceName | awk '{print $3}'`
+       endif
+
+       set surf[$state] = `basename $surf[$state]` # removes prepended "././"
+       echo "Using surface ${surf[$state]}"
+    end
+
+    # get coordinates of GIFTI surfaces 
+    ConvertSurface -i $surf[1] -o_fs temp_insidesurf${hemi}.asc   > tmp_cs1.txt
+    ConvertSurface -i $surf[2] -o_fs temp_outsidesurf${hemi}.asc  > tmp_cs2.txt
+
+    # grab number of nodes in this surface (not the same for each hemisphere)
+    set numnodes = `cat temp_insidesurf${hemi}.asc | \
+                        head -n 2 |                  \
+                        tail -n 1 |                  \
+                        awk '{print $1}'`
+    set upthru = `echo "${numnodes}+2" | bc`
+
+    # isolate coords of bookend surfaces, but only save head and tail of one
+    cat temp_insidesurf${hemi}.asc | head -n 2 > HEAD${hemi}.asc
+    tail -n +3 temp_insidesurf${hemi}.asc  | \
+        head -n $numnodes > xyzwm${hemi}.1D
+    tail -n +3 temp_outsidesurf${hemi}.asc | \
+        head -n $numnodes > xyzpial${hemi}.1D
+    sed "1,${upthru}d" temp_insidesurf${hemi}.asc > TAILwm${hemi}.asc
+
+    # split apart coordinates of bookend surfaces
+    cat xyzwm${hemi}.1D | awk '{print $1}' > wmx${hemi}.1D
+    cat xyzwm${hemi}.1D | awk '{print $2}' > wmy${hemi}.1D
+    cat xyzwm${hemi}.1D | awk '{print $3}' > wmz${hemi}.1D
+
+    cat xyzpial${hemi}.1D | awk '{print $1}' > pialx${hemi}.1D
+    cat xyzpial${hemi}.1D | awk '{print $2}' > pialy${hemi}.1D
+    cat xyzpial${hemi}.1D | awk '{print $3}' > pialz${hemi}.1D
+    cat xyzpial${hemi}.1D | awk '{print $4}' > zeros${hemi}.1D
+
+    # create interpolated surfaces
+    foreach intersurf (`seq -w 1 1 $nisurfs`)
+        set numnewsurfs = `echo "${intersurf}" | bc | awk '{printf "%02d", $0}'`
+        set mult = `echo "${distance}*${numnewsurfs}" | bc`
+        set simpler_surf1_name = `basename -s .gii $surf[1]`
+
+        echo ""
+        echo "++ creating surface ${numnewsurfs}"
+        echo "   at ${mult} distance from $simpler_surf1_name"
+
+        \cp HEAD${hemi}.asc HEAD${hemi}${numnewsurfs}.asc
+
+        # add specified thickness to each iteration and make new surfaces
+        1deval -a wmx${hemi}.1D -b pialx${hemi}.1D \
+            -expr "a + (b-a) * ${mult}" > distance${hemi}${numnewsurfs}x.1D
+        1deval -a wmy${hemi}.1D -b pialy${hemi}.1D \
+            -expr "a + (b-a) * ${mult}" > distance${hemi}${numnewsurfs}y.1D
+        1deval -a wmz${hemi}.1D -b pialz${hemi}.1D \
+            -expr "a + (b-a) * ${mult}" > distance${hemi}${numnewsurfs}z.1D
+
+        1dcat                                      \
+            distance${hemi}${numnewsurfs}x.1D      \
+            distance${hemi}${numnewsurfs}y.1D      \
+            distance${hemi}${numnewsurfs}z.1D      \
+            zeros${hemi}.1D                        \
+            > interp${hemi}${numnewsurfs}.1D
+
+        cat interp${hemi}${numnewsurfs}.1D >> HEAD${hemi}${numnewsurfs}.asc
+        cat TAILwm${hemi}.asc >> HEAD${hemi}${numnewsurfs}.asc
+
+        if ( -e ${surf_imed_pref}${hemi}${numnewsurfs}.gii ) then 
+            if ( ${DO_CLEAN} ) then
+                \rm ${surf_imed_pref}${hemi}${numnewsurfs}.gii
+            endif
+        endif
+
+        ConvertSurface -i_fs HEAD${hemi}${numnewsurfs}.asc \
+          -o_gii ${surf_imed_pref}.${hemi}.${numnewsurfs} > tmp_cs3.txt
+    end
+
+    # need this for echo strings to quickspecSL only
+    set surfA = $surf[1] 
+    set surfB = $surf[2]
+
+    # resetting surf names for next loop through hemispheres 
+    set surf = ( "" "" )
+end
+
+## clean up
+if ( ${DO_CLEAN} ) then
+    \rm tmp_cs?.txt
+    \rm xyzwm*h.1D xyzpial*h.1D TAILwm*h.asc wmx*h.1D wmy*h.1D wmz*h.1D 
+    \rm HEAD*.asc pialx*h.1D pialy*h.1D pialz*h.1D
+    \rm zeros*h.1D distance*x.1D distance*y.1D distance*z.1D 
+    \rm interp*.1D temp_*.asc
+endif
+
+# i believe after a full lh rh loop, "rh" remains in the surf?
+# variable, so only looking for that in file name:
+if ( $both_lr ) then
+    set middle     = "?h."
+    set leftsideA  = `echo $surfA | awk -F 'rh.' '{print $1}'`
+    set rightsideA = `echo $surfA | awk -F 'rh.' '{print $2}'`
+    set wcsurfA    = "${leftsideA}${middle}${rightsideA}"
+    set leftsideB  = `echo $surfB | awk -F 'rh.' '{print $1}'`
+    set rightsideB = `echo $surfB | awk -F 'rh.' '{print $2}'`
+    set wcsurfB    = "${leftsideB}${middle}${rightsideB}"
+
+    echo "++ Just running quickspecSL automatically, because it is so easy."
+    echo "   Running in: ${PWD}"
+
+    quickspecSL                                                       \
+        -both_lr                                                      \
+        -surf_A    ${surfA}                                           \
+        -surf_B    ${surfB}                                           \
+        -surf_intermed_pref ${surf_imed_pref}
+
+# make viewing script in outdir
+cat <<EOF >> ${s00}
+#!/bin/tcsh
+
+# view SurfLayers result
+    
+suma                                                 \
+    -onestate                                        \
+    -i ${wcsurfA} ${surf_imed_pref}*.gii ${wcsurfB} &
+
+sleep 1
+
+echo ""
+echo ""
+echo "---------------------------------------------------------------"
+echo "++ To define clipping plane(s), hover over the SUMA window and:"
+echo "   for Linux, type  :  Shift-Alt-c" 
+echo "   for Mac OS, type :  Shift-Command-c" 
+echo "---------------------------------------------------------------"
+
+EOF
+
+else
+
+    echo "++ Just running quickspecSL automatically, because it is so easy."
+    echo "   Running in: ${PWD}"
+
+    quickspecSL                                                       \
+        -surf_A    ${surfA}                                           \
+        -surf_B    ${surfB}                                           \
+        -surf_intermed_pref ${surf_imed_pref}
+
+# make viewing script in outdir
+cat <<EOF >> ${s00}
+#!/bin/tcsh
+
+# view SurfLayers result
+    
+suma                                                 \
+    -onestate                                        \
+    -i ${surfA} ${surf_imed_pref}*.gii ${surfB} &
+
+sleep 1
+
+echo ""
+echo ""
+echo "---------------------------------------------------------------"
+echo "++ To define clipping plane(s), hover over the SUMA window and"
+echo "   type :  Shift-Ctrl-c"
+echo "---------------------------------------------------------------"
+
+EOF
+
+endif
+
+chmod 755 ${s00}
+
+# ------------ return to starting directory
+
+cd -
+
+echo ""
+echo "-----------------------------------------------------"
+echo "++ To view results, run the new script in the outdir:"
+echo "   cd ${outdir}"
+echo "   tcsh ${s00}"
+echo "-----------------------------------------------------"
+echo ""
+
+exit 0
+
+# =======================================================================
+
+SHOW_HELP:
+
+cat << SCRIPT_HELP_STRING
+
+Overview ~1~
+
+This is a program to compute intermediate surfaces between two boundary surfaces
+
+SurfLayers computes new surfaces for a given number of cortical divisions
+at intermediate distances by simple computation of the fraction 
+between the inner and outer-most surfaces (aka "equi-distant"). 
+A single dividing surface would be halfway between the two surfaces.
+
+Options ~1~
+
+  -spec SPEC_DSET      :dataset that is the SUMA specification file
+                        describing input surfaces 
+
+  -outdir DIRNAME      :new directory for output (default: surflayers)
+
+  -states IN OUT       :typically smoothwm, pial states to describe inner
+                        and outer surfaces (default: "smoothwm pial")
+
+  -hemi  HH            :choose hemisphere: "lh", "rh" or "lh rh" (for both)
+
+  -n_intermed_surfs N  :total number of intermediate surfaces to create
+
+  -surf_A      SB      :inner boundary surface by filename (e.g. smoothwm.gii)
+
+  -surf_B      SA      :outer boundary surface by filename (e.g. pial.gii)
+
+  -surf_intermed_pref SIP  :name for interpolated surfaces 
+                        (default: ${surf_imed_pref})
+  
+  -echo                :run script with 'set echo' (i.e., verbosely)
+
+  -no_clean            :do not remove temp files (probably just for testing)
+
+Notes ~1~
+
+Output includes a new directory containing:
++ isurf.lh.01...n.gii -  interpolated surfaces numbered 1 to n
++ other files too if -spec option was utilized
++ a run*tcsh script to view the output directly
+
+See also the quickspecSL program for creating a *.spec file.
+
+For more information or questions, please contact:
+  Salvatore (Sam) Torrisi (torrisi@berkeley.edu)
+  Daniel Glen (glend@mail.nih.gov)
+
+Examples ~1~
+
+  1) 
+
+  SurfLayers                       \
+      -spec std.60.myspec.lh.spec  \
+      -states "white pial"         \
+      -n_intermed_surfs 3
+
+  2) 
+
+  SurfLayers                       \
+      -surf_A lh.white.gii         \
+      -surf_B lh.pial.gii          \
+      -n_intermed_surfs 3
+
+
+SCRIPT_HELP_STRING
+
+goto GOOD_EXIT
+
+# ----------------------------------------------------------------------
+
+SHOW_VERSION:
+   echo "version  $ver"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

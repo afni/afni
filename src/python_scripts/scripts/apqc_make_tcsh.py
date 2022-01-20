@@ -156,8 +156,40 @@ auth = 'PA Taylor'
 #ver = '3.62' ; date = 'May 31, 2020' 
 # [PT] EPI ulay ranges in ve2a and LR-flipcheck now: NZ 2-98%
 #
-ver = '3.63' ; date = 'May 31, 2020' 
+#ver = '3.63' ; date = 'May 31, 2020' 
 # [PT] vstat seedbased corr seed thr from 0.3 -> 0.2
+#
+#ver = '3.7' ; date = 'Feb 24, 2021' 
+# [PT] Have been adding TSNR plotting, more added.
+#
+#ver = '3.73' ; date = 'Mar 5, 2021'
+# [PT] cp review basic text to QC_*/ dir
+#
+#ver = '3.74' ; date = 'Apr 6, 2021'
+# [PT] update TSNR-vreg checks
+#    + give sep names for TSNR images: tsnr_vreg and tsnr_fin
+#
+#ver = '3.75' ; date = 'Apr 6, 2021'
+# [PT] now use adjunct*tsnr*general prog (just added, only need 1 prog)
+#
+#ver = '3.76' ; date = 'Sep 21, 2021'
+# [PT] use '-no_cor' to not make coronal plane images
+#    + save nearly 33% of space in QC_${subj} dir
+#
+#ver = '3.77' ; date = 'Sep 21, 2021'
+# [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
+#    + keep applying new opt
+#
+ver = '3.78' ; date = 'Sep 27, 2021'
+# [PT] Due to recent changes (from ~Aug 23) in label_size defaults
+#      in imseq.c, adjust the default labelsize from 3 -> 4.
+#    + this should restore labels to their longrunning size (since Aug
+#      23 they have been one size smaller by default); but the new font
+#      will be bolder than previously, due to those imseq.c changes.
+#
+ver = '3.8' ; date = 'Jan 18, 2022'
+# [PT] Add 'mecho' QC block
+#    + pretty much just for combine_method=m_tedana for starters
 #
 #########################################################################
 
@@ -220,6 +252,12 @@ if __name__ == "__main__":
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
+    
+    # ----------------- initialize some params/switches ----------------
+
+    DO_REGR_CORR_ERRTS = 0
+    DO_TSNR            = 0
+    HAVE_MASK          = lat.check_dep(ap_ssdict, ['mask_dset'])
 
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
@@ -425,7 +463,6 @@ if __name__ == "__main__":
     # item    : EPI to anat align
 
     ldep  = ['final_anat', 'final_epi_dset']
-    ldep2 = ['template'] # secondary consideration
     if lat.check_dep(ap_ssdict, ldep) :
         focusbox = '${main_dset}'
 
@@ -460,7 +497,6 @@ if __name__ == "__main__":
     # QC block: "vstat"
     # item    : stats in vol (task FMRI): F-stat (def) and other stim/contrasts
     DO_VSTAT_TASK   = 0
-    VSTAT_HAVE_MASK = 0
 
     ldep     = ['stats_dset', 'final_anat']
     ldep2    = ['template']                                # 2ary consid
@@ -489,9 +525,6 @@ if __name__ == "__main__":
                                                      all_vstat )
         Nobj = len(all_vstat_obj)
 
-        if lat.check_dep(ap_ssdict, ldep4) :
-            VSTAT_HAVE_MASK = 1
-
         for ii in range(Nobj):
 
             # the object to use, and a cleaner version of name
@@ -509,7 +542,7 @@ if __name__ == "__main__":
             # default)
             cmd      = lat.apqc_vstat_stvol( obase, "vstat", vsname, 
                                              ulay, focusbox, vso, ii,
-                                             HAVE_MASK=VSTAT_HAVE_MASK )
+                                             HAVE_MASK=HAVE_MASK )
 
             str_FULL+= ban
             str_FULL+= cmd
@@ -522,7 +555,6 @@ if __name__ == "__main__":
     if not(DO_VSTAT_TASK) :               # only done in resting/non-task cases
         # mirror same logic as task (above) for deciding ulay/olay
         DO_VSTAT_SEED_REST = 0
-        VSTAT_HAVE_MASK    = 0
 
         ldep     = ['errts_dset', 'final_anat']
         ldep2    = ['template']                                # 2ary consid
@@ -549,9 +581,6 @@ if __name__ == "__main__":
             abin_dir = lat.get_path_abin()
 
             SPECIAL_FILE = abin_dir + '/' + 'afni_seeds_per_space.txt'
-
-            if lat.check_dep(ap_ssdict, ldep4) :
-                VSTAT_HAVE_MASK = 1
 
             if 0 :
                 print("This branch will be for a user-entered file. Someday.")
@@ -580,7 +609,7 @@ if __name__ == "__main__":
                 cmd      = lat.apqc_vstat_seedcorr( obase, "vstat", sname, 
                                                     ulay, focusbox, seed, 
                                                     ii,
-                                                    HAVE_MASK=VSTAT_HAVE_MASK )
+                                                    HAVE_MASK=HAVE_MASK )
 
                 str_FULL+= ban
                 str_FULL+= cmd
@@ -679,6 +708,61 @@ if __name__ == "__main__":
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mot"
+    # item    : grayplot of errts (task, rest, naturalistic, etc.)
+
+    # [PT: June 27, 2019] expanding to include enorm, if available and
+    # in Pythonic mode
+    # [PT: Feb 23, 2021] moved here to 'mot' from 'regr'
+
+    # [PT: Feb 25, 2019] 
+    ldep  = ['errts_dset', 'mask_dset']
+    ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
+    if lat.check_dep(ap_ssdict, ldep) :
+        # [PT: Jun 18, 2019] special case check-- 
+        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
+            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
+            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
+            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+
+            ban      = lat.bannerize('make grayplot of residuals')
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_mot_grayplot( obase, "mot", "grayplot",
+                                              RUN_STYLE,  
+                                              has_mot_dset=HAS_mot_dset,
+                                              has_out_dset=HAS_out_dset,
+                                              has_mot_lim=HAS_mot_limit,
+                                              has_out_lim=HAS_out_limit,
+                                              has_cen_dset=HAS_censor_dset )
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mecho"
+    # item    : multi-echo processing
+
+    ldep = ['combine_method']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # ***For now*** just m_tedana checks available
+        if ap_ssdict['combine_method'] == 'm_tedana':
+            comb_meth = ap_ssdict['combine_method']
+
+            ban      = lat.bannerize('multi-echo, via m_tedana')
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_mecho_mtedana( obase, "mecho", "mtedana",
+                                               comb_meth )
+
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
 
     # --------------------------------------------------------------------
 
@@ -790,33 +874,99 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
-    # QC block: "regr"
-    # item    : grayplot of errts (task, rest, naturalistic, etc.)
+    # QC block: "regr" 
+    # item    : TSNR of volreg (r01) dset.  
+    # --> NB: This will get UVAR of its own some day!!!
+        
+    ldep     = ['final_anat']
+    alt_ldep = ['vr_base_dset']  # elif to ldep
 
-    # [PT: June 27, 2019] expanding to include enorm, if available and
-    # in Pythonic mode
-
-    # [PT: Feb 25, 2019] 
-    ldep = ['errts_dset', 'mask_dset']
-    ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
+    HAVE_ULAY = 0
     if lat.check_dep(ap_ssdict, ldep) :
-        # [PT: Jun 18, 2019] special case check-- 
-        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
-            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
-            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
-            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+        HAVE_ULAY = 1
+        ulay      = '${main_dset}' 
+        focusbox  = '${main_dset}'
+    elif lat.check_dep(ap_ssdict, alt_ldep) :
+        HAVE_ULAY = 1
+        ulay      = '${vr_base_dset}'
+        focusbox  = 'AMASK_FOCUS_ULAY' 
 
-            ban      = lat.bannerize('make grayplot of residuals')
+    DO_TSNR_VREG = 0
+    tsnr_vreg = glob.glob( iopts.subjdir + '/' + 'TSNR*vreg*HEAD' )
+    if len(tsnr_vreg) == 1 :
+        DO_TSNR_VREG = 1
+
+    if HAVE_ULAY and DO_TSNR_VREG :
+
+        print("++ Will calc vreg TSNR.")
+        olay     = '( TSNR*vreg*HEAD )'
+        descrip  = '(TSNR, from r01 dset after volreg)'
+
+        ban      = lat.bannerize('check vreg (r01) TSNR')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_vreg",
+                                       ulay, focusbox, olay,
+                                       descrip=descrip,
+                                       HAVE_MASK=HAVE_MASK )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "regr" 
+    # item    : TSNR of *final* dset
+
+    ldep     = ['tsnr_dset', 'final_anat']
+    alt_ldep = ['tsnr_dset', 'vr_base_dset']  # elif to ldep
+
+    if lat.check_dep(ap_ssdict, ldep) :
+        DO_TSNR = 1
+        ulay     = '${main_dset}' 
+        focusbox = '${main_dset}'
+    elif lat.check_dep(ap_ssdict, alt_ldep) :
+        DO_TSNR = 1
+        ulay     = '${vr_base_dset}'
+        focusbox = 'AMASK_FOCUS_ULAY' 
+
+    if DO_TSNR :
+        olay     = '${tsnr_dset}' 
+        descrip  = '(final TSNR dset)'
+
+        ban      = lat.bannerize('check final TSNR')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_fin",
+                                       ulay, focusbox, olay,
+                                       descrip=descrip,
+                                       HAVE_MASK=HAVE_MASK )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "rcorr"
+    # item    : flag to make radial_correlate images
+    # [PT: Feb 23, 2021] moved here, seemed more logical place, 
+    # above warns
+
+    ldep = ['have_radcor_dirs'] # binary flag
+    if lat.check_dep(ap_ssdict, ldep) :
+        all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
+        for ii in range(len(all_dir_radcor)):
+
+            rcdir  = all_dir_radcor[ii]
+            aaa    = rcdir.split(".")
+            rcname = "rc_" + aaa[2] # to be the label
+        
+            ban      = lat.bannerize('@radial_correlate '
+                                     'images: {}'.format(rcname))
             obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot",
-                                               RUN_STYLE,  
-                                               has_mot_dset=HAS_mot_dset,
-                                               has_out_dset=HAS_out_dset,
-                                               has_mot_lim=HAS_mot_limit,
-                                               has_out_lim=HAS_out_limit,
-                                               has_cen_dset=HAS_censor_dset )
+            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
+                                              rcdir, ith_run=ii )
+
             str_FULL+= ban
             str_FULL+= cmd
             idx     += 1
@@ -944,30 +1094,6 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
-    # QC block: "rcorr"
-    # item    : flag to make radial_correlate images
-
-    ldep = ['have_radcor_dirs'] # binary flag
-    if lat.check_dep(ap_ssdict, ldep) :
-        all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
-        for ii in range(len(all_dir_radcor)):
-
-            rcdir  = all_dir_radcor[ii]
-            aaa    = rcdir.split(".")
-            rcname = "rc_" + aaa[2] # to be the label
-        
-            ban      = lat.bannerize('@radial_correlate '
-                                     'images: {}'.format(rcname))
-            obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
-                                              rcdir, ith_run=ii )
-
-            str_FULL+= ban
-            str_FULL+= cmd
-            idx     += 1
-
-    # --------------------------------------------------------------------
-
     # QC block: "qsumm"
     # item    : quant output of @ss_review_basic
 
@@ -992,6 +1118,16 @@ if __name__ == "__main__":
         ban      = lat.bannerize('copy JSONs over to QC dir')
         all_json = [iopts.json] # only one at the moment...
         cmd      = lat.apqc_DO_cp_subj_jsons( all_json )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # cp @ss_review_basic text file to QC dir; should always be true
+    ldep = ['ss_review_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('copy review basic text file to QC dir')
+        cmd      = lat.apqc_DO_cp_subj_rev_basic()
 
         str_FULL+= ban
         str_FULL+= cmd

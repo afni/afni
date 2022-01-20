@@ -360,5 +360,20 @@ static char *afni_papers[] = {
    "  * https://doi.org/10.3389/fninf.2020.00018\n" ,
    "  * https://www.medrxiv.org/content/10.1101/19009787v4\n" ,
    "----------------------------------------------------------------------------\n" ,
+   "V Roopchansingh, JJ French Jr, DM Nielson, RC Reynolds, DR Glen, P D’Souza,\n" ,
+   "  PA Taylor, RW Cox, AE Thurm.\n" ,
+   "  EPI Distortion Correction is Easy and Useful, and You Should Use It:\n" ,
+   "  A case study with toddler data.\n" ,
+   "\n" ,
+   "  * https://www.biorxiv.org/content/10.1101/2020.09.28.306787v1\n" ,
+   "----------------------------------------------------------------------------\n" ,
+   "G Chen, TA Nash, KM Cole, PD Kohn, S-M Wei, MD Gregory, DP Eisenberg,\n" ,
+   "  RW Cox, KF Berman, JS Kippenham.\n" ,
+   "  Beyond linearity in neuroimaging: Capturing nonlinear relationships with\n" ,
+   "  application to longitudinal studies.\n" ,
+   "\n" ,
+   "  * https://doi.org/10.1016/j.neuroimage.2021.117891\n" ,
+   "  * https://pubmed.ncbi.nlm.nih.gov/33667672/\n" ,
+   "----------------------------------------------------------------------------\n" ,
    NULL } ;
-#define NUM_afni_papers 360
+#define NUM_afni_papers 375

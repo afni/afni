@@ -173,12 +173,17 @@ ENTRY("THD_open_niml");
     set_ni_globs_from_env();   /* 3 Aug 2006 [rickr] */
 
     nel = read_niml_file(fname, 1);  /* we need data for node_indices */
-    if( !nel ) RETURN(NULL);
+    if( !nel ){
+STATUS("read_niml_file returned NULL") ;
+       RETURN(NULL);
+    }
 
     smode = storage_mode_from_niml(nel);
+STATUSi("smode from niml",smode) ;
     switch( smode )
     {
         case STORAGE_BY_3D:
+STATUS("STORAGE_BY_3D") ;
             NI_free_element_data(nel);  /* nuke all data */
             dset = THD_niml_3D_to_dataset(nel, fname);
             if(gni.debug) fprintf(stderr,"-d opening 3D dataset '%s'\n",fname);
@@ -188,6 +193,7 @@ ENTRY("THD_open_niml");
         break;
 
         case STORAGE_BY_NIML:
+STATUS("STORAGE_BY_NIML") ;
             NI_free_element_data(nel);  /* nuke all data */
             if(gni.debug)fprintf(stderr,"-d opening NIML dataset '%s'\n",fname);
             dset = THD_niml_to_dataset(nel, 1); /* no data */
@@ -196,11 +202,13 @@ ENTRY("THD_open_niml");
         break;
 
         case STORAGE_BY_NI_SURF_DSET:
+STATUS("STORAGE_BY_NI_SURF_DSET") ;
             if(gni.debug)fprintf(stderr,"-d opening NI_SURF_DSET '%s'\n",fname);
             dset = THD_ni_surf_dset_to_afni(nel, 0); /* no data */
         break;
 
         default:
+STATUS("Unknown smode :(") ;
             if( gni.debug )
                 fprintf(stderr,"** unknown storage mode for '%s'\n", fname);
         break;
@@ -211,6 +219,7 @@ ENTRY("THD_open_niml");
     if( dset )
     {   
         char * pp = THD_trailname(fname, 0);
+STATUS("setting prefix etc") ;
         EDIT_dset_items(dset, ADN_prefix, pp, ADN_none);
         NI_strncpy(dset->dblk->diskptr->brick_name, fname, THD_MAX_NAME);
         THD_set_storage_mode(dset, smode);
@@ -355,7 +364,7 @@ ENTRY("storage_mode_from_niml");
 }
 
 #undef  MY_BUFSIZE
-#define MY_BUFSIZE (1024*1024)  /* 21 Nov 2007 */
+#define MY_BUFSIZE (1024*1024*16)  /* 21 Nov 2007 */
 
 /*! inhale any NIML data within a file */
 void * read_niml_file( char * fname, int get_data )
@@ -365,6 +374,7 @@ void * read_niml_file( char * fname, int get_data )
     char       * nname;
     int read_head_only_state=0;
 ENTRY("read_niml_file");
+STATUSs("filename",fname) ;
 
     if( !fname || !*fname )
     {
@@ -383,6 +393,7 @@ ENTRY("read_niml_file");
     if( !ns )
     {
         if(gni.debug)fprintf(stderr,"** RNF: failed to open file '%s'\n",fname);
+STATUS("read_niml_file failed to open") ;
         RETURN(NULL);
     }
 
@@ -394,6 +405,7 @@ ENTRY("read_niml_file");
     NI_skip_procins(1);  NI_set_read_header_only(!get_data);
     nel = NI_read_element(ns, 333);
     NI_skip_procins(0);  NI_set_read_header_only(read_head_only_state);
+if( nel == NULL ) STATUS("failed to read NIML data") ;
 
     /* close the stream */
     NI_stream_close(ns);
@@ -806,8 +818,8 @@ ENTRY("process_NSD_labeltable");
     }
 
     /* if there are colors, get them */
-    if( ncols == 6 ) if(gni.debug) INFO_message("Colors will be ignored");
-    else             rgba = NULL;
+    if( ncols == 6 ){ if(gni.debug) INFO_message("Colors will be ignored"); }
+    else            {  rgba = NULL; }
 
     /* convert to label table */
     ii = rint(sqrt(2*length+1.0l)) ;

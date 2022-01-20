@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mcw_malloc.h"
+#ifndef MRILIB_MINI
 #include "AFNI_version.h"
+#endif
 #include "debugtrace.h"  /* contains 1 function */
 #include <ctype.h>
 #include <stdarg.h>
+#include <string.h>
 
 /*--------------------------------------------------------------------------*/
 
@@ -117,7 +120,7 @@ void SET_message_outbuf( int use_outbuf )
 
 static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
-   char *ifmt=NULL,*imsg=NULL , *cfmt=NULL,*cmsg=NULL , *epr ; int ll ;
+   char *ifmt=NULL,*imsg=NULL , *cfmt=NULL,*cmsg=NULL , *epr=NULL ; int ll ;
 #ifdef va_copy
    va_list vararg_cpy ;
    va_copy(vararg_cpy,vararg_ptr) ;        /* for re-use with cfmt and cmsg */
@@ -296,6 +299,7 @@ extern int THD_is_directory( char * ) ;
 
 void clock_time_atexit(void)
 {
+#ifndef MRILIB_MINI
    char *eee=getenv("HOME") ;
    int ct=NI_clock_time() ;
    time_t tnow=time(NULL) ;
@@ -310,5 +314,6 @@ void clock_time_atexit(void)
    fp = fopen(fname,"a") ; free(fname) ; if( fp == NULL ) return ;
    fprintf(fp,"[%.24s] %s =%s\n",ctime(&tnow) , pname , nice_time_string(ct) ) ;
    fclose(fp) ;
+#endif
    return ;
 }

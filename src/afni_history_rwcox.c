@@ -49,6 +49,203 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , DEC , 2021 , RWC , "3dttest++ and 3dClustSim" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_CLUSTSIM_MEGA" ,
+   "If AFNI_CLUSTSIM_MEGA is set to 'YES', then 3dttest++ will run 3dClustSim\n"
+   "using the '-MEGA' option, which gives a finer grained output table of\n"
+   "cluster size thresholds. Also, a few changes to 3dttest++ help to clarify\n"
+   "that the 12 character limit for set labels is not the same as the 256\n"
+   "character limit for dataset labels." } ,
+
+ { 15 , DEC , 2021 , RWC , "prefiltered args" , MINOR , TYPE_NEW_OPT ,
+   "Bulk input arguments" ,
+   "These '<<XY' arguments are expanded in the prefilter-ing of command\n"
+   "line arguments, to (potentially) add multiple new arguments to the\n"
+   "program. The expansion can either be from filename globbing (X='G')\n"
+   "or by input from a file (X='I'). The purpose of these options is to\n"
+   "provide a way to circumvent the command line length limitations that\n"
+   "Unix imposes, and also to allow internal filename globbing in programs\n"
+   "that do not otherwise support that ability." } ,
+
+ { 27 , SEP , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_INSTACORR_JUMP" ,
+   "If YES (default), Shift+Ctrl+click sets the instacorr seed and jumps the\n"
+   "crosshairs to that location. If NO, sets the instacorr seed but there is\n"
+   "no crosshair jump. (For Phil Kohn)" } ,
+
+ { 31 , AUG , 2021 , RWC , "3dTcorr1D/3dTcorrelate" , MINOR , TYPE_BUG_FIX ,
+   "Change labels and statcode for -Fisher option" ,
+   "Sir Paul pointed out that these programs didn't have the correct\n"
+   "statcode when the Fisher transform was ordered, and also that the labels\n"
+   "were confusing. Fixed it so if -Fisher was used, the statcode is FIZT vs\n"
+   "FICO, and the labels have 'atanh()'" } ,
+
+ { 19 , AUG , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change top-of-image drawn label to resize font if drawn too large" ,
+   NULL } ,
+
+ { 17 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_ENHANCE ,
+   "Modified to use OpenMP" ,
+   "3dTfitter.c, thd_fitter.c, and thd_lasso.c" } ,
+
+ { 10 , AUG , 2021 , RWC , "3dTfitter" , MINOR , TYPE_NEW_PROG ,
+   "Add -LCB option for block-wise LASSO penalties" ,
+   "LCB = LASSO Centro Block\n"
+   "The penalty in a block is\n"
+   "  sum{ ABS[ beta[i] - centromean(beta[i],...) ] }\n"
+   "which is intendend to make all the beta[i] in a block shrink towards a\n"
+   "common value, rather than towards 0. The intent is to use this with IM\n"
+   "regression models from 3dDeconvolve, to reduce outliers in the\n"
+   "stimulus-wise beta estimates." } ,
+
+ { 20 , JUL , 2021 , RWC , "NIML library" , MAJOR , TYPE_BUG_FIX ,
+   "NIML file: input failed if file over 2BG in size" ,
+   "Due to storing filesize in int/long. Fix was to make it stored in\n"
+   "int64_t, and fixing a few other places." } ,
+
+ { 16 , JUL , 2021 , RWC , "AFNI driver and GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug in overlay_label='xxx' driver" ,
+   "Someone put the terminating NUL byte in wrong place. (Whoever did that\n"
+   "should be beaten.)\n"
+   "Also added the '\\newline' escape as a way to add a line break to the\n"
+   "overlay label string from the driver -- since control characters aren't\n"
+   "really allowed." } ,
+
+ { 15 , JUL , 2021 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change image overlay label plotting to allow for multiline strings" ,
+   "Per DRG: multiline strings, being centered along the y-axis about their\n"
+   "point of origin, would be pushed off the top of the image. Fixed by\n"
+   "setting the y-coord of the origin point to include a factor for the\n"
+   "number of lines." } ,
+
+ { 12 , JUL , 2021 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Make min cluster size = 1 (from 2) for DR Glen." ,
+   NULL } ,
+
+ { 29 , JUN , 2021 , RWC , "3dPval" , MINOR , TYPE_NEW_OPT ,
+   "-log2 and -log10 options" ,
+   "To convert statistics to minus the logarithm of p-value." } ,
+
+ { 28 , JUN , 2021 , RWC , "NIML" , MINOR , TYPE_BUG_FIX ,
+   "Change byte count output for NI_write_element to int64_t" ,
+   "And a few other functions as well. Reason: someone tried to create a 2.8\n"
+   "GB .niml.dset file, which caused a problem when counting up the bytes\n"
+   "output using a 32 bit int. Users -- what can you do with them?" } ,
+
+ { 28 , JUN , 2021 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Linear back to Alpha fading, as well as default Quadratic" ,
+   "Drive-able. Menu item under 'Thr' popup." } ,
+
+ { 24 , JUN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Add tracking thru optimization of original points" ,
+   "That is, with -verb, print out the original index [o=X] as the stages of\n"
+   "optimization proceed. This helps determine if the larger number of\n"
+   "initial coarse trial candidates parameter sets actually produces viable\n"
+   "contenders for the championship." } ,
+
+ { 23 , JUN , 2021 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Add the setjmp/longjmp escape mechanism to plusminus warping" ,
+   "To gracefully end the program if the OpenMP race condition arises." } ,
+
+ { 21 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_MODIFY ,
+   "Change default blok type and radius for the lpc/lpa methods" ,
+   "Old default was -blok 'RHDD(6.54321)'.\n"
+   "New default is  -blok 'TOHD(0)' where the 0 radius means to compute the\n"
+   "blok radius so as to give the blok a volume of 555 times the volume of a\n"
+   "base dataset voxel. For 1x1x1 voxels, such as the MNI template, this\n"
+   "results in 'TOHD(5.18)'. If users want the old setup, they'll have to\n"
+   "use the old blok definition explicitly." } ,
+
+ { 9 , JUN , 2021 , RWC , "3dUndump" , MICRO , TYPE_NEW_OPT ,
+   "Add -allow_NaN option" ,
+   "To allow some DERANGED AFNI user whose name will not be mentioned to\n"
+   "create a dataset containing NaN (Not A Number) floating point values." } ,
+
+ { 9 , JUN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
+   "Changes to make T1-T1 alignment with lpa+ZZ more reliable" ,
+   "Problem - aligning whole head volume to MNI template (top of head only)\n"
+   "- alignment sometimes fails badly. This problem is much less common if\n"
+   "source and base image coverage are compatible. If users will not zero\n"
+   "out or chop off the sub-brainstem part of the head, then the following\n"
+   "changes made to 3dAllineate will help:\n"
+   "  a) carry out a larger search in the coarse pass (more trials)\n"
+   "  b) eliminate 'ov' and 'mi' from lpa+ as these caused problems\n"
+   "     NOTE: 'ov' and 'mi' are still in lpc+\n"
+   "Also investigated why linux and macos results differ. Tracking optimizer\n"
+   "leads to hypothesis that differences in roundoff error slowly\n"
+   "accumulate, and then at some point powell_newuoa makes a step decision\n"
+   "that can alter the optimizing trajectory significantly. There doesn't\n"
+   "seem to be a good way to avoid this. However, with the chanes above,\n"
+   "both macos and linux versions work reasonably well, and differ at most\n"
+   "in about 2 mm (and that only in one case out of 38 whole head tests)." } ,
+
+ { 8 , JUN , 2021 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "Modify to make it work with 2D images again" ,
+   "Had to fix THD_fillin_once to allow for special case of nz==1" } ,
+
+ { 6 , MAY , 2021 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "Make -zskip work with -paired" ,
+   "Rejecting any value pairs where either setA or setB is 0." } ,
+
+ { 24 , MAR , 2021 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_OPT ,
+   "-FWHMxyz allows different blurring amounts in different directions" ,
+   NULL } ,
+
+ { 15 , MAR , 2021 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "Move help from main() to function Allin_Help()" ,
+   NULL } ,
+
+ { 15 , MAR , 2021 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+   "Add -wprefix option" ,
+   "This option will write out the computed warp for each sub-brick. Mostly\n"
+   "for Zhark's curiousity." } ,
+
+ { 13 , MAR , 2021 , RWC , "parser.f" , MICRO , TYPE_BUG_FIX ,
+   "non-NUL terminated FORMAT string" ,
+   "In Fortran-77, character strings are fixed length and filled out with\n"
+   "blanks -- they are not NUL terminated as in C. In one place in parser.f,\n"
+   "a variable FORMAT string is used (about line 709, string C_VAL) -- but\n"
+   "that gets passed to an f2c library function that assumes NUL terminated\n"
+   "string, and so a buffer overrun error can happen. This has never caused\n"
+   "a crash or error, as far as I know, but was detected using the gcc\n"
+   "-fsanitize=address option by Chris Rorden. To avoid possible error, the\n"
+   "Fortran line above the use of this string FORMAT sets the last character\n"
+   "of C_VAL to NUL.\n"
+   "\n"
+   "At the same time, changes were made to the f2c library headers to\n"
+   "properly adapt to either 32 or 64 bit pointers. Formerly, the pointer\n"
+   "size was fixed to 4 bytes.\n"
+   "\n"
+   "A long commentary here for a very small issue." } ,
+
+ { 23 , FEB , 2021 , RWC , "lots of them" , MICRO , TYPE_GENERAL ,
+   "Changes to avoid compile warnings with -Wall option" ,
+   "Mostly cosmetic fixes, but a few minor errors discovered and patched.\n"
+   "About 50 .c files affected." } ,
+
+ { 8 , FEB , 2021 , RWC , "AFNI gui" , MICRO , TYPE_ENHANCE ,
+   "Add Mean/Sigma statistic to Button 3 popup in graph viewer" ,
+   "Kind of a cheap TSNR check for raw data." } ,
+
+ { 27 , JAN , 2021 , RWC , "3dAllineate" , MICRO , TYPE_ENHANCE ,
+   "Enhance -PearSave option" ,
+   "Now it works with -allcostX to give the LPC values at the start of the\n"
+   "run, instead of only at the end.\n"
+   "Now it works with any cost functional, say '-hel', instead of '-lpc' and\n"
+   "'-lpa'. That is, you can get the local Pearson stuff even if it isn't\n"
+   "actually used in the optimization." } ,
+
+ { 26 , JAN , 2021 , RWC , "3dAllineate" , MINOR , TYPE_NEW_OPT ,
+   "New -PearSave option" ,
+   "Saves the local Pearson correlations into a dataset at the end of an\n"
+   "alignment. Mostly for visualization fun." } ,
+
+ { 11 , JAN , 2021 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "AFNI graph viewer box labels now selectable from menu" ,
+   "In the Colors, Etc. menu, new items were added to enable and control the\n"
+   "labels used in Box mode. Keystroke ctrl-B cycles between all Data modes.\n"
+   "In addition, labels can now be drawn for graph matrix size up to 9x9." } ,
+
  { 23 , JUN , 2020 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "Add support for *.tsv and *.csv files" ,
    "Tab and Comma separated value files will be read in, like 1D files, and\n"
@@ -7860,6 +8057,7 @@ afni_history_struct rwcox_history[] = {
 
   { 16,JAN,2001, RWC, "AFNI-general", SUPERDUPER, TYPE_GENERAL, "Older History stuff",
    "  ===========================================================\n"
+   " == This was the day I (RWC) started working at the NIH! :) ==\n"
    " == All changes from this date onwards were made at the NIH ==\n"
    "  ===========================================================\n"
    },

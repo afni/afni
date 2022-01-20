@@ -137,7 +137,7 @@ shinyServer(function(input,output,session) {
   ## get the data reorganized with the clustering #################
   heat_data <- reactive({
     
-    if(length(input$rois) < 2){ stop('ERROR: select more than one ROI!') }
+    validate(need(length(input$rois) > 1,'ERROR: select more than one ROI!'))
     
     ## get the data
     net.mat <- mat_read()
@@ -266,7 +266,9 @@ shinyServer(function(input,output,session) {
         col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3),
                                      alpha=FALSE)
       }
-      stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
+      clean.name <- substr(input$stat_sel,3,nchar(input$stat_sel))
+      stat.lab <- stat.df$description[stat.df$label == clean.name]
+      if( length(stat.lab) == 0 ){ stat.lab == input$stat_sel }
       
       ## calculate first #################
       if(input$h_clust != 'none'){

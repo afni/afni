@@ -61,8 +61,12 @@
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
 #
-set version   = "2.31";   set rev_dat   = "Oct 28, 2020"
+#set version   = "2.31";   set rev_dat   = "Oct 28, 2020"
 #     + [PT] extra QC imaging: initial alignment
+#
+set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ---------------------------------------------------------------
 
@@ -700,7 +704,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix $vedge              \
         -input  $odir/$osrc
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_base_srce
         set vpref1 = ${opref}_qc_base_src
     else
@@ -723,7 +727,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
     echo "\n\n"
@@ -739,7 +743,7 @@ if ( $DO_VIEWER == 1 ) then
         -prefix "$odirqc/$vpref1"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
     # for NN
@@ -757,7 +761,7 @@ if ( $DO_VIEWER == 1 ) then
         # apply
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vprefnn = ${opref}_qc_$ppp
         else
             set vprefnn = ${qc_prefix}_qc_$ppp
@@ -776,7 +780,7 @@ if ( $DO_VIEWER == 1 ) then
             -prefix "$odirqc/$vprefnn"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
     end
 
@@ -795,7 +799,7 @@ if ( $DO_VIEWER == 1 ) then
         # apply
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
-        if( $qc_prefix == "" ) then
+        if ( $qc_prefix == "" ) then
             set vprefnn = ${opref}_qc_$ppp
         else
             set vprefnn = ${qc_prefix}_qc_$ppp
@@ -811,7 +815,7 @@ if ( $DO_VIEWER == 1 ) then
             -prefix "$odirqc/$vprefnn"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
-            -label_mode 1 -label_size 3       \
+            -label_mode 1 -label_size 4       \
             -do_clean 
     end
 

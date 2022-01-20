@@ -76,6 +76,8 @@ option(COMP_CORELIBS_ONLY
 )
 set(COMP_CORELIBS "Core C libraries" ON)
 
+option(COMP_MINI_MRI "Build a reduced version of mrilib functionality" OFF)
+
 cmake_dependent_option(
   COMP_COREBINARIES "Build a large portion of the C executables" ON
   "NOT COMP_CORELIBS_ONLY" OFF
@@ -156,7 +158,6 @@ option(COMP_ATLASES "Use datalad to download data for distribution" OFF)
 set_if_not_defined(COMP_ALL_PLUGINS "By default a core set of plugins are built." ON)
 option(GENERATE_PACKAGING_COMPONENTS "For internal use only" OFF)
 option(REMOVE_BUILD_PARITY_CHECKS "For internal use only" OFF)
-option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
 option(USE_CPACK "CPack can be used to generate source and binary distributions" OFF)
 option(ENABLE_TESTS "Enable tests" OFF)
 option(RUN_PLUGIN_CHECK "Check that plugins build without any missing symbols" OFF)

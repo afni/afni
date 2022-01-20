@@ -24,6 +24,11 @@
 
   If you find this program useful, please send mail to Matthew Belmonte
   <belmonte@mit.edu>.
+
+  [PT: 27 Dec 2021] Use printf(...) to display the program help,
+  instead of fprintf(stderr, ...), so that the Sphinx help docs can
+  see it.
+
 */
 
 #include <stdio.h>
@@ -292,7 +297,8 @@ char **argv;
   FILE *evtfile;		/*file containing event times*/
   register int read_params_from_data_file,	/*flag*/
 	i, j;
-  fprintf(stderr, "References (please cite both):\n\n"
+  printf("References (please cite both):\n\n"
+  //fprintf(stderr, "References (please cite both):\n\n"
 
 "THEORETICAL MODEL:\n"
 "RB Buxton, EC Wong, LR Frank. Dynamics of blood flow and oxygenation changes\n"
@@ -312,7 +318,8 @@ char **argv;
        || ((t_fall = atof(argv[6])) < 0.0)
        || (t_rise + t_sustain + t_fall == 0.0))))
     {
-    fprintf(stderr,
+    //fprintf(stderr,
+    printf(
 "\nUSAGE: %s TR N event_times [ t_rise t_sustain t_fall ]\n"
 "TR: scan repetition time in seconds\n"
 	"\t(the output curve will be sampled at this interval)\n"

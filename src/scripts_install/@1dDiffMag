@@ -3,11 +3,11 @@
 set Narg = $#
 
 set fname = "-help"
-if( $Narg > 0 )then
+if ( $Narg > 0 ) then
   set fname = $argv[1]
 endif
 
-if( $Narg == 0 || $fname == "-help" )then
+if ( $Narg == 0 || $fname == "-help" ) then
   echo 'Usage: @1dDiffMag file.1D'
   echo '* Computes a magnitude estimate of the first differences of a 1D file.'
   echo '* Differences are computed down each column.'
@@ -22,7 +22,7 @@ set nv = ( `3dnvals -all $fname` )
 
 3dTstat -tdiff -stdev -prefix __junk1.1D ${fname}\' >& /dev/null
 
-if( $nv[4] > 1 )then
+if ( $nv[4] > 1 ) then
   3dTstat -sos -prefix __junk2.1D __junk1.1D\'    >& /dev/null
   1deval -a __junk2.1D -expr 'sqrt(a)' 
 else

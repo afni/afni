@@ -299,6 +299,42 @@ The font_information is derived
 
 #if XtSpecificationRelease >= 5
 /* R5 and above code */
+
+#if 0
+void RWC_fixup_fontset(Widget cww,Widget www) /* 08 Jan 2021 -- does not work */
+{
+   char **missing_charset=NULL , *def_string=NULL ;
+   int    missing_charset_count = 0 ;
+   XcgLiteClueWidget cw = (XcgLiteClueWidget)cww ;
+
+   if( cw == NULL || cw->liteClue.fontset != NULL ) return ;
+
+   cw->liteClue.fontset = XCreateFontSet( XtDisplay(cw) ,
+                                          "9x15bold" ,
+                                          &missing_charset , &missing_charset_count , &def_string ) ;
+
+   if( cw->liteClue.fontset != NULL ) return ;
+
+   if( www != (Widget)NULL ){
+     XFontSet xfset ;
+     XtVaGetValues( www , XtNfontSet , &xfset , NULL ) ;
+     if( xfset != (XFontSet)NULL ) cw->liteClue.fontset = xfset ;
+   }
+
+   return ;
+}
+#endif
+
+/*------------------------------------------------------------------*/
+/* Check widget for integrity and honor */
+
+int RWC_liteclue_has_fontset( Widget cww ) /* 10 Jan 2021 */
+{
+   XcgLiteClueWidget cw = (XcgLiteClueWidget)cww ;
+   return ( (cw != NULL) && (cw->liteClue.fontset != NULL) ) ;
+}
+/*------------------------------------------------------------------*/
+
 static void compute_font_info(XcgLiteClueWidget cw)
 {
 	XRectangle ink;
@@ -502,6 +538,7 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	logical.width = oret.width;
 	}
 #else
+   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
 	XmbTextExtents(cw->liteClue.fontset, obj->text , obj->text_size ,&ink, &logical);
 #endif
 
@@ -575,7 +612,11 @@ static void Enter_event(Widget w, XtPointer client_data, XEvent * xevent, Boolea
 	*/
 	if ((event->time -  cw->liteClue.HelpPopDownTime) > 
 			cw->liteClue.cancelWaitPeriod ) 
+#if 0
+/* old typo in original? */
 		current_waitPeriod = cw->liteClue.waitPeriod,timeout_event;
+#endif
+		current_waitPeriod = cw->liteClue.waitPeriod;
 	else
 		current_waitPeriod = 0;
 
@@ -651,6 +692,7 @@ void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int op
 
 	CheckWidgetClass(ROUTINE);	/* make sure we are called with a LiteClue widget */
 
+   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
 	obj = find_watched_widget(cw, watch);
 	if (obj)
 	{

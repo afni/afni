@@ -380,7 +380,7 @@ int tcp_listen( int port )
 int tcp_accept( int sd , char ** hostname , char ** hostaddr )
 {
    struct sockaddr_in pin ;
-   int addrlen , sd_new ;
+   int sd_new ; socklen_t addrlen ;
    struct hostent * hostp ;
    char * sout , * str ;
 

@@ -22,6 +22,7 @@
 #define IFM_USE_LONG         2
 #define IFM_USE_HIST         3
 #define IFM_USE_VERSION      4
+#define IFM_USE_MILESTONES   5
 
 #define IFM_IM_FTYPE_NONE    0       /* valid image file types:          */
 #define IFM_IM_FTYPE_GEMS5   1       /* GEMS 5.x                         */
@@ -102,6 +103,7 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco script          */
     char           * gert_filename; /* GERT_Reco script name            */
     char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
+    int              chan_digits;   /* number of digits for channel     */
     char           * chan_prefix;   /* _chan_ par of prefix in script   */
     int              gert_nz;       /* override nz=1 in script          */
     int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */

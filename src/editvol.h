@@ -455,6 +455,11 @@ extern char * EDIT_geometry_string_pad( char *gsin , int npad ) ; /* Halloween 2
 extern char * EDIT_geomstring_from_collection( int nstr , char **gsin ) ;
 extern float_triple EDIT_geometry_string_to_delxyz( char *gstr ) ;
 
+extern char * EDIT_geomstring_from_corners( float xxbot, float xxtop ,  /* 17 May 2021 */
+                                            float yybot, float yytop ,
+                                            float zzbot, float zztop ,
+                                            float dx, float dy, float dz ) ;
+
 extern THD_3dim_dataset * jRandomDataset(int,int,int,int) ; /* 16 Mar 2016 */
 extern MRI_IMAGE *        jRandom1D(int,int) ;              /* 17 Mar 2016 */
 
@@ -598,7 +603,13 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
                    ADN_none )
 
 /*------------------------------------------------------------------*/
+/* Added 15 Mar 2021 -- why didn't I do this before??? */
+/*------------------------------------------------------------------*/
 
+#define EDIT_DSET_PREFIX(ds,pf)                        \
+  EDIT_dset_items( (ds), ADN_prefix,(pf) , ADN_none )
+
+/*------------------------------------------------------------------*/
 /*! Change statistical parameters in dataset ds, sub-brick iv,
     to statistical type ft, with parameters a,b,c,d.
 */
@@ -734,7 +745,10 @@ extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *, 
                                          float p[][MAX_CODE_PARAMS+1],
                                          float *reduce_grid, int resam_mode) ;
-extern void THD_localstat_verb(int) ;
+
+extern void THD_localstat_datum(int);
+extern void THD_localstat_verb(int);
+
 extern int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk, 
                                  THD_3dim_dataset *gset, 
                                  int *ii, int *jj, int *kk);

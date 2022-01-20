@@ -6,6 +6,8 @@ int main( int argc , char *argv[] )
    int iarg=1 , kk ;
    int doz=0 ;            /* 20 Aug 2019 */
    int doq=0 , nqbad=0 ;  /* 01 Feb 2020 */
+   int dolog2=0 ;         /* 29 Jun 2021 */
+   int dolog10=0 ;        /* ditto */
    char *prefix="Pval" ;
    MRI_IMAGE *iim , *oim ;
 
@@ -49,6 +51,9 @@ int main( int argc , char *argv[] )
       " -zscore   = Convert statistic to a z-score instead, an N(0,1) deviate\n"
       "               that represents the same p-value.\n"
       "\n"
+      " -log2     = Convert statistic to -log2(p)\n"
+      " -log10    = Convert statistic to -log10(p)\n"
+      "\n"
       " -qval     = Convert statistic to a q-value (FDR) instead:\n"
       "             + This option only works with datasets that have\n"
       "               FDR curves inserted in their headers, which most\n"
@@ -68,11 +73,19 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-zscore") == 0 || strcasecmp(argv[iarg],"-zstat") == 0 ){
-       doq = 0 ; doz++ ; iarg++ ; continue ;  /* 20 Aug 2019 */
+       dolog10 = dolog2 = doq = 0 ; doz++ ; iarg++ ; continue ;  /* 20 Aug 2019 */
      }
 
      if( strcasecmp(argv[iarg],"-qval") == 0 ){
-       doq++ ; doz = 0 ; iarg++ ; continue ;  /* 01 Feb 2020 */
+       doq++ ; dolog10 = dolog2 = doz = 0 ; iarg++ ; continue ;  /* 01 Feb 2020 */
+     }
+
+     if( strcasecmp(argv[iarg],"-log2") == 0 ){
+       dolog2++ ; dolog10 = doz = doq = 0 ; iarg++ ; continue ;  /* 29 Jun 2021 */
+     }
+
+     if( strcasecmp(argv[iarg],"-log10") == 0 ){
+       dolog10++ ; dolog2 = doz = doq = 0 ; iarg++ ; continue ;  /* 29 Jun 2021 */
      }
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -116,21 +129,35 @@ int main( int argc , char *argv[] )
      } else {
        oim = mri_to_pval( iim , DSET_BRICK_STATCODE(iset,kk) ,
                                 DSET_BRICK_STATAUX (iset,kk)  ) ;
+
+       if( oim != NULL && (dolog2 || dolog10) ){    /* 29 Jun 2021 */
+         int ii , nvox=oim->nvox ; float val , *oar=MRI_FLOAT_PTR(oim) ;
+         for( ii=0 ; ii < nvox ; ii++ ){
+           val = oar[ii] ;
+           if( val > 0.0f ){
+             oar[ii] = (dolog2) ? -log2f (val)
+                                : -log10f(val) ;
+           }
+         }
+       }
      }
 
      if( oim == NULL ){
-       oim = iim     ; fprintf(stderr,"-") ;
+       oim = iim     ; fprintf(stderr,"-") ;  /* new data = old data */
      } else {
        char *olab , nlab[128] ;
        mri_free(iim) ; fprintf(stderr,"+") ;
        olab = DSET_BRICK_LABEL(iset,kk) ;
-            if( doz ) sprintf(nlab,"%.120s_zstat",olab) ;
-       else if( doq ) sprintf(nlab,"%.120s_qval" ,olab) ;
-       else           sprintf(nlab,"%.120s_pval" ,olab) ;
+            if( doz     ) sprintf(nlab,"%.116s_zstat" ,olab) ;
+       else if( doq     ) sprintf(nlab,"%.116s_qval"  ,olab) ;
+       else if( dolog2  ) sprintf(nlab,"%.116s_log2p" ,olab) ;
+       else if( dolog10 ) sprintf(nlab,"%.116s_log10p",olab) ;
+       else               sprintf(nlab,"%.116s_pval"  ,olab) ; /* default */
        EDIT_BRICK_LABEL(oset,kk,nlab) ;
-       if( doz ) EDIT_BRICK_TO_FIZT(oset,kk) ;
-       else      EDIT_BRICK_TO_NOSTAT(oset,kk) ;
+       if( doz ) EDIT_BRICK_TO_FIZT(oset,kk) ;    /* change stat code */
+       else      EDIT_BRICK_TO_NOSTAT(oset,kk) ;  /* erase stat code */
      }
+     /* shove new data into dataset */
      EDIT_substitute_brick( oset , kk , MRI_float , MRI_FLOAT_PTR(oim) ) ;
      mri_clear_and_free(oim) ;
    }

@@ -1,7 +1,6 @@
 #include "mrilib.h"
 
-/*-------------------------------------------------------------------
-  Create a new dataset from an old one, with zero padding around
+/*------------------------------------------------------------------- Create a new dataset from an old one, with zero padding around
   the edges.  For example,
     add_I = number of zero planes to add at inferior edge
             (if < 0, number of data planes to cut off inferior edge)
@@ -19,7 +18,7 @@
 THD_3dim_dataset * THD_zeropad( THD_3dim_dataset *inset ,
                                 int add_I , int add_S , int add_A ,
                                 int add_P , int add_L , int add_R ,
-                                char * prefix , int flag )
+                                char *prefix , int flag )
 {
    THD_3dim_dataset *outset ;
    int nxold,nyold,nzold , nxnew,nynew,nznew , nxyold,nxynew ,
@@ -53,6 +52,7 @@ ENTRY("THD_zeropad") ;
         outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
       } else {
         outset = EDIT_empty_copy( inset ) ;          /* 15 Sep 2020 - oops */
+        EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
         EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
       }
       RETURN( outset );
@@ -355,4 +355,173 @@ STATUS("padding") ;
 #endif
 
    RETURN( outset );
+}
+
+/*-------------------------------------------------------------------*/
+/* Create a 1-volume dataset built from
+   (a) a master dataset 'mset' -- for the geometry
+   (b) an image 'imin' containing the data
+   (c) padding amounts that reckon with the dimensional
+       differences between imin and mset -- that is, for positive
+       'pad' values, imin should be bigger than mset.
+   This function is for use in 3dAllineate.       [25 Jan 2021 - RWC]
+*//*-----------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_volume_to_dataset( THD_3dim_dataset *mset  ,
+                                          MRI_IMAGE *imin         ,
+                                          char *prefix            ,
+                                          int pad_xm , int pad_xp ,
+                                          int pad_ym , int pad_yp ,
+                                          int pad_zm , int pad_zp  )
+{
+   THD_3dim_dataset *dset ;
+   MRI_IMAGE *dim ;
+   int nxx,nyy,nzz ;
+
+ENTRY("THD_volume_to_dataset") ;
+
+   if( mset == NULL || imin == NULL ) RETURN(NULL) ;
+
+   if( !THD_filename_ok(prefix) ) prefix = "volumized" ;
+
+   /* size of dataset after it gets padded */
+
+   nxx = DSET_NX(mset) + pad_xm + pad_xp ;
+   nyy = DSET_NY(mset) + pad_ym + pad_yp ;
+   nzz = DSET_NZ(mset) + pad_zm + pad_zp ;
+
+   /* should match input image */
+
+   if( nxx != imin->nx || nyy != imin->ny || nzz != imin->nz ){
+     WARNING_message("THD_volume_to_dataset mismatch:\n"
+                     "        Dataset = %3d %3d %3d\n"
+                     "        x-pad   = %3d %3d\n"
+                     "        y-pad   = %3d %3d\n"
+                     "        z-pad   = %3d %3d\n"
+                     "        Image   = %3d %3d %3d" ,
+                     DSET_NX(mset),DSET_NY(mset),DSET_NZ(mset) ,
+                     pad_xm , pad_xp ,
+                     pad_ym , pad_yp ,
+                     pad_zm , pad_zp ,
+                     imin->nx , imin->ny , imin->nz ) ;
+     RETURN(NULL) ;
+   }
+
+   /* create an empty (no data) dataset properly padded from mset */
+
+   dset = THD_zeropad( mset ,
+                       pad_xm , pad_xp ,
+                       pad_ym , pad_yp ,
+                       pad_zm , pad_zp ,
+                       prefix , ZPAD_EMPTY | ZPAD_IJK ) ;
+
+   EDIT_dset_items( dset ,
+                      ADN_nvals     , 1 ,
+                      ADN_ntt       , 0 ,
+                      ADN_datum_all , imin->kind ,
+                    ADN_none ) ;
+
+   /* copy the data */
+
+   dim = mri_copy(imin) ;
+
+   /* shove it into the new dataset */
+
+   EDIT_substitute_brick( dset , 0 , dim->kind , mri_data_pointer(dim) ) ;
+
+   /* erase the shell of the image copy */
+
+   mri_clear_and_free( dim ) ;
+
+   /* get the hell out of Dodge */
+
+   RETURN(dset) ;
+}
+
+/*-------------------------------------------------------------------*/
+/* Create a dataset from an MRI_IMARR.
+   All sub-images must be the same dimensions.
+   All sub-images will be converted (if necessary) to the same
+     datum type as the [0] image.
+   NULL is returned if inputs are stooopid.
+   [RWC - 05 Mar 2021]
+*//*-----------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_imarr_to_dataset( MRI_IMARR *imar, char *prefix )
+{
+   int nx,ny,nz , nvals , vv ;
+   MRI_IMAGE *qim ;
+   MRI_TYPE   qtyp ;
+   THD_3dim_dataset *qset ;
+   THD_ivec3  nxyz ;
+   THD_fvec3  dxyz ;
+
+ENTRY("THD_imarr_to_dataset") ;
+
+   if( imar == NULL || IMARR_COUNT(imar) == 0 ) RETURN(NULL) ;
+
+   qim = IMARR_SUBIM(imar,0); if( qim == NULL ) RETURN(NULL) ;
+
+   /* dimensions */
+
+   nx = qim->nx ; ny = qim->ny ; nz = qim->nz ;
+   if( nx < 2 && ny < 2 && nz < 2 )             RETURN(NULL) ;
+   LOAD_IVEC3(nxyz,nx,ny,nz) ;
+   LOAD_FVEC3(dxyz,1.0f,1.0f,1.0f) ;
+
+   qtyp  = qim->kind ;
+   nvals = IMARR_COUNT(imar) ;
+
+   /* dimension check */
+
+   for( vv=1 ; vv < nvals ; vv++ ){
+     qim = IMARR_SUBIM(imar,vv) ;        if( qim == NULL ) RETURN(NULL) ;
+     if( qim->nx != nx || qim->ny != ny || qim->nz != nz ) RETURN(NULL) ;
+   }
+
+   /* create empty shell of dataset and set dimensions */
+
+   qset = EDIT_empty_copy(NULL) ;
+
+   if( !THD_filename_ok(prefix) ) prefix = "fromIMARR" ;
+
+   EDIT_dset_items( qset ,
+                     ADN_datum_all , (int)qtyp ,
+                     ADN_nvals     , nvals ,
+                     ADN_nxyz      , nxyz ,
+                     ADN_xyzdel    , dxyz ,
+                     ADN_prefix    , prefix ,
+                    ADN_none ) ;
+
+   /* make a copy of each image,
+      and stuff its data into the dataset,
+      then clear out copy's data (now inside dataset) and free image struct */
+
+   for( vv=0 ; vv < nvals ; vv++ ){
+     qim = mri_to_mri( (int)qtyp , IMARR_SUBIM(imar,vv) ) ;
+     EDIT_substitute_brick( qset , vv , (int)qtyp , mri_data_pointer(qim) ) ;
+     mri_clear_and_free( qim ) ;
+   }
+
+   RETURN(qset) ;
+}
+
+/*-------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_image_to_dataset( MRI_IMAGE *imin, char *prefix )
+{
+   MRI_IMARR *imar ;
+   THD_3dim_dataset *qset ;
+
+ENTRY("THD_image_to_dataset") ;
+
+   if( imin == NULL ) RETURN(NULL) ;
+
+   INIT_IMARR(imar) ; ADDTO_IMARR(imar,imin) ;
+
+   qset = THD_imarr_to_dataset( imar , prefix ) ;
+
+   FREE_IMARR(imar) ;
+
+   RETURN(qset) ;
 }

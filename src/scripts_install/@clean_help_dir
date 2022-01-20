@@ -63,15 +63,34 @@ end
 set nleft = `ls -1 $hdir/ | wc -l`
 echo "$N_change redundant help files deleted, $nleft help files left."
 
-echo "Combining all command completions into all_progs.COMP(.bash)"
+# ------------------------------------------------------------
+# combine completion files (and note any failures)
+echo "Combining all command completions into all_progs.COMP(.bash/.zsh)"
+set catstat = 0
+
 cat *.complete > all_progs.COMP
+if ( $status ) @ catstat += 1
+
 cat *.complete.bash > all_progs.COMP.bash
+if ( $status ) @ catstat += 2
 
 # do this for zsh, if the files exist
 if ( -f afni.complete.zsh ) then
    cat *.complete.zsh > all_progs.COMP.zsh
+   if ( $status ) @ catstat += 4
 endif
-   
+
+# and whine on error
+if ( $catstat ) then
+   echo ""
+   echo "** cat/redirect failure: $catstat"
+   echo "   - this seems to be a macos/Rosetta shell problem, please panic"
+   echo "   - AFNI command option tab completion will probably not work"
+   echo "   - but there are probably larger consequences to worry about"
+   echo ""
+endif
+
+# ------------------------------------------------------------
 # suggest to the user how to apply this, based on $SHELL
 #Get the user's shell type
 if ($shh == '') then
@@ -82,7 +101,7 @@ if ("$shh" == 'csh' || "$shh" == 'tcsh') then
    set is_set = $status
    if ($is_set != 0) then
       echo ""
-      echo "Add the following lines to your ~/.csrhc"
+      echo "Add the following lines to your ~/.cshrc"
       echo ''
       echo ''
       echo 'set ahdir = `apsearch -afni_help_dir`'
@@ -202,7 +221,9 @@ PARSE:
       @ cnt ++
    end
    
-   if ("$uhdir" != '') set hdir = $uhdir
+   if ("$uhdir" != '') then
+      set hdir = $uhdir
+   endif
       
    if ( ! -d $hdir ) then
       echo "Could not find home directory $hdir"

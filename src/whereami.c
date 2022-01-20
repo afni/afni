@@ -435,7 +435,7 @@ printf(
 
 " \n---------------\n"
 " More information about Atlases in AFNI can be found here:\n"
-"      https://afni.nimh.nih.gov/sscc/dglen/AFNIAtlases\n"
+"      https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/framework.html\n"
 " Class document illustrating whereami usage:\n"
 "      https://afni.nimh.nih.gov/pub/dist/edu/latest/afni11_roi/afni11_roi.pdf\n"
 "---------------\n"
@@ -1579,8 +1579,10 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
          /* for each atlas */
          for (k=0; k < N_atlas_names; ++k) {
             if (!(atlas = Atlas_With_Trimming(atlas_names[k], 0, atlas_alist))) {
-               fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", 
+               if(wami_verb()) {
+                  fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", 
                                atlas_names[k]);
+               }
                continue;
             }
             

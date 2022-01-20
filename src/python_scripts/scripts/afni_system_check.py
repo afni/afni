@@ -16,7 +16,7 @@ if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
 
 # now load AFNI libraries by name
 from afnipy import option_list as OL
-from afnipy import afni_util as UTIL  # not actually used, but probably will be
+from afnipy import afni_util as UTIL
 from afnipy import lib_system_check as SC
 
 g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.cshrc', '.tcshrc']
@@ -51,6 +51,8 @@ action options:
 
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
+   -disp_num_cpu        : display number of CPUs available
+   -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
    -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
@@ -225,9 +227,17 @@ g_history = """
    1.11 Sep 15, 2020
         - whine if .zshrc references all_progs.COMP.bash
         - some python 3.8 distribution do not come with distro
+   1.12 Feb 18, 2021 - check for reasonable XQuartz version
+   1.13 Oct 27, 2021 - warn if less than 5 GB disk space available
+   1.14 Oct 29, 2021 - on mac, check for standard R not in PATH
+   1.15 Nov 13, 2021 - add -disp_num_cpu opt to show number of available cpus
+   1.16 Jan 05, 2022 - check for having both .cshrc and .tcshrc
+   1.17 Jan 11, 2022
+        - add -disp_ver_matplotlib
+        - matplotlib version >= 2.2 is now required in AFNI
 """
 
-g_version = "afni_system_check.py version 1.11, September 15, 2020"
+g_version = "afni_system_check.py version 1.17, January 11, 2022"
 
 
 class CmdInterface:
@@ -244,6 +254,7 @@ class CmdInterface:
       # action variables
       self.find_prog       = ''         # program name to find
       self.sys_check       = 0
+      self.sys_disp        = []         # list of keywords for disp
       self.dot_file_list   = 0          # list found dot files
       self.dot_file_pack   = ''         # package dot files
       self.dot_file_show   = 0          # display dot files
@@ -285,6 +296,10 @@ class CmdInterface:
                       helpstr='perform all system checks')
       self.valid_opts.add_opt('-data_root', 1, [],
                       helpstr='directory to check for class data')
+      self.valid_opts.add_opt('-disp_num_cpu', 0, [],
+                      helpstr='display number of CPUs available')
+      self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
+                      helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
                       helpstr='list found dot files')
       self.valid_opts.add_opt('-dot_file_pack', 1, [],
@@ -358,6 +373,16 @@ class CmdInterface:
             self.sys_check = 1
             continue
 
+         if opt.name == '-disp_num_cpu':
+            self.act = 1
+            self.sys_disp.append('num_cpu')
+            continue
+
+         if opt.name == '-disp_ver_matplotlib':
+            self.act = 1
+            self.sys_disp.append('ver_matplotlib')
+            continue
+
          if opt.name == '-data_root':
             self.data_root = opt.parlist[0]
             continue
@@ -410,6 +435,25 @@ class CmdInterface:
 
       self.sinfo.show_all_sys_info()
 
+   def show_system_info_items(self, items=[]):
+      '''Show a subset of items that would be in the full check_all, as
+      displayed by show_system_info().
+
+      items is a list of strings, each being a keyword to display part
+      of the full system check info.  Keywords in this list can be
+      built up over time.
+
+      '''
+
+      self.sinfo = SC.SysInfo(verb=self.verb, data_root=self.data_root)
+
+      # check for any known item strings
+      for x in items:
+          if x == 'num_cpu':
+              print(self.sinfo.get_cpu_count())
+          if x == 'ver_matplotlib':
+              print(self.sinfo.get_ver_matplotlib())
+
    def check_dotfiles(self, show=0, pack=0):
       global g_dotfiles
 
@@ -456,6 +500,7 @@ class CmdInterface:
 
    def execute(self):
 
+      if len(self.sys_disp):  self.show_system_info_items(self.sys_disp)
       if self.sys_check: self.show_system_info()
       if self.find_prog:
          # note casematching

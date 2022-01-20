@@ -28,12 +28,12 @@ void NI_dpr( char *fmt , ... )      /* print debug stuff */
 /*! Return the file length (-1 if file not found).
 ----------------------------------------------------------------------------*/
 
-long NI_filesize( char *pathname )
+int64_t NI_filesize( char *pathname )
 {
    static struct stat buf ; int ii ;
    if( pathname == NULL ) return -1 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
-   return buf.st_size ;
+   return (int64_t)buf.st_size ;
 }
 
 /*--------------------------------------------------------------------------*/

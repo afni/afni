@@ -14,7 +14,7 @@ void NIML_to_terminal( void *nini, int mode, int do_stderr)
 }
 
 void usage_niccc(int detail) {
-      fprintf(stderr,
+      printf(
               "\n"
               "   Usage: niccc [-dup] [-nodata] streamspec\n"
               "\n"

@@ -184,6 +184,12 @@ void NWA_help(void)
       "                ++ If the source dataset is complex-valued, this option will\n"
       "                   be ignored.\n"
       "\n"
+      " -wprefix wp  = If this option is used, then every warp generated in the process\n"
+      "                of application will be saved to a 3D dataset with prefix 'wp_XXXX',\n"
+      "                where XXXX is the index of the sub-brick being created.\n"
+      "                For example, '-wprefix Zork.nii' will create datasets with names\n"
+      "                'Zork_0000.nii', et cetera.\n"
+      "\n"
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
       "\n"
@@ -597,6 +603,18 @@ int main( int argc , char *argv[] )
        if( nbad >  0 )
          ERROR_exit("Can't continue after above error%s",(nbad > 0)?"s":"\0") ;
        iarg = kk ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strncasecmp(argv[iarg],"-wprefix",5) == 0 ){   /* 15 Mar 2021 */
+       if( ++iarg >= argc )
+         ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+       if( strcmp(argv[iarg],"NULL") != 0 )
+         THD_set_nwarp_apply_prefix( argv[iarg] ) ;
+       else
+         THD_set_nwarp_apply_prefix( NULL ) ;
+       iarg++ ; continue ;
      }
 
      /*---------------*/

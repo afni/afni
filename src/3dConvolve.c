@@ -2018,15 +2018,15 @@ int main
 
 {
 #ifndef ALLOW_PROGRAM
-  ERROR_message("\n"
+  printf("\n"
     "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
     "**                                                          **\n"
     "** This program, 3dConvolve, is no longer supported in AFNI **\n"
     "**                                                          **\n"
     "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
   ) ;
-  fprintf(stderr,"** Program compile date = %s\n",__DATE__) ;
-  exit(0) ;
+  printf("** Program compile date = %s\n",__DATE__);
+  exit(0);
 #else
   DC_options * option_data;             /* deconvolution algorithm options */
   THD_3dim_dataset * dset_time = NULL;  /* input 3d+time template data set */

@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -10,8 +10,8 @@ set centeropt = ""
 set centertype = "-centertype Icent"
 set centermask = ""
 set skipnovoxopt = ""
-set lncol = ""
-
+set lncol_arg = ""
+set last_lncol_arg = ""
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -63,19 +63,14 @@ endif
 
 # if dataset is not already an atlas, make it so
 if ("$flab" != "IS_ATLAS") then
-   if($lncol) then
-      set lnarg = "-longnames $lncol"
-   else
-      set lnarg = ""
-   endif
-   # once over for labeltable
+   # once over for labeltable (don't need long names for labeltable yet)
    @MakeLabelTable -lab_file_delim "$delim"  \
-                   -lab_file $flab $iL $iV $lnarg \
+                   -lab_file $flab $iL $iV \
                    -dset $target_dset  $replace \
                    $skipnovoxopt
    # second over for atlas_points_list (eventually only once over...)
    @MakeLabelTable -lab_file_delim "$delim"  \
-                   -lab_file $flab $iL $iV $lnarg \
+                   -lab_file $flab $iL $iV $lncol_arg $last_lncol_arg \
                    -atlas_pointlist keys_${RNS}_ \
                    -dset $target_dset  $replace \
                    $centeropt $centertype $centermask \
@@ -223,7 +218,18 @@ PARSE:
             goto BEND
          endif
          @ cnt ++
-         set lncol = $argv[$cnt]
+         set lncol_arg = "-longnames $argv[$cnt]"
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-last_longname_col") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need to specify column index after -longnames"
+            goto BEND
+         endif
+         @ cnt ++
+         set last_lncol_arg = "-last_longname_col $argv[$cnt]"
          goto CONTINUE
       endif
 
@@ -408,6 +414,7 @@ echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
 echo "                names for regions, e.g. amygdala for AMY"
 echo "                cLONGNAME is the starting column for the longname continuing"
 echo "                to the last name of the output"
+echo "   -last_longname_col cLASTLONGNAME: limit longnames to nth column"
 echo "   -atlas_type TP: Set the atlas type where TP is 'S' for subject-based"
 echo "                and 'G' for group-based atlases, respectively."
 echo "                   A subject-based atlas will remain in the current"

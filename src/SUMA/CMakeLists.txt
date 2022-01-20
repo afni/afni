@@ -8,6 +8,7 @@ add_afni_library(
   SUMA_BrainWrap.c
   SUMA_Color.c
   SUMA_CreateDO.c
+  SUMA_clippingPlanes.c
   SUMA_DataSets.c
   SUMA_display.c
   SUMA_display_b.c

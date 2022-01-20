@@ -613,9 +613,12 @@ ENTRY("pixar_to_XImage") ;
 #else
 # define INLINE /*nada*/
 #endif
-/*-------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------*/
 /*! Local copy of function from display.c, hopefully for speed.
----------------------------------------------------------------------*/
+    This function converts the color (rr,gg,bb) byte triple to
+    an X11 Pixel for the given TrueColor (tc) display,
+    whose properties are stored in the MCW_DC (cf. display.c).
+*//*---------------------------------------------------------------------*/
 
 static INLINE Pixel tc_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 {
@@ -634,6 +637,18 @@ static INLINE Pixel tc_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
      return (Pixel) pold ;
 
    rold = rr ; gold = gg ; bold = bb ; dcold = dc ;            /* OK, remember for next time */
+
+   /* X11 TrueColor (tc) is very general,
+        which makes the code below slightly mysterious.
+      Each color component (r,g,b) gets certain bit locations in a
+        Pixel = unsigned long = 32 bits
+      So given byte rr (say), it has to be shifted left or right to the
+        correct location in the Pixel and then masked off to make sure the
+        bits set don't stray outside their allotted space.
+      That's what the next line of code does, producing the Pixel for the
+        red color only.
+      The shifts and masks are set in the MCW_DC struct, in display.c, and
+        are obtained from the X11 XVisualInfo for the X11 Display being used. */
 
    r = (cd->rrshift<0) ? (rr<<(-cd->rrshift))
                        : (rr>>cd->rrshift)   ; r = r & cd->rrmask ;
@@ -698,16 +713,30 @@ ENTRY("rgb_to_XImage_simple") ;
 
    par = (Pixel *) malloc(sizeof(Pixel)*nxy); if( par == NULL ) RETURN(NULL) ;
 
+   /* convert each RGB triple to an X11 Pixel */
+
    for( ii=0 ; ii < nxy ; ii++ )
      par[ii] = tc_rgb_to_pixel( dc , rgb[3*ii], rgb[3*ii+1], rgb[3*ii+2] ) ;
 
+   /* convert the Pixel array to an XImage,
+      which can be pushed to a window for actual visibility */
+
    xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
+
+   /* toss the Pixel array and return the XImage */
 
    free(par) ; RETURN( xim ) ;
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Convert an MRI_IMAGE of rgb bytes to an XImage (general visual)
+/*! Convert an MRI_IMAGE of rgb bytes to an XImage (general visual).
+    Here, "clever" means that the colors in the image are sorted
+    to bring identical colors together, so that the number of
+    distinct conversions from RGB triples to Pixels is minimized.
+    Although this function works with TrueColor, it is slower than the
+    "simple" function above - due to the sorting overhead.
+    But this function is faster for PseudoColor, as the sorting
+    overhead is less than the PseudoColor RGB->Pixel conversion cost.
 -------------------------------------------------------------------------*/
 
 static XImage * rgb_to_XImage_clever( MCW_DC *dc , MRI_IMAGE *im )
@@ -748,12 +777,14 @@ ENTRY("rgb_to_XImage_clever") ;
       if( col_ar[ii] != c ){         /* have a new color, so compute its pixel */
          c = col_ar[ii] ;
          r = (c >> 16) & 0xff ; g = (c >> 8) & 0xff ; b = c & 0xff ;
-         p = DC_rgb_to_pixel( dc , r,g,b ) ;
+         p = DC_rgb_to_pixel( dc , r,g,b ) ; /* in display.c */
       }
       par[ii_ar[ii]] = p ;           /* store it where it came from */
    }
 
    free(col_ar) ; free(ii_ar) ;      /* toss some trash */
+
+   /* convert Pixel array to an XImage, for actual display to X11 */
 
    xim = pixar_to_XImage( dc , im->nx , im->ny , par ) ;
 
@@ -1017,6 +1048,10 @@ static GC            cur_GC ;
 static XGCValues     cur_gcv ;
 
 void memplot_to_X11_set_DC( MCW_DC *dc ){ cur_dc = dc ; return ; }
+
+/* function to plot a coxplot MEM_plotdata struct (set of lines)
+   directly into an X11 window -- probably is not used anywhere?
+   -- OK, it actually IS used, via macro X11_SET_NEW_PLOT, in several codes */
 
 void memplot_to_X11_funfunfun( Display *dpy , Window w , MEM_plotdata *mp ,
                                int start , int end , int mask )

@@ -44,9 +44,13 @@
 #   + allow a NIFTI anatomical to be input, and then do rest of 
 #     niceifying steps
 #
-set version   = "3.5";   set rev_dat   = "Feb 12, 2019"
+#set version   = "3.5";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "3.52";   set rev_dat   = "Sep 27, 2021"
+#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#       down one level
 #
 # ----------------------------------------------------------------
 
@@ -407,7 +411,7 @@ endif
 
 if ( "$DO_VIEWER" == "1" ) then
 
-    if( $qc_prefix == "" ) then
+    if ( $qc_prefix == "" ) then
         set vpref0 = ${opref}_qc_anat
     else
         set vpref0 = ${qc_prefix}_qc_anat
@@ -424,7 +428,7 @@ if ( "$DO_VIEWER" == "1" ) then
         -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
-        -label_mode 1 -label_size 3       \
+        -label_mode 1 -label_size 4       \
         -do_clean 
 
 endif

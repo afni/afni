@@ -7,6 +7,10 @@
 #ifndef _MCW_DEBUGTRACE_
 #define _MCW_DEBUGTRACE_
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /** inputs:
      USE_TRACING ==> if set, include tracing information **/
 
@@ -71,13 +75,11 @@ extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
    Define things to be used in debugtrace.c
 ------------------------------------------------------------------*/
 
+
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
+#include <string.h>
 
 #ifdef _DEBUGTRACE_MAIN_
    char *DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
@@ -333,13 +335,13 @@ extern void clock_time_atexit(void) ;
       if( e != NULL ) DBG_fp=fopen(e,"w") ;                           \
       if( DBG_fp==NULL ) DBG_fp=stdout;                               \
       (void)NI_clock_time() ;                                         \
-      DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,argv); } while(0)
+      DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,&argv); } while(0)
 
 #define STATUS(str)                                                                  \
   do{ if(TRACK_TRACING){                                                             \
         char sbuf[2048] ;                                                            \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                            \
-        sprintf(sbuf,"%*.*s%s -- %s {%d ms}",DBG_num,DBG_num," ",                    \
+        sprintf(sbuf,"%*.*s%s -- %.1666s {%d ms}",DBG_num,DBG_num," ",               \
                 DBROUT,(str),NI_clock_time());                                       \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK; }  \
         DBG_set_hist_status(sbuf) ;                                                  \
@@ -349,8 +351,8 @@ extern void clock_time_atexit(void) ;
 
 #define STATUSp(str,p)                                                              \
   do{ char qss[2048] ;                                                              \
-      sprintf(qss,"%s ptr=%p",(str),(p)) ;                                          \
-      if( MCW_MALLOC_enabled )                                                    \
+      sprintf(qss,"%.1666s ptr=%p",(str),(p)) ;                                     \
+      if( MCW_MALLOC_enabled )                                                      \
         strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                       \
       if( TRACK_TRACING ){                                                          \
         char sbuf[2048] ;                                                           \
@@ -364,7 +366,20 @@ extern void clock_time_atexit(void) ;
 
 #define STATUSi(str,i)                                                              \
   do{ char qss[2048] ;                                                              \
-      sprintf(qss,"%s int=%d",(str),(i)) ;                                          \
+      sprintf(qss,"%.1666s int=%d",(str),(i)) ;                                     \
+      if( TRACK_TRACING ){                                                          \
+        char sbuf[2048] ;                                                           \
+        if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
+        sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
+        if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \
+        DBG_set_hist_status(sbuf) ;                                                 \
+      }                                                                             \
+      if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}        \
+  } while(0)
+
+#define STATUSs(str,s)                                                              \
+  do{ char qss[2048] ;                                                              \
+      sprintf(qss,"%.666s s=%.999s",(str),(s)) ;                                    \
       if( TRACK_TRACING ){                                                          \
         char sbuf[2048] ;                                                           \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
@@ -398,7 +413,7 @@ extern void clock_time_atexit(void) ;
 #  endif
 
 #  define mainENTRY(rout) \
-   do { (void)AFNI_prefilter_args(&argc,argv); } while(0)
+   do { (void)AFNI_prefilter_args(&argc,&argv); } while(0)
 
 #endif /* USE_TRACING */
 /*********************************************************************/
@@ -420,17 +435,17 @@ extern void clock_time_atexit(void) ;
 # define MPROBE /* nada */
 #endif
 
-#ifdef  __cplusplus
+/*#ifdef  __cplusplus
 }
-#endif
+#endif*/
 
 /*---------------------------------------------------------------*/
 
 /** #include <stdarg.h> **/
 
-#ifdef  __cplusplus
+/*#ifdef  __cplusplus
 extern "C" {
-#endif
+#endif*/
 
 extern void INFO_message   ( char *fmt , ... ) ;  /* 13 Jul 2005 */
 extern void ININFO_message ( char *fmt , ... ) ;

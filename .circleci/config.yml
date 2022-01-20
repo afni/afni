@@ -145,7 +145,7 @@ commands:
           no_output_timeout: 40m
           command: |
             if [[ "$DOCKER_USER" == 'afni' ]]; then
-              docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
               docker push afni/afni_<< parameters.build_type >>:latest
               docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
               docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
@@ -208,8 +208,10 @@ commands:
       - run:
           name: Setup on macos
           command: |
-            brew cask install xquartz
-            brew unlink python@2
+            brew  install --cask xquartz
+            if [[ -d /usr/local/Cellar/python@2 ]]; then
+                brew unlink python@2
+            fi
 
             # add hack for git upgrade to not raise an error
             set +o pipefail
@@ -417,7 +419,7 @@ jobs:
   macos_build:
     working_directory: /tmp/src/afni
     macos:
-        xcode: "11.2.1"
+        xcode: "12.4.0"
     steps: # a series of commands to run
       - checkout_afni
       - setup_macos_for_afni
@@ -558,6 +560,6 @@ workflows:
               test_data_cache_version: ["5"]
           filters:
             tags:
-              only: /AFNI_\d\d.\d.\d\d/
+              ignore: /.*/
             branches:
-              only: /.*/
+              ignore: /.*/

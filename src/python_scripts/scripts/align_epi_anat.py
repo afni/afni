@@ -558,7 +558,7 @@ g_help_string = """
 
 
     Our HBM 2008 abstract describing the alignment tools is available here:
-      https://afni.nimh.nih.gov/sscc/rwcox/abstracts
+      https://sscc.nimh.nih.gov/sscc/rwcox/abstracts
     
     Reference:
        If you find the EPI to Anat alignment capability useful, the paper to
@@ -863,7 +863,7 @@ class RegWrap:
                  "Transformations computed from that will be combined\n"
                  "with the anat to epi transformations and epi to anat\n"
                  "(and volreg) transformations\n"
-                 "0nly one of the -tlrc_apar, -tlrc_epar or the \n"
+                 "Only one of the -tlrc_apar, -tlrc_epar or the \n"
                  "-auto_tlrc options may be used\n")
       # child epi datasets
       self.valid_opts.add_opt('-child_epi', -1,[],\
@@ -2256,9 +2256,16 @@ class RegWrap:
                    (ps.dset1_generic_name, ps.dset2_generic_name ))
 
             else:   # just apply the matrix to the original data (edges)
-               e2a_mat = self.anat_mat
                self.info_msg( "Applying transformation to skullstripped %s" % \
-                          ps.dset1_generic_name)
+                ps.anat_ns0.input())
+               e2a_mat = "%s%s%s_mat.aff12.1D" %  (a.p(), ps.anat0.out_prefix(),suf)
+               # input to cat_matvec
+               com = shell_com( "mv %s %s" % (self.anat_mat, e2a_mat), ps.oexec)
+               com.run();
+
+               self.info_msg( \
+                   "renaming e2a transformation matrix is standard matrix (no obliquity)" )
+               self.anat_mat = e2a_mat
 
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \

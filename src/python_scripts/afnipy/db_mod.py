@@ -38,9 +38,10 @@ g_oc_methods = [
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
     'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    # https://github.com/ME-ICA/tedana
     'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
-                        #    https://github.com/ME-ICA/tedana/
-    'm_tedana_OC'       # ts_OC.nii              from m_tedana
+    'm_tedana_OC',      # ts_OC.nii              from m_tedana
+    'm_tedana_m_tedort' # tedana --tedort (MEICA group tedort)
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -3116,7 +3117,7 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            "# --------------------------------------\n" \
            "# create a TSNR dataset, just from run 1\n",
            signal, signal, proc.view, mask=emask,
-           name_qual='.vreg.r01',detrend=1)
+           name_qual='.vreg.r01',detrend=1, oksurf=0)
 
 # --------------- combine block ---------------
 
@@ -3179,9 +3180,9 @@ def db_cmd_combine(proc, block):
 
    # do we want to use the MEICA group's tedana version?
    if ted_meth == 2:
-      mcstr = ' (tedana from MEICA group)'
+      mcstr = '\n# (tedana from MEICA group)'
    elif ted_meth == 1:
-      mcstr = ' (tedana.py)'
+      mcstr = '\n# (tedana.py from Prantik)'
    else:
       mcstr = ''
 
@@ -3191,8 +3192,8 @@ def db_cmd_combine(proc, block):
          return
 
    # write commands
-   cmd =  '# %s\n'                                            \
-          '# combine multi-echo data per run, using %s%s\n\n' \
+   cmd =  '# %s\n'                                                   \
+          '# combine multi-echo data per run, using method %s%s\n\n' \
           % (block_header('combine'), ocmeth, mcstr)
 
    # handle any MEICA tedana methods separately
@@ -3296,28 +3297,49 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
       print("** option -echo_times is required for %s combine method" % method)
       return
 
+   # tedort: do we project good components from bad?
+   if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=0):
+      print("** m_tedana not ready for tedort (might not be appropriate)")
+      return
+      midk_opt = '1'
+   else:
+      midk_opt = '0'
+
+   # init any extra tedana options
+   exopts = []
+
    # ----------------------------------------------------------------------
    # decide what to do
    #    - what output to copy, if any (and a corresponding comment)
    #    - whether to grab the ortvec
-   ready = 0    # flag what still needs to be done
+   ready = 1    # flag what still needs to be done
    if method == 'm_tedana':
-      ready = 1
       getorts = 0
-      dataout = 'dn_ts_OC.nii'
+      dataout = 'dn_ts_OC.nii.gz'
       mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
    elif method == 'm_tedana_OC':
-      ready = 1
       getorts = 0
-      dataout = 'ts_OC.nii'
+      dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
+   elif method == 'm_tedana_m_tedort':
+      getorts = 0
+      dataout = 'dn_ts_OC.nii.gz'   # same name as m_tedana
+      exopts.append('--tedort')
+      mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
+             % dataout
+   # todo: methods that need to extract ortvecs
    elif method == 'm_tedana_OC_tedort':
-      # rcr - todo, need ort vec
+      ready = 0
+      print("** MEICA -combine_method %s not ready" % method)
+
       getorts = 1
-      dataout = 'ts_OC.nii'
+      dataout = 'ts_OC.nii.gz'
       mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
              % dataout
    elif method == 'getorts':
+      ready = 0
+      print("** MEICA -combine_method %s not ready" % method)
+
       getorts = 1
       dataout = ''
       mstr = '# (get MEICA tedana -ortvec results)\n\n'
@@ -3331,7 +3353,6 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    oindent = ' '*6
 
    # gather any extra tedana options
-   exopts = []
    oname = '-combine_opts_tedana'
    if block.opts.find_opt(oname):
       olist, rv = block.opts.get_string_list(oname)
@@ -3342,19 +3363,26 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
          print("** found -combine_opts_tedana without any options")
          return
 
+   # note the tedana version
+   vstr = '# note the version of tedana (only capure stdout)\n' \
+          'tedana --version | tee out.tedana_version.txt\n\n'
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    # 
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
-   exoptstr = ''.join(exopts)
+   fave_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
+   exoptstr = '          %s \\\n' % ''.join(exopts)
+
 
    # actually run tedana
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
    #             consider --png
    # note: tedana will mask if we don't, so always specify one
-   cmd =                                                                    \
-       '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
+   cmd =                                                             \
+       '# see also: https://tedana.readthedocs.io\n\n'               \
+       '%s'                                                          \
        '%s'                                                          \
        '# first run tedana commands, to see if they all succeed\n'   \
        'foreach run ( $runs )\n'                                     \
@@ -3362,20 +3390,23 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
        '          -e $echo_times \\\n'                               \
        '          --mask %s  \\\n'                                   \
        '%s'                                                          \
-       '          --out-dir tedana_r$run\n'                          \
+       '          --out-dir tedana_r$run --convention orig\n'        \
        'end\n\n'                                                     \
-       % (method, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
+       % (vstr, mstr, prev_prefix, proc.mask.nice_input(head=1), exoptstr)
 
 
    # ----------------------------------------------------------------------
    # only copy the results back out if dataout is set
    if dataout != '':
-      cmd += '# now get the tedana results\n'   \
-             'foreach run ( $runs )\n'          \
-             '   # copy result back here\n'     \
-             '   3dcopy tedana_r$run/%s %s%s\n' \
-             'end\n\n'                          \
-             % (dataout, cur_prefix, proc.view)
+      cmd += '# now copy the tedana results\n'                      \
+             'foreach run ( $runs )\n'                              \
+             '   # copy, but get space/view from tedana input\n'    \
+             '   3dcalc -a %s \\\n'                                 \
+             '          -b tedana_r$run/%s \\\n'                    \
+             '          -prefix %s \\\n'                            \
+             '          -expr b -datum float\n'                     \
+             'end\n\n'                                              \
+             % (fave_prefix, dataout, cur_prefix)
 
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
@@ -4408,6 +4439,16 @@ def db_cmd_mask(proc, block):
         elif mtype == 'epi_anat':proc.mask = proc.mask_epi_anat
         elif mtype == 'group':   proc.mask = proc.mask_group
         elif mtype == 'extents': proc.mask = proc.mask_extents
+        else:
+           # otherwise, try as label
+           aname = proc.get_roi_dset(mtype)
+           if not aname:
+              print("*** ERROR, invalid -mask_apply mask: %s" % mtype)
+              print("    must be one of: epi, anat, epi_anat, group, extents")
+              print("    or else       : be a known/imported ROI or mask")
+              return
+           proc.mask = aname
+
         if proc.verb > 1: print("++ applying mask as '%s'" % mtype)
         if proc.mask: proc.regmask = 1 # apply, if it seems to exist
         else:
@@ -5028,6 +5069,8 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_extra_stim_files', -1, [])
         block.opts.add_opt('-regress_extra_stim_labels', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec', -1, [])
+        block.opts.add_opt('-regress_extra_ortvec_labels', -1, [])
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_opts_reml', -1, [])
@@ -5041,6 +5084,7 @@ def db_mod_regress(block, proc, user_opts):
     errs = 0  # allow errors to accumulate
 
     apply_uopt_to_block('-regress_motion_file', user_opts, block)
+    apply_uopt_to_block('-regress_opts_fwhmx', user_opts, block)
     apply_uopt_to_block('-regress_show_df_info', user_opts, block)
 
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
@@ -5052,6 +5096,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
+
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -5217,6 +5262,40 @@ def db_mod_regress(block, proc, user_opts):
                   (nxstim, nxlabs))
             errs += 1
 
+    # check for extra ortvecs
+    oname = '-regress_extra_ortvec'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:  # only check length against labels
+        bopt.parlist = uopt.parlist
+        # convert paths to the local stimulus directory
+        proc.extra_ortvec = []
+        proc.extra_ortvec_orig = bopt.parlist
+        for fname in bopt.parlist:
+            proc.extra_ortvec.append('stimuli/%s' % os.path.basename(fname))
+
+    oname = '-regress_extra_ortvec_labels'
+    uopt = user_opts.find_opt(oname)
+    bopt = block.opts.find_opt(oname)
+    if uopt and bopt:
+        bopt.parlist = uopt.parlist
+        proc.extra_ortvec_labs = uopt.parlist
+        nxlabs = len(proc.extra_ortvec_labs)
+        nxorts = len(proc.extra_ortvec)
+        if nxorts == 0:
+            print("** have -regress_extra_ortvec_labels without" + \
+                  " -regress_extra_ortvec")
+            errs += 1
+        elif nxorts != nxlabs:
+            print("** have %d extra ortvec but %d extra ort labels" % \
+                  (nxorts, nxlabs))
+            errs += 1
+    elif bopt and len(proc.extra_ortvec) > 0:
+        # no ortvec label option, so fasion some
+        print("-- auto-generating labels for extra ortvec files")
+        proc.extra_ortvec_labs = \
+              ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
+
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) > 0:
@@ -5242,7 +5321,7 @@ def db_mod_regress(block, proc, user_opts):
             proc.stims.append('stimuli/%s%s' % \
                 (pre, os.path.basename(fname)))
 
-    # note whether this seems to be task at all
+    # note whether this seems to be task at all (no orts)
     if len(proc.stims) + len(proc.extra_stims) > 0:
        proc.have_task_regs = 1
     else:
@@ -5477,6 +5556,7 @@ def db_mod_regress(block, proc, user_opts):
     # check on tsnr and gcor
     apply_uopt_to_block('-regress_compute_tsnr', user_opts, block)
     apply_uopt_to_block('-regress_compute_gcor', user_opts, block)
+    apply_uopt_to_block('-regress_mask_tsnr', user_opts, block)
 
     # possibly update cbucket option
     apply_uopt_to_block('-regress_make_cbucket', user_opts, block)
@@ -5543,7 +5623,7 @@ def db_cmd_regress(proc, block):
         # suffix needs the hemisphere iteration variable
         suff = '.%s.niml.dset' % proc.surf_svi_ref
         istr = ' '*4             # extra indent, for foreach hemi loop
-        vstr = suff
+        vstr = ''                # was suff, but that dupes lh.niml.dset
     else:
         feh_str = ''
         feh_end = ''
@@ -5611,6 +5691,18 @@ def db_cmd_regress(proc, block):
         err, newcmd = db_cmd_regress_motion_stuff(proc, block)
         if err: return
         if newcmd: cmd = cmd + newcmd
+
+    # ----------------------------------------
+    # user ortvecs, add vec/lab pairs to self.regress_orts list
+    nxort = len(proc.extra_ortvec)
+    if nxort > 0:
+        if len(proc.extra_ortvec_labs) != nxort:
+           print("** # extra_orvec != # extra_ortvec_labs")
+           return
+        ov = proc.extra_ortvec
+        ol = proc.extra_ortvec_labs
+        for ind in range(nxort):
+           proc.regress_orts.append([ov[ind], ol[ind]])
 
     # ----------------------------------------
     # bandpass?
@@ -5691,6 +5783,7 @@ def db_cmd_regress(proc, block):
     mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
+    # - extra_ortvec do not count
     if mot_as_ort: nmotion = 0
     else:          nmotion = len(proc.mot_labs) * len(proc.mot_regs)
     if proc.ricor_apply == 'yes': nricor = proc.ricor_nreg
@@ -6660,11 +6753,13 @@ def db_cmd_regress_rsfc(proc, block):
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
 
-    # no mask for surface based analysis
-    if proc.mask and not proc.surf_anat:
-       mask_pre = proc.mask.prefix
-    else:
-       mask_pre = ''
+    # changing default to no mask, prob want to add -regress_mask_tsnr
+    # (requested by P Taylor)                              22 Feb 2021
+    mask_pre = ''
+    if block.opts.have_yes_opt('-regress_mask_tsnr', default=0):
+       # also, no mask for surface based analysis
+       if proc.mask and not proc.surf_anat:
+          mask_pre = proc.mask.prefix
 
     return db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
@@ -6675,7 +6770,7 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
 
 # compute temporal signal to noise after the regression
 def db_cmd_tsnr(proc, comment, signal, noise, view,
-                        mask='', name_qual='', detrend=0):
+                        mask='', name_qual='', detrend=0, oksurf=1):
     """return a string for computing temporal signal to noise
          comment:   leading comment string
          signal:    prefix for mean dset
@@ -6684,6 +6779,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
          mask:      (optional) prefix for mask dset
          name_qual: (optional) qualifier for name, such as '.r01'
          detrend:   (optional) if > 0,
+         oksurf:    (optional) flag to allow surf analysis
     """
     if not signal or not noise or not view:
         print('** compute TSNR: missing input')
@@ -6696,7 +6792,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
        cstr = ''
        estr = 'a/b'
 
-    if proc.surf_anat:
+    if proc.surf_anat and oksurf:
         feh_str = 'foreach %s ( %s )\n' \
                   % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
         feh_end = 'end\n'
@@ -6732,7 +6828,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
 
     cmd += "%s3dcalc -a rm.signal%s%s \\\n"     \
            "%s       -b rm.noise%s%s %s \\\n"   \
-           "%s       -expr '%s' -prefix %s \n"  \
+           "%s       -expr '%s' -prefix %s\n"   \
            % (istr, suff, vsuff,
               istr, suff, vsuff, cstr,
               istr, estr, dname)
@@ -6788,23 +6884,28 @@ def db_cmd_blur_est(proc, block):
        cmd += '# create directory for ACF curve files\n' \
               'mkdir %s\n\n' % proc.ACFdir
 
+    olist, rv = block.opts.get_string_list(opt_name='-regress_opts_fwhmx')
+    if olist != None: ex_opts = ' '.join(olist)
+    else:             ex_opts = ''
+
     if aopt:
         bstr = blur_est_loop_str(proc,
-                    'all_runs%s$subj%s' % (proc.sep_char, proc.view),
-                    mask_dset, 'epits', blur_file, detrend=detrend)
+                  'all_runs%s$subj%s' % (proc.sep_char, proc.view), mask_dset,
+                  'epits', blur_file, detrend=detrend, ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
 
     if eopt and not sopt: # want errts, and 3dD was not stopped
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_pre, proc.view),
                     mask_dset, 'errts', blur_file, proc.errts_cen,
-                    detrend=detrend)
+                    detrend=detrend, ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt and proc.errts_reml: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_reml, proc.view),
-                    mask_dset, 'err_reml', blur_file, detrend=detrend)
+                    mask_dset, 'err_reml', blur_file, detrend=detrend,
+                    ex_opts=ex_opts)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -6885,7 +6986,7 @@ def make_clustsim_commands(proc, block, cmethods, blur_file, mask_dset,
     return 0, cstr
 
 def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
-                                                          detrend=1):
+                      detrend=1, ex_opts=''):
     """return tcsh command string to compute blur from this dset
         proc     : afni_proc SubjProcStream (for reps or reps_all)
         dname    : dataset name to estimate blur on
@@ -6929,15 +7030,20 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
     if detrend: detstr = '-detrend '
     else:       detstr = ''
 
+    # any extra opts?
+    if ex_opts != '': sextra = '            %s \\\n' % ex_opts
+    else:             sextra = ''
+
     cmd = cmd +                                                 \
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
       '    3dFWHMx %s-mask %s \\\n'                             \
       '            -ACF %s \\\n'                                \
+      '%s'                                                      \
       '            %s%s >> %s\n'                                \
       'end\n\n'                                                 \
-      % (tstr1, detstr, mask, acffile, inset, tstr2, tmpfile)
+      % (tstr1, detstr, mask, acffile, sextra, inset, tstr2, tmpfile)
 
     btypes = ['FWHM', 'ACF']
     for bind, btype in enumerate(btypes):
@@ -7857,7 +7963,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     # add commands to move or copy results out of awpy directory
 
     # resulting files under awpy:
-    #    PREFIX.aw.nii           : final NL-warped anat
+    #    PREFIX.aw.nii*          : final NL-warped anat
     #    anat.un.aff.qw_WARP.nii : final NL warp
     #    anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
     # and copy back to results dir in AFNI format?
@@ -7867,6 +7973,9 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
 
     proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
 
+    # [PT: May 30, 2021] auto_warp.py to work in *.nii.gz now
+    # [PT: June 2, 2021] ... and just as quickly, rolled back to take *.nii,
+    #                    since RCR updated AFNI_COMPRESSOR behavior, instead.
     # if no unifize, xmat strings will not have .un
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
@@ -8208,27 +8317,31 @@ def db_cmd_gen_review(proc):
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
+
+    # subsequent options get their own lines
+    if lopts != '': lopts = ' \\\n   %s' % lopts
+
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
        lopts += ' \\\n    -errts_dset %s' % ename
 
+    # specify mask dataset to be used for stats, since it might not be clear
+    # (no longer def in TSNR)                                    22 Feb 2021
+    if proc.mask and not proc.surf_anat:
+       lopts += ' \\\n    -mask_dset %s' % proc.mask.shortinput(head=1)
+
     # generally include the review output file name as a uvar
     if proc.ssr_b_out != '':
-       revstr = ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
-    else:
-       revstr = ''
+       lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
 
     if proc.ssr_uvars:
-       uvopt = ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
-    else:
-       uvopt = ''
+       lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py%s -exit0'                          \
-           '%s%s\n\n'                                                   \
-           % (lopts, revstr, uvopt)
+           'gen_ss_review_scripts.py -exit0'                            \
+           '%s\n\n' % lopts
 
     return cmd
 
@@ -9698,8 +9811,9 @@ g_help_notes = """
               -regress_est_blur_errts                             \\
               -execute
 
-          EOF
-          # EOF denotes the end of the run.afni_proc command
+       EOF
+       # EOF terminates the 'cat > run.afni_proc' command, above
+       # (it must not be indented in the script)
 
           # now run the analysis (generate proc and execute)
           tcsh run.afni_proc
@@ -10006,11 +10120,15 @@ g_help_notes = """
     --------------------------------------------------
     RESTING STATE NOTE: ~2~
 
-    Resting state data should be processed with physio recordings (for typical
-    single-echo EPI data).  Without such recordings, bandpassing is currently
-    considered as the default.
+    It is preferable to process resting state data using physio recordings
+    (for typical single-echo EPI data).  Without such recordings, bandpassing
+    is currently considered as the standard in the field of FMRI (though that
+    is finally starting to change).  Multi-echo acquisitions offer other
+    possibilities.
 
     Comment on bandpassing:
+
+        Bandpassing does not seem like a great method.
 
         Bandpassing is the norm right now.  However most TRs may be too long
         for this process to be able to remove the desired components of no
@@ -10023,10 +10141,11 @@ g_help_notes = """
         censoring, bandpassing and removal of other signals of no interest).
         Many papers have been published where a lot of censoring was done,
         many regressors of no interest were projected out, and there was a
-        separate bandpass operation.  It is likely that many subjects ended up
-        with negative degrees of freedom, making the resulting signals useless
-        (or worse, misleading garbage).  But without keeping track of it,
-        researchers may not even know.
+        separate bandpass operation.  It is likely that many subjects should
+        have ended up with negative degrees of freedom (were bandpassing
+        implemented correctly), making the resulting signals useless (or worse,
+        misleading garbage).  But without keeping track of it, researchers may
+        not even know.
 
     Bandpassing and degrees of freedom:
 
@@ -12168,7 +12287,7 @@ g_help_options = """
             Please see 'auto_warp.py -help' for more information.
             See also -tlrc_opts_at, -anat_uniform_method.
 
-        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: from afnipy import auto_warp.py output
+        -tlrc_NL_warped_dsets ANAT WARP.1D NL_WARP: import auto_warp.py output
 
                 e.g. -tlrc_NL_warped_dsets anat.nii           \\
                                            anat.un.aff.Xat.1D \\
@@ -12965,8 +13084,11 @@ g_help_options = """
             If possible, masks will be made for the EPI data, the subject
             anatomy, the group anatomy and EPI warp extents.  This option is
             used to specify which of those masks to apply to the regression.
+            One can specify a pre-defined TYPE, or a user-specified one that
+            is defined via -anat_follower_ROI or -mask_import, for example.
 
-            Valid choices: epi, anat, group, extents.
+               Valid pre-defined choices:  epi, anat, group, extents.
+               Valid user-defined choices: mask LABELS specified elsewhere.
 
             A subject 'anat' mask will be created if the EPI anat anatomy are
             aligned, or if the EPI data is warped to standard space via the
@@ -12980,6 +13102,7 @@ g_help_options = """
 
             See "MASKING NOTE" and "DEFAULTS" for details.
             See also -blocks.
+            See also -mask_import.
 
         -mask_dilate NUM_VOXELS : specify the automask dilation
 
@@ -13167,8 +13290,17 @@ g_help_options = """
                 default: OC
 
             When using the 'combine' block to combine echoes (for each run),
-            this option can be used to specify the method used.   Methods:
+            this option can be used to specify the method used.  There are:
 
+                - basic methods
+                - methods using tedana.py (or similar) from Prantik
+                - methods using tedana from the MEICA group
+
+
+            ---- basic combine methods (that do not use any tedana) ----
+
+                methods
+                -------
                 mean             : simple mean of echoes
                 OC               : optimally combined (via @compute_OC_weights)
                                    (current default is OC_A)
@@ -13176,23 +13308,69 @@ g_help_options = """
                 OC_B             : newer log() time series regression method
                                    (there is little difference between OC_A
                                    and OC_B)
+
+            ---- combine methods that use Prantik's "original" tedana.py ----
+
+               Prantik's tedana.py is run using the 'tedana*' combine methods.
+
+                  Prantik's tedana.py requires python 2.7.
+
+                  By default, tedana.py will be applied from the AFNI
+                  installation directory.
+
+                  Alternatively, one can specify the location of a different
+                  tedana.py using -combine_tedana_path.  And if it is 
+                  preferable to run it as an executable (as opposed to running
+                  it via 'python PATH/TO/tedana.py'), one can tell this to
+                  tedana_wrapper.py by applying:
+                         -combine_opts_tedwrap -tedana_is_exec
+
+                methods
+                -------
                 OC_tedort        : OC, and pass tedana orts to regression
                 tedana           : run tedana.py, using output dn_ts_OC.nii
                 tedana_OC        : run tedana.py, using output ts_OC.nii
                                    (i.e. use tedana.py for optimally combined)
                 tedana_OC_tedort : tedana_OC, and include tedana orts
 
+
+            ---- combine methods that use tedana from the MEICA group ----
+
+               The MEICA group tedana is specified with 'm_tedana*' methods.
+
+                  This tedana requires python 3.6+.
+
+                  AFNI does not distribute this version of tedana, so it must
+                  be in the PATH.  For installation details, please see:
+
+                     https://tedana.readthedocs.io/en/stable/installation.html
+
+                methods
+                -------
+                m_tedana         : tedana from MEICA group (dn_ts_OC.nii.gz)
+                m_tedana_OC      : tedana OC from MEICA group (ts_OC.nii.gz)
+                m_tedana_m_tedort: tedana from MEICA group (dn_ts_OC.nii.gz)
+                                   "tedort" from MEICA group
+                                   (--tedort: "good" projected from "bad")
+
+
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017
             summer course.
 
-            The 'tedort' methods are applied using @extract_meica_ortvec,
-            which projects the 'good' MEICA components out of the 'bad' ones,
-            and saves those as regressors to be applied later.  Otherwise, some
-            of the 'good' components are removed with the 'bad.  The tedort
-            method can be applied with either AFNI OC or tedana OC (meaning
-            the respective OC method would be applied to combine the echoes,
-            and the tedort components will be passed on to the regress block).
+            The 'tedort' methods for Prantik's tedana.py are applied using
+            @extract_meica_ortvec, which projects the 'good' MEICA components
+            out of the 'bad' ones, and saves those as regressors to be applied
+            later.  Otherwise, some of the 'good' components are removed with
+            the 'bad.  The tedort method can be applied with either AFNI OC or
+            tedana OC (meaning the respective OC method would be applied to
+            combine the echoes, and the tedort components will be passed on to
+            the regress block).
+
+            The 'm_tedanam_m_tedort' method for the MEICA group's passes
+            option --tedort to 'tedana', and tedana does the "good" from "bad"
+            projection before projecting the modified "bad" components from the
+            time series.
 
             Please see '@compute_OC_weights -help' for more information.
             Please see '@extract_meica_ortvec -help' for more information.
@@ -13748,7 +13926,7 @@ g_help_options = """
             Note: computation of GCOR requires a residual dataset, an EPI mask,
                   and a volume analysis (no surface at the moment).
 
-        -regress_compute_tsnr yes/no : compute TSNR datasets from errts
+        -regress_compute_tsnr yes/no : compute TSNR dataset from errts
 
                 e.g. -regress_compute_tsnr no
                 default: yes
@@ -13770,6 +13948,22 @@ g_help_options = """
             'regress' block.
 
             See also -volreg_compute_tsnr.
+
+        -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
+
+                e.g. -regress_mask_tsnr yes
+                default: no
+
+            By default, a temporal signal to noise (TSNR) dataset is created at
+            the end of the regress block.  By default, this dataset is not
+            masked (to match what is done in the regression).
+
+            To mask, apply this option with 'yes'.
+
+          * This dataset was originally masked, with the default changing to
+            match the regression 22 Feb, 2021.
+
+            See also -regress_compute_tsnr.
 
         -regress_fout yes/no         : output F-stat sub-bricks
 
@@ -14187,6 +14381,17 @@ g_help_options = """
 
             OBSOLETE: please see -regress_use_stim_files
 
+        -regress_opts_fwhmx OPTS ... : specify extra options for 3dFWHMx
+
+                e.g. -regress_opts_fwhmx -ShowMeClassicFWHM
+
+            This option allows the user to add extra options to the 3dFWHMx
+            commands used to get blur estimates.  Note that only one
+            such option should be applied, though multiple parameters
+            (3dFWHMx options) can be passed.
+
+            Please see '3dFWHMx -help' for more information.
+
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
                 e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
@@ -14252,6 +14457,18 @@ g_help_options = """
             The default is computed from the length of a run, in seconds, as
             shown above.  For example, if each run were 320 seconds, then the
             default polort would be 3 (cubic).
+
+          * It is also possible to use a high-pass filter to model baseline
+            drift (using sinusoids).  Since sinusoids do not model quadratic
+            drift well, one could consider using both, as in:
+
+                -regress_polort 2         \\
+                -regress_bandpass 0.01 1
+
+            Here, the sinusoids allow every frequency from 0.01 on up to pass
+            (assuming the Nyquist frequency is <= 1), modeling the lower
+            frequencies as regressors of no interest, along with 3 terms for
+            polort 2.
 
             Please see '3dDeconvolve -help' for more information.
 
@@ -14639,6 +14856,33 @@ g_help_options = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_stim_files, -regress_stim_times,
                      -regress_stim_labels.
+
+        -regress_extra_ortvec FILE1 ... : specify extra -ortvec files
+
+                e.g. -regress_extra_ortvec ort_resp.1D ort_cardio.1D
+                e.g. -regress_extra_ortvec lots_of_orts.1D
+
+            Use this option to specify extra files to be applied with the
+            -ortvec option in 3dDeconvolve.  These are applied as regressors
+            of no interest, going into the baseline model.
+
+            These files should be in 1D format, columns of regressors in text
+            files.  They are not modified by the program, and should match the
+            length of the final regression.
+
+            Corresponding labels can be set with -regress_extra_ortvec_labels.
+
+            See also -regress_extra_ortvec_labels.
+
+        -regress_extra_ortvec_labels LAB1 ... : specify label for extra ortvecs
+
+                e.g. -regress_extra_ortvec_labels resp cardio
+                e.g. -regress_extra_ortvec_labels EXTERNAL_ORTs
+
+            Use this option to specify labels to correspond with files given
+            by -regress_extra_ortvec.  There should be one label per file.
+
+            See also -regress_extra_ortvec.
 
         -----------------------------------------------------------------
         3dClustSim options ~3~

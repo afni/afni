@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+/*----------------------------------------------------------------------------*/
+/*-- This program implements and extends Anand Joshi's BrainSync algorithm. --*/
+/*----------------------------------------------------------------------------*/
+
+/*---------------------------*/
 #undef MEMORY_CHECK
 #if 0
 #ifdef USING_MCW_MALLOC
@@ -19,25 +24,29 @@
 #ifndef MEMORY_CHECK
 # define MEMORY_CHECK(mm) /*nada*/
 #endif
+/*---------------------------*/
 
+/* various inputs from the options */
 static int   verb    = 0 ;
 static char *Qprefix = NULL , *Qbase = NULL ;
 static char *Pprefix = NULL , *Pbase = NULL ;
 static int do_norm   = 0 ;
 
-static int ct ;
+static int ct ; /* clock time in ms */
 #define TIMER nice_time_string(NI_clock_time()-ct)+1
 
+/* input datasets */
 static THD_3dim_dataset *dsetB=NULL, *dsetC=NULL, *maskset=NULL ;
 
-static int *bperm = NULL ;
-static THD_3dim_dataset *permset=NULL , *ortset=NULL ;;
+static int *bperm = NULL ;                             /* best permutation */
+static THD_3dim_dataset *permset=NULL , *ortset=NULL ; /* output datasets */
 
-#undef DO_DESPIKE
+#undef DO_DESPIKE  /* at this time, despiking of inputs is disabled */
+                   /* (expect that user will have done this already) */
 
 /*----------------------------------------------------------------------------*/
 
-void BSY_help_the_pitiful_user(void)
+void BSY_help_the_pitiful_user(void)  /* HELP ME IF YOU CAN, I'M FEELING DOWN */
 {
   printf(
    "\n"
@@ -48,10 +57,12 @@ void BSY_help_the_pitiful_user(void)
    "same transformation on each input time series from -inset2:\n"
    "\n"
    " ++ With the -Qprefix option, the transformation is an orthogonal matrix,\n"
-   "    computed as described in Joshi's original OHBM 2017 presentations.\n"
+   "    computed as described in Joshi's original OHBM 2017 presentations,\n"
+   "    and in the corresponding NeuroImage 2018 paper.\n"
+   "  -->> Anand Joshi's presentation at OHBM was the genesis of this program.\n"
    "\n"
    " ++ With the -Pprefix option, the transformation is simply a\n"
-   "    permutation of the time order of -inset2 (a special case\n"
+   "    permutation of the time order of -inset2 (a very special case\n"
    "    of an orthogonal matrix).\n"
    "\n"
    " ++ The algorithms and a little discussion of the different features of\n"
@@ -68,6 +79,9 @@ void BSY_help_the_pitiful_user(void)
    "One possible application of this program is to correlate resting state\n"
    "FMRI datasets between subjects, voxel-by-voxel, as is sometimes done\n"
    "with naturalistic stimuli (e.g., movie viewing).\n"
+   "\n"
+   "It would be amusing to see if within-subject resting state FMRI\n"
+   "runs can be BrainSync-ed better than between-subject runs.\n"
    "\n"
    "--------\n"
    "OPTIONS:\n"
@@ -136,7 +150,7 @@ void BSY_help_the_pitiful_user(void)
    "\n"
    " -verb             = Print some progress reports and auxiliary information.\n"
    "                     ++ Use this option twice to get LOTS of progress\n"
-   "                        reports; mostly useful for debugging.\n"
+   "                        reports; mostly useful for debugging, or for fun.\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -148,8 +162,10 @@ void BSY_help_the_pitiful_user(void)
    "\n"
    "* Although the goal of 3dBrainSync is to make the transformed\n"
    "  -inset2 as correlated (voxel-by-voxel) as possible with -inset1,\n"
-   "  it does not actually compute that correlation dataset. You can do\n"
-   "  that computation with program 3dTcorrelate, as in\n"
+   "  it does not actually compute or output that correlation dataset.\n"
+   "  You can do that computation with program 3dTcorrelate, as in\n"
+   "    3dBrainSync -inset1 dataset1 -inset2 dataset2 \\\n"
+   "                -Qprefix transformed-dataset2\n"
    "    3dTcorrelate -polort -1 -prefix AB.pcor.nii \\\n"
    "                 dataset1 transformed-dataset2\n"
    "\n"
@@ -171,13 +187,17 @@ void BSY_help_the_pitiful_user(void)
    "    C = MxN matrix of time series from -inset2\n"
    "        Both matrices will have each column normalized to\n"
    "        have sum-of-squares = 1 (L2 normalized) --\n"
-   "        the program does this operation internally; you do not have\n"
-   "        to ensure that the input datasets are so normalized)\n"
+   "        The program does this operation internally; you do not have\n"
+   "        to ensure that the input datasets are so normalized.\n"
    "    Q = Desired orthgonal MxM matrix to transform C such that B-QC\n"
-   "        is as small as possible (sum-of-squares = Frobenius norm)\n"
-   "        normF(A) = sum_{ij} A_{ij}^2 = trace(AA') = trace(A'A).\n"
+   "        is as small as possible (sum-of-squares = Frobenius norm).\n"
+   "        That is, Q transforms dataset C to be as close as possible\n"
+   "        to dataset B, given that Q is an orthogonal matrix.\n"
+   "    normF(A) = sum_{ij} A_{ij}^2 = trace(AA') = trace(A'A).\n"
    "        NOTE: This norm is different from the matrix L2 norm.\n"
    "        NOTE: A' denotes the transpose of A.\n"
+   "        NOTE: trace(A) = sum of diagonal element of square matrix A.\n"
+   "        https://en.wikipedia.org/wiki/Matrix_norm\n"
    "\n"
    "* The expansion below shows why the matrix BC' is crucial to the analysis:\n"
    "    normF(B-QC) = trace( [B-QC][B'-C'Q'] )\n"
@@ -207,8 +227,9 @@ void BSY_help_the_pitiful_user(void)
    "  products of time series.\n"
    "\n"
    "  If you use the '-verb' option, these summed correlations ('scores')\n"
-   "  are printed to stderr during the analysis.\n"
+   "  are printed to stderr during the analysis, for your fun and profit(?).\n"
    "\n"
+   "*******************************************************************************\n"
    "* Joshi method [-Qprefix]:\n"
    "    (a) compute MxM matrix B C'\n"
    "    (b) compute SVD of B C' = U S V' (U, S, V are MxM matrices)\n"
@@ -221,16 +242,17 @@ void BSY_help_the_pitiful_user(void)
    "        of the time series dot products (correlations) in B and QC,\n"
    "        when Q is calculated as above.\n"
    "\n"
-   "  A pre-print of this method is available as:\n"
+   "  An article describing this method is available as:\n"
    "    AA Joshi, M Chong, RM Leahy.\n"
-   "    BrainSync: An Orthogonal Transformation for Synchronization of fMRI\n"
-   "    Data Across Subjects, Proc. MICCAI 2017\n"
-   "  https://www.dropbox.com/s/tu4kuqqlg6r02kt/brainsync_miccai2017.pdf\n"
+   "    Are you thinking what I'm thinking? Synchronization of resting fMRI\n"
+   "      time-series across subjects.\n"
+   "    NeuroImage v172:740-752 (2018).\n"
+   "  https://doi.org/10.1016/j.neuroimage.2018.01.058\n"
+   "  https://pubmed.ncbi.nlm.nih.gov/29428580/\n"
    "  https://www.google.com/search?q=joshi+brainsync\n"
-   "  http://neuroimage.usc.edu/neuro/Resources/BrainSync\n"
-   "\n"
+   "*******************************************************************************\n"
    "* Permutation method [-Pprefix]:\n"
-   "    (a) Compute B C' (as above)\n"
+   "    (a) Compute B C' (same as above)\n"
    "    (b) Find a permutation p(i) of the integers {0..M-1} such\n"
    "        that sum_i { (BC')[i,p(i)] } is as large as possible\n"
    "        (i.e., p() is used as a permutation of the COLUMNS of BC').\n"
@@ -241,7 +263,7 @@ void BSY_help_the_pitiful_user(void)
    "    (c) Permute the ROWS (time direction) of the time series matrix\n"
    "        from -inset2 using p().\n"
    "  Only an approximate (greedy) algorithm is used to find this\n"
-   "  permutation; that is, the best permutation is not guaranteed to be found\n"
+   "  permutation; that is, the BEST permutation is not guaranteed to be found\n"
    "  (just a 'good' permutation -- it is the best thing I could code quickly :).\n"
    "\n"
    "  Algorithm currently implemented (let D=BC' for notational simplicity):\n"
@@ -272,7 +294,7 @@ void BSY_help_the_pitiful_user(void)
    "\n"
    "  This whole permutation optimization procedure is very fast: about 1 second.\n"
    "  In the RS-FMRI data I've tried this on, the average time series correlation\n"
-   "  resulting from this optimization is 50-65%% of that which comes from\n"
+   "  resulting from this optimization is 30-60%% of that which comes from\n"
    "  optimizing over ALL orthogonal matrices (Joshi method). If you use '-verb',\n"
    "  the stderr output line that looks like this\n"
    "   + corr scores: original=-722.5 Q matrix=22366.0 permutation=12918.7 57.8%%\n"
@@ -294,13 +316,16 @@ void BSY_help_the_pitiful_user(void)
    "     (at least for me).\n"
    "  ++ Another feature of a permutation-only transformation is that it cannot\n"
    "     change the sign of data, unlike a general orthgonal matrix; e.g.,\n"
-   "       [ 0 -1]\n"
-   "       [-1  0], which swaps 2 time points AND negates them, is a valid\n"
-   "     orthogonal matrix. For rs-FMRI datasets, this consideration might not\n"
-   "     be important, since correlations are generally positive, so don't often\n"
-   "     need sign-flipping to make them so.\n"
+   "       [ 0 -1  0 ]\n"
+   "       [-1  0  0 ]\n"
+   "       [ 0  0  1 ], which swaps the first 2 time points AND negates them,\n"
+   "     and leave the 3rd time point unchanged, is a valid orthogonal\n"
+   "     matrix. For rs-FMRI datasets, this consideration might not be important,\n"
+   "     since rs-FMRI correlations are generally positive, so don't often need\n"
+   "     sign-flipping to make them so.\n"
+   "*******************************************************************************\n"
    "\n"
-   "* This program is NOT multi-threaded. Typically, I/O is a big part of\n"
+   "* This program is NOT multi-threaded. Typically, I/O is the biggest part of\n"
    "  the run time (at least, for the cases I've tested). The '-verb' option\n"
    "  will give progress reports with elapsed-time stamps, making it easy to\n"
    "  see which parts of the program take the most time.\n"
@@ -324,9 +349,11 @@ void BSY_help_the_pitiful_user(void)
 #undef  BIGG
 #define BIGG  1.111e37f
 
-/* find the "best" permutation,
-   in the sense of the largest trace of the row-permuted amat
-   (or at least, an approximation of the "best" permutation :) */
+/*-------- Find the "best" permutation, in
+           the sense of the largest trace of the row-permuted amat
+           (or at least, an approximation of the "best" permutation :)
+           Matrix qmat is used only for comparison, and can be NULL.
+           Input matrices qmat and amat are square, m x m.           ---------*/
 
 static int * find_best_permutation( int m , float *qmat , double *amat )
 {
@@ -338,7 +365,7 @@ static int * find_best_permutation( int m , float *qmat , double *amat )
 
 ENTRY("find_best_permutation") ;
 
-   /* find score of the Q matrix [for comparison] */
+   /* find score of the Q matrix, if it was input [for comparison] */
 
    if( qmat != NULL ){
      for( qcost=0.0f,jj=0 ; jj < m ; jj++ ){
@@ -351,6 +378,8 @@ ENTRY("find_best_permutation") ;
        ININFO_message("-- permutation search starts [%s]",TIMER) ;
    }
 
+   /* space for the trial permutation */
+
    perm     = (int *)malloc(sizeof(int)*m) ;
    bestcost = -BIGG ; /* not very good */
 
@@ -359,10 +388,14 @@ ENTRY("find_best_permutation") ;
 #define AA(i,j) aamat[(i)+(j)*m]
    { int kk,pi,pj , mmm=m*m , *jdone ;
      float *aamat=(float *)malloc(sizeof(float)*m*m) , bbcost=0.0f ;
+
+     /* copy amat into aamat */
      for( kk=0 ; kk < mmm ; kk++ ) aamat[kk] = (float)amat[kk] ;
-     bestperm = (int *)malloc(sizeof(int)*m) ;
-     jdone    = (int *)malloc(sizeof(int)*m) ;
+
+     bestperm = (int *)malloc(sizeof(int)*m) ; /* best yet */
+     jdone    = (int *)malloc(sizeof(int)*m) ; /* cols already done */
      for( ii=0 ; ii < m ; ii++ ){ bestperm[ii] = -1; jdone[ii] = 0; }
+
      for( rr=0 ; rr < m ; rr++ ){ /* pick biggest element left */
        rval = -BIGG ; pi = pj = -1 ;
        for( jj=0 ; jj < m ; jj++ ){
@@ -378,15 +411,17 @@ ENTRY("find_best_permutation") ;
        }
      }
      free(aamat); free(jdone);
+
+     /* check if every entry in bestperm was set above */
      for( ii=0 ; ii < m && bestperm[ii] >= 0 ; ii++ ) ; /*nada*/
      if( ii < m ){
        free(bestperm); bestperm = NULL;  /* should never happen */
-     } else {
+     } else { /* compute cost of bestperm */
        for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,bestperm[ii]) ;
        bestcost = bbcost = rcost ;
        if( verb > 1 )
          ININFO_message(" initial greedy perm score = %g",bbcost) ;
-       if( verb > 2 ){
+       if( verb > 2 ){               /* debugggin output */
          fprintf(stderr,"  perm:") ;
          for( ii=0 ; ii < m ; ii++ )
            fprintf(stderr," A[%d,%d]=%g",ii,bestperm[ii],A(ii,bestperm[ii])) ;
@@ -394,29 +429,31 @@ ENTRY("find_best_permutation") ;
        }
      }
 
+     /* bestperm should not be NULL here, unless the Gods are out to get me */
+
      if( bestperm != NULL ){  /* swap pairs, look for improvement */
-       int ntry=0, ndone, ntot=0 ;
-       do{
+       int ntry=0, ndone=0, ntot=0 ;
+       do{                    /* loopback to try another pairswap fun */
          for( ndone=ii=0 ; ii < m-1 ; ii++ ){
-          for( jj=ii+1 ; jj < m ; jj++ ){
+          for( jj=ii+1 ; jj < m ; jj++ ){       /* swapping ii,jj */
            memcpy(perm,bestperm,sizeof(int)*m) ;
            kk = perm[ii] ; perm[ii] = perm[jj] ; perm[jj] = kk ;
            for( rcost=0.0f,kk=0 ; kk < m ; kk++ ) rcost += A(kk,perm[kk]) ;
-           if( rcost > bestcost ){
+           if( rcost > bestcost ){    /* this is better? keep it! */
              free(bestperm); bestperm = perm; bestcost = rcost;
              perm = (int *)malloc(sizeof(int)*m); ndone++ ; ntot++ ;
              if( verb > 1 )
                ININFO_message(" improved perm score = %g swap [%d,%d]",rcost,ii,jj) ;
            }
-         }}
-       } while( ndone > 0 && ++ntry < 29 ) ; /* don't try forever! */
-       if( verb > 1 ){
+         }} /* end of loops over ii,jj */
+       } while( ndone > 0 && ++ntry < 29 ) ; /* iterate, but don't try forever! */
+       if( verb > 1 && ntot > 0 ){           /* report on iteration results */
          if( bbcost > 0.0f ) bbcost = 100.0f*(bestcost-bbcost)/bbcost ;
          else                bbcost =   0.0f ;
-         ININFO_message("-- finish after %d swaps: %.2f%% improvement",
-                        ntot,bbcost) ;
+         ININFO_message("-- finish permutation after %d swaps in %d iterates: %.2f%% improvement",
+                        ntot,ntry,bbcost) ;
        }
-       if( verb > 2 ){
+       if( verb > 2 ){   /* debugging output */
          fprintf(stderr,"  perm:") ;
          for( ii=0 ; ii < m ; ii++ )
            fprintf(stderr," A[%d,%d]=%g",ii,bestperm[ii],A(ii,bestperm[ii])) ;
@@ -430,6 +467,7 @@ ENTRY("find_best_permutation") ;
      nrand = 9999*m ;               /* of random trials (not good) */
      rvec  = (float *)malloc(sizeof(float)*m) ;
      qvec  = (float *)malloc(sizeof(float)*m) ;
+     WARNING_message("Greedy algorithm for permutation failed; using backup") ;
      for( rr=0 ; rr < nrand ; rr++ ){
        for( ii=0 ; ii < m ; ii++ ){
          perm[ii] = ii; rvec[ii] = 0.0f;
@@ -454,7 +492,7 @@ ENTRY("find_best_permutation") ;
      free(rvec); free(qvec);
    }
 
-   free(perm);
+   free(perm); /* only bestperm is our friend now */
 
    if( verb && qcost > 0.0f ){
      for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,ii) ;
@@ -462,6 +500,7 @@ ENTRY("find_best_permutation") ;
                     "original=%.1f Q matrix=%.1f permutation=%.1f %.1f%%",
                     rcost, qcost, bestcost , 100.0f*bestcost/qcost ) ;
    }
+
    RETURN(bestperm) ;
 }
 
@@ -471,10 +510,11 @@ ENTRY("find_best_permutation") ;
 /*----------------------------------------------------------------------------*/
 /* Given m X n matrices bmat and cmat, compute the orthogonal m X m matrix
    qmat that 'best' transforms cmat to bmat.
-    1) normalize all columns of bmat and cmat
-    2) compute m X m matrix amat = [bmat] * [cmat]'
-    3) SVD that to get amat = [umat] * [sigma] * [vmat]'
-    4) qmat = [umat] * [vmat]'
+     1) normalize all columns of bmat and cmat
+     2) compute m X m matrix amat = [bmat] * [cmat]'
+     3) SVD that to get amat = [umat] * [sigma] * [vmat]'
+     4) qmat = [umat] * [vmat]'
+   Also compute the best permutation while we're at it (that's fast).
 *//*--------------------------------------------------------------------------*/
 
 static void compute_joshi_matrix( int m , int n ,
@@ -522,8 +562,8 @@ ENTRY("compute_joshi_matrix") ;
        bsum += B(ii,jj)*B(ii,jj) ;
        csum += C(ii,jj)*C(ii,jj) ;
      }
-     if( bsum > 0.0 ) bsum = 1.0 / sqrt(bsum) ;
-     if( csum > 0.0 ) csum = 1.0 / sqrt(csum) ;
+     if( bsum > 0.0 ) bsum = 1.0 / sqrt(bsum) ; /* L2 normalizing */
+     if( csum > 0.0 ) csum = 1.0 / sqrt(csum) ; /* factors */
      for( ii=0 ; ii < m ; ii++ ){
        BN(ii,jj) = B(ii,jj)*bsum ;
        CN(ii,jj) = C(ii,jj)*csum ;
@@ -567,6 +607,12 @@ MEMORY_CHECK("b") ;
    if( verb > 1 ) ININFO_message("SVD-ing BC' matrix %dx%d [%s]",m,m,TIMER) ;
 
    svd_double( m , m , amat , sval , umat , vmat ) ;
+
+   /* since sval is otherwise unused, sort it so largest are firstest */
+
+   for( ii=0 ; ii < m ; ii++ ) sval[ii] = -sval[ii] ;
+   qsort_double( m , sval ) ;
+   for( ii=0 ; ii < m ; ii++ ) sval[ii] = -sval[ii] ;
 
    bsum = 0.0 ;
    for( ii=0 ; ii < m ; ii++ ) bsum += sval[ii] ;
@@ -617,7 +663,7 @@ MEMORY_CHECK("d") ;
 
    free(amat) ; free(sval) ;
 
-   /* write the matrix to a file? */
+   /* write the Q matrix to a file? */
 
    if( Qbase != NULL && verb ){
      char *fname ; MRI_IMAGE *qim ; float *qar ;
@@ -630,6 +676,8 @@ MEMORY_CHECK("d") ;
      ININFO_message("wrote Q matrix to %s",fname) ;
      mri_clear_data_pointer(qim) ; mri_free(qim) ; free(fname) ;
    }
+
+   /* write the permutation to a file? */
 
    if( Pbase != NULL && bperm != NULL && verb ){
      char *fname ; MRI_IMAGE *qim ; float *qar ;
@@ -745,7 +793,7 @@ ENTRY("BSY_process_data") ;
    nvox = DSET_NVOX(dsetB) ;
    mm   = DSET_NVALS(dsetB) ;
 
-   if( maskset != NULL ){  /*** explicit mask ***/
+   if( maskset != NULL ){  /*** = user-supplied mask ***/
      vmask = THD_makemask( maskset , 0 , 1.0f,0.0f ) ;
      DSET_unload(maskset) ;
      if( vmask == NULL )
@@ -754,7 +802,7 @@ ENTRY("BSY_process_data") ;
      if( verb ) ININFO_message("%d voxels in the spatial mask",nvmask) ;
      if( nvmask == 0  )
        ERROR_exit("Mask from -mask dataset %s has 0 voxels",DSET_BRIKNAME(maskset)) ;
-   } else {               /*** all voxels */
+   } else {               /*** mask = all voxels */
      vmask = (byte *)malloc(sizeof(byte)*(nvox+2)) ; nvmask = nvox ;
      for( jj=0 ; jj < nvox ; jj++ ) vmask[jj] = 1 ;
      if( verb )
@@ -762,7 +810,7 @@ ENTRY("BSY_process_data") ;
    }
 MEMORY_CHECK("P") ;
 
-   /* find and eliminate any voxels with all-constant vectors */
+   /* find/eliminate (remove from vmask) any voxels with all-constant vectors */
 
    if( verb > 1 )
      ININFO_message("looking for all-constant time series [%s]",TIMER) ;
@@ -825,12 +873,17 @@ MEMORY_CHECK("R") ;
                       ncut , (ncut==1)?"\0":"s" , TIMER ) ;
 #endif /* DO_DESPIKE */  /*-----------------------------------------------*/
 
-   /* compute transform matrix qmat and permutation bperm */
+   /*---------------------------------------------------------------------*/
+   /*-------- compute transform matrix qmat and permutation bperm --------*/
+   /*--------     (that is, do all the work we came here for)     --------*/
+   /*---------------------------------------------------------------------*/
 
    compute_joshi_matrix( mm , nvmask , bmat , cmat , qmat ) ;
 MEMORY_CHECK("S") ;
 
    free(bmat) ; /* not needed no more */
+
+   if( verb ) ININFO_message("Brainsync done - computing outputs [%s]",TIMER) ;
 
    if( Qprefix != NULL ){  /* compute ortset = Qprefix output dataset */
 
@@ -891,9 +944,9 @@ MEMORY_CHECK("T") ;
      }
 MEMORY_CHECK("U") ;
 
-   } /* end of making ortset */
+   } /*----- end of making ortset -----*/
 
-   /* do it again with the permutation */
+   /*------------ do it again with the permutation ------------------------*/
 
    if( Pprefix != NULL && bperm != NULL ){
      if( verb > 1 )
@@ -934,9 +987,13 @@ MEMORY_CHECK("U") ;
        for( jj=0 ; jj < nvox ; jj++ ) car[jj] = C(ii,jj) ;
        EDIT_substitute_brick( permset , ii , MRI_float , car ) ;
      }
-   }
+   } /*--------------------------------------------------------------*/
+
+   /* datasets are created, so return */
 
    DSET_unload(dsetC) ; free(cmat) ;
+
+   if( verb ) ININFO_message("outputs computed [%s]",TIMER) ;
 
    EXRETURN ;
 }
@@ -977,7 +1034,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcasecmp(argv[iarg],"-inset1") == 0 ){
+     if( strcasecmp(argv[iarg],"-inset1") == 0 || strcasecmp(argv[iarg],"-input1") == 0 ){
        if( dsetB != NULL )
           ERROR_exit("Can't use option '%s' twice!",argv[iarg]) ;
        if( ++iarg >= argc )
@@ -991,7 +1048,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcasecmp(argv[iarg],"-inset2") == 0 ){
+     if( strcasecmp(argv[iarg],"-inset2") == 0 || strcasecmp(argv[iarg],"-input2") == 0 ){
        if( dsetC != NULL )
           ERROR_exit("Can't use option '%s' twice!",argv[iarg]) ;
        if( ++iarg >= argc )
@@ -1057,12 +1114,16 @@ int main( int argc , char *argv[] )
 
    } /* end of option scanning loop */
 
-   /*----- error checking -----*/
+   /*----- error checking the stoopid luser; nbad = fatal error count  -----*/
+
+   /* no outputs? */
 
    if( Qprefix == NULL && Pprefix == NULL ){
      ERROR_message("no -Qprefix or -Pprefix option? Nothing to compute!") ;
      nbad++ ;
    }
+
+   /* bad output names? */
 
    if( Qprefix != NULL && Pprefix != NULL ){
      if( strcmp(Qprefix,Pprefix) == 0 ){
@@ -1074,13 +1135,19 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /* no inputs? */
+
    if( dsetB == NULL ){ ERROR_message("no -inset1 dataset?") ; nbad++ ; }
    if( dsetC == NULL ){ ERROR_message("no -inset2 dataset?") ; nbad++ ; }
+
+   /* grids don't match */
 
    if( !EQUIV_GRIDXYZ(dsetB,dsetC) ){
      ERROR_message("-inset1 and -inset2 datasets are not on same 3D grid :(") ;
      nbad++ ;
    }
+
+   /* number of time points is bad? */
 
    mm = DSET_NVALS(dsetB) ;
    if( mm < 19 ){
@@ -1094,10 +1161,14 @@ int main( int argc , char *argv[] )
      nbad++ ;
    }
 
+   /* mask dataset grid doesn't match? */
+
    if( maskset != NULL && !EQUIV_GRIDXYZ(dsetB,maskset) ){
      ERROR_message("-mask and -inset1 datsets are NOT on the same 3D grid :(") ;
      nbad++ ;
    }
+
+   /* any fatal errors == DEATH */
 
    if( nbad > 0 ) ERROR_exit("Can't continue after above ERROR%s" ,
                              (nbad==1) ? "\0" : "s" ) ;
@@ -1110,14 +1181,16 @@ int main( int argc , char *argv[] )
    DSET_load(dsetC) ; CHECK_LOAD_ERROR(dsetC) ;
    if( maskset != NULL ){ DSET_load(maskset) ; CHECK_LOAD_ERROR(maskset) ; }
 
-   /*----- process the data, get output datasets -----*/
+   /*----- process the data, get output datasets (all the work ) -----*/
 
    BSY_process_data() ;
+
+   /* didn't get either output dataset? Weird */
 
    if( ortset == NULL && permset == NULL )
      ERROR_exit("Processing the data failed for some reason :(") ;
 
-   if( verb > 1 ) 
+   if( verb > 1 )
      ININFO_message("Writing results [%s]" , TIMER ) ;
 
    if( ortset != NULL ){
@@ -1133,6 +1206,8 @@ int main( int argc , char *argv[] )
      DSET_write(permset) ;
      if( verb ) WROTE_DSET(permset) ;
    }
+
+   /* take a victory lap */
 
    if( verb )
      INFO_message("=== 3dBrainSync clock time = %s" , TIMER ) ;

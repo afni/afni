@@ -192,11 +192,11 @@ int main(int argc, char *argv[]) {
   THD_3dim_dataset *MASK=NULL;
   THD_3dim_dataset *ROIS=NULL;
   char *prefix="REHO" ;
-  char in_name[300];
-  char out_pref[300];
-  char in_mask[300];
-  char in_rois[300];
-  char out_rois[300];
+  char in_name[THD_MAX_NAME];
+  char out_pref[THD_MAX_NAME];
+  char in_mask[THD_MAX_NAME];
+  char in_rois[THD_MAX_NAME];
+  char out_rois[THD_MAX_NAME];
 
   FILE *fout0;
   float **INDEX; // hold ranks
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
 
       sprintf(in_name,"%s", argv[iarg]); 
       insetTIME = THD_open_dataset(in_name) ;
-      if( (insetTIME == NULL ))
+      if( insetTIME == NULL )
         ERROR_exit("Can't open time series dataset '%s'.",in_name);
 
       Dim = (int *)calloc(4,sizeof(int));
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
 
       sprintf(in_mask,"%s", argv[iarg]); 
       MASK = THD_open_dataset(in_mask) ;
-      if( (MASK == NULL ))
+      if( MASK == NULL )
         ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
       DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -304,7 +304,7 @@ int main(int argc, char *argv[]) {
 
       sprintf(in_rois,"%s", argv[iarg]); 
       ROIS = THD_open_dataset(in_rois) ;
-      if( (ROIS == NULL ))
+      if( ROIS == NULL )
         ERROR_exit("Can't open time series dataset '%s'.",in_rois);
 
       DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
@@ -630,7 +630,7 @@ int main(int argc, char *argv[]) {
     for ( i=0 ; i <HAVE_ROIS ; i++ ) 
       for ( j=0 ; j<NROI_REF[i] ; j++ ) 
         ROI_LISTS[i][j] = (int *) calloc( ROI_COUNT[i][j], sizeof(int) );
-    if( (ROI_LISTS == NULL) ) {
+    if( ROI_LISTS == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
