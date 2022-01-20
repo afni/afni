@@ -509,7 +509,15 @@ parse.AFNI.name <- function(filename, verb = 0) {
       an$pprefix <- paste(an$pprefix,an$ext, sep='');
       an$prefix <- paste(an$prefix,an$ext, sep='');
    }
-  return(an)
+
+   #Find files on disk, if any, making up the dataset
+   check <- paste0(paste0(an$pprefix,an$view),c('','.gz','.HEAD','.BRIK','.BRIK.gz', '.nii','.nii.gz'))
+   an$OnDisk.Files <- check[file.exists(check)]
+   an$OnDisk <- length(an$OnDisk.Files)
+   if (an$type == 'NIFTI' && an$OnDisk > 1) {
+      warn.AFNI(paste('You have', an$OnDisk, 'files for', an$orig_name,'when only 1 is expected. Happens if you have prefix.nii and prefix.nii.gz, for instance'))
+   }
+   return(an)
 }
 
 exists.AFNI.name <- function(an) {
