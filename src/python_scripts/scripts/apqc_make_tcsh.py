@@ -180,16 +180,21 @@ auth = 'PA Taylor'
 # [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
 #    + keep applying new opt
 #
-ver = '3.78' ; date = 'Sep 27, 2021'
+#ver = '3.78' ; date = 'Sep 27, 2021'
 # [PT] Due to recent changes (from ~Aug 23) in label_size defaults
 #      in imseq.c, adjust the default labelsize from 3 -> 4.
 #    + this should restore labels to their longrunning size (since Aug
 #      23 they have been one size smaller by default); but the new font
 #      will be bolder than previously, due to those imseq.c changes.
 #
-ver = '3.8' ; date = 'Jan 18, 2022'
+#ver = '3.8' ; date = 'Jan 18, 2022'
 # [PT] Add 'mecho' QC block
 #    + pretty much just for combine_method=m_tedana for starters
+#
+ver = '3.9' ; date = 'Jan 18, 2022'
+# [PT] major update to vstat block, for task-based FMRI data
+#    + larger selection of stats data automatically imagized, with new
+#      internal logic to handle this.  See new library lib_apqc_stats_dset.py
 #
 #########################################################################
 
@@ -203,11 +208,12 @@ import os
 import json
 import glob
 
-from afnipy import afni_base      as BASE
-from afnipy import afni_util      as UTIL
-from afnipy import lib_apqc_tcsh  as lat
-from afnipy import lib_ss_review  as lssr
-from afnipy import lib_apqc_io    as laio
+from afnipy import afni_base           as BASE
+from afnipy import afni_util           as UTIL
+from afnipy import lib_apqc_tcsh       as lat
+from afnipy import lib_apqc_stats_dset as lasd
+from afnipy import lib_ss_review       as lssr
+from afnipy import lib_apqc_io         as laio
 
 # all possible uvars
 all_uvars = []
@@ -518,11 +524,14 @@ if __name__ == "__main__":
         focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
 
     if DO_VSTAT_TASK :
-        all_vstat = ["Full_Fstat"]
-        if lat.check_dep(ap_ssdict, ldep3) :
-            all_vstat.extend(ap_ssdict[ldep3[0]])
-        all_vstat_obj = lat.parse_stats_dset_labels( ap_ssdict['stats_dset'], 
-                                                     all_vstat )
+        ### [PT: Jan 20, 2022: changing the way this works now.  There
+        ### is a larger set of data chosen for default display
+        ### now---later will also add more control for user to specify
+        ### items.
+        #all_vstat = ["Full_Fstat"]
+        #if lat.check_dep(ap_ssdict, ldep3) :
+        #    all_vstat.extend(ap_ssdict[ldep3[0]])
+        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'] )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):

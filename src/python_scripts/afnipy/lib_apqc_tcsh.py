@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+
+# This library contains functions for creating part of the
+# afni_proc.py QC HTML.  Specifically, these functions build the
+# script '@ss_review_html' that is run for single-subject HTML review.
+#
 #
 auth = 'PA Taylor'
 # ver : 1.32 || date: Oct 15, 2018
@@ -185,16 +191,21 @@ auth = 'PA Taylor'
 # [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
 #    + keep applying new opt
 #
-ver = '3.78' ; date = 'Sep 27, 2021'
+#ver = '3.78' ; date = 'Sep 27, 2021'
 # [PT] Due to recent changes (from ~Aug 23) in label_size defaults
 #      in imseq.c, adjust the default labelsize from 3 -> 4.
 #    + this should restore labels to their longrunning size (since Aug
 #      23 they have been one size smaller by default); but the new font
 #      will be bolder than previously, due to those imseq.c changes.
 #
+ver = '3.80' ; date = 'Jan 20, 2022'
+# [PT] move the parts of code for task-based FMRI vstat selection to a
+# new library: lib_apqc_stats_dset.py
+# + as part of this, adding in fuller stats representation by default.
+#
 #########################################################################
 
-import os
+import os, copy
 import sys
 import glob
 import json
@@ -203,7 +214,9 @@ import collections   as coll
 
 from afnipy import afni_base           as ab
 from afnipy import lib_apqc_html       as lah
+from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
+
 
 # ----------------------------------------------------------------------
 
@@ -4149,246 +4162,6 @@ def apqc_Top_pagetop( opref, qcb, qci, task_name = '' ):
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-
-# for parsing stats_dset labels and setting up vstat testing
-class vstat_obj:
-
-    def __init__(self) :
-
-        self.label      = ""             # what user enters
-        self.stats_dset = ""             # dset searched within
-        self.label_in_dset = False       # does the label exist in it meaningfully?
-
-        self.olay_label = ""             # subbrick label/selector of stats_dset
-        self.olay_index = -1             # subbrick index selector of stats_dset
-        self.olay_type  = ""             # 'Coef', 'Tstat', 'Fstat'
-        self.olay_posonly = False        # For colorbar
-        self.olay_pbar  = ""             # Name of pbar, decided by posonly
-
-        self.thr_label  = ""             # subbrick label/selector of stats_dset
-        self.thr_index  = ""             # subbrick index selector of stats_dset
-        self.thr_type   = ""             # 'Tstat', 'Fstat'
-        self.thr_sided  = "2sided"       # '1sided', '2sided', 'bisided'
-        self.thr_sided_txt = "two-sided" # 'one-sided', 'two-sided', 'bisided'
-        self.thr_mode   = "pvalue"       # 'percentile' or 'pvalue'
-
-    def set_label(self, ss):
-        self.label = ss
-
-    def set_stats_dset(self, ss):
-        self.stats_dset = ss
-
-    def found_label(self):
-        self.label_in_dset = True
-        
-    def set_olay_label(self, ss):
-        self.olay_label = ss
-
-    def set_olay_index(self, ii):
-        self.olay_index = int(ii)
-
-    def set_olay_type(self, ss):
-        self.olay_type = ss
-
-    def set_olay_posonly(self):
-        self.olay_posonly = True
-
-    def set_olay_pbar(self, ss):
-        self.olay_pbar = ss
-
-    def set_thr_label(self, ss):
-        self.thr_label = ss
-
-    def set_thr_index(self, ii):
-        self.thr_index = int(ii)
-
-    def set_thr_type(self, ss):
-        self.thr_type = ss
-
-    def set_thr_sided(self, ss):
-        self.thr_sided = ss
-        if ss == '1sided' :
-            self.thr_sided_txt = 'one-sided'
-        elif ss == '2sided' :
-            self.thr_sided_txt = 'two-sided'
-        elif ss == 'bisided' :
-            self.thr_sided_txt = 'bi-sided'
-        else :
-            print("*+ WARNING: unknown sidedness of testing: {}"
-                  "".format(ss))
-
-    def set_thr_mode(self, ss):
-        self.thr_mode = ss
-
-    ### semi-omnibus settings for olay/thr
-    ##  olay can be Coef or Fstat
-    #   thr can be Tstat or Fstat
-    def set_olay_all_coef(self, label, ind):
-        self.found_label()
-        self.set_olay_label(label)
-        self.set_olay_index(ind)
-        self.set_olay_type('Coef')
-        self.set_olay_pbar('Reds_and_Blues_Inv')
-
-    def set_olay_all_fstat(self, label, ind):
-        self.found_label()
-        self.set_olay_label(label)
-        self.set_olay_index(ind)
-        self.set_olay_type('Fstat')
-        self.set_olay_pbar('Plasma')
-        self.set_olay_posonly()
-
-    def set_thr_all_tstat(self, label, ind):
-        self.set_thr_label(label)
-        self.set_thr_index(ind)
-        self.set_thr_type('Tstat')
-        self.set_thr_sided("2sided")
-
-    def set_thr_all_fstat(self, label, ind):
-        self.set_thr_label(label)
-        self.set_thr_index(ind)
-        self.set_thr_type('Fstat')
-        self.set_thr_sided("1sided")
-        if self.thr_label == 'Full_Fstat' :
-            self.set_thr_mode("percentile")
-
-    def disp_olay_all(self):
-        print("label         : " + self.label)
-        print("stats_dset    : " + self.stats_dset)
-        print("label_in_dset : " + str(self.label_in_dset))
-
-        print("olay_label    : " + self.olay_label)
-        print("olay_index    : " + str(self.olay_index))
-        print("olay_type     : " + self.olay_type)
-        print("olay_posonly  : " + str(self.olay_posonly))
-        print("olay_pbar     : " + self.olay_pbar)
-                     
-    def disp_thr_all(self):
-        print("label         : " + self.label)
-        print("stats_dset    : " + self.stats_dset)
-        print("label_in_dset : " + str(self.label_in_dset))
-
-        print("thr_label     : " + self.thr_label)
-        print("thr_index     : " + str(self.thr_index))
-        print("thr_type      : " + self.thr_type )
-        print("thr_sided     : " + self.thr_sided)
-        print("thr_sided_txt : " + self.thr_sided_txt)
-        print("thr_mode      : " + self.thr_mode )
-
-# ---------------------------------------------------------------------
-
-def parse_stats_dset_labels( fname, lsearch = [] ) :
-    '''fname is a stats_dset.
-
-    lsearch is a list of user-specified stim or GLT labels (as well as
-    the default 'Full_Fstat' label) to find within the stats_dset labels.
-
-    OUTPUT: a list of vstat_obj objects that contain all necessary
-    information for the vstat-processing function here.
-
-    '''
-
-    cmd_get_labelstr = '''3dinfo -label {}'''.format(fname)
-
-    sint, so, se = ab.simple_shell_exec(cmd_get_labelstr, capture=1)
-    sos          = so.split('|')
-    llabels      = [x.strip() for x in sos]
-    Nlabels      = len(llabels)
-
-    cmd_get_nv   = '''3dinfo -nv {}'''.format(fname)
-
-    sint, so, se = ab.simple_shell_exec(cmd_get_nv, capture=1)
-    Nvols        = int(so.strip())
-
-    if Nlabels != Nvols :
-        print("** ERROR: Nlabels ({}) does not match Nvols ({})\n"
-              "   in stats file {}.\n"
-              "   Possible bad char (e.g., |) in str label?\n"
-              "".format( Nlabels, Nvols, fname))
-        sys.exit(5)
-
-    list_pre_found = []
-    list_objs = []
-
-    for pre in lsearch:
-        i = 0
-        while i < Nlabels :
-            x = llabels[i]
-            if x.find(pre)==0 :
-                # first one found will be for the olay
-                list_pre_found.append(pre)
-                vso = vstat_obj()
-                vso.set_label(pre)
-                vso.set_stats_dset(fname)
-                addtoi = 1
-
-                post = x[-5:]
-                if post == '_Coef' :
-                    vso.set_olay_all_coef(x, i)
-                    # and check for accompanying stat
-                    if i+1 < Nlabels :
-                        j = i+1
-                        y = llabels[j]
-                        if y.find(pre)==0 :
-                            addtoi+=1
-                            post = y[-5:]
-                            if post == 'Tstat' :
-                                vso.set_thr_all_tstat(y, j)
-                                if j+1 < Nlabels :
-                                    k = j+1
-                                    z = llabels[k]
-                                    if z.find(pre)==0 :
-                                        post = z[-5:]
-                                        if post == 'Fstat' :
-                                            # all we do is add to
-                                            # index-- ignore other steps
-                                            addtoi+=1
-                            elif post == 'Fstat' :
-                                vso.set_thr_all_fstat(y, j)
-                            else:
-                                print("ERROR: no stat brick to accompany"
-                                      "[{}]th volume {} in {}?"
-                                      "".format(i, x, fname))
-                                sys.exit(7)
-                elif post == 'Tstat' :
-                    vso.set_thr_all_tstat(x, i)
-                    if i+1 < Nlabels :
-                        j = i+1
-                        y = llabels[j]
-                        if y.find(pre)==0 :
-                            post = y[-5:]
-                            if post == 'Fstat' :
-                                # all we do is add to index-- ignore
-                                # other steps
-                                addtoi+=1
-                elif post == 'Fstat' :
-                    vso.set_olay_all_fstat(x, i)
-                    vso.set_thr_all_fstat(x, i)
-                else:
-                    print("ERROR: what unexpected volume is this, of unknown"
-                          " type?  [{}]th volume {} in {}?"
-                          "".format(i, x, fname))
-                    sys.exit(7)
-
-                #print("++ Found: {} in: {} and {}  ... addtoi= {}"
-                #      "".format(pre, vso.olay_label, vso.thr_label, addtoi))
-                list_objs.append(vso) 
-                
-                i+= addtoi # we accummulate how many to add
-            else :
-                i+= 1
-
-    for pre in lsearch:
-        if not(list_pre_found.__contains__(pre)) :
-            print("*+ WARNING: user-asked-for stim or GLT label '{}'\n"
-                  "            has not been found in the stats dset: {}"
-                  "".format(pre, fname))
-
-    return list_objs
-
-####################################################################
-
-# -----------------------------------------------------------------
 
 
 # =========================================================================
