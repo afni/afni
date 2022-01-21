@@ -4503,3 +4503,10 @@ Variable:  AFNI_ICORR_UBER_USER
 ------------------------------------
 If set to YES, enable distance measures that are not ready for prime
 time in the instacorr interface.
+
+------------------------------------
+Variable:  AFNI_SKIP_TCSV_SCAN
+------------------------------------
+If set to YES, do not scan for CSV files at afni startup. Same as using option -notcsv 
+
+time in the instacorr interface.

@@ -696,6 +696,8 @@ void AFNI_syntax(void)
      "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
      "   -notsv         they are synonyms): each tells AFNI not to read\n"
      "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
+     "                  You can also set env AFNI_SKIP_TCSV_SCAN = YES to the\n"
+     "                  same effect.\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
