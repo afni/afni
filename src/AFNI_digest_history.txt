@@ -1,3 +1,61 @@
+AFNI Digest, week of 2022/01/25.
+
+Planning a study with trials? Take note!
+We illustrate that the trial sample size in experimental design is
+almost as important as subject sample size, in terms of statistical
+efficiency.  Here we investigate the crucial role of trial number in
+neuroimaging from the perspectives of both statistical efficiency and
+condition-level generalizability:
+   Chen G, Pine DS, Brotman MA, Smith AR, Cox RW, Taylor PA, Haller
+SP (2022). Hyperbolic trade-off: the importance of balancing trial
+and subject sample sizes in neuroimaging. NeuroImage 247:118786.
+https://doi.org/10.1016/j.neuroimage.2021.118786
+
+3dTshift: update and explain more.
+Update "3dTshift -help" to describe possibly desirable stimulus timing
+adjustment for the combination case of preprocessing with fmriprep
+while using 3dDeconvolve/3dREMLfit for regression.  See "How might
+this affect stimulus timing in 3dDeconvolve?".  Note that toffset
+should be *subtracted* from stimulus times, not added (as some have
+reported).
+
+3dmaskdump: fix. 
+Fix 'ball' options when handling sub-millimeter voxel datasets.
+Previously there was a bug that made spheres in such datasets too
+small.
+
+dcm2niix_afni: version update. 
+The distributed version is now v1.0.20210317, via Chris Rorden.
+
+Templates+atlases update:  macaques.
+Now available, the SC21 (subcortical template) and updated D99: high
+resolution macaque atlasing. Anatomical delineation using histology
+and high-resolution MAP-MRI (and data are available in NIFTI and GIFTI
+formats).  See:
+  Saleem KS, Avram AV, Glen D, Yen CC-C, Ye FQ, Komlosh M, Basser PJ
+(2021).  High-resolution mapping and digital atlas of subcortical
+regions in the macaque monkey based on matched MAP-MRI and histology.
+Neuroimage 245:118759.
+https://doi.org/10.1016/j.neuroimage.2021.118759
+
+Pull request (PR) documentation for AFNI source code
+The AFNI codebase has had many contributors from many places over
+time.  If you are interested in contributing to the AFNI source code,
+please check out how to make a pull request:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/pull_requests/pr_ex.html
+Note that with great code ideas, comes great responsibility of code
+maintenance....
+
+3dDiff: new program
+Particularly relevant to the last item, there is a new program 3dDiff
+(contributed by J. Teves) for calculating whether two datasets contain
+elementwise differences at a given tolerance.  The program works for
+volume, surface and 1D datasets inputs, and calculates 'per timepoint'
+as well (e.g., for each volume in a time series).
+
+
+========================================================================
+
 AFNI Digest, week of 2021/06/11.
 
 0) Disabling AFNI_COMPRESSOR for NIFTI files
