@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jan, 2022, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
+   "slight addition to help and verb output for External_Datatset mode",
+   NULL
+ } ,
+
  { 18, Jan, 2022, RCR, "3dDiff", MINOR, TYPE_MODIFY,
    "remove declarations after statements and init any free'd pointers",
    NULL
