@@ -65,3 +65,8 @@ Context: processing an AFNI extension from a NIFTI dataset
       save attributes upon write (e.g. NIFTI)
          - had intended to skip those in badlist[], but code not correct
 
+01/22/2022:
+    needed AFNI_yesenv("attr_print") in thd_dsetdblk.c line 691
+    #ifdef USE_APPLICATOR
+        THD_datablock_apply_atr( dset , AFNI_yesenv("attr_print") ) ;  /* disco change */
+    #endif

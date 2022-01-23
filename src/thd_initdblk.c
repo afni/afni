@@ -862,17 +862,20 @@ ENTRY("THD_datablock_apply_atr") ;
    /*-- ID codes --*/
 
    if( ATR_IS_STR(ATRNAME_IDSTRING) ){
-       MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
        if( validate ){               /* disco change */
-           printf("idcode %s\n", dset->idcode.str);
+           printf("\nold idcode %s\n", dset->idcode.str);
+           printf("new idcode %s\n\n", atr_str->ch);
+
        }
+       MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
     }
 
     if( ATR_IS_STR(ATRNAME_IDDATE) ){
-      MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
       if( validate ){               /* disco change */
-          printf("id date %s\n", dset->idcode.date);
+          printf("old id date %s\n", dset->idcode.date);
+          printf("new id date %s\n\n", atr_str->ch);
       }
+      MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
      }
 
    if( ATR_IS_STR(ATRNAME_IDANATPAR) )
@@ -1120,11 +1123,53 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ( atr_flt = THD_find_float_atr(blk,"IJK_TO_DICOM_REAL") ) ){
       /* load oblique transformation matrix */
       if(atr_flt) {
+          if( validate ){               /* disco change */
+              
+              /* just testing here */
+              float fracdiff , old , new;
+              
+              old = 1;
+              new = 2;
+              
+              if( fabs(old) + fabs(new) != 0 ){
+                  fracdiff = fabs( old - new ) / ( fabs(old) + fabs(new) );
+                  printf("fracdiff %13.6f\n",fracdiff);
+              }
+                            
+              printf("ijk xx: %13.6s %13.6s\n", "old", "new");
+              printf("ijk 00: %13.6f %13.6f\n",
+                     atr_flt->fl[0], dset->daxes->ijk_to_dicom_real.m[0][0]);
+              printf("ijk 01: %13.6f %13.6f\n",
+                     atr_flt->fl[1], dset->daxes->ijk_to_dicom_real.m[0][1]);
+              printf("ijk 02: %13.6f %13.6f\n",
+                     atr_flt->fl[2], dset->daxes->ijk_to_dicom_real.m[0][2]);
+              printf("ijk 02: %13.6f %13.6f\n",
+                     atr_flt->fl[2], dset->daxes->ijk_to_dicom_real.m[0][2]);
+              printf("ijk 03: %13.6f %13.6f\n",
+                     atr_flt->fl[3], dset->daxes->ijk_to_dicom_real.m[0][3]);
+              printf("ijk 04: %13.6f %13.6f\n",
+                     atr_flt->fl[4], dset->daxes->ijk_to_dicom_real.m[0][4]);
+              printf("ijk 05: %13.6f %13.6f\n",
+                     atr_flt->fl[5], dset->daxes->ijk_to_dicom_real.m[0][5]);
+              printf("ijk 06: %13.6f %13.6f\n",
+                     atr_flt->fl[6], dset->daxes->ijk_to_dicom_real.m[0][6]);
+              printf("ijk 07: %13.6f %13.6f\n",
+                     atr_flt->fl[7], dset->daxes->ijk_to_dicom_real.m[0][7]);
+              printf("ijk 08: %13.6f %13.6f\n",
+                     atr_flt->fl[8], dset->daxes->ijk_to_dicom_real.m[0][8]);
+              printf("ijk 09: %13.6f %13.6f\n",
+                     atr_flt->fl[9], dset->daxes->ijk_to_dicom_real.m[0][9]);
+              printf("ijk 10: %13.6f %13.6f\n",
+                     atr_flt->fl[10], dset->daxes->ijk_to_dicom_real.m[0][10]);
+              printf("ijk 11: %13.6f %13.6f\n",
+                     atr_flt->fl[11], dset->daxes->ijk_to_dicom_real.m[0][11]);
+          }
         LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \
             atr_flt->fl[0], atr_flt->fl[1], atr_flt->fl[2], atr_flt->fl[3], \
             atr_flt->fl[4], atr_flt->fl[5], atr_flt->fl[6], atr_flt->fl[7], \
             atr_flt->fl[8], atr_flt->fl[9], atr_flt->fl[10], atr_flt->fl[11]);
       }
+      
    }
 
    /* update attributes for time axes - copied from thd_dsetdblk.c */
