@@ -1108,6 +1108,9 @@ class SubjProcSream:
         self.mask_extents = None        # mask dataset (of EPI extents)
         self.mask_classes = None        # Segsy result at EPI resolution
 
+        # parameters for -combine_method
+        self.combine_method = None      # actual -combine_method name
+
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys

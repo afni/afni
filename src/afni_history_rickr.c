@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jan, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
+   "add combine_method uvar, to pass on to APQC",
+   NULL
+ } ,
+
+ { 24, Jan, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "pass combine_method to gen_ss_review_scripts.py",
+   "This will be applied to the 'mecho' APQC section by P Taylor."
+ } ,
+
  { 19, Jan, 2022, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
    "slight addition to help and verb output for External_Datatset mode",
    NULL

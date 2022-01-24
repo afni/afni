@@ -3219,7 +3219,11 @@ def db_cmd_combine(proc, block):
    cmd += ccmd
 
    # importantly, we are now done with ME processing
+   # (do not apply ME script changes anymore)
    proc.use_me = 0
+
+   # success, note the applied method
+   proc.combine_method = ocmeth
 
    return cmd
 
@@ -8313,7 +8317,10 @@ def db_cmd_gen_review(proc):
           print('-- no regress block, skipping gen_ss_review_scripts.py')
        return cmd
 
+    # misc options to pass directly (gen_ss will not figure out)
     lopts = ''
+    if proc.combine_method is not None:
+       lopts += ' -combine_method %s' % proc.combine_method
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
