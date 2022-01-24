@@ -289,9 +289,6 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
             }
    }
 
-
-
-
    // PT note: do we need the complementary array to arr_dist, for
    // filling in the zero-region with mask values?
 
@@ -622,7 +619,7 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
   dset_mask :  a mask dset to be applied at end (could be NULL)
   ival      :  index value of the subbrick/subvolume to analyze
 */
-int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
+int calc_EDT_3D_GEN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
                  THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
                  int ival)
 {
@@ -644,7 +641,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
    float ***arr_dist = NULL;  // array that will hold dist values
    float *tmp_arr = NULL;
 
-   ENTRY("calc_EDT_3D");
+   ENTRY("calc_EDT_3D_GEN");
 
    // check if a subbrick is const; there are a couple cases where we
    // would be done at this stage.
@@ -732,18 +729,18 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
             // note pairings per case: 0 and nx; 1 and ny; 2 and nz
 
          case 0 :
-            j = calc_EDT_3D_dim0( arr_dist, opts, dset_roi, ival, 
-                                  flarr, workarr, maparr );
+            j = calc_EDT_3D_GEN_dim0( arr_dist, opts, dset_roi, ival, 
+                                      flarr, workarr, maparr );
             break;
 
          case 1 :
-            j = calc_EDT_3D_dim1( arr_dist, opts, dset_roi, ival, 
-                                  flarr, workarr, maparr );
+            j = calc_EDT_3D_GEN_dim1( arr_dist, opts, dset_roi, ival, 
+                                      flarr, workarr, maparr );
             break;
 
          case 2 :
-            j = calc_EDT_3D_dim2( arr_dist, opts, dset_roi, ival, 
-                                  flarr, workarr, maparr );
+            j = calc_EDT_3D_GEN_dim2( arr_dist, opts, dset_roi, ival, 
+                                      flarr, workarr, maparr );
             break;
 
          default:
@@ -758,7 +755,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
    if( maparr) free(maparr);
 
    // Apply various user post-proc options (zeroing, sign changes, etc.)
-   i = apply_opts_to_edt_arr( arr_dist, opts, dset_roi, ival);
+   i = apply_opts_to_edt_arr_GEN( arr_dist, opts, dset_roi, ival);
 
    /*
      At this point, arr_dist should have the correct distance values for
@@ -801,7 +798,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
 // ---------------------------------------------------------------------------
 
 /*
-  calc_EDT_3D_dim?(...) are a set of 3 functions that manage walking
+  calc_EDT_3D_GEN_dim?(...) are a set of 3 functions that manage walking
   along each of the axes: calc_EDT_3D_dim2(...)  does calcs along the
   [2]th axis, etc. 
 
@@ -811,7 +808,7 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
   appropriate axis in each.  Likely, each should be edited in parallel.
 
   By construction, flarr has the correct length for each of the
-  dimension calc_EDT_3D_dim?(...)  funcs from how these funcs are called.
+  dimension calc_EDT_3D_GEN_dim?(...)  funcs from how these funcs are called.
 
   arr_dist       :3D float array of distances (gets edited/updated here)
   opts           :struct of opts, from default/user specification
@@ -825,15 +822,15 @@ int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
 */
 
 // analyzing along [2]th dimension
-int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr )
+int calc_EDT_3D_GEN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
    float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
-   ENTRY("calc_EDT_3D_dim2");
+   ENTRY("calc_EDT_3D_GEN_dim2");
 
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
@@ -853,8 +850,8 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
             }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, nz, delta,
-                                 opts.bounds_are_zero, opts.binary_only );
+         ll = run_EDTD_GEN_per_line( flarr, workarr, maparr, nz, delta,
+                                     opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( kk=0; kk<nz ; kk++ ) 
@@ -864,16 +861,16 @@ int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
    return 0;
 }
 
-// see notes by calc_EDT_3D_dim2(...)
-int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr )
+// see notes by calc_EDT_3D_GEN_dim2(...)
+int calc_EDT_3D_GEN_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
    float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
-   ENTRY("calc_EDT_3D_dim1");
+   ENTRY("calc_EDT_3D_GEN_dim1");
 
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
@@ -893,8 +890,8 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, ny, delta, 
-                                 opts.bounds_are_zero, opts.binary_only );
+         ll = run_EDTD_GEN_per_line( flarr, workarr, maparr, ny, delta, 
+                                     opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( jj=0; jj<ny ; jj++ )
@@ -904,16 +901,16 @@ int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
    return 0;
 }
 
-// see notes by calc_EDT_3D_dim2(...)
-int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr )
+// see notes by calc_EDT_3D_GEN_dim2(...)
+int calc_EDT_3D_GEN_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr )
 {
    int ii, jj, kk, idx, ll;
    int nx, ny, nz, nxy;
    float delta = 1.0;    // voxel edge length ('edims' element in lib_EDT.py)
 
-   ENTRY("calc_EDT_3D_dim0");
+   ENTRY("calc_EDT_3D_GEN_dim0");
 
    nx = DSET_NX(dset_roi);
    ny = DSET_NY(dset_roi);
@@ -933,8 +930,8 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
          }
 
          // update distance along this 1D line...
-         ll = run_EDTD_per_line( flarr, workarr, maparr, nx, delta, 
-                                 opts.bounds_are_zero, opts.binary_only );
+         ll = run_EDTD_GEN_per_line( flarr, workarr, maparr, nx, delta, 
+                                     opts.bounds_are_zero, opts.binary_only );
 
          // ... and now put those values back into the distance arr
          for( ii=0; ii<nx ; ii++ )
@@ -959,9 +956,9 @@ int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
   bounds_are_zero :option for how to treat FOV boundaries for nonzero ROIs
   binary_only     :if we treat the ROI map as a binary map only
 */
-int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, 
-                       int Na, float delta, 
-                       int bounds_are_zero, int binary_only )
+int run_EDTD_GEN_per_line( float *dist2_line, float *warr, int *roi_line, 
+                           int Na, float delta, 
+                           int bounds_are_zero, int binary_only )
 {
    int  idx = 0;
    int  i, m, n;
@@ -1149,6 +1146,8 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
     return Df0;
 }
 
+
+
 // ---------------------------------------------------------------------------
 
 /*
@@ -1162,13 +1161,13 @@ float * Euclidean_DT_delta(float *f0, int n, float delta)
   ival     :  index value of the subbrick/subvolume to analyze
 
 */
-int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euclid_dist opts,
+int apply_opts_to_edt_arr_GEN( float ***arr_dist, PARAMS_euclid_dist opts,
                            THD_3dim_dataset *dset_roi, int ival)
 {
    int i, j, k, idx;
    int nx, ny, nz, nxy;
 
-   ENTRY("apply_opts_to_edt_arr");
+   ENTRY("apply_opts_to_edt_arr_GEN");
 
    // dset properties we need to know
    nx = DSET_NX(dset_roi);

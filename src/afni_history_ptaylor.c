@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
+   "Renaming some internal funcs, for clarity.",
+   "Multi-ROI funcs get '_GEN' in name now, to distinguish from '_BIN' ones.\n"
+},
+
 { 20, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Update QC block: vstat (for task-based FMRI cases).",
    "There will now be typically up to 5 stats dsets shown (GLT and other).\n"
