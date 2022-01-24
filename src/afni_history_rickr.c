@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jan, 2022, RCR, "suma", MICRO, TYPE_BUG_FIX,
+   "fix dupe symbol (clippingPlaneFile) error for mac 12",
+   "As reported by the international man of mistery, P Kundu."
+ } ,
+
  { 24, Jan, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
    "add combine_method uvar, to pass on to APQC",
    NULL
