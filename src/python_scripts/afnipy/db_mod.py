@@ -11033,6 +11033,19 @@ g_help_options = """
                   options       - descriptions of options
                   trailer       - final trailer
 
+        -help_tedana_files      : show tedana file names, compare orig vs bids
+
+           The file naming between older and newer tedana versions (or newer
+           using "tedana --convention orig") is shown with this option.  For
+           example, the denoised time series after beinng Optimially Combined
+           has possible names of:
+
+               orig                 BIDS
+               ----                 ----
+               dn_ts_OC.nii.gz      desc-optcomDenoised_bold.nii.gz          
+
+            Please see 'tedana --help' for more information.
+
         -hist                   : show the module history
 
         -requires_afni_version  : show AFNI date required by processing script
