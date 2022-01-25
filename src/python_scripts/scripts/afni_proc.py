@@ -708,9 +708,10 @@ g_history = """
     7.24 Jan 11, 2022:
        - rename m_tedana_tedort to m_tedana_m_tedort
          (reserve m_tedana_tedort for AFNI tedort projection)
+    7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
 """
 
-g_version = "version 7.24, January 11, 2022"
+g_version = "version 7.25, January 24, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
