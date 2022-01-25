@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Update QC block: vorig now shows the 'copy_anat' dset.",
+   "Applies in all cases; AP just passes along uvar.  Thanks, RCR!\n"
+},
+
 { 20, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Update QC block: vstat (for task-based FMRI cases).",
    "There will now be typically up to 5 stats dsets shown (GLT and other).\n"
