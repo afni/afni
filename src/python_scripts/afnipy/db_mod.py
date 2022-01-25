@@ -8319,14 +8319,17 @@ def db_cmd_gen_review(proc):
 
     # misc options to pass directly (gen_ss will not figure out)
     lopts = ''
-    if proc.combine_method is not None:
-       lopts += ' -combine_method %s' % proc.combine_method
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
 
     # subsequent options get their own lines
     if lopts != '': lopts = ' \\\n   %s' % lopts
+
+    if proc.anat_orig is not None:
+       lopts += ' \\\n    -copy_anat %s' % proc.anat_orig.shortinput(head=1)
+    if proc.combine_method is not None:
+       lopts += ' \\\n    -combine_method %s' % proc.combine_method
 
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final

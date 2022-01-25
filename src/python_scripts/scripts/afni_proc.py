@@ -1031,7 +1031,8 @@ class SubjProcSream:
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.all_runs   = ''            # prefix for final all_runs dataset
-        self.anat       = None          # anatomoy to copy (afni_name class)
+        self.anat       = None          # main/orig anat - changes over time
+        self.anat_orig  = None          # orig anat dset (afni_name)
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
         self.anat_unif_meth = 'default' # unifize method
@@ -3070,6 +3071,10 @@ class SubjProcSream:
 
             # further use should assume AFNI format
             self.anat.to_afni(new_view=dset_view(self.anat.nice_input()))
+
+            # save original anat, since self.anat will change
+            self.anat_orig = self.anat.new()
+
             # track with original format, possibly changing to AFNI
             self.tlist.add(oanat, self.anat.shortinput(), 'anat', ftype='dset')
             self.tlrcanat.to_afni()

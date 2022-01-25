@@ -73,6 +73,8 @@ g_ss_uvar_fields = [ \
                        'stats.FT+tlrc.HEAD'],
    ['sum_ideal',       'set 1D file for ideal sum', 
                        'sum_ideal.1D'],
+   ['copy_anat',       'original -copy_anat dataset', 
+                       'FT_anat+orig.HEAD'],
    ['align_anat',      'anat aligned with orig EPI', 
                        'FT_anat_al_junk+orig.HEAD'],
    ['final_anat',      'anat aligned with stats dataset',
