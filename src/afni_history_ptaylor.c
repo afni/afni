@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Update QC block: vorig now shows the epi-anat overlap.",
+   "Shows overlap with ignoring obliquity and applying it (if present).\n"
+},
+
 { 26, Jan , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_BUG_FIX,
    "Fix how -box_focus_slices opt works in another aspect.",
    "Now should actually be used (had to turn off internal coord selection).\n"

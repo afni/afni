@@ -201,8 +201,11 @@ auth = 'PA Taylor'
 #      command used to create the script; also put text there if
 #      'pythonic' mode was downgraded to 'basic' 
 #
-ver = '3.92' ; date = 'Jan 25, 2022'
+#ver = '3.92' ; date = 'Jan 25, 2022'
 # [PT] vorig has new image: copy_anat dset
+#
+ver = '3.93' ; date = 'Jan 26, 2022'
+# [PT] epi-anat overlap in vorig QC block 
 #
 #########################################################################
 
@@ -486,6 +489,24 @@ if __name__ == "__main__":
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
                                        ulay_name=ldep[0] )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : init EPI anat overlap
+
+    ldep  = ['vr_base_dset', 'copy_anat']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # no focus_box necessary here
+        ban      = lat.bannerize('initial EPI-anatomical overlap')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_olap( obase, "vorig", "olap" )
 
         str_FULL+= ban
         str_FULL+= cmd
