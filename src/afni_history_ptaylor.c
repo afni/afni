@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Jan , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_BUG_FIX,
+   "Fix how -box_focus_slices opt works in another aspect.",
+   "Now should actually be used (had to turn off internal coord selection).\n"
+},
+
 { 26, Jan , 2022 , PT , "@djunct_overlap_check" , MINOR , TYPE_BUG_FIX,
    "Fix how -box_focus_slices opt works if one of the AMASK* keywords is used.",
    "Previously was producing error, not recognizing it wasn't a dset.\n"

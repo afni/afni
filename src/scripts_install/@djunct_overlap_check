@@ -28,6 +28,10 @@ set version   = "0.44";   set rev_dat   = "Jan 26, 2022"
 # + [PT] fix how -box_focus_slices works if one of the AMASK* keywords is
 #   used
 #
+set version   = "0.45";   set rev_dat   = "Jan 26, 2022"
+# [PT] another fix when using -box_focus_slices, so @chauffeur_afni
+# will recognize that appropriately
+#
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
 
@@ -261,6 +265,12 @@ endif
 if ( "${olay}" == "" ) then
     echo "** ERROR: missing olay file! Use '-olay ..'"
     goto BAD_EXIT
+endif
+
+# [PT: Jan 26, 2022] if we use box_focus_slices, then this excludes
+# using user coords, which are set by default---> so unset them
+if ( ${DO_USE_REFBOX} ) then
+    set user_coors = "-pass"
 endif
 
 # ===================== output dir + wdir =======================
