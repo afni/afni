@@ -191,21 +191,25 @@ auth = 'PA Taylor'
 # [PT] Add 'mecho' QC block
 #    + pretty much just for combine_method=m_tedana for starters
 #
-ver = '3.9' ; date = 'Jan 20, 2022'
+#ver = '3.9' ; date = 'Jan 20, 2022'
 # [PT] major update to vstat block, for task-based FMRI data
 #    + larger selection of stats data automatically imagized, with new
 #      internal logic to handle this.  See new library lib_apqc_stats_dset.py
 #
-ver = '3.91' ; date = 'Jan 20, 2022'
+#ver = '3.91' ; date = 'Jan 20, 2022'
 # [PT] add in comment at top of @ss_review_html script, echoing the
 #      command used to create the script; also put text there if
 #      'pythonic' mode was downgraded to 'basic' 
 #
+#ver = '3.92' ; date = 'Jan 25, 2022'
+# [PT] vorig has new image: copy_anat dset
+#
+ver = '3.93' ; date = 'Jan 26, 2022'
+# [PT] epi-anat overlap in vorig QC block 
+#
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
-#  uvars to add in officially still:
-#    "anat_orig": "copy_af_anat_w_skull+orig.HEAD",
 
 
 import sys
@@ -476,17 +480,33 @@ if __name__ == "__main__":
     # QC block: "vorig"
     # item    : anat in orig
 
-    ### [PT: Dec 21, 2018] will come back to this with a uvars for the
-    ### vr_base set
-    ldep  = ['anat_orig']
+    ldep  = ['copy_anat']
     if lat.check_dep(ap_ssdict, ldep) :
         volitem  = "anat" # because we use same func to plot for both
-                         # EPI and anat vols
+                          # EPI and anat vols
         # no focus_box necessary here
         ban      = lat.bannerize('{} in orig space'.format(volitem))
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
                                        ulay_name=ldep[0] )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : init EPI anat overlap
+
+    ldep  = ['vr_base_dset', 'copy_anat']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # no focus_box necessary here
+        ban      = lat.bannerize('initial EPI-anatomical overlap')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_olap( obase, "vorig", "olap" )
 
         str_FULL+= ban
         str_FULL+= cmd

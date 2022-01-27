@@ -17,9 +17,20 @@
 #set version   = "0.41";  set rev_dat   = "July 29, 2021"
 # [PT] new opt: -edgy_ulay
 #
-set version   = "0.42";   set rev_dat   = "Sep 27, 2021"
-#     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
-#       down one level
+#set version   = "0.42";   set rev_dat   = "Sep 27, 2021"
+# + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
+#   down one level
+#
+#set version   = "0.43";   set rev_dat   = "Jan 25, 2022"
+# + [PT] add in -no_cor, -no_sag, -no_axi, for APQC
+#
+set version   = "0.44";   set rev_dat   = "Jan 26, 2022"
+# + [PT] fix how -box_focus_slices works if one of the AMASK* keywords is
+#   used
+#
+set version   = "0.45";   set rev_dat   = "Jan 26, 2022"
+# [PT] another fix when using -box_focus_slices, so @chauffeur_afni
+# will recognize that appropriately
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -71,6 +82,10 @@ set Nx_cat         = 3                   # for 2dcat
 set Ny_cat         = 1                   
 
 set HAVE_OBL       = 0
+
+set no_cor         = "-pass"
+set no_axi         = "-pass"
+set no_sag         = "-pass"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -215,6 +230,15 @@ while ( $ac <= $#argv )
         @ ac += 1
         set Ny_cat = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-no_cor" ) then
+        set no_cor = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_axi" ) then
+        set no_axi = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_sag" ) then
+        set no_sag = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         set allclean = "-pass"
@@ -243,6 +267,12 @@ if ( "${olay}" == "" ) then
     goto BAD_EXIT
 endif
 
+# [PT: Jan 26, 2022] if we use box_focus_slices, then this excludes
+# using user coords, which are set by default---> so unset them
+if ( ${DO_USE_REFBOX} ) then
+    set user_coors = "-pass"
+endif
+
 # ===================== output dir + wdir =======================
  
 # check output directory, use input one if nothing given
@@ -262,13 +292,18 @@ set wdir = "${odir}/${wdir_name}"
 # dset there
 
 if ( ${DO_USE_REFBOX} ) then
-    echo "++ Copy refbox (${refbox_add[2]}) to workdir"
-    3dcalc                                  \
-        -a       "${refbox_add[2]}"         \
-        -expr    'a'                        \
-        -prefix  ${wdir}/REFBOX.nii
-    # ... and this will become our new refbox dset name
-    set refbox_add[2] = REFBOX.nii
+    if ( "${refbox_add[2]}" == "AMASK_FOCUS_ULAY" || \
+         "${refbox_add[2]}" == "AMASK_FOCUS_OLAY" ) then
+        echo "++ Using refbox keyword ${refbox_add[2]} for box_focus_slices"
+    else
+        echo "++ Copy refbox (${refbox_add[2]}) to workdir"
+        3dcalc                                  \
+            -a       "${refbox_add[2]}"         \
+            -expr    'a'                        \
+            -prefix  ${wdir}/REFBOX.nii
+        # ... and this will become our new refbox dset name
+        set refbox_add[2] = REFBOX.nii
+    endif
 endif
 
 set idx  = 0
@@ -323,6 +358,7 @@ echo "++ Quietly run: 3drefit -space ${newsp} ${uout}"
     -set_xhairs OFF                         \
     -label_mode ${label_mode} -label_size 4 \
     $allclean                               \
+    ${no_cor} ${no_axi} ${no_sag}           \
     ${user_coors} ${edgy_ulay}
 
 # ... and the concatenated version to output
@@ -362,6 +398,7 @@ if ( ${obl_ulay[1]} || ${obl_olay[1]} ) then
         -set_xhairs OFF                         \
         -label_mode ${label_mode} -label_size 4 \
         $allclean                               \
+        ${no_cor} ${no_axi} ${no_sag}           \
         ${user_coors} ${edgy_ulay}
 
     # ... and the concatenated version to output
@@ -465,6 +502,9 @@ COMMAND OPTIONS ~1~
 -pbar_posonly_off
 -edgy_ulay
 -set_dicom_xyz_off
+-no_cor
+-no_axi
+-no_sag
 -no_clean
 
 NOTES TO SELF ~1~

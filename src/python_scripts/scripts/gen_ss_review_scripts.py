@@ -914,9 +914,10 @@ g_history = """
    1.19 Dec 31, 2019: do not require out_limit (if unset, no uvar)
    1.20 Jul 26, 2021: added to basic script: 'orig voxel resolution',
                         'orig voxel counts', 'orig volume center'
+   1.21 Jan 24, 2022: added combine_method field, just to pass to json
 """
 
-g_version = "gen_ss_review_scripts.py version 1.20, July 26, 2021"
+g_version = "gen_ss_review_scripts.py version 1.21, January 24, 2022"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?

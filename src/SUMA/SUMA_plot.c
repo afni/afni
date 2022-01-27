@@ -5,6 +5,9 @@
 static char *redcolor = NULL ;
 static char print_command[256] = "\0" ;
 
+/* global for libSUMA; move from .h to .c   [24 Jan 2022 rickr] */
+char * clippingPlaneFile = NULL;  /* PDL */
+
 SUMA_Boolean SUMA_write_plotmem_ts(MEM_topshell_data * mpcb)
 {
    static char FuncName[]={"SUMA_write_plotmem_ts"};

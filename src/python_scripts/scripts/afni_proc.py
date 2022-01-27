@@ -708,9 +708,10 @@ g_history = """
     7.24 Jan 11, 2022:
        - rename m_tedana_tedort to m_tedana_m_tedort
          (reserve m_tedana_tedort for AFNI tedort projection)
+    7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
 """
 
-g_version = "version 7.24, January 11, 2022"
+g_version = "version 7.25, January 24, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1031,7 +1032,8 @@ class SubjProcSream:
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.all_runs   = ''            # prefix for final all_runs dataset
-        self.anat       = None          # anatomoy to copy (afni_name class)
+        self.anat       = None          # main/orig anat - changes over time
+        self.anat_orig  = None          # orig anat dset (afni_name)
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
         self.anat_unif_meth = 'default' # unifize method
@@ -1107,6 +1109,9 @@ class SubjProcSream:
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
         self.mask_classes = None        # Segsy result at EPI resolution
+
+        # parameters for -combine_method
+        self.combine_method = None      # actual -combine_method name
 
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
@@ -3067,6 +3072,10 @@ class SubjProcSream:
 
             # further use should assume AFNI format
             self.anat.to_afni(new_view=dset_view(self.anat.nice_input()))
+
+            # save original anat, since self.anat will change
+            self.anat_orig = self.anat.new()
+
             # track with original format, possibly changing to AFNI
             self.tlist.add(oanat, self.anat.shortinput(), 'anat', ftype='dset')
             self.tlrcanat.to_afni()

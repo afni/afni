@@ -3219,7 +3219,11 @@ def db_cmd_combine(proc, block):
    cmd += ccmd
 
    # importantly, we are now done with ME processing
+   # (do not apply ME script changes anymore)
    proc.use_me = 0
+
+   # success, note the applied method
+   proc.combine_method = ocmeth
 
    return cmd
 
@@ -8313,6 +8317,7 @@ def db_cmd_gen_review(proc):
           print('-- no regress block, skipping gen_ss_review_scripts.py')
        return cmd
 
+    # misc options to pass directly (gen_ss will not figure out)
     lopts = ''
     if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
@@ -8320,6 +8325,11 @@ def db_cmd_gen_review(proc):
 
     # subsequent options get their own lines
     if lopts != '': lopts = ' \\\n   %s' % lopts
+
+    if proc.anat_orig is not None:
+       lopts += ' \\\n    -copy_anat %s' % proc.anat_orig.shortinput(head=1)
+    if proc.combine_method is not None:
+       lopts += ' \\\n    -combine_method %s' % proc.combine_method
 
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
@@ -11022,6 +11032,19 @@ g_help_options = """
                   notes         - NOTE_* entries
                   options       - descriptions of options
                   trailer       - final trailer
+
+        -help_tedana_files      : show tedana file names, compare orig vs bids
+
+           The file naming between older and newer tedana versions (or newer
+           using "tedana --convention orig") is shown with this option.  For
+           example, the denoised time series after beinng Optimially Combined
+           has possible names of:
+
+               orig                 BIDS
+               ----                 ----
+               dn_ts_OC.nii.gz      desc-optcomDenoised_bold.nii.gz          
+
+            Please see 'tedana --help' for more information.
 
         -hist                   : show the module history
 

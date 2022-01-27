@@ -16,6 +16,10 @@
 #      - possibly want to set an afni_data element in self.dsets
 #   - if it is used in a script, check and apply
 #
+# to pass to gen_ss_html via json file, it is enough to:
+#   - add to this list
+#   - pass via gen_ss_review_scripts.py option
+#
 g_ss_uvar_fields = [ \
    # field_name,        hint/description, 
    #                    example
@@ -53,6 +57,8 @@ g_ss_uvar_fields = [ \
                        'out.mask_ae_dice.txt'],
    ['mask_anat_templ_corr_dset', 'set anat/template correlation file',
                        'out.mask_at_dice.txt'],
+   ['combine_method',  'set method for combining multiple echoes', 
+                       'OC'],
    ['mot_limit',       'set motion limit (maybe for censoring)', 
                        0.3],
    ['out_limit',       'set outlier limit (maybe for censoring)', 
@@ -67,6 +73,8 @@ g_ss_uvar_fields = [ \
                        'stats.FT+tlrc.HEAD'],
    ['sum_ideal',       'set 1D file for ideal sum', 
                        'sum_ideal.1D'],
+   ['copy_anat',       'original -copy_anat dataset', 
+                       'FT_anat+orig.HEAD'],
    ['align_anat',      'anat aligned with orig EPI', 
                        'FT_anat_al_junk+orig.HEAD'],
    ['final_anat',      'anat aligned with stats dataset',
@@ -105,8 +113,6 @@ g_ss_uvar_fields = [ \
                        'out.tent_warn.txt'],
    ['decon_err_dset',  '3dDeconvolve warnings', 
                        '3dDeconvolve.err'],
-   ['combine_method',  'multi-echo info', 
-                       'm_tedana'],
    ['surf_vol',        'surface volume dset', 
                        'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
    ]

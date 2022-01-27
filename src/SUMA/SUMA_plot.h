@@ -27,4 +27,4 @@ typedef struct {
 SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud);
 #endif
 
-char *clippingPlaneFile;   // PDL
+extern char *clippingPlaneFile;   // PDL

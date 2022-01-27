@@ -198,10 +198,13 @@ auth = 'PA Taylor'
 #      23 they have been one size smaller by default); but the new font
 #      will be bolder than previously, due to those imseq.c changes.
 #
-ver = '3.80' ; date = 'Jan 20, 2022'
+#ver = '3.80' ; date = 'Jan 20, 2022'
 # [PT] move the parts of code for task-based FMRI vstat selection to a
 # new library: lib_apqc_stats_dset.py
 # + as part of this, adding in fuller stats representation by default.
+#
+ver = '3.93' ; date = 'Jan 26, 2022'
+# [PT] epi-anat overlap in vorig QC block 
 #
 #########################################################################
 
@@ -1925,14 +1928,122 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
 
 # ----------------------------------------------------------------------
 
+# ['vr_base_dset', 'copy_anat']
+def apqc_vorig_olap( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''Check initial overlap between the EPI 
+    (ulay) and anatomical (olay): || look at gross alignment'''
+
+    # Here, the tjson2 and ojson2 are to catch any image made because
+    # the EPI and/or anat has obliquity; these won't always be made,
+    # but we will generate the *_DEOB.json that would match its file
+    # name if it were.
+    pre = '''
+    set opref = {}
+    set ulay_name = `3dinfo -prefix ${{vr_base_dset}}`
+    set olay_name = `3dinfo -prefix ${{copy_anat}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.sag.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag_DEOB.json
+    '''.format( opref )
+
+    cmd = '''
+    @djunct_overlap_check
+    -ulay       ${copy_anat}
+    -olay       ${vr_base_dset}
+    -box_focus_slices AMASK_FOCUS_ULAY
+    -opacity    4    
+    -no_cor          
+    -no_axi          
+    -montx_cat  1    
+    -monty_cat  1    
+    -montx      7    
+    -prefix  ${odir_img}/${opref}.sag  # bc of quirk of program oname
+    '''
+
+    cmd2 = '''
+    # rename this file: won't be in QC, but can be viewed, if desired
+    if ( -e ${odir_img}/${opref}.sag_DEOB.txt ) then
+    ~~~~\\mv ${odir_img}/${opref}.sag_DEOB.txt       \\
+    ~~~~~~~~~${odir_img}/${opref}.sag_DEOB.txt_info
+    endif
+    '''
+
+    ttext = '''"Initial overlap, no obliquity: anat (ulay) and EPI (olay)"'''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    ttext2 = '''"Initial overlap, applying obliquity: anat (ulay) and EPI (olay)"'''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext2 )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd )
+    cmd2 = commandize( cmd2, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [ comm, pre, cmd, cmd2, 
+             jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd ]
+    return '\n\n'.join(lout)
+
+# ----------------------------------------------------------------------
 
 # ['final_anat', 'final_epi_dset']
 def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
-    comm  = '''Compare the quality of alignment between the anatomical 
-    (ulay) and edge-ified EPI (olay): || look at gross alignment || 
+    comm  = '''Compare the quality of alignment between the EPI 
+    (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
     follow ventricles and gyral patterns'''
 
     pre = '''

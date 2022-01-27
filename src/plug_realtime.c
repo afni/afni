@@ -383,6 +383,7 @@ static char helpstring[] =
    "                  be identical to using Current & Keep to begin with.\n"
    " Extern Dset  = The dataset to apply if Reg Base is 'External Dataset'\n"
    "                  For other Reg Base choices, this is ignored.\n"
+   "                * Note that the Base Image index also applies to Extern.\n"
    " Base Image   = The value sets the time index in the Reg Base dataset to\n"
    "                  which the alignment will take place.\n"
    " Src Chan     = For multi-channel/echo data, specify which channel will\n"
@@ -1246,6 +1247,8 @@ char * RT_main( PLUGIN_interface * plint )
                 "RT_opts: failed to load Extern Dset, index %d\n"
                 "*********************************************", regtime);
                return buf;
+            } else if ( verbose > 1 ) {
+               fprintf(stderr,"RT: extracting reg_base_dset[%d]\n", regtime);
             }
          } else if ( g_reg_base_dset ) {
             fprintf(stderr,"** ignoring Reg Base Dset...\n");
@@ -2291,14 +2294,21 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
      if( dname != NULL ){
        if( THD_filename_pure(dname) ){
          slf = THD_dset_in_session( FIND_PREFIX, dname, im3d->ss_now ) ; bset = slf.dset ;
+         if( bset && verbose > 1 )
+            fprintf(stderr,"RT Ext Reg: have session dname %s\n", dname) ;
+
          if( bset == NULL ){
            MCW_idcode idcode ;
            MCW_strncpy( idcode.str, dname, MCW_IDSIZE ) ;
            slf = THD_dset_in_session( FIND_IDCODE, &idcode, im3d->ss_now ) ; bset = slf.dset ;
+           if( bset && verbose > 1 )
+              fprintf(stderr,"RT Ext Reg: have session idcode %s\n", dname) ;
          }
        }
        if( bset == NULL ){
          bset = THD_open_dataset(dname) ;
+         if( bset && verbose > 1 )
+            fprintf(stderr,"RT Ext Reg: have open dset %s\n", dname) ;
        }
 
        /* could apply later THD_copy_one_sub(g_reg_base_dset, regtime) here */

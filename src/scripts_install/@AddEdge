@@ -234,14 +234,7 @@ set analistn = ()
 foreach ana ($analist)
    set anapref = `@GetAfniPrefix $ana`
    set anapref = `@NoExt $anapref nii nii.gz`
-   set scene = `3dAttribute -name SCENE_DATA $ana`
-   if ($scene[3] == 2) then
-      set anaview = "+tlrc"
-   else if ($scene[3] == 2) then
-      set anaview = "+acpc"
-   else 
-      set anaview = "+orig"
-   endif   
+   set anaview = `3dinfo -av_space $ana`
    if ("$ana" != "$anabox") then
       set anapref = ${anapref}${rs}
       3dresample -master $anabox -inset $ana -prefix $anapref \
@@ -284,31 +277,33 @@ else
    3dcopy $analist tmp_avg 
 endif
 #Get a nice cropping box
-3dAutobox   -input "3dcalc( -a tmp_avg+orig -b $epi -expr ((a+b)/2.0) )" \
-            -noclust -overwrite -prefix tmp_box+orig
+3dAutobox   -input "3dcalc( -a tmp_avg$anaview -b $epi -expr ((a+b)/2.0) )" \
+            -noclust -overwrite -prefix tmp_box$anaview
 if ( $status ) then
    echo "Error: 3dAutobox step failed"
    goto BEND
 endif
 
 EPI_EDGES:
+# apply AFNI view from input to output, even if NIFTI input
+set epiview = `3dinfo -av_space $epi`
+
 #Get epi edges
 3dedge3 -input $epi  -prefix  ${base_epipref}_e3
 
-
 set eth = ` 3dBrickStat -non-zero \
                -percentile  $epi_edge_perc_thresh 1 $epi_edge_perc_thresh \
-               ${base_epipref}_e3+orig`
+               ${base_epipref}_e3${epiview}`
 set eth = $eth[2]
 set eminval = `3dBrickStat -non-zero -min $epi`
 set emaxval = `3dBrickStat -non-zero -max $epi`
-3dcalc   -a $epi -b ${base_epipref}_e3+orig -overwrite -prefix ${epipref}_e \
+3dcalc   -a $epi -b ${base_epipref}_e3${epiview} -overwrite -prefix ${epipref}_e \
          -expr "(1-step(b-$eth))*a+step(b-$eth)*$eminval"
-3dresample  -master tmp_box+orig -rmode NN \
-            -overwrite -prefix ${base_epipref}_ec+orig \
-            -inset ${epipref}_e+orig
-set olist = ($olist ${base_epipref}_ec+orig.HEAD)
-rm -f ${epipref}_e+orig* 
+3dresample  -master tmp_box${anaview} -rmode NN \
+            -overwrite -prefix ${base_epipref}_ec${epiview} \
+            -inset ${epipref}_e${epiview}
+set olist = ($olist ${base_epipref}_ec${epiview}.HEAD)
+rm -f ${epipref}_e${epiview}* 
 
 foreach anain ($analist)
    set anat = $anain
@@ -326,19 +321,19 @@ foreach anain ($analist)
 
    set ath = `3dBrickStat -non-zero \
                   -percentile $anat_edge_perc_thresh 1 $anat_edge_perc_thresh \
-                  ${anatpref}_e3+orig`
+                  ${anatpref}_e3${anaview}`
    set ath = $ath[2]
 
 
    
    set amaxval = `3dBrickStat -max $anat`
-   3dcalc   -a $anat -b ${anatpref}_e3+orig -overwrite -prefix ${anatpref}_e \
+   3dcalc   -a $anat -b ${anatpref}_e3${anaview} -overwrite -prefix ${anatpref}_e \
             -expr "(1-step(b-$ath))*a+step(b-$ath)*$amaxval[1]"
-   3dresample  -master tmp_box+orig -rmode NN \
-               -overwrite -prefix ${anatpref}_ec+orig \
-               -inset ${anatpref}_e+orig
+   3dresample  -master tmp_box${anaview} -rmode NN \
+               -overwrite -prefix ${anatpref}_ec${anaview} \
+               -inset ${anatpref}_e${anaview}
                
-   set olist = ($olist ${anatpref}_ec+orig.HEAD)
+   set olist = ($olist ${anatpref}_ec${anaview}.HEAD)
    
    if (1) then
       #new highlighting method
@@ -353,9 +348,9 @@ foreach anain ($analist)
       #       3: Use 255 (cyan) when ONLY epi  has an edge
       #       4: Use 2 (purple) when ONLY anat has an edge
       # Used to be 255, 2, 252 (paper figures made me change mapping)
-      3dcalc   -a ${prs}epi_sc+orig \
-               -b ${anatpref}_e3+orig \
-               -c ${base_epipref}_e3+orig   \
+      3dcalc   -a ${prs}epi_sc${epiview} \
+               -b ${anatpref}_e3${anaview} \
+               -c ${base_epipref}_e3${epiview}   \
                -nscale -datum byte  \
                -overwrite -prefix ${epipref}_${anatpref}_e  \
                -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
@@ -372,8 +367,8 @@ foreach anain ($analist)
       #       3: Use eminval when ONLY epi has an edge
       #       4: Use emaxval when ONLY anat has an edge
       3dcalc   -a $epi \
-               -b ${anatpref}_e3+orig \
-               -c ${base_epipref}_e3+orig   \
+               -b ${anatpref}_e3${anaview} \
+               -c ${base_epipref}_e3${epiview}  \
                -overwrite -prefix ${epipref}_${anatpref}_e  \
                -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
                      + step(step(c-$eth)+step(b-$ath)-1.9)*$emaxval*1.2 \
@@ -382,20 +377,20 @@ foreach anain ($analist)
    endif
    
    set ooo = `echo ${base_epipref}_${anatpref}_ec`
-   3dresample  -master tmp_box+orig -rmode NN \
-               -overwrite -prefix ${ooo}+orig  \
-               -inset ${epipref}_${anatpref}_e+orig 
+   3dresample  -master tmp_box${anaview} -rmode NN \
+               -overwrite -prefix ${ooo}${anaview}  \
+               -inset ${epipref}_${anatpref}_e${epiview} 
    set olist = (  $olist \
-                  ${ooo}+orig.HEAD)               
+                  ${ooo}${anaview}.HEAD)               
    if ($rm_ae_temp == 1) then
-     rm -f ${anatpref}_e+orig* ${epipref}_${anatpref}_e+orig* 
+     rm -f ${anatpref}_e${anaview}* ${epipref}_${anatpref}_e${epiview}* 
    endif
 end
 
 if ($rm_ae_temp == 1) then
    rm -f ${prs}*
    rm -f ${prs}epi_sc* >& /dev/null
-   rm -f tmp_box+orig* tmp_avg+orig*
+   rm -f tmp_box+orig* tmp_avg+orig* tmp_box+tlrc* tmp_avg+tlrc*
 endif
 
 echo "Recommended commands:"
@@ -477,8 +472,8 @@ if ($do_rand == 1) then
       set pair_epi_ind = `ccalc -form int $pair_ana_ind + 1`
       set vola = $qlist[$pair_ana_ind]
       set vole = $qlist[$pair_epi_ind]
-      set rvola = ${uname}_ana${cnt}+orig
-      set rvole = ${uname}_epi${cnt}+orig
+      set rvola = ${uname}_ana${cnt}${anaview}
+      set rvole = ${uname}_epi${cnt}${epiview}
       echo "$cnt <-- $rli[$cnt]" >> ${uname}${dd}_randmap.txt 
       if (`@CheckForAfniDset ${rvola}` == 0) then
          echo "Creating $rvola, patience..."
