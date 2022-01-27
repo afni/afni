@@ -43,6 +43,12 @@ ver = 2.72;  date = Dec 26, 2021
 + [PT] fix help to give correct option name: -bounds_are_not_zero
   - who knew that missing out 'not' could change meaning so much?
 
+ver = 2.73;  date = Jan 24, 2022
++ [PT] simply rename some functions internally
+  - ones that are specifically the 'general' multiROI alg have "_GEN" as part
+    of their name, to distinguish them from _BIN ones (latter, only for
+    binary input mask)
+
 */
 
 #include <stdio.h>
@@ -443,7 +449,7 @@ int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
    }
    else{
       for( nn=0 ; nn<nvals ; nn++ )
-         i = calc_EDT_3D(dset_edt, opts, dset_roi, dset_mask, nn);
+         i = calc_EDT_3D_GEN(dset_edt, opts, dset_roi, dset_mask, nn);
    }
    
    // free input dset
