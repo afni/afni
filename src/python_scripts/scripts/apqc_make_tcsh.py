@@ -180,22 +180,36 @@ auth = 'PA Taylor'
 # [PT] adjunct*tsnr: '-no_cor' to not make coronal plane images
 #    + keep applying new opt
 #
-ver = '3.78' ; date = 'Sep 27, 2021'
+#ver = '3.78' ; date = 'Sep 27, 2021'
 # [PT] Due to recent changes (from ~Aug 23) in label_size defaults
 #      in imseq.c, adjust the default labelsize from 3 -> 4.
 #    + this should restore labels to their longrunning size (since Aug
 #      23 they have been one size smaller by default); but the new font
 #      will be bolder than previously, due to those imseq.c changes.
 #
-ver = '3.8' ; date = 'Jan 18, 2022'
+#ver = '3.8' ; date = 'Jan 18, 2022'
 # [PT] Add 'mecho' QC block
 #    + pretty much just for combine_method=m_tedana for starters
+#
+#ver = '3.9' ; date = 'Jan 20, 2022'
+# [PT] major update to vstat block, for task-based FMRI data
+#    + larger selection of stats data automatically imagized, with new
+#      internal logic to handle this.  See new library lib_apqc_stats_dset.py
+#
+#ver = '3.91' ; date = 'Jan 20, 2022'
+# [PT] add in comment at top of @ss_review_html script, echoing the
+#      command used to create the script; also put text there if
+#      'pythonic' mode was downgraded to 'basic' 
+#
+#ver = '3.92' ; date = 'Jan 25, 2022'
+# [PT] vorig has new image: copy_anat dset
+#
+ver = '3.93' ; date = 'Jan 26, 2022'
+# [PT] epi-anat overlap in vorig QC block 
 #
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
-#  uvars to add in officially still:
-#    "anat_orig": "copy_af_anat_w_skull+orig.HEAD",
 
 
 import sys
@@ -203,11 +217,13 @@ import os
 import json
 import glob
 
-from afnipy import afni_base      as BASE
-from afnipy import afni_util      as UTIL
-from afnipy import lib_apqc_tcsh  as lat
-from afnipy import lib_ss_review  as lssr
-from afnipy import lib_apqc_io    as laio
+from afnipy import afni_base           as BASE
+from afnipy import afni_util           as UTIL
+from afnipy import lib_apqc_tcsh       as lat
+from afnipy import lib_apqc_stats_dset as lasd
+from afnipy import lib_ss_review       as lssr
+from afnipy import lib_apqc_io         as laio
+from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
 all_uvars = []
@@ -279,6 +295,8 @@ if __name__ == "__main__":
     the data throughout its processing.  Results for this subject are
     stored in '{0}_{1}' and may be viewed using an standard browser, e.g.: 
     || ||
+    ~~~~afni_open -b {0}_{1}/{2}
+    || ||
     ~~~~firefox {0}_{1}/{2}
     || ||
     The script can be re-run.  Variables are defined in the 'Top level'
@@ -287,10 +305,32 @@ if __name__ == "__main__":
     copying them into a new file), as long as the 'Top level' sections are
     all present.
 
-    '''.format( lat.qcbase, ap_ssdict['subj'], lat.ohtml )
+    '''.format( lat.qcbase, ap_ssdict['subj'], lat.ohtml)
 
     comm     = lat.commentize(comm, padpost=2)
     str_FULL+= comm
+
+    # Add in script used to write this script
+    full_argv = ' '.join(['apqc_make_tcsh.py'] + sys.argv[1:])
+    cmd_log = '''# This script was created with this command:\n'''
+    cmd_log+= lfcs.afni_niceify_cmd_str(full_argv, 
+                                        comment_start = '#    ',
+                                        max_lw = 74)[1]
+    str_FULL+= cmd_log + "\n"
+
+    if iopts.pythonic2basic :
+        comm_p2b = ''' 
+        +* WARNING: The user asked for 'pythonic' APQC, but there are
+        missing dependencies.  This APQC run was therefore downgraded
+        to 'basic'.
+        || 
+        -> To fix: Please check the warnings in out.review_html, but
+        likely Matplotlib is missing or has version<2.2.  You can add
+        this dependency (verify with 'afni_system_check.py
+        -check_all') and redo the APQC pythonically.'''
+        comm_p2b     = lat.commentize(comm_p2b, padpre=1, padpost=1)
+        str_FULL+= comm_p2b
+
 
     # ------------------------------------------------------------------
 
@@ -440,17 +480,33 @@ if __name__ == "__main__":
     # QC block: "vorig"
     # item    : anat in orig
 
-    ### [PT: Dec 21, 2018] will come back to this with a uvars for the
-    ### vr_base set
-    ldep  = ['anat_orig']
+    ldep  = ['copy_anat']
     if lat.check_dep(ap_ssdict, ldep) :
         volitem  = "anat" # because we use same func to plot for both
-                         # EPI and anat vols
+                          # EPI and anat vols
         # no focus_box necessary here
         ban      = lat.bannerize('{} in orig space'.format(volitem))
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
                                        ulay_name=ldep[0] )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : init EPI anat overlap
+
+    ldep  = ['vr_base_dset', 'copy_anat']
+    if lat.check_dep(ap_ssdict, ldep) :
+
+        # no focus_box necessary here
+        ban      = lat.bannerize('initial EPI-anatomical overlap')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_olap( obase, "vorig", "olap" )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -518,11 +574,14 @@ if __name__ == "__main__":
         focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
 
     if DO_VSTAT_TASK :
-        all_vstat = ["Full_Fstat"]
-        if lat.check_dep(ap_ssdict, ldep3) :
-            all_vstat.extend(ap_ssdict[ldep3[0]])
-        all_vstat_obj = lat.parse_stats_dset_labels( ap_ssdict['stats_dset'], 
-                                                     all_vstat )
+        ### [PT: Jan 20, 2022: changing the way this works now.  There
+        ### is a larger set of data chosen for default display
+        ### now---later will also add more control for user to specify
+        ### items.
+        #all_vstat = ["Full_Fstat"]
+        #if lat.check_dep(ap_ssdict, ldep3) :
+        #    all_vstat.extend(ap_ssdict[ldep3[0]])
+        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'] )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):

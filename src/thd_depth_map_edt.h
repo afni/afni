@@ -88,9 +88,6 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
                            int *onoff_arr, int verb );
 
-int apply_opts_to_edt_arr( float ***arr_dist, PARAMS_euclid_dist opts,
-                           THD_3dim_dataset *dset_roi, int ival);
-
 /*
   Set of funcs for special case of user saying the input is a binary
   mask.
@@ -114,20 +111,23 @@ int apply_opts_to_edt_arr_BIN( float ***arr_dist, float ***arr_distZ,
 /*
   Set of funcs for more general case of ROI map input.
 */
-int calc_EDT_3D( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
-                 THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
-                 int ival);
-int calc_EDT_3D_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr );
-int calc_EDT_3D_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr );
-int calc_EDT_3D_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
-                      THD_3dim_dataset *dset_roi, int ival,
-                      float *flarr, float *workarr, int *maparr );
-int run_EDTD_per_line( float *dist2_line, float *warr, int *roi_line, int Na,
-                       float delta, int bounds_are_zero, int binary_only );
+int calc_EDT_3D_GEN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
+                     THD_3dim_dataset *dset_roi, THD_3dim_dataset *dset_mask,
+                     int ival);
+int calc_EDT_3D_GEN_dim0( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr );
+int calc_EDT_3D_GEN_dim1( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr );
+int calc_EDT_3D_GEN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
+                          THD_3dim_dataset *dset_roi, int ival,
+                          float *flarr, float *workarr, int *maparr );
+int apply_opts_to_edt_arr_GEN( float ***arr_dist, PARAMS_euclid_dist opts,
+                               THD_3dim_dataset *dset_roi, int ival);
+int run_EDTD_GEN_per_line( float *dist2_line, float *warr, int *roi_line,
+                           int Na,
+                           float delta, int bounds_are_zero, int binary_only );
 
 /*
   This always applies (whether input is binary mask or ROI map)---

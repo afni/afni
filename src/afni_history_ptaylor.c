@@ -69,17 +69,52 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+{ 26, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Update QC block: vorig now shows the epi-anat overlap.",
+   "Shows overlap with ignoring obliquity and applying it (if present).\n"
+},
+
+{ 26, Jan , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_BUG_FIX,
+   "Fix how -box_focus_slices opt works in another aspect.",
+   "Now should actually be used (had to turn off internal coord selection).\n"
+},
+
+{ 26, Jan , 2022 , PT , "@djunct_overlap_check" , MINOR , TYPE_BUG_FIX,
+   "Fix how -box_focus_slices opt works if one of the AMASK* keywords is used.",
+   "Previously was producing error, not recognizing it wasn't a dset.\n"
+},
+
+{ 25, Jan , 2022 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
+   "Add in existin chauffeur options: -no_cor, -no_axi, -no_sag.",
+   "For APQC---vorig of initial overlap.\n"
+},
+
+{ 25, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Update QC block: vorig now shows the 'copy_anat' dset.",
+   "Applies in all cases; AP just passes along uvar.  Thanks, RCR!\n"
+},
+
+{ 24, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
+   "Renaming some internal funcs, for clarity.",
+   "Multi-ROI funcs get '_GEN' in name now, to distinguish from '_BIN' ones.\n"
+},
+
+{ 20, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Update QC block: vstat (for task-based FMRI cases).",
+   "There will now be typically up to 5 stats dsets shown (GLT and other).\n"
+},
+
+{ 18, Jan , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Add a new QC block:  mecho.",
    "This is for multi-echo (ME) FMRI; mostly for m_tedana right now.\n"
 },
 
-{ 22, Jan , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+{ 18, Jan , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
    "New functions/functionality for the new QC block:  mecho.",
    "Also tweaked/updated the help.\n"
 },
 
-{ 22, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+{ 13, Jan , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Do a check if the user asks for 'pythonic' APQC.",
    "If their system CAN'T HANDLE THE TRUTH, then downgrade kindly to 'basic'.\n"
 },

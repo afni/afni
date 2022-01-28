@@ -68,10 +68,14 @@
 #    + new opt for 1dplot.py, to control y-axis label length, wrapping:
 #      "-ylabels_maxlen .."
 #
-ver = '1.93' ; date = 'Jan 13, 2022' 
+#ver = '1.93' ; date = 'Jan 13, 2022' 
 # [PT] 
 #    + check if user entered 'pythonic', but their system CAN'T HANDLE 
 #      THE TRUTH, and just downgrade to 'basic'
+#
+ver = '1.94' ; date = 'Jan 20, 2022' 
+# [PT] add in obj attribute so warning about pythonic->basic can be 
+#      more directly provided to user
 #
 #########################################################################
 
@@ -1753,6 +1757,7 @@ class apqc_tcsh_opts:
         self.json     = ""
         self.subjdir  = ""
         self.revstyle = "basic"
+        self.pythonic2basic = 0
 
     def set_json(self, json):
         self.json = json
@@ -1782,6 +1787,8 @@ class apqc_tcsh_opts:
             # if user asks for Pythonic but sys is not set up for it,
             # downgrade back to 'basic'
             checked_style = check_apqc_pythonic_ok()
+            if checked_style != self.revstyle :
+                self.pythonic2basic = 1
             self.set_revstyle(checked_style)
 
         return MISS
