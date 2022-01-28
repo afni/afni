@@ -1627,6 +1627,10 @@ class Afni1D:
          print("** missing filename for write")
          return 1
 
+      # bail if empty
+      if self.nt == 0:
+         return 0
+
       if fname == '-' or fname == 'stdout': fp = sys.stdout
       else:
          # normal file name: check existence and open
