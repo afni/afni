@@ -28,6 +28,7 @@ MTYPE_DUR  = 2   # duration modulation
 # global variables
 g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
 g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
+g_1D_write_styles   = [ 'basic', 'pretty', 'ljust', 'rjust', 'tsv' ]
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -1602,18 +1603,22 @@ class Afni1D:
 
    # ----------------------------------------------------------------------
 
-   def write(self, fname, sep=" ", overwrite=0, with_header=0):
+   def write(self, fname, sep=" ", overwrite=0, with_header=0, style='basic'):
       """write the data to a new .1D file
 
             fname       : filename is required
             sep         : separator between elements
             overwrite   : whether to allow overwrite
             with_header : include comment-style header info
+            style       : how should values be presented
+                          basic     - just print the numbers
+                          pretty    - space columns to align
+                          tsv       - apply sep as '\t'
 
          return status"""
 
-      if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s' \
-                              %(fname, overwrite, with_header))
+      if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s, s=%s' \
+                              %(fname, overwrite, with_header, style))
 
       if not self.ready:
          print("** Afni1D not ready for write to '%s'" % fname)
@@ -1638,10 +1643,46 @@ class Afni1D:
          hstr = self.make_xmat_header_string()
          if hstr != '': fp.write(hstr+'\n#\n')
 
+      # convert to strings initially, in case of pretty output
+      smat = []
       for row in range(self.nt):
-         fp.write(sep.join(['%g' % self.mat[i][row] for i in range(self.nvec)]))
-         fp.write('\n')
+         srow = ['%g' % self.mat[i][row] for i in range(self.nvec)]
+         smat.append(srow)
 
+      # ------------------------------------------------------------
+      # possibly show output in different ways
+      # (should be one of g_1D_write_styles)
+
+      # these styles are similar
+      if style in ['pretty', 'rjust', 'ljust']:
+         # pretty will be made prettier, one day, maybe
+         if style == 'pretty':
+            print("** 1D writing style '%s' not yet available" % style)
+            return 1
+
+         if style == 'rjust':
+            form = '%*s'
+         else:
+            form = '%-*s'
+         # compute max length
+         gmax = max([max([len(s) for s in srow]) for srow in smat])
+         for srow in smat:
+            fp.write(sep.join([form % (gmax,s) for s in srow]))
+            fp.write('\n')
+
+      elif style == 'tsv':
+         sep = '\t'
+         for srow in smat:
+            fp.write(sep.join(srow))
+            fp.write('\n')
+
+      else:   # 'basic'
+         for trow in smat:
+            fp.write(sep.join(trow))
+            fp.write('\n')
+
+      # ------------------------------------------------------------
+      # done printing
       fp.close()
 
       return 0

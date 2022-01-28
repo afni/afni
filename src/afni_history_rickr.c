@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jan, 2022, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add options -write_sep, -write_style, to control format of output",
+   NULL
+ } ,
+
  { 24, Jan, 2022, RCR, "suma", MICRO, TYPE_BUG_FIX,
    "fix dupe symbol (clippingPlaneFile) error for mac 12",
    "As reported by the international man of mistery, P Kundu."

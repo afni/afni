@@ -1147,6 +1147,15 @@ general options: ~2~
 
    -write FILE                  : write the current 1D data to FILE
 
+   -write_sep SEP               : use SEP for column separators
+
+   -write_style STYLE           : write using one of the given styles
+
+        basic:      the default, don't work too hard
+        ljust:      left-justified columns of the same width
+        rjust:      right-justified columns of the same width
+        tsv:        tab-separated (use <tab> as in -write_sep '\\t')
+
    -weight_vec v1 v2 ...        : supply weighting vector
 
         e.g. -weight_vec 0.9 0.9 0.9 1 1 1
@@ -1294,9 +1303,10 @@ g_history = """
    2.11 Oct  8, 2021 - added -show_xmat_stim_info, -show_xmat_stim_info
    2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
    2.13 Dec 19, 2021 - added -show_distmat
+   2.14 Jan 27, 2022 - added -write_sep, -write_style
 """
 
-g_version = "1d_tool.py version 2.13, December 19, 2021"
+g_version = "1d_tool.py version 2.14, January 27, 2022"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1396,6 +1406,8 @@ class A1DInterface:
       self.collapse_file   = None       # output as 1D collapse file
       self.write_file      = None       # output filename
       self.write_header    = 0          # include header on write
+      self.write_sep       = ' '        # separator for output
+      self.write_style     = 'basic'    # control the style of writing
 
       self.weight_vec      = None       # weight vector (for enorms?)
 
@@ -1440,7 +1452,9 @@ class A1DInterface:
          print('** no 1D data to write')
          return 1
       return self.adata.write(fname, overwrite=self.overwrite,
-                                     with_header=self.write_header)
+                              sep=self.write_sep,
+                              with_header=self.write_header,
+                              style=self.write_style)
 
    def write_as_timing(self, fname, invert=0):
       """write the current 1D data out as a timing file, where a time
@@ -1736,6 +1750,13 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-write_xstim', 1, [], 
                       helpstr='write 1D stim matrix w/header to file')
+
+      self.valid_opts.add_opt('-write_style', 1, [], 
+                      acplist = LAD.g_1D_write_styles,
+                      helpstr='style to write 1D file in')
+
+      self.valid_opts.add_opt('-write_sep', 1, [], 
+                      helpstr='separator for 1D columns')
 
       self.valid_opts.add_opt('-write_with_header', 1, [], 
                       acplist = ['yes', 'no'],
@@ -2210,6 +2231,16 @@ class A1DInterface:
 
          elif opt.name == '-write_with_header':
             self.write_header = OL.opt_is_yes(opt)
+
+         elif opt.name == '-write_sep':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.write_sep = val
+
+         elif opt.name == '-write_style':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.write_style = val
 
          # convenience option
          elif opt.name == '-write_xstim':
