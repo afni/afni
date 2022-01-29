@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2022, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
+   "add -extras_on_one_line",
+   "To display any 'extra' values using only one line, per TR."
+ } ,
+
  { 29, Jan, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "do not apply -execute if no new main script",
    "So -write_3dD_script will not -execute."

@@ -43,6 +43,7 @@ class RTInterface:
    def __init__(self, verb=1):
 
       # general variables
+      self.extras_one_line = 0                  # disp extras on one line only
       self.show_data       = 0                  # display data in terminal
       self.show_times      = 0                  # display run times for data
       self.swap            = 0                  # byte-swap binary numbers
@@ -355,13 +356,20 @@ class RTInterface:
 
       # version 2, each voxel on one line
       elif self.version in [2,3] and self.nextra > 0:
-         self.print_floats_multi_line(self.extras, self.nextra, tr, eprefix)
+         if self.extras_one_line:
+            self.print_floats_one_line(self.extras, self.nextra, tr, eprefix)
+         else:
+            self.print_floats_multi_line(self.extras, self.nextra, tr, eprefix)
 
       # version 4, ADDITIONALLY show extras2
       elif self.version == 4 and (self.nextra > 0 or self.nextra2 > 0):
          ep2 = "++ recv %d extra2:   "%(self.nextra2)
-         self.print_floats_multi_line(self.extras, self.nextra,  tr, eprefix)
-         self.print_floats_multi_line(self.extra2, self.nextra2, tr, ep2)
+         if self.extras_one_line:
+            self.print_floats_one_line(self.extras, self.nextra,  tr, eprefix)
+            self.print_floats_one_line(self.extra2, self.nextra2, tr, ep2)
+         else:
+            self.print_floats_multi_line(self.extras, self.nextra,  tr, eprefix)
+            self.print_floats_multi_line(self.extra2, self.nextra2, tr, ep2)
 
    def print_floats_one_line(self, data, nvals, tr, mesg):
          print(UTIL.gen_float_list_string([data[i][tr] for i in
