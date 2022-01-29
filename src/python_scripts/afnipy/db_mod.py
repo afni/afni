@@ -11037,7 +11037,7 @@ g_help_options = """
 
            The file naming between older and newer tedana versions (or newer
            using "tedana --convention orig") is shown with this option.  For
-           example, the denoised time series after beinng Optimially Combined
+           example, the denoised time series after being Optimially Combined
            has possible names of:
 
                orig                 BIDS
