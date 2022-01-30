@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2022, RCR, "README.environment", MICRO, TYPE_ENHANCE,
+   "update AFNI_REALTIME_Mask_Vals with new modes",
+   "Describe All_Data_light and ROIs_and_data."
+ } ,
+
  { 29, Jan, 2022, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
    "add -extras_on_one_line",
    "To display any 'extra' values using only one line, per TR."

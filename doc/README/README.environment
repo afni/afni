@@ -3871,12 +3871,25 @@ AFNI_REALTIME_Mask_Vals  = String (one of the listed strings)
 
         This allows the user to set the "Vals to Send" field from the RT
         plugin's "Mask" line. It determines what data are sent to the remote
-        MP program (e.g. serial_helper). Valid strings are:
+        MP program (e.g. serial_helper).
 
-            None        - send nothing
-            Motion_Only - send only the 6 registration parameters
-            ROI_means   - send the mean EPI value per mask ROI (value) per TR
-            All_Data    - send each voxel value (in mask) per TR
+        Sending data requires '3D realtime registration'.
+
+        Valid strings are:
+
+            None             - send nothing
+            Motion_Only      - send only the 6 registration parameters
+            ROI_means        - send mean EPI value per mask ROI (value) per TR
+                               (in addition to motion)
+            All_Data         - (heavy) send each voxel value (in mask) per TR
+                               (in addition to motion)
+            All_Data_light   - send each voxel value (in mask) per TR
+                               (no extras)
+            ROIs_and_data    - a mix of ROI_means and All_Data (light)
+                               (the "Javier special" method)
+                               1. for non-1 ROIs, send ROI means
+                               2. for ROI-1, send all voxel data
+                               (non-1 means come before ROI-1 data)
 
 AFNI_REALTIME_Mask_Dset  = String (the name of a dataset)
 
