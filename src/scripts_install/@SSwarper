@@ -17,7 +17,7 @@
 #
 #set version   = "1.2"; set rev_dat   = "July 5, 2018"
 #   + set check if OMP_NUM_THREADS is explicitly set, so echoing don't
-#     break it -- thanks P. Molfese et al.!
+#     break it -- thanks P. Molfese et al.
 #
 #set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
 #   + [PT] bug fix-- 3danisosmooth cmd was missing ${odir} on I/O
@@ -37,7 +37,7 @@
 #
 #set version   = "1.43"; set rev_dat   = "Feb 21, 2019"
 #   + [PT] include '-Urad 30' in unifizing part, for improving
-#     final output-- thanks for careful code reading, Yoichi!
+#     final output-- thanks for careful code reading, Yoichi
 #
 #set version   = "1.44"; set rev_dat   = "Mar 27, 2019"
 #   + [RWC] add '-SSopt' option for adding options to 3dSkullStrip
@@ -107,7 +107,7 @@
 #            looked like "junk.SSwarper.1DfZbuq78qk.nii".  When 3dcalc
 #            got hold of such a file, it complained about not being
 #            able to read a *.1D file, because that combination
-#            appears in the middle of a filename (!?!?), but it output
+#            appears in the middle of a filename (???), but it output
 #            correctly; however, 3dNwarpApply wanted none of it, and
 #            produced a fatal error.
 #          - Anyways, we can avoid this one in a bazillion hassleby
@@ -133,9 +133,14 @@
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "2.53";   set rev_dat   = "Sep 28, 2021"
+#set version   = "2.53";   set rev_dat   = "Sep 28, 2021"
 #     + [PT] cp initial/raw anat to $odir 
 #          + also cp any initial/raw mask_ss to $odir 
+#
+set version   = "2.54";   set rev_dat   = "Feb 1, 2022"
+#     + [PT] Put clearer ERROR messaging in a couple spots
+#          + remove any non-programmatic exclamation marks. those are BAD
+#            to have in t/csh scripts, even in comments.
 #
 # ----------------------------------------------------------------
 
@@ -389,20 +394,25 @@ else
 endif
 
 if ( "$Adataset" == "" ) then
-  echo "***** No -input option? :("
+  echo "** ERROR: No -input option? :("
+  goto BAD_EXIT
+endif
+
+if ( "$Basedset" == "" ) then
+  echo "** ERROR No -base option? :("
   goto BAD_EXIT
 endif
 
 if ( ! -f "$Adataset" ) then
   set chad = `@CheckForAfniDset "$Adataset"`
   if ( "$chad" == "0" || "$chad" == "1" ) then
-    echo "***** ${this_prog} -- Not finding dset $Adataset -- exiting :(("
+    echo "** ERROR: ${this_prog} -- Not finding dset $Adataset -- exiting :(("
     goto BAD_EXIT
   endif
 endif
 
 if ( "$SubID" == "" ) then
-  echo "***** ${this_prog} -- no subject ID entered with -subid? :("
+  echo "** ERROR ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
 endif
 
@@ -462,7 +472,7 @@ else
     set pref = $odir/junk_ssw_
 endif 
 
-# ---------------------------- !! this will change !! -------------------
+# ---------------------------- this will change -------------------
 #### ----> also add check that it has multiple subbricks
 
 ## find the base template dataset: start by seeing if it has been
@@ -482,8 +492,8 @@ endif
 ## Require it to have enough bricks to really be a ref
 set nvolbase = `3dinfo -nv "$Basedset"`
 if ( $nvolbase < 5 ) then
-    echo "** Base $Basedset only has $nvolbase volumes:"
-    echo "   to serve as a reference for $this_prog, it needs 4!"
+    echo "** ERROR: Base $Basedset only has $nvolbase volumes:"
+    echo "   to serve as a reference for $this_prog, it needs 4."
     echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
     goto BAD_EXIT
 endif
@@ -1164,7 +1174,7 @@ the QC process.
 This program cordially ties in directly with afni_proc.py, so you can
 run it beforehand, check the results, and then provide both the
 skull-stripped volume and the warps to the processing program.  That
-is convenient!
+is convenient.
 
 Current version = $version
 Authorship      = Bob, Bob, there is one Bob, He spells it B-O-B.
@@ -1241,7 +1251,7 @@ grown/improved over time):
   -deoblique :(opt) apply obliquity information to deoblique the input
               volume ('3dWarp -deoblique -wsinc5 ...'), as an initial step.
               This might introduce the need to overcome a large rotation
-              during the alignment, though!
+              during the alignment, though
 
   -deoblique_refitly :(opt) purge obliquity information to deoblique
               the input volume (copy, and then '3drefit -deoblique ...'), 
@@ -1552,7 +1562,7 @@ WHAT TO DO IF RESULTS ARE WAY OFF? ~1~
     -SSopt '-blur_fwhm 3'
 
   Any other questions/oddities, please don't hesitate to inquire on
-  the AFNI Message Board!
+  the AFNI Message Board
 
 EXAMPLES ~1~
 
@@ -1599,7 +1609,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:
