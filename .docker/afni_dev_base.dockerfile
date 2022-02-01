@@ -142,7 +142,10 @@ ENV PATH="/opt/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
 
 RUN mkdir $PYTHONUSERBASE
 # Add some more test dependencies
-RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py \
+# [PT: Feb 1, 2022] CircleCI wanted the following change, because we
+# specifically use Python 3.6 (alternatively, could update the ver of Python
+# below?)
+RUN curl -fsSL https://bootstrap.pypa.io/pip/3.6/get-pip.py \
      | python3 - --no-cache-dir --prefix $PYTHONUSERBASE
 RUN python3 -m pip install \
       --no-cache-dir \
