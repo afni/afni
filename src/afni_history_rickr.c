@@ -53,6 +53,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jan, 2022, RCR, "README.environment", MICRO, TYPE_ENHANCE,
+   "update AFNI_REALTIME_Mask_Vals with new modes",
+   "Describe All_Data_light and ROIs_and_data."
+ } ,
+
+ { 29, Jan, 2022, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
+   "add -extras_on_one_line",
+   "To display any 'extra' values using only one line, per TR."
+ } ,
+
+ { 29, Jan, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "do not apply -execute if no new main script",
+   "So -write_3dD_script will not -execute."
+ } ,
+
+ { 27, Jan, 2022, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add options -write_sep, -write_style, to control format of output",
+   NULL
+ } ,
+
  { 24, Jan, 2022, RCR, "suma", MICRO, TYPE_BUG_FIX,
    "fix dupe symbol (clippingPlaneFile) error for mac 12",
    "As reported by the international man of mistery, P Kundu."

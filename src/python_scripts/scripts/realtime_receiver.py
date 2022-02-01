@@ -183,6 +183,8 @@ realtime_receiver.py - program to receive and display real-time plugin data
                    all_extras   : send all 'extra' values (ROI or voxel values)
                    diff_ratio   :  (a-b)/(abs(a)+abs(b)) for 2 'extra' values
          * To add additional CHOICE methods, see the function compute_TR_data().
+      -extras_on_one_line yes/no: show 'extras' on one line only
+                                  (default = no)
       -dc_params P1 P2 ...      : set data_choice parameters
                                   e.g. for diff_ratio, parmas P1 P2
                                      P1 = dr low limit, P2 = scalar -> [0,1]
@@ -214,9 +216,10 @@ g_history = """
    1.0  Jan 01, 2018 : python3 compatible, added -write_text_data
    1.1  Jan 22, 2020 : added handling of magic version 3 (all data light)
    1.2  Jan 23, 2020 : added handling of magic version 4 (ROIs and data)
+   1.3  Jan 29, 2022 : added -extras_on_one_line
 """
 
-g_version = "realtime_receiver.py version 1.2, January 23, 2020"
+g_version = "realtime_receiver.py version 1.3, January 29, 2022"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
@@ -274,6 +277,9 @@ class ReceiverInterface:
                       helpstr='which data to send (motion, motion_norm,...)')
       valid_opts.add_opt('-dc_params', -2, [],
                       helpstr='set parameters for data_choice processing')
+      valid_opts.add_opt('-extras_on_one_line', 1, [],
+                      acplist=['no', 'yes'],
+                      helpstr='print sets of data each on only 1 line')
       valid_opts.add_opt('-serial_port', 1, [],
                       helpstr='serial port filename (e.g. /dev/ttyS0 or COM1)')
       valid_opts.add_opt('-show_data', 1, [],
@@ -375,6 +381,11 @@ class ReceiverInterface:
       if val != None and not err:
          if val == 'no': self.RTI.show_data = 0
          else:           self.RTI.show_data = 1
+
+      val, err = uopts.get_string_opt('-extras_on_one_line')
+      if val != None and not err:
+         if val == 'no': self.RTI.extras_one_line = 0
+         else:           self.RTI.extras_one_line = 1
 
       if uopts.find_opt('-show_comm_times'): self.RTI.show_times = 1
       if uopts.find_opt('-swap'): self.RTI.swap = 1

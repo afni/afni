@@ -709,9 +709,10 @@ g_history = """
        - rename m_tedana_tedort to m_tedana_m_tedort
          (reserve m_tedana_tedort for AFNI tedort projection)
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
+    7.26 Jan 29, 2022: allow execution only we have made the main script
 """
 
-g_version = "version 7.25, January 24, 2022"
+g_version = "version 7.26, January 29, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -4445,8 +4446,9 @@ def run_proc():
        if ppi_proc == None: return rv
        del(ppi_proc)
 
-    # finally, execute if requested
-    if proc.user_opts.find_opt('-execute'): rv = os.system(proc.bash_cmd)
+    # finally, execute if requested (only if we made the full script)
+    if proc.make_main_script and proc.user_opts.find_opt('-execute'):
+       rv = os.system(proc.bash_cmd)
 
     return rv
 

@@ -390,7 +390,7 @@ class TimingClass:
       """
       ival = int(random.uniform(0,nvals))
       if ival >= nvals:
-         ival -= 1
+         ival = nvals-1
       return ival
 
    def decay_apply_max_limit_old(self, dlist, nmax):
