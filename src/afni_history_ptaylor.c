@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Feb , 2021 , PT , "3dedge3" , MINOR , TYPE_NEW_OPT,
+   "Adding -automask (and -automask+X) functionality.",
+   "Mainly to help with comparisons with 3dedgedog.\n"
+},
+
 { 1, Feb , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
    "Some clearer error messaging (esp. if not '-base ..' is used).",
    "Remove any non-programmatic exclamation marks--even from comments.\n"
