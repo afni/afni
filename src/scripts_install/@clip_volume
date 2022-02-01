@@ -53,6 +53,8 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -crop : Same as -crop_greedy, kept for backward compatibility"
    echo "      -crop_npad NPAD: set 3dAutobox's -npad option to NPAD"
    echo "                       Option is meaningless without -crop options"
+   echo "                       Use NPAD to fatten the volume a little after"
+   echo "                       cropping"
    echo "      -prefix PRFX  : Use PRFX for output prefix. Default is the "
    echo "                      input prefix with _clp suffixed to it."
    echo "      -followers DSET1 DSET2 ...: Apply the same treatment to the"
