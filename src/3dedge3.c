@@ -24,6 +24,12 @@ int main( int argc , char * argv[] )
 
    int do_inedge=0 ;  /* Jul 2018 */
 
+   /* [PT: Feb 1, 2022] for automasking, with infl */
+   int do_automask = 0;  
+   int amask_ndil  = 0; 
+   char *auto_tstring = NULL;
+   byte *mask_arr = NULL;                      // what mask becomes
+
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -33,10 +39,15 @@ int main( int argc , char * argv[] )
  "by Gregoire Malandain (gregoire.malandain@sophia.inria.fr)\n"
  "\n"
  "Options :\n"
+ "\n"
  "  -input iii  = Input dataset\n"
+ "\n"
  "  -verbose    = Print out some information along the way.\n"
+ "\n"
  "  -prefix ppp = Sets the prefix of the output dataset.\n"
+ "\n"
  "  -datum ddd  = Sets the datum of the output dataset.\n"
+ "\n"
  "  -fscale     = Force scaling of the output to the maximum integer range.\n"
  "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
  "                  to get the same scaling factor.\n"
@@ -48,6 +59,15 @@ int main( int argc , char * argv[] )
  "                      what I suspect to be truncation problems.\n"
  "                      Multiplying such a dataset by 10000 fixes the problem\n"
  "                      and the scaling is undone at the output.\n"
+ "\n"
+ "  -automask   = For automatic, internal calculation of a mask in the usual\n"
+ "                AFNI way. Again, this mask is only applied after all calcs\n"
+ "                (so using this does not speed up the calc or affect\n"
+ "                distance values).\n"
+ "                ** Special note: you can also write '-automask+X', where\n"
+ "                X is some integer; this will dilate the initial automask\n"
+ "                number of times (as in 3dAllineate); must have X>0.\n"
+ "\n"
 #if 0
  "\n"
  "  -inedge     = Process the #0 sub-brick like the '-inedge' option of\n"
@@ -157,6 +177,20 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      if( strncmp(argv[nopt],"-automask", 9) == 0 ) {
+         do_automask = 1;
+
+         auto_tstring = argv[nopt];
+         if ( auto_tstring[9] == '+' && auto_tstring[10] != '\0' ) {
+            amask_ndil = (int) strtod(auto_tstring+10, NULL);
+            if ( amask_ndil <= 0 )
+               ERROR_exit("Cannot have number of dilations (%d) <=0.",
+                          amask_ndil);
+         }
+         
+         nopt++ ; continue ;
+      }
+
       fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
       exit(1) ;
    }
@@ -237,8 +271,6 @@ int main( int argc , char * argv[] )
         exit(0) ;
       }
 #endif
-
-      /*-- Edge detect each sub-brik --*/
       
       indims[0] = DSET_NX(inset);
       indims[1] = DSET_NY(inset);
@@ -246,6 +278,41 @@ int main( int argc , char * argv[] )
       border[0] = 50;
       border[1] = 50;
       border[2] = 50;
+
+      if ( do_automask) {
+         int i, j, nvox;
+         int nmask= -1; 
+
+         nvox = DSET_NVOX(inset);
+
+         mask_arr = THD_automask( inset );
+         if( mask_arr == NULL )
+            ERROR_exit("Can't create -automask from input dataset?");
+
+         if( amask_ndil ){
+            if( verb )
+               INFO_message("Inflate automask %d times", amask_ndil);
+
+            // a very odd recipe for inflating a mask... mirroring
+            // default 3dAllineate behavior (slightly different than that
+            // of 3dAutomask; commented out)
+            for( i=0 ; i < amask_ndil ; i++ ){
+               j = THD_mask_dilate( indims[0], indims[1], indims[2], 
+                                    mask_arr, 3, 2 );
+               j = THD_mask_fillin_once( indims[0], indims[1], indims[2],
+                                         mask_arr, 2 );
+            }
+         }
+      
+         nmask = THD_countmask( nvox, mask_arr );
+         if( verb )
+            INFO_message("Number of voxels in automask = %d / %d", nmask, nvox);
+         if( nmask < 1 )
+            ERROR_exit("Automask is too small to process");
+      }
+
+      /*-- Edge detect each sub-brik --*/
+
       for( kk=0 ; kk < nval ; kk++ ){
 
          if( verb )
@@ -414,11 +481,28 @@ int main( int argc , char * argv[] )
       break ;
    }
 
+   if ( mask_arr ) {
+      if( verb )
+         INFO_message("Apply mask");
+      THD_3dim_dataset *dset_tmp = NULL;
+      
+      dset_tmp = thd_apply_mask( outset, mask_arr, 
+                                 prefix );
+      DSET_delete( outset ); 
+      outset = dset_tmp;
+      dset_tmp = NULL;
+   }
+
+
+
    if( verb ) fprintf(stderr,"  ++ Computing output statistics\n") ;
    THD_load_statistics( outset ) ;
 
    THD_write_3dim_dataset( NULL,NULL , outset , True ) ;
    if( verb ) fprintf(stderr,"  ++ Wrote output: %s\n",DSET_BRIKNAME(outset)) ;
+
+   if( mask_arr )
+      free(mask_arr);
 
    exit(0) ;
 }
