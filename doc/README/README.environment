@@ -4522,4 +4522,3 @@ Variable:  AFNI_SKIP_TCSV_SCAN
 ------------------------------------
 If set to YES, do not scan for CSV files at afni startup. Same as using option -notcsv 
 
-time in the instacorr interface.
