@@ -722,6 +722,23 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
                 set "attr_print" env var in afnirc
 -----------------------------------------------------------------------------*/
 
+/* move this somewhere else later */
+
+float frac_diff( float old, float new );
+
+float frac_diff(float old, float new) {
+    float fracdiff;
+
+    if (fabs(old) + fabs(new) != 0) {
+        fracdiff = fabs(old - new) / (fabs(old) + fabs(new));
+    } else {
+        fracdiff = 0;
+    }
+    return (fracdiff);
+}
+
+/* end move later */
+
 void THD_datablock_apply_atr( THD_3dim_dataset *dset , int validate )
 {
    THD_datablock     *blk ;
@@ -1124,18 +1141,15 @@ ENTRY("THD_datablock_apply_atr") ;
       /* load oblique transformation matrix */
       if(atr_flt) {
           if( validate ){               /* disco change */
-              
+
               /* just testing here */
-              float fracdiff , old , new;
-              
-              old = 1;
-              new = 2;
-              
-              if( fabs(old) + fabs(new) != 0 ){
-                  fracdiff = fabs( old - new ) / ( fabs(old) + fabs(new) );
-                  printf("fracdiff %13.6f\n",fracdiff);
-              }
-                            
+              float fracdiff;
+
+              fracdiff = frac_diff(atr_flt->fl[0],
+                                   dset->daxes->ijk_to_dicom_real.m[0][0]);
+
+              printf("fracdiff %13.6f\n", fracdiff);
+
               printf("ijk xx: %13.6s %13.6s\n", "old", "new");
               printf("ijk 00: %13.6f %13.6f\n",
                      atr_flt->fl[0], dset->daxes->ijk_to_dicom_real.m[0][0]);
