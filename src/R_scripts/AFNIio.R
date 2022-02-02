@@ -370,8 +370,41 @@ parse.AFNI.name.selectors <- function(filename,verb=0) {
    n$rasel<- NULL;
    n$insel<- NULL;
    
-   selecs <- strsplit(filename,"\\[|\\{|<|#")[[1]];
-   n$name <- selecs[1]
+   #Get last occurrence of selectors
+   #Modifed function to keep names such as
+   # 'path/[something]/{other}/from_messing_up+orig[select]{ors}<sets>' ZSS Happy Lunar Year 2022
+   ll <- strsplit(filename, split='')[[1]]
+   llim <- length(ll)
+   for (sss in c("[","{","<","#") ) {
+      iw <- which(ll == sss)
+      if (length(iw)>0) {
+         llim <- min(llim, max(iw))
+      }
+   }
+   if (llim == length(ll)) {
+      n$name <- filename
+      return(n)
+   }
+   ulim <- 0
+   for (sss in c("]","}",">","#") ) {
+      iw <- which(ll == sss)
+      if (length(iw) > 0) {
+         if (sss == '#') {
+            ulim <- length(ll) #no closing bracket
+         } else { 
+            ulim <- max(ulim, max(iw))
+         }
+      }
+   }
+   
+   if (ulim != length(ll) && llim != length(ll)) {
+      #Selectors not at end of filename, return as is
+      n$name <- filename
+      return(n)
+   }
+   n$name <- paste(ll[1:(llim-1)], collapse='')
+   selecs <- strsplit(paste(ll[llim:ulim], collapse=''),"\\[|\\{|<|#")[[1]];
+   
    for (ss in selecs[2:length(selecs)]) {
       if (length(grep("]",ss))) {
          n$brsel <- strsplit(ss,"\\]")[[1]][1];
@@ -379,7 +412,7 @@ parse.AFNI.name.selectors <- function(filename,verb=0) {
          n$rosel <- strsplit(ss,"\\}")[[1]][1];
       } else if (length(grep(">",ss))) {
          n$rasel <- strsplit(ss,">")[[1]][1];
-      } 
+      }
    }
    selecs <- strsplit(filename,"#")[[1]];
    if (length(selecs) > 1) {
@@ -404,6 +437,8 @@ parse.AFNI.name <- function(filename, verb = 0) {
          parse.AFNI.name('DePath/DePrefix+acpc[DeLabel]{DeRow}', verb))
       show.AFNI.name(
          parse.AFNI.name('DePath/DePrefix+acpc.[DeLabel]{DeRow}', verb))
+      show.AFNI.name(
+         parse.AFNI.name('DePath/[SID]/{not a selector}/DePrefix+acpc.[DeLabel]{DeRow}', verb))
       return(NULL)
    }
    an <- list()
