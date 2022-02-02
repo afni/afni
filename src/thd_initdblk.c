@@ -1140,19 +1140,20 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ( atr_flt = THD_find_float_atr(blk,"IJK_TO_DICOM_REAL") ) ){
       /* load oblique transformation matrix */
       if(atr_flt) {
-          if( validate ){               /* disco change */
-
-              /* just testing here */
-              printf("ijk xx: %13.6s %13.6s %13.6s\n", "old", "new", "diff?");
-
-              int label_c = 0, count_o = 0, count_i = 0;
+        
+          if (validate) { /* disco change */
+              // should I free these vaiables at the end of the if statement?
+              int label_c = 0, c_o = 0, c_i = 0;
               float f_diff, eps = 0.00000001;
               char diff_yn[2];
-              for (int count_o = 0; count_o < 3; count_o++) {
-                  for (int count_i = 0; count_i < 4; count_i++) {
-                      f_diff = frac_diff(
-                          atr_flt->fl[label_c],
-                          dset->daxes->ijk_to_dicom_real.m[count_o][count_i]);
+              
+              printf("ijk xx: %13.6s %13.6s %13.6s\n", "old", "new", "diff?");
+
+              for (int c_o = 0; c_o < 3; c_o++) {
+                  for (int c_i = 0; c_i < 4; c_i++) {
+                      f_diff =
+                          frac_diff(atr_flt->fl[label_c],
+                                    dset->daxes->ijk_to_dicom_real.m[c_o][c_i]);
                       if (f_diff > eps) {
                           strcpy(diff_yn, "Y");
                       } else {
@@ -1160,40 +1161,15 @@ ENTRY("THD_datablock_apply_atr") ;
                       }
                       printf("ijk %02d: %13.4f %13.4f %13s\n", label_c,
                              atr_flt->fl[label_c],
-                             dset->daxes->ijk_to_dicom_real.m[count_o][count_i],
+                             dset->daxes->ijk_to_dicom_real.m[c_o][c_i],
                              diff_yn);
                       label_c++;
                   }
               }
               printf("\n");
-              // printf("ijk xx: %13.6s %13.6s %13.6s\n", "old", "new", "diff?");
-              // printf("ijk 00: %13.6f %13.6f\n",
-              //        atr_flt->fl[0], dset->daxes->ijk_to_dicom_real.m[0][0]);
-              // printf("ijk 01: %13.6f %13.6f\n",
-              //        atr_flt->fl[1], dset->daxes->ijk_to_dicom_real.m[0][1]);
-              // printf("ijk 02: %13.6f %13.6f\n",
-              //        atr_flt->fl[2], dset->daxes->ijk_to_dicom_real.m[0][2]);
-              // printf("ijk 02: %13.6f %13.6f\n",
-              //        atr_flt->fl[2], dset->daxes->ijk_to_dicom_real.m[0][2]);
-              // printf("ijk 03: %13.6f %13.6f\n",
-              //        atr_flt->fl[3], dset->daxes->ijk_to_dicom_real.m[0][3]);
-              // printf("ijk 04: %13.6f %13.6f\n",
-              //        atr_flt->fl[4], dset->daxes->ijk_to_dicom_real.m[0][4]);
-              // printf("ijk 05: %13.6f %13.6f\n",
-              //        atr_flt->fl[5], dset->daxes->ijk_to_dicom_real.m[0][5]);
-              // printf("ijk 06: %13.6f %13.6f\n",
-              //        atr_flt->fl[6], dset->daxes->ijk_to_dicom_real.m[0][6]);
-              // printf("ijk 07: %13.6f %13.6f\n",
-              //        atr_flt->fl[7], dset->daxes->ijk_to_dicom_real.m[0][7]);
-              // printf("ijk 08: %13.6f %13.6f\n",
-              //        atr_flt->fl[8], dset->daxes->ijk_to_dicom_real.m[0][8]);
-              // printf("ijk 09: %13.6f %13.6f\n",
-              //        atr_flt->fl[9], dset->daxes->ijk_to_dicom_real.m[0][9]);
-              // printf("ijk 10: %13.6f %13.6f\n",
-              //        atr_flt->fl[10], dset->daxes->ijk_to_dicom_real.m[0][10]);
-              // printf("ijk 11: %13.6f %13.6f\n",
-              //        atr_flt->fl[11], dset->daxes->ijk_to_dicom_real.m[0][11]);
-          }
+              
+          }  // end validate
+
         LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \
             atr_flt->fl[0], atr_flt->fl[1], atr_flt->fl[2], atr_flt->fl[3], \
             atr_flt->fl[4], atr_flt->fl[5], atr_flt->fl[6], atr_flt->fl[7], \
