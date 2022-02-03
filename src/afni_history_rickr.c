@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2022, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add data_file_to_json()",
+   "This is a file conversion function that uses the util library."
+ } ,
+
  { 29, Jan, 2022, RCR, "README.environment", MICRO, TYPE_ENHANCE,
    "update AFNI_REALTIME_Mask_Vals with new modes",
    "Describe All_Data_light and ROIs_and_data."

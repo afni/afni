@@ -275,6 +275,26 @@ def convert_table2dict(dlist):
 
    return 0, rdict
 
+def data_file_to_json(fin='stdin', fout='stdout', qstrip=0, sort=1, verb=1):
+   """convert a data file to json format - this should be in a main program
+      Ah, abids_json_tool.py does this.
+
+            fin     : input  data file (can be - or stdin  for sys.stdin)
+            fout    : output json file (can be - or stdout for sys.stdout)
+            qstrip  : strip any containing quotes
+            sort    : sort output dict
+
+      Input should be of the form (such as):
+        Label_0 : val
+        Label_1 : v0 v1 v2
+        ...
+
+      Output is a dictionary form of this.
+   """
+   rv, tdict = read_text_dictionary(fname=fin, verb=verb, qstrip=qstrip)
+   if rv: return
+   rv = write_data_as_json(tdict, fname=fout, sort=sort)
+
 def write_data_as_json(data, fname='stdout', indent=3, sort=1, newline=1,
                        table2dict=0):
    """dump to json file; check for stdout or stderr
