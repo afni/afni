@@ -87,6 +87,14 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
                 gen_ss_review_scripts.py -show_computed_uvars \\
                                          -write_uvars_json user_vars.json
 
+       3c. Also, initialize uvars from a JSON file (as done by afni_proc.py).
+
+                gen_ss_review_scripts.py -exit0                \\
+                    -init_uvars_json out.ap_uvars.json         \\
+                    -ss_review_dset out.ss_review.$subj.txt    \\
+                    -write_uvars_json out.ss_review_uvars.json
+
+
 ------------------------------------------
 
    required files/datasets (these must exist in the current directory):
@@ -136,6 +144,9 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -write_uvars_json FNAME   : write json file of uvars dict to FNAME
 
    options for setting main variables
+
+      -init_uvars_json FNAME    : initialize uvars from the given JSON file
+                                  (akin to many -uvar options)
 
       -subj SID                 : subject ID
       -rm_trs N                 : number of TRs removed per run
@@ -787,6 +798,7 @@ g_cvars_defs.basic_command = 'yes' # if set, include command in review_basic
 g_cvars_defs.out_prefix = ''    # if set, use as prefix to cvar files
 g_cvars_defs.show_udict = 0     # if set, show computed user dict and exit
 g_cvars_defs.udict_json = ''    # json file to write uvars dict to
+g_cvars_defs.udict_in   = ''    # json file to initialize uvars dict from
 g_cvars_defs.exit0      = 0     # if set, return 0 even on errors
 
 # this is a corresponding list of control vars that define output files
@@ -915,9 +927,10 @@ g_history = """
    1.20 Jul 26, 2021: added to basic script: 'orig voxel resolution',
                         'orig voxel counts', 'orig volume center'
    1.21 Jan 24, 2022: added combine_method field, just to pass to json
+   1.22 Feb  3, 2022: added -init_uvars_json
 """
 
-g_version = "gen_ss_review_scripts.py version 1.21, January 24, 2022"
+g_version = "gen_ss_review_scripts.py version 1.22, February 3, 2022"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -960,6 +973,7 @@ class MyInterface:
       vopts.add_opt('-help_fields_brief', 0, [], helpstr='brief field help')
       vopts.add_opt('-help_todo', 0, [], helpstr='display current "todo" list')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
+
       vopts.add_opt('-show_computed_uvars', 0, [],
                     helpstr='show uvars dictionary after processing')
       vopts.add_opt('-show_uvar_dict', 0, [],
@@ -971,6 +985,9 @@ class MyInterface:
       vopts.add_opt('-show_valid_opts', 0, [],\
                     helpstr='display all valid options')
       vopts.add_opt('-ver', 0, [], helpstr='display the current version number')
+
+      vopts.add_opt('-init_uvars_json', 1, [],
+                    helpstr='read initial uvars dict from JSON file')
       vopts.add_opt('-write_uvars_json', 1, [],
                     helpstr='save uvars dictionary to JSON file')
 
@@ -1087,6 +1104,16 @@ class MyInterface:
          # check for anything to skip
          if opt.name == '-verb':        continue
          if opt.name == '-exit0':       continue
+
+         elif opt.name == '-init_uvars_json':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err:
+               errs +=1
+               continue
+            C.udict_in = val
+            # and apply all to self.uvars
+            dfill = UTIL.read_json_file(C.udict_in)
+            self.uvars.set_var_list_w_defs(dfill, g_eg_uvar, verb=C.verb)
 
          # check uvar opts by name (process as strings)
          elif uvar in ukeys:
@@ -1404,8 +1431,12 @@ class MyInterface:
    def guess_xmat_nocen(self):
       """set uvars,dsets.xmat_uncensored (if possible)"""
 
-      # check if already set
-      if self.uvar_already_set('xmat_uncensored'): return 0
+      # check if already set (and verify dsets of uvar is set)
+      if self.uvar_already_set('xmat_uncensored'):
+         if not self.dsets.val('xmat_uncensored'):
+            self.dsets.xmat_uncensored \
+               = BASE.afni_name(self.uvars.xmat_uncensored)
+         return 0
 
       # now try to set uncensored dset (cvar and dset)
       ax = self.dsets.val('xmat_ad')
@@ -1416,7 +1447,6 @@ class MyInterface:
       copts = self.find_opt_and_params(ax.command, '-x1D_uncensored', 1, last=1)
       if len(copts) == 2:
          self.uvars.xmat_uncensored = copts[1]
-         self.dsets.xmat_uncensored = BASE.afni_name(copts[1])
          if self.set_xmat_dset_from_name(self.uvars.xmat_uncensored, regress=0):
             return 0  
 
@@ -2153,8 +2183,11 @@ class MyInterface:
    def guess_mask_dset(self):
       """set uvars.mask_dset"""
 
-      # check if already set
-      if self.uvar_already_set('mask_dset'): return 0
+      # check if already set (and verify dsets of uvar is set)
+      if self.uvar_already_set('mask_dset'):
+         if not self.dsets.val('mask_dset'):
+            self.dsets.mask_dset = BASE.afni_name(self.uvars.mask_dset)
+         return 0
 
       # see whether we can get the mask dataset from the TSNR dset
       if not self.dsets.is_empty('tsnr_dset'):
