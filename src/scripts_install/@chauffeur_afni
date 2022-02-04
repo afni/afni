@@ -2852,6 +2852,11 @@ COMMAND OPTIONS ~1~
                     (def: no value given).
                     (see ENV: AFNI_LEFT_IS_LEFT)
 
+-left_is_posterior LIP  :specify explicitly whether image left is dataset 
+                    posterior (LIP -> YES) or image left is dataset anterior 
+                    (LIP -> NO) (def: no value given).
+                    (see ENV: AFNI_LEFT_IS_POSTERIOR)
+
 -crop_axi_x CAX1 CAX2,
 -crop_axi_y CAY1 CAY2 :crop axial image(s) to be between voxels CAX1 and
                     CAX2 along the x-axis (inclusive) and CAY1 and CAY2 
