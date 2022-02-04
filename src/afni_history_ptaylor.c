@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Feb , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "Two new opts, using existing AFNI env vars",
+   "Now have '-left_is_left ..' and '-left_is_posterior ..'.\n"
+},
+
 { 1, Feb , 2021 , PT , "3dedge3" , MINOR , TYPE_NEW_OPT,
    "Adding -automask (and -automask+X) functionality.",
    "Mainly to help with comparisons with 3dedgedog.\n"
