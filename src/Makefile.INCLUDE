@@ -675,7 +675,7 @@ dsetdup:dsetdup.o
 	$(CC) -o 3dproject 3dproject.o parser.o parser_int.o \
                  $(LFLAGS) $(LLIBS)
 
-3dinfo:3dinfo.o
+3dinfo:3dinfo.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS)
 

@@ -880,8 +880,8 @@ ENTRY("THD_datablock_apply_atr") ;
 
    if( ATR_IS_STR(ATRNAME_IDSTRING) ){
        if( validate ){               /* disco change */
-           printf("\nold idcode: %s\n", dset->idcode.str);
-           printf("new idcode: %s\n\n", atr_str->ch);
+           printf("\nnii  idcode: %s\n", dset->idcode.str);
+           printf("afni idcode: %s\n\n", atr_str->ch);
 
        }
        MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
@@ -889,8 +889,8 @@ ENTRY("THD_datablock_apply_atr") ;
 
     if( ATR_IS_STR(ATRNAME_IDDATE) ){
       if( validate ){               /* disco change */
-          printf("old id date: %s\n", dset->idcode.date);
-          printf("new id date: %s\n\n", atr_str->ch);
+          printf("nii  id date: %s\n", dset->idcode.date);
+          printf("afni id date: %s\n\n", atr_str->ch);
       }
       MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
      }
@@ -1142,15 +1142,15 @@ ENTRY("THD_datablock_apply_atr") ;
       if(atr_flt) {
         
           if (validate) { /* disco change */
-              // should I free these vaiables at the end of the if statement?
+              // should I free these variables at the end of the if statement?
               int label_c = 0, c_o = 0, c_i = 0;
-              float f_diff, eps = 0.00000001;
+              float f_diff, eps = 0.00001;
               char diff_yn[2];
               
-              printf("ijk xx: %13.6s %13.6s %13.6s\n", "old", "new", "diff?");
+              printf("ijk xx: %13.6s %13.6s %13.6s\n", "afni", "nii", "diff?");
 
-              for (int c_o = 0; c_o < 3; c_o++) {
-                  for (int c_i = 0; c_i < 4; c_i++) {
+              for (c_o = 0; c_o < 3; c_o++) {
+                  for (c_i = 0; c_i < 4; c_i++) {
                       f_diff =
                           frac_diff(atr_flt->fl[label_c],
                                     dset->daxes->ijk_to_dicom_real.m[c_o][c_i]);
@@ -1174,8 +1174,7 @@ ENTRY("THD_datablock_apply_atr") ;
             atr_flt->fl[0], atr_flt->fl[1], atr_flt->fl[2], atr_flt->fl[3], \
             atr_flt->fl[4], atr_flt->fl[5], atr_flt->fl[6], atr_flt->fl[7], \
             atr_flt->fl[8], atr_flt->fl[9], atr_flt->fl[10], atr_flt->fl[11]);
-      }
-      
+      } 
    }
 
    /* update attributes for time axes - copied from thd_dsetdblk.c */
