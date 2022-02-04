@@ -3996,7 +3996,8 @@ AFNI_REALTIME_DATAMODE = Number
 AFNI_REALTIME_CHMERMODE = Number
 
         If set, this variable controls the initial setting of the
-        "ChannelMerge" control, where 0=none, 1=sum, 2=L1 norm, 3=L2norm.
+        "ChannelMerge" control, where:
+            0=none,  1=sum,  2=L1 norm,  3=L2norm.  4=T2* est,  5=Opt Comb
         If not set, the default value is 0.
 
 AFNI_REALTIME_CM_REG_MODE = Number
