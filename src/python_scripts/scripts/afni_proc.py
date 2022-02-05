@@ -3558,6 +3558,7 @@ class SubjProcSream:
         if warn:
            print("** dataset '%s' is used as non-linear warp," \
                  "   but does not appear to be one" % fname)
+           print("   (expecting @SSw name suffix _WARP.nii[.gz]")
         return 0
 
     def anat_follower(self, name='', aname=None, dgrid='epi', label='',
