@@ -13,6 +13,7 @@ PARSE:
    set v1i = ""
    set usecp = 1
    set xmat_only = 0
+   set v2coord = 0
    set xmat_only_meanit = 0  # really don't make new dsets
    set oprefix = "" # optional output prefix       18 Nov 2016 [rickr]
    set shift_xform1D = ""  # apply xform or inv xform shifts from 1D file  - 13 Feb 2020 [drg]
@@ -42,6 +43,15 @@ PARSE:
          else
             @ cnt ++
             set v2i = "$argv[$cnt]"
+            #script fails on any status (-fe) echo $v2i | grep -q '^...:' > & /dev/null
+            set cv2i = `echo $v2i | sed 's/^...:.*,.*,.*//g'`
+            if ("$cv2i" == '') then
+               set v2coord = 1
+               if ( "$v2i" !~ 'RAI:*' ) then
+                  echo "Only RAI: supported for now"
+                  goto END
+               endif
+            endif
             set donext = 0   
          endif   
       endif
@@ -188,31 +198,37 @@ if ( $shift_xform1D != "") then
 endif
 
 SET_PARAMS: 
-set v2_vw = `@GetAfniView $v2i`
-set pth2 = $v2i:h
-if ("$pth2" == "$v2i") then 
+if ( $v2coord != 1 ) then
+   set v2_vw = `@GetAfniView $v2i`
+   set pth2 = $v2i:h
+   if ("$pth2" == "$v2i") then 
 
-   set pth2 = .
+      set pth2 = .
 
-   # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
-   # We execute with -e, and @FADP may exit with 1 if the dataset is
-   # not found.  So to fail here instead, put it in the background.
+      # allow for template datasets in path, etc.  24 Apr 2011 [rickr]
+      # We execute with -e, and @FADP may exit with 1 if the dataset is
+      # not found.  So to fail here instead, put it in the background.
 
-   set test_path = `@FindAfniDsetPath $v2i &`
-   if ( $#test_path == 1 && "$test_path" != "./" ) then
-      set pth2 = $test_path
+      set test_path = `@FindAfniDsetPath $v2i &`
+      if ( $#test_path == 1 && "$test_path" != "./" ) then
+         set pth2 = $test_path
+      endif
    endif
+
+   set v2_pref = `@GetAfniPrefix $v2i`
+   set v2 = $pth2/$v2_pref$v2_vw
+else
+   set v2 = ${v2i}
 endif
 
-set v2_pref = `@GetAfniPrefix $v2i`
-set v2 = $pth2/$v2_pref$v2_vw
- 
 CHECKS:
 #make sure input exists
-if ( `@CheckForAfniDset $v2` < 2) then
-   echo "Error: base brick $v2 not found."
-   set retval = 1
-   goto END
+if ( $v2coord != 1 ) then
+   if (`@CheckForAfniDset $v2` < 2) then
+      echo "Error: base brick $v2 not found."
+      set retval = 1
+      goto END
+   endif
 endif
 
 SETCENTER:
@@ -237,7 +253,12 @@ if ($mode == 'grid') then
    #center of v1, in native orientation
    set v1_center = `@VolCenter -dset $v1`
    #center of v2, in v1's orientation
-   set v2_center_v1or = `@VolCenter -dset $v2 -or $v1_orient`
+   if ($v2coord == 1) then
+      set XYZ = (`echo $v2i | sed 's/^...://g' | sed 's/,/ /g'`)
+      set v2_center_v1or = `@FromRAI -xyz $XYZ[1] $XYZ[2] $XYZ[3] -or $v1_orient`
+   else
+      set v2_center_v1or = `@VolCenter -dset $v2 -or $v1_orient`
+   endif
    #calculate deltas
    set del = ( 0 0 0 )
    foreach i (1 2 3)
@@ -283,7 +304,12 @@ if ($mode == 'grid') then
    endif
 else if ($mode == "cm") then
       #get the center of mass of the base and apply delta
-      set v2_center_RAI = `3dCM $cm_amask $v2i`
+      if ($v2coord == 0) then
+         set v2_center_RAI = `3dCM $cm_amask $v2i`
+      else
+         set XYZ = (`echo $v2 | sed 's/^...://g' | sed 's/,/ /g'`)
+         set v2_center_RAI = ($XYZ[1] $XYZ[2] $XYZ[3])
+      endif
       if ($usecp == 1) then
          if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
             echo ""
@@ -474,7 +500,7 @@ Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp]
                 The transform is named DSET_shft.1D
    -1Dmat_only_nodset: Like above, but no dsets at all
                 are created or changed.
-   -base BASE: Base volume, typically a template.
+   -base BASE: Base volume, typically a template. You can also replace BASE with RAI:X,Y,Z to have the script set the center of dset to RAI X,Y,Z 
    -dset DSET: Typically an anatomical dset to be
                aligned to BASE.
    -child CHILD_'*': A bunch of datasets, originally

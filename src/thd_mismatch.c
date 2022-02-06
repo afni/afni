@@ -54,6 +54,7 @@ ENTRY("THD_dataset_mismatch") ;
 
    /* change default limit from 0.1 * vox diag sum  to  0.001 * ave_vox_diag */
    /* done to appease the mighty ZSS                      [9 Dec 2021 rickr] */
+   /* ZSS appeased, thank you, Rick!                      [18 Jan 2022  ZSS] */
    if( cd > 0.0005*(c1+c2) ) code |= MISMATCH_CENTER ;
 
    /* check if the obliquity is the same */
