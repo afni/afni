@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Feb , 2022 , PT , "3dedgedog" , MINOR , TYPE_BUG_FIX,
+   "Fix some badness when 4D datasets are input.",
+   "Also have a better scale value, based on 3dLocalstat sigma.\n"
+},
+
 { 3, Feb , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
    "Two new opts, using existing AFNI env vars",
    "Now have '-left_is_left ..' and '-left_is_posterior ..'.\n"

@@ -28,10 +28,16 @@ ver = 1.6;  date = Dec 26, 2021
 + [PT] add in -automask, automask+X, and '-mask ..' option behavior
 
 ver = 1.7;  date = Dec 29, 2021
-
 + [PT] change default rad : 2.0 seems much to big to catch details
   even in a human anatomical dset.  Going for 1.4 now
 
+ver = 1.8;  date = Feb 1, 2022
++ [PT] change the way scaling is done: use the input dset, for better
+  color variation (uses 3dLocalstat -> cvar data
++ Also apply masking before scaling, so scales aren't set by non-output info
+
+ver = 1.9;  date = Feb 6, 2022
++ [PT] debugged some issues if multivolume datasets are entered
 
 
 *** still might add:
@@ -182,6 +188,9 @@ int usage_3dedgedog()
 "                    scaled to have a relative magnitude between 0 and 100\n"
 "                    (NB: the output dset will still be datum=short)\n"
 "                    depending on the gradient value at the edge.\n"
+"                    When using this opt, likely setting the colorbar scale\n"
+"                    to 25 will provide nice images (in N=1 cases tested,\n"
+"                    at least!).\n"
 "\n"
 "  -only2D   SLI    :instead of estimating edges in full 3D volume, calculate\n"
 "                    edges just in 2D, per plane.  Provide the slice plane\n"
@@ -472,8 +481,10 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
 
 	THD_3dim_dataset *dset_input = NULL;        // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
-	THD_3dim_dataset *dset_dog = NULL;          // intermed/out
-   THD_3dim_dataset *dset_bnd = NULL;          // output
+	THD_3dim_dataset *dset_dog = NULL;          // MRI_float; intermed/out
+   THD_3dim_dataset *dset_bnd = NULL;          // MRI_short; output
+
+   THD_3dim_dataset *dset_input_ival = NULL;   // input: subset
 
    char prefix_dog[THD_MAX_PREFIX];
 
@@ -494,8 +505,9 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    nvox = DSET_NVOX(dset_input);
    nvals = DSET_NVALS(dset_input);
 
-   // get/make mask array, if user asks
+   // masking, if user asks
    if( opts.mask_name ) {
+      // read in+check mask from user
       dset_mask = THD_open_dataset(opts.mask_name);
       if( dset_mask == NULL )
          ERROR_exit("Can't open dataset '%s'", opts.mask_name);
@@ -517,6 +529,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
          free(dset_mask);
    }
    else if( opts.do_automask ) {
+      // internal mask generation (automasking)
 		mask_arr = THD_automask( dset_input );
 		if( mask_arr == NULL )
 			ERROR_exit("Can't create -automask from input dataset?");
@@ -531,7 +544,6 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
          for( i=0 ; i < opts.amask_ndil ; i++ ){
             j = THD_mask_dilate( nx, ny, nz, mask_arr, 3, 2 );
             j = THD_mask_fillin_once( nx, ny, nz, mask_arr, 2 );
-            //j = THD_mask_fillin_completely( nx, ny, nz , mask_arr, 1 );
          }
       }
       
@@ -558,7 +570,7 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
                    ADN_prefix, prefix_dog,
                    ADN_none );
 
-   // calculate DOG
+   // ------------------------ calc DOG ---------------------------
    INFO_message("Calculate DOG");
    for( nn=0 ; nn<nvals ; nn++ )
       i = calc_edge_dog_DOG(dset_dog, opts, dset_input, nn);
@@ -589,16 +601,10 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
    INFO_message("Calculate boundaries");
 
    // calculate edges/bnds: might be several ways to these from DOG data
-   for( nn=0 ; nn<nvals ; nn++ ){
+   for( nn=0 ; nn<nvals ; nn++ )
       i = calc_edge_dog_BND(dset_bnd, opts, dset_dog, nn, argc, argv);
-      
-      if( opts.edge_bnd_scale ){
-         if( !nn )
-            INFO_message("Scale boundaries");
-         i = scale_edge_dog_BND(dset_bnd, opts, dset_dog, nn);
-      }
-   }
-   
+
+   // mask edges, if masking
    if ( mask_arr ) {
       if( opts.verb )
          INFO_message("Apply mask");
@@ -609,6 +615,13 @@ int run_edge_dog( int comline, PARAMS_edge_dog opts,
       DSET_delete( dset_bnd ); 
       dset_bnd = dset_tmp;
       dset_tmp = NULL;
+   }
+
+   // scale edges/bnds (opt): may be several ways to these from DOG data
+   if( opts.edge_bnd_scale ){
+      INFO_message("Scale boundaries");
+      for( nn=0 ; nn<nvals ; nn++ )
+         i = scale_edge_dog_BND(dset_bnd, opts, dset_input, nn);
    }
 
    INFO_message("Output main dset: %s", opts.prefix);

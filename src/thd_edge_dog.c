@@ -251,9 +251,11 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
   Calculate the boundaries from the dog dset.  Might be many ways of
   doing this.
 
-  dset_bnd     :the dset that will be the boundary map (essentially, the output)
+  dset_bnd     :the dset that will be the boundary map (essentially, the 
+                output); datum = MRI_short
   opts         :options from the user, with some other quantities calc'ed
-  dset_dog     :the input dataset of unthresholded/'raw' DOG values
+  dset_dog     :the input dataset of unthresholded/'raw' DOG values;
+                datum = MRI_float
   ival         :shared index of subvolume of 'dset_bnd' & 'dset_dog' to process
   argc         :(int) for history of intermed EDT output, if made 
                 (can be 0, to not add to history)
@@ -268,9 +270,10 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    int i, idx;
    int nvox;
    short *tmp_arr = NULL;
-   THD_3dim_dataset *dset_edt = NULL;   
+   THD_3dim_dataset *dset_edt = NULL;        // datum = MRI_float 
    char prefix_edt[THD_MAX_PREFIX];
    PARAMS_euclid_dist EdgeDogOpts;
+   THD_3dim_dataset *dset_roi = NULL;   // dset: subset
 
    ENTRY("calc_edge_dog_BND");
 
@@ -279,15 +282,23 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    if( tmp_arr == NULL ) 
       ERROR_exit("MemAlloc failure.\n");
 
-   // ------------------ prep to run EDT calc --------------------
+   // ------------------ make ROI dset  --------------------
 
-   // dset_bnd gets a preliminary role: be the ROI map entered into EDT
+   // Make ROI map entered into EDT (NB: just a single volume, FYI, if
+   // outputting)
+   dset_roi = EDIT_empty_copy( dset_bnd ); 
+   i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_ROI" );
+   EDIT_dset_items(dset_roi,
+                   ADN_nvals, 1,
+                   ADN_datum_all, MRI_short,
+                   ADN_prefix, prefix_edt,
+                   ADN_none );
 
    // make ROI=1 where DOG>=0, and background/ROI=0 elsewhere
    for( idx=0 ; idx<nvox ; idx++ )
       tmp_arr[idx] = (THD_get_voxel(dset_dog, idx, ival) >= 0.0 ) ? 1 : 0;
 
-   EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
+   EDIT_substitute_brick(dset_roi, 0, MRI_short, tmp_arr); 
    tmp_arr=NULL;
 
    // ------------------ run EDT calc --------------------
@@ -297,7 +308,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    i = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_EDT2" );
    EDIT_dset_items(dset_edt,
                    ADN_nvals, 1,
-                   ADN_datum_all, MRI_short,    
+                   ADN_datum_all, MRI_float,    
                    ADN_prefix, prefix_edt,
                    ADN_none );
 
@@ -315,12 +326,12 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    }
 
 
-   // run EDT
+   // -------------------------- run EDT -----------------------------------
    INFO_message("Calculate EDT (depth map) for vol %d", ival);
-   i = calc_EDT_3D_BIN( dset_edt, EdgeDogOpts, dset_bnd, NULL, ival);
 
-   // can output this intermediate dset for the [0]th volume, if the
-   // user asks
+   i = calc_EDT_3D_BIN( dset_edt, EdgeDogOpts, dset_roi, NULL, 0);
+
+   // (opt) output this intermediate dset for the [0]th volume
    if( opts.do_output_intermed && ival==0 ) {
       INFO_message("Output intermediate dset ([0]th vol): %s", prefix_edt);
 
@@ -330,22 +341,165 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                     DSET_HEADNAME(dset_edt));
       tross_Make_History("3dedgedog", argc, argv, dset_edt);
 
-      // write and free dset 
+      // write dset 
       THD_write_3dim_dataset(NULL, NULL, dset_edt, True);
    }
 
    // threshold EDT to make boundaries; dset_edt has only one volume
    // here (to save memory), but dset_bnd can be 4D---hence two indices
-   i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, 0, ival);
+   // [PT: Feb 1, 2022] bug fix: had the two indices swapped in this func
+   i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, ival, 0);
+
+/* for debugging
+   if ( 1 ) { // !!!!!!!! TEST
+      THD_3dim_dataset *dset_TMP = NULL;        // input
+      char *pref_tmp = "DSET_TMP_PREF";
+      dset_TMP = EDIT_full_copy( dset_bnd, pref_tmp );
+
+      INFO_message("Output TMP DSET");
+
+      THD_load_statistics( dset_TMP );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_TMP)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(dset_TMP));
+      tross_Make_History("3dedgedog", argc, argv, dset_TMP);
+
+      // write and free dset 
+      THD_write_3dim_dataset(NULL, NULL, dset_TMP, True);
+   }
+*/
 
    // free dset
 	DSET_delete(dset_edt); 
   	free(dset_edt); 
+   DSET_delete( dset_roi ); 
+  	free(dset_roi); 
 
    return 0;
 }
 
 // ----------------------------------------
+
+/* 
+   Same inputs as calc_edge_dog_BND(), except dset_input is the actual
+   ival-th volume of the dset_input
+
+   Get 2- and 98-%ile values of DOG values across edge voxels,
+   and use DOG values scaled within this range for output
+   coloration.
+   
+   Here, we basically follow what happens in 3dLocalstat.c.
+*/ 
+int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+                        THD_3dim_dataset *dset_input_ival, int ival)
+{
+   void *tmp_vec = NULL;
+   byte *mmm = NULL;  // to be byte mask where edges are
+   int nvox = 0;
+   int ninmask = 0;
+   
+   int N_mp = 2;                     // number of percentiles to calc
+   double mpv[2] = {0.0, 0.0};       // the percentile values to calc
+   double perc[2] = {0.0, 0.0};      // will hold the percentile estimates
+   int zero_flag = 0, pos_flag = 1, neg_flag = 1; // %ile in nonzero
+   
+   int i;
+   float bot, top, ran, val;
+   float *flim = NULL;
+   short *shim=NULL;
+   short *tmp_arr = NULL;
+
+   // stolen from 3dLocalstat.c
+   MCW_cluster *nbhd=NULL;
+   int ncode=0, code[MAX_NCODE];
+   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1];
+   float redx[3]={0.0, 0.0, 0.0}, mxvx=0.0;           // won't change
+   THD_3dim_dataset *outset=NULL;                     // only single vol
+
+   ENTRY("scale_edge_dog_BND");
+
+   nvox = DSET_NVOX(dset_bnd);
+   tmp_arr = (short *) calloc( nvox, sizeof(short) );
+   if( tmp_arr == NULL ) 
+      ERROR_exit("MemAlloc failure.\n");
+
+   mmm = THD_makemask( dset_bnd, ival, 0.0, -1.0 );
+   if ( !mmm ) {
+      ERROR_message("Failed to general %ile mask.");
+      exit(1);         
+   }
+   ninmask = THD_countmask(nvox, mmm);
+
+   // neighborhood: a 5x5x5 voxel box centered at the coord
+   nbhd = MCW_rectmask( 2.0f, 1.0f, 1.0f, 2, 2, 2);
+   /* initialize codeparams */
+   for (i=0; i<MAX_NCODE; ++i) codeparams[i][0] = -1.0;
+   // we just want local stdev
+   code[ncode++] = NSTAT_SIGMA; // NSTAT_CVAR; // NSTAT_SIGMA;
+
+   // From 3dLocalstat; has datum = MRI_float; only single vol here
+   outset = THD_localstat(dset_input_ival, mmm, nbhd, ncode, code, 
+                          codeparams, redx, -1);
+   if( outset == NULL ) 
+      ERROR_exit("Function THD_localstat() fails via 3dedgedog?!") ;
+
+   flim = MRI_FLOAT_PTR(outset->dblk->brick->imarr[0]);
+
+   // The percentile ranges don't depend on which kind of boundaries we have
+   mpv[0] = 0.02;
+   mpv[1] = 0.9;
+
+   // outset is always just a single vol
+   tmp_vec = Percentate( DSET_ARRAY(outset, 0), mmm, nvox,
+                         DSET_BRICK_TYPE(outset, 0), mpv, N_mp,
+                         1, perc,
+                         zero_flag, pos_flag, neg_flag );
+   if ( !tmp_vec ) 
+      ERROR_exit("Failed to compute percentiles.");
+      
+   // Decide on boundary values.  Nothing can have zero EDT here, so
+   // don't need to worry about doubling up on that. 
+   bot = (float) perc[0];
+   top = (float) perc[1];
+   ran = top - bot;
+   
+   if( opts.edge_bnd_side == 3)
+      shim = MRI_SHORT_PTR(dset_bnd->dblk->brick->imarr[ival]);
+   
+   for( i=0 ; i<nvox ; i++ )
+      if( mmm[i] ){
+         val = (flim[i] - bot)/ran;
+         val = ( val > 0.0 ) ? val : 0;
+         tmp_arr[i] = (val >= 1.0 ) ? 100 : 99*val+1;
+
+         if( opts.edge_bnd_side == 3 )
+            if( shim[i] < 0 )
+               tmp_arr[i]*= -1;
+      }
+
+
+   EDIT_substitute_brick(dset_bnd, ival, MRI_short, tmp_arr); 
+   tmp_arr=NULL;
+
+   if( tmp_vec ){
+      free(tmp_vec); 
+      tmp_vec = NULL;
+   }
+   if( mmm )
+      free(mmm);
+   
+   if(outset){
+      DSET_delete(outset);
+      free(outset);
+   }
+
+   flim = NULL;
+
+   if( shim )
+      shim = NULL;
+
+   return 0;
+};
 
 /* 
    Same inputs as calc_edge_dog_BND().
@@ -356,7 +510,7 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    
    Here, we basically follow what happens in 3dBrickStat.c.
 */ 
-int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
+int scale_edge_dog_BND_old( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                         THD_3dim_dataset *dset_dog, int ival)
 {
    void *tmp_vec = NULL;
@@ -467,9 +621,11 @@ int scale_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
   Threshold the boundaries of the EDT dset.  Might be many ways of
   doing this.
 
-  dset_bnd     :the dset that will be the edge dataset (essentially, the output)
+  dset_bnd     :the dset that will be the edge dataset (essentially, the 
+                output); datum = MRI_short
   opts         :options from the user, with some other quantities calc'ed
-  dset_edt     :the input dataset EDT values, to be thresholded for edges
+  dset_edt     :the input dataset EDT values, to be thresholded for edges;
+                datum = MRI_float
   ival_bnd     :index of subvolume of 'dset_bnd' to process
   ival_edt     :index of subvolume of 'dset_edt' to process
 
@@ -515,7 +671,7 @@ int calc_edge_dog_thr_EDT( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
                tmp_arr[idx]*= -1;
       }
    }
-   
+
    // load this array into the dset subvolume
    EDIT_substitute_brick(dset_bnd, ival_bnd, MRI_short, tmp_arr); 
    tmp_arr = NULL;
