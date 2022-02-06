@@ -3,9 +3,9 @@ onintr END
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set tmpdir = ./
+set tmpdir = .
 set stat = 0
-set RNS = `3dnewid -fun`
+set RNS = "mlt_`3dnewid -fun`"
 set log = ${tmpdir}/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
@@ -510,7 +510,7 @@ PARSE:
    set LONGNAMES = 0
 
    if ( ! -d ${tmpdir} ) then
-      echo "Temporary files folder $tmpdir does not exist."
+      echo "Temporary files folder '${tmpdir}' does not exist."
       goto BEND
    endif
 
