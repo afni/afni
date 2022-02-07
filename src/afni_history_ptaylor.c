@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Feb , 2022 , PT , "3dedgedog" , MINOR , TYPE_GENERAL,
+   "If -only2D opt is used, then don't blur in 3D, either.",
+   "Also turn off optimized double blurring---essentially not time diff.\n"
+},
+
 { 6, Feb , 2022 , PT , "3dedgedog" , MINOR , TYPE_BUG_FIX,
    "Fix some badness when 4D datasets are input.",
    "Also have a better scale value, based on 3dLocalstat sigma.\n"

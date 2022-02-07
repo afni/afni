@@ -39,6 +39,11 @@ ver = 1.8;  date = Feb 1, 2022
 ver = 1.9;  date = Feb 6, 2022
 + [PT] debugged some issues if multivolume datasets are entered
 
+ver = 2.0;  date = Feb 6, 2022
++ [PT] account for -only2D opt in blur radius
+  - Also use 'non-opt' double blur with Gaussians---better for some
+    boundary conditions
+
 
 *** still might add:
   - multi-spatial scale requests

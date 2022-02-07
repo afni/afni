@@ -123,7 +123,7 @@ int build_edge_dog_suppl_prefix( PARAMS_edge_dog *opts, char *ostr,
 
 // ---------------------------------------------------------------------------
 
-/*
+/* 
   Use the data in the opts struct to decide how to much to blur in
   each direction.  Blurring sigmas can be anisotropic, but the ratio
   between inner and outer blurring is constant across dimension.
@@ -131,18 +131,59 @@ int build_edge_dog_suppl_prefix( PARAMS_edge_dog *opts, char *ostr,
   opts     :struct of default/user opts
   Ledge    :fl arr of len=3 of voxel edge lengths (could be NULL for sigma_nvox)
   rad_in   :fl arr of len=3 of inner Gaussian sigmas (basically an output here)
-  diff_rad_out  :fl arr of len=3 of outer Gaussian sigmas, but these are 
-            *differential* ones, bc applied to the rad_in-blurred data, for
-            computational efficiency (basically an output here)
-
+  rad_out  :fl arr of len=3 of outer Gaussian sigmas (basically an output here)
 */
 int calc_edge_dog_sigmas(PARAMS_edge_dog opts, float *Ledge, 
-                         float *rad_in, float *diff_rad_out)
+                         float *rad_in, float *rad_out)
 {
    int ii;
    float fac;
 
    ENTRY("calc_edge_dog_sigmas");
+
+   if( opts.sigma_nvox[0] && opts.sigma_nvox[1] && \
+       opts.sigma_nvox[2] ){ // user chose to scale voxel edge lengths
+      for( ii=0 ; ii<3 ; ii++ )
+         rad_in[ii] = opts.sigma_nvox[ii]*Ledge[ii];
+   }
+   else{ // user chose sigmas with physical mm values
+      for( ii=0 ; ii<3 ; ii++ ) 
+         rad_in[ii] = opts.sigma_rad[ii];
+   }
+
+   // account for '-only2D ..' behavior
+   for( ii=0 ; ii<3 ; ii++ )
+      if( ! opts.axes_to_proc[ii] )
+         rad_in[ii] = 0.0;
+
+   for( ii=0 ; ii<3 ; ii++ )
+      rad_out[ii] = rad_in[ii] * opts.ratio_sigma;
+
+   return 0;
+}
+
+
+/* 
+   ***** [PT: Feb 6, 2022] now, currently not using this approach ***** 
+
+   this approach is used when we optimized blur calcs with starting
+   the outer blur calc from the inner.  however, it does lead to some
+   oddities potentially at boundaries of shapes, probably only ever
+   noticeable in 'idealized' test cases, rather than out in the wilds
+   of real data.
+
+   Outputs here are same as above, except for the rad_out -> diff_rad out:
+   diff_rad_out  :fl arr of len=3 of outer Gaussian sigmas, but these are 
+            *differential* ones, bc applied to the rad_in-blurred data, for
+            computational efficiency (basically an output here)
+*/
+int calc_edge_dog_sigmas_old(PARAMS_edge_dog opts, float *Ledge, 
+                         float *rad_in, float *diff_rad_out)
+{
+   int ii;
+   float fac;
+
+   ENTRY("calc_edge_dog_sigmas_old");
 
    if( opts.sigma_nvox[0] && opts.sigma_nvox[1] && \
        opts.sigma_nvox[2] ){ // user chose to scale voxel edge lengths
@@ -188,7 +229,7 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    float *fl_im_inner = NULL, *fl_im_outer = NULL;
    float *tmp_arr = NULL;
 
-   float rad_in[3], diff_rad_out[3];
+   float rad_in[3], rad_out[3];
 
    ENTRY("calc_edge_dog_DOG");
 
@@ -201,35 +242,34 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    Ledge[2] = DSET_DZ(dset_input);
 
    // get radii
-   ii = calc_edge_dog_sigmas(opts, Ledge, rad_in, diff_rad_out);
+   ii = calc_edge_dog_sigmas(opts, Ledge, rad_in, rad_out);
 
-   // copy the subvolume's image (floatizing, if necessary)
+   /* copy the subvolume's image (floatizing, if necessary)
+
+      [PT: Feb 6, 2022] No longer doing optimized approach of full
+      inner blur, copy that, and then do differential blur on result.
+      This way is only minorly slower, and has less boundary quirks
+   */
    im_tmp = dset_input->dblk->brick->imarr[ival];
    im_inner = (im_tmp->kind != MRI_float) ? mri_to_float(im_tmp) : \
-      mri_copy(im_tmp);
-
-   fl_im_inner = MRI_FLOAT_PTR(im_inner); 
+                                            mri_copy(im_tmp);
+   im_outer = mri_copy(im_inner); 
 
    // apply inner and outer blurring
+   fl_im_inner = MRI_FLOAT_PTR(im_inner); 
    EDIT_blur_volume_3d( nx, ny, nz, Ledge[0], Ledge[1], Ledge[2],
                         MRI_float, fl_im_inner,
                         rad_in[0], rad_in[1], rad_in[2] );
 
-   /*
-     The Rorden Rule: make the im_outer by applying an *additive* blur
-     to the im_inner.  Saves time, saves money, whitens teeth.
-    */
-   im_outer = mri_copy(im_inner);
    fl_im_outer = MRI_FLOAT_PTR(im_outer);
-
    EDIT_blur_volume_3d( nx, ny, nz, Ledge[0], Ledge[1], Ledge[2],
                         MRI_float, fl_im_outer,
-                        diff_rad_out[0], diff_rad_out[1], diff_rad_out[2] );
+                        rad_out[0], rad_out[1], rad_out[2] );
 
    // subtract the outer from the inner at each voxel
    tmp_arr = (float *)calloc(nvox, sizeof(float));
    for ( idx=0 ; idx<nvox ; idx++ )
-      tmp_arr[idx] = fl_im_inner[idx]- fl_im_outer[idx];
+      tmp_arr[idx] = fl_im_inner[idx] - fl_im_outer[idx];
 
    // load this array into the dset subvolume
    EDIT_substitute_brick(dset_dog, ival, MRI_float, tmp_arr); 
@@ -349,25 +389,6 @@ int calc_edge_dog_BND( THD_3dim_dataset *dset_bnd, PARAMS_edge_dog opts,
    // here (to save memory), but dset_bnd can be 4D---hence two indices
    // [PT: Feb 1, 2022] bug fix: had the two indices swapped in this func
    i = calc_edge_dog_thr_EDT( dset_bnd, opts, dset_edt, ival, 0);
-
-/* for debugging
-   if ( 1 ) { // !!!!!!!! TEST
-      THD_3dim_dataset *dset_TMP = NULL;        // input
-      char *pref_tmp = "DSET_TMP_PREF";
-      dset_TMP = EDIT_full_copy( dset_bnd, pref_tmp );
-
-      INFO_message("Output TMP DSET");
-
-      THD_load_statistics( dset_TMP );
-      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset_TMP)) )
-         ERROR_exit("Can't overwrite existing dataset '%s'",
-                    DSET_HEADNAME(dset_TMP));
-      tross_Make_History("3dedgedog", argc, argv, dset_TMP);
-
-      // write and free dset 
-      THD_write_3dim_dataset(NULL, NULL, dset_TMP, True);
-   }
-*/
 
    // free dset
 	DSET_delete(dset_edt); 
