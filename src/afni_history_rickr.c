@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "create out.ap_uvars.json, and apply via gssrs -init_uvas_json",
+   "A minor assist in helping P Taylor take over this spiral galaxy arm..."
+ } ,
+
  {  3, Feb, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
    "add -init_uvas_json",
    "Allow passing a json file, akin to passing many -uvar options."

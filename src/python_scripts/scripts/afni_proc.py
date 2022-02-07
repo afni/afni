@@ -710,12 +710,14 @@ g_history = """
          (reserve m_tedana_tedort for AFNI tedort projection)
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
     7.26 Jan 29, 2022: allow execution only we have made the main script
+    7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
 """
 
-g_version = "version 7.26, January 29, 2022"
+g_version = "version 7.27, February 7, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
       [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
