@@ -710,12 +710,14 @@ g_history = """
          (reserve m_tedana_tedort for AFNI tedort projection)
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
     7.26 Jan 29, 2022: allow execution only we have made the main script
+    7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
 """
 
-g_version = "version 7.26, January 29, 2022"
+g_version = "version 7.27, February 7, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
       [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
@@ -808,8 +810,10 @@ g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES secion
   - ME:
      - handle MEICA tedana methods
-        - m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        x m_tedana, m_tedana_OC, m_tedana_OC_tedort
         * WAS done, but soon-to-come tedana JSON output must be handled by AP
+        - done again, but still might want OC_m_tedort
+          (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
@@ -958,6 +962,8 @@ class SubjProcSream:
 
         # general file tracking
         self.uvars      = None          # general uvars, aking to for ss_review
+        self.ap_uvars   = 'out.ap_uvars.json' # JSON file to put AP uvars in
+                                        # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]
         self.show_tfiles= ''            # files to show '', 'ALL', desc
