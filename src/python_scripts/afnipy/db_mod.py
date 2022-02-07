@@ -8327,8 +8327,8 @@ def db_cmd_gen_review(proc):
     # make json prep string
     jp_str = ''
     if json_prep and proc.ap_uvars:
-       jp_str = '\n%s\n'                                        \
-                '# and init gen_ss_review_scripts.py with %s\n' \
+       jp_str = '\n%s\n'                                            \
+                '# initialize gen_ss_review_scripts.py with %s\n'   \
                 % (json_prep, proc.ap_uvars)
        lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uvars
 
@@ -8336,7 +8336,8 @@ def db_cmd_gen_review(proc):
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
 
-    cmd += '# generate scripts to review single subject results\n'      \
+    cmd += '# -------------------------------------------------\n'      \
+           '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            '%s'                                                         \
            'gen_ss_review_scripts.py -exit0'                            \
@@ -8381,12 +8382,15 @@ EOF
     #     (currently using afni_util.py (via apw) to convert from
     #      plain text to JSON)
 
-    filter_str = 'afni_python_wrapper.py -eval "data_file_to_json()"'
-    jstr = '# write AP uvars into a JSON file (%s)\\\n' \
-           'cat << EOF | %s \\\n'                       \
-           '           > %s\n'                          \
+    tfile = 'out.ap_uvars.txt'
+    jstr = '# write AP uvars into a simple txt file\n'  \
+           'cat << EOF > %s\n'                          \
            '%s\n'                                       \
-           'EOF\n' % (proc.ap_uvars, filter_str, proc.ap_uvars, uvar_str)
+           'EOF\n\n' % (tfile, uvar_str)
+
+    jstr += '# and convert the txt format to JSON\n'                          \
+            'cat %s | afni_python_wrapper.py -eval "data_file_to_json()" \\\n'\
+            '  > %s\n' % (tfile, proc.ap_uvars)
 
     return jstr
 
