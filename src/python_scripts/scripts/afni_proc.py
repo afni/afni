@@ -808,8 +808,10 @@ g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES secion
   - ME:
      - handle MEICA tedana methods
-        - m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        x m_tedana, m_tedana_OC, m_tedana_OC_tedort
         * WAS done, but soon-to-come tedana JSON output must be handled by AP
+        - done again, but still might want OC_m_tedort
+          (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
@@ -958,6 +960,8 @@ class SubjProcSream:
 
         # general file tracking
         self.uvars      = None          # general uvars, aking to for ss_review
+        self.ap_uvars   = 'out.ap_uvars.json' # JSON file to put AP uvars in
+                                        # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]
         self.show_tfiles= ''            # files to show '', 'ALL', desc

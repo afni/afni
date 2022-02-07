@@ -8317,30 +8317,12 @@ def db_cmd_gen_review(proc):
           print('-- no regress block, skipping gen_ss_review_scripts.py')
        return cmd
 
+    # Generate AP uvars JSON file, both for gssrs and APQC.
+    # (was passing via direct opts, but change to json)
+    json_prep = prep_gssrs_json_str(proc)
+
     # misc options to pass directly (gen_ss will not figure out)
     lopts = ''
-    if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
-    if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
-    if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
-
-    # subsequent options get their own lines
-    if lopts != '': lopts = ' \\\n   %s' % lopts
-
-    if proc.anat_orig is not None:
-       lopts += ' \\\n    -copy_anat %s' % proc.anat_orig.shortinput(head=1)
-    if proc.combine_method is not None:
-       lopts += ' \\\n    -combine_method %s' % proc.combine_method
-
-    if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
-       if proc.surf_anat: ename = proc.errts_final
-       else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
-       lopts += ' \\\n    -errts_dset %s' % ename
-
-    # specify mask dataset to be used for stats, since it might not be clear
-    # (no longer def in TSNR)                                    22 Feb 2021
-    if proc.mask and not proc.surf_anat:
-       lopts += ' \\\n    -mask_dset %s' % proc.mask.shortinput(head=1)
-
     # generally include the review output file name as a uvar
     if proc.ssr_b_out != '':
        lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
@@ -8350,10 +8332,92 @@ def db_cmd_gen_review(proc):
 
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
+           '%s'                                                         \
            'gen_ss_review_scripts.py -exit0'                            \
-           '%s\n\n' % lopts
+           '%s\n\n' % (json_prep, lopts)
 
     return cmd
+
+def prep_gssrs_json_str(proc):
+    """instead of passing options to gssrs, generate a JSON file with
+       corresponding lists.
+       Generate a shell string to create the JSONN file, e.g.,
+
+cat << EOF | afni_python_wrapper.py -eval "data_file_to_json()" \
+           > stuff.json
+   mot_limit   :     0.3
+   out_limit   :     0.05
+   copy_anat   :     FT_anat+orig.HEAD
+   mask_dset   :     mask_epi_anat.$subj+tlrc.HEAD
+EOF
+
+       First generate a table, so that we can choose a reasonble column size.
+
+       return an appropriate string, or ''
+    """
+    # --- get the uvars table, and return empty if table is
+    aptab = ap_uvars_table(proc)
+    if len(aptab) == 0:
+       return ''
+
+    # --- generate the table string
+
+    # use the max length for ':' position
+    maxlen = max[len(e[0]) for e in aptab]
+
+    # could make this tight, but this is more readable
+    slist = []
+    for entry in aptab:
+       slist += "  %-*s : %s" % (entry[0], ' '.join(entry[1]))
+    uvar_str = '\n'.join(slist)
+
+    # --- generate the complete JSON generation string
+    #     (currently using afni_util.py (via apw) to convert from
+    #      plain text to JSON)
+
+    filter_str = 'afni_python_wrapper.py -eval "data_file_to_json()"'
+    jstr = '# write AP uvars into a JSON file (%s)\\\n' \
+           'cat << EOF | %s \\\n'                       \
+           '           > %s\n'                          \
+           '%s\n'                                       \
+           'EOF\n' % (proc.ap_uvars, filter_str, proc.ap_uvars, uvar_str)
+
+    return jstr
+
+def ap_uvars_table(proc):
+    """generate a string only table of AP uvars
+       
+       each entry has entry[0] = label, entry[1] = list of values
+       e.g., table = [
+                        ['mot_limit', ['0.3']]
+                        ['cheeses', ['cheddar', 'brie', 'muenster']]
+                     ]
+    """
+    # generate a uvars table of strings
+    aptab = []
+    if proc.mot_cen_lim > 0.0:
+       aptab.append(['mot_limit', [proc.mot_cen_lim]])
+    if proc.out_cen_lim > 0.0:
+       aptab.append(['out_limit', [proc.out_cen_lim]])
+    if proc.mot_extern != '' :
+       aptab.append(['motion_dset', [proc.mot_file]])
+
+    if proc.anat_orig is not None:
+       aptab.append(['copy_anat', [proc.anat_orig.shortinput(head=1)]])
+    if proc.combine_method is not None:
+       aptab.append(['combine_method', [proc.combine_method]])
+
+    if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
+       if proc.surf_anat: ename = proc.errts_final
+       else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
+       aptab.append(['errts_dset', [ename]])
+
+    # specify mask dataset to be used for stats, since it might not be clear
+    # (no longer def in TSNR)                                    22 Feb 2021
+    if proc.mask and not proc.surf_anat:
+       aptab.append(['mask_dset', [proc.mask.shortinput(head=1)]])
+
+    return aptab
 
 def block_header(hname, maxlen=74, hchar='=', endchar=''):
     """return a title string of 'hchar's with the middle chars set to 'name'
