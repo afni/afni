@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, Feb , 2022 , PT , "3dLocalstat" , MINOR , TYPE_NEW_OPT,
+   "Add a new stat:  MCONEX, the Michelson Contrast of Extrema.",
+   "mconex = |A-B|/(|A|+|B|), where A=max and B=min.\n"
+},
+
 { 6, Feb , 2022 , PT , "3dedgedog" , MINOR , TYPE_GENERAL,
    "If -only2D opt is used, then don't blur in 3D, either.",
    "Also turn off optimized double blurring---essentially not time diff.\n"
