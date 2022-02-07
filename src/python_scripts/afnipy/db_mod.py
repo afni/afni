@@ -8321,20 +8321,26 @@ def db_cmd_gen_review(proc):
     # (was passing via direct opts, but change to json)
     json_prep = prep_gssrs_json_str(proc)
 
-    # misc options to pass directly (gen_ss will not figure out)
+    # --- misc options to pass directly (gen_ss will not figure out)
     lopts = ''
-    # generally include the review output file name as a uvar
-    if proc.ssr_b_out != '':
-       lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
+
+    # make json prep string
+    jp_str = ''
+    if json_prep and proc.ap_uvars:
+       jp_str = '\n%s\n'                                        \
+                '# and init gen_ss_review_scripts.py with %s\n' \
+                % (json_prep, proc.ap_uvars)
+       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uvars
 
     if proc.ssr_uvars:
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
+
 
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            '%s'                                                         \
            'gen_ss_review_scripts.py -exit0'                            \
-           '%s\n\n' % (json_prep, lopts)
+           '%s\n\n' % (jp_str, lopts)
 
     return cmd
 
@@ -8363,12 +8369,12 @@ EOF
     # --- generate the table string
 
     # use the max length for ':' position
-    maxlen = max[len(e[0]) for e in aptab]
+    maxlen = max([len(e[0]) for e in aptab])
 
     # could make this tight, but this is more readable
     slist = []
     for entry in aptab:
-       slist += "  %-*s : %s" % (entry[0], ' '.join(entry[1]))
+       slist.append("  %-*s : %s" % (maxlen, entry[0], ' '.join(entry[1])))
     uvar_str = '\n'.join(slist)
 
     # --- generate the complete JSON generation string
@@ -8396,26 +8402,29 @@ def ap_uvars_table(proc):
     # generate a uvars table of strings
     aptab = []
     if proc.mot_cen_lim > 0.0:
-       aptab.append(['mot_limit', [proc.mot_cen_lim]])
+       aptab.append(['mot_limit', ['%s' % proc.mot_cen_lim]])
     if proc.out_cen_lim > 0.0:
-       aptab.append(['out_limit', [proc.out_cen_lim]])
+       aptab.append(['out_limit', ['%s' % proc.out_cen_lim]])
     if proc.mot_extern != '' :
-       aptab.append(['motion_dset', [proc.mot_file]])
+       aptab.append(['motion_dset', ['%s' % proc.mot_file]])
 
     if proc.anat_orig is not None:
-       aptab.append(['copy_anat', [proc.anat_orig.shortinput(head=1)]])
+       aptab.append(['copy_anat', ['%s' % proc.anat_orig.shortinput(head=1)]])
     if proc.combine_method is not None:
-       aptab.append(['combine_method', [proc.combine_method]])
+       aptab.append(['combine_method', ['%s' % proc.combine_method]])
 
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
-       aptab.append(['errts_dset', [ename]])
+       aptab.append(['errts_dset', ['%s' % ename]])
 
     # specify mask dataset to be used for stats, since it might not be clear
     # (no longer def in TSNR)                                    22 Feb 2021
     if proc.mask and not proc.surf_anat:
-       aptab.append(['mask_dset', [proc.mask.shortinput(head=1)]])
+       aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
+
+    if proc.ssr_b_out != '':
+       aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
 
     return aptab
 
