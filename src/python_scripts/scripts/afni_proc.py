@@ -3421,25 +3421,31 @@ class SubjProcSream:
         # possibly pass user options
         user_opts = ' '.join(self.html_rev_opts)
         if user_opts != '':
-           user_opts += ' '
+           user_opts = '%s    %s \\\n' % (istr, user_opts)
 
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
-              '%sapqc_make_tcsh.py %s-review_style %s -subj_dir . \\\n'       \
+              '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '%s'                                                            \
               '%s    -uvar_json %s\n'                                         \
               '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
-                 istr, user_opts, self.html_rev_style,
+                 istr, self.html_rev_style,
+                 user_opts,
                  istr, self.ssr_uvars,
                  istr, istr)
+
+        cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
            ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
         else:
            ocmd = 'afni_open -b QC_$subj/index.html'
 
-        cmd += '%secho "\\nconsider running: \\n\\n    %s\\n"\n' % (istr, ocmd)
+        cmd += '%secho "\\nconsider running: \\n"\n' \
+               '%secho "   %s"\n'                    \
+               '%secho ""\n' % (istr, istr, ocmd, istr)
 
         return cmd
 
