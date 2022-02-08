@@ -204,8 +204,12 @@ auth = 'PA Taylor'
 #ver = '3.92' ; date = 'Jan 25, 2022'
 # [PT] vorig has new image: copy_anat dset
 #
-ver = '3.93' ; date = 'Jan 26, 2022'
+#ver = '3.93' ; date = 'Jan 26, 2022'
 # [PT] epi-anat overlap in vorig QC block 
+#
+ver = '3.94' ; date = 'Feb 8, 2022'
+# [PT] AP can now pass opts here via '-html_review_opts ..'
+# - first one is '-mot_grayplot_off', for S Torrisi.
 #
 #########################################################################
 
@@ -780,7 +784,11 @@ if __name__ == "__main__":
     # [PT: Feb 25, 2019] 
     ldep  = ['errts_dset', 'mask_dset']
     ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
-    if lat.check_dep(ap_ssdict, ldep) :
+    if not(iopts.do_mot_grayplot) :
+        ban = lat.bannerize('*turned off*: make grayplot of residuals')
+        str_FULL+= ban
+        idx     += 1
+    elif lat.check_dep(ap_ssdict, ldep) :
         # [PT: Jun 18, 2019] special case check-- 
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
             HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Feb , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_OPT,
+   "AP now can pass some '-html_review_opts ..' values to this prog.",
+   "First one: '-mot_grayplot_off', for envelope-pushing user S Torrisi.\n"
+},
+
 { 7, Feb , 2022 , PT , "3dLocalstat" , MINOR , TYPE_NEW_OPT,
    "Add a new stat:  MCONEX, the Michelson Contrast of Extrema.",
    "mconex = |A-B|/(|A|+|B|), where A=max and B=min.\n"

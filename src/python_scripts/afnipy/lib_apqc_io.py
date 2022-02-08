@@ -73,9 +73,13 @@
 #    + check if user entered 'pythonic', but their system CAN'T HANDLE 
 #      THE TRUTH, and just downgrade to 'basic'
 #
-ver = '1.94' ; date = 'Jan 20, 2022' 
+#ver = '1.94' ; date = 'Jan 20, 2022' 
 # [PT] add in obj attribute so warning about pythonic->basic can be 
 #      more directly provided to user
+#
+ver = '1.95' ; date = 'Feb 8, 2022' 
+# [PT] AP can now pass opts here via '-html_review_opts ..'
+# - first one is '-mot_grayplot_off', for S Torrisi.
 #
 #########################################################################
 
@@ -1758,6 +1762,7 @@ class apqc_tcsh_opts:
         self.subjdir  = ""
         self.revstyle = "basic"
         self.pythonic2basic = 0
+        self.do_mot_grayplot = True
 
     def set_json(self, json):
         self.json = json
@@ -1767,6 +1772,12 @@ class apqc_tcsh_opts:
 
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
+
+    def set_mot_grayplot(self, tf):
+        if tf:
+            self.do_mot_grayplot = True
+        else:
+            self.do_mot_grayplot = False
 
     # check requirements
     def check_req(self):
@@ -1848,6 +1859,11 @@ def parse_tcsh_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_revstyle(argv[i])
+
+        # --- apres moi, le deluge ---
+        ### AP can now pass opts here via '-html_review_opts ..'
+        elif argv[i] == "-mot_grayplot_off":
+            iopts.set_mot_grayplot(False)
 
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))
