@@ -711,9 +711,10 @@ g_history = """
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
     7.26 Jan 29, 2022: allow execution only we have made the main script
     7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
+    7.28 Feb  8, 2022: add -html_review_opts
 """
 
-g_version = "version 7.27, February 7, 2022"
+g_version = "version 7.28, February 8, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1080,6 +1081,7 @@ class SubjProcSream:
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.html_rev_style = 'basic'   # html_review_style
+        self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic'         # basic review script
         self.ssr_b_out    = 'out.ss_review.$subj.txt'  # text output from it
@@ -1307,6 +1309,8 @@ class SubjProcSream:
                         helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
                         helpstr='generate a script to review orig EPI data')
+        self.valid_opts.add_opt('-html_review_opts', -1, [],
+                        helpstr='additional options for apqc_make_tcsh.py')
         self.valid_opts.add_opt('-html_review_style', 1, [],
                         acplist=g_html_review_styles,
                         helpstr='generate ss review HTML pages')
@@ -1961,6 +1965,9 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-html_review_style') # for apqc_make_tcsh.py
         if opt != None: self.html_rev_style = opt.parlist[0]
+
+        opt = opt_list.find_opt('-html_review_opts') # for apqc_make_tcsh.py
+        if opt != None: self.html_rev_opts = opt.parlist
 
         opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = 0
@@ -3411,14 +3418,19 @@ class SubjProcSream:
                  "   (missing: %s)\n" % ', '.join(missing))
            return ''
 
+        # possibly pass user options
+        user_opts = ' '.join(self.html_rev_opts)
+        if user_opts != '':
+           user_opts += ' '
+
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
-              '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '%sapqc_make_tcsh.py %s-review_style %s -subj_dir . \\\n'       \
               '%s    -uvar_json %s\n'                                         \
               '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
-                 istr, self.html_rev_style,
+                 istr, user_opts, self.html_rev_style,
                  istr, self.ssr_uvars,
                  istr, istr)
 

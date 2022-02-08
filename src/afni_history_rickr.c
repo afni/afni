@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -html_review_opts for passing options to apqc_make_tcsh.py",
+   "Done for S Torrisi."
+ } ,
+
  {  7, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "create out.ap_uvars.json, and apply via gssrs -init_uvas_json",
    "A minor assist in helping P Taylor take over this spiral galaxy arm..."

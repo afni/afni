@@ -11677,6 +11677,12 @@ g_help_options = """
 
             See also '-gen_epi_review'.
 
+        -html_review_opts  ...   : pass extra options to apqc_make_tcsh.py
+
+                e.g. -html_review_opts -mot_grayplot_off
+
+            Blindly pass the given options to apqc_make_tcsh.py.
+
         -html_review_style STYLE : specify generation method for HTML review
 
                 e.g.     -html_review_style pythonic
