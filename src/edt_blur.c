@@ -29,6 +29,25 @@ static int allow_fir = 1 ;
 
 void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 
+
+/* mirror blur array at ends, all the way        */
+/* (as macro for speed)                          */
+/* pad for full lenghth m     [9 Feb 2022 rickr] */
+/*    RRR      - probably 'r' array              */
+/*    MMM      - padding length (on each side)   */
+/*    NDIM     - unnpadded length, NX, NY or NZ  */
+#ifdef BMIRROR
+#undef BMIRROR
+#endif
+#define BMIRROR(RRR,MMM,NDIM)                   \
+   do {                                         \
+      for( mm=1; mm <= MMM; mm++) {             \
+         RRR[MMM-mm] = RRR[MMM+mm];             \
+         RRR[MMM+NDIM-1+mm] = RRR[MMM+NDIM-mm]; \
+      }                                         \
+   } while(0)
+
+
 /*************************************************************************/
 /*!  Routine to blur a 3D volume with a Gaussian, using FFTs.
      If the blurring parameter (sigma) is small enough, will use
@@ -660,6 +679,7 @@ static INLINE float partu( float x )
 void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
+   int mm ; /* for padding ends */
    float *r , wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
 
 ENTRY("fir_blurx") ;
@@ -700,7 +720,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
         for( jj=0 ; jj < ny ; jj++ ){
           off = jj*nx + kk*nxy ; ff = f+off ;     /* ff = ptr to this row */
           memcpy( r+m , ff , sizeof(float)*nx ) ; /* copy row into workspace */
-          r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ; /* mirror at ends */
+          /* replace:  r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ; */
+          BMIRROR(r,m,nx);  /* fully mirror at ends  [9 Feb 2022 rickr]*/
 
           for( ii=0 ; ii < nx ; ii++ ){   /* filter at ii-th location */
             sum = wt[0]*r[ii+m] ;
@@ -721,7 +742,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
         for( jj=0 ; jj < ny ; jj++ ){
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt7*(r[ii  ]+r[ii+14])
@@ -741,7 +762,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
         for( jj=0 ; jj < ny ; jj++ ){
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt6*(r[ii  ]+r[ii+12])
@@ -761,7 +782,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt5*(r[ii  ]+r[ii+10])
@@ -780,7 +801,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt4*(r[ii  ]+r[ii+ 8])
@@ -798,7 +819,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt3*(r[ii  ]+r[ii+ 6])
@@ -815,7 +836,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt2*(r[ii  ]+r[ii+ 4])
@@ -831,7 +852,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
+          BMIRROR(r,M,nx);  /* mirror at ends, all the way */
 
           for( ii=0 ; ii < nx ; ii++ )
             ff[ii] = wt1*(r[ii]+r[ii+2])+wt0*r[ii+1] ;
@@ -853,6 +874,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
+   int mm ; /* for padding ends */
    float *r, wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
    float *rr, *ss;
    int ny2m = ny+2*m;
@@ -1040,7 +1062,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
-          r[m-1] = r[m+1] ; r[ny+m] = r[ny+m-2] ;
+          BMIRROR(r,m,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ ){
             sum = wt[0]*r[jj+m] ;
@@ -1058,7 +1080,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt7*(r[jj  ]+r[jj+14])
@@ -1078,7 +1100,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt6*(r[jj  ]+r[jj+12])
@@ -1097,7 +1119,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt5*(r[jj  ]+r[jj+10])
@@ -1115,7 +1137,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt4*(r[jj  ]+r[jj+ 8])
@@ -1132,7 +1154,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt3*(r[jj  ]+r[jj+ 6])
@@ -1149,7 +1171,7 @@ SMALLIMAGE:
 
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt2*(r[jj  ]+r[jj+ 4])
@@ -1164,7 +1186,7 @@ SMALLIMAGE:
         for( ii=0 ; ii < nx ; ii++ ){
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
-          r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
+          BMIRROR(r,M,ny);  /* mirror at ends, all the way */
 
           for( jj=0 ; jj < ny ; jj++ )
             ff[D*jj] = wt1*(r[jj]+r[jj+2])+wt0*r[jj+1] ;
@@ -1185,6 +1207,7 @@ SMALLIMAGE:
 void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
+   int mm ; /* for padding ends */
    float *rr,*ss , wt0=0.0,wt1=0.0,wt2=0.0,wt3=0.0,wt4=0.0,wt5=0.0,wt6=0.0,wt7=0.0 , sum , *ff ;
    int nz2m = nz+2*m ;
 
@@ -1234,6 +1257,19 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  SS
 #define SS(i,k) ss[(k)+(i)*nz]
 
+/* mirror into blur pads, like BMIRROR, but for RR access [9 Feb 2022 rickr] */
+#ifdef RMIRROR
+#undef RMIRROR
+#endif
+#define RMIRROR(MMM,NDIM)                       \
+   do {                                         \
+      for( mm=1; mm <= MMM; mm++) {             \
+         RR(ii,-mm) = RR(ii,mm);                \
+         RR(ii,NDIM-1+mm) = RR(ii,NDIM-1-mm);   \
+      }                                         \
+   } while(0)
+
+
    rr = (float *)calloc(sizeof(float),nz2m*nx) ;  /* nz2m = nz+2*m */
    ss = (float *)malloc(sizeof(float)*nz  *nx) ;
 
@@ -1247,7 +1283,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        for( ii=0 ; ii < nx ; ii++ ) RR(ii,kk) = ff[ii+D*kk] ;
      }
      for( ii=0 ; ii < nx ; ii++ ){
-       RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ; /* edge reflection */
+       /* replace: RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ; */
+       RMIRROR(m,nz);  /* edge reflection in z   [9 Feb 2022 rickr] */
      }
 
      /* filter data in RR along z-direction, put into 2D SS array */
@@ -1553,6 +1590,10 @@ static void fir_gaussian_load( int m, float dx, float *ff )
 
    fac = 1.0f / fac ;
    for( ii=0 ; ii <= m ; ii++ ) ff[ii] *= fac ;
+   if(DO_INFO) {
+      fprintf(stderr,"-- fir weights:\n");
+      for( ii=0 ; ii <= m ; ii++ ) fprintf(stderr,"   %g\n", ff[ii]);
+   }
    return ;
 }
 

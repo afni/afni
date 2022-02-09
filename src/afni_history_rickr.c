@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Feb, 2022, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix FIR blur padding",
+   "As noted by PT, volumes were not being properly blurred near edges.\n"
+   "Fix edge padding to be applied for entire FIR length, not just at\n"
+   "full FIR offset."
+ } ,
+
  {  8, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -html_review_opts for passing options to apqc_make_tcsh.py",
    "Done for S Torrisi."

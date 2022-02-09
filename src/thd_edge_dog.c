@@ -275,6 +275,30 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    EDIT_substitute_brick(dset_dog, ival, MRI_float, tmp_arr); 
    tmp_arr = NULL;
 
+   /* possibly write blur images  [9 Feb 2022 rickr] */
+   if( opts.do_output_intermed && ival==0 ) {
+      THD_3dim_dataset * bset = NULL;
+      char               prefix_edt[THD_MAX_PREFIX];
+
+      ii = build_edge_dog_suppl_prefix( &opts, prefix_edt, "_BLURS" );
+      INFO_message("Output intermediate dset blur vols");
+
+      bset = EDIT_empty_copy(dset_dog); 
+      EDIT_dset_items(bset,
+                      ADN_nvals, 2,
+                      ADN_datum_all, MRI_float,
+                      ADN_prefix, prefix_edt,
+                      ADN_none );
+      EDIT_substitute_brick(bset, 0, MRI_float, fl_im_inner); 
+      EDIT_substitute_brick(bset, 1, MRI_float, fl_im_outer); 
+      THD_load_statistics( bset );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(bset)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(bset));
+      THD_write_3dim_dataset(NULL, NULL, bset, True);
+   }
+
+
    // free
    if( im_inner )
       mri_free( im_inner );
