@@ -1743,13 +1743,40 @@ def parse_1dplot_args(full_argv):
 
 help_string_apqc_make_tcsh = '''
 
-Help is here.
+This program creates the single subject (ss) HTML review script
+'@ss_review_html', which itself generates images and text that form
+the afni_proc.py quality control (APQC) HTML.
 
--uvar_json
--subj_dir
--review_style {{{}}}
+It is typically run by the afni_proc.py (AP) proc* script itself.
 
-'''.format( "|".join(ok_review_styles) )
+Options:
+
+-uvar_json  UJ    :(req) UJ is a text file of uvars ("user variables")
+                   created by gen_ss_review.py that catalogues important
+                   files in the results directory, for the APQC.
+
+-subj_dir   SD    :(req) location of AP results directory (often '.', as
+                   this program is often run from within the AP results 
+                   directory).
+
+-review_style RS  :(opt) the 'style' of the APQC HTML output HTML.  Allowed
+                   keywords are:
+                       {{{}}}
+                   + Using 'pythonic' is the recommended way to go: the
+                   1D images are the clearest and most informative.
+                   It means you need the Python module Matplotlib
+                   (v>=2.2) installed, which should be a light dependency.
+                   + Using 'basic' means that no Matplotlib will be
+                   used, just 1dplot, and the images will be more,
+                   well, basic-looking.
+                   + Using 'none' means no APQC HTML is generated (boooooo).
+
+-mot_grayplot_off :(opt) turn off the grayplot generation.  This
+                   option was created for a specific case of a user who had
+                   a huuuge dataset and the grayplot took annoyingly long
+                   to estimate.  Not recommended to use, generally. 
+
+'''.format( ", ".join(ok_review_styles) )
 
 # -------------------------------------------------------------------
 
