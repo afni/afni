@@ -276,7 +276,7 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
    tmp_arr = NULL;
 
    /* possibly write blur images  [9 Feb 2022 rickr] */
-   if( opts.do_output_intermed ) {
+   if( opts.do_output_intermed && ival==0 ) {
       THD_3dim_dataset * bset = NULL;
       char               prefix_edt[THD_MAX_PREFIX];
 
@@ -285,10 +285,10 @@ int calc_edge_dog_DOG( THD_3dim_dataset *dset_dog, PARAMS_edge_dog opts,
 
       bset = EDIT_empty_copy(dset_dog); 
       EDIT_dset_items(bset,
-                   ADN_nvals, 2,
-                   ADN_datum_all, MRI_float,
-                   ADN_prefix, prefix_edt,
-                   ADN_none );
+                      ADN_nvals, 2,
+                      ADN_datum_all, MRI_float,
+                      ADN_prefix, prefix_edt,
+                      ADN_none );
       EDIT_substitute_brick(bset, 0, MRI_float, fl_im_inner); 
       EDIT_substitute_brick(bset, 1, MRI_float, fl_im_outer); 
       THD_load_statistics( bset );

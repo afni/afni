@@ -44,6 +44,10 @@ ver = 2.0;  date = Feb 6, 2022
   - Also use 'non-opt' double blur with Gaussians---better for some
     boundary conditions
 
+ver = 2.1;  date = Feb 9, 2022
++ [RCR] output intermediate blur dsets (of [0]th vol)
+  - underlying blurring improved at boundary
+
 
 *** still might add:
   - multi-spatial scale requests
@@ -165,6 +169,8 @@ int usage_3dedgedog()
 "                    intermediate dataset(s):\n"
 "                        + DOG (difference of Gaussian)\n"
 "                        + EDT2 (Euclidean Distance Transform, dist**2 vals),\n"
+"                          [0]th vol only\n"
+"                        + BLURS (inner- and outer-Gaussian blurred dsets),\n"
 "                          [0]th vol only\n"
 "                    (def: not output).  Output names  will be user-entered\n"
 "                    prefix with a representative suffix appended.\n"
