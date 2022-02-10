@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Feb, 2022, RCR, "3dPval", MICRO, TYPE_BUG_FIX,
+   "fix dealing with an unknown option",
+   "Previously warned, but forgot to skip option (or break, depending).\n"
+   "Change to failure."
+ } ,
+
  {  9, Feb, 2022, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fix FIR blur padding",
    "As noted by PT, volumes were not being properly blurred near edges.\n"

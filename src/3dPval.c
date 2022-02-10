@@ -94,7 +94,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     WARNING_message("Skipping unknown option %s",argv[iarg]) ;
+     ERROR_exit("unknown option %s",argv[iarg]) ;
    }
 
    iset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(iset,argv[iarg]) ;
