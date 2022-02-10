@@ -56,6 +56,7 @@ afni_history_struct rickr_history[] = {
  { 10, Feb, 2022, RCR, "afni_python_wrapper.py", MINOR, TYPE_BUG_FIX,
    "change import to try from afnipy first",
    "Biowulf has old afnipy/*.py files in abin.\n"
+   "Thanks to P Kusmierek and P Taylor for reporting the problem."
  } ,
 
  { 10, Feb, 2022, RCR, "3dPval", MICRO, TYPE_BUG_FIX,
