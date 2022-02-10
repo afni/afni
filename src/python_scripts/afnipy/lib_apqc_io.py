@@ -77,9 +77,12 @@
 # [PT] add in obj attribute so warning about pythonic->basic can be 
 #      more directly provided to user
 #
-ver = '1.95' ; date = 'Feb 8, 2022' 
+#ver = '1.95' ; date = 'Feb 8, 2022' 
 # [PT] AP can now pass opts here via '-html_review_opts ..'
 # - first one is '-mot_grayplot_off', for S Torrisi.
+#
+ver = '1.96' ; date = 'Feb 10, 2022' 
+# [PT] matplotlib ver check to be >= 2.2, not just >2.2
 #
 #########################################################################
 
@@ -1938,7 +1941,7 @@ def check_apqc_pythonic_ok():
         try:
             ulist = [int(x) for x in MOD.split('.')]
             vlist = [int(x) for x in mver.split('.')]
-            if vlist[0] > ulist[0]:
+            if vlist[0] >= ulist[0]:
                 bad_for_pythonic = 0
             elif vlist[0] == ulist[0] and vlist[1] >= ulist[1]:
                 bad_for_pythonic = 0

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Feb , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "The 'pythonic' should be run if matplotlib ver is >=2.2, not just >2.2.",
+   "Used incorrect comparison operator earlier. I know bc Biowulf told me so.\n"
+},
+
 { 8, Feb , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_OPT,
    "AP now can pass some '-html_review_opts ..' values to this prog.",
    "First one: '-mot_grayplot_off', for envelope-pushing user S Torrisi.\n"
