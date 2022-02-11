@@ -1,3 +1,56 @@
+AFNI Digest, week of 2029/02/11.
+
+
+SurfLocalstat.  One of the last programs written by Ziad, this is
+newly released with the addition of the 'mode' statistic for doing
+modal smoothing on the surface.
+
+Monkey business
+We have been really involved in the world of monkeys (something like
+the Planet of the Apes). Lots of upcoming atlases, templates and
+scripts and contributions to the PRIME-DRE site.
++ Messinger et al. (2021) A collaborative resource platform for
+non-human primate neuroimaging
+https://doi.org/10.1016/j.neuroimage.2020.117519
++ Hartig et al. (2022) The Subcortical Atlas of the Rhesus Macaque
+(SARM) for neuroimaging.
+https://doi.org/10.1016/j.neuroimage.2021.117996
++ Saleem et al. (2021). High-resolution mapping and digital atlas of
+subcortical regions in the macaque monkey based on matched MAP-MRI and
+histology.  https://doi.org/10.1016/j.neuroimage.2021.118759
++ Milham et al (2022) PRIMatE Data and Resource Exchange (PRIME-DRE)
+Global Collaboration Workshop and Consortium. Toward next-generation
+primate neuroscience: A collaboration-based strategic plan for
+integrative neuroimaging.  https://pubmed.ncbi.nlm.nih.gov/34731649/
++ Tian et al. (2021) Integrated resource for functional and structural
+connectivity of the marmoset brain
+https://www.biorxiv.org/content/10.1101/2021.11.12.468389v1
+
+Defacing/Refacing datasets
+If you want to note the good performance of AFNI’s defacing/refacing
+tool @afni_refacer_run, you can check out this independent study that
+found it to be the overall best among currently available tools (also
+presented at OHBM 2020):
++ Theyers et al. (2021). Multisite Comparison of MRI Defacing Software
+Across Multiple Cohorts.
+https://www.frontiersin.org/articles/10.3389/fpsyt.2021.617997/full
+
+Clipping Planes in SUMA
+Clipping planes enable the user to interactively visualize surfaces of
+interest by interactively, or drivably, clipping away surfaces between
+those surfaces and the viewer.  Up to six such surfaces can be used
+and they are identified by prime color (RGBCMY) squares which can be
+toggled on/off.  The square associated with the active plane is
+brightest.  Each plane may be scrolled along its normal and/or tilted.
+A demonstration is available in:
+Creating Layered Surfaces to Visualize with AFNI + SUMA, with
+applications to laminar fMRI:
+https://afni.nimh.nih.gov/pub/dist/HBM2021/OHBM2021_SurfLayers_v2.pdf
+and the related Surf Layers demo:  @Install_SURFLAYERS_DEMO1.
+
+
+========================================================================
+
 AFNI Digest, week of 2022/01/25.
 
 Planning a study with trials? Take note!
