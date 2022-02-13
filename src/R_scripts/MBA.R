@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.5, March 16, 2021
+Version 1.0.6, Feb 13, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -153,11 +153,14 @@ Usage: ~1~
  execute the following command in R:
  
  install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
-    
- Follow the instruction here for the installation of \'cmdstan\': 
-    https://mc-stan.org/cmdstanr/articles/cmdstanr.html 
- If \'cmdstan\' is installed in a directory other than home, use option -StanPath
- to specify the path (e.g., -StanPath \'~/my/stan/path\').
+
+ Then install \'cmdstan\' using the following command in R:
+
+ cmdstanr::install_cmdstan(cores = 2)
+# Follow the instruction here for the installation of \'cmdstan\': 
+#    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
+# If \'cmdstan\' is installed in a directory other than home, use option -StanPath 
+# to specify the path (e.g., -StanPath \'~/my/stan/path\').
  
  Running: ~1~
  Once the MBA command script is constructed, it can be run by copying and
@@ -193,10 +196,10 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the options -WCP and -StanPath. For example, the script assumes a 
-   computer with 24 CPUs (6 CPUs per chain):
+   with the option -WCP. For example, the script assumes a computer with 24 CPUs
+   (6 CPUs per chain):
 
-   MBA -prefix myWonderfulResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   MBA -prefix myWonderfulResult -chains 4 -WCP 6 \\
        -iterations 1000 -model 1 -EOI 'Intercept' -r2z -dataTable myData.txt  \\
 
    The input file 'myData.txt' is a data table in pure text format as below: 
@@ -211,7 +214,7 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
    If the data is skewed or has outliers, consider using the Student t-distribution
    through the option -distY:
 
-   MBA -prefix myWonderfulResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   MBA -prefix myWonderfulResult -chains 4 -WCP 6 \\
        -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -dataTable myData.txt  \\ 
 
    If t-statistic (or standard error) values corresponding to the response variable
@@ -219,12 +222,12 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
    data table so that they can be incorporated into the BML model using the option -tstat
    or -se with the following script (assuming the tstat column is named as 'tvalue),
 
-   MBA -prefix myWonderfulResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   MBA -prefix myWonderfulResult -chains 4 -WCP 6 \\
        -iterations 1000 -model 1 -EOI 'Intercept' -tstat tvalue -dataTable myData.txt  \\
  
    or (assuming the se column is named as 'SE'),
 
-   MBA -prefix myWonderfulResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   MBA -prefix myWonderfulResult -chains 4 -WCP 6 \\
        -iterations 1000 -model 1 -EOI 'Intercept' -se SE -dataTable myData.txt  \\
 
  \n"         
@@ -240,7 +243,7 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the optionuis -WCP and -StanPath. For example, For example, consider 
+   with the option -WCP. For example, For example, consider 
    adding '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
@@ -266,7 +269,7 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the options -WCP and -StanPath. For example, For example, consider adding 
+   with the option -WCP. For example, For example, consider adding 
    '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
@@ -346,16 +349,6 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         is the number of thread per chain that is requested. For example, with 4",
    "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
    "         chain will be assigned with 6 threads.\n", sep='\n')),
-
-   '-StanPath' = apl(n = 1, d = 1, h = paste(
-   "-StanPath dir: Use this option to specify the path (directory) where 'cmdstan' is",
-   "         is installed on the computer. Together with option '-WCP', within-chain",
-   "         parallelization can be used to speed up runtime. To take advantage of",
-   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
-   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
-   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
-   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
-   "         '-StanPath \"~/here/is/myStanPath\"'.\n", sep='\n')),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
    "-verb VERB: Speicify verbose level.\n", sep = '\n'
@@ -562,7 +555,6 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
       lop$WCP    <- FALSE
-      lop$StanPath   <- '~'
       lop$qContr  <- NA
       lop$Y      <- 'Y'
       lop$distY  <- 'gaussian'
@@ -587,7 +579,6 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
              WCP        = lop$WCP    <- ops[[i]],
-             StanPath   = lop$StanPath   <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
              verb   = lop$verb  <- ops[[i]],
              model  = lop$model <- ops[[i]],
@@ -775,10 +766,6 @@ options(mc.cores = parallel::detectCores())
 # within-chain parallelization?
 if(lop$WCP) {
    require('cmdstanr')
-   if(!grepl('\\/$', lop$StanPath)) lop$StanPath <- paste0(lop$StanPath, '/') # make sure / is added to the path
-   path <- ifelse(is.null(lop$StanPath), '~/cmdstan', paste0(lop$StanPath, 'cmdstan'))
-   set_cmdstan_path(path)
-   #set_cmdstan_path('~/cmdstan') # where is this located for the user?
 }
 
 # Fisher transformation
