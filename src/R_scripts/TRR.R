@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, March 13, 2021 
+Version 0.0.4, Febarch 13, 2022 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
@@ -103,11 +103,12 @@ Usage: ~1~
     chain parallelization through the option -WCP. However, extra stpes are 
     required: both \'cmdstan\' and \'cmdstanr\' have to be installed. To install
     \'cmdstanr\', execute the following command in R:
+
     install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
-    Follow the instruction here for the installation of \'cmdstan\': 
-    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
-    If \'cmdstan\' is installed in directory other than home, use option
-    -StanPath to specify the path (e.g., -StanPath \'~/my/stan/path\').
+
+    Then install \'cmdstan\' using the following command in R:
+
+    cmdstanr::install_cmdstan(cores = 2)
 
  4) The results from TRR can be slightly different from each execution or 
     different computers and R package versions due to the nature of randomness 
@@ -156,11 +157,11 @@ Example 1 --- TRR estimation for a single effect - simple scenario: one
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the option -WCP (and -StanPath). For example, the script assumes a 
+   with the option -WCP. For example, the script assumes a 
    computer with 24 CPUs (6 CPUs per chain): 
 
    TRR -prefix myTRR -chains 4 -iterations 1000 -Y RT -subject Subj \\
-      -repetition sess -WCP 6 -StanPath '~/my/stan/path' -dataTable myData.tbl   \\
+      -repetition sess -WCP 6 -dataTable myData.tbl   \\
 
    If the data are skewed or have outliers, use exGaussian or Student's t:
 
@@ -196,7 +197,7 @@ Example 2 --- TRR estimation for a contrast between two conditions. Input
    computer with 24 CPUs:
 
    TRR -prefix myTRR -chains 4 -iterations 1000 -Y RT -subject Subj \\
-      -repetition sess -condition cond -WCP 6 -StanPath '~/my/stan/path' \\
+      -repetition sess -condition cond -WCP 6 \\
       -dataTable myData.tbl   \\
 
    Another version with the assumption of student t-distribution:
@@ -239,7 +240,6 @@ Example 3 --- TRR estimation for a contrast between two conditions. Input
 
    TRR -prefix myTRR -chains 4 -iterations 1000 -Y RT -subject Subj \\
       -repetition sess -condition cond -tstat tvalue -WCP 6 \\
-      -StanPath '~/my/stan/path' \\
       -dataTable myData.tbl \\
 
    Another version with the assumption of Student t-distribution:
@@ -355,16 +355,6 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
    "         is the number of thread per chain that is requested. For example, with 4",
    "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
    "         chain will be assigned with 6 threads.\n", sep='\n')),
-
-      '-StanPath' = apl(n = 1, d = 1, h = paste(
-   "-StanPath dir: Use this option to specify the path (directory) where 'cmdstan' is",
-   "         is installed on the computer. Together with option '-WCP', within-chain",
-   "         parallelization can be used to speed up runtime. To take advantage of",
-   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
-   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
-   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
-   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
-   "         '-StanPath \"~/here/is/myStanPath/\"'.\n", sep='\n')),
 
       '-cVars' = apl(n=c(1,100), d=NA, h = paste(
    "-cVars variable_list: Identify categorical (qualitive) variables (or",
@@ -497,7 +487,6 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
       lop$tstat  <- NULL
       lop$PDP    <- NULL
       lop$WCP    <- FALSE
-      lop$StanPath   <- NULL
       lop$repetition <- 'sess'
       lop$condition  <- NULL
 
@@ -524,7 +513,6 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
              subject    = lop$subject   <- ops[[i]],
              PDP        = lop$PDP    <- ops[[i]],
 	     WCP        = lop$WCP    <- ops[[i]],
-             StanPath   = lop$StanPath   <- ops[[i]],
              repetition = lop$repetition <- ops[[i]],
              condition  = lop$condition  <- ops[[i]],
              help       = help.TRR.opts(params, adieu=TRUE),
@@ -666,10 +654,6 @@ options(mc.cores = parallel::detectCores())
 # within-chain parallelization?
 if(lop$WCP) {
    require('cmdstanr')
-   if(!grepl('\\/$', lop$StanPath)) lop$StanPath <- paste0(lop$StanPath, '/') # make sure / is added to the path
-   path <- ifelse(is.null(lop$StanPath), '~/cmdstan', paste0(lop$StanPath, 'cmdstan'))
-   set_cmdstan_path(path)
-   #set_cmdstan_path('~/cmdstan') # where is this located for the user?
 }
 
 # change the se column name when se is provided as input
