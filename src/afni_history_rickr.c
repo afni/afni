@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Feb, 2022, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -show_keepers",
+   "Show table of subjects kept, rather than those with any outliers.\n"
+   "Added on the authority of P Taylor."
+ } ,
+
  { 10, Feb, 2022, RCR, "afni_python_wrapper.py", MINOR, TYPE_BUG_FIX,
    "change import to try from afnipy first",
    "Biowulf has old afnipy/*.py files in abin.\n"
