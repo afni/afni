@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Feb, 2022, RCR, "gen_ss_review_table.py", MICRO, TYPE_MODIFY,
+   "display SHOW_KEEP for subjects on -show_keepers",
+   NULL
+ } ,
+
  { 14, Feb, 2022, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
    "add -show_keepers",
    "Show table of subjects kept, rather than those with any outliers.\n"

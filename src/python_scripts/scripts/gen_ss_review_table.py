@@ -294,10 +294,10 @@ g_history = """
         - default:  in valid comparison, eval blank test vals as non-outliers
           with opt: eval blank test vals as outliers
           (previously, any non-float was viewed as an outlier)
-   1.5  Feb 14, 2022    - added -show_keepers
+   1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
 """
 
-g_version = "gen_ss_review_table.py version 1.5, February 14, 2022"
+g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
 
 
 class MyInterface:
@@ -872,12 +872,15 @@ class MyInterface:
       nrows = len(table)
       rev_labels = [otest[0] for otest in test_list]
       firstind = table[0].index(rev_labels[0])
-      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
       # copy original row 2 for VARY comparison
       varyrow = table[2][:]
 
       # do we actually output the keepers, rather than the droppers?
+      # (if so, change subject lable to SHOW_KEEP)
       if self.show_keepers:
+         if table[0][0] == 'subject' and table[1][0] == 'SHOW':
+            table[1][0] = 'SHOW_KEEP'
+
          # then negate the labels, so we match the output
          if self.verb > 1:
             print('++ keepers change from %s' % table[1])
