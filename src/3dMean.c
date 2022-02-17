@@ -15,7 +15,7 @@ int main( int argc , char * argv[] )
    int nweights=0;
    char * prefix = "mean" ;
    int datum=-1, verb=0, do_sd=0, do_sum=0, do_sqr=0, firstds=0,numds=0 ;
-   int do_union=0 , do_inter=0, non_zero=0, count_flag =0 ;
+   int do_union=0 , do_inter=0, non_zero=0, count_flag =0, abs_flag =0, signedabs = 0;
    int min_flag = 0, max_flag = 0;
    float ** sum=NULL , fsum=0.0;
    float ** sd=NULL;
@@ -24,6 +24,7 @@ int main( int argc , char * argv[] )
    char *first_dset=NULL;
    int fscale=0 , gscale=0 , nscale=0 ;
    float initvalue = 0.0f;
+   float fac, val, val2, prevmax ;
 
    nx = ny = nz = nxyz = nval = 0;  /* just for compiler warnings */
 
@@ -45,7 +46,7 @@ int main( int argc , char * argv[] )
 "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
 "                  ** Only use this option if you are sure you\n"
 "                     want the output dataset to be integer-valued!\n"
-"  -non_zero   = Use only non-zero values for calculation of mean or squares\n"
+"  -non_zero   = Use only non-zero values for calculation of mean,min,max,sum,squares\n"
 "\n"
 "  -sd *OR*    = Calculate the standard deviation, sqrt(variance), instead\n"
 "  -stdev         of the mean (cannot be used with -sqr, -sum or -non_zero).\n"
@@ -53,6 +54,11 @@ int main( int argc , char * argv[] )
 "  -sqr        = Average the squares, instead of the values.\n"
 "  -sum        = Just take the sum (don't divide by number of datasets).\n"
 "  -count      = compute only the count of non-zero voxels.\n"
+"  -max        = find the maximum at each voxel\n"
+"  -min        = find the minimum at each voxel\n"
+"  -absmax     = find maximum absolute value at each voxel\n"
+"  -signed_absmax = find extremes with maximum absolute value\n"
+"                but preserve sign\n"
 "\n"
 "  -mask_inter = Create a simple intersection mask.\n"
 "  -mask_union = Create a simple union mask.\n"
@@ -70,6 +76,9 @@ int main( int argc , char * argv[] )
 "    * Dataset sub-brick selectors [] are allowed.\n"
 "    * The output dataset origin, time steps, etc., are taken from the\n"
 "       first input dataset.\n"
+"    * Both absmax and signed_absmax are not really appropriate for byte data\n"
+"      because that format does not allow for negative values\n"
+
 "*** If you are trying to compute the mean (or some other statistic)\n"
 "    across time for a 3D+time dataset (not across datasets), use\n"
 "    3dTstat instead.\n"
@@ -118,6 +127,14 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-max") == 0 ){
          max_flag = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-absmax") == 0 ){ // drg 10 Feb 2022 - absolute max 
+         max_flag = 1 ; abs_flag = 1; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-signed_absmax") == 0 ){ // drg 10 Feb 2022 - signed abs max
+         max_flag = 1 ; abs_flag = 1; signedabs= 1; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-non_zero") == 0 ){
@@ -227,7 +244,7 @@ int main( int argc , char * argv[] )
    if( weightset ) {
       if( do_union || do_inter || do_sqr || do_sd || count_flag || non_zero
                    || min_flag || max_flag )
-         ERROR_exit("-weigthset cannot be used with other options, such as:\n"
+         ERROR_exit("-weightset cannot be used with other options, such as:\n"
                     "   -sd/-sqr/-sum/-count/-non_zero/-mask_*/-min/-max");
 
       /* set do_sum, so that we do not later divide by ndsets */
@@ -383,7 +400,7 @@ int main( int argc , char * argv[] )
 
             case MRI_float:{
                float *pp = (float *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+               fac = DSET_BRICK_FACTOR(inset,kk);
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
@@ -415,9 +432,25 @@ int main( int argc , char * argv[] )
                   }
                else if (max_flag){  /* maximum 18 Apr 2017 [drg] */
                    for( ii=0 ; ii < nxyz ; ii++ ) {
-                      if(non_zero && (pp[ii]==0.0)) {continue;}
                       val = fac * pp[ii] ;
-                      if(val>sum[kk][ii]) {sum[kk][ii] = val;}
+                      if(non_zero && val==0.0) continue;
+                      if(abs_flag){
+                         val2 = fabs(val);
+                         if(sum[kk][ii]!= -WAY_BIG)
+                             prevmax = fabs(sum[kk][ii]);
+                         else prevmax = -WAY_BIG;
+                      }
+                      else{
+                         val2 = val;
+                         prevmax = sum[kk][ii];
+                      }
+
+                      if(val2>prevmax) {
+                          if(signedabs == 1) {  // signed abs - keep original
+                               sum[kk][ii] = val;
+                          }
+                          else sum[kk][ii] = val2;
+                      }
                    }
                   }
                else {
@@ -439,7 +472,7 @@ int main( int argc , char * argv[] )
 
             case MRI_short:{
                short *pp = (short *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+               fac = DSET_BRICK_FACTOR(inset,kk);
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
@@ -474,11 +507,26 @@ int main( int argc , char * argv[] )
                    for( ii=0 ; ii < nxyz ; ii++ ) {
                       val = fac * pp[ii] ;
                       if(non_zero && val==0.0) continue;
-                      if(val>sum[kk][ii])
-                          sum[kk][ii] = val;
+                      if(abs_flag){
+                         val2 = fabs(val);
+                         if(sum[kk][ii]!= -WAY_BIG)
+                             prevmax = fabs(sum[kk][ii]);
+                         else prevmax = -WAY_BIG;
+                      }
+                      else{
+                         val2 = val;
+                         prevmax = sum[kk][ii];
+                      }
+
+                      if(val2>prevmax) {
+                          if(signedabs == 1) {  // signed abs - keep original
+                               sum[kk][ii] = val;
+                          }
+                          else sum[kk][ii] = val2;
+                      }
                    }
-                  }
-               else {
+              }
+              else {
                   /* sum with or without weights   22 Feb 2018 */
                   if( weights ) {
                      for( ii=0 ; ii < nxyz ; ii++ )
@@ -497,7 +545,7 @@ int main( int argc , char * argv[] )
 
             case MRI_byte:{
                byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
-               float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+               fac = DSET_BRICK_FACTOR(inset,kk);
                if( fac == 0.0 ) fac = 1.0 ;
                if( do_sqr )
                   for( ii=0 ; ii < nxyz ; ii++ )
@@ -529,11 +577,15 @@ int main( int argc , char * argv[] )
                    }
                   }
                else if (max_flag){  /* maximum 18 Apr 2017 [drg] */
+                                    // byte values don't allow for negatives
+                                    // so don't do absolute values
                    for( ii=0 ; ii < nxyz ; ii++ ) {
                       val = fac * pp[ii] ;
                       if(non_zero && val==0.0) continue;
-                      if(val>sum[kk][ii])
+
+                      if(val > sum[kk][ii]) {
                           sum[kk][ii] = val;
+                      }
                    }
                   }
                else {
@@ -631,7 +683,7 @@ int main( int argc , char * argv[] )
 
            case MRI_float:{
              float *pp = (float *) DSET_ARRAY(inset,kk) ;
-             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) ;
              if( fac == 0.0 ) fac = 1.0 ;
              for( ii=0 ; ii < nxyz ; ii++ )
                { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }
@@ -640,7 +692,7 @@ int main( int argc , char * argv[] )
 
            case MRI_short:{
              short *pp = (short *) DSET_ARRAY(inset,kk) ;
-             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) ;
              if( fac == 0.0 ) fac = 1.0 ;
              for( ii=0 ; ii < nxyz ; ii++ )
                { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }
@@ -649,7 +701,7 @@ int main( int argc , char * argv[] )
 
            case MRI_byte:{
              byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
-             float fac = DSET_BRICK_FACTOR(inset,kk) , val ;
+             float fac = DSET_BRICK_FACTOR(inset,kk) ;
              if( fac == 0.0 ) fac = 1.0 ;
              for( ii=0 ; ii < nxyz ; ii++ )
                { val = (fac * pp[ii]) - sum[kk][ii]; sd[kk][ii] += val*val ; }

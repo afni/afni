@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.12,  Dec 19, 2021
+Version 4.0.13,  Feb 1, 2021
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -426,8 +426,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         only works without involving any within-subject factors.",
    "         That is, anything that can be done with 3dttest++ could",
    "         be analyzed through robust regression here (except for",
-   "         one-sample which can be added later one if requested).",
-   "         pairwise comparisons can be performed by providing",
+   "         one-sample case which can be added later on if requested).",
+   "         Pairwise comparisons can be performed by providing",
    "         contrast from each subject as input). Post hoc F-tests",
    "         through option -glfCode are currently not available with",
    "         robust regression. This option requires that the user",
