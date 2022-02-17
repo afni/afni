@@ -507,7 +507,7 @@ int SUMA_asterisk_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 SUMA_SetNumFinalSmoothing, (void *)sv,
                                 NULL, NULL,
                                 NULL, NULL,
-                                SUMA_CleanNumString, (void*)1,                                                    
+                                SUMA_CleanNumString, (void*)1,
                                 SUMAg_CF->X->N_FinalSmooth_prmpt);
 
            SUMAg_CF->X->N_FinalSmooth_prmpt =
@@ -2022,10 +2022,10 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlagTemp (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_SetShownLocalRemixFlag"};
    int k;
-      
+
    SUMA_ENTRY;
-   
-   // for (k=1; k < sv->N_ColList; ++k) 
+
+   // for (k=1; k < sv->N_ColList; ++k)
    for (k=0; k < sv->N_ColList; ++k) /*
     if (!strstr(sv->ColList[k]->idcode_str, "ClipSquare") &&
         !strstr(sv->ColList[k]->idcode_str, "axisObject")) */{
@@ -2034,7 +2034,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlagTemp (SUMA_SurfaceViewer *sv)
         /**/
       sv->ColList[k]->Remix = YUP;
    }
-   
+
    SUMA_RETURN (YUP);
 }
 
@@ -2084,7 +2084,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                          "%s: Modulation by background intensity ON.\n", FuncName);
                 sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
              }
-             
+
              if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                     fprintf(stderr, "### SUMA_A_Key: sv->N_ColList = %d\n", sv->N_ColList);
 
@@ -2264,6 +2264,11 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     clipIdentificationPlane[planeIndex]->Show = 0;
                 }
             }
+
+            // For some reason, this is necessary to display active plane after scrollwheel
+            //  used to scroll active plane when out of clipping plane identification mode
+            if (clipPlaneIdentificationMode)
+                clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
 
             SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
         }  else if (SUMAg_CF->Dev && SUMA_CTRL_KEY(key)){
@@ -3836,6 +3841,8 @@ int SUMA_S_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_KEY_COMMON;
 
+   // fprintf(stderr, "key = %s\n", key);
+
    switch (k) {
      case XK_S:
         if (clippingPlaneMode){
@@ -4237,15 +4244,51 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                char cwd[PATH_MAX], outputFileName[PATH_MAX+400];
                time_t t = time(NULL);
                struct tm tm = *localtime(&t);
+
+
                if (!(getcwd(cwd, sizeof(cwd)))) {
                    perror("Error getting current working directory");
                    SUMA_RETURN(0);
                 }
+
                 sprintf(outputFileName, "%s/clippingPlane%d%d%d-%d%d.niml.vvs",
                     cwd, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                     tm.tm_hour, tm.tm_min);
                 sprintf(stmp, "%s", outputFileName);
                 sv->X->SetRenderOrder_prmpt = NULL;
+
+                // Try setting font
+                XFontStruct* font;
+                XGCValues gcv;
+                // font = XLoadFont(sv->X->DPY, "variable");
+
+                // Note that "72" is an existing font.  You can't just put any nymber here.
+                // font = XLoadFont(sv->X->DPY, "72");
+                // char* name = "-*-dejavu sans-bold-r-*-*-*-220-100-100-*-*-iso8859-1";
+                // char* name = "-unregistered-latin modern roman-medium-r-normal-unslanted-0-0-0-0-p-0-iso8859-15";
+                char* name = "12x24";
+                 SUMAg_CF->X->TableTextFontList =
+                       SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList,
+                                               sv->X->TOPLEVEL, name, NULL);
+                if (!(font = XLoadQueryFont(sv->X->DPY, name))){
+                    fprintf(stderr, "Font %s unavailable\n", name);
+                    font = XLoadQueryFont( sv->X->DPY, "fixed" );
+                    /* If that font doesn''t exist, something is wrong */
+                    if ( font == NULL )
+                    {
+                        fprintf( stderr, "no X font available?\n" );
+                        SUMA_RETURN(0);
+                    }
+                }
+
+                sv->X->gc = XCreateGC (sv->X->DPY,
+                                              XtWindow (sv->X->GLXAREA),
+                                              GCForeground, &gcv);
+
+                fprintf(stderr, "font = %p\n", font);
+                fprintf(stderr, "font->fid = %ld\n", font->fid);
+                XSetFont(sv->X->DPY, sv->X->gc, font->fid);
+
                 sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialogStruct(
                                      SUMA_OK_APPLY_CLEAR_CANCEL,
                                 "Please select output filename:\n"
@@ -4258,13 +4301,40 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                      NULL, NULL,
                                      SUMA_VerifyRenderOrder, (void *)outputFileName,
                                      sv->X->SetRenderOrder_prmpt);
+                XSetFont(sv->X->DPY, sv->X->gc, font->fid);
+              MCW_DC *dc = myXtNew(MCW_DC) ;
+              Widget wid = sv->X->TOPLEVEL;
+              // Widget wid = sv->X->SetRenderOrder_prmpt;
+
+               dc->appcontext = XtWidgetToApplicationContext( wid ) ;
+               dc->display    = XtDisplay( wid ) ;
+               dc->screen     = XtScreen( wid ) ;
+               dc->screen_num = XScreenNumberOfScreen(   dc->screen ) ;
+               dc->visual     = DefaultVisualOfScreen(   dc->screen ) ;
+               dc->origGC     = DefaultGCOfScreen(       dc->screen ) ;
+               dc->planes     = PlanesOfScreen(          dc->screen ) ;
+               dc->depth      = DefaultDepthOfScreen(    dc->screen ) ;
+
+               dc->cdef       = NULL ;  // 11 Feb 1999: will be loaded later
+
+               // setup_byper(dc) ;        // 23 Aug 1998: Cannot stat
+
+               dc->default_colormap = DefaultColormapOfScreen( dc->screen ) ; // 01 Sep 1998
+
+               dc->colormap = DefaultColormapOfScreen( dc->screen ) ; // may be changed later
+
+               dc->parent_widget = wid ;  // 06 Oct 1996
+
+               dc->does_backingstore = DoesBackingStore(dc->screen) ; // 27 Feb 2001
+               dc->does_saveunders   = DoesSaveUnders(dc->screen) ;
+                dc->myFontStruct = font ; // save font info into AFNI display context (dc);
 
                 sv->X->SetRenderOrder_prmpt->VerifyFunction = NULL;
+                XSetFont(sv->X->DPY, sv->X->gc, font->fid);
                 sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialog(
                                   sv->X->Title, sv->X->SetRenderOrder_prmpt);
-
                 sv->X->SetRenderOrder_prmpt = NULL;
-            } 
+                }
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
@@ -5740,6 +5810,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
            break;
 
          case XK_s:
+
+            fprintf(stderr, "XK_s\n");
             if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                if (!SUMA_S_Key(sv, "Alt+Ctrl+s", "interactive")) {
                      SUMA_S_Err("Failed in key func.");

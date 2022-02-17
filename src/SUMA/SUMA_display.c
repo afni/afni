@@ -1946,6 +1946,8 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
    SUMA_ENTRY;
 
    *N_regs = -1;
+//   fprintf(stderr, "csv->N_DO=%d\n", csv->N_DO);
+//   fprintf(stderr, "csv->RegistDO=%p\n", csv->RegistDO);
    if (!csv || csv->N_DO <= 0 || !csv->RegistDO || !N_regs || !dov) {
       SUMA_S_Err("NULL or no DOs in input");
       SUMA_RETURN(sRegistDO);
@@ -1970,8 +1972,16 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
 
    ncheck=0;
    for (j=0; j<N_ctseq; ++j) {
+    // fprintf(stderr, "j=%d\n", j);
       i = 0;
       while (i < csv->N_DO) {
+            csv->RegistDO[i].dov_ind = i;
+//            fprintf(stderr, "i=%d\n", i);
+//            fprintf(stderr, "csv->RegistDO=%p\n", csv->RegistDO);
+//            fprintf(stderr, "csv->RegistDO[i]=%p\n", csv->RegistDO[i]);
+//            fprintf(stderr, "csv->RegistDO[i].dov_ind=%d\n", csv->RegistDO[i].dov_ind);
+//            fprintf(stderr, "dov[csv->RegistDO[i].dov_ind]=%p\n", dov[csv->RegistDO[i].dov_ind]);
+//            fprintf(stderr, "dov[csv->RegistDO[i].dov_ind].CoordType=%d\n", dov[csv->RegistDO[i].dov_ind].CoordType);
          ct = dov[csv->RegistDO[i].dov_ind].CoordType;
          if (ct == ctseq[j]) {
             ot = dov[csv->RegistDO[i].dov_ind].ObjectType;
@@ -4502,9 +4512,18 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                            Ch. 10 */
          gcv.foreground =
             BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
+            /* DEBUG
          SUMAg_SVv[ic].X->gc = XCreateGC (SUMAg_SVv[ic].X->DPY,
                                           XtWindow (SUMAg_SVv[ic].X->GLXAREA),
                                           GCForeground, &gcv);
+                                          */
+            // DEBUG
+            Font font;
+            font = XLoadFont(SUMAg_SVv[ic].X->DPY, "12x24");
+            SUMAg_SVv[ic].X->gc = XCreateGC (SUMAg_SVv[ic].X->DPY,
+                                          XtWindow (SUMAg_SVv[ic].X->GLXAREA),
+                                          GCForeground, &gcv);
+            XSetFont(SUMAg_SVv[ic].X->DPY, SUMAg_SVv[ic].X->gc, font);
          SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
       }
 
@@ -6636,8 +6655,11 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 
    if (w) {
       SUMA_LH("nism");
-      fprintf(stderr, "%s\n", FuncName);
+      fprintf(stderr, "A: Before SUMA_cb_createSurfaceCont\n");
+      getchar();
       SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
+      fprintf(stderr, "A: After SUMA_cb_createSurfaceCont\n");
+      getchar();
    } else {
       if (!sv) {
          if (!(sv = SUMA_BestViewerForADO(ado)) ||
@@ -6648,8 +6670,11 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       }
       if (!SUMA_isADO_Cont_Created(ado)) {
         SUMA_LH("Creationism");
-        fprintf(stderr, "%s\n", FuncName);
+          fprintf(stderr, "C:  Before SUMA_cb_createSurfaceCont\n");
+          getchar();
         SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
+          fprintf(stderr, "C:  After SUMA_cb_createSurfaceCont\n");
+          getchar();
       } else {
         fprintf(stderr, "%s\n", FuncName);
         /* must have been closed, open it */
@@ -6914,8 +6939,22 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
       if (LocalHead)
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
          fprintf(stderr, "%s\n", FuncName);
-      if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
-      else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
+        fprintf(stderr, "w = %p\n", w);
+      if (w){
+          fprintf(stderr, "B:  Before SUMA_cb_createSurfaceCont\n");
+          getchar();
+        SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
+          fprintf(stderr, "B:  After SUMA_cb_createSurfaceCont\n");
+          getchar();
+      }
+      else
+      {
+          fprintf(stderr, "D:  Before SUMA_cb_createSurfaceCont\n");
+          getchar();
+        SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
+          fprintf(stderr, "D:  After SUMA_cb_createSurfaceCont\n");
+          getchar();
+      }
    } else {
       if (!SUMA_BringUpSurfContTLS(SurfCont->TLS)) {
          SUMA_S_Err("Failed to raise the roof");
@@ -6989,6 +7028,8 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
       ISQ_snapfile ( SurfCont->Mainform );
    #endif
 
+          fprintf(stderr, "SUMA_viewSurfaceCont, SUMA_RETURN\n");
+          getchar();
    SUMA_RETURN(1);
 }
 
@@ -7686,8 +7727,11 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("Creating controller for %s", ADO_LABEL(ado));
    switch (ado->do_type) {
       case SO_type:
-        fprintf(stderr, "%s\n", FuncName);
+        fprintf(stderr, "Before SUMA_cb_createSurfaceCont_SO\n");
+        getchar();
          SUMA_cb_createSurfaceCont_SO(w, data, callData);
+        fprintf(stderr, "After SUMA_cb_createSurfaceCont_SO\n");
+        getchar();
          break;
       case CDOM_type:
          SUMA_LH("No longer planning on separate controllers for CIFTI");
@@ -7724,6 +7768,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
+        fprintf(stderr, "After SUMA_cb_createSurfaceCont_SO, SUMA_RETURNe\n");
+        getchar();
    SUMA_RETURNe;
 }
 
@@ -7868,6 +7914,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_ENTRY;
 
+   fprintf(stderr, "Entering %s\n", FuncName);
+
    ado = (SUMA_ALL_DO *)data;
    if (!(SurfCont = SUMA_ADO_Cont(ado))) {
       SUMA_S_Errv("Failed to get Controller for ado %s\n",
@@ -7883,6 +7931,64 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                   SUMA_ADO_Label(ado));
       SUMA_RETURNe;
    }
+        curColPlane->Font = SW_SurfCont_DsetFontTR24; // Change
+        void *fontGL = SUMA_Font2GLFont(SW_SurfCont_DsetFontTR24);
+              int nl, tw, th, bh, bw, skpv, skph, iioff, jjoff,
+                  lh = SUMA_glutBitmapFontHeight(fontGL), kkk=0, SGN=-1;
+              float off = -lh, vrat, hrat;
+              float Sz[3]={0.001, 0.001, 0.001};
+              char *variant = SUMA_ADO_variant(ado);
+
+              bh = SUMA_glutBitmapFontHeight(fontGL); /* Height of font, in pixels */
+              bw = glutBitmapWidth(fontGL, 'M'); /* M's a fat letter, width in pixels*/
+              SUMA_DSET *dset=NULL;
+              SUMA_GraphLinkDO *gldo;
+              SUMA_DO *dov = SUMAg_DOv;
+                SUMA_DO_LOCATOR *sRegistDO = NULL;
+                fprintf(stderr, "data = %p\n", data);
+                SUMA_SurfaceViewer *csv = (SUMA_SurfaceViewer *)data;
+                fprintf(stderr, "csv = %p\n", csv);
+                int N_sReg;
+                fprintf(stderr, "N_sReg = %d\n", csv);
+                fprintf(stderr, "dov = %p\n", dov);
+               if (!(sRegistDO = SUMA_SV_SortedRegistDO(csv, &N_sReg, dov))) { // Crashes here
+                  SUMA_S_Err("Failed to create sorted registered DO.\n"
+                             "Falling back on default");
+                  sRegistDO = csv->RegistDO;
+                  N_sReg = csv->N_DO;
+               }
+                fprintf(stderr, "sRegistDO = %p\n", sRegistDO);
+              gldo = (SUMA_GraphLinkDO *)dov[sRegistDO[0].dov_ind].OP;
+                fprintf(stderr, "gldo = %p\n", gldo);
+               if (!gldo) {
+                 SUMA_S_Errv("Could not find variant %s of dset %s\n",
+                             variant, SDSET_LABEL(dset));
+                 SUMA_RETURN(NOPE);
+              }
+            if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+                SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                            SUMA_ADO_Label(ado));
+                SUMA_RETURN(NOPE);
+             }
+               int isv;
+               SUMA_SurfaceViewer *sv, *svi = NULL;
+             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
+              SUMA_GDSET_GMATRIX_CellPixSize(dset, sv, Sz);
+              if (Sz[1] < 0.01) Sz[1] = 0.01;
+              if (Sz[0] < 0.01) Sz[0] = 0.01;
+              vrat = Sz[1]/(float)bh;
+              hrat = Sz[0]/(float)bw;
+              skpv = (int)(1.0/vrat);
+              skph = (int)(1.0/hrat);
+              if (skpv < 0 || skpv > 1000000) skpv = 1000000; /* safety valve */
+              if (skph < 0 || skph > 1000000) skph = 1000000; /* in case denom is <=0 */
+              int GB[3];
+              SUMA_LHv("Height %.2f pixels/cell, Font height %d, Rat:%f, skip %d\n"
+                       "Width  %.2f pixels/cell, Font Width  %d, Rat:%f, skip %d\n"
+                       "  GB = [%d %d]\n",
+                       Sz[1], bh, vrat, skpv,
+                       Sz[0], bw, hrat, skph,
+                       GB[0], GB[1]);
    SUMA_LH("Cur Col Plane = %s", curColPlane->Name);
    if (SurfCont->TLS) {
       fprintf (SUMA_STDERR,
@@ -7913,6 +8019,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    } else {
       sss = "font8";
    }
+   sss = "TR24";
 
    // fprintf(stderr, "slabel = %s\n", slabel);
    SUMA_LH("Creating dialog shell.");
@@ -8060,6 +8167,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
 
+
    rc_mamma = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rc_gmamma,
             XmNpacking, XmPACK_TIGHT,
@@ -8127,6 +8235,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
             XmNmarginWidth , 0 ,
             NULL);
 
+
       rc = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rc_SurfProp,
             XmNpacking, XmPACK_TIGHT,
@@ -8134,6 +8243,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             NULL);
+
 
       /*put a label containing the surface name, number of nodes
       and number of facesets */
@@ -8167,9 +8277,11 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  "Summary object information",
                                  "Summary object information" ) ;
 
+
       SurfCont->SurfInfo_pb = XtVaCreateWidget ("more",
          xmPushButtonWidgetClass, rc,
          NULL);
+
       XtAddCallback (SurfCont->SurfInfo_pb, XmNactivateCallback,
                      SUMA_cb_moreSurfInfo,
                         (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
@@ -8190,13 +8302,17 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  "SurfCont->Surface_Properties->more",
                                  "More info on Surface",
                                  SUMA_SurfContHelp_more ) ;
+
       XtManageChild (SurfCont->SurfInfo_pb);
 
+
       XtManageChild (rc);
+
 
       XtVaCreateManagedWidget (  "sep",
                                  xmSeparatorWidgetClass, rc_SurfProp,
                                  XmNorientation, XmHORIZONTAL,NULL);
+
 
       rc = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rc_SurfProp,
@@ -8207,6 +8323,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /* rendering menu option */
+
       SUMA_BuildMenuReset(0);
       SurfCont->RenderModeMenu =
             SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Render);
@@ -8219,6 +8336,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  SurfCont->RenderModeMenu );
       XtManageChild (SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
 
+
       SUMA_BuildMenuReset(0);
       SurfCont->TransModeMenu =
             SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Trans);
@@ -8230,6 +8348,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                                  SUMA_SurfContHelp_TransMode,
                                  SurfCont->TransModeMenu );
       XtManageChild (SurfCont->TransModeMenu->mw[SW_SurfCont_Trans]);
+
 
       pb = XtVaCreateWidget ("Dsets",
          xmPushButtonWidgetClass, rc,
@@ -8246,8 +8365,11 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (rc);
 
       XtManageChild (rc_SurfProp);
+        fprintf(stderr, "XtManageChild\n");
+         getchar();
       XtManageChild (SurfCont->SurfFrame);
    }
+
 
    SUMA_LH("Xhair business");
    {  /* Xhair Controls */
@@ -8611,6 +8733,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XmStringFree (xmstmp);
       }
    }
+        fprintf(stderr, "SUMA_LHv\n");
+         getchar();
    SUMA_LHv("Management ...%p %p %p %p %p\n",
             rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
@@ -8619,6 +8743,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    XtManageChild (rc_mamma);
    XtManageChild (rc_gmamma);
    XtManageChild (SurfCont->Mainform);
+        fprintf(stderr, "XtManageChild\n");
+         getchar();
    if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SurfCont->Page);
 
    #if SUMA_CONTROLLER_AS_DIALOG
@@ -8626,10 +8752,14 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass,
    you should do the popping after all the widgets have been created.
    Otherwise, the window does not size itself correctly when open */
+        fprintf(stderr, "XtPopup\n");
+         getchar();
    XtPopup(SurfCont->TLS, XtGrabNone);
    #endif
 
    /* realize the widget */
+        fprintf(stderr, "XtManageChild\n");
+         getchar();
    if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
    XtRealizeWidget (SurfCont->TLS);
 
@@ -8637,8 +8767,12 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    SUMA_free (slabel);
 
    /* Mark as open */
+        fprintf(stderr, "SUMA_MarkSurfContOpen\n");
+         getchar();
    SUMA_MarkSurfContOpen(1,ado);
 
+        fprintf(stderr, "SUMA_ADO_Label\n");
+         getchar();
    SUMA_LHv("Marked %s's controller as open.\n", SUMA_ADO_Label(ado));
 
    /* initialize the left side
@@ -8649,6 +8783,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    Do it here rather than above because scale goes crazy
    when parent widgets are being resized*/
 
+        fprintf(stderr, "SUMA_ADO_Overlay0\n");
+         getchar();
    if (!(over0 = SUMA_ADO_Overlay0(ado))) {
       SUMA_SurfaceObject *SOp=NULL, *SO=(SUMA_SurfaceObject *)ado;
       SUMA_LH("NO Overlays yet for this surface\n");
@@ -8666,8 +8802,19 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
       }
    }
 
+        fprintf(stderr, "SUMA_ADO_N_Overlays\n");
+         getchar();
+        fprintf(stderr, "SUMA_ADO_N_Overlays(ado) = %d\n", SUMA_ADO_N_Overlays(ado));
    if (SUMA_ADO_N_Overlays(ado)>0) {
+        fprintf(stderr, "SUMA_LH\n");
+         getchar();
       SUMA_LH("Initializing ColPlaneShell");
+        fprintf(stderr, "SUMA_InitializeColPlaneShell\n");
+         getchar();
+         fprintf(stderr, "ado->private_idcode_str = %s\n", ado->private_idcode_str);
+         fprintf(stderr, "ado->private_Label = %s\n", ado->private_Label);
+         // curColPlane->Font = 7; // Change
+         fprintf(stderr, "Font = %d\n", curColPlane->Font);
       SUMA_InitializeColPlaneShell(ado, curColPlane); /* Used to use Over0,
                               But that is not good when Over0 is not
                               the current color Plane. This
@@ -8690,10 +8837,16 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
    SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
    #endif
 
+        fprintf(stderr, "going home\n");
+         getchar();
    SUMA_LH("going home.");
 
+        fprintf(stderr, "SUMA_MarkSurfContOpen\n");
+         getchar();
    SUMA_MarkSurfContOpen(1, ado);
 
+        fprintf(stderr, "SUMA_RETURNe\n");
+         getchar();
    SUMA_RETURNe;
 }
 
@@ -18858,11 +19011,15 @@ void * SUMA_Font2GLFont(int Mode)
 
    SUMA_ENTRY;
 
+    fprintf(stderr, "SW_N_SurfCont_DsetFont=%d\n", SW_N_SurfCont_DsetFont);
+    fprintf(stderr, "SW_SurfCont_DsetFont=%d\n", SW_SurfCont_DsetFont);
+    fprintf(stderr, "Mode=%d\n", Mode);
    if (SUMA_ABS(Mode) >= SW_N_SurfCont_DsetFont ||
        SUMA_ABS(Mode) <= SW_SurfCont_DsetFont ) {
       SUMA_S_Errv("Bad mode %d, returning Font 9", Mode);
       SUMA_RETURN(GLUT_BITMAP_9_BY_15);
    }
+   fprintf(stderr, "Mode = %d\n", Mode);
    if (Mode < 0) {
       SUMA_RETURN(NULL);
    } else {
@@ -21030,7 +21187,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    // Must have non-null parent
    if (!(prmpt->daddy)){
      SUMA_SLP_Crit("Prompt dialog structure has no parent.");
@@ -21038,6 +21195,7 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
    }
 
    if (!prmpt->dialog) {
+
       SUMA_LH ("Creating new prompt dialog.");
       /* The DialogShell is the Shell for this dialog.  Set it up so
       * that the "Close" button in the window manager's system menu
@@ -21104,7 +21262,6 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
          SUMA_RETURN(NULL);
       }
 
-
        XtManageChild (prmpt->actionarea);
        XtManageChild (prmpt->pane);
        XtPopup (prmpt->dialog, XtGrabNone);
@@ -21120,7 +21277,9 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
 
          For some other reason, the following line works although it should be done by default
          when a widget is managed. ZSS May 14 03*/
+
       XtMapWidget (prmpt->dialog);
+
    }
 
    SUMA_RETURN(prmpt);
