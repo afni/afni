@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Feb, 2022, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "propagate obliquity in case of -ftype AFNI",
+   NULL
+ } ,
+
  { 15, Feb, 2022, RCR, "gen_ss_review_table.py", MICRO, TYPE_MODIFY,
    "display SHOW_KEEP for subjects on -show_keepers",
    NULL

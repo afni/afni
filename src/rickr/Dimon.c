@@ -159,8 +159,11 @@ static char * g_history[] =
     " 4.26 Feb  3, 2020 [rickr]: show CSA header on high debug (4)\n"
     " 4.27 Aug 31, 2021 [rickr]: add -gert_chan_digits\n"
     " 4.28 Nov  8, 2021 [rickr]: add -milestones\n"
+    " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
     "----------------------------------------------------------------------\n"
 };
+
+#define DIMON_VERSION "version 4.29 (February 16, 2022)"
 
 static char * g_milestones[] =
 {
@@ -177,8 +180,6 @@ static char * g_milestones[] =
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
     "----------------------------------------------------------------------\n"
 };
-
-#define DIMON_VERSION "version 4.28 (November 8, 2021)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3686,14 +3687,18 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
         return 1;
     }
 
-    /* process oblique info only once */
-    /* rcr - todo, exactly how do we pass the matrix along, check form */
-    if( obl_info_set == 2 && read_obl_info ) {
-       static int nwarn = 1;
-       if( nwarn ) {
-          fprintf(stderr,"** have oblique AFNI data, maxtrix is lost\n");
-          nwarn--;
-       }
+    /* if oblique, populate gAC.oblique_xform (process only once) */
+    /* copy a 4x4 into the 16 element list    [16 Feb 2022 rickr] */
+    if( read_obl_info && dset_obliquity(dset, NULL) ) {
+        float * fp = gAC.oblique_xform;
+        int     r, c;
+        if( gD.level > 0 )
+           fprintf(stderr,"+d copying obliquity matrix from AFNI dset\n");
+        for( r=0; r<4; r++)
+           for( c=0; c<4; c++, fp++)
+              *fp = dset->daxes->ijk_to_dicom_real.m[r][c];
+        g_is_oblique  = 1; /* flag as oblique */
+        read_obl_info = 0; /* and do not return to the scene of the crime */
     }
 
     /* fill the finfo_t struct (always based on first image) */
@@ -4715,7 +4720,7 @@ printf(
 "             - requires -start_dir and -file_type GEMS\n"
 "             - works as the original Imon program\n"
 "\n"
-"     AFNI : AFNI/NIfTI volume datasets\n"
+"     AFNI : AFNI/NIFTI volume datasets\n"
 "             - requires -file_type AFNI\n"
 "             - use -sp to specify slice timing pattern\n"
 "             - if datasets are 4D, please use rtfeedme\n"
