@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Feb , 2022 , PT , "ap_run_simple_rest.tcsh" , MINOR , TYPE_NEW_OPT,
+   "Add opt '-compressor ..' so AFNI_COMPRESSOR env var can be set.",
+   "Leads to created *.BRIK dsets getting compressed on disk.\n"
+},
+
 { 10, Feb , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
    "The 'pythonic' should be run if matplotlib ver is >=2.2, not just >2.2.",
    "Used incorrect comparison operator earlier. I know bc Biowulf told me so.\n"
