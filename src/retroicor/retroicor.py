@@ -31,6 +31,39 @@ def readArray(parameters, key):
     array = [n for one_dim in array for n in one_dim]
     return array
 
+def getCardiacPeaks(parameters):
+
+   array = readArray(parameters, '-c')
+
+   peaks, _ = find_peaks(np.array(array))
+   
+   # Peaks must be at least the threshold value
+   # Threshold is currently half the maximum
+   Max = max(array)
+   Threshold = Max/2
+   numPeaks = len(peaks)
+   for p in range(numPeaks-1,-1,-1):
+       if array[peaks[p]] < Threshold:
+           peaks = np.delete(peaks,p) 
+           
+    # Cheack for, and fill in, missing peaks
+   interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
+   minSep = min(interpeak)
+   Threshold = minSep * 2
+   numPeaks = len(peaks)
+   for p in range(numPeaks-2,-1,-1):
+       if interpeak[p] > Threshold:
+           numberToAdd = round(interpeak[p]/minSep)
+           sep = round(interpeak[p]/numberToAdd)
+           if sep < minSep:
+               numberToAdd = numberToAdd - 1
+               sep = round(interpeak[p]/numberToAdd)               
+           for i in range(1,numberToAdd):
+               peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+    
+   return peaks, len(array)
+
+
 def getPeaks(parameters, key):
 
    array = readArray(parameters, key)
@@ -179,7 +212,7 @@ def determineRespiratoryPhases(parameters):
     return phases
 
 def getPhysiologicalNoiseComponents(parameters):
-    cardiac_peaks, fullLength = getPeaks(parameters, '-c') 
+    cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
     
     cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength)
     
