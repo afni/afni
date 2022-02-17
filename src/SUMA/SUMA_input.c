@@ -374,7 +374,7 @@ int SUMA_parenleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
                  SV = SUMA_Create_ColorScaledVect(SO->N_Node, 0);
                  if (!SV) {
                     fprintf (SUMA_STDERR,
-                             "Error %s: Could not allocate for SV.\n",
+                             "Error %s: Could not allocate for SV in %s.\n",
                              FuncName);
                     exit(1);
                  }
@@ -817,7 +817,7 @@ int SUMA_escape_key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
             // control mask and escape is grabbed by gnome window manager ....
             if (SUMA_SHIFT_KEY(key)){// kill all
 
-                fprintf(stderr, "Shift key \n", FuncName);
+                fprintf(stderr, "Shift key %s\n", FuncName);
                if( SUMAg_CF->X->WarnClose) {
                   if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
                            "Close All Viewers?", SUMA_YES,
@@ -828,7 +828,7 @@ int SUMA_escape_key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
                XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
                exit(0);
             }else {
-                 fprintf(stderr, "No shift key \n", FuncName);
+                 fprintf(stderr, "No shift key %s\n", FuncName);
               if( SUMAg_CF->X->WarnClose) {
                   #ifdef DARWIN
                      if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
@@ -2245,7 +2245,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
-                fprintf(stderr, "### axisObject = %d\n", axisObject);
+                fprintf(stderr, "### axisObject = %p\n", axisObject);
             if (!axisObject) makeAxisObject(w, sv);
         }else if (clippingPlaneMode) {
 
@@ -5435,7 +5435,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       // fprintf(stderr, "***** keysym = %ld\n", keysym);
 
         // Modifier
-        sprintf(modifierBuf, "\0");
+        // sprintf(modifierBuf, "\0");
+        modifierBuf[0] = '\0';
         if (SUMA_ALTHELL) strcat(modifierBuf, "Alt+");
         if ((Kev.state & ControlMask)) strcat(modifierBuf, "Ctrl+");
 
@@ -5811,7 +5812,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_s:
 
-            fprintf(stderr, "XK_s\n");
             if ((SUMA_ALTHELL) && (Kev.state & ControlMask) ){
                if (!SUMA_S_Key(sv, "Alt+Ctrl+s", "interactive")) {
                      SUMA_S_Err("Failed in key func.");

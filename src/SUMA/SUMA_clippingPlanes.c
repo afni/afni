@@ -67,7 +67,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
     SUMA_UpdateViewerTitle(sv);
 
     if (clippingPlaneMode){
-   
+
         if (resetClippingPlanes){
             SUMAg_CF->N_ClipPlanes = 1;
             resetClippingPlanes=0;
@@ -116,7 +116,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             // Display clip plane identification mode if required
             if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
         }
-        
+
         if (!((XtPointer)sv->X->GLXAREA)){
             fprintf(stderr, "*** Error: Color map widget, GLXAREA, is NULL\n");
             // SUMA_X_SurfaceViewer_Create();
@@ -134,9 +134,6 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
             fprintf(stderr, "### Darken inactive clip planes\n");
         darkenInactiveClipPlaneSquares(*locallySelectedPlane);
-        /*
-        lightenActiveClipPlaneSquare(*locallySelectedPlane);
-        */
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
@@ -153,7 +150,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
         fprintf(stderr, "### Update increment in header and refresh viewer\n");
     SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-    
+
     if (!clippingPlaneMode && SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### toggleClippingPlaneMode: sv->N_ColList = %d\n", sv->N_ColList);
 
@@ -582,7 +579,7 @@ void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
     int i;
-   
+
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1){
         fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO = %p\n", SO);
         if (SO) fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO->idcode_str = %s\n", SO->idcode_str);
@@ -1387,8 +1384,6 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
 
-    fprintf(stderr, "Make mesh axes\n");
-
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make axis object\n");
 
@@ -1511,7 +1506,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        Cmp->idvec = SO->idcode_str;
+        Cmp->idvec = atoi(SO->idcode_str);
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
             return;
@@ -1569,13 +1564,13 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        Cmp->idvec = SO->idcode_str;
+        Cmp->idvec = atoi(SO->idcode_str);
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         {
             fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
             fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
-            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
+            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", *(Cmp->cname));
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
             fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }

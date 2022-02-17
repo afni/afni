@@ -7945,30 +7945,25 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
               SUMA_GraphLinkDO *gldo;
               SUMA_DO *dov = SUMAg_DOv;
                 SUMA_DO_LOCATOR *sRegistDO = NULL;
-                fprintf(stderr, "data = %p\n", data);
                 SUMA_SurfaceViewer *csv = (SUMA_SurfaceViewer *)data;
-                fprintf(stderr, "csv = %p\n", csv);
                 int N_sReg;
-                fprintf(stderr, "N_sReg = %d\n", csv);
-                fprintf(stderr, "dov = %p\n", dov);
                if (!(sRegistDO = SUMA_SV_SortedRegistDO(csv, &N_sReg, dov))) { // Crashes here
                   SUMA_S_Err("Failed to create sorted registered DO.\n"
                              "Falling back on default");
                   sRegistDO = csv->RegistDO;
                   N_sReg = csv->N_DO;
                }
-                fprintf(stderr, "sRegistDO = %p\n", sRegistDO);
               gldo = (SUMA_GraphLinkDO *)dov[sRegistDO[0].dov_ind].OP;
                 fprintf(stderr, "gldo = %p\n", gldo);
                if (!gldo) {
                  SUMA_S_Errv("Could not find variant %s of dset %s\n",
                              variant, SDSET_LABEL(dset));
-                 SUMA_RETURN(NOPE);
+                 SUMA_RETURNe;
               }
             if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
                 SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
                             SUMA_ADO_Label(ado));
-                SUMA_RETURN(NOPE);
+                SUMA_RETURNe;
              }
                int isv;
                SUMA_SurfaceViewer *sv, *svi = NULL;
@@ -14639,7 +14634,7 @@ void SUMA_DrawROI_NewValue (void *data)
 
    if (AF->value == DrawnROI->iLabel) SUMA_RETURNe;
 
-   if (!DrawnROI->DrawStatus == SUMA_ROI_Finished) {
+   if ((!(DrawnROI->DrawStatus)) == SUMA_ROI_Finished) {
       if (LocalHead)
          fprintf (SUMA_STDERR,
                   "%s: Changing ROI value from %d to %d\n",
