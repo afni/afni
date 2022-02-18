@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Feb, 2022, RCR, "@Install_APMULTI_Demo2_realtime", MAJOR, TYPE_NEW_PROG,
+   "new install script for APMULTI_Demo2_realtime",
+   "This is a demo for running AFNI's real-time system, without needing to\n"
+   "bother the scanner.  It demonstrates use if single- and multi-echo\n"
+   "DICOM input, and various sets of data that can be passed from afni to\n"
+   "an external program (realtime_receiver.py in this case)."
+ } ,
+
  { 16, Feb, 2022, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "propagate obliquity in case of -ftype AFNI",
    NULL
