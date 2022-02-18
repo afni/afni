@@ -709,7 +709,7 @@ g_history = """
        - rename m_tedana_tedort to m_tedana_m_tedort
          (reserve m_tedana_tedort for AFNI tedort projection)
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
-    7.26 Jan 29, 2022: allow execution only we have made the main script
+    7.26 Jan 29, 2022: allow execution only if we have made the main script
     7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
     7.28 Feb  8, 2022: add -html_review_opts
 """
