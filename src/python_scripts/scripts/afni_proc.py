@@ -695,7 +695,7 @@ g_history = """
     7.17 Jul 16, 2021: unindent EOF
     7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
     7.19 Nov  7, 2021: add -regress_opts_fwhmx
-    7.20 Nov  8, 2021: add -milestones
+    7.20 Nov  8, 2021: add -milestones (later changed to -hist_milestones)
     7.21 Nov 20, 2021:
        - update for current tedana with --convention orig
        - add -help_tedana_files for correspondence between file names
@@ -712,9 +712,10 @@ g_history = """
     7.26 Jan 29, 2022: allow execution only if we have made the main script
     7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
     7.28 Feb  8, 2022: add -html_review_opts
+    7.29 Feb 18, 2022: change -milestones to -hist_milestones
 """
 
-g_version = "version 7.28, February 8, 2022"
+g_version = "version 7.29, February 18, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1210,7 +1211,7 @@ class SubjProcSream:
                         helpstr="show tedana files: old vs orig names")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
-        self.valid_opts.add_opt('-milestones', 0, [],
+        self.valid_opts.add_opt('-hist_milestones', 0, [],
                         helpstr="show interesting milestones")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
                         helpstr='show which date is required of AFNI')
@@ -1845,7 +1846,7 @@ class SubjProcSream:
             print(g_history)
             return 0  # gentle termination
         
-        if opt_list.find_opt('-milestones'):     # print the history
+        if opt_list.find_opt('-hist_milestones'):     # print the history
             print(g_milestones)
             return 0  # gentle termination
         
