@@ -5,7 +5,7 @@
 #define SUMA_ALTHELL ( (Kev.state & Mod1Mask) || \
                        (Kev.state & Mod2Mask) ||  \
                        (Kev.state & SUMA_APPLE_AltOptMask) )
- 
+
 /*!
    Return the code for the key that is specified in keyin
 */
@@ -507,7 +507,7 @@ int SUMA_asterisk_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 SUMA_SetNumFinalSmoothing, (void *)sv,
                                 NULL, NULL,
                                 NULL, NULL,
-                                SUMA_CleanNumString, (void*)1,                                                    
+                                SUMA_CleanNumString, (void*)1,
                                 SUMAg_CF->X->N_FinalSmooth_prmpt);
 
            SUMAg_CF->X->N_FinalSmooth_prmpt =
@@ -2022,10 +2022,10 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlagTemp (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_SetShownLocalRemixFlag"};
    int k;
-      
+
    SUMA_ENTRY;
-   
-   // for (k=1; k < sv->N_ColList; ++k) 
+
+   // for (k=1; k < sv->N_ColList; ++k)
    for (k=0; k < sv->N_ColList; ++k) /*
     if (!strstr(sv->ColList[k]->idcode_str, "ClipSquare") &&
         !strstr(sv->ColList[k]->idcode_str, "axisObject")) */{
@@ -2034,7 +2034,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlagTemp (SUMA_SurfaceViewer *sv)
         /**/
       sv->ColList[k]->Remix = YUP;
    }
-   
+
    SUMA_RETURN (YUP);
 }
 
@@ -2084,7 +2084,7 @@ int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                          "%s: Modulation by background intensity ON.\n", FuncName);
                 sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
              }
-             
+
              if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                     fprintf(stderr, "### SUMA_A_Key: sv->N_ColList = %d\n", sv->N_ColList);
 
@@ -2264,6 +2264,11 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     clipIdentificationPlane[planeIndex]->Show = 0;
                 }
             }
+
+            // For some reason, this is necessary to display active plane after scrollwheel
+            //  used to scroll active plane when out of clipping plane identification mode
+            if (clipPlaneIdentificationMode)
+                clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
 
             SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
         }  else if (SUMAg_CF->Dev && SUMA_CTRL_KEY(key)){
@@ -4264,7 +4269,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                   sv->X->Title, sv->X->SetRenderOrder_prmpt);
 
                 sv->X->SetRenderOrder_prmpt = NULL;
-            } 
+            }
          break;
       default:
          SUMA_S_Err("Il ne faut pas ci dessous");
