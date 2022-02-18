@@ -1506,7 +1506,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        Cmp->idvec = atoi(SO->idcode_str);
+        Cmp->idvec = SO->idcode_str;
         if (!SUMA_SwitchColPlaneCmap(ado, Cmp)) {
             fprintf(stderr, "Failed in SUMA_SwitchColPlaneCmap");
             return;
@@ -1564,13 +1564,13 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
        // switch to the recently loaded  cmap
         SUMA_COLOR_MAP *Cmp = SUMA_FindNamedColMap ("ngray20");
-        Cmp->idvec = atoi(SO->idcode_str);
+        Cmp->idvec = SO->idcode_str;
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         {
             fprintf(stderr, "### Darken clipping plane square: switch to the recently loaded  cmap\n");
             fprintf(stderr, "### Darken clipping plane square: Cmp = %p\n", Cmp);
             fprintf(stderr, "### Darken clipping plane square: Cmp Name = %s\n", Cmp->Name);
-            fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", *(Cmp->cname));
+            // fprintf(stderr, "### Darken clipping plane square: Cmp cname = %ls\n", Cmp->cname);
             fprintf(stderr, "### Darken clipping plane square: justEnteredClippingPlaneMode = %d\n", justEnteredClippingPlaneMode);
             fprintf(stderr, "### Darken clipping plane square: sv->N_ColList = %d\n", sv->N_ColList);
         }
