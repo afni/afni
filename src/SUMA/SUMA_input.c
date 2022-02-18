@@ -5,7 +5,7 @@
 #define SUMA_ALTHELL ( (Kev.state & Mod1Mask) || \
                        (Kev.state & Mod2Mask) ||  \
                        (Kev.state & SUMA_APPLE_AltOptMask) )
-
+ 
 /*!
    Return the code for the key that is specified in keyin
 */
