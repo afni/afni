@@ -3216,7 +3216,7 @@ int act_mod_hdrs( nt_opts * opts )
 
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
                                 strlen(opts->command), NIFTI_ECODE_COMMENT) )
-               fprintf(stderr,"** failed to add command to image as extension\n");
+            fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
             NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);

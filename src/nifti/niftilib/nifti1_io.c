@@ -1681,7 +1681,7 @@ mat44 nifti_mat44_inverse( mat44 R )
    v1  = R.m[0][3]; v2  = R.m[1][3]; v3  = R.m[2][3];  /* [  0   0   0   1 ] */
 
    deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
-         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ; /* determinant */
 
    if( deti != 0.0l ) deti = 1.0l / deti ;
 
@@ -1689,19 +1689,19 @@ mat44 nifti_mat44_inverse( mat44 R )
    Q.m[0][1] = (float)( deti*(-r12*r33+r32*r13) ) ;
    Q.m[0][2] = (float)( deti*( r12*r23-r22*r13) ) ;
    Q.m[0][3] = (float)( deti*(-r12*r23*v3+r12*v2*r33+r22*r13*v3
-                     -r22*v1*r33-r32*r13*v2+r32*v1*r23) ) ;
+                              -r22*v1*r33-r32*r13*v2+r32*v1*r23) ) ;
 
    Q.m[1][0] = (float)( deti*(-r21*r33+r31*r23) ) ;
    Q.m[1][1] = (float)( deti*( r11*r33-r31*r13) ) ;
    Q.m[1][2] = (float)( deti*(-r11*r23+r21*r13) ) ;
    Q.m[1][3] = (float)( deti*( r11*r23*v3-r11*v2*r33-r21*r13*v3
-                     +r21*v1*r33+r31*r13*v2-r31*v1*r23) ) ;
+                              +r21*v1*r33+r31*r13*v2-r31*v1*r23) ) ;
 
    Q.m[2][0] = (float)( deti*( r21*r32-r31*r22) ) ;
    Q.m[2][1] = (float)( deti*(-r11*r32+r31*r12) ) ;
    Q.m[2][2] = (float)( deti*( r11*r22-r21*r12) ) ;
    Q.m[2][3] = (float)( deti*(-r11*r22*v3+r11*r32*v2+r21*r12*v3
-                     -r21*r32*v1-r31*r12*v2+r31*r22*v1) ) ;
+                              -r21*r32*v1-r31*r12*v2+r31*r22*v1) ) ;
 
    Q.m[3][0] = Q.m[3][1] = Q.m[3][2] = 0.0l ;
    Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; /* failure flag if deti == 0 */
@@ -2122,7 +2122,8 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
      case -3: k = NIFTI_S2I ; break ;
    }
 
-   *icod = i ; *jcod = j ; *kcod = k ; }
+   *icod = i ; *jcod = j ; *kcod = k ;
+}
 
 /*---------------------------------------------------------------------------*/
 /* Routines to swap byte arrays in various ways:
@@ -2151,7 +2152,7 @@ void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
        cp1 += 2;
    }
-   }
+}
 
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
@@ -7180,7 +7181,7 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
    dim_index = nim->dim[0];
    while( dim_index > 0 ){
       prods[len] = 1;
-      while( dim_index > 0 && 
+      while( dim_index > 0 &&
              (nim->dim[dim_index] == 1 || dims[dim_index] == -1) ){
          prods[len] *= nim->dim[dim_index];
          dim_index--;
