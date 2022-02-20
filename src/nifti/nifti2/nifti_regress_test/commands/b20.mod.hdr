@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 # written in the format of the bash scripts under cmake_testscripts
-# (this is not meant to be run along with the c* scritps here)
+# (this is not meant to be run along with the c* scripts here)
 
 if ( $#argv < 2 ) then
    echo "** missing nifti tool and data directory name"

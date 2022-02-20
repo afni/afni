@@ -89,7 +89,7 @@ static const char * g_history[] =
   "\n",
   "1.1  14 January 2005 [rickr]\n"
   "   - changed all non-error/non-debug output from stderr to stdout\n"
-  "       note: creates a mis-match between normal output and debug messages\n"
+  "       note: creates a mismatch between normal output and debug messages\n"
   "   - modified act_diff_hdrs and act_diff_nims to do the processing in\n"
   "       lower-level functions\n",
   "   - added functions diff_hdrs, diff_hdrs_list, diff_nims, diff_nims_list\n"
@@ -289,7 +289,7 @@ int main( int argc, char * argv[] )
    if((opts.swap_hdr  || opts.swap_ana || opts.swap_old )
                       && ((rv = act_swap_hdrs (&opts)) != 0) ) FREE_RETURN(rv);
 
-   /* if a diff, return wither a difference exists (like the UNIX command) */
+   /* if a diff, return whether, a difference exists (like the UNIX command) */
    if( opts.diff_hdr  && ((rv = act_diff_hdrs (&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.diff_hdr1 && ((rv = act_diff_hdr1s(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.diff_hdr2 && ((rv = act_diff_hdr2s(&opts)) != 0) ) FREE_RETURN(rv);
@@ -435,7 +435,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          for( index = 1; index < 8; index++ )
          {
             ac++;
-            CHECK_NEXT_OPT_MSG(ac,argc,"-cci","7 dimension values are requred");
+            CHECK_NEXT_OPT_MSG(ac,argc,"-cci","7 dimension values are required");
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -cci param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
@@ -490,7 +490,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          {
             ac++;
             CHECK_NEXT_OPT_MSG(ac,argc,"-disp_ci",
-                               "7 dimension values are requred");
+                               "7 dimension values are required");
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -disp_ci param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
@@ -509,7 +509,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          for( index = 1; index <= 3; index++ )
          {
             ac++;
-            CHECK_NEXT_OPT_MSG(ac,argc,"-dts","i,j,k indices are requied\n");
+            CHECK_NEXT_OPT_MSG(ac,argc,"-dts","i,j,k indices are required\n");
             if( ! isdigit(argv[ac][0]) ){
                fprintf(stderr,"** -dts param %d (= '%s') is not a number\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
@@ -578,7 +578,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          for( index = 0; index < 8; index++ )
          {
             ac++;
-            CHECK_NEXT_OPT_MSG(ac,argc,"-new_dim","8 dim values are requred");
+            CHECK_NEXT_OPT_MSG(ac,argc,"-new_dim","8 dim values are required");
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -new_dim param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
@@ -3216,7 +3216,7 @@ int act_mod_hdrs( nt_opts * opts )
 
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
                                 strlen(opts->command), NIFTI_ECODE_COMMENT) )
-               fprintf(stderr,"** failed to add command to image as exten\n");
+               fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
             NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
@@ -3327,7 +3327,7 @@ int act_mod_hdr2s( nt_opts * opts )
          }
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
                                 strlen(opts->command), NIFTI_ECODE_COMMENT) )
-               fprintf(stderr,"** failed to add command to image as exten\n");
+               fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
             NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
@@ -3467,7 +3467,7 @@ int act_swap_hdrs( nt_opts * opts )
          }
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
                                 strlen(opts->command), NIFTI_ECODE_COMMENT) )
-               fprintf(stderr,"** failed to add command to image as exten\n");
+               fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
             NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
@@ -5484,7 +5484,7 @@ nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread,
         return nifti_image_read(fname, doread);
     }
 
-    /* so generate an emtpy image */
+    /* so generate an empty image */
 
     if(g_debug > 1) {
         fprintf(stderr,"+d NT_IR: generating EMPTY IMAGE from %s...\n",fname);
@@ -5612,7 +5612,7 @@ void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
         }
     }
 
-    /* else "MAKE_IM", so generate an emtpy image */
+    /* else "MAKE_IM", so generate an empty image */
 
     if(g_debug > 1) {
         fprintf(stderr,"+d NT_RH: generating EMPTY IMAGE from %s...\n",fname);
@@ -5662,7 +5662,7 @@ nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len,
         return nifti_image_read_bricks(fname, len, list, NBL);
     }
 
-    /* so generate an emtpy image */
+    /* so generate an empty image */
     if(g_debug > 1) {
         fprintf(stderr,"+d NT_RB: generating EMPTY IMAGE from %s...\n",fname);
         if(g_debug > 2) {
