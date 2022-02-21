@@ -869,7 +869,7 @@ ENTRY("THD_nifti_process_afni_ext") ;
      /* the main point: apply AFNI extension attributes to dset */
      THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
      /* apply to dataset struct */ /* disco change */
-     THD_datablock_apply_atr( dset , 0 ) ;
+     THD_datablock_apply_atr( dset , AFNI_yesenv("attr_print") ) ;
    }
 
    NI_free_element( ngr ) ;          /* get rid of the root element */

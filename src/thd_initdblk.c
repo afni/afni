@@ -727,10 +727,12 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
 float frac_diff( float old, float new );
 
 float frac_diff(float old, float new) {
-    float fracdiff;
+    float fracdiff , denom ;
 
-    if (fabs(old) + fabs(new) != 0) {
-        fracdiff = fabs(old - new) / (fabs(old) + fabs(new));
+    denom = fabs(old) + fabs(new);
+    
+    if ( denom ) {
+        fracdiff = fabs(old - new) / denom ;
     } else {
         fracdiff = 0;
     }
@@ -1142,10 +1144,8 @@ ENTRY("THD_datablock_apply_atr") ;
       if(atr_flt) {
         
           if (validate) { /* disco change */
-              // should I free these variables at the end of the if statement?
               int label_c = 0, c_o = 0, c_i = 0;
               float f_diff, eps = 0.00001;
-              char diff_yn[2];
               
               printf("ijk xx: %13.6s %13.6s %13.6s\n", "afni", "nii", "diff?");
 
@@ -1154,15 +1154,11 @@ ENTRY("THD_datablock_apply_atr") ;
                       f_diff =
                           frac_diff(atr_flt->fl[label_c],
                                     dset->daxes->ijk_to_dicom_real.m[c_o][c_i]);
-                      if (f_diff > eps) {
-                          strcpy(diff_yn, "Y");
-                      } else {
-                          strcpy(diff_yn, "N");
-                      }
-                      printf("ijk %02d: %13.4f %13.4f %13s\n", label_c,
+
+                      printf("ijk %02d: %13.4f %13.4f %13d\n", label_c,
                              atr_flt->fl[label_c],
                              dset->daxes->ijk_to_dicom_real.m[c_o][c_i],
-                             diff_yn);
+                             f_diff > eps);
                       label_c++;
                   }
               }
