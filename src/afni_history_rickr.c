@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Feb, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
  { 18, Feb, 2022, RCR, "@Install_APMULTI_Demo2_realtime", MAJOR, TYPE_NEW_PROG,
    "new install script for APMULTI_Demo2_realtime",
    "This is a demo for running AFNI's real-time system, without needing to\n"
