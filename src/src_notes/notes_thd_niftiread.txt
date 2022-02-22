@@ -60,6 +60,14 @@ Context: processing an AFNI extension from a NIFTI dataset
           - NOTE: ID codes are not quite unique
         - warn on TR discrepency
         - how dies 3dinfo get otherwise ignored IJK_TO_DICOM_REAL (from atrs??)
+        - checks that things like "brick labels" match nvals
+           - current, if atr, current timing is thrown away
+
+        - slice timing:
+           - if AFNI/NIFTI disagree: print
+           - maybe: only if NIFTI has unknown timing, use ATR?
+              - toffset can be 0 or not, while slice times can be set or not
+              - toffset can be set to non-zero after 3dTshift, for example
 
 
       save attributes upon write (e.g. NIFTI)
