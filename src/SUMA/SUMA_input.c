@@ -2267,8 +2267,11 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             // For some reason, this is necessary to display active plane after scrollwheel
             //  used to scroll active plane when out of clipping plane identification mode
-            if (clipPlaneIdentificationMode)
-                clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
+            if (clipPlaneIdentificationMode){
+                for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
+                    clipPlaneTransform(0, 0, 0, 0,planeIndex, 0, 0);    // Redisplay active plane
+                clipPlaneTransform(0, 0, 0, 0,selectedPlane, 0, 0);    // Redisplay active plane
+            }
 
             SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
         }  else if (SUMAg_CF->Dev && SUMA_CTRL_KEY(key)){
