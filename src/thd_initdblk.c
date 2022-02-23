@@ -723,7 +723,6 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
 -----------------------------------------------------------------------------*/
 
 /* move this somewhere else later */
-
 float frac_diff( float old, float new );
 
 float frac_diff(float old, float new) {
@@ -738,7 +737,6 @@ float frac_diff(float old, float new) {
     }
     return (fracdiff);
 }
-
 /* end move later */
 
 void THD_datablock_apply_atr( THD_3dim_dataset *dset , int validate )
@@ -884,7 +882,6 @@ ENTRY("THD_datablock_apply_atr") ;
        if( validate ){               /* disco change */
            printf("\nnii  idcode: %s\n", dset->idcode.str);
            printf("afni idcode: %s\n\n", atr_str->ch);
-
        }
        MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
     }
@@ -1163,7 +1160,6 @@ ENTRY("THD_datablock_apply_atr") ;
                   }
               }
               printf("\n");
-              
           }  // end validate
 
         LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \
@@ -1180,6 +1176,34 @@ ENTRY("THD_datablock_apply_atr") ;
    if( atr_int != NULL && atr_flt != NULL ){
      int isfunc , nvals ;
 
+    /* disco change */
+     if (validate) {
+         printf("%s %13s %13s      %s\n", "afni", "nii", "diff?", "var");
+
+         printf("%d %13d %13.3f      %s\n", TIMEAXIS_TYPE, dset->taxis->type,
+                0.0, "type");
+         printf("%d %13d %13.3f      %s\n", atr_int->in[0], dset->taxis->ntt,
+                0.0, "Number of time points");
+         printf("%d %*d %*.3f      %s\n", atr_int->in[1], 13, dset->taxis->nsl,
+                13, 0.0, "Number of slice-dependent time offsets");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[0],
+                dset->taxis->ttorg, 0.0, "Time origin (usually 0)");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[1],
+                dset->taxis->ttdel, 0.0, "Fondly known as TR");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[2],
+                dset->taxis->ttdur, 0.0,
+                "Duration of image acquisition (usually not known)");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[3],
+                dset->taxis->zorg_sl, 0.0,
+                "z-coordinate origin for slice offsets");
+         printf("%.3f %13.3f %13.3f      %s\n", atr_flt->fl[4],
+                dset->taxis->dz_sl, 0.0,
+                "z-coordinate spacing for slice offsets");
+         printf("%d %13d %13.3f      %s\n", atr_int->in[2],
+                dset->taxis->units_type, 0.0, "one of the UNITS_ codes");
+      }
+    /* end disco change */
+    
      dset->taxis = myRwcNew( THD_timeaxis ) ;
 
      dset->taxis->type    = TIMEAXIS_TYPE ;
