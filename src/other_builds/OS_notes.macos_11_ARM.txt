@@ -24,7 +24,7 @@ Mac OS Preferences (Apple menu or Gear icon in dock, Security & Privacy,Privacy 
 Select the Lock to unlock settings. 
 If Terminal is not on list of applications on right, add it with the "+", and navigate
 to the Applications/Utilities/Terminal
-Then select Terminal to have check mark
+Then select Terminal to have check mark for full disk access
 #**************************************************************
 # Homebrew installation
 
@@ -38,7 +38,7 @@ Then select Terminal to have check mark
 
   brew update
   brew install  libpng jpeg expat freetype fontconfig openmotif libomp
-                libxt gsl glib pkg-config gcc
+                libxt gsl glib pkg-config gcc netpbm libiconv
 #**************************************************************
 # R installation
 # Install R for ARM64 (latest version is 4.1.2 at this time)
@@ -65,14 +65,15 @@ Then select Terminal to have check mark
 #         /opt/homebrew/lib/libXm.a
 #   ln -s /opt/homebrew/Cellar/jpeg/9e/lib/libjpeg.a                       \
 #         /opt/homebrew/lib/libjpeg.a
+# Changed make makefile to use libjpeg.a, so didn't need this one
+#    ln -s /opt/homebrew/Cellar/jpeg/9e/lib/libjpeg.a                       \
+#          /opt/homebrew/lib/libjpeg.9.a
 
-# did have to do these links:
-    ln -s /opt/homebrew/Cellar/jpeg/9e/lib/libjpeg.a                       \
-          /opt/homebrew/lib/libjpeg.9.a
+# did have to do this link:
     ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h        \
           /opt/homebrew/include/pgm.h
 
-#   cp Makefile.macos_11_clang Makefile
+#   cp Makefile.macos_11.5_ARM_M1_clang Makefile
 # 
 # now have new Makefile.macos_11_clang
 # note either clang or gcc10,gcc11 or later should all work

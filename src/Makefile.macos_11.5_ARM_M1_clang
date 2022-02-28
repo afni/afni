@@ -77,7 +77,8 @@ XROOT   = /opt/X11
 XROOT_I = -I$(XROOT)/include
 XROOT_L = -L$(XROOT)/lib
 
-XLIBS = -lXm -ljpeg.9 -lXt
+# XLIBS = -lXm -ljpeg.9 -lXt
+XLIBS = -lXm -ljpeg -lXt
 
 # ----------------------------------------------------------------------
 
