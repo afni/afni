@@ -521,7 +521,7 @@ static int64_t text_to_i64(int64_t * result, const char * text, int64_t nvals)
    int64_t * rptr, val;
    int64_t   nread;
 
-   *result = 0; /* Initialize to zero incase of failure */
+   *result = 0; /* Initialize to zero in case of failure */
    if( ! text || ! result) return 1;
    if( nvals <= 0 )        return 0;
 

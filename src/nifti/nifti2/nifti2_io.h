@@ -50,7 +50,7 @@ extern "C" {
 
       Mainly adding low-level IO and changing things to allow gzipped files
       to be read and written
-      Full backwards compatability should have been maintained
+      Full backwards compatibility should have been maintained
 
    ......................................................................
    Modified by: Rick Reynolds (SSCC/DIRP/NIMH, National Institutes of Health)
@@ -65,7 +65,7 @@ extern "C" {
 
       Converted to be based on nifti_2_header.
 
-      ** NOT BACKWARD COMPATABLE **
+      ** NOT BACKWARD COMPATIBLE **
 
       These routines will read/write both NIFTI-1 and NIFTI-2 image files,
       but modification to the _calling_ routies is necessary, since:
@@ -696,7 +696,7 @@ typedef struct {
     char const * const name;           /* text string to match #define */
 } nifti_type_ele;
 
-#undef  LNI_FERR /* local nifti file error, to be compact and repetative */
+#undef  LNI_FERR /* local nifti file error, to be compact and repetitive */
 #define LNI_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
 
