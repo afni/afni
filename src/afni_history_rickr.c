@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Feb, 2022, RCR, "3dZcutup", MICRO, TYPE_BUG_FIX,
+   "fix typo in bounds check on -keep (was backward)",
+   "Thanks to Yixiang (on AFNI MB) for letting us know."
+ } ,
+
  { 20, Feb, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "sync with nifti_clib",
    NULL
