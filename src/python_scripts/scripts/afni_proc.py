@@ -713,9 +713,12 @@ g_history = """
     7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
     7.28 Feb  8, 2022: add -html_review_opts
     7.29 Feb 18, 2022: change -milestones to -hist_milestones
+    7.30 Mar  1, 2022:
+       - make pythonic the default html_review_style
+         (since PT will run with basic if pythonic is not possible)
 """
 
-g_version = "version 7.29, February 18, 2022"
+g_version = "version 7.30, March 1, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1081,7 +1084,7 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
-        self.html_rev_style = 'basic'   # html_review_style
+        self.html_rev_style = 'pythonic' # html_review_style
         self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic'         # basic review script
@@ -3321,7 +3324,8 @@ class SubjProcSream:
         if self.epi_review:
            # maybe we will have an html sub-section
            htmlstr = ''
-           if self.html_rev_style in g_html_review_styles:
+           if self.html_rev_style in g_html_review_styles \
+                and self.html_rev_style != 'none':
               htmlstr = '\n' + self.run_html_review(istr='    ')
               # warn user if pythonic does not seem valid
               if self.html_rev_style == 'pythonic':

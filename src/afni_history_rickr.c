@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "make pythonic the default html_review_style",
+   "Done to appease the ever-demanding P Taylor."
+ } ,
+
  { 28, Feb, 2022, RCR, "3dZcutup", MICRO, TYPE_BUG_FIX,
    "fix typo in bounds check on -keep (was backward)",
    "Thanks to Yixiang (on AFNI MB) for letting us know."
