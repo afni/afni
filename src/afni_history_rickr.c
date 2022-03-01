@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix removal of spaces with -combine_opts_tedana",
+   "Thanks to J Teves for noting the problem."
+ } ,
+
  {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "make pythonic the default html_review_style",
    "Done to appease the ever-demanding P Taylor."

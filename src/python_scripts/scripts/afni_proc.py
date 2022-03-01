@@ -716,9 +716,10 @@ g_history = """
     7.30 Mar  1, 2022:
        - make pythonic the default html_review_style
          (since PT will run with basic if pythonic is not possible)
+    7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
 """
 
-g_version = "version 7.30, March 1, 2022"
+g_version = "version 7.31, March 1, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
