@@ -1,5 +1,7 @@
 #**************************************************************
-# Notes for building AFNI on Mac OS 10.15, using this makefile:
+# Notes for building AFNI on Apple Silicon ARM M1 or M2 CPU 
+# with Mac OS 11 (Big Sur) or 12 (Monterey),
+# using this makefile:
 # Makefile.macos_11_ARM
 # 
 #**************************************************************
@@ -73,9 +75,8 @@ Then select Terminal to have check mark for full disk access
     ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h        \
           /opt/homebrew/include/pgm.h
 
-#   cp Makefile.macos_11.5_ARM_M1_clang Makefile
+  cp Makefile.macos_11_ARM_clang Makefile
 # 
-# now have new Makefile.macos_11_clang
 # note either clang or gcc10,gcc11 or later should all work
 # ... and then firing off the make:
 #
@@ -86,7 +87,7 @@ Then select Terminal to have check mark for full disk access
 
 # copy installation directory to standardish afni binary directory
 mkdir -P ~/abin
-cp -r macos_11.5_ARM_M1_clang/* ~/abin/
+cp -r macos_11_ARM_M1_clang/* ~/abin/
 
 # get atlases and templates
 cd
