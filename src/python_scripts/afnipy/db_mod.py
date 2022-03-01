@@ -3377,7 +3377,10 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    fave_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
-   exoptstr = '          %s \\\n' % ' '.join(exopts)
+   if len(exopts) > 0:
+      exoptstr = '          %s \\\n' % ' '.join(exopts)
+   else:
+      exoptstr = ''
 
 
    # actually run tedana
