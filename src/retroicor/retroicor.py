@@ -64,13 +64,29 @@ def getCardiacPeaks(parameters):
    return peaks, len(array)
 
 
-def getPeaks(parameters, key):
+def getRespiratoryPeaks(parameters):
 
-   array = readArray(parameters, key)
+   array = readArray(parameters, '-r')
+    
+    # Debug: Make even number of peaks followed by troughs
+   # array = [ -x for x in array ]
 
    peaks, _ = find_peaks(np.array(array))
     
-   return peaks, len(array)
+   troughs, _ = find_peaks(-np.array(array))
+   
+   # Filter peaks and troughs.  Reject peak/trough pairs where
+   #    difference is less than one tenth of the total range
+   nPeaks = len(peaks)
+   nTroughs = len(troughs)
+   minNum = min(nPeaks,nTroughs)
+   ptPairs = [array[peaks[x]]-array[troughs[x]] for x in range(0,minNum)]
+   threshold = (max(array)-min(array))/10
+   indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
+   peaks = np.delete(peaks,indices2remove)
+   troughs = np.delete(troughs,indices2remove)
+    
+   return peaks, troughs, len(array)
 
 def getTroughs(parameters, key):
 
@@ -150,64 +166,104 @@ def getBCoeffs(parameters, key, phases):
     return b
             
 
-def determineRespiratoryPhases(parameters):
+def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs):
     data = readArray(parameters, '-r')
+    
+    # Debug: Make even number of peaks followed by troughs
+    # data = [ -x for x in data ]
+    
     denom = len(data)
     offset = 0 - min(data)
     for i in range(0,denom):
         data[i] = data[i] + offset
 
     # Determine sign array
-    respiratory_peaks, _ = find_peaks(np.array(data))
-    respiratory_troughs, _ = find_peaks(-np.array(data))
+    # respiratory_peaks, _ = find_peaks(np.array(data))
+    # respiratory_troughs, _ = find_peaks(-np.array(data))
     signs = []
     nPeaks = len(respiratory_peaks)
     nTroughs = len(respiratory_troughs)
-    if respiratory_peaks[0]<respiratory_troughs[0]:
-        for i in range(0,respiratory_peaks[0]): signs[0].append(1)
-        for peak in range(0,min(nPeaks,nTroughs)):
-            for i in range(respiratory_peaks[peak],respiratory_troughs[peak]):
-                signs.append(-1)
-            end = respiratory_peaks[peak+1]
-            for i in range(respiratory_troughs[peak], end):
-                signs.append(1)
-        if nPeaks<nTroughs:
-            for i in range(end,respiratory_troughs[-1]):
-                signs.append(-1)
-    else: # First critical point is a trough
-        for i in range(0,respiratory_troughs[0]): signs.append(-1)
-        last = min(nPeaks,nTroughs)
-        for peak in range(0,last):
-            for i in range(respiratory_troughs[peak],respiratory_peaks[peak]):
-                signs.append(1)
-            if peak+1 >= nTroughs: break
-            end = respiratory_troughs[peak+1]
-            for i in range(respiratory_peaks[peak], end):
-                signs.append(-1)
-        if nPeaks==nTroughs:
-            for i in range(end,denom):
-                signs.append(-1)
-        else: # nTroughs > nPeaks
-            for i in range(end,denom):
-                signs.append(1)
+    
+    signs = []
+    sign = 1
+    for i in range(0,respiratory_troughs[0]):
+        signs.append(sign)
+    end = nTroughs - 1
+    for t in range(0,end):
+        sign = -sign
+        start = respiratory_troughs[t]
+        finish = respiratory_troughs[t+1]
+        for i in range(start,finish):
+            signs.append(sign)
+    sign = -sign
+    for i in range(respiratory_troughs[-1],denom):
+        signs.append(sign)
         
-                
-
-    Rmax = max(data)
-    Histogram = np.linspace(math.ceil(min(data)),
-        math.floor(max(data)), 100)
+    # Rmax = respiratory_peaks[0] - respiratory_troughs[0]
     phases = []
-    inc = 0
-    for phase in range(0,denom):
-        num = 0
-        limit = round(100.0*data[phase]/Rmax)
-        # print('limit = ', limit)
-        for b in range(0,limit):
-            num += Histogram[b]
-        phases.append(math.pi*num*signs[inc]/denom)
-        inc = inc + 1
-                
-    plt.plot(data)
+    
+    if respiratory_peaks[0] < respiratory_troughs[0]:
+        # Assign -1 to phases of all time tpoints before the first peak
+        for i in range(0,respiratory_peaks[0]): phases.append(-1.0)
+    
+        for p in range(0,nTroughs):
+            Min = data[respiratory_troughs[p]]
+            Rmax = data[respiratory_peaks[p]]
+            for i in range(respiratory_peaks[p],respiratory_troughs[p]):
+                phase = math.pi*(data[i]-Min)*signs[i]/Rmax
+                phases.append(phase)
+            if p<nPeaks-1:
+                for i in range(respiratory_troughs[p],respiratory_peaks[p+1]):
+                    phase = math.pi*(data[i]-Min)*signs[i]/Rmax
+                    phases.append(phase)
+            
+        # Prepend phases before first peak
+        input = round(2*respiratory_peaks[0])
+        output = 0
+        while output < respiratory_peaks[0]:
+           phases[output] = phases[input] 
+           input = input - 1
+           output = output + 1
+    else:       # Begins with a trough
+        # Assign -1 to phases of all time tpoints before the first trough
+        for i in range(0,respiratory_troughs[0]): phases.append(-1.0)
+    
+        for p in range(0,nPeaks):
+            Min = data[respiratory_troughs[p]]
+            Rmax = data[respiratory_peaks[p]]
+            for i in range(respiratory_troughs[p],respiratory_peaks[p]):
+                phase = math.pi*(data[i]-Min)*signs[i]/Rmax
+                phases.append(phase)
+            if p<nTroughs-1:
+                for i in range(respiratory_peaks[p],respiratory_troughs[p+1]):
+                    phase = math.pi*(data[i]-Min)*signs[i]/Rmax
+                    phases.append(phase)
+            
+        # Prepend phases before first trough
+        input = round(2*respiratory_troughs[0])
+        output = 0
+        while output < respiratory_troughs[0]:
+           phases[output] = -phases[input] 
+           input = input - 1
+           output = output + 1
+            
+    # Append phases after last tunring point.
+    if respiratory_troughs[-1] > respiratory_peaks[-1]:
+        # Append phases after last tough
+        input = respiratory_troughs[-1] - 1
+        length = denom - respiratory_troughs[-1]
+        for i in range(0,length):
+            phases.append(-phases[input])
+            input = input - 1
+    else:       
+        # Append phases after last peak
+        input = respiratory_peaks[-1] - 1
+        length = denom - respiratory_peaks[-1]
+        for i in range(0,length):
+            phases.append(phases[input])
+            input = input - 1
+
+    # plt.plot(phases)
         
     return phases
 
@@ -216,9 +272,11 @@ def getPhysiologicalNoiseComponents(parameters):
     
     cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength)
     
-    respiratory_peaks, fullLength = getPeaks(parameters, '-r') 
+    respiratory_peaks, respiratory_troughs, fullLength = \
+        getRespiratoryPeaks(parameters) 
     
-    respiratory_phases = determineRespiratoryPhases(parameters)
+    respiratory_phases = determineRespiratoryPhases(parameters, \
+            respiratory_peaks, respiratory_troughs)
 
     # Get a coefficients
     cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
@@ -248,22 +306,5 @@ parameters = getParameters()
 
 physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
 
-# cardiac_peaks = getPeaks(parameters, '-c') 
-
-# cardiac_phases = determineCardiacPhases(cardiac_peaks)
-
-# respiratory_peaks = getPeaks(parameters, '-r') 
-
-# respiratory_phases = determineRespiratoryPhases(parameters)
-                
-# plt.plot(respiratory_phases[0:3000])
-
-# # Get a coefficients
-# cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
-# respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
-
-# # Get b coefficients
-# cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
-# respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
 
 
