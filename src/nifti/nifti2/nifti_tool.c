@@ -3978,7 +3978,7 @@ static int convert_datatype(nifti_image * nim, nifti_brick_list * NBL,
 
    if( !nim || !nifti_datatype_is_valid(new_type, 1) ) {
       fprintf(stderr, "** convert datatype: no data (%p) or bad type (%d)\n",
-              nim, new_type);
+              (void *)nim, new_type);
       return 1;
    }
 
