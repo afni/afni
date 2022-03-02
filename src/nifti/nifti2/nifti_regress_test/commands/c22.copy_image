@@ -1,0 +1,39 @@
+
+# ------------------------------------------------------------
+# tests with -copy_image and -clb, along with data conversion
+# options -convert2dtype, -convert_fail_choice, -convert_verify
+#
+# keep simple: convert between types and test for binary match
+# test with both -cbl and -copy_image
+
+
+set infile = e4.60005.nii.gz
+
+# dupe initially, to get local endian (for binary diff tests),
+# and change to 4 dims, rather than 5 (time series has 5th dim)
+nifti_tool -cbl -infile $infile -prefix out.c22.0.i16.nii.gz
+
+# back and forth to i64, -copy_image
+nifti_tool -copy_image -infile out.c22.0.i16.nii      \
+                       -prefix out.c22.1.i64.nii.gz   \
+           -convert2dtype NIFTI_TYPE_INT64 -convert_verify
+nifti_tool -copy_image -infile out.c22.1.i64.nii.gz   \
+                       -prefix out.c22.2.0.i16.nii.gz \
+           -convert2dtype NIFTI_TYPE_INT16 -convert_verify
+cmp out.c22.0.i16.nii.gz out.c22.2.0.i16.nii.gz
+if ( $status ) then
+   echo "** not a binary match: out.c22.0.i16.nii.gz out.c22.2.0.i16.nii.gz"
+endif
+
+# back and forth to f32, -cbl
+nifti_tool -cbl -infile out.c22.0.i16.nii.gz \
+                -prefix out.c22.1.f32.nii.gz \
+           -convert2dtype NIFTI_TYPE_FLOAT32 -convert_fail_choice fail
+nifti_tool -copy_image -infile out.c22.1.f32.nii.gz   \
+                       -prefix out.c22.2.1.i16.nii.gz \
+           -convert2dtype NIFTI_TYPE_INT16 -convert_fail_choice warn
+cmp out.c22.0.i16.nii.gz out.c22.2.1.i16.nii.gz
+if ( $status ) then
+   echo "** not a binary match: out.c22.0.i16.nii.gz out.c22.2.1.i16.nii.gz"
+endif
+
