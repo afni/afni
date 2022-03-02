@@ -169,12 +169,14 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
       add_test( NAME ${TEST_PREFIX}_c21_b_cifti_in_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_b_cifti_in.sh    $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
       add_test( NAME ${TEST_PREFIX}_c21_c_make_im_test  COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_c_make_im.sh     $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
       add_test( NAME ${TEST_PREFIX}_c21_d_misc_tests    COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_d_misc_tests.sh  $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
+      add_test( NAME ${TEST_PREFIX}_c22_copy_image      COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c22_copy_image.sh    $<TARGET_FILE:${TOOL_NAME}> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
 
       set_tests_properties(${TEST_PREFIX}_mod_hdr2_test PROPERTIES LABELS NEEDS_DATA)
       set_tests_properties(${TEST_PREFIX}_c21_a_info_test PROPERTIES LABELS NEEDS_DATA)
       set_tests_properties(${TEST_PREFIX}_c21_b_cifti_in_test PROPERTIES LABELS NEEDS_DATA)
       set_tests_properties(${TEST_PREFIX}_c21_c_make_im_test PROPERTIES LABELS NEEDS_DATA)
       set_tests_properties(${TEST_PREFIX}_c21_d_misc_tests PROPERTIES LABELS NEEDS_DATA)
+      set_tests_properties(${TEST_PREFIX}_c22_copy_image PROPERTIES LABELS NEEDS_DATA)
 
       # Test that installed linking works
       if(TEST_INSTALL)

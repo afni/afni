@@ -53,6 +53,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Mar, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib repo",
+   NULL
+ } ,
+
+ {  1, Mar, 2022, RCR, "nifti_tool", MAJOR, TYPE_NEW_OPT,
+   "allow conversion between any 2 int or float types (except float128)",
+   "Add -copy_image, -convert2dtype, -convert_verify, -convert_fail_choice.\n"
+   "Conversion operations happen in nt_image_read and nt_read_bricks,\n"
+   "and can therefore be applied to most data-included operations.\n"
+   "Requested by J Teves."
+ } ,
+
  {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix removal of spaces with -combine_opts_tedana",
    "Thanks to J Teves for noting the problem."
