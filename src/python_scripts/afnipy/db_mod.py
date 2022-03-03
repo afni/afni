@@ -8311,7 +8311,7 @@ def db_cmd_gen_review(proc):
           "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
-          % (block_header('auto block: generate review scripts'),
+          % (block_header('auto block: quality control review'),
              mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py
@@ -8621,12 +8621,20 @@ g_help_intro = """
     optional blocks (the default is to _not_ apply these blocks) ~2~
 
         align       : align EPI anat anatomy (via align_epi_anat.py)
+        combine     : combine echoes into one
         despike     : truncate spikes in each voxel's time series
         empty       : placeholder for some user command (uses 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
-        combine     : combine echoes into one, per run
         surf        : project volumetric data into the surface domain
         tlrc        : warp anat to standard space
+
+    implicit blocks (controlled by program, added when appropriate) ~2~
+
+        blip                   : perform B0 distortion correction
+        outcount               : temporal outlier detection
+        quality control review : generate QC review scripts and HTML report
+        @radial_correlate      : QC - compute local neighborhood correlations
+        uniformity correction  : anatomical uniformity correction
 
     ==================================================
     DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~

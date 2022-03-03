@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "update block help; rename to quality control review",
+   NULL
+ } ,
+
  {  2, Mar, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "sync with nifti_clib repo",
    NULL
