@@ -717,7 +717,7 @@ g_history = """
        - make pythonic the default html_review_style
          (since PT will run with basic if pythonic is not possible)
     7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
-    7.32 Mar  3, 2022: update block help; rename to quality control review
+    7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
 """
 
 g_version = "version 7.32, March 3, 2022"

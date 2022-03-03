@@ -620,7 +620,7 @@ def make_uniformity_commands(proc, umeth):
 
     cmd  = "# %s\n"                                                       \
            "# perform '%s' uniformity correction on anatomical dataset\n" \
-           % (block_header('uniformity correction'), umeth)
+           % (block_header('anat_unif'), umeth)
 
     cmd += "3dUnifize -prefix %s%s%s %s\n\n" \
            % (opre, gmstr, other_opts, proc.anat.pv())
@@ -8307,11 +8307,11 @@ def db_cmd_gen_review(proc):
        mestr = ''
 
     cmd = "# %s\n\n"                                                    \
-          "# generate a review script for the unprocessed EPI data\n"   \
+          "# generate quality control review scripts and HTML report\n" \
           "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
-          % (block_header('auto block: quality control review'),
+          % (block_header('auto block: QC_review'),
              mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py
