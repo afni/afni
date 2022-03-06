@@ -1,0 +1,59 @@
+## top ##################################
+## 01/2022 Justin Rajendra
+## Gang RBA 
+## global
+
+
+
+suppressPackageStartupMessages(library(shiny))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(shinydashboard))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(RColorBrewer))
+suppressPackageStartupMessages(library(tools))
+library(ggplot2)
+library(ggridges)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+## clean up
+rm(list=ls())
+
+# ## for the wrong dates on the server
+# Sys.setenv(TZ="America/New_York")
+
+## helper functions #############################
+
+
+## get file list ####################################
+
+file.temp <- list_files_with_exts('data',ext=c('RData'))
+file.list <- as.list(file.temp)
+names(file.list) <- basename(file_path_sans_ext(file.temp))
+rm(file.temp)
+
+
+## lists for choices ##################################
+
+# ## rois
+
+
+### plot parameters ##################################
+trans <- 0.25
+line.wd <- 2
+point.size <- 2
+markers <- c(21,23)
+marker.size <- 3
+jit <- 0.1
+
+## colors #########################################
+dark.col <- brewer.pal(6,"Dark2")
+set1.col <-  brewer.pal(6,"Set1")
+acc.col <- brewer.pal(6,"Accent")
+rain.col <- rainbow(6)[c(1,3,4,5,6)]
+gang.col <- c("blue","cyan","gray","gray","yellow","#C9182B")
+
+col.list <- list("Gang","Dark2","Set1","Rainbow","Accent")
+
+### stat functions ##################################
