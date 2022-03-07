@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Mar, 2022, RCR, "@radial_correlate", MINOR, TYPE_NEW_OPT,
+   "add -polort; default is 2",
+   NULL
+ } ,
+
  {  6, Mar, 2022, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
    "add -diff_prog",
    NULL
