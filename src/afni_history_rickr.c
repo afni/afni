@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Mar, 2022, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "add -diff_prog",
+   NULL
+ } ,
+
  {  3, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "update block help; rename to quality control review",
    NULL
