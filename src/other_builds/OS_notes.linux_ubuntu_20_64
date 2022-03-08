@@ -8,5 +8,5 @@
 sudo apt-get update 
 
 sudo apt-get install -y libxt-dev libxpm-dev libxext-dev libexpat1-dev \
-                        libxmu-dev libxpm-dev libmotif-dev libgsl-dev  \
+                        libxmu-dev libmotif-dev libgsl-dev             \
                         libxi-dev libglib2.0-dev
