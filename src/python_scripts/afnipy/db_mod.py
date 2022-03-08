@@ -695,7 +695,7 @@ def make_outlier_commands(proc, block):
     val, err = proc.user_opts.get_type_opt(int, '-outlier_polort')
     if err: return
     elif val != None and val >= 0: polort = val
-    else: polort = UTIL.get_default_polort(proc.tr, proc.reps)
+    else: polort = proc.regress_polort
 
     # use Legendre polynomials?
     opt = proc.user_opts.find_opt('-outlier_legendre')
@@ -770,16 +770,20 @@ def run_radial_correlate(proc, block, full=0):
               '# data check: compute correlations with spherical averages\n' \
               % block_header('@radial_correlate (%s)' % block.label)
 
-       cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
-              '%s'                                                      \
-              '                  %s\n\n' % (rdir, other_opts, dsets)
+       cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
+              '                  -rdir %s \\\n'                           \
+              '%s'                                                        \
+              '                  %s\n\n'                                  \
+              % (proc.regress_polort, rdir, other_opts, dsets)
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
               '# data check: compute correlations with spherical ~averages\n' \
-              '@radial_correlate -nfirst 0 -do_clean yes -rdir %s \\\n'       \
+              '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
+              '                  -rdir %s \\\n'                               \
               '%s'                                                            \
-              '                  %s\n\n' % (rdir, other_opts, dsets)
+              '                  %s\n\n'                                      \
+              % (proc.regress_polort, rdir, other_opts, dsets)
 
     return 0, cmd
 
@@ -6816,7 +6820,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
     dname = 'TSNR%s%s$subj%s' % (name_qual, proc.sep_char, suff)
 
     if detrend:
-        polort=UTIL.get_default_polort(proc.tr, proc.reps)
+        polort=proc.regress_polort
         detcmd="%s3dDetrend -polort %d -prefix rm.noise.det%s " \
                "-overwrite %s%s\n"\
                % (istr, polort, suff, noise, vsuff)
@@ -8296,7 +8300,7 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
-    # (if ME, force it here, and get all echoes)
+    # (if ME, force it here, and get all echoes - save and restore use_me)
     use_me = proc.use_me
     proc.use_me = proc.have_me
     dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-2)
@@ -8306,12 +8310,18 @@ def db_cmd_gen_review(proc):
     else:
        mestr = ''
 
-    cmd = "# %s\n\n"                                                    \
-          "# generate quality control review scripts and HTML report\n" \
+    if proc.html_rev_style != 'none':
+       hcom = ' and HTML report'
+    else:
+       hcom = ""
+
+    cmd = "# %s\n"                                                      \
+          "# generate quality control review scripts%s\n\n"             \
+          "# generate a review script for the unprocessed EPI data\n"   \
           "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
-          % (block_header('auto block: QC_review'),
+          % (block_header('auto block: QC_review'), hcom,
              mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py

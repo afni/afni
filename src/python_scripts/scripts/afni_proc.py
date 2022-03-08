@@ -718,12 +718,14 @@ g_history = """
          (since PT will run with basic if pythonic is not possible)
     7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
     7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
+    7.33 Mar  8, 2022: apply -polort in @radial_correlate
 """
 
-g_version = "version 7.32, March 3, 2022"
+g_version = "version 7.33, March 8, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
