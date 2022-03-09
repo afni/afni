@@ -411,8 +411,13 @@ static int   *p_ijar = NULL ;  /* permutation array */
 static void setup_permute( int nx , int ny )
 {
    int ii,jj,tt ;
+   static int first=1 ;
 
    if( nx == 0 || ny == 0 ) return ;  /* how did this happen? */
+
+   if( first || p_nxy != nx+ny ){
+     INFO_message("Call to setup_permute(%d,%d) with p_nxy=%d",nx,ny,p_nxy) ;
+   }
 
    if( nx+ny > p_nxy ){  /* (re)make workspaces */
      p_nxy = nx+ny ;
@@ -449,6 +454,7 @@ static void setup_permute( int nx , int ny )
    }}
 #endif
 
+   first = 0 ;
    return ;
 }
 
@@ -462,18 +468,21 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 
 ENTRY("permute_arrays") ;
 
-   if( nx == 0 || ny == 0 || x == NULL || y == NULL || p_nxy != nx+ny ){
+   if( nx == 0 || ny == 0 || x == NULL || y == NULL ){
      static int first=1 ;
      if( first ){
        ERROR_message("-permute failure for unfathomable reasons /:(\n"
-                     "     nx=%d  ny=%d  p_nxy=%d  x==%s  y==%s\n"
-                     "Function traceback follows:"                     ,
-                     nx,ny,p_nxy , (x==NULL)?"NULL":"non-NULL" ,
-                                   (y==NULL)?"NULL":"non-NULL"   ) ;
+                     "     nx=%d  ny=%d  x==%s  y==%s  (p_nxy==%d)\n"
+                     "Function traceback follows (program continues):" ,
+                     nx,ny , (x==NULL)?"NULL":"non-NULL" ,
+                             (y==NULL)?"NULL":"non-NULL" , p_nxy  ) ;
        DBG_traceback() ;
        first = 0 ;
      }
      EXRETURN ;
+   }
+   if( p_nxy != nx+ny ){  /* must setup permutation */
+     setup_permute(nx,ny) ;
    }
 
    /* copy 2 inputs into 1 big array */
@@ -6718,8 +6727,8 @@ ENTRY("TT_matrix_setup") ;
    }
 #endif
 
-   if( do_permute ){     /* permute each AXX and BXX column [05 Mar 2020] */
-     float *axar , *bxar ;  /* [is no permutation for 1-sample or paired] */
+   if( do_permute && p_nxy > 0 ){ /* permute each AXX & BXX column [05 Mar 2020] */
+     float *axar , *bxar ;        /* [is no permutation for 1-sample or paired] */
      for( jj=1 ; jj <= mcov ; jj++ ){
        axar = Axx + jj*nval_AAA ;        /* pointers to arrays that hold */
        bxar = Bxx + jj*nval_BBB ;       /* the jj-th columns of matrices */
