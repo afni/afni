@@ -5,7 +5,7 @@
 
 ## server top #####################################
 shinyServer(function(input,output,session) {
-  options(warn = -1)
+  options(warn=-1)
   session$onSessionEnded(function() { cat('\nAll done!\n') ; stopApp() })
   
   ## get data #########################################
@@ -45,11 +45,16 @@ shinyServer(function(input,output,session) {
     
     # create ROI column instead of numerics to match threat table above
     data_stats$ROI <- rois
-    data_stats$mean <- colMeans(data)  # median: quantile(x, probs=.5)
     data_stats$P <- colSums(data > 0)/nobj
     data_stats$Pn <- ifelse(data_stats$P < .5, 1-data_stats$P, data_stats$P)
-    # this will order the distributions correctly
-    data_stats <- data_stats[order(data_stats$mean),]
+    
+    # order type
+    if( input$orderSel == 'P-plus' ){
+      data_stats$mean <- colMeans(data)  
+      data_stats <- data_stats[order(data_stats$mean),]
+    } else if( input$orderSel == 'Original' ) {
+      data_stats$mean <- apply(data, 2, quantile, .5) # # median: quantile(x, probs=.5)
+    }
     
     data_trans <- as.data.frame(t(as.matrix(data)))
     # add two more columns
@@ -57,7 +62,7 @@ shinyServer(function(input,output,session) {
     data_trans$X <- 1:nrow(data_trans)
     
     # merge values & stats into one table by ROI
-    data_merge <- merge(data_stats, data_trans, by = "ROI")
+    data_merge <- merge(data_stats, data_trans, by="ROI")
     data_merge <- data_merge[order(data_merge$X),]
     #browser()
     # Transform data into long form: Melt dataframe by ROI
@@ -65,7 +70,7 @@ shinyServer(function(input,output,session) {
     data_long <- data_long[order(data_long$X),]
     
     #clunky, but for now stats by ensuring orders are all the same and repeating each value nobj times. no success for alternatives. 
-    data_long$mean <- rep(data_merge$mean, each = nobj)
+    data_long$mean <- rep(data_merge$mean, each=nobj)
     data_long$P <- rep(data_merge$P, each =nobj)
     data_long$Pn <- rep(data_merge$Pn, each =nobj)
     data_long$gray.vals <- rep(data_merge$gray.vals, each =nobj)
@@ -98,56 +103,56 @@ shinyServer(function(input,output,session) {
   #   # print(summary(roi.temp))
   #   
   # })
-  ##  ###############################
+  ## plot ###############################
   output$gangPlot <- renderPlot({
+    
+    ### get the data ###############
     plot.list <- getStats()
     data_stats <- plot.list[[1]]
     data_long <- plot.list[[2]]
     rois <- data_stats$ROI
     
-    labx <- input$plotTitle
-    xlim <- input$plotRange
-    
-    
-    
-    y.axis.labs <- data_stats$ROI                              # y axis labels
-    sec.y.axis.labs <- round(data_stats$P,3)                   # second y axis labels (probabilities) - Rounded to 2 decimals
-    
-    ################# X AXIS LABELS ###########################################################
-    # X AXIS LABELS NEED TO CHANGE TO CORRESPOND TO DATA SET! UNCOMMENT WHICHEVER MATCHES
-    x.axis.labs <- NULL                                # x axis labels  INTERACTION, not sure what to put.
-    x.labs.pos <- NULL                                 # a axis position INTERACTION, change when labels decided
-    
-    ######## T I T L E S #############################################################
-    #data.name <- tl
-    graph.title <- "Interaction (% signal change)"                                   # graph title 
-    legend.title <- "P+"                              # legend title
-    y.axis.title <- NULL                                       # for now ...
-    x.axis.title <- NULL                                       # for now...
-    
-    ########################## D A T A  ##############################################################
-    # GRAPH DATA 
-    dataset <- data_long
-    x.values <- data_long$value                               # x values
-    y.values <- data_long$ROI                                 # y values
-    y.values.RO <- data_long$value                            # values to reorder Y by
-    distrib.fill <- data_long$P                       # fill graph with probabilities
+    x.values <- data_long$value
+    y.values.order <- data_long$value
+    distrib.fill <- data_long$P
     group <- data_long$ROI
     
-    ######################### S A V E  ################################################
-    # SAVE SETTINGS -- Currently low res and jpeg to make it easier to share
-    # adjusting height + width will throw font sizes out of wack: need change (see other aspects below) 
+    ## order type for y values
+    if( input$orderSel == 'P-plus' ){
+      y.plot <- as.numeric(reorder(data_long$ROI,y.values.order))
+    } else if( input$orderSel == 'Original' ) {
+      y.plot <- as.numeric(factor(data_long$ROI,levels=data_stats$ROI))
+    }
     
+    ### labels / titles ############
+    legend.title <- "P+"
+    
+    ## main title
+    graph.title <- input$plotTitle
+    title.size <- input$title_size
+    title.face <- input$title_face
+    
+    ## x axis
+    x.axis.labs <- "Posterior Distribution"
+    x.axis.size <- input$x_axis_size
+    x.label.size <- input$x_label_size
+    xlab.face <- input$xlab_face
+    
+    ## y axes
+    y.axis.labs <- data_stats$ROI
+    sec.y.axis.labs <- sprintf('%.3f',data_stats$P)
+    ROI.label.size <- input$ROI_label_size
+    P.label.size <- input$P_label_size
+    
+    ### output settings ##############
     dpi <- 300
     units <- "in"                                           # "in", "cm", or "mm"
     height <- 5
     width <- 9
     file.type <- ".jpeg"                   # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
     
-    ############################### O T H E R  #################################################
-    #gradient.colors<-c("#41245C","yellow","gray","gray","blue","#C9182B") # change gradient colors  
-    
-    if( input$colPal == "Gang" ){
+    ### colors #################
+    if( input$colPal == "Blue - Red" ){
       gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
     } else if( input$colPal == "Dark2" ){
       gradient.colors <- brewer.pal(6,"Dark2")
@@ -158,74 +163,85 @@ shinyServer(function(input,output,session) {
     } else if( input$colPal == "Rainbow" ){
       gradient.colors <- rainbow(6)[c(1,3,4,5,6)]
     } else {
-      gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")  # change gradient colors here 
+      gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
     }
     
-    ROI.label.size <- input$ROI_label_size                # adjust ROI and probability y-axis font size
-    P.label.size <- input$P_label_size
-    title.size <- input$title_size                         # adjust graph title size 
-    x.axis.size <- input$x_axis_size                                        # adjust x-axis label sizes
+    ### ranges #######
+    if( input$x_range_custom ){
+      x.range <- input$plotRange
+    } else {
+      x.range <- NULL
+    }
     
-    ##################  G R A P H  ########################################
-    # change information about the graph and add other characteristics using ggplot and ggridges
-    ggplot(dataset, aes(x = x.values, 
-                        y = as.numeric(reorder(y.values, y.values.RO)), 
-                        fill = distrib.fill, 
-                        group = group))   +
-      guides(fill = guide_colorbar(barwidth = 1,             #legend characteristics
-                                   barheight = 20,
-                                   nbin = 100, # can change # bins to play around with color gradient
-                                   frame.colour = "black",
-                                   frame.linewidth = 1.5,
-                                   ticks.colour = "black",
-                                   title.position = "top",
-                                   title.hjust = 0.5)) +
-      #geom_density_ridges() +                            # scale = spacing, alpha = transparency
-      stat_density_ridges(quantile_lines = TRUE,         # divide into two quantiles (show mean)
-                          quantiles = 2,
-                          size = .6,
-                          alpha = .8,
-                          scale = 2,
-                          color = "black") +
-      geom_vline(xintercept = 0,                        #create line at X = 0
-                 linetype="solid",
-                 alpha = 1,
-                 size = 1,
-                 color = "green3") +
-      scale_fill_gradientn(
-        colors = gradient.colors,                       # set gradient
-        limits = c(0,1),                                # scale size
-        name = legend.title,
-        breaks = c(0,0.05,0.1,0.9,0.95,1),
-        expand = expansion(0),
-        labels = c("0","0.05","0.1","0.9", "0.95","1")
+    ### actual crazy plot ###############
+    ggplot(
+      data_long, 
+      aes(x=x.values,y=y.plot,fill=distrib.fill,group=group)
+    ) +
+      
+      ## color bar
+      guides(
+        fill=guide_colorbar(
+          barwidth=1,barheight=20,nbin=100,frame.colour="black",
+          frame.linewidth=1.5,ticks.colour="black",title.position="top",
+          title.hjust=-2,title.vjust=4)
       ) +
-      scale_y_continuous(breaks = 1:length(rois), # A VERY HACK-Y WAY TO HAVE TWO Y AXES W DISCRETE DATA
-                         labels = y.axis.labs,   # Trick ggplot into thinking data is continuous...
-                         sec.axis = sec_axis(~.,  # Second axis to show probabilities
-                                             breaks = 1:length(rois),
-                                             labels = sec.y.axis.labs)) +
-      theme_ridges(font_size = ROI.label.size, grid = TRUE, center_axis_labels = TRUE) +  # theme info
-      #ggtitle(graph.title)+                                                   # graph title
-      annotate("text", x=0.06, y=1.5, label=labx, size=11)+
+      
+      ## divide into 2 quantiles (median NOT MEAN!!!)
+      stat_density_ridges(
+        quantile_lines=TRUE,quantiles=2,size=.6,alpha=.8,scale=2,color="black"
+      ) +
+      
+      ## zero line
+      geom_vline(
+        xintercept=0,linetype="solid",alpha=1,size=1,color="green3"
+      ) +
+      
+      ## fill for the legend (need to change this for other than P+)
+      scale_fill_gradientn(
+        colors=gradient.colors,limits=c(0,1),name=legend.title,
+        breaks=c(0,0.05,0.1,0.9,0.95,1),expand=expansion(0),
+        labels=c("0.00","0.05","0.10","0.90", "0.95","1.00")
+      ) +
+      
+      ## setup both y axes
+      scale_y_continuous(
+        breaks=1:length(rois),labels=y.axis.labs,
+        sec.axis=sec_axis(~.,breaks=1:length(rois),labels=sec.y.axis.labs)
+      ) +
+      
+      ## configure the ridgeline plot
+      theme_ridges(font_size=ROI.label.size,grid=TRUE,center_axis_labels=TRUE) +
+      
+      ## title
+      ggtitle(graph.title) +
+      
+      ## decorations
       theme(
-        plot.title = element_text(vjust = -0.5, size = title.size),   # plot title size and position
-        #axis.title.x=element_text(vjust=0, hjust=0.5),
-        axis.text.y.left = element_text(size=ROI.label.size),        # y-axis text size
-        axis.text.y.right = element_text(size = P.label.size),       # y-axis info for right axis
-        axis.text.x = element_text(size = x.axis.size),   # x-axis text size/face
-        #axis.text.x = element_text(size = x.axis.size, face = "bold"),   # x-axis text size/face
-        axis.title=element_text(size=28), #,face="bold"),
-        legend.title.align = 5,
-        #legend.text = element_text(face = "bold"),
-        legend.title = element_text(size = 24))+
-      #legend.title = element_text(face = "bold", size = 15))+
+        plot.title=element_text(hjust=0.5,vjust=-0.5,
+                                size=title.size,face=title.face),
+        
+        ## y axes
+        axis.text.y.left=element_text(size=ROI.label.size),
+        axis.text.y.right=element_text(size=P.label.size),
+        
+        ## x axis
+        axis.text.x=element_text(size=x.axis.size),
+        axis.title=element_text(size=x.label.size,face=xlab.face),
+        
+        ## label above color bar
+        legend.title.align=5,
+        legend.title=element_text(size=24)
+      ) +
+      
+      ## axis labels
       labs(
-        #x = 'interaction (% signal change)',                 # Add or not add X and Y labels
-        x = NULL,
-        y = NULL) +
-      scale_x_continuous(labels=waiver(), limits = xlim) +
-      xlab(labx)
+        x=x.axis.labs,
+        y=NULL
+      ) +
+      
+      ## x axis ticks and range
+      scale_x_continuous(labels=waiver(),limits=x.range)
     
   })
   

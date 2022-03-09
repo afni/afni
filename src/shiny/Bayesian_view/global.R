@@ -3,8 +3,6 @@
 ## Gang RBA 
 ## global
 
-
-
 suppressPackageStartupMessages(library(shiny))
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(shinydashboard))
@@ -36,7 +34,9 @@ rm(file.temp)
 
 ## lists for choices ##################################
 
-# ## rois
+order.list <- list('P-plus','Original')
+f.face.list <- list('Plain'='plain','Bold'='bold','Italic'='italic',
+                    'Bold Italic'='bold.italic')
 
 
 ### plot parameters ##################################
@@ -54,6 +54,6 @@ acc.col <- brewer.pal(6,"Accent")
 rain.col <- rainbow(6)[c(1,3,4,5,6)]
 gang.col <- c("blue","cyan","gray","gray","yellow","#C9182B")
 
-col.list <- list("Gang","Dark2","Set1","Rainbow","Accent")
+col.list <- list("Blue - Red","Dark2","Set1","Rainbow","Accent")
 
 ### stat functions ##################################
