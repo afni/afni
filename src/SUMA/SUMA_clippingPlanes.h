@@ -15,6 +15,8 @@ extern int locallySelectedPlane;
 extern DList *list;
 extern float clippingPlaneTheta[6], clippingPlanePhi[6];
 
+#define HUGE 9.9e9;
+
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane);
 void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bool flip,
     int activePlane, Bool toggleOffOn, Bool reset);

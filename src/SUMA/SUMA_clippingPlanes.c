@@ -80,6 +80,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             for (i=5; i>=0; --i){
                 sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                 clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
+                // if (i>0) clipPlaneTransform(0,0,0,0,i-1, 1, 0);
                 if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                     fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                     exit(1);
@@ -1387,6 +1388,8 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
 
+    fprintf(stderr, "Make mesh axes\n");
+
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make axis object\n");
 
@@ -1686,8 +1689,6 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         activePlane = 0;
         active[0] = 1;
         planeIndex = 0;
-
-        // DEBUG
     }
 
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
@@ -1713,12 +1714,22 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         // Store previous object axes ranges as gloabl for clipping plane functions
         memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
+
+        for (i=1; i<6; ++i) planeD[i] = HUGE;
     }
 
     // Turn clipping plane on or off as required
     if (toggleOffOn){
         active[activePlane] = !(active[activePlane]);
         clipIdentificationPlane[activePlane]->Show = (clipPlaneIdentificationMode && active[activePlane]);
+
+        if (active[activePlane]){
+            planeD[3] = objectMinMax[2][1];
+            planeD[1] = objectMinMax[1][1];
+            planeD[4] = -objectMinMax[1][0];
+            planeD[2] = -objectMinMax[0][0];
+            planeD[5] = objectMinMax[0][1];
+        }
     }
 
     if (flip){
