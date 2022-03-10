@@ -182,7 +182,7 @@ shinyServer(function(input,output,session) {
       ## color bar
       guides(
         fill=guide_colorbar(
-          barwidth=1,barheight=20,nbin=100,frame.colour="black",
+          barwidth=1,barheight=15,nbin=100,frame.colour="black",
           frame.linewidth=1.5,ticks.colour="black",title.position="top",
           title.hjust=-2,title.vjust=4)
       ) +

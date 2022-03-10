@@ -42,7 +42,7 @@ sidebar <- dashboardSidebar(
       
       conditionalPanel(
         'input.plot_pars == "Colors"',
-        selectInput('colPal','Color Pallet',col.list)
+        selectInput('colPal','Color Palette',col.list)
       ),
       conditionalPanel(
         'input.plot_pars == "Title"',
