@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Mar , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "Fix bug in 'mecho' QC block when m_tedana used with multiple runs.",
+   "All buttons used to point to r01; now fixed.\n"
+},
+
 { 16, Feb , 2022 , PT , "ap_run_simple_rest.tcsh" , MINOR , TYPE_NEW_OPT,
    "Add opt '-compressor ..' so AFNI_COMPRESSOR env var can be set.",
    "Leads to created *.BRIK dsets getting compressed on disk.\n"
