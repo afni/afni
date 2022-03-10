@@ -117,7 +117,3 @@
 2035      ctx-rh-insula                        tiss__gm        115    255 192 32  0
 29        Left-undetermined                    tiss__unkn      220    135 206 235 0
 61        Right-undetermined                   tiss__unkn      221    135 206 235 0
-172       Vermis                               tiss__midbrain  222    119 100 176 0
-173       Midbrain                             tiss__midbrain  223    242 104 76  0
-174       Pons                                 tiss__midbrain  224    206 195 58  0
-175       Medulla                              tiss__midbrain  225    119 159 176 0
