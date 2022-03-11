@@ -3430,7 +3430,8 @@ class SubjProcSream:
         if len(missing) > 0:
            print("** will not run QC html program, apqc_make_tcsh.py\n" \
                  "   (missing: %s)\n" % ', '.join(missing))
-           return ''
+           return "%s# ** missing program '%s', skipping HTML QC\n\n" \
+                  % (istr, missing[0])
 
         # possibly pass user options
         user_opts = ' '.join(self.html_rev_opts)
