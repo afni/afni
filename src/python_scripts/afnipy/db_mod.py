@@ -1089,15 +1089,16 @@ def db_cmd_align(proc, block):
     if proc.align_ebase != None:
         basevol = "%s%s" % (proc.align_epre,proc.view)
         bind = 0
+        # if using external anat base, run extra allineat to epi base
     elif proc.vr_ext_base != None or proc.vr_int_name != '':
         basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
         bind = 0
     else:
         rind, bind = proc.get_vr_base_indices()
         if rind < 0:
-            rind, bind = 0, 0
-            print('** warning: will use align base defaults: %d, %d'%(rind,bind))
-            # return (allow as success now, for no volreg block)
+           rind, bind = 0, 0
+           print('** warning: will use align base defaults: %d, %d'%(rind,bind))
+           # return (allow as success now, for no volreg block)
         basevol = proc.prev_prefix_form(rind+1, block, view=1)
 
     # should we unifize EPI?  if so, basevol becomes result
@@ -1155,7 +1156,57 @@ def db_cmd_align(proc, block):
     if not e2a: # store xform file
         proc.anat_warps.append(proc.a2e_mat)
 
+    # ------------------------------------------------------------
+    # if ext a2e base, align to volreg base via 'intermediate' xform
+    # (a2e base should always be proc.vr_ext_pre now)
+    #
+    # align_epi_anat.py basically did anat2inter, append inter2epi
+    if proc.align_ebase and proc.find_block('volreg'):
+       pre_i2e   = 'align_abase2ebase'
+       pre_cat   = 'anat2epi_concat'
+       mat_i2e   = 'mat.%s.aff12.1D' % pre_i2e
+       mat_cat   = 'mat.%s.aff12.1D' % pre_cat
+       mat_a2i   = proc.a2e_mat # old mat is anat to inter
+       if proc.verb > 0:
+          print("++ align anat/epi base %s with epi/epi base %s" \
+                % (proc.align_ebase, proc.vr_ext_pre))
 
+       # so aea really did anat2inter, compute inter2epi
+       # (inter was proc.align_ebase, real ebase is proc.vr_ext_pre)
+       # (basevol is proc.align_ebase, now used as -source, got it?)
+       acmd = '# have external anat2epi base, so align with local one\n' \
+              '3dAllineate -base %s%s \\\n'                         \
+              '            -source %s \\\n'                         \
+              '            -prefix vr_abase2ebase \\\n'             \
+              '            -1Dfile %s.m12.1D \\\n'                  \
+              '            -1Dmatrix_save %s \\\n'                  \
+              '            -autoweight -source_automask \\\n'       \
+              '            -lpa -cubic\n\n'                         \
+              % (proc.vr_ext_pre, proc.view, basevol, pre_i2e, mat_i2e)
+
+       # now concatenate the xforms so EPI ~= outer(inner(anat))
+       # - so xform a2e = i2e * a2i
+       acmd += '# and concatenate the affine transformations\n' \
+               '# (make %s the full anat to EPI base xform)\n'  \
+               'cat_matvec -ONELINE \\\n'                       \
+               '           %s \\\n'                             \
+               '           %s \\\n'                             \
+               '         > %s\n\n'                              \
+               % (mat_cat, mat_i2e, mat_a2i, mat_cat)
+
+       # and make a note of obliquities
+       acmd += '# make a record of the obliquties of these two bases\n' \
+               '3dinfo -header_line -obliquity -prefix \\\n'            \
+               '       %s%s %s            \\\n'                         \
+               '     | tee out.abase2ebase.txt\n\n'                     \
+               % (proc.vr_ext_pre, proc.view, basevol)
+
+       # now a2e_mat is the concatenated anat to epi base
+       proc.a2e_mat = mat_cat
+       cmd += acmd
+
+
+    # ------------------------------------------------------------
     # if e2a:   update anat and tlrc to '_ss' version (intermediate, stripped)
     #           (only if skull: '-anat_has_skull no' not found in extra_opts)
     #           (not if using adwarp)
@@ -1168,7 +1219,7 @@ def db_cmd_align(proc, block):
             proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
             if proc.tlrcanat:
                 if not proc.tlrcanat.exist():
-                   proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
+                   proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix,suffix)
             proc.tlrc_ss = 0
             proc.anat_has_skull = 0     # make note that skull is gone
             istr = 'intermediate, stripped,'

@@ -719,9 +719,10 @@ g_history = """
     7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
     7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
     7.33 Mar  8, 2022: apply -polort in @radial_correlate
+    7.34 Mar 10, 2022: run 3dAllineate for -align_epi_ext_dset to volreg base
 """
 
-g_version = "version 7.33, March 8, 2022"
+g_version = "version 7.34, March 10, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -813,6 +814,10 @@ More detailed changes, starting May, 2018.
 
    15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
       average correlations (maps are similar by have better scales)
+
+   10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
+      - apply an additional xform between anat2epi base and epi2epi one
+
 """
 
 g_todo_str = """todo:
