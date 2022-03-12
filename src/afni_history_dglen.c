@@ -53,7 +53,7 @@
 
 
 afni_history_struct dglen_history[] = {
-{ 12, FEB, 2022, DRG, "3dMean",
+{ 12, FEB, 2022, DRG, "3dMean" ,
      MINOR, TYPE_NEW_OPT,
     "3dMean can compute max, min, absmax, signed_absmax",
     "3dMean keeps only one dataset in memory at a time\n"
