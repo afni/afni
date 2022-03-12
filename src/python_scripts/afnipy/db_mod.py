@@ -1087,10 +1087,12 @@ def db_cmd_align(proc, block):
     # first note EPI alignment base and sub-brick, as done in volreg block
     # (alignEA EPI and base might be given externally via -align_epi_base_dset)
     if proc.align_ebase != None:
+        basepre = proc.align_epre
         basevol = "%s%s" % (proc.align_epre,proc.view)
         bind = 0
         # if using external anat base, run extra allineat to epi base
     elif proc.vr_ext_base != None or proc.vr_int_name != '':
+        basepre = proc.vr_ext_pre
         basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
         bind = 0
     else:
@@ -1099,6 +1101,7 @@ def db_cmd_align(proc, block):
            rind, bind = 0, 0
            print('** warning: will use align base defaults: %d, %d'%(rind,bind))
            # return (allow as success now, for no volreg block)
+        basepre = proc.prev_prefix_form(rind+1, block, view=0)
         basevol = proc.prev_prefix_form(rind+1, block, view=1)
 
     # should we unifize EPI?  if so, basevol becomes result
@@ -1106,6 +1109,7 @@ def db_cmd_align(proc, block):
     if block.opts.have_yes_opt('-align_unifize_epi', default=0):
        epi_in = BASE.afni_name(basevol)
        epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
+       basepre = epi_out.prefix
        basevol = epi_out.shortinput()
        ucmd = '# run uniformity correction on EPI base\n' \
               '3dUnifize -T2 -input %s -prefix %s\n\n'    \
@@ -1162,28 +1166,33 @@ def db_cmd_align(proc, block):
     #
     # align_epi_anat.py basically did anat2inter, append inter2epi
     if proc.align_ebase and proc.find_block('volreg'):
-       pre_i2e   = 'align_abase2ebase'
-       pre_cat   = 'anat2epi_concat'
-       mat_i2e   = 'mat.%s.aff12.1D' % pre_i2e
-       mat_cat   = 'mat.%s.aff12.1D' % pre_cat
-       mat_a2i   = proc.a2e_mat # old mat is anat to inter
        if proc.verb > 0:
           print("++ align anat/epi base %s with epi/epi base %s" \
-                % (proc.align_ebase, proc.vr_ext_pre))
+                % (basepre, proc.vr_ext_pre))
 
-       # so aea really did anat2inter, compute inter2epi
-       # (inter was proc.align_ebase, real ebase is proc.vr_ext_pre)
-       # (basevol is proc.align_ebase, now used as -source, got it?)
+       # so aea really did anat2inter, compute inter2epi usinng another aea
+       #  - intermediate was proc.align_ebase, real ebase is proc.vr_ext_pre
+       #  - basevol is proc.align_ebase
+       #  - use aea to handle potential obliquity difference
+       #  - use basepre to track outputfile
+       suffix = '_abase2ebase'
+       # output is $basepre$suffix = ext_align_epi_abase2ebase
        acmd = '# have external anat2epi base, so align with local one\n' \
-              '3dAllineate -base %s%s \\\n'                         \
-              '            -source %s \\\n'                         \
-              '            -prefix vr_abase2ebase \\\n'             \
-              '            -1Dfile %s.m12.1D \\\n'                  \
-              '            -1Dmatrix_save %s \\\n'                  \
-              '            -autoweight -source_automask \\\n'       \
-              '            -lpa -cubic\n\n'                         \
-              % (proc.vr_ext_pre, proc.view, basevol, pre_i2e, mat_i2e)
+              'align_epi_anat.py -dset1to2 \\\n'    \
+              '       -dset1 %s%s \\\n'             \
+              '       -dset2 %s%s \\\n'             \
+              '       -suffix %s \\\n'              \
+              '       -dset1_strip 3dAutomask \\\n' \
+              '       -dset2_strip 3dAutomask \\\n' \
+              '       -giant_move -cost lpa \\\n'   \
+              '       -volreg off -tshift off\n\n'  \
+              % (basepre, proc.view, proc.vr_ext_pre, proc.view, suffix)
 
+       pre_i2e   = "%s%s" % (basepre, suffix)
+       mat_i2e   = '%s_mat.aff12.1D' % pre_i2e
+       pre_cat   = 'anat2epi_concat'
+       mat_cat   = '%s_mat.aff12.1D' % pre_cat
+       mat_a2i   = proc.a2e_mat # old mat is anat to inter
        # now concatenate the xforms so EPI ~= outer(inner(anat))
        # - so xform a2e = i2e * a2i
        acmd += '# and concatenate the affine transformations\n' \
@@ -1193,13 +1202,6 @@ def db_cmd_align(proc, block):
                '           %s \\\n'                             \
                '         > %s\n\n'                              \
                % (mat_cat, mat_i2e, mat_a2i, mat_cat)
-
-       # and make a note of obliquities
-       acmd += '# make a record of the obliquties of these two bases\n' \
-               '3dinfo -header_line -obliquity -prefix \\\n'            \
-               '       %s%s %s            \\\n'                         \
-               '     | tee out.abase2ebase.txt\n\n'                     \
-               % (proc.vr_ext_pre, proc.view, basevol)
 
        # now a2e_mat is the concatenated anat to epi base
        proc.a2e_mat = mat_cat

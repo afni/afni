@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use aea.py instead of allin for extra -align_epi_ext_dset registration",
+   "align_epi_anat.py would deal with a difference in obliquity"
+ } ,
+
  { 10, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "run 3dAllineate for -align_epi_ext_dset to volreg base",
    NULL

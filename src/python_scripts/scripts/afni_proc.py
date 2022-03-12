@@ -720,9 +720,10 @@ g_history = """
     7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
     7.33 Mar  8, 2022: apply -polort in @radial_correlate
     7.34 Mar 10, 2022: run 3dAllineate for -align_epi_ext_dset to volreg base
+    7.35 Mar 12, 2022: use align_epi_anat.py instead, in case of obliquity diff
 """
 
-g_version = "version 7.34, March 10, 2022"
+g_version = "version 7.35, March 12, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
