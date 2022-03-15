@@ -1732,7 +1732,8 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     if (toggleOffOn){
         active[activePlane] = !(active[activePlane]);
         clipIdentificationPlane[activePlane]->Show = (clipPlaneIdentificationMode && active[activePlane]);
-
+/*
+    This probably shouldn't be here.  It causes the clipping plane move when plane toggled off and on
         if (active[activePlane]){
             planeD[3] = objectMinMax[2][1];
             planeD[1] = objectMinMax[1][1];
@@ -1740,6 +1741,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
             planeD[2] = -objectMinMax[0][0];
             planeD[5] = objectMinMax[0][1];
         }
+        */
     }
     
     if (flip){
