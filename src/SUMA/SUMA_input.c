@@ -1852,6 +1852,7 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             // Required to lighten plane mode in DriveSuma mode but not in interactive mode
             clipPlaneTransform(0,0,0,0,0, 0, 0);     // Select clipping plane 1
             lightenActiveClipPlaneSquare(0);        // Lighten plane 1 to show it's selected
+            locallySelectedPlane = 0;
         }
      break;
     case XK_1:
@@ -2205,12 +2206,13 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_C_Key"};
    char tk[]={"C"}, keyname[100];
-   int k, nc, planeIndex=0, locallySelectedPlane=0, isv;
+   int k, nc, planeIndex=0, /* locallySelectedPlane=0, */isv;
    SUMA_EngineData *ED = NULL;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
+   static SUMA_Boolean clippingPlanesInitialized = NOPE;
 
    SUMA_ENTRY;
 
@@ -2247,6 +2249,12 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### axisObject = %d\n", axisObject);
             if (!axisObject) makeAxisObject(w, sv);
+            if (!clippingPlanesInitialized){
+                clippingPlanesInitialized = 1;
+                if (!SUMA_Numeral_Key(sv, "0", "drivesuma")) {
+                SUMA_S_Err("Failed to initialize clipping plane.");
+                }
+            }
         }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -12666,7 +12674,6 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
       SUMA_RETURNe;
    }
 
-
    /* register fv15 with ED */
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_SetClip);
@@ -12677,6 +12684,7 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
       fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
       SUMA_RETURNe;
    }
+   
    /* register type expected */
    it = (int)tp;
    if (!(SUMA_RegisterEngineListCommand (  list, ED,
@@ -12686,6 +12694,7 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
       fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
       SUMA_RETURNe;
    }
+   
    /* register name of plane */
    if (!(SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_s, (void*)(namebuf),
@@ -12694,6 +12703,7 @@ void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
       fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
       SUMA_RETURNe;
    }
+   
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
