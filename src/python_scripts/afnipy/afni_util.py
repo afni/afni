@@ -968,8 +968,10 @@ def get_default_polort(tr, reps):
     return run_time_to_polort(tr*reps)
 
 def run_time_to_polort(run_time):
-    """direct computation: 1+floor(run_time/150)"""
-    return 1+math.floor(run_time/150.0)
+    """direct computation: 1+floor(run_time/150)
+       return as int
+    """
+    return int(1+math.floor(run_time/150.0))
 
 def index_to_run_tr(index, rlens, rstyle=1, whine=1):
     """given index and a list of run lengths,

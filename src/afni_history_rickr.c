@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2022, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
+   "cast run_time_to_polort output to int, for py2.7",
+   "Thanks to P Taylor for pointing it out."
+ } ,
+
  { 12, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "use aea.py instead of allin for extra -align_epi_ext_dset registration",
    "align_epi_anat.py would deal with a difference in obliquity"
