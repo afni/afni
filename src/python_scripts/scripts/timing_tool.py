@@ -281,9 +281,9 @@ examples: ~1~
 
              timing_tool.py -timing stim01_houses.txt -verb 0 \\
                             -show_tr_offsets -tr 1.25         \\
-                            | 3dhistog -nbin 20 1D:stdin\\'
+                            | 3dhistog -nbin 20 1D:stdin
 
-          consider also:  3dhistog -noempty 1D:stdin\\'
+          consider also:  3dhistog -noempty 1D:stdin
 
    Example 11.  test a file for local/global timing issues ~2~
 
