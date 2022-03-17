@@ -116,7 +116,7 @@ g_ss_uvar_fields = [ \
    ['dir_suma_spec',   'directory containing surface spec file', 
                        '/home/me/AFNI_data6/FT_analysis/FT/SUMA'],
    ['suma_specs',      'actual spec file names', 
-                       'std.141.FT_lh.spec'],
+                       ['std.141.FT_lh.spec']],
    ['surf_vol',        'surface volume dset', 
                        'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
    ]
