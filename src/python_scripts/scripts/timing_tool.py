@@ -3265,20 +3265,16 @@ class ATInterface:
          return 1
 
       # convert to strings
-      soff = ['%s'%t for t in offsets]
+      soff = ['%g'%t for t in offsets]
 
-      # set the join string (if verbose, be quiet)
-      if self.verb:
-         jstr = '\n   '
-      else:
+      # print the soff vals, depending on verbosity
+      if self.verb == 0:
          jstr = ' '
-
-      if self.verb:
+         print(jstr.join(soff))
+      else:
+         jstr = '\n   '
          print("offsets:")
-
-      print(jstr.join(soff))
-
-      if self.verb:
+         print(jstr + jstr.join(soff))
          print()
 
       return 0
