@@ -2276,9 +2276,8 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     clipIdentificationPlane[planeIndex]->Show = 0;
                 }
             }
-/**/
-            // For some reason, this is necessary to display active plane after scrollwheel
-            //  used to scroll active plane when out of clipping plane identification mode
+/*
+            // For some reason, this was necessary to pass githuub tests
             if (clipPlaneIdentificationMode){
                  clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
             }
