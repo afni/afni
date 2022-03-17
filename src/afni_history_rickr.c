@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Mar, 2022, RCR, "@radial_correlate", MICRO, TYPE_MODIFY,
+   "change saved ulay to be from orig EPI (to avoid detrended one)",
+   "Done to appease the scrutinous P Taylor."
+ } ,
+
  { 16, Mar, 2022, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_tr_offsets",
    "See Example 10 d."
