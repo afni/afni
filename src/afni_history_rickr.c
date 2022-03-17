@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Mar, 2022, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_tr_offsets",
+   "See Example 10 d."
+ } ,
+
  { 15, Mar, 2022, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
    "cast run_time_to_polort output to int, for py2.7",
    "Thanks to P Taylor for pointing it out."
