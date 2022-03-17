@@ -113,10 +113,17 @@ g_ss_uvar_fields = [ \
                        'out.tent_warn.txt'],
    ['decon_err_dset',  '3dDeconvolve warnings', 
                        '3dDeconvolve.err'],
+   ['dir_suma_spec',   'directory containing surface spec file', 
+                       '/home/me/AFNI_data6/FT_analysis/FT/SUMA'],
+   ['suma_specs',      'actual spec file names', 
+                       'std.141.FT_lh.spec'],
    ['surf_vol',        'surface volume dset', 
                        'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
    ]
 
+
+def def_ss_uvar_names():
+   return [u[0] for u in g_ss_uvar_fields]
 
 if __name__ == '__main__':
    print('** this is not a main program')

@@ -8469,6 +8469,20 @@ def ap_uvars_table(proc):
                         ['cheeses', ['cheddar', 'brie', 'muenster']]
                      ]
     """
+
+    # it seems preferable to list all uvars together, so make sure
+    # anything listed here is in the main library
+    g_ap_uvars = ['mot_limit', 'out_limit', 'motion_dset',
+                  'copy_anat', 'combine_method', 'errts_dset', 'mask_dset',
+                  'dir_suma_spec', 'suma_specs',
+                  'ss_review_dset']
+
+    from afnipy import lib_ss_review as LSSR
+    ss_uvars = LSSR.def_ss_uvar_names()
+    for apuv in g_ap_uvars:
+       if apuv not in ss_uvars:
+          print("** warning: ss uvars is missing ap uvar %s" % apuv)
+
     # generate a uvars table of strings
     aptab = []
     if proc.mot_cen_lim > 0.0:
@@ -8482,6 +8496,11 @@ def ap_uvars_table(proc):
        aptab.append(['copy_anat', ['%s' % proc.anat_orig.shortinput(head=1)]])
     if proc.combine_method is not None:
        aptab.append(['combine_method', ['%s' % proc.combine_method]])
+    # surface spec info
+    if proc.surf_spec_dir != '':
+       aptab.append(['dir_suma_spec', ['%s' % proc.surf_spec_dir]])
+    if len(proc.surf_spec_base) > 0:
+       aptab.append(['suma_specs', proc.surf_spec_base])
 
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
