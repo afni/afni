@@ -2255,6 +2255,10 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 SUMA_S_Err("Failed to initialize clipping plane.");
                 }
             }
+
+            // Update vewier header with initialized scroll inc.
+            sv->clippingPlaneIncrement = scrollInc;
+            SUMA_UpdateViewerTitle(sv);
         }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -2277,7 +2281,8 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 }
             }
 /*
-            // For some reason, this was necessary to pass githuub tests
+            // For some reason, this was necessary to pass githuub tests.  Does not appear
+            //  to be anymore
             if (clipPlaneIdentificationMode){
                  clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
             }

@@ -48,6 +48,19 @@ Boolean activeClipPlanes = True;
 int locallySelectedPlane;
 DList *list = NULL;
 
+void initializeIncrement(float objectMinMax[3][2]){
+    float max = 0;
+    int i;
+    float dim;
+    
+    for (i=0; i<3; ++i){
+        dim = objectMinMax[i][1] - objectMinMax[i][0];
+        max = MAX(max, dim);
+    }
+    
+    scrollInc = max/40;
+}
+
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
     char *FuncName = "toggleClippingPlaneMode";
@@ -1724,6 +1737,10 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         // Store previous object axes ranges as gloabl for clipping plane functions
         memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
+        
+        // Initialize increment to 1/40 max width of bounding box
+        initializeIncrement(objectMinMax);
+        // TODO: Add code
 
         for (i=1; i<6; ++i) planeD[i] = HUGE;
     }
