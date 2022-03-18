@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Mar, 2022, RCR, "eg_main_chrono.py", MICRO, TYPE_ENHANCE,
+   "add a little more edu",
+   NULL
+ } ,
+
  { 17, Mar, 2022, RCR, "@radial_correlate", MICRO, TYPE_MODIFY,
    "change saved ulay to be from orig EPI (to avoid detrended one)",
    "Done to appease the scrutinous P Taylor."
