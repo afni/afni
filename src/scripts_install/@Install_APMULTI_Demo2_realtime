@@ -47,9 +47,9 @@ endif
 echo $cmd
 $cmd
 
-# and unpack
-echo tar xvzf $demo.tgz
-tar xvzf $demo.tgz
+# and unpack (quietly)
+echo tar xzf $demo.tgz
+tar xzf $demo.tgz
 cd $demo
 
 if ( -f ${readme} ) then
