@@ -78,7 +78,7 @@ dir_img    = 'media'
 # it easier to see what is connected to what, even if they change.)
 
 qc_title           = coll.OrderedDict()
-qc_title["Top"]    = [ "Top of page for:&#10${subj}", 
+qc_title["Top"]    = [ "Top of page for:&#10  ${subj}", 
                        "afni_proc.py single subject report" ]
 
 qc_blocks          = coll.OrderedDict()
