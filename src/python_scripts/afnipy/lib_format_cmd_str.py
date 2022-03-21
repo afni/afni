@@ -15,6 +15,10 @@ import sys, copy
 # 2022-03-20, ver 1.2 :  allow user to input list of args for splitting
 #                        (bc opt names can take sub-opts that we would not
 #                        want to split at---e.g., within afni_proc.py calls)
+# 2022-03-20, ver 1.3 :  introduce second-level splitting of arg lists, to
+#                        account for a primary option taking several
+#                        secondary options (space the latter out to sep
+#                        rows now---will be useful for AP)
 #
 #
 #
@@ -305,8 +309,8 @@ def make_big_list_from_args(arg_list,
 
 # -------------------------------------------------------------------------
 
-# A primary function for converting a list-of-sublist form of cmd to a
-# multiline-string
+# A primary function for converting a big_list (= list-of-sublist)
+# form of cmd to a multiline-string
 def pad_argv_list_elements( big_list, 
                             nindent=AD['nindent'], max_lw=AD['max_lw'],
                             max_harg1=AD['max_harg1'],
@@ -392,6 +396,7 @@ characters, uniform vertical spacing, etc.
     # The cheese stands alone in this row
     ostr = '''{text:<{lw}s}'''.format(text=big_list[0][0], lw=max_lw)
 
+    # loop over each sub_list
     for j in range(1, nbig):
         jlist = big_list[j]
         ostr += '''\\\n'''
@@ -400,6 +405,7 @@ characters, uniform vertical spacing, etc.
         row  = '''{text}'''.format(text=jlist[0])
         nrow = len(row)
 
+        # loop over the items in the sub_list (skipping the [0th])
         for k in range(1, len(jlist)):
             if nrow + len(jlist[k]) > max_lw and \
                (len(harg1_ind + jlist[k]) < max_lw or k>1) :
@@ -409,7 +415,17 @@ characters, uniform vertical spacing, etc.
                 ostr += '''\\\n'''
                 # ... and then start building the next one
                 row   = '''{pad}{text:<s}'''.format( pad=harg1_ind,
-                                                    text=jlist[k] )
+                                                     text=jlist[k] )
+            elif k > 2 and len(jlist[k]) > 1 and \
+                 jlist[k][0] == '-' and \
+                 not(jlist[k][1].isdigit() or jlist[k][1] == '.') :
+                # looks like the sub_list itself contains a list of
+                # opts, so finish the current row..., just like above
+                ostr += '''{text:<{lw}s}'''.format( text=row, lw=max_lw )
+                ostr += '''\\\n'''
+                # ... and then start building the next one
+                row   = '''{pad}{text:<s}'''.format( pad=harg1_ind,
+                                                     text=jlist[k] )
             else:
                 # Simply continue with current row
                 row+= jlist[k]
