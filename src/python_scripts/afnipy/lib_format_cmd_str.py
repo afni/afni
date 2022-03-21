@@ -19,7 +19,8 @@ import sys, copy
 #                        account for a primary option taking several
 #                        secondary options (space the latter out to sep
 #                        rows now---will be useful for AP)
-#
+# 2022-03-21, ver 1.4 :  recognize (and ignore) escaped quotes, when 
+#                        calculating where quoted blocks occur
 #
 #
 # -------------------------------------------------------------------------
@@ -46,13 +47,15 @@ default.  The user can optionally specify a different list of strings
 to search for (e.g., just one particular quote); the quote_pair_list must
 always be a list.
 
-    If one is found, return: the index I where it is found; the left
-index L of any non-whitespace block it is part of; the right index
-plus one R of any non-whitespace block it is part of (so, that
-str[L:R] would select the intact island, in Pythonese); and which kind
-of quote it is.  Otherwise, return: -1, -1, -1, None.
+    If one is found, return:
+    + the index i where it is found; 
+    + the left index L of any non-whitespace block it is part of; 
+    + the right index plus one R of any non-whitespace block it is part
+      of (so, that str[L:R] would select the intact island, in Pythonese);
+    + which kind of quote it is.  
+    Otherwise, return: -1, -1, -1, None.
 
-    ***Later, will add in opt to ignore escaped quotes***
+    This function will ignore escaped quotes.
 
     '''
 
@@ -61,19 +64,28 @@ of quote it is.  Otherwise, return: -1, -1, -1, None.
         return -1, None
 
     # initialize a few things
-    FOUND = 0
     N     = len(sss)
-    qind  = N+1
+    qind  = 0
     qtype = None
+    FOUND = 0
 
-    # find the first index where one of the quote_pair_list items appears
-    for x in quote_pair_list:
-        xind = sss.find(x)
-        if xind >= 0 :
-            FOUND = 1
-            if xind < qind :
-                qind  = xind
-                qtype = sss[xind]
+    # find the first index where one of the quote_pair_list items appears;
+    # don't use str.find() bc we want to avoid escaped quotes
+    while qind < N :
+        if sss[qind] in quote_pair_list:
+            # ensure quote is not escaped (which cannot happen on [0]th char)
+            if qind == 0:
+                FOUND = 1
+            elif sss[qind-1] != '\\' :
+                FOUND = 1
+                
+            if FOUND :
+                qtype = sss[qind]
+                break
+        qind+= 1
+
+    # now, qind contains the leftmost quote found (if any), and qtype
+    # records what type it is, from within quote_pair_list items
 
     if FOUND :
         # calc left (=closed) boundary of non-whitespace island
@@ -125,6 +137,7 @@ Return a list of strings.
 
     olist = []
     count = 0
+    newstart = 0      # track each new start of string search
     ttt   = sss[:]
 
     top, ltop, rtop, qtype = find_next_quote_in_str(ttt, 
@@ -135,6 +148,7 @@ Return a list of strings.
             list1 = ttt[:ltop].split()
             olist.extend(list1)
 
+        newstart+= top+1
         # look for a partner/closing quote of the matching variety
         top2, ltop2, rtop2, qtype2 = find_next_quote_in_str(ttt[top+1:], 
                                                             [qtype])
@@ -145,13 +159,15 @@ Return a list of strings.
             list2 = [ttt[ltop:top+1+rtop2]]
             olist.extend(list2)
             ttt   = ttt[top+1+rtop2:]
+            newstart+= rtop2
             top, ltop, rtop, qtype = find_next_quote_in_str(ttt,
                                          quote_pair_list=AD['quote_pair_list'])
         else:
             # The case of not finding a partner quote.  At present, we
             # then ignore any other kinds of quotes.  Have to ponder
             # if that is reasonable...
-            print("+* WARN: unmatched quote {}, ignore it".format(qtype2))
+            print("+* WARN: char [{}] is unmatched quote {}, ignore it"
+                  "".format(newstart+top2, qtype))
             list2 = ttt[ltop:].split()
             olist.extend(list2)
             ttt = ''
@@ -160,7 +176,7 @@ Return a list of strings.
         # purely to guard against infinite looping; shouldn't happen
         count+=1
         if count > maxcount:
-            print("** ERROR: infinite loop encountered")
+            print("** ERROR: infinite loop (?) encountered. Truncating.")
             return []
 
     # split any remainder
