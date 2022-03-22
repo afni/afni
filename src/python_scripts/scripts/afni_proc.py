@@ -723,6 +723,7 @@ g_history = """
     7.35 Mar 12, 2022: use align_epi_anat.py instead, in case of obliquity diff
     7.36 Mar 22, 2022:
        - fix help example: remove inappropriate -epi_strip from -align_opts_aea
+       - add ap_uvars: dir_suma_spec, suma_specs
 """
 
 g_version = "version 7.36, March 22, 2022"

@@ -53,9 +53,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 22, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
-   "help example: remove inappropriate -epi_strip from -align_opts_aea",
-   NULL
+ { 22, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add ap_uvars dir_suma_spec, suma_specs",
+   "Also, remove inappropriate -epi_strip from -align_opts_aea in example."
  } ,
 
  { 18, Mar, 2022, RCR, "eg_main_chrono.py", MICRO, TYPE_ENHANCE,
