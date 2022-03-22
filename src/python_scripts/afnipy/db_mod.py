@@ -12586,7 +12586,7 @@ g_help_options = """
                 e.g. -align_opts_aea -cost lpc+ZZ
                 e.g. -align_opts_aea -cost lpc+ZZ -check_flip
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
-                e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
+                e.g. -align_opts_aea -giant_move -AddEdge
                 e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
             This option allows the user to add extra options to the alignment
@@ -12608,6 +12608,10 @@ g_help_options = """
             of a left/right flipped version.  If the flipped version is lower,
             one should investigate whether the axes are correctly labeled, or
             even labeled at all.
+
+          * Please do not include -epi_strip with this -align_opts_aea option.
+            That option to align_epi_anat.py should be controlled by
+            -align_epi_strip_method.
 
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
