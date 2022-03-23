@@ -1,3 +1,48 @@
+AFNI Digest, week of 2029/02/18.
+
+afni_proc.py - multi-echo FMRI flexibility
+afni_proc.py can implement over 10 "combine" methods for multi-echo
+FMRI data processing.  As of Nov 2021, this includes the current
+tedana from the MEICA group (see
+https://tedana.readthedocs.io/en/stable/installation.html).  This
+MEICA group version of tedana is not distributed within AFNI and must
+be installed separately.  New or updated combine methods have the
+naming prefix "m_tedana", including m_tedana, m_tedana_OC and
+m_tedana_m_tedort.  Note: the older tedana* methods still apply to the
+version from Prantik.
+
+APMULTI Demo1 - rest
+We have put together a demonstration of running multi-echo FMRI data
+through afni_proc.py in various ways (combining echoes with OC,
+Prantik's tedana.py, MEICA group tedana), as well as with distortion
+correction, optionally with physiological regression (ricor), and
+optionally with surface-based analysis.  This can serve as a basis for
+main subject-level processing scripts, or for investigating results
+across option sets.  
+To install, run @Install_APMULTI_Demo1_rest, which includes scripts
+for running on a desktop or on Biowulf.
+
+APMULTI Demo2 - realtime
+This demonstrates use of AFNI's real-time system, showing how
+processing could work at a scanner, while testing is done safely on
+one's desktop.  The demo processes single- and multi-echo DICOM input
+(and even NIFTI input, just for kicks).  It shows how afni can be used
+to send data (motion params, ROI averages, voxel data) to an external
+program (realtime_receiver.py in this case).  
+To intall, run: @Install_APMULTI_Demo2_realtime.
+
+APQC HTML update
+The QC HTML output by afni_proc.py has also expanded a bit. 
+1) The 'vorig' QC block now contains images of the anatomical dset, as
+well as the initial overlap of the EPI on the anatomical.  The latter
+is particularly useful for QCing troubles with EPI-anatomical
+alignment.
+2) If you use the MEICA group's tedana, then that program's HTML QC is
+now linked within AFNI's by the click of a button (see the 'mecho' QC
+block).  So one can browse both QCs together.
+
+========================================================================
+
 AFNI Digest, week of 2029/02/11.
 
 

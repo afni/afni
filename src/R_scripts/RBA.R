@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.10, Feb 13, 2022 
+Version 1.0.10, Feb 28, 2022 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -993,7 +993,7 @@ addTrans <- function(color,trans)
 
 plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    h <- ceiling(8*nr/(nc*2))  # plot window height
-   pdf(paste0(fn, ".pdf"), width=w, height=h)
+   pdf(paste0(fn, "_PDF.pdf"), width=w, height=h)
    #dev.new(width=w, height=h)
    par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
    qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
@@ -1186,7 +1186,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
        x = NULL,
        y = NULL) +
      scale_x_continuous(limits = xlim)+xlab(labx)
-     ggsave(file = paste0(labx, ".pdf"), width=wi, height=hi, dpi = 120)
+     ggsave(file = paste0(labx, "_ridge.pdf"), width=wi, height=hi, dpi = 120)
 }
 
 # for Intercept and quantitative variables
@@ -1279,7 +1279,7 @@ sumGLM <- function(ll, tm, nR, DF, nd) {
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects under GLM for %s (for reference only): no adjustment for multiplicity =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df, 8)
+   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df[2], 8)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }

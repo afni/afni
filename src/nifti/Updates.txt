@@ -32,8 +32,8 @@ Updates in version 0.4 September 6, 2006
 -----------------------------------------------------------------
 Updates in version 0.5 May 17, 2007
 
-    - fixed duplication of incuding utils directory for CMake
-    - syncronized with developments in ITK to prepare for building and
+    - fixed duplication of including utils directory for CMake
+    - synchronized with developments in ITK to prepare for building and
       tar/rpm/dmg packaging with new versions of cmake
     - added more typecasting to remove compiler warnings
     - fslio.c: check for NULL return from nifti_image_read()
@@ -133,7 +133,17 @@ Updated in version 3.0.0 July 16, 2020
     - RR added c21 test scripts
     
 
+-----------------------------------------------------------------
 Updated in version 3.0.1 Aug 07, 2020
     - JL made fix for cmake config add example usage and a test for it
     - JL changed default behavior to not build manpages
     - RR made a fix for the make build and added a suggestion to use the cmake
+
+
+-----------------------------------------------------------------
+Updates since 3.0.1
+    - RR (2022) : added nifti_tool -convert2dtype, -copy_image, and related opts
+         - can consider moving to C library
+         - suggest against poorly named -copy_im option (removed from -help)
+         - added c22.copy_image.sh test script
+

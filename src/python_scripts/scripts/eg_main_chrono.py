@@ -47,9 +47,10 @@ g_history = """
    0.1  Mar 19, 2009    - added -verbose_opts
    0.2  Apr 11, 2009    - removed -verbose_opts (see -optlist_ options)
    0.3  Aug 12, 2019    - python3 compatible
+   0.4  Mar 18, 2022    - 'a1d' should be 'ad', added a few comments
 """
 
-g_version = "eg_main_chrono.py version 0.3, August 12, 2019"
+g_version = "eg_main_chrono.py version 0.4, March 18, 2022"
 
 
 class MyInterface:
@@ -62,8 +63,8 @@ class MyInterface:
       self.valid_opts      = None
       self.user_opts       = None
 
-      # timing variables
-      self.ad              = None
+      # main data variables, based on -infile
+      self.main_data       = None
 
       # general variables
       self.verb            = verb
@@ -95,35 +96,40 @@ class MyInterface:
       return 0
 
    def process_options(self):
+      """return  1 on valid and exit        (e.g. -help)
+         return  0 on valid and continue    (e.g. do main processing)
+         return -1 on invalid               (bad things, panic, abort)
+      """
 
       # process any optlist_ options
       self.valid_opts.check_special_opts(sys.argv)
 
       # process terminal options without the option_list interface
       # (so that errors are not reported)
+      # return 1 (valid, but terminal)
 
       # if no arguments are given, apply -help
       if len(sys.argv) <= 1 or '-help' in sys.argv:
          print(g_help_string)
-         return 0
+         return 1
 
       if '-hist' in sys.argv:
          print(g_history)
-         return 0
+         return 1
 
       if '-show_valid_opts' in sys.argv:
          self.valid_opts.show('', 1)
-         return 0
+         return 1
 
       if '-ver' in sys.argv:
          print(g_version)
-         return 0
+         return 1
 
       # ============================================================
       # read options specified by the user
       self.user_opts = OL.read_options(sys.argv, self.valid_opts)
       uopts = self.user_opts            # convenience variable
-      if not uopts: return 1            # error condition
+      if not uopts: return -1           # error condition
 
       # ------------------------------------------------------------
       # process non-chronological options, verb comes first
@@ -138,18 +144,18 @@ class MyInterface:
 
          # main options
          if opt.name == '-infile':
-            if self.a1d != None:
+            if self.main_data != None:
                print('** only 1 -infile option allowed')
-               return 1
+               return -1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-            if self.init_from_file(val): return 1
+            if val != None and err: return -1
+            if self.init_from_file(val): return -1
 
          # general options
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
-            if val != None and err: return 1
+            if val != None and err: return -1
             else: self.verb = val
             continue
 
@@ -176,12 +182,17 @@ class MyInterface:
 
       self.status = 1 # init to failure
 
+      print("-- would presumably process input '%s'" % fname)
+      self.main_data = None  # set main data object from '-infile fname'
 
       self.status = 0 # update to success
 
       return 0
 
    def test(self, verb=3):
+      """one might want to be able to run internal tests,
+         alternatively, test from the shell
+      """
       print('------------------------ initial tests -----------------------')
       self.verb = verb
 
@@ -198,7 +209,12 @@ def main():
    if not me: return 1
 
    rv = me.process_options()
-   if rv > 0: return 1
+   if rv > 0: return 0  # exit with success (e.g. -help)
+   if rv < 0:           # exit with error status
+      print('** failed to process options...')
+      return 1
+
+   # else: rv==0, continue with main processing ...
 
    rv = me.execute()
    if rv > 0: return 1

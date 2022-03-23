@@ -77,7 +77,8 @@ XROOT   = /opt/X11
 XROOT_I = -I$(XROOT)/include
 XROOT_L = -L$(XROOT)/lib
 
-XLIBS = -lXm -ljpeg.9 -lXt
+# XLIBS = -lXm -ljpeg.9 -lXt
+XLIBS = -lXm -ljpeg -lXt
 
 # ----------------------------------------------------------------------
 
@@ -110,7 +111,7 @@ BREWL =  /opt/homebrew/lib
 
 OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$(BREWI) -L$(BREWL) -DUSE_OMP
 
-SYSTEM_NAME = macos_11.5_ARM_M1_clang
+SYSTEM_NAME = macos_11_ARM_clang
 
 INSTALLDIR = $(SYSTEM_NAME)
 

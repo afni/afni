@@ -12,7 +12,15 @@ import sys, copy
 # -------------------------------------------------------------------------
 # 2022-01-14, ver 1.0 :  creazione
 # 2022-01-14, ver 1.1 :  have afni_niceify_cmd_str() pass along kwargs
-#
+# 2022-03-20, ver 1.2 :  allow user to input list of args for splitting
+#                        (bc opt names can take sub-opts that we would not
+#                        want to split at---e.g., within afni_proc.py calls)
+# 2022-03-20, ver 1.3 :  introduce second-level splitting of arg lists, to
+#                        account for a primary option taking several
+#                        secondary options (space the latter out to sep
+#                        rows now---will be useful for AP)
+# 2022-03-21, ver 1.4 :  recognize (and ignore) escaped quotes, when 
+#                        calculating where quoted blocks occur
 #
 #
 # -------------------------------------------------------------------------
@@ -20,7 +28,8 @@ import sys, copy
 # DEFAULTS for kwargs in these funcs
 
 AD = { \
-       'search_list'   : [ "'", '"' ],
+       'quote_pair_list'   : [ "'", '"' ],
+       'list_cmd_args' : [],
        'maxcount'      : 10**6,
        'nindent'       : 4,
        'max_lw'        : 78,
@@ -32,40 +41,51 @@ AD = { \
 # -------------------------------------------------------------------------
 
 # Primarily a suppl function of split_str_outside_quotes()
-def find_next_quote_in_str( sss, search_list=AD['search_list'] ):
+def find_next_quote_in_str( sss, quote_pair_list=AD['quote_pair_list'] ):
     '''Find the first instance of ' or " appearing in the string, by
 default.  The user can optionally specify a different list of strings
-to search for (e.g., just one particular quote); the search_list must
+to search for (e.g., just one particular quote); the quote_pair_list must
 always be a list.
 
-    If one is found, return: the index I where it is found; the left
-index L of any non-whitespace block it is part of; the right index
-plus one R of any non-whitespace block it is part of (so, that
-str[L:R] would select the intact island, in Pythonese); and which kind
-of quote it is.  Otherwise, return: -1, -1, -1, None.
+    If one is found, return:
+    + the index i where it is found; 
+    + the left index L of any non-whitespace block it is part of; 
+    + the right index plus one R of any non-whitespace block it is part
+      of (so, that str[L:R] would select the intact island, in Pythonese);
+    + which kind of quote it is.  
+    Otherwise, return: -1, -1, -1, None.
 
-    ***Later, will add in opt to ignore escaped quotes***
+    This function will ignore escaped quotes.
 
     '''
 
-    if type(search_list) != list :
-        print("** ERROR: need to input a list of strings for searching")
+    if type(quote_pair_list) != list :
+        print("** ERROR: need to input a *list* of strings for searching")
         return -1, None
 
     # initialize a few things
-    FOUND = 0
     N     = len(sss)
-    qind  = N+1
+    qind  = 0
     qtype = None
+    FOUND = 0
 
-    # find the first index where one of the search_list items appears
-    for x in search_list:
-        xind = sss.find(x)
-        if xind >= 0 :
-            FOUND = 1
-            if xind < qind :
-                qind  = xind
-                qtype = sss[xind]
+    # find the first index where one of the quote_pair_list items appears;
+    # don't use str.find() bc we want to avoid escaped quotes
+    while qind < N :
+        if sss[qind] in quote_pair_list:
+            # ensure quote is not escaped (which cannot happen on [0]th char)
+            if qind == 0:
+                FOUND = 1
+            elif sss[qind-1] != '\\' :
+                FOUND = 1
+                
+            if FOUND :
+                qtype = sss[qind]
+                break
+        qind+= 1
+
+    # now, qind contains the leftmost quote found (if any), and qtype
+    # records what type it is, from within quote_pair_list items
 
     if FOUND :
         # calc left (=closed) boundary of non-whitespace island
@@ -92,7 +112,7 @@ of quote it is.  Otherwise, return: -1, -1, -1, None.
 # -------------------------------------------------------------------------
 
 # Primarily a supply func of listify_argv_str()
-def split_str_outside_quotes( sss, search_list=AD['search_list'], 
+def split_str_outside_quotes( sss, quote_pair_list=AD['quote_pair_list'], 
                               maxcount=AD['maxcount'] ):
     '''For the input string sss, leave parts that are contained within
 quotes (either ' or ") intact, and split the rest at whitespace.
@@ -117,18 +137,21 @@ Return a list of strings.
 
     olist = []
     count = 0
+    newstart = 0      # track each new start of string search
     ttt   = sss[:]
 
-    top, ltop, rtop, qtype = find_next_quote_in_str(ttt)
+    top, ltop, rtop, qtype = find_next_quote_in_str(ttt, 
+                                 quote_pair_list=AD['quote_pair_list'])
 
     while top >= 0 :
         if top :
             list1 = ttt[:ltop].split()
             olist.extend(list1)
 
+        newstart+= top+1
         # look for a partner/closing quote of the matching variety
         top2, ltop2, rtop2, qtype2 = find_next_quote_in_str(ttt[top+1:], 
-                                                            [qtype]) 
+                                                            [qtype])
         
         if top2 >= 0 :
             # The case of finding a partner quote. NB: because of the
@@ -136,12 +159,15 @@ Return a list of strings.
             list2 = [ttt[ltop:top+1+rtop2]]
             olist.extend(list2)
             ttt   = ttt[top+1+rtop2:]
-            top, ltop, rtop, qtype = find_next_quote_in_str(ttt)
+            newstart+= rtop2
+            top, ltop, rtop, qtype = find_next_quote_in_str(ttt,
+                                         quote_pair_list=AD['quote_pair_list'])
         else:
             # The case of not finding a partner quote.  At present, we
             # then ignore any other kinds of quotes.  Have to ponder
             # if that is reasonable...
-            print("+* WARN: unmatched quote {}, ignore it".format(qtype2))
+            print("+* WARN: char [{}] is unmatched quote {}, ignore it"
+                  "".format(newstart+top2, qtype))
             list2 = ttt[ltop:].split()
             olist.extend(list2)
             ttt = ''
@@ -150,7 +176,7 @@ Return a list of strings.
         # purely to guard against infinite looping; shouldn't happen
         count+=1
         if count > maxcount:
-            print("** ERROR: infinite loop encountered")
+            print("** ERROR: infinite loop (?) encountered. Truncating.")
             return []
 
     # split any remainder
@@ -162,21 +188,24 @@ Return a list of strings.
 # -------------------------------------------------------------------------
 
 # A primary-ish function to organize a list-of-sublists form for the cmd.
-def listify_argv_str( sss, search_list=AD['search_list'], 
+def listify_argv_str( sss, quote_pair_list=AD['quote_pair_list'], 
+                      list_cmd_args=AD['list_cmd_args'],
                       maxcount=AD['maxcount'] ):
     '''Take a command line string sss, and turn it into a list of lists,
 where each 'inner'/sublist would be one line of items when printed
 later.
 
-For example, so an option flag (no args) would be a single-item
-sublist; an option with one or more args would comprise a single
-sublist; and a 'position' argument would be a single-item sublist.
-There is some fanciness about recognizing that '-5' is likely an
-argument for an option, rather than an option itself...
+For example, an option flag (no args) would be a single-item sublist;
+an option with one or more args would comprise a single sublist; and a
+'position' argument would be a single-item sublist.  If no
+list_cmd_args is provided, then there is some fanciness about
+recognizing that '-5' is likely an argument for an option, rather than
+an option itself...
 
-Return the list of sublists. Each sublist will (potentially) be one
-row in the output (though line spacing is handled elsewhere).  Each
-element in each sublist is stripped of whitespace here.
+Return the list of sublists (= the big_list). Each sublist will
+(potentially) be one row in the output (though line spacing is handled
+elsewhere).  Each element in each sublist is stripped of whitespace
+here.
 
     '''
 
@@ -185,13 +214,40 @@ element in each sublist is stripped of whitespace here.
         return []
 
     # do whitespace-based splitting while also retaining quoted regions
-    arg_list = split_str_outside_quotes(sss)
+    arg_list = split_str_outside_quotes(sss, 
+                                        quote_pair_list=AD['quote_pair_list'], 
+                                        maxcount=AD['maxcount'])
     N        = len(arg_list)
+
+    if not(N) :
+        print("+* WARN: nothing in command line string?")
+        return []
+
+    if list_cmd_args :
+        return make_big_list_from_args(arg_list,
+                                       list_cmd_args)
+    else:
+        return make_big_list_auto(arg_list)
+
+def make_big_list_auto(arg_list):
+    '''Take the arge list already passed through whitespace splitting and
+    quote-pairing and make a 'big_list' of the opts.  Namely, return a
+    list of sub-lists, where the [0]th list is the program name and
+    each subsequent list will contain an option and any args for it.
+
+    In this function, the determination of a new sub-list is made
+    automatically with some logic.
+
+    See make_big_list_from_args(...) if you know the opt names for the
+    program and want to split arg_list into sublists using that.
+
+    '''
 
     # initialize list: [0]th item should be program name
     big_list  = [[arg_list[0]]]
     mini_list = []
     i = 1
+    N = len(arg_list)
 
     while i < N :
         iarg = arg_list[i]
@@ -218,18 +274,64 @@ element in each sublist is stripped of whitespace here.
             big_list.append([iarg])
         i+= 1
     if mini_list :
+        # add any remaining mini_list
+        big_list.append(mini_list)
+
+    return big_list
+
+def make_big_list_from_args(arg_list,
+                            list_cmd_args=AD['list_cmd_args']):
+    '''Take the arge list already passed through whitespace splitting and
+    quote-pairing and make a 'big_list' of the opts.  Namely, return a
+    list of sub-lists, where the [0]th list is the program name and
+    each subsequent list will contain an option and any args for it.
+
+    In this function, the determination of a new sub-list is made
+    using a provided list of args.
+
+    See make_big_list_auto(...) if you don't know the opt names for
+    the program and want to split arg_list into sublists using some
+    reasonable/automated logic.
+    '''
+
+    # initialize list: [0]th item should be program name
+    big_list  = [[arg_list[0]]]
+    mini_list = []
+    i = 1
+    N = len(arg_list)
+
+    while i < N :
+        iarg = arg_list[i]
+        narg = len(iarg)
+        if iarg in list_cmd_args :
+            # looks like new opt: store any existing (non-empty)
+            # mini_list, and start new one with this str
+            if mini_list : 
+                big_list.append(mini_list)
+            mini_list = [iarg]
+        elif mini_list :
+            # otherwise, if a mini_list exists, keep adding to it
+            mini_list.append(iarg)
+        else:
+            # otherwise, there is no mini_list and this looks like an
+            # arg-by-position: is its own mini_list
+            big_list.append([iarg])
+        i+= 1
+    if mini_list :
+        # add any remaining mini_list
         big_list.append(mini_list)
 
     return big_list
 
 # -------------------------------------------------------------------------
 
-# A primary function for converting a list-of-sublist form of cmd to a
-# multiline-string
+# A primary function for converting a big_list (= list-of-sublist)
+# form of cmd to a multiline-string
 def pad_argv_list_elements( big_list, 
                             nindent=AD['nindent'], max_lw=AD['max_lw'],
                             max_harg1=AD['max_harg1'],
                             comment_start=AD['comment_start'] ):
+
     '''The list big_list is a list of lists, each of the 'inner' lists
 containing string elements that should be pieced together into a
 single row.  This function makes a first iteration through at padding
@@ -310,6 +412,7 @@ characters, uniform vertical spacing, etc.
     # The cheese stands alone in this row
     ostr = '''{text:<{lw}s}'''.format(text=big_list[0][0], lw=max_lw)
 
+    # loop over each sub_list
     for j in range(1, nbig):
         jlist = big_list[j]
         ostr += '''\\\n'''
@@ -318,6 +421,7 @@ characters, uniform vertical spacing, etc.
         row  = '''{text}'''.format(text=jlist[0])
         nrow = len(row)
 
+        # loop over the items in the sub_list (skipping the [0th])
         for k in range(1, len(jlist)):
             if nrow + len(jlist[k]) > max_lw and \
                (len(harg1_ind + jlist[k]) < max_lw or k>1) :
@@ -327,7 +431,17 @@ characters, uniform vertical spacing, etc.
                 ostr += '''\\\n'''
                 # ... and then start building the next one
                 row   = '''{pad}{text:<s}'''.format( pad=harg1_ind,
-                                                    text=jlist[k] )
+                                                     text=jlist[k] )
+            elif k > 2 and len(jlist[k]) > 1 and \
+                 jlist[k][0] == '-' and \
+                 not(jlist[k][1].isdigit() or jlist[k][1] == '.') :
+                # looks like the sub_list itself contains a list of
+                # opts, so finish the current row..., just like above
+                ostr += '''{text:<{lw}s}'''.format( text=row, lw=max_lw )
+                ostr += '''\\\n'''
+                # ... and then start building the next one
+                row   = '''{pad}{text:<s}'''.format( pad=harg1_ind,
+                                                     text=jlist[k] )
             else:
                 # Simply continue with current row
                 row+= jlist[k]
@@ -387,9 +501,10 @@ non-whitespace 'islands', l1 and l2, respectively
 # and go through the couple steps to turn it into one
 def afni_niceify_cmd_str( sss, 
                           nindent=AD['nindent'], max_lw=AD['max_lw'],
+                          list_cmd_args=AD['list_cmd_args'],
                           max_harg1=AD['max_harg1'],
                           comment_start=AD['comment_start'],
-                          search_list=AD['search_list'], 
+                          quote_pair_list=AD['quote_pair_list'], 
                           maxcount=AD['maxcount'],
                           verb=AD['verb'] ):
     '''Take a str sss that represents some command, and try to 'niceify'
@@ -410,6 +525,10 @@ def afni_niceify_cmd_str( sss,
                        [0]th
     max_lw           : (int) max line width to aim for (some text chunks may
                        stick over, like long file path names)
+    list_cmd_args    : (list of str) explicit list of args to use for 
+                       splitting the argv up line by line; if none is given,
+                       which is the default scenario, then the program
+                       aims to guess on its own
     max_harg1        : (int) max number of spaces for starting arg [1] in any
                        output command (unless arg0 sticks out further), for 
                        visual alignment.  If the longest [0]th arg in a line
@@ -417,7 +536,7 @@ def afni_niceify_cmd_str( sss,
     comment_start    : (str) can prepent a comment char to the start of each
                        line if desired; e.g., for Python would probably use
                        '# ' here 
-    search_list      : (list of str/char) list of characters to search for
+    quote_pair_list  : (list of str/char) list of characters to search for
                        in pairs, within which we don't split text, like quotes
     maxcount         : (int) guard against infinite loops;
                        probably don't need to change
@@ -442,7 +561,8 @@ def afni_niceify_cmd_str( sss,
         return ''
 
     big_list = listify_argv_str( sss, 
-                                 search_list=search_list,
+                                 list_cmd_args=list_cmd_args,
+                                 quote_pair_list=quote_pair_list,
                                  maxcount=maxcount )
 
     str_nice = pad_argv_list_elements( big_list,

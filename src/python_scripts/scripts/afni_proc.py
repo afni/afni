@@ -713,12 +713,24 @@ g_history = """
     7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
     7.28 Feb  8, 2022: add -html_review_opts
     7.29 Feb 18, 2022: change -milestones to -hist_milestones
+    7.30 Mar  1, 2022:
+       - make pythonic the default html_review_style
+         (since PT will run with basic if pythonic is not possible)
+    7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
+    7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
+    7.33 Mar  8, 2022: apply -polort in @radial_correlate
+    7.34 Mar 10, 2022: run 3dAllineate for -align_epi_ext_dset to volreg base
+    7.35 Mar 12, 2022: use align_epi_anat.py instead, in case of obliquity diff
+    7.36 Mar 22, 2022:
+       - fix help example: remove inappropriate -epi_strip from -align_opts_aea
+       - add ap_uvars: dir_suma_spec, suma_specs
 """
 
-g_version = "version 7.29, February 18, 2022"
+g_version = "version 7.36, March 22, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
@@ -806,6 +818,10 @@ More detailed changes, starting May, 2018.
 
    15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
       average correlations (maps are similar by have better scales)
+
+   10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
+      - apply an additional xform between anat2epi base and epi2epi one
+
 """
 
 g_todo_str = """todo:
@@ -1081,7 +1097,7 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
-        self.html_rev_style = 'basic'   # html_review_style
+        self.html_rev_style = 'pythonic' # html_review_style
         self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic'         # basic review script
@@ -3321,7 +3337,8 @@ class SubjProcSream:
         if self.epi_review:
            # maybe we will have an html sub-section
            htmlstr = ''
-           if self.html_rev_style in g_html_review_styles:
+           if self.html_rev_style in g_html_review_styles \
+                and self.html_rev_style != 'none':
               htmlstr = '\n' + self.run_html_review(istr='    ')
               # warn user if pythonic does not seem valid
               if self.html_rev_style == 'pythonic':
@@ -3417,7 +3434,8 @@ class SubjProcSream:
         if len(missing) > 0:
            print("** will not run QC html program, apqc_make_tcsh.py\n" \
                  "   (missing: %s)\n" % ', '.join(missing))
-           return ''
+           return "%s# ** missing program '%s', skipping HTML QC\n\n" \
+                  % (istr, missing[0])
 
         # possibly pass user options
         user_opts = ' '.join(self.html_rev_opts)

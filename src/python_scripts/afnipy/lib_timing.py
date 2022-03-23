@@ -956,6 +956,42 @@ class AfniTiming(LD.AfniData):
       del(scopy)
       del(tdata)
 
+   def get_TR_offsets(self, tr):
+      """create a list of TR offsets (per-run and overall)
+
+            tr : must be positive
+
+         return: all offsets
+      """
+
+      if not self.ready:
+         print('** M Timing: nothing to compute ISI stats from')
+         return []
+
+      if self.nrows != len(self.data):
+         print('** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+               (self.nrows, len(self.data)))
+         return []
+
+      if tr < 0.0:
+         print('** show_TR_offset_stats: invalid TR %s' % tr)
+         return []
+
+      tr = float(tr) # to be sure
+
+      # make a copy of format run x stim x [start,end], i.e. is 3-D
+      tdata = self.get_start_end_timing()
+
+      offsets   = []    # stim offsets within given TRs
+      for rind in range(self.nrows):
+         run  = tdata[rind]
+         if len(run) == 0: continue
+
+         roffsets = UTIL.interval_offsets([val[0] for val in run], tr)
+         offsets.extend(roffsets)
+
+      return offsets
+
    def get_TR_offset_stats(self, tr):
       """create a list of TR offsets (per-run and overall)
 

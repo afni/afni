@@ -53,6 +53,102 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add ap_uvars dir_suma_spec, suma_specs",
+   "Also, remove inappropriate -epi_strip from -align_opts_aea in example."
+ } ,
+
+ { 18, Mar, 2022, RCR, "eg_main_chrono.py", MICRO, TYPE_ENHANCE,
+   "add a little more edu",
+   NULL
+ } ,
+
+ { 17, Mar, 2022, RCR, "@radial_correlate", MICRO, TYPE_MODIFY,
+   "change saved ulay to be from orig EPI (to avoid detrended one)",
+   "Done to appease the scrutinous P Taylor."
+ } ,
+
+ { 16, Mar, 2022, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_tr_offsets",
+   "See Example 10 d."
+ } ,
+
+ { 15, Mar, 2022, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
+   "cast run_time_to_polort output to int, for py2.7",
+   "Thanks to P Taylor for pointing it out."
+ } ,
+
+ { 12, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use aea.py instead of allin for extra -align_epi_ext_dset registration",
+   "align_epi_anat.py would deal with a difference in obliquity"
+ } ,
+
+ { 10, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "run 3dAllineate for -align_epi_ext_dset to volreg base",
+   NULL
+ } ,
+
+ {  8, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "apply -polort in @radial_correlate",
+   NULL
+ } ,
+
+ {  7, Mar, 2022, RCR, "@radial_correlate", MINOR, TYPE_NEW_OPT,
+   "add -polort; default is 2",
+   NULL
+ } ,
+
+ {  6, Mar, 2022, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "add -diff_prog",
+   NULL
+ } ,
+
+ {  3, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "update block help; rename to quality control review",
+   NULL
+ } ,
+
+ {  2, Mar, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib repo",
+   NULL
+ } ,
+
+ {  1, Mar, 2022, RCR, "nifti_tool", MAJOR, TYPE_NEW_OPT,
+   "allow conversion between any 2 int or float types (except float128)",
+   "Add -copy_image, -convert2dtype, -convert_verify, -convert_fail_choice.\n"
+   "Conversion operations happen in nt_image_read and nt_read_bricks,\n"
+   "and can therefore be applied to most data-included operations.\n"
+   "Requested by J Teves."
+ } ,
+
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix removal of spaces with -combine_opts_tedana",
+   "Thanks to J Teves for noting the problem."
+ } ,
+
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "make pythonic the default html_review_style",
+   "Done to appease the ever-demanding P Taylor."
+ } ,
+
+ { 28, Feb, 2022, RCR, "3dZcutup", MICRO, TYPE_BUG_FIX,
+   "fix typo in bounds check on -keep (was backward)",
+   "Thanks to Yixiang (on AFNI MB) for letting us know."
+ } ,
+
+ { 20, Feb, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
+ { 18, Feb, 2022, RCR, "@Install_APMULTI_Demo2_realtime", MAJOR, TYPE_NEW_PROG,
+   "new install script for APMULTI_Demo2_realtime",
+   "This is a demo for running AFNI's real-time system, without needing to\n"
+   "bother the scanner.  It demonstrates use if single- and multi-echo\n"
+   "DICOM input, and various sets of data that can be passed from afni to\n"
+   "an external program (realtime_receiver.py in this case)."
+ } ,
+
  { 16, Feb, 2022, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "propagate obliquity in case of -ftype AFNI",
    NULL

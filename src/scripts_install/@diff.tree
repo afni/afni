@@ -13,6 +13,7 @@ set showdiffs = 0
 set showlcomp = 0
 set savediffs = 0
 set verb      = 1
+set diffprog  = xxdiff
 set xxdiff    = 0
 set diffopts  = ()
 
@@ -39,6 +40,12 @@ while ( $narg <= $amax )
         set savediffs = 1
     else if ( "$argv[$narg]" == "-no_diffs" ) then
         set do_diffs = 0
+    else if ( "$argv[$narg]" == '-diff_prog' ) then
+        @ narg ++
+        set diffprog = "$argv[$narg]"
+        set xxdiff    = 1
+        set showdiffs = 1
+        set showfiles = 0
     else if ( "$argv[$narg]" == '-diff_opts' ) then
         @ narg ++
         set diffopts = ( $diffopts $argv[$narg] )
@@ -72,9 +79,9 @@ end
 
 # if xxdiff is requested, make sure it exists...
 if ( $xxdiff ) then
-   which xxdiff >& /dev/null
+   which $diffprog >& /dev/null
    if ( $status ) then
-      echo "** missing Unix program xxdiff, please install and try again"
+      echo "** missing Unix program $diffprog, please install and try again"
       exit
    endif
 endif
@@ -148,7 +155,9 @@ endif
 # (if user wants it, but it is not appropriate, let them know why)
 if ( $showlcomp ) then
    if ( $identical ) then
-      if ( $verb > 1 ) echo "-- showcomp: lists are identical"
+      if ( $verb > 1 ) then
+         echo "-- showcomp: lists are identical"
+      endif
       exit 0
    else if ( $#new_files != $#old_files ) then
       echo "-- showcomp: no pairwise list difference"
@@ -238,7 +247,7 @@ foreach file ( $new_files )
          echo ""
       endif
       if ( $xxdiff ) then
-         xxdiff $ndir/$file $odir/$file
+         $diffprog $ndir/$file $odir/$file
       else
          diff $diffopts $ndir/$file $odir/$file
       endif
@@ -322,6 +331,7 @@ cat << EOF
                                (.BRIK, .dcm, .BRIK.gz)
       -verb LEVEL            : set verbosity level (0,1,2)
                                (default 1)
+      -diff_prog PROG        : use PROG to show diffs (e.g. xxdiff, meld)
       -xxdiff                : use xxdiff to show diffs
       -X                     : implies -xxdiff -ignore_missing
 
