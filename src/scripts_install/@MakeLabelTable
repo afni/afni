@@ -655,10 +655,10 @@ PARSE:
          goto CONTINUE
       endif
 
-      if ("$argv[$cnt]" == "-LT_to_CSV") then
+      if ("$argv[$cnt]" == "-LT_to_CSV" || "$argv[$cnt]" == "-LT_to_qCSV" ) then
          set SubLoc = $cnt
          if ($SubLoc == $Narg) then
-            if (! $quiet_death) echo "Need labeltable after -LT_to_CSV"
+            if (! $quiet_death) echo "Need labeltable after -LT_to_CSV or -LT_to_qCSV"
             goto BEND
          else
             @ cnt ++
@@ -674,10 +674,17 @@ PARSE:
                goto BEND
             endif
             echo 'key,label' > $labeltablecsv
-            niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
+            if ( "$argv[$SubLoc]" == "-LT_to_qCSV" ) then
+               niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
+                  \sed '/^#/d' | \sed 's/^ //g' | \sed 's/ *$//g' | \
+                  sed '/^[[:blank:]]*$/d' | \
+                  \tr ' ' ',' >> $labeltablecsv
+            else
+               niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
                   \sed '/^#/d' | \sed 's/^ //g' | \sed 's/ *$//g' | \
                   \sed 's/"//g' | sed '/^[[:blank:]]*$/d' | \
                   \tr ' ' ',' >> $labeltablecsv
+            endif
             echo "Labeltable now in $labeltablecsv"
             goto END
          endif
@@ -1216,6 +1223,7 @@ HELP:
    echo "                                DSET and write it out as an"
    echo "                                Atlas Point List to POINTLIST"
    echo "    -LT_to_CSV LABELTABLE: Transform Label Table LABELTABLE to a CSV format"
+   echo "    -LT_to_qCSV LABELTABLE: Transform Label Table LABELTABLE to a quoted CSV format"
    echo ""
    echo "   Example:"
    echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
