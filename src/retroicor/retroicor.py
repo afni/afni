@@ -6,19 +6,21 @@ import math
 import scipy
 from scipy.signal import find_peaks
 
-# Glocal constatns
+# Glocal constants
 M = 3
 
-def getParameters():
-    # Get parameters from inline arguments
-    parameters=dict()
-    num_parameters = len(sys.argv)
-    i=1
-    while i<num_parameters:
-        parameters[sys.argv[i]] = sys.argv[i+1]
-        i += 2
-        
-    return parameters
+class retroicorClass:
+
+    def getParameters():
+        # Get parameters from inline arguments
+        parameters=dict()
+        num_parameters = len(sys.argv)
+        i=1
+        while i<num_parameters:
+            parameters[sys.argv[i]] = sys.argv[i+1]
+            i += 2
+            
+        return parameters
 
 def readArray(parameters, key):
     # Read single column of numbers into list of lists
@@ -46,14 +48,14 @@ def getCardiacPeaks(parameters):
        if array[peaks[p]] < Threshold:
            peaks = np.delete(peaks,p) 
            
-    # Cheack for, and fill in, missing peaks
+    # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
    interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
    minSep = min(interpeak)
    Threshold = minSep * 2
    numPeaks = len(peaks)
    for p in range(numPeaks-2,-1,-1):
        if interpeak[p] > Threshold:
-           numberToAdd = round(interpeak[p]/minSep)
+           numberToAdd = int(round(interpeak[p]/minSep))
            sep = round(interpeak[p]/numberToAdd)
            if sep < minSep:
                numberToAdd = numberToAdd - 1
@@ -302,9 +304,17 @@ def getPhysiologicalNoiseComponents(parameters):
         
     return output    
 
-parameters = getParameters()
-
-physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+def runAnalysis(cardiacFile, respiratoryFile):
+    # parameters = retroicorClass.getParameters()
+    
+    parameters=dict()
+    parameters['-c'] = cardiacFile
+    parameters['-r'] = cardiacFile
+    
+    physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    
+    plt.plot(physiologicalNoiseComponents)
+    
 
 
 
