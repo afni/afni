@@ -3,49 +3,49 @@ function [err,Info, BRIKinfo] = BrikInfo (BrickName)
 %   [err,Info] = BrikInfo (BrickName)
 %
 %Purpose:
-%
+%   
 %   returns some field values in the .HEAD files
-%
+%   
 %Input Parameters:
-%   Brick filename
+%   Brick filename 
 %  (also works for 1D files but Info has very limited info.
 %   You should really avoid using BrikInfo on 1D file
 %   because the 1D file is read in its entirety (and then cleared)
 %   before Info can be returned. Better used BrikLoad directly or
 %   Read_1D)
-%
-%
+%   
+%   
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
 %   Info is a structure with the following fields
 %           Fieldnames in UPPER CASE correspond to the fields in AFNI
 %           Field names in lower case correspond to some interpretation of the uppercase ones
-%      .RootName : the brik name without .HEAD or .BRIK.
+%      .RootName : the brik name without .HEAD or .BRIK. 
 %      .TypeName: The interpretation of BRICK_TYPES (short, int, floats, etc...)
 %      .TypeBytes : The corresponding byte size of BRICK_TYPES
 %		 .ByteOrder: interpretation of BYTEORDER_STRING
-%      .Orientation : interpretation of ORIENT_SPECIFIC, Orientation(:,1)' forms the three letter orientation code
+%      .Orientation : interpretation of ORIENT_SPECIFIC, Orientation(:,1)' forms the three letter orientation code 
 %        The ith row of Orientation describes the orientation along that dimension.
 %   see AFNI's README.attributes for a complete description of these fields
 %   MANDATORY FIELDS AS SPECIFIED IN: ~cox/README.attributes (added April 6 2001)
 %      .DATASET_RANK : ASK BOB. I think the first is always 3 (3D) and the other is the number of sub-bricks
 %      .DATASET_DIMENSIONS : Number of voxels in each of the three dimensions
 %      .TYPESTRING: Determines if the data set is of type Anat (underlay) or Func (overlay)
-%      .SCENE_DATA : The three integer codes describing the dataset type
-%		 .ORIENT_SPECIFIC : orintation code
+%      .SCENE_DATA : The three integer codes describing the dataset type                
+%		 .ORIENT_SPECIFIC : orintation code 
 %      .ORIGIN : The xyz coordinates of the center of the (0, 0, 0) voxel in the data set
 %      .DELTA : the increment (in mm) to go from one voxel to the next (could be +ve or -ve depending on slices)
 %      .TAXIS_NUMS: see readme file
 %      .TAXIS_FLOATS
 %      .TAXIS_OFFSETS
-%   ALMOST MANDATORY FIELDS
+%   ALMOST MANDATORY FIELDS   
 %      .IDCODE_STRING
 %      .IDCODE_DATE
 %      .BYTEORDER_STRING : Byte order string
-%      .BRICK_STATS : range of values in brick (min to max)
+%      .BRICK_STATS : range of values in brick (min to max) 
 %         (Do not apply the scaling factor to these values)
-%      .BRICK_TYPES : types of values in .BRIK
+%      .BRICK_TYPES : types of values in .BRIK 
 %      .BRICK_FLOAT_FACS : float factors to apply to bricks for recovering original values
 %      .BRICK_LABS : The Sub-brick labels (~delimited)
 %      .BRICK_STATAUX : Auxilliary Statistical Information
@@ -66,7 +66,7 @@ function [err,Info, BRIKinfo] = BrikInfo (BrickName)
 %      .VOLREG_BASE_NAME
 %      .VOLREG_ROTCOM_NUM
 %      .VOLREG_MATVEC_xxxxxx
-%      .VOLREG_ROTCOM_xxxxxx
+%      .VOLREG_ROTCOM_xxxxxx      
 %      .IDCODE_ANAT_PARENT
 %      .TO3D_ZPAD
 %      .IDCODE_WARP_PARENT
@@ -74,30 +74,30 @@ function [err,Info, BRIKinfo] = BrikInfo (BrickName)
 %      .WARP_DATA
 %      .MARKS_XYZ
 %      .MARKS_LAB
-%      .MARKS_HELP
+%      .MARKS_HELP 
 %      .MARKS_FLAGS
-%      .TAGSET_NUM
+%      .TAGSET_NUM  
 %      .TAGSET_FLOATS
-%      .TAGSET_LABELS
+%      .TAGSET_LABELS 
 %      .LABEL_1
-%      .LABEL_2
+%      .LABEL_2 
 %      .DATASET_NAME
 %      .DATASET_KEYWORDS
-%      .BRICK_KEYWORDS
+%      .BRICK_KEYWORDS 
 %      .HISTORY_NOTE
 %      .NOTES_COUNT
 %      .NOTE_NUMBER_xxx
-%
+%      
 %  To implement in the future,
 %      VOLREG_MATVEC_xxxxxx , VOLREG_ROTCOM_xxxxxx
-%
-%  The following fields were added to support 1D file format.
+%      
+%  The following fields were added to support 1D file format. 
 %      .FileFormat: 'BRIK' ('1D' is allowed for 1D files but 1D files do not use BrikInfo)
 %      .Extension_1D: The extension of the 1D filename
 %  BrikLoad and WriteBrik now read and write 1D files
 %
 %Key Terms:
-%   The 1st, second and third dimensions refer to the dimensions the slices were entered into to3d
+%   The 1st, second and third dimensions refer to the dimensions the slices were entered into to3d 
 %More Info :
 %    afni's README.attributes
 %
@@ -124,7 +124,7 @@ end
 
 if (is1D), % 1D land
    [err, V, Info] = Read_1D(BrickName, 1);
-   if (err),
+   if (err), 
       ErrMessage = sprintf ('%s: Failed to read %s file', FuncName, BrickName);
       err = ErrEval(FuncName,'Err_1D file could not be read');
       return;
@@ -266,12 +266,12 @@ end
 	%VOLREG_ROTCOM_NUM
 		[err, Info.VOLREG_ROTCOM_NUM] = BrikInfo_SectionValue(BRIKinfo, 'VOLREG_ROTCOM_NUM');	
 	
-   %Inbal's matrix,
+   %Inbal's matrix, 
    %TO get AFNI's RAI coords from AFNI i, j, k, indices (start at 0):
    % M = reshape(Info.IJK_TO_DICOM_REAL, 4, 3)'; I = [i j k 1]';
    % X = M*I
       [err, Info.IJK_TO_DICOM_REAL ] = BrikInfo_SectionValue(BRIKinfo, 'IJK_TO_DICOM_REAL');	
-
+      
 	if (~err),
 		for (i=1:1:Info.VOLREG_ROTCOM_NUM),
 			sp = pad_strn(num2str(i-1), '0', 6, 1);
@@ -281,8 +281,8 @@ end
 			eval([ spad ]);
 		end
 	end	
-
-		
+   
+		    
 	%IDCODE_ANAT_PARENT
 		[err, Info.IDCODE_ANAT_PARENT] = BrikInfo_SectionValue(BRIKinfo, 'IDCODE_ANAT_PARENT');	
 	
@@ -347,21 +347,26 @@ end
 			eval([ spad ]);
 		end
 	end	
-	
+	             
 	%SOMETHING
 		%[err, Info.SOMETHING] = BrikInfo_SectionValue(BRIKinfo, 'SOMETHING');	
-
+      
 	%DOF
 		[err, Info.WORSLEY_DF] = BrikInfo_SectionValue(BRIKinfo, 'WORSLEY_DF');	
-
+      
 	%NONJ
 		[err, Info.WORSLEY_NCONJ] = BrikInfo_SectionValue(BRIKinfo, 'WORSLEY_NCONJ');	
 	
 	%FWHM
 		[err, Info.WORSLEY_FWHM] = BrikInfo_SectionValue(BRIKinfo, 'WORSLEY_FWHM');	
 	
+  try
+  %ATLAS_LABEL_TABLE (if present)
+    [err, atlastable] = BrikInfo_SectionValue(BRIKinfo, 'ATLAS_LABEL_TABLE');	
+    Info.ATLAS_LABEL_TABLE = parse_atlastable(atlastable);
+  end
 	itype = unique(Info.BRICK_TYPES);
-
+ 
  	if (length(itype) > 1),
 		Info.TypeName = 'Mutliple Types';
 	else
@@ -389,11 +394,11 @@ end
 	 else
 		 if (~isempty(strmatch('MSB_FIRST', Info.BYTEORDER_STRING))),
 				Info.ByteOrder = 'ieee-be'; %Big Endian
-		else
+		else 
 			if (~isempty(strmatch('LSB_FIRST', Info.BYTEORDER_STRING))),
 					Info.ByteOrder = 'ieee-le'; %Little Endian
 			else
-				err = ErrEval(FuncName,'Err_Could not understand BYTEORDER_STRING');
+				err = ErrEval(FuncName,'Err_Could not understand BYTEORDER_STRING'); 
 				return;	
 			end
 		end
@@ -402,7 +407,7 @@ end
 	for (i=1:1:3),
 		switch Info.ORIENT_SPECIFIC(i)
 			case 0
-				Info.Orientation(i,:) = 'RL';	%right to left
+				Info.Orientation(i,:) = 'RL';	%right to left 
 			case 1
 				Info.Orientation(i,:) = 'LR';
 			case 2
