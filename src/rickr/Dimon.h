@@ -158,6 +158,8 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   skip;                     /* offset of image data into file  */
     int   swap;                     /* did we do byte swapping?        */
     int   kk;                       /* z-orient info (1=LR, 2=PA, 3=IS)*/
+    float ge_echo_time;             /* GEME echo time    [24 Mar 2022] */
+    int   ge_echo_num;              /* GEME echo number                */
     int   ge_me_index;              /* GE multi-echo index             */
     int   ge_nim_acq;               /* number of images in acq         */
     int   sop_iuid_maj;             /* DICOM SOP IUD - major value     */

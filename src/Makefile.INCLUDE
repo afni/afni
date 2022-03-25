@@ -3142,7 +3142,7 @@ file_tool: ge4_header.o rickr/file_tool.c
 	   'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	$(MV) file_tool .. ; )
 
-Dimon: rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
+Dimon: $(LIBMRI_OBJ) rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
 	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 	  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'LGIFTI=$(LGIFTI)'        \

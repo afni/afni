@@ -332,6 +332,8 @@ extern int          g_is_oblique;
 extern oblique_info obl_info;
 extern int          g_image_ori_ind[3];
 extern float        g_image_posn[3];
+extern float        g_ge_echo_time;
+extern int          g_ge_echo_num;
 extern int          g_ge_me_index;
 extern int          g_ge_nim_acq;
 extern int          g_sop_iuid_maj;
@@ -3731,6 +3733,8 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = 0;
     gexp->kk     = 0;
+    gexp->ge_echo_time = -1.0;
+    gexp->ge_echo_num  = -1;
     gexp->ge_me_index  = -1;
     gexp->ge_nim_acq   = -1;
     gexp->sop_iuid_maj = -1;
@@ -3894,6 +3898,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = im->was_swapped;
     gexp->kk     = 0;
+    gexp->ge_echo_time = g_ge_echo_time;
+    gexp->ge_echo_num  = g_ge_echo_num;
     gexp->ge_me_index  = g_ge_me_index;
     gexp->ge_nim_acq   = g_ge_nim_acq;
     gexp->sop_iuid_maj = g_sop_iuid_maj;
@@ -4235,6 +4241,8 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         gexp->skip   = skip;
         gexp->swap   = swap;
         gexp->kk     = kk;
+        gexp->ge_echo_time = -1.0;
+        gexp->ge_echo_num = -1;
         gexp->ge_me_index = -1;
         gexp->ge_nim_acq = -1;
 
@@ -4576,6 +4584,8 @@ static int idisp_ge_extras( char * info, ge_extras * E )
             "    skip             = %d\n"
             "    swap             = %d\n"
             "    kk               = %d\n"
+            "    ge_echo_time     = %g\n"
+            "    ge_echo_num      = %d\n"
             "    ge_me_index      = %d\n"
             "    ge_nim_acq       = %d\n"
             "    sop_iuid_maj     = %d\n"
@@ -4586,7 +4596,8 @@ static int idisp_ge_extras( char * info, ge_extras * E )
             "    (xyz3,xyz4,xyz5) = (%g,%g,%g)\n"
             "    (xyz6,xyz7,xyz8) = (%g,%g,%g)\n",
             E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
-            E->ge_me_index, E->ge_nim_acq, E->sop_iuid_maj,  E->sop_iuid_min,
+            E->ge_echo_time, E->ge_echo_num, E->ge_me_index,
+            E->ge_nim_acq, E->sop_iuid_maj,  E->sop_iuid_min,
             E->xorg,   E->yorg,
             E->xyz[0], E->xyz[1], E->xyz[2],
             E->xyz[3], E->xyz[4], E->xyz[5],
@@ -6303,6 +6314,10 @@ FILE * get_file_pointer(char * fname, char * mesg, int index)
 /* ----------------------------------------------------------------------
  * Create an output file containing the (sorted?) file list.
  *
+ *    details:    0 - output just a file list
+ *                1 - output a table of many details
+ *                2 - output details to verify GEME index sorting
+ *
  * Either output many details, or just the list of file names.
  * ---------------------------------------------------------------------- */
 static int create_file_list( param_t *p, char *fname, int details, char *mesg )
@@ -6331,17 +6346,18 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
           if( len > maxlen ) maxlen = len;
        }
        fprintf(fp, "# %-*s   index findex sindex state  errs", maxlen, "file");
-       fprintf(fp, "    zoff       diff    data"
-                   "  run   IIND   RIN GEMEIND ATIME\n");
+       fprintf(fp, "    zoff       diff  data"
+                   " run  IIND   RIN   etime enum GEMEIND ATIME\n");
        zprev = p->fim_o[0].geh.zoff;
        for( c = 0, fip = p->fim_o; c < p->nfim; c++, fip++ ) {
           fprintf(fp, "  %-*s   %4d   %4d   %4d   %2d     %d"
-                   "  %10.5f  %8.3f     %d"
-                   "  %4d   %4d  %4d  %5d  %.3f\n",
+                   "  %10.5f  %8.3f   %d"
+                   " %4d  %4d  %4d  %6.3f %4d  %5d  %.3f\n",
                   maxlen, fip->fname, c, fip->findex, fip->sindex,
                   fip->state, fip->bad_reads,
                   fip->geh.zoff, fip->geh.zoff-zprev, fip->imdata?1:0,
                   fip->geh.uv17, fip->geh.im_index, fip->geh.index,
+                  fip->gex.ge_echo_time, fip->gex.ge_echo_num,
                   fip->gex.ge_me_index, fip->geh.atime);
           zprev = fip->geh.zoff;
        }
