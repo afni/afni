@@ -1,0 +1,55 @@
+
+states:
+   IFM_FSTATE_TO_PROC      - ready to start processing (from filename)
+   IFM_FSTATE_TO_SORT      - ready to sort (window sorting)
+                           - currently specific to GEME sorting
+                           - it is within range of images to sort
+   IFM_FSTATE_TO_READ      - ready to read image
+                           - set at start of read_image_files()
+   IFM_FSTATE_DONE         - finished sending volume
+
+
+Sorting images make_sorted_fim_list():
+   - search from offset fim_start
+   - based on sort_method, sort_acq_time, sort_num_suff, dicom_org
+
+   - sort:
+      IFM_SORT_ACQ_TIME (same as DEFAULT, but with gsba set)
+         g_sort_by_atime = 1;
+         compare_finfo_t()
+
+      IFM_SORT_GEME
+         sort_by_geme_index()
+            - compute n2sort (nfim - fim_start)
+            - geme_set_range_n_state()
+               - set state to TO_SORT for any in local window
+               - note how many images are in sorting window
+
+      IFM_SORT_DEFAULT
+         compare_finfo_t()
+            - sort by state (if diff)
+            - state is not TO_PROC, sort by findex
+            - return compare_finfo()
+               - sort by run (if diff)
+               - if( g_sort_by_atime ) sort by atime
+               - sort by IMAGE INDEX (0054 1330) (if diff)
+               - sort by REL Inst Num (0020 0013) (if diff)
+               - return 0 (equal)
+
+      IFM_SORT_NUM_SUFF
+         compare_finfo_num_suff()
+            - sort by state (if diff, return compare_by_num_suff)
+            - same state:
+               - if state != TO_PROC, sort by findex
+               - else, return compre_by_num_suff()
+               compare_by_num_suff()
+                  - if diff, sort
+                  - else sort alphabetically
+
+      IFM_SORT_ZPOSN
+         compare_finfo_z()
+            - sort by state
+            - if equal && not TO_PROC: sort by findex
+            - sort by volume index (findex/g_num_slices)
+            - sort by zoff
+            - sort by findex
