@@ -10,7 +10,7 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %
 %Purpose:
 %   loads an AFNI brik into V
-%
+% 
 %
 %Input Parameters:
 %   BrikName, name of the brik
