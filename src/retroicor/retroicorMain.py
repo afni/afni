@@ -24,17 +24,20 @@ retroicorMain.py - a main python program, to model cardiac and respratory contri
 
 ------------------------------------------
 
-   terminal options:
+   Terminal options:
 
       -help                     : show this help
       -hist                     : show module history
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
-   other options
+   Other options:
       -verb LEVEL               : set the verbosity level
+      
+   Required options:
       -r                        : read the given 1D text file containing respiration data
-      -c                        : read the given 1D text file containing ECG data')
+      -c                        : read the given 1D text file containing ECG data
+      -o                        : Output filename
 
 -----------------------------------------------------------------------------
 PD Lauren    March 2022
@@ -54,7 +57,7 @@ class MyInterface:
    """interface class for MyLibrary (whatever that is)
      
       This uses lib_1D.py as an example."""
-   def __init__(self, verb=1, cardiacFile='', respiratoryFile=''):
+   def __init__(self, verb=1, cardiacFile='', respiratoryFile='', outputFile=''):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
@@ -67,6 +70,7 @@ class MyInterface:
       self.verb            = verb
       self.cardiacFile     = cardiacFile
       self.respiratoryFile = respiratoryFile
+      self.outputFile = outputFile
 
       # initialize valid_opts
       self.init_options()
@@ -86,9 +90,11 @@ class MyInterface:
 
       # required parameters
       self.valid_opts.add_opt('-r', 1, [], 
-                      helpstr='read the given 1D text file containing respiration data')
+                      helpstr='read the given 1D text file containing respiration data (Required)')
       self.valid_opts.add_opt('-c', 1, [], 
-                      helpstr='read the given 1D text file containing ECG data')
+                      helpstr='read the given 1D text file containing ECG data (Required)')
+      self.valid_opts.add_opt('-o', 1, [], 
+                      helpstr='output filename (Required)')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -107,19 +113,19 @@ class MyInterface:
       # if no arguments are given, apply -help
       if len(sys.argv) <= 1 or '-help' in sys.argv:
          print(g_help_string)
-         return 0
+         return 1
 
       if '-hist' in sys.argv:
          print(g_history)
-         return 0
+         return 1
 
       if '-show_valid_opts' in sys.argv:
          self.valid_opts.show('', 1)
-         return 0
+         return 1
 
       if '-ver' in sys.argv:
          print(g_version)
-         return 0
+         return 1
 
       # ============================================================
       # read options specified by the user
@@ -142,7 +148,6 @@ class MyInterface:
          if opt.name == '-c':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            # if self.init_from_file(val): return 1
             else:
                 self.cardiacFile = val
             continue
@@ -150,9 +155,15 @@ class MyInterface:
          elif opt.name == '-r':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            # if self.init_from_file(val): return 1
             else:
                 self.respiratoryFile = val
+            continue
+
+         elif opt.name == '-o':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.outputFile = val
             continue
 
          # general options
@@ -162,6 +173,11 @@ class MyInterface:
             if val != None and err: return 1
             else: self.verb = val
             continue
+      
+      # Check required options supplied
+      if (len(self.cardiacFile)<1 | len(self.respiratoryFile)<1 | len(self.outputFile)<1):
+         print(g_help_string)
+         return 1           
 
       return 0
 
@@ -172,10 +188,7 @@ class MyInterface:
       if self.verb > 1:
          print('-- processing...')
          
-      print('Cardiac file = ', self.cardiacFile)
-      print('Respiratory file = ', self.respiratoryFile)
-      
-      retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile)
+      retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile, self.outputFile)
 
       return 0
 

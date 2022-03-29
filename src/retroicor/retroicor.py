@@ -304,7 +304,7 @@ def getPhysiologicalNoiseComponents(parameters):
         
     return output    
 
-def runAnalysis(cardiacFile, respiratoryFile):
+def runAnalysis(cardiacFile, respiratoryFile, outputFile):
     # parameters = retroicorClass.getParameters()
     
     parameters=dict()
@@ -314,6 +314,11 @@ def runAnalysis(cardiacFile, respiratoryFile):
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     
     plt.plot(physiologicalNoiseComponents)
+    
+    # Write resulting profile to 1D output text file
+    with open(outputFile, 'w') as f:
+        for item in physiologicalNoiseComponents:
+            f.write("%s\n" % item)
     
 
 
