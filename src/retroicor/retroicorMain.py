@@ -33,6 +33,7 @@ retroicorMain.py - a main python program, to model cardiac and respratory contri
 
    Other options:
       -verb LEVEL               : set the verbosity level
+      -ab1                      : Set a and b coefficients to 1.0 (Default = false)
       
    Required options:
       -r                        : read the given 1D text file containing respiration data
@@ -71,6 +72,7 @@ class MyInterface:
       self.cardiacFile     = cardiacFile
       self.respiratoryFile = respiratoryFile
       self.outputFile = outputFile
+      self.ab1 = False
 
       # initialize valid_opts
       self.init_options()
@@ -87,6 +89,8 @@ class MyInterface:
                       helpstr='display all valid options')
       self.valid_opts.add_opt('-ver', 0, [],            \
                       helpstr='display the current version number')
+      self.valid_opts.add_opt('-ab1', 1, [],            \
+                      helpstr='set a and b coefficient to 1.0 (Default = False')
 
       # required parameters
       self.valid_opts.add_opt('-r', 1, [], 
@@ -173,6 +177,13 @@ class MyInterface:
             if val != None and err: return 1
             else: self.verb = val
             continue
+
+         elif opt.name == '-ab1':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.ab1 = val
+            continue
       
       # Check required options supplied
       if (len(self.cardiacFile)<1 | len(self.respiratoryFile)<1 | len(self.outputFile)<1):
@@ -188,7 +199,8 @@ class MyInterface:
       if self.verb > 1:
          print('-- processing...')
          
-      retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile, self.outputFile)
+      retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile, \
+                            self.outputFile, self.ab1)
 
       return 0
 

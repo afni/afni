@@ -279,14 +279,25 @@ def getPhysiologicalNoiseComponents(parameters):
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
             respiratory_peaks, respiratory_troughs)
-
-    # Get a coefficients
-    cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
-    respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
-    
-    # Get b coefficients
-    cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
-    respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
+        
+    if (parameters['-ab1']):    # a and b coefficients set to 1.0
+        cardiacACoeffs = [1.0]
+        respiratoryACoeffs = [1.0]
+        cardiacBCoeffs = [1.0]
+        respiratoryBCoeffs = [1.0]
+        cardiacACoeffs.append(1.0)
+        respiratoryACoeffs.append(1.0)
+        cardiacBCoeffs.append(1.0)
+        respiratoryBCoeffs.append(1.0)
+    else:   # Determine a and b coefficients as per Glover et al, Magnetic 
+            # Resonance in Medicine 44:162–167 (2000)
+        # Get a coefficients
+        cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
+        respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
+        
+        # Get b coefficients
+        cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
+        respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
     
     global M
     
@@ -304,12 +315,13 @@ def getPhysiologicalNoiseComponents(parameters):
         
     return output    
 
-def runAnalysis(cardiacFile, respiratoryFile, outputFile):
+def runAnalysis(cardiacFile, respiratoryFile, outputFile, ab1):
     # parameters = retroicorClass.getParameters()
     
     parameters=dict()
     parameters['-c'] = cardiacFile
     parameters['-r'] = cardiacFile
+    parameters['-ab1'] = ab1
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     
