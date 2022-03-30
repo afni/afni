@@ -1,11 +1,55 @@
 
+general outline of Dimon main()
+   init_options()
+      - init main structs: gD, GS, GAC, g_dicom_ctrl, A
+      - populate p->opts struct from options
+      - perform a few checks and var inits
+   init_extras()
+      - set 'nice' level and possibly init afni communication
+   find_first_volume()
+      - scan scan p->fim_o for a complete volume
+      - while not done
+         - read_image_files()    : read actual Dicom files (in state TO_READ)
+            - get_sorted_file_names()
+               - apply alphabetical or other file name sorting
+            - read_new_images()
+               - populate p->fim_o list with newly read images
+                  - read those in state IFM_FSTATE_TO_READ
+                  - set state to TO_PROC
+            - make_sorted_fim_list()
+               - sort p->fim_o in the new range (from fim_start to nfim)
+                  - apply main sort, such as DEFAULT, GEME, NUM_SUFF
+                  - possibly post-order as zt
+                  - update fim_start to point to next TO_PROC image
+         - n2proc = nfim2proc() = num images in TO_PROC state
+         - volume_search()
+         - if no vol: think about life and paramaters, nap, try again
+         - have vol, so...
+            - update params (now that we know what to look for)
+            - send vol to afni -rt
+            - set sent image states to FSTATE_DONE
+   find_more_volumes()
+      - set to handle many signals by hf_signal()
+      - set_volume_stats()
+      - while not done
+         - while there are read volumes that match v0
+            - set_volume_stats()
+            - send vol to afni -rt
+            - update sent image states to FSTATE_DONE
+         - read_image_files() : read any files in state TO_READ
+         - n2proc = nfim2proc() = num images in TO_PROC state
+         - if no volume of images to proc
+            - quit, whine or read_image_files()
+
+
+
 states:
+   IFM_FSTATE_TO_READ      - ready to read image
+                           - set at start of read_image_files()
    IFM_FSTATE_TO_PROC      - ready to start processing (from filename)
    IFM_FSTATE_TO_SORT      - ready to sort (window sorting)
                            - currently specific to GEME sorting
                            - it is within range of images to sort
-   IFM_FSTATE_TO_READ      - ready to read image
-                           - set at start of read_image_files()
    IFM_FSTATE_DONE         - finished sending volume
 
 
@@ -24,6 +68,8 @@ Sorting images make_sorted_fim_list():
             - geme_set_range_n_state()
                - set state to TO_SORT for any in local window
                - note how many images are in sorting window
+            - geme_set_sort_indices()
+               - ...
 
       IFM_SORT_DEFAULT
          compare_finfo_t()
