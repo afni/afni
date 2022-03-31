@@ -2280,13 +2280,10 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     clipIdentificationPlane[planeIndex]->Show = 0;
                 }
             }
-/*
-            // For some reason, this was necessary to pass githuub tests.  Does not appear
-            //  to be anymore
-            if (clipPlaneIdentificationMode){
-                 clipPlaneTransform(0, 0, 0, 0,-1, 0, 0);    // Redisplay active plane
-            }
-/**/
+
+            // For some reason, this was necessary to keep the right plane selected.  
+            clipPlaneTransform(0, 0, 0, 0,locallySelectedPlane, 0, 0);    // Redisplay active plane
+
             SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
         }  else if (SUMAg_CF->Dev && SUMA_CTRL_KEY(key)){
 
