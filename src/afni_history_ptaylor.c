@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "Add many more '-min_* ..' options for controlling badness criteria.",
+   "Asked for by user nseider: hope these are helpful!\n"
+},
+
 { 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_MODIFY,
    "Actually output the number of bad slices per volume.",
    "Previously had some ~fancy encoding about criterion of badness (why?).\n"
