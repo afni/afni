@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "New opts '-dont_use_*' to turn off some of the drop criteria at will.",
+   "Also put in help descriptions about drop criteria, in Notes.\n"
+},
+
 { 20, Mar , 2022 , PT , "apqc_make_HTML.py" , MICRO , TYPE_BUG_FIX,
    "Fix display of subj ID from 'Top' button in case when subj ID starts num.",
    "In such cases, the unicode char for next line was misinterpreted.\n"

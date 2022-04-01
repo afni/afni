@@ -59,7 +59,7 @@ int do_calc_entrop( float **diffarr,
 void usage_ZipperZapper(int detail) 
 {
    printf(
-" # ------------------------------------------------------------------------\n"
+" OVERVIEW ~1~\n"
 " \n"
 " This is a basic program to help highlight problematic volumes in data\n"
 " sets, specifically in EPI/DWI data sets with interleaved acquisition.\n"
@@ -99,7 +99,7 @@ void usage_ZipperZapper(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" USAGE:\n"
+" USAGE ~1~\n"
 " \n"
 "     Input: + a 3D+time data set of DWI or EPI volumes,\n"
 "            + a mask of the brain-ish region.\n"
@@ -115,7 +115,7 @@ void usage_ZipperZapper(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" COMMAND: \n"
+" COMMAND ~1~\n"
 "  \n"
 "  3dZipperZapper                                            \\\n"
 "      -input FFF  {-mask MMM}                               \\\n"
@@ -151,6 +151,19 @@ void usage_ZipperZapper(int detail)
 "                  for 'brightness fluctuations'.  NB: this does parameter\n"
 "                  setting does not affect the search for dropout slices.\n"
 " \n"
+"   -dont_use_streak :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'streak'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+"   -dont_use_drop :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'drop'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+"   -dont_use_corr :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'corr'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+" \n"
 "    -do_out_slice_param\n"
 "                 :output the map of slice parameters (not done by\n"
 "                  default).  Might be of interest for investigating\n"
@@ -167,8 +180,74 @@ void usage_ZipperZapper(int detail)
 "                  are output.\n"
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" NOTES ~1~\n"
 " \n"
-" EXAMPLE:\n"
+" Drop Criteria ~2~\n"
+" \n"
+" At present, there are 3 distinct criteria used to search for bad slices,\n"
+" by default.  The list of bad slices from each method are combined through\n"
+" a union operation, so that any slice identified as 'bad' by any of the\n"
+" criteria is evaluated as 'bad' in the end.  The set of criteria might\n"
+" grow over time.\n"
+"\n"
+" As of March 30, 2022, users have the option of turning of any of the\n"
+" criteria, via the '-dont_use_*' options.\n"
+" \n"
+" The current criteria are described by keyword as follows (see the next\n"
+" section for definitions of slipar, slicorr, and other mysterious\n"
+" quantities):\n"
+" \n"
+" 'streak' criterion\n"
+"   Walk upwards through slices in the volume.  If the absolute value of\n"
+"   differences in slipar values stays high, you may have badness.\n"
+"   MIN_STREAK_WARN is the magnitude threshold for judging if differences\n"
+"   are high.\n"
+"   MIN_STREAK_LEN is the minimal number of consecutive slices that have to\n"
+"   have high differences to be a sign of badness.\n"
+" \n"
+" 'drop' criterion\n"
+"   If a particular slice has a very high slipar magnitude, you may have\n"
+"   badness.\n"
+"   BOUND is the threshold magnitude for that.\n"
+"   If the absolute difference in slipar between neighboring slices is very\n"
+"   high, you may have badness.\n"
+"   MIN_DROP_DIFF is the threshold for judging if the absolute difference\n"
+"   is large enough to be a sign of badness.\n"
+" \n"
+" 'corr' criterion\n"
+"   Walk upwards through slices in the volume.  If slicorr values are\n"
+"   strongly anticorrelated for several slices in a row, you may have\n"
+"   badness.\n"
+"   MIN_CORR_CORR is the magnitude threshold for judging if anticorrelation\n"
+"   is high (the minus sign is applied internally).\n"
+"   MIN_CORR_LEN is the minimal number of consecutive slices that have to be\n"
+"   highly anticorrelated to be a sign of badness.\n"
+" \n"
+" Underlying quantities for drop criteria ~2~\n"
+" \n"
+" Many drop criteria depend on the calculated 'slice parameter' (slipar)\n"
+" values.  These are generated per slice as follows:\n"
+" + For each voxel in a slice, calculate its relative difference with its\n"
+"   'upstairs' neighbor:\n"
+"      reldiff(A, B) = 0.5*(A - B)/(abs(A) + abs(B)).\n"
+" + Calculate the number of times reldiff is positive in a slice, divide that\n"
+"   by the total number of voxels in the slice, and subtract 0.5 (to center\n"
+"   that quantity around 0).  This is the slipar value per slice.\n"
+" \n"
+" Separately, we also 'slice correlation' (slicorr) values of a slice with\n"
+" its upstairs neighbor:\n"
+" + For each slice, make a time series by flattening the 2D array of slipar\n"
+"   values for voxels that exist in both that slice and its upstairs (call\n"
+"   that X).\n"
+" + Make a time series of flattening the matched upstairs neighbor slipar\n"
+"   values (call that Y).\n"
+" + The slicorr value per slices is the Pearson correlation value of X and Y.\n"
+" So, slicorr tells you something about how correlated your slice's reldiff\n"
+" patterns are with your upstairs neighbor.\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" \n"
+" EXAMPLES ~1~\n"
 " \n"
 "     1) All types of outputs:\n"
 "     3dZipperZapper                                    \\\n"
@@ -260,6 +339,10 @@ int main(int argc, char *argv[]) {
    int DO_OUT_SLIPAR=0;                   // output slice param map
    int DO_OUT_BADMASK=1;                  // output slice mask 
    int DO_OUT_TEXTVALS=1;                 // output text files 
+
+   int DO_FIND_STREAK = 1;                // switches for each bad criterion
+   int DO_FIND_DROP   = 1;
+   int DO_FIND_CORR   = 1;
 
    char A_ori[4], A_ori2[4];
 
@@ -395,6 +478,21 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-no_out_text_vals") == 0) {
          DO_OUT_TEXTVALS=0;
+         iarg++ ; continue ;
+      }
+
+      // ---------------- control badness criteria ---------------------
+
+      if( strcmp(argv[iarg],"-dont_use_streak") == 0) {
+         DO_FIND_STREAK=0;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-dont_use_drop") == 0) {
+         DO_FIND_DROP=0;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-dont_use_corr") == 0) {
+         DO_FIND_CORR=0;
          iarg++ ; continue ;
       }
 
@@ -657,26 +755,29 @@ int main(int argc, char *argv[]) {
    // --------------- identify bad slices from counts ---------------
 
 
-   i = find_bad_slices_streak( slipar,
-                               Nmskd,
-                               slibad,
-                               Dim,
-                               MIN_STREAK_LEN,
-                               MIN_STREAK_WARN );
+   if ( DO_FIND_STREAK )
+      i = find_bad_slices_streak( slipar,
+                                  Nmskd,
+                                  slibad,
+                                  Dim,
+                                  MIN_STREAK_LEN,
+                                  MIN_STREAK_WARN );
    
-   i = find_bad_slices_drop( slipar,
-                             Nmskd,
-                             slibad,
-                             Dim,
-                             MIN_DROP_DIFF,
-                             MIN_DROP_FRAC );
+   if ( DO_FIND_DROP )
+      i = find_bad_slices_drop( slipar,
+                                Nmskd,
+                                slibad,
+                                Dim,
+                                MIN_DROP_DIFF,
+                                MIN_DROP_FRAC );
 
-   i = find_bad_slices_corr( slicorr,
-                             Nmskd,
-                             slibad,
-                             Dim,
-                             MIN_CORR_LEN,
-                             MIN_CORR_CORR );
+   if ( DO_FIND_CORR )
+      i = find_bad_slices_corr( slicorr,
+                                Nmskd,
+                                slibad,
+                                Dim,
+                                MIN_CORR_LEN,
+                                MIN_CORR_CORR );
 
    // keep track of badness
    for( m=0 ; m<Dim[3] ; m++ ) {
