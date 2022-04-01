@@ -1864,12 +1864,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             } else if (SUMAg_CF->N_ClipPlanes>=1){    // Toggle plane 1 off/on
                 clipPlaneTransform(0,0,0,0,0, 1, 0);
                 previouslyActive[0] = active[0];
-                clipPlaneTransform(0,0,0,0,0, 0, 0);
-                lightenActiveClipPlaneSquare(0);
-                darkenInactiveClipPlaneSquares(0);
+                if (active[0]){
+                    clipPlaneTransform(0,0,0,0,0, 0, 0);
+                    lightenActiveClipPlaneSquare(0);
+                    darkenInactiveClipPlaneSquares(0);
+                }
             }
             activeClipPlanes = activeClippingPlanes();
-            locallySelectedPlane = 0;
+            if (active[0]) locallySelectedPlane = 0;
         }
         break;
     case XK_2:
@@ -1881,12 +1883,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             } else {        // Toggle plane 2 off/on
                 clipPlaneTransform(0,0,0,0,1, 1, 0);
                 previouslyActive[1] = active[1];
-                clipPlaneTransform(0,0,0,0,1, 0, 0);
-                lightenActiveClipPlaneSquare(1);
-                darkenInactiveClipPlaneSquares(1);
+                if (active[1]){
+                    clipPlaneTransform(0,0,0,0,1, 0, 0);
+                    lightenActiveClipPlaneSquare(1);
+                    darkenInactiveClipPlaneSquares(1);
+                }
             }
             activeClipPlanes = activeClippingPlanes();
-            locallySelectedPlane = 1;
+            if (active[1]) locallySelectedPlane = 1;
         }
      break;
     case XK_3:
@@ -1898,12 +1902,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 } else {        // Toggle plane 3 off/on
                     clipPlaneTransform(0,0,0,0,2, 1, 0);
                     previouslyActive[2] = active[2];
-                    clipPlaneTransform(0,0,0,0,2, 0, 0);
-                    lightenActiveClipPlaneSquare(2);
-                    darkenInactiveClipPlaneSquares(2);
+                    if (active[2]){
+                        clipPlaneTransform(0,0,0,0,2, 0, 0);
+                        lightenActiveClipPlaneSquare(2);
+                        darkenInactiveClipPlaneSquares(2);
+                    }
                 }
                 activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 2;
+                if (active[2]) locallySelectedPlane = 2;
             }
      break;
     case XK_4:
@@ -1915,12 +1921,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,3, 1, 0);
                     previouslyActive[3] = active[3];
-                    clipPlaneTransform(0,0,0,0,3, 0, 0);
-                    lightenActiveClipPlaneSquare(3);
-                    darkenInactiveClipPlaneSquares(3);
+                    if (active[3]) {
+                        clipPlaneTransform(0,0,0,0,3, 0, 0);
+                        lightenActiveClipPlaneSquare(3);
+                        darkenInactiveClipPlaneSquares(3);
+                    }
                 }
                 activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 3;
+                if (active[3]) locallySelectedPlane = 3;
             }
      break;
     case XK_5:
@@ -1932,12 +1940,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 } else {        // Toggle plane 4 off/on
                     clipPlaneTransform(0,0,0,0,4, 1, 0);
                     previouslyActive[4] = active[4];
-                    clipPlaneTransform(0,0,0,0,4, 0, 0);
-                    lightenActiveClipPlaneSquare(4);
-                    darkenInactiveClipPlaneSquares(4);
+                    if (active[4]){
+                        clipPlaneTransform(0,0,0,0,4, 0, 0);
+                        lightenActiveClipPlaneSquare(4);
+                        darkenInactiveClipPlaneSquares(4);
+                    }
                 }
                 activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 4;
+                if (active[4]) locallySelectedPlane = 4;
             }
      break;
     case XK_6:
@@ -1949,12 +1959,14 @@ int SUMA_Numeral_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 } else {        // Toggle plane 6 off/on
                     clipPlaneTransform(0,0,0,0,5, 1, 0);
                     previouslyActive[5] = active[5];
-                    clipPlaneTransform(0,0,0,0,5, 0, 0);
-                    lightenActiveClipPlaneSquare(5);
-                    darkenInactiveClipPlaneSquares(5);
+                    if (active[5]){
+                        clipPlaneTransform(0,0,0,0,5, 0, 0);
+                        lightenActiveClipPlaneSquare(5);
+                        darkenInactiveClipPlaneSquares(5);
+                    }
                 }
                 activeClipPlanes = activeClippingPlanes();
-                locallySelectedPlane = 5;
+                if (active[5]) locallySelectedPlane = 5;
             }
      break;
     case XK_7:
