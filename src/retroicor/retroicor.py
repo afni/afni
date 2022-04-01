@@ -5,9 +5,11 @@ from matplotlib import pyplot as plt
 import math
 import scipy
 from scipy.signal import find_peaks
+import pandas as pd
 
 # Glocal constants
 M = 3
+numSections = 1
 
 class retroicorClass:
 
@@ -280,7 +282,16 @@ def getPhysiologicalNoiseComponents(parameters):
     respiratory_phases = determineRespiratoryPhases(parameters, \
             respiratory_peaks, respiratory_troughs)
         
-    if (parameters['-ab1']):    # a and b coefficients set to 1.0
+    if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
+                                # Resonance in Medicine 44:162–167 (2000)
+        # Get a coefficients
+        cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
+        respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
+        
+        # Get b coefficients
+        cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
+        respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
+    else:   # a and b coefficients set to 1.0
         cardiacACoeffs = [1.0]
         respiratoryACoeffs = [1.0]
         cardiacBCoeffs = [1.0]
@@ -289,48 +300,67 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratoryACoeffs.append(1.0)
         cardiacBCoeffs.append(1.0)
         respiratoryBCoeffs.append(1.0)
-    else:   # Determine a and b coefficients as per Glover et al, Magnetic 
-            # Resonance in Medicine 44:162–167 (2000)
-        # Get a coefficients
-        cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
-        respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
-        
-        # Get b coefficients
-        cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
-        respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
     
     global M
+    global numSections
     
-    output = []
+    # Initialize output table
+    df = pd.DataFrame()
+    
+    # Make output table columns names
+    columnNames = []
+    for s in range(0,numSections):
+        for r in range(0,4):
+            string = 's' + str(s) + '.Resp' + str(r)
+            columnNames.append(string)
+    for s in range(0,numSections):
+        for r in range(0,4):
+            string = 's' + str(s) + '.Card' + str(r)
+            columnNames.append(string)
+        
+    # Make output table data matrix
+    data = []
     T = len(respiratory_phases)
     for t in range(0,T):
         sum = 0
+        addend = []
         for m in range(1,M):
             m0 = m - 1
-            sum = sum + cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]) + \
-                cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]) + \
-                   respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]) + \
-                       respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t])
-        output.append(sum)
+            addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
+            addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+        for m in range(1,M):
+            m0 = m - 1
+            addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
+            addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+        data.append(addend)
+    
+    df = pd.DataFrame(data,columns=columnNames)
         
-    return output    
+    return df    
 
-def runAnalysis(cardiacFile, respiratoryFile, outputFile, ab1):
+def runAnalysis(cardiacFile, respiratoryFile, outputFile, abt, aby):
     # parameters = retroicorClass.getParameters()
     
     parameters=dict()
     parameters['-c'] = cardiacFile
-    parameters['-r'] = cardiacFile
-    parameters['-ab1'] = ab1
+    parameters['-r'] = respiratoryFile
+    parameters['-abt'] = abt
+    parameters['-aby'] = aby
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     
-    plt.plot(physiologicalNoiseComponents)
+    physiologicalNoiseComponents.to_csv(outputFile)
     
-    # Write resulting profile to 1D output text file
-    with open(outputFile, 'w') as f:
-        for item in physiologicalNoiseComponents:
-            f.write("%s\n" % item)
+    # PLot first 200 rows of dataframe
+    colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
+    physiologicalNoiseComponents.head(200).plot(color=colors)
+    
+    # plt.plot(physiologicalNoiseComponents)
+    
+    # # Write resulting profile to 1D output text file
+    # with open(outputFile, 'w') as f:
+    #     for item in physiologicalNoiseComponents:
+    #         f.write("%s\n" % item)
     
 
 

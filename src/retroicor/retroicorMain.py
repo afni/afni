@@ -26,19 +26,20 @@ retroicorMain.py - a main python program, to model cardiac and respratory contri
 
    Terminal options:
 
-      -help                     : show this help
-      -hist                     : show module history
-      -show_valid_opts          : list valid options
-      -ver                      : show current version
+      -help                     : Show this help
+      -hist                     : Show module history
+      -show_valid_opts          : List valid options
+      -ver                      : Show current version
 
    Other options:
-      -verb LEVEL               : set the verbosity level
-      -ab1                      : Set a and b coefficients to 1.0 (Default = false)
+      -verb LEVEL               : Set the verbosity level
+      -abt 0|1                  : Output a and b coefficients to terminal (Default = false)
+      -aby 0|1                  : Output time series based on a,b coefficients (Default = false)                      
       
    Required options:
-      -r                        : read the given 1D text file containing respiration data
-      -c                        : read the given 1D text file containing ECG data
-      -o                        : Output filename
+      -r <name>                 : Read the given 1D text file containing respiration data
+      -c <name>                 : Read the given 1D text file containing ECG data
+      -o <name>                 : Output filename
 
 -----------------------------------------------------------------------------
 PD Lauren    March 2022
@@ -72,7 +73,8 @@ class MyInterface:
       self.cardiacFile     = cardiacFile
       self.respiratoryFile = respiratoryFile
       self.outputFile = outputFile
-      self.ab1 = False
+      self.abt = False
+      self.aby = False
 
       # initialize valid_opts
       self.init_options()
@@ -81,28 +83,30 @@ class MyInterface:
       self.valid_opts = OL.OptionList('valid opts')
 
       # short, terminal arguments
-      self.valid_opts.add_opt('-help', 0, [],           \
-                      helpstr='display program help')
+      self.valid_opts.add_opt('-Help', 0, [],           \
+                      helpstr='Display program help')
       self.valid_opts.add_opt('-hist', 0, [],           \
-                      helpstr='display the modification history')
+                      helpstr='Display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
-                      helpstr='display all valid options')
+                      helpstr='Display all valid options')
       self.valid_opts.add_opt('-ver', 0, [],            \
-                      helpstr='display the current version number')
-      self.valid_opts.add_opt('-ab1', 1, [],            \
-                      helpstr='set a and b coefficient to 1.0 (Default = False')
+                      helpstr='Display the current version number')
+      self.valid_opts.add_opt('-abt', 1, [],            \
+                      helpstr='Output a and b coefficients to terminal (Default = false)')
+      self.valid_opts.add_opt('-aby', 1, [],            \
+                      helpstr='Output time series based on a,b coefficients (Default = false)')
 
       # required parameters
       self.valid_opts.add_opt('-r', 1, [], 
-                      helpstr='read the given 1D text file containing respiration data (Required)')
+                      helpstr='Read the given 1D text file containing respiration data (Required)')
       self.valid_opts.add_opt('-c', 1, [], 
-                      helpstr='read the given 1D text file containing ECG data (Required)')
+                      helpstr='Read the given 1D text file containing ECG data (Required)')
       self.valid_opts.add_opt('-o', 1, [], 
-                      helpstr='output filename (Required)')
+                      helpstr='Output filename (Required)')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
-                      helpstr='set the verbose level (default is 1)')
+                      helpstr='Set the verbose level (default is 1)')
 
       return 0
 
@@ -178,11 +182,18 @@ class MyInterface:
             else: self.verb = val
             continue
 
-         elif opt.name == '-ab1':
+         elif opt.name == '-abt':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
             else:
-                self.ab1 = val
+                self.abt = val
+            continue
+
+         elif opt.name == '-aby':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.aby = val
             continue
       
       # Check required options supplied
@@ -200,7 +211,7 @@ class MyInterface:
          print('-- processing...')
          
       retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile, \
-                            self.outputFile, self.ab1)
+                            self.outputFile, self.abt, self.aby)
 
       return 0
 
