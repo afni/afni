@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_MODIFY,
+   "Actually output the number of bad slices per volume.",
+   "Previously had some ~fancy encoding about criterion of badness (why?).\n"
+},
+
 { 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "New opts '-dont_use_*' to turn off some of the drop criteria at will.",
    "Also put in help descriptions about drop criteria, in Notes.\n"

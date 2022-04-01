@@ -783,7 +783,13 @@ int main(int argc, char *argv[]) {
    for( m=0 ; m<Dim[3] ; m++ ) {
       for( k=0 ; k<maxk ; k++) 
          if( slibad[m][k] ) 
-            volbad[m]+= slibad[m][k];
+            /* [PT: 1 Apr 2022] change of behavior here: just
+               accumulate the number of bad slices, simply; that is
+               surely the information that would be most useful,
+               rather than encoding which criterion led to the badness
+               (which it wasn't doing anyways)
+            */
+            volbad[m]+= 1; //slibad[m][k];
       if( volbad[m] )
          Nvolbad++;
    }
