@@ -408,7 +408,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   //INFO_message("version: 2018_02_06");
+   INFO_message("version: 2018_02_06");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
