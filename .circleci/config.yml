@@ -380,6 +380,9 @@ jobs:
         type: string
     docker:
       - image: afni/afni_circleci_executor
+    # PT: add this 'parallelism' in, based on this suggestion from CircleCI:
+    #     https://circleci.com/docs/2.0/parallelism-faster-jobs/
+    parallelism: 4
     steps:
       - checkout_afni
       - setup_remote_docker:
