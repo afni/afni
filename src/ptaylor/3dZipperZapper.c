@@ -47,6 +47,16 @@ int make_goodstring_from_badlist( char *goodstring,
                                   int *Dim
                                   );
 
+// someday might make a struct for these params...
+int disp_zipzap_criteria_params( int   MIN_NMSKD,
+                                 int   MIN_STREAK_LEN,
+                                 float MIN_STREAK_VAL,
+                                 float MIN_DROP_DIFF,
+                                 float MIN_DROP_FRAC,
+                                 int   MIN_CORR_LEN ,
+                                 float MIN_CORR_CORR);
+
+
 /* maybe come back to later...
 int do_calc_entrop( float **diffarr,
                     int *Nmskd2,
@@ -175,11 +185,17 @@ void usage_ZipperZapper(int detail)
 " \n"
 "         ... and for having fine control of drop criteria parameters:\n"
 " \n"
+"    -disp_def_params\n"
+"                 :display the defaults for each of the following parameters.\n"
+"                  NB: the value for MIN_SLICE_NVOX will be '-1', meaning\n"
+"                  that the number of voxels will be calculated from the\n"
+"                  slice size---see the option help, below.\n"
+" \n"
 "    -min_slice_nvox  N\n"
 "                 :set the minimum number of voxels to be in the mask\n"
 "                  for a given slice to be included in the calcs. \n"
 "                  N must be >0 (and likely much more so, to be useful).\n"
-"                  Default: use 10 percent of the axial slice's size.\n"
+"                  Default: use 10 percent of the axial slice's nvox.\n"
 " \n"
 "    -min_streak_len  MSL\n"
 "                 :set the minimum number of slices in a row to look for\n"
@@ -340,8 +356,7 @@ int main(int argc, char *argv[]) {
 
    int *Nmskd=NULL;                // num of vox in slice inp mask
    int *Nmskd2=NULL;               // num of vox in slice dil mask
-   int MIN_NMSKD = -1;             // calc how many vox/sli
-                                   // are needed for calc
+
    int mink = -1, maxk = -1;
    int upk = -1, delsli = -1;      // some loop pars
    
@@ -357,11 +372,13 @@ int main(int argc, char *argv[]) {
    int Nvolbad=0, Nvolgood=-1;
 
    int   MIN_STREAK_LEN  = 4;      // alternating streak
-   float MIN_STREAK_VAL = 0.3;    // seq of diffs of this mag -> BAD
+   float MIN_STREAK_VAL  = 0.3;    // seq of diffs of this mag -> BAD
    float MIN_DROP_DIFF   = 0.7;    // any diff of this mag -> BAD 
    float MIN_DROP_FRAC   = 0.05;   // any frac outside this edge -> BAD
    int   MIN_CORR_LEN    = 4;      //
    float MIN_CORR_CORR   = 0.3;
+   int   MIN_NMSKD       = -1;     // calc how many vox/sli
+                                   // are needed for calc
 
    double *xx=NULL, *yy=NULL;      // tmp arrs for corr calc
 
@@ -391,7 +408,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_02_06");
+   //INFO_message("version: 2018_02_06");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
@@ -400,6 +417,17 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_ZipperZapper(strlen(argv[iarg])>3 ? 2:1);
+         exit(0);
+      }
+		
+      if( strcmp(argv[iarg],"-disp_def_params") == 0 ) {
+         i = disp_zipzap_criteria_params( MIN_NMSKD,
+                                          MIN_STREAK_LEN,
+                                          MIN_STREAK_VAL,
+                                          MIN_DROP_DIFF,
+                                          MIN_DROP_FRAC,
+                                          MIN_CORR_LEN ,
+                                          MIN_CORR_CORR);
          exit(0);
       }
 		
@@ -699,6 +727,15 @@ int main(int argc, char *argv[]) {
    // *************************************************************
    // *************************************************************
 	
+   i = disp_zipzap_criteria_params( MIN_NMSKD,
+                                    MIN_STREAK_LEN,
+                                    MIN_STREAK_VAL,
+                                    MIN_DROP_DIFF,
+                                    MIN_DROP_FRAC,
+                                    MIN_CORR_LEN ,
+                                    MIN_CORR_CORR);
+
+   
    INFO_message("Masking and counting.");
 
    // go through once: define data vox
@@ -1269,16 +1306,6 @@ int find_bad_slices_corr( float **slicorr,
 
 
 
-
-
-
-
-
-
-
-
-
-
 // ---------------------------------------------------------
 int find_bad_slices_streak( float **slipar,
                             int *Nmskd,
@@ -1371,6 +1398,32 @@ int make_goodstring_from_badlist( char *goodstring,
    //NI_delete_int_array(iar);
    return 0;
 }
+
+// ------------------------------------------------------------------
+
+int disp_zipzap_criteria_params( int   MIN_NMSKD,
+                                 int   MIN_STREAK_LEN,
+                                 float MIN_STREAK_VAL,
+                                 float MIN_DROP_DIFF,
+                                 float MIN_DROP_FRAC,
+                                 int   MIN_CORR_LEN ,
+                                 float MIN_CORR_CORR)
+{
+   
+   fprintf(stderr, "++ Currently using these parameters for drop criteria:\n");
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_NMSKD",      MIN_NMSKD);     
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_STREAK_LEN", MIN_STREAK_LEN);
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_STREAK_VAL", MIN_STREAK_VAL);
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_DROP_DIFF",  MIN_DROP_DIFF); 
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_DROP_FRAC",  MIN_DROP_FRAC); 
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_CORR_LEN" ,  MIN_CORR_LEN);  
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_CORR_CORR",  MIN_CORR_CORR); 
+   
+   return 1;
+}
+
+
+
 
 
 // ---------------------------------------------------------

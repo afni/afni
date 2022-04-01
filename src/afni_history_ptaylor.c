@@ -70,6 +70,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 { 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "Add '-disp_def_params' so the user can see the default params.",
+   "The params will also now get displayed during runtime.\n"
+},
+
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "Add many more '-min_* ..' options for controlling badness criteria.",
    "Asked for by user nseider: hope these are helpful!\n"
 },
