@@ -383,10 +383,12 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                  $eset$view $prefix.mean_signal.1D
       endif
 
+      # extract ulay volume
+      3dbucket -prefix $ulay $eset_orig$view'[0]'
+
       # if cleaning, hide what we want to keep
       # (to easily delete the rest)
       if ( $do_clean == yes ) then
-          3dbucket -prefix $ulay $eset_orig$view'[0]'
           \mv $ulay* $clean_dir
           \cp $cset$view* $clean_dir
       endif
@@ -833,6 +835,7 @@ $prog modification history:
    0.7  : Mar  7, 2022: add -polort; minor cleanup
           - new default: detrend with polort $polort
    0.8  : Mar 17, 2022: change saved ulay to be from orig EPI
+   0.9  : Apr  1, 2022: extract ulay also in non-clean case
 
 EOF
 

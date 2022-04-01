@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Apr, 2022, RCR, "@radial_correlate", MICRO, TYPE_BUG_FIX,
+   "create ulay in all cases",
+   NULL
+ } ,
+
  { 22, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add ap_uvars dir_suma_spec, suma_specs",
    "Also, remove inappropriate -epi_strip from -align_opts_aea in example."
