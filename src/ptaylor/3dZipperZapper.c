@@ -25,7 +25,7 @@ int find_bad_slices_streak( float **slipar,
                             int **slibad,
                             int *Dim,
                             int   MIN_STREAK_LEN,
-                            float MIN_STREAK_WARN );
+                            float MIN_STREAK_VAL );
 
 int find_bad_slices_drop( float **slipar,
                           int *Nmskd,
@@ -47,6 +47,16 @@ int make_goodstring_from_badlist( char *goodstring,
                                   int *Dim
                                   );
 
+// someday might make a struct for these params...
+int disp_zipzap_criteria_params( int   MIN_NMSKD,
+                                 int   MIN_STREAK_LEN,
+                                 float MIN_STREAK_VAL,
+                                 float MIN_DROP_DIFF,
+                                 float MIN_DROP_FRAC,
+                                 int   MIN_CORR_LEN ,
+                                 float MIN_CORR_CORR);
+
+
 /* maybe come back to later...
 int do_calc_entrop( float **diffarr,
                     int *Nmskd2,
@@ -59,7 +69,7 @@ int do_calc_entrop( float **diffarr,
 void usage_ZipperZapper(int detail) 
 {
    printf(
-" # ------------------------------------------------------------------------\n"
+" OVERVIEW ~1~\n"
 " \n"
 " This is a basic program to help highlight problematic volumes in data\n"
 " sets, specifically in EPI/DWI data sets with interleaved acquisition.\n"
@@ -99,7 +109,7 @@ void usage_ZipperZapper(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" USAGE:\n"
+" USAGE ~1~\n"
 " \n"
 "     Input: + a 3D+time data set of DWI or EPI volumes,\n"
 "            + a mask of the brain-ish region.\n"
@@ -115,7 +125,7 @@ void usage_ZipperZapper(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" COMMAND: \n"
+" COMMAND ~1~\n"
 "  \n"
 "  3dZipperZapper                                            \\\n"
 "      -input FFF  {-mask MMM}                               \\\n"
@@ -129,6 +139,7 @@ void usage_ZipperZapper(int detail)
 "    where:\n"
 " \n"
 "    -input FFF   :input the 3D+time file of DWIs or EPIs.\n"
+" \n"
 "    -mask MMM    :optional input of a single volume mask file, which \n"
 "                  gets applied to the each volume in FFF.  Otherwise,\n"
 "                  the dataset is assumed to be masked already.\n"
@@ -137,28 +148,16 @@ void usage_ZipperZapper(int detail)
 "                  extension included here (e.g., '.nii.gz') is\n"
 "                  propagated to any output volumetric dsets.\n"
 " \n"
-"    -min_slice_nvox N\n"
-"                 :set the minimum number of voxels to be in the mask\n"
-"                  for a given slice to be included in the calcs. \n"
-"                  N must be >0 (and likely much more so, to be useful).\n"
-"                  Default: use 10 percent of the axial slice's size.\n"
-"    -min_streak_len L\n"
-"                 :set the minimum number of slices in a row to look for\n"
-"                  fluctuations within (def: L=4).  That is, if 'large\n"
-"                  enough' fluctuations are found in L consecutive slices,\n"
-"                  then the volume is flagged for motion.  A larger L means\n"
-"                  that more slices need to vary for a volume to be flagged\n"
-"                  for 'brightness fluctuations'.  NB: this does parameter\n"
-"                  setting does not affect the search for dropout slices.\n"
-" \n"
 "    -do_out_slice_param\n"
 "                 :output the map of slice parameters (not done by\n"
 "                  default).  Might be of interest for investigating\n"
 "                  data.  Output file name base will be: PPP_param.\n"
+" \n"
 "    -no_out_bad_mask\n"
 "                 :do *not* output the mask of 'bad' slices that shows\n"
 "                  which volumes are considered bad (is output by\n"
 "                  default). Output file name base will be: PPP_badmask.\n"
+" \n"
 "    -no_out_text_vals\n"
 "                 :do *not* output the 1D files of the slice parameter\n"
 "                  values (are output by default). The list of slices\n"
@@ -166,9 +165,141 @@ void usage_ZipperZapper(int detail)
 "                  values per slice per volume (file name: PPP_param.1D)\n"
 "                  are output.\n"
 " \n"
+" \n"
+"         ... and for having fine control of which drop criteria to use\n"
+"             (def: use all available, see listing in NOTES):\n"
+" \n"
+"   -dont_use_streak :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'streak'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+"   -dont_use_drop :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'drop'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+"   -dont_use_corr :\n"
+"                 :several criteria are used to search for bad slices.\n"
+"                  Using this opt, you elect to turn off the 'corr'\n"
+"                  criterion.  See the NOTES below for more description.\n"
+" \n"
+" \n"
+"         ... and for having fine control of drop criteria parameters:\n"
+" \n"
+"    -disp_def_params\n"
+"                 :display the defaults for each of the following parameters.\n"
+"                  NB: the value for MIN_SLICE_NVOX will be '-1', meaning\n"
+"                  that the number of voxels will be calculated from the\n"
+"                  slice size---see the option help, below.\n"
+" \n"
+"    -min_slice_nvox  N\n"
+"                 :set the minimum number of voxels to be in the mask\n"
+"                  for a given slice to be included in the calcs. \n"
+"                  N must be >0 (and likely much more so, to be useful).\n"
+"                  Default: use 10 percent of the axial slice's nvox.\n"
+" \n"
+"    -min_streak_len  MSL\n"
+"                 :set the minimum number of slices in a row to look for\n"
+"                  fluctuations within (def: MSL=4).  That is, if 'large\n"
+"                  enough' fluctuations are found in L consecutive slices,\n"
+"                  then the volume is flagged for motion.  A larger MSL means\n"
+"                  that more slices need to vary for a volume to be flagged\n"
+"                  for 'brightness fluctuations'.  NB: this does parameter\n"
+"                  setting does not affect the search for dropout slices.\n"
+"                  Part of 'streak' criterion; see NOTES for more details.\n"
+"    -min_streak_val  MSV\n"
+"                 :set the minimum magnitude of voxelwise relative diffs\n"
+"                  to perhaps be problematic.\n"
+"                  Part of 'streak' criterion; see NOTES for more details.\n"
+" \n"
+"    -min_drop_frac  MDF\n"
+"                 :set the minimum fraction for judging if the change in\n"
+"                  'slice parameter' differences between neighboring slices \n"
+"                  might be a sign of badness.\n"
+"                  Part of 'drop' criterion; see NOTES for more details.\n"
+"    -min_drop_diff  MDD\n"
+"                 :set the minimum 'slice parameter' value within a single\n"
+"                  slice that might be considered bad sign (e.g., of\n"
+"                  dropout).\n"
+"                  Part of 'drop' criterion; see NOTES for more details.\n"
+" \n"
+"    -min_corr_len  MCL\n"
+"                 :set the minimum number of slices in a row to look for\n"
+"                  consecutive anticorrelations in brightness differences.\n"
+"                  Part of 'corr' criterion; see NOTES for more details.\n"
+"    -min_corr_corr  MCC\n"
+"                 :set the threshold for the magnitude of anticorrelations\n"
+"                  to be considered potentially bad.\n"
+"                  Part of 'corr' criterion; see NOTES for more details.\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" NOTES ~1~\n"
+" \n"
+" Drop Criteria ~2~\n"
+" \n"
+" At present, there are 3 distinct criteria used to search for bad slices,\n"
+" by default.  The list of bad slices from each method are combined through\n"
+" a union operation, so that any slice identified as 'bad' by any of the\n"
+" criteria is evaluated as 'bad' in the end.  The set of criteria might\n"
+" grow over time.\n"
+"\n"
+" As of March 30, 2022, users have the option of turning of any of the\n"
+" criteria, via the '-dont_use_*' options.\n"
+" \n"
+" The current criteria are described by keyword as follows (see the next\n"
+" section for definitions of slipar, slicorr, and other mysterious\n"
+" quantities):\n"
+" \n"
+" 'streak' criterion\n"
+"   Walk upwards through slices in the volume.  If the absolute value of\n"
+"   differences in slipar values stays high, you may have badness.\n"
+"   MIN_STREAK_VAL is the magnitude threshold for judging if differences\n"
+"   are high.\n"
+"   MIN_STREAK_LEN is the minimal number of consecutive slices that have to\n"
+"   have high differences to be a sign of badness.\n"
+" \n"
+" 'drop' criterion\n"
+"   If a particular slice has a very high slipar magnitude, you may have\n"
+"   badness.\n"
+"   BOUND is the threshold magnitude for that.\n"
+"   If the absolute difference in slipar between neighboring slices is very\n"
+"   high, you may have badness.\n"
+"   MIN_DROP_DIFF is the threshold for judging if the absolute difference\n"
+"   is large enough to be a sign of badness.\n"
+" \n"
+" 'corr' criterion\n"
+"   Walk upwards through slices in the volume.  If slicorr values are\n"
+"   strongly anticorrelated for several slices in a row, you may have\n"
+"   badness.\n"
+"   MIN_CORR_CORR is the magnitude threshold for judging if anticorrelation\n"
+"   is high (the minus sign is applied internally).\n"
+"   MIN_CORR_LEN is the minimal number of consecutive slices that have to be\n"
+"   highly anticorrelated to be a sign of badness.\n"
+" \n"
+" Underlying quantities for drop criteria ~2~\n"
+" \n"
+" Many drop criteria depend on the calculated 'slice parameter' (slipar)\n"
+" values.  These are generated per slice as follows:\n"
+" + For each voxel in a slice, calculate its relative difference with its\n"
+"   'upstairs' neighbor:\n"
+"      reldiff(A, B) = 0.5*(A - B)/(abs(A) + abs(B)).\n"
+" + Calculate the number of times reldiff is positive in a slice, divide that\n"
+"   by the total number of voxels in the slice, and subtract 0.5 (to center\n"
+"   that quantity around 0).  This is the slipar value per slice.\n"
+" \n"
+" Separately, we also 'slice correlation' (slicorr) values of a slice with\n"
+" its upstairs neighbor:\n"
+" + For each slice, make a time series by flattening the 2D array of slipar\n"
+"   values for voxels that exist in both that slice and its upstairs (call\n"
+"   that X).\n"
+" + Make a time series of flattening the matched upstairs neighbor slipar\n"
+"   values (call that Y).\n"
+" + The slicorr value per slices is the Pearson correlation value of X and Y.\n"
+" So, slicorr tells you something about how correlated your slice's reldiff\n"
+" patterns are with your upstairs neighbor.\n"
+" \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" EXAMPLE:\n"
+" EXAMPLES ~1~\n"
 " \n"
 "     1) All types of outputs:\n"
 "     3dZipperZapper                                    \\\n"
@@ -225,8 +356,7 @@ int main(int argc, char *argv[]) {
 
    int *Nmskd=NULL;                // num of vox in slice inp mask
    int *Nmskd2=NULL;               // num of vox in slice dil mask
-   int MIN_NMSKD = -1;             // calc how many vox/sli
-                                   // are needed for calc
+
    int mink = -1, maxk = -1;
    int upk = -1, delsli = -1;      // some loop pars
    
@@ -242,17 +372,20 @@ int main(int argc, char *argv[]) {
    int Nvolbad=0, Nvolgood=-1;
 
    int   MIN_STREAK_LEN  = 4;      // alternating streak
-   float MIN_STREAK_WARN = 0.3;    // seq of diffs of this mag -> BAD
+   float MIN_STREAK_VAL  = 0.3;    // seq of diffs of this mag -> BAD
    float MIN_DROP_DIFF   = 0.7;    // any diff of this mag -> BAD 
    float MIN_DROP_FRAC   = 0.05;   // any frac outside this edge -> BAD
    int   MIN_CORR_LEN    = 4;      //
    float MIN_CORR_CORR   = 0.3;
+   int   MIN_NMSKD       = -1;     // calc how many vox/sli
+                                   // are needed for calc
 
    double *xx=NULL, *yy=NULL;      // tmp arrs for corr calc
 
    THD_3dim_dataset *baddset=NULL;          // output dset of diffs
    float **diffarr=NULL;
    THD_3dim_dataset *diffdset=NULL;         // output dset of diffs
+   float denom;
 
 	char dset_or[4] = "RAI";
 	THD_3dim_dataset *dsetn=NULL;
@@ -260,6 +393,10 @@ int main(int argc, char *argv[]) {
    int DO_OUT_SLIPAR=0;                   // output slice param map
    int DO_OUT_BADMASK=1;                  // output slice mask 
    int DO_OUT_TEXTVALS=1;                 // output text files 
+
+   int DO_FIND_STREAK = 1;                // switches for each bad criterion
+   int DO_FIND_DROP   = 1;
+   int DO_FIND_CORR   = 1;
 
    char A_ori[4], A_ori2[4];
 
@@ -280,6 +417,17 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_ZipperZapper(strlen(argv[iarg])>3 ? 2:1);
+         exit(0);
+      }
+		
+      if( strcmp(argv[iarg],"-disp_def_params") == 0 ) {
+         i = disp_zipzap_criteria_params( MIN_NMSKD,
+                                          MIN_STREAK_LEN,
+                                          MIN_STREAK_VAL,
+                                          MIN_DROP_DIFF,
+                                          MIN_DROP_FRAC,
+                                          MIN_CORR_LEN ,
+                                          MIN_CORR_CORR);
          exit(0);
       }
 		
@@ -357,29 +505,6 @@ int main(int argc, char *argv[]) {
         iarg++ ; continue ;
         }
 
-      // Nvox per slice to include in mask; default: 10 of axi sli
-      if( strcmp(argv[iarg],"-min_streak_len") == 0 ){
-        iarg++ ; if( iarg >= argc ) 
-        ERROR_exit("Need argument after '-min_streak_len'");
-      
-        MIN_STREAK_LEN = atoi(argv[iarg]);
-        if( MIN_STREAK_LEN < 1)
-           ERROR_exit("Need a positive integer after '-min_streak_len'");
-
-        iarg++ ; continue ;
-        }
-
-      if( strcmp(argv[iarg],"-min_streak_val") == 0 ){
-        iarg++ ; if( iarg >= argc ) 
-        ERROR_exit("Need argument after '-min_streak_val'");
-      
-        MIN_STREAK_WARN = atof(argv[iarg]);
-        if( MIN_STREAK_WARN < 0)
-           ERROR_exit("Need a positive float after '-min_streak_val'");
-
-        iarg++ ; continue ;
-        }
-
 
       // ---------------- control output ---------------------
 
@@ -397,6 +522,92 @@ int main(int argc, char *argv[]) {
          DO_OUT_TEXTVALS=0;
          iarg++ ; continue ;
       }
+
+      // ---------------- control badness criteria ---------------------
+
+      if( strcmp(argv[iarg],"-dont_use_streak") == 0) {
+         DO_FIND_STREAK=0;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-dont_use_drop") == 0) {
+         DO_FIND_DROP=0;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-dont_use_corr") == 0) {
+         DO_FIND_CORR=0;
+         iarg++ ; continue ;
+      }
+
+      // ---------------- control criteria thresholds ---------------------
+
+      // for STREAK
+      if( strcmp(argv[iarg],"-min_streak_len") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_STREAK_LEN = atoi(argv[iarg]);
+        if( MIN_STREAK_LEN < 1)
+           ERROR_exit("Need a positive integer after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
+
+      if( strcmp(argv[iarg],"-min_streak_val") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_STREAK_VAL = atof(argv[iarg]);
+        if( MIN_STREAK_VAL < 0)
+           ERROR_exit("Need a positive float after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
+
+      // for DROP
+      if( strcmp(argv[iarg],"-min_drop_diff") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_DROP_DIFF = atof(argv[iarg]);
+        if( MIN_DROP_DIFF < 0)
+           ERROR_exit("Need a positive float after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
+
+      if( strcmp(argv[iarg],"-min_drop_frac") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_DROP_FRAC = atof(argv[iarg]);
+        if( MIN_DROP_FRAC < 0)
+           ERROR_exit("Need a positive float after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
+
+      // for CORR
+      if( strcmp(argv[iarg],"-min_corr_len") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_CORR_LEN = atoi(argv[iarg]);
+        if( MIN_CORR_LEN < 0)
+           ERROR_exit("Need a positive int after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
+
+      if( strcmp(argv[iarg],"-min_corr_corr") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+                    ERROR_exit("Need one argument after '%s'", argv[iarg-1]);
+
+        MIN_CORR_CORR = atof(argv[iarg]);
+        if( MIN_CORR_CORR < 0)
+           ERROR_exit("Need a positive float after '%s'", argv[iarg-1]);
+
+        iarg++ ; continue ;
+        }
 
       // ----------------- finish up -----------------
 
@@ -516,6 +727,19 @@ int main(int argc, char *argv[]) {
    // *************************************************************
    // *************************************************************
 	
+   /* don't add this in for now; reenable later on, and will have to
+      update testing (adds more terminal output text, and testing
+      diffs that)
+
+   i = disp_zipzap_criteria_params( MIN_NMSKD,
+                                    MIN_STREAK_LEN,
+                                    MIN_STREAK_VAL,
+                                    MIN_DROP_DIFF,
+                                    MIN_DROP_FRAC,
+                                    MIN_CORR_LEN ,
+                                    MIN_CORR_CORR);
+   */
+   
    INFO_message("Masking and counting.");
 
    // go through once: define data vox
@@ -573,11 +797,18 @@ int main(int argc, char *argv[]) {
                   mskd2[idx] = k+1;   // record sli as k+1 bc of zeros.
                   Nmskd2[k]+= 1;        // count nvox per sli in dil mask
                   for( m=0 ; m<Dim[3] ; m++ ) {
-                     diffarr[m][idx] = 0.5*(THD_get_voxel(insetA, idx, m) -
-                                            THD_get_voxel(insetA, upk, m) );
-                     diffarr[m][idx]/= fabs(THD_get_voxel(insetA, idx, m)) +
-                        fabs(THD_get_voxel(insetA, upk, m)) +
-                        0.0000001; // guard against double-zero val badness
+                     denom = fabs(THD_get_voxel(insetA, idx, m)) +
+                        fabs(THD_get_voxel(insetA, upk, m));
+                     if ( denom ){
+                        diffarr[m][idx] = 0.5*(THD_get_voxel(insetA, idx, m) -
+                                               THD_get_voxel(insetA, upk, m) );
+                        diffarr[m][idx]/= denom;
+                     }
+                     else
+                        diffarr[m][idx] = 0.0; // should never happen
+                     //diffarr[m][idx]/= fabs(THD_get_voxel(insetA, idx, m)) +
+                     //   fabs(THD_get_voxel(insetA, upk, m)) +
+                     //   0.0000001; // guard against double-zero val badness
                   }
                }
             }
@@ -657,32 +888,41 @@ int main(int argc, char *argv[]) {
    // --------------- identify bad slices from counts ---------------
 
 
-   i = find_bad_slices_streak( slipar,
-                               Nmskd,
-                               slibad,
-                               Dim,
-                               MIN_STREAK_LEN,
-                               MIN_STREAK_WARN );
+   if ( DO_FIND_STREAK )
+      i = find_bad_slices_streak( slipar,
+                                  Nmskd,
+                                  slibad,
+                                  Dim,
+                                  MIN_STREAK_LEN,
+                                  MIN_STREAK_VAL );
    
-   i = find_bad_slices_drop( slipar,
-                             Nmskd,
-                             slibad,
-                             Dim,
-                             MIN_DROP_DIFF,
-                             MIN_DROP_FRAC );
+   if ( DO_FIND_DROP )
+      i = find_bad_slices_drop( slipar,
+                                Nmskd,
+                                slibad,
+                                Dim,
+                                MIN_DROP_DIFF,
+                                MIN_DROP_FRAC );
 
-   i = find_bad_slices_corr( slicorr,
-                             Nmskd,
-                             slibad,
-                             Dim,
-                             MIN_CORR_LEN,
-                             MIN_CORR_CORR );
+   if ( DO_FIND_CORR )
+      i = find_bad_slices_corr( slicorr,
+                                Nmskd,
+                                slibad,
+                                Dim,
+                                MIN_CORR_LEN,
+                                MIN_CORR_CORR );
 
    // keep track of badness
    for( m=0 ; m<Dim[3] ; m++ ) {
       for( k=0 ; k<maxk ; k++) 
          if( slibad[m][k] ) 
-            volbad[m]+= slibad[m][k];
+            /* [PT: 1 Apr 2022] change of behavior here: just
+               accumulate the number of bad slices, simply; that is
+               surely the information that would be most useful,
+               rather than encoding which criterion led to the badness
+               (which it wasn't doing anyways)
+            */
+            volbad[m]+= 1; //slibad[m][k];
       if( volbad[m] )
          Nvolbad++;
    }
@@ -1070,23 +1310,13 @@ int find_bad_slices_corr( float **slicorr,
 
 
 
-
-
-
-
-
-
-
-
-
-
 // ---------------------------------------------------------
 int find_bad_slices_streak( float **slipar,
                             int *Nmskd,
                             int **slibad,
                             int *Dim,
                             int   MIN_STREAK_LEN,
-                            float MIN_STREAK_WARN )
+                            float MIN_STREAK_VAL )
 {
    int k,m,i;
    int topk = Dim[2] - MIN_STREAK_LEN; // max sli to check iteratively
@@ -1106,7 +1336,7 @@ int find_bad_slices_streak( float **slipar,
          if( THIS_SLI ) {
             IS_BAD = 1;
             for( i=0 ; i<MIN_STREAK_LEN ; i++ )
-               if( fabs(slipar[m][k+i]-slipar[m][k+i+1]) < MIN_STREAK_WARN )
+               if( fabs(slipar[m][k+i]-slipar[m][k+i+1]) < MIN_STREAK_VAL )
                   IS_BAD = 0; // -> the streak is broken
             if( IS_BAD ) 
                for( i=0 ; i<MIN_STREAK_LEN ; i++ ) {
@@ -1172,6 +1402,32 @@ int make_goodstring_from_badlist( char *goodstring,
    //NI_delete_int_array(iar);
    return 0;
 }
+
+// ------------------------------------------------------------------
+
+int disp_zipzap_criteria_params( int   MIN_NMSKD,
+                                 int   MIN_STREAK_LEN,
+                                 float MIN_STREAK_VAL,
+                                 float MIN_DROP_DIFF,
+                                 float MIN_DROP_FRAC,
+                                 int   MIN_CORR_LEN ,
+                                 float MIN_CORR_CORR)
+{
+   
+   fprintf(stderr, "++ Currently using these parameters for drop criteria:\n");
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_NMSKD",      MIN_NMSKD);     
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_STREAK_LEN", MIN_STREAK_LEN);
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_STREAK_VAL", MIN_STREAK_VAL);
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_DROP_DIFF",  MIN_DROP_DIFF); 
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_DROP_FRAC",  MIN_DROP_FRAC); 
+   fprintf(stderr, "   %-20s : %d\n",    "MIN_CORR_LEN" ,  MIN_CORR_LEN);  
+   fprintf(stderr, "   %-20s : %0.3f\n", "MIN_CORR_CORR",  MIN_CORR_CORR); 
+   
+   return 1;
+}
+
+
+
 
 
 // ---------------------------------------------------------
