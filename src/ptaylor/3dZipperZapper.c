@@ -727,6 +727,10 @@ int main(int argc, char *argv[]) {
    // *************************************************************
    // *************************************************************
 	
+   /* don't add this in for now; reenable later on, and will have to
+      update testing (adds more terminal output text, and testing
+      diffs that)
+
    i = disp_zipzap_criteria_params( MIN_NMSKD,
                                     MIN_STREAK_LEN,
                                     MIN_STREAK_VAL,
@@ -734,7 +738,7 @@ int main(int argc, char *argv[]) {
                                     MIN_DROP_FRAC,
                                     MIN_CORR_LEN ,
                                     MIN_CORR_CORR);
-
+   */
    
    INFO_message("Masking and counting.");
 
