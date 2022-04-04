@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Apr, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "update .circleci/config.yml, using docker version 19.03.13 to 20.10.11",
+   "Done with P Taylor."
+ } ,
+
  {  1, Apr, 2022, RCR, "@radial_correlate", MICRO, TYPE_BUG_FIX,
    "create ulay in all cases",
    NULL
