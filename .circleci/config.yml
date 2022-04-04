@@ -118,7 +118,7 @@ commands:
       - setup_remote_docker:
           # [4 Apr 2022] here and below, try updating docker ver to
           # see if that fixes deployment
-          version: 20.10.14
+          version: 20.10.11
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
@@ -138,7 +138,7 @@ commands:
         type: string
     steps:
       - setup_remote_docker:
-          version: 20.10.14
+          version: 20.10.11
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -344,7 +344,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.14
+          version: 20.10.11
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -388,7 +388,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.14
+          version: 20.10.11
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -460,7 +460,7 @@ jobs:
       - run: id # quick check to see who is running this!
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.14
+          version: 20.10.11
       - build_afni_image:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
