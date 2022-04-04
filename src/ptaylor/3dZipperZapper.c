@@ -260,7 +260,7 @@ void usage_ZipperZapper(int detail)
 " 'drop' criterion\n"
 "   If a particular slice has a very high slipar magnitude, you may have\n"
 "   badness.\n"
-"   BOUND is the threshold magnitude for that.\n"
+"   MIN_DROP_FRAC is the threshold magnitude for that.\n"
 "   If the absolute difference in slipar between neighboring slices is very\n"
 "   high, you may have badness.\n"
 "   MIN_DROP_DIFF is the threshold for judging if the absolute difference\n"
