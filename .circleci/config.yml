@@ -116,7 +116,9 @@ commands:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 19.03.13
+          # [4 Apr 2022] here and below, try updating docker ver to
+          # see if that fixes deployment
+          version: 20.10.14
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
       - restore_afni_image_cache:
@@ -136,7 +138,7 @@ commands:
         type: string
     steps:
       - setup_remote_docker:
-          version: 19.03.13
+          version: 20.10.14
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -342,7 +344,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 19.03.13
+          version: 20.10.14
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -382,11 +384,11 @@ jobs:
       - image: afni/afni_circleci_executor
     # PT: add this 'parallelism' in, based on this suggestion from CircleCI:
     #     https://circleci.com/docs/2.0/parallelism-faster-jobs/
-    parallelism: 4
+    ###parallelism: 4
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 19.03.13
+          version: 20.10.14
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -458,7 +460,7 @@ jobs:
       - run: id # quick check to see who is running this!
       - checkout_afni
       - setup_remote_docker:
-          version: 19.03.13
+          version: 20.10.14
       - build_afni_image:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
@@ -547,8 +549,10 @@ workflows:
             - macos_build
             - containers_check
           filters:
-            tags:
-              only: /AFNI_\d\d.\d.\d\d/
+            # [4 Apr 2022] PT (bc RCR said to) remove this to try
+            # fixing deployment to dockerhub
+            ###tags:
+            ###  only: /AFNI_\d\d.\d.\d\d/
             branches:
               ignore: /.*/
 
