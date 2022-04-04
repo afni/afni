@@ -548,13 +548,13 @@ workflows:
             - test_<< matrix.build_type >>
             - macos_build
             - containers_check
-          filters:
-            # [4 Apr 2022] PT (bc RCR said to) remove this to try
-            # fixing deployment to dockerhub
-            ###tags:
-            ###  only: /AFNI_\d\d.\d.\d\d/
-            branches:
-              ignore: /.*/
+          # filters:
+          #   # [4 Apr 2022] PT (bc RCR said to) remove this to try
+          #   # fixing deployment to dockerhub
+          #   ###tags:
+          #   ###  only: /AFNI_\d\d.\d.\d\d/
+          #   # branches:
+          #   #   ignore: /.*/
 
       - coverage_check:
           requires:
