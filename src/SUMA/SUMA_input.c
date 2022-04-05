@@ -817,7 +817,7 @@ int SUMA_escape_key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
             // control mask and escape is grabbed by gnome window manager ....
             if (SUMA_SHIFT_KEY(key)){// kill all
 
-                fprintf(stderr, "Shift key \n", FuncName);
+                fprintf(stderr, "Shift key in %s\n", FuncName);
                if( SUMAg_CF->X->WarnClose) {
                   if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
                            "Close All Viewers?", SUMA_YES,
@@ -828,7 +828,7 @@ int SUMA_escape_key(SUMA_SurfaceViewer *sv, char *key, char *callmode,
                XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
                exit(0);
             }else {
-                 fprintf(stderr, "No shift key \n", FuncName);
+                 fprintf(stderr, "No shift key in %s\n", FuncName);
               if( SUMAg_CF->X->WarnClose) {
                   #ifdef DARWIN
                      if (SUMA_ForceUser_YesNo(sv->X->TOPLEVEL,
@@ -2265,6 +2265,13 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 clippingPlanesInitialized = 1;
                 if (!SUMA_Numeral_Key(sv, "0", "drivesuma")) {
                 SUMA_S_Err("Failed to initialize clipping plane.");
+                }
+            }
+            
+            if (clippingPlaneMode && !clipPlaneIdentificationMode){
+                // Toggle clip plane identification mode on 
+                if (!SUMA_C_Key(sv, "Shift+C", "interactive")) {
+                    SUMA_S_Err("Failed in key func.");
                 }
             }
 
