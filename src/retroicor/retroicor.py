@@ -355,13 +355,7 @@ def runAnalysis(cardiacFile, respiratoryFile, outputFile, abt, aby):
     colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
     physiologicalNoiseComponents.head(200).plot(color=colors)
     
-    # plt.plot(physiologicalNoiseComponents)
-    
-    # # Write resulting profile to 1D output text file
-    # with open(outputFile, 'w') as f:
-    #     for item in physiologicalNoiseComponents:
-    #         f.write("%s\n" % item)
-    
-
+    # Send output to terminal
+    if (abt): print(repr(physiologicalNoiseComponents))
 
 
