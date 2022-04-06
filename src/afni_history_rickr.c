@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for REML-only errts on surface",
+   "Thanks to P Molfese for bringing it up."
+ } ,
+
  {  5, Apr, 2022, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
    "allow for shifting a single slice (or voxel) time series",
    "Also, add a help example demonstrating this."

@@ -724,9 +724,10 @@ g_history = """
     7.36 Mar 22, 2022:
        - fix help example: remove inappropriate -epi_strip from -align_opts_aea
        - add ap_uvars: dir_suma_spec, suma_specs
+    7.37 Apr  6, 2022: allow REML errts on surface
 """
 
-g_version = "version 7.36, March 22, 2022"
+g_version = "version 7.37, April 6, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
