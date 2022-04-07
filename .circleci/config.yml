@@ -116,8 +116,6 @@ commands:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          # [4 Apr 2022] here and below, try updating docker ver to
-          # see if that fixes deployment
           version: 20.10.11
       - setup_dev_base_image:
           image_cache_version: << parameters.image_cache_version >>
@@ -138,7 +136,7 @@ commands:
         type: string
     steps:
       - setup_remote_docker:
-          version: 20.10.11
+          version: 19.03.13
       - restore_afni_image_cache:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -344,7 +342,7 @@ jobs:
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.11
+          version: 19.03.13
       - build_afni_image:
           build_type: << parameters.build_type >>
           image_cache_version: << parameters.image_cache_version >>
@@ -382,13 +380,10 @@ jobs:
         type: string
     docker:
       - image: afni/afni_circleci_executor
-    # PT: add this 'parallelism' in, based on this suggestion from CircleCI:
-    #     https://circleci.com/docs/2.0/parallelism-faster-jobs/
-    ###parallelism: 4
     steps:
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.11
+          version: 19.03.13
       - write_test_data_cache_version_file:
           cache_name: test_data
       - restore_a_cache:
@@ -460,7 +455,7 @@ jobs:
       - run: id # quick check to see who is running this!
       - checkout_afni
       - setup_remote_docker:
-          version: 20.10.11
+          version: 19.03.13
       - build_afni_image:
           build_type: cmake_build
           image_cache_version: << parameters.image_cache_version >>
@@ -548,13 +543,11 @@ workflows:
             - test_<< matrix.build_type >>
             - macos_build
             - containers_check
-          # filters:
-          #   # [4 Apr 2022] PT (bc RCR said to) remove this to try
-          #   # fixing deployment to dockerhub
-          #   ###tags:
-          #   ###  only: /AFNI_\d\d.\d.\d\d/
-          #   # branches:
-          #   #   ignore: /.*/
+          filters:
+            tags:
+              only: /AFNI_\d\d.\d.\d\d/
+            branches:
+              ignore: /.*/
 
       - coverage_check:
           requires:

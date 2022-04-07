@@ -1822,7 +1822,7 @@ def wrap_button(x, vpad=0, button_type=""):
         text = list_buttons[n][0]
         link = list_buttons[n][1]
 
-        print("DEBUG: {}, {} -- {}...{}".format(n, text, link, button_type))
+        #print("DEBUG: {}, {} -- {}...{}".format(n, text, link, button_type))
         if button_type == 'mtedana' :
             button_name = 'btn_' + button_type
             onclick = '''onclick="doShowMtedana('{link}')"'''.format(link=link)
