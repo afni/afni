@@ -57,7 +57,9 @@
 #define IFM_SORT_GEME        4       /*    GE multi-echo index         */
 #define IFM_SORT_NUM_SUFF    5       /*    numerical file suffix       */
 #define IFM_SORT_ZPOSN       6       /*    z-coordinate                */
-#define IFM_SORT_NUM_METHODS 6       /*    should match top index      */
+#define IFM_SORT_RIN         7       /*    geh.index = RIN             */
+#define IFM_SORT_GEME_RIN    8       /*    RIN/echo/geme_index         */
+#define IFM_SORT_NUM_METHODS 8       /*    should match top index      */
 
 /* -- define copies -- */
 

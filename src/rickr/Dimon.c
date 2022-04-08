@@ -255,6 +255,13 @@ int       g_sort_by_atime  = 0;  /* choose to sort by acquisition time      */
 int       g_sort_type      = 0;  /* bitmask: note fields applied in sorting */
 int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
 
+/* modulo sorting: sorting on parameter P, given g_mod_sort/_base
+ *    major = (P-g_mod_sort_base) // g_mod_sort   (should be time point)
+ *    minor = (P-g_mod_sort_base) %  g_mod_sort   (slice within time point)
+ */
+int       g_mod_sort       = 0;  /* currently used by compare_by_rin        */
+int       g_mod_sort_base  = 0;  /* currently used by compare_by_rin        */
+
 /***********************************************************************/
 
 /* ---------------------------------------------------------------------------
@@ -351,6 +358,7 @@ int                compare_finfo( const void * v0, const void * v1 );
 int                compare_finfo_num_suff(const void * v0, const void * v1);
 int                compare_by_num_suff( const void * v0, const void * v1 );
 int                compare_by_geme( const void * v0, const void * v1 );
+int                compare_by_rin( const void * v0, const void * v1 );
 int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
@@ -1617,6 +1625,16 @@ static int make_sorted_fim_list(param_t  * p)
          qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_z);
          break;
       }
+      case IFM_SORT_RIN:     {
+         qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
+         break;
+      }
+      /* same as RIN, but try to set g_mod_sort, first */
+      case IFM_SORT_GEME_RIN: {
+         update_g_mod_sort(p, method);
+         qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
+         break;
+      }
    }
 
    if( p->opts.order_as_zt ) finfo_order_as_zt(p, fp, n2sort);
@@ -1815,6 +1833,7 @@ int geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme, int memin)
    fp = p->fim_o + p->fim_start;
    for( ind = p->fim_start; ind < p->nfim; ind++, fp++ ) {
       if( fp->state != IFM_FSTATE_TO_SORT ) {
+
 if( fp->state < IFM_FSTATE_TO_SORT )
    fprintf(stderr,"== GSSI: skip state %d image %s\n", fp->state, fp->fname);
 continue;
@@ -1855,6 +1874,113 @@ continue;
    return nfull;
 }
 
+/* if g_mod_sort is 0, try to init, else try to update
+ * This is currently used only for IFM_SORT_GEME_RIN.
+ *    - sort by RIN
+ *    - get apparent mod_sort
+ */
+int update_g_mod_sort(param_t * p, int method)
+{
+   finfo_t  * fp;
+   int        ind; 
+   int        gmod;
+
+   if( method != IFM_SORT_GEME_RIN ) {
+      fprintf(stderr,"** update_g_mod_sort: invalid method %d\n", method);
+      return 0;
+   }      
+
+   if( p->fim_start >= p->nfim )
+      return 0;
+  
+   /* point to start */
+   fp = p->fim_o + p->fim_start;
+
+   /* if not yet set, try to initialize with sort */
+   if( g_mod_sort <= 0 ) {
+      qsort(fp, p->nfim - p->fim_start, sizeof(finfo_t), compare_by_rin);
+      if( method == IFM_SORT_GEME_RIN ) {
+         gmod = geme_rin_get_sort_n_base(p);
+      }
+   }
+
+   // for( ind = start; ind < p->nfim; ind++ ) {
+   return -483;
+}
+
+/* return a g_mod_sort val and base for GEME_RIN method
+ *    - find enum/geme_index min values (>0)
+ *    - find enum/geme_index match
+ *    - set base = min(rin), set mod = (match - min)
+ *
+ *  fim list is assumed to be sorted by RIN already
+ *
+ *  return 0 on success, -1 on error
+ */
+int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
+{
+   finfo_t  * fp;
+   int        ind;
+   int        min_echo, min_geme;
+   int        rin, rin_base=-1, next_base=-1;
+
+   if( p->fim_start >= p->nfim )
+      return 0;
+
+   /* init fp and min values (set to current) */
+   fp = p->fim_o + p->fim_start;
+   min_echo = fp->gex.ge_echo_num;
+   min_geme = fp->gex.ge_me_index;
+   
+   /* start at next position and check mins */
+   /* if min is not at first image, should we just return? */
+   fp++;
+   for( ind=p->fim_start+1; ind < p->nfim; ind++, fp++ ) {
+      if( fp->gex.ge_echo_num < min_echo )
+         min_echo = fp->gex.ge_echo_num;
+      if( fp->gex.ge_me_index < min_geme )
+         min_geme = fp->gex.ge_me_index;
+   }
+
+   /* now start over and find first match (this must succeed) */
+   /* note: this really ought to result in p->fim_start */
+   for( ind=p->fim_start; ind < p->nfim; ind++, fp++ ) {
+      if( (fp->gex.ge_echo_num == min_echo )
+          && ( fp->gex.ge_me_index == min_geme ) )
+      {
+         rin_base = fp->geh.index;
+         break;
+      }
+   }
+
+   /* continue and try to find next match, this is what we are here for */
+   for( ind=p->fim_start; ind < p->nfim; ind++, fp++ ) {
+      if( (fp->gex.ge_echo_num == min_echo )
+          && ( fp->gex.ge_me_index == min_geme ) )
+      {
+         next_base = fp->geh.index;
+         break;
+      }
+   }
+
+   /* see if we have what we came for */
+
+   /* juuuuust to be sure */
+   if( rin_base < 0 ) {
+      fprintf(stderr,"** geme_rin_get_mod_sort: missing base\n");
+      return -1;
+   }
+
+   /* only 1 echo set, so no new information, just return */
+   if( next_base < 0 )
+      return 0;
+
+   /* set base = min, sort = rin diff */
+   *gm_base = rin_base;
+   *gm_sort = next_base - rin_base;
+
+   return 0;
+}
 
 /* for all images, if state >= TO_PROC and state < TO_READ,
  * set state to TO_SORT
@@ -2688,6 +2814,75 @@ int compare_finfo( const void * v0, const void * v1 )
     return 0;  /* equal */
 }
 
+/*----------------------------------------------------------------------
+ * more direct comparisin by RIN (after other bits)
+ *    sort by:
+ *       state
+ *       run
+ *       rin (can be modulo)
+ *----------------------------------------------------------------------
+*/
+int compare_by_rin(const void * v0, const void * v1)
+{
+   finfo_t  * p0 = (finfo_t *)v0;
+   finfo_t  * p1 = (finfo_t *)v1;
+   int        ind0, ind1, dir;
+   static int nwarn = 10;
+
+   /* direction does not apply to high-level fields */
+   dir = g_dicom_sort_dir;
+
+   /* if states differ, just sort by state */
+   if( p0->state != p1->state ) return p0->state - p1->state;
+
+   /* if state is not TO_PROC, sort by findex */
+   if( p0->state != IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
+
+   /* both states are TO_PROC, apply desired sorting here */
+
+   /* run */
+   if( p0->geh.uv17 != p1->geh.uv17 ) {
+       if( p0->geh.uv17 < p1->geh.uv17 ) { g_sort_type |= 2; return -1; }
+       { g_sort_type |= 2; return 1; }
+   }
+
+   /*-- 0020 0013: REL Instance Number (sort_type 16 or 32(mod)) --*/
+
+   /* possibly do modulo sorting */
+   if( g_mod_sort > 0 ) {
+      /* major axis = time index (ind/mod_sort) */
+      ind0 = (p0->geh.index - g_mod_sort_base) / g_mod_sort;
+      ind1 = (p1->geh.index - g_mod_sort_base) / g_mod_sort;
+      if( ind0 < ind1 ) { g_sort_type |= 32; return -dir; }
+      if( ind0 > ind1 ) { g_sort_type |= 32; return dir; }
+
+      /* else, minor axis = slice index at time (ind%mod_sort) */
+      ind0 = (p0->geh.index - g_mod_sort_base) % g_mod_sort;
+      ind1 = (p1->geh.index - g_mod_sort_base) % g_mod_sort;
+      if( ind0 < ind1 ) { g_sort_type |= 32; return -dir; }
+      if( ind0 > ind1 ) { g_sort_type |= 32; return dir; }
+
+      /* we should not get here: whine a few times and return equal */
+      if( nwarn > 0 ) {
+         fprintf(stderr,"** comp_GEME_RIN: images have equal GR pairs\n");
+         nwarn--;
+      }
+   }
+   
+   /* else, use non-modulo RIN */
+   if     ( p0->geh.index < p1->geh.index ) { g_sort_type |= 16; return -dir; }
+   else if( p0->geh.index > p1->geh.index ) { g_sort_type |= 16; return dir; }
+
+   /* failure: whine a few times and return equal */
+   if( nwarn > 0 ) {
+      fprintf(stderr,"** comp_RIN: images have equal RIN %d, %d\n",
+              p0->geh.index, p1->geh.index);
+      nwarn--;
+   }
+
+   return 0;
+}
+
 
 /*----------------------------------------------------------------------
  * compare structures by GE_ME field, else input index
@@ -3490,6 +3685,8 @@ int sort_method(char * method)
    if( ! strcmp(method, "geme_index") ) return IFM_SORT_GEME;
    if( ! strcmp(method, "num_suffix") ) return IFM_SORT_NUM_SUFF;
    if( ! strcmp(method, "zposn")      ) return IFM_SORT_ZPOSN;
+   if( ! strcmp(method, "rin")        ) return IFM_SORT_RIN;
+   if( ! strcmp(method, "geme_rin")   ) return IFM_SORT_GEME_RIN;
 
    return IFM_SORT_UNKNOWN;
 }
@@ -5564,19 +5761,24 @@ printf(
     "        NUMBER will be evaluated as a positive integer, not via\n"
     "        an alphabetic sort (so numbers need not be zero-padded).\n"
     "\n"
-    "        This is intended for use on interleaved files, which are\n"
-    "        properly enumerated, but only in the filename suffix.\n"
+    "        This is intended for use on files which are usefully enumerated\n"
+    "        in the filename suffix.\n"
     "        Consider a set of names for a single, interleaved volume:\n"
     "\n"
     "          im001.1  im002.3  im003.5  im004.7  im005.9  im006.11\n"
     "          im007.2  im008.4  im009.6  im010.8  im011.10\n"
     "\n"
-    "        Here the images were named by 'time' of acquisition, and\n"
-    "        were interleaved.  So an alphabetic sort is not along the\n"
+    "        Here the image prefixes are in the order of acquisition, and\n"
+    "        were interleaved.  So an alphabetical sort is not ordered by the\n"
     "        slice position (z-order).  However the slice ordering was\n"
-    "        encoded in the suffix of the filenames.\n"
+    "        encoded in the suffix of the filenames..\n"
     "\n"
-    "        NOTE: the suffix numbers must be unique\n"
+    "        NOTE: the suffix numbers should be unique.\n"
+    "\n"
+    "        NOTE: this is a pre-sort method, akin to reading files\n"
+    "              alphabetically.  One can still apply -sort_method,\n"
+    "              which would sort the resulting list based on other\n"
+    "              information.\n"
     "\n"
     "    -sort_method METHOD : apply METHOD for real-time sorting\n"
     "\n"
