@@ -554,7 +554,8 @@ Returns
     # line up assign ops if asked; also, need nonzero maxia
     if ALIGNASSIGN and maxia:
         for i in range(len(z)):
-            z[i] = padassign(z[i], maxia)
+            # above, we found locus of ' = '; this func places '='
+            z[i] = padassign(z[i], maxia+1)
 
     # go through last time and space everything appropriately
     for line in z:
