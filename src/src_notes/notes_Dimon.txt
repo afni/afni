@@ -17,10 +17,14 @@ general outline of Dimon main()
                   - read those in state IFM_FSTATE_TO_READ
                   - set state to TO_PROC
             - make_sorted_fim_list()
+               - n2sort = p->nfim - p->fim_start;
+               - method = sort_method()
+               - fp = p->fim_o + p->fim_start
                - sort p->fim_o in the new range (from fim_start to nfim)
                   - apply main sort, such as DEFAULT, GEME, NUM_SUFF
-                  - possibly post-order as zt
-                  - update fim_start to point to next TO_PROC image
+               - possibly post-order as zt
+               - update fim_start to point to next TO_PROC image
+                  - p->fim_start += index
          - n2proc = nfim2proc() = num images in TO_PROC state
          - volume_search()
          - if no vol: think about life and paramaters, nap, try again
@@ -64,12 +68,33 @@ Sorting images make_sorted_fim_list():
 
       IFM_SORT_GEME
          sort_by_geme_index()
-            - compute n2sort (nfim - fim_start)
-            - geme_set_range_n_state()
-               - set state to TO_SORT for any in local window
-               - note how many images are in sorting window
-            - geme_set_sort_indices()
-               - ...
+            n2sort = p->nfim - p->fim_start;
+            /* set next imgs to TO_SORT, set pmin, pmax, nacq */
+            geme_set_range_n_state(p, p->fim_start, &min, &max, &snacq)
+               - find first TO_PROC/TO_SORT
+               - if not set, snacq = guess_predefined_nacq
+                  - get from p->fim_o[ind].gex.ge_nim_acq,
+                  - or set to num_slices * num_chan (if both > 0)
+               - for all images:
+                  - if bad state, stip
+                  - set state to TO_SORT
+                  - get min/max geme indexes
+               - if snacq < max-min+1 (# geme indexes), set to that
+             ngeme = max-min+1 (current value)
+   
+    /* ilist is cleared list of length ngeme (max-min+1) */
+    nt = geme_set_sort_indices(p, &ilist, ngeme, min)
+       - set img sindex to a global sort value:
+          fim_start + current index into ngeme sets (e.g. 187 = ngeme*2 + base)
+                      187 = (90=3 echoes * 30 slices) + 7 (geme offset)
+          - ilist merely counts images at each geme offset
+       - nfull = min(list[ind] over ngeme)
+       - max_sind = an index too far = nfull*ngeme + fim_start
+       - nset=0
+       - for each img (in next nfim)
+          - if state == TO_SORT && sindex < max_sind (should be)
+             - state = TO_PROC
+             - nset++
 
       IFM_SORT_DEFAULT
          compare_finfo_t()
