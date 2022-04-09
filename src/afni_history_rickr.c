@@ -53,6 +53,26 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for REML-only errts on surface",
+   "Thanks to P Molfese for bringing it up."
+ } ,
+
+ {  5, Apr, 2022, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
+   "allow for shifting a single slice (or voxel) time series",
+   "Also, add a help example demonstrating this."
+ } ,
+
+ {  4, Apr, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "update .circleci/config.yml, using docker version 19.03.13 to 20.10.11",
+   "Done with P Taylor."
+ } ,
+
+ {  1, Apr, 2022, RCR, "@radial_correlate", MICRO, TYPE_BUG_FIX,
+   "create ulay in all cases",
+   NULL
+ } ,
+
  { 22, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add ap_uvars dir_suma_spec, suma_specs",
    "Also, remove inappropriate -epi_strip from -align_opts_aea in example."

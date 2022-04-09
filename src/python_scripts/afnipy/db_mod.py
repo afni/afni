@@ -6203,7 +6203,11 @@ def db_cmd_regress(proc, block):
     # if REML and errts_pre, append _REML to errts_pre
     if block.opts.find_opt('-regress_reml_exec') and stop_opt \
        and proc.errts_pre_3dd:
-        if not proc.surf_anat: proc.errts_pre = proc.errts_pre_3dd + '_REML'
+        eorig = proc.errts_pre_3dd
+        if proc.surf_anat:
+           proc.errts_pre = eorig.replace('.niml.dset','_REML.niml.dset')
+        else:
+           proc.errts_pre = eorig + '_REML'
 
     # create all_runs dataset
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
@@ -6432,7 +6436,13 @@ def db_cmd_reml_exec(proc, block, short=0):
     cmd +='%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
           '%s'                                                                \
           '%stcsh -x stats.REML_cmd %s%s\n' % (istr,astr, istr,aopts, reml_opts)
-    if not proc.surf_anat: proc.errts_reml = proc.errts_pre_3dd + '_REML'
+    # use REML errts for future computations
+    if proc.surf_anat:
+       errnew = proc.errts_pre_3dd.replace('.niml.dset','_REML.niml.dset')
+       errnew = errnew.replace('$hemi', '${hemi}')
+    else:
+       errnew = proc.errts_pre_3dd + '_REML'
+    proc.errts_reml = errnew
 
     # if 3dDeconvolve fails, terminate the script
     if not short:

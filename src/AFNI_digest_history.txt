@@ -1,4 +1,31 @@
-AFNI Digest, week of 2029/02/18.
+AFNI Digest, week of 2022/04/05.
+
+nifti_tool
+nifti_tool can now be used to convert between any two integer or float
+data types (except float128).  If a conversion failure occurs (such as
+float 27.3 to integer 27), one can choose to ignore it, warn or fail.
+This is a result of nibabel (via numpy) previously outputting 64-bit
+int datasets, and was requested by J Teves.
+
+afni_proc.py
+When an external anat->EPI registration base is provided via
+-align_epi_ext_dset, an additional affine transformation will be
+applied to include its registration with the EPI registration base.
+Thanks to D Handwerker for helping to finally drag it off "the list".
+
+afni_proc.py QC HTML
+There have been a couple recent updates to the APQC HTML:
++ There is a new "mecho" block when processing multi-echo FMRI data;
+when using MEICA-tedana to combine echos, that software's own QC HTML
+will be directly linked there (and included in the QC_*/ folder, so it
+travels along if the directory is copied/moved).
++ To help troubleshoot potential EPI-anatomical alignment woes, the
+"vorig" QC block now contains images of the initial EPI-anatomical
+overlap (with obliquity applied, if present).
+
+========================================================================
+
+AFNI Digest, week of 2022/02/18.
 
 afni_proc.py - multi-echo FMRI flexibility
 afni_proc.py can implement over 10 "combine" methods for multi-echo
@@ -43,7 +70,7 @@ block).  So one can browse both QCs together.
 
 ========================================================================
 
-AFNI Digest, week of 2029/02/11.
+AFNI Digest, week of 2022/02/11.
 
 
 SurfLocalstat.  One of the last programs written by Ziad, this is

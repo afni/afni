@@ -69,6 +69,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "Add '-disp_def_params' so the user can see the default params.",
+   "The params will also now get displayed during runtime.\n"
+},
+
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "Add many more '-min_* ..' options for controlling badness criteria.",
+   "Asked for by user nseider: hope these are helpful!\n"
+},
+
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_MODIFY,
+   "Actually output the number of bad slices per volume.",
+   "Previously had some ~fancy encoding about criterion of badness (why?).\n"
+},
+
+{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+   "New opts '-dont_use_*' to turn off some of the drop criteria at will.",
+   "Also put in help descriptions about drop criteria, in Notes.\n"
+},
+
 { 20, Mar , 2022 , PT , "apqc_make_HTML.py" , MICRO , TYPE_BUG_FIX,
    "Fix display of subj ID from 'Top' button in case when subj ID starts num.",
    "In such cases, the unicode char for next line was misinterpreted.\n"
