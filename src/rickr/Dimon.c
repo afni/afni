@@ -351,6 +351,7 @@ static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
 static int         g_compare_by_geh = 0;
 
+
 int compare_finfo_z(const void * v0, const void * v1);
 
 static int         clear_float_zeros( char * str );
@@ -363,11 +364,14 @@ int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
 static int         finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort);
+static int         geme_rin_get_sort_n_base(param_t * p, int * gm_sort,
+                                            int * gm_base);
 static int         get_num_suffix( char * str );
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
 int                get_sop_iuid_index(ge_extras * ep);
+static int         update_g_mod_sort(param_t * p, int method);
 
 /* oblique function protos */
 extern void   mri_read_dicom_reset_obliquity();
@@ -1631,7 +1635,8 @@ static int make_sorted_fim_list(param_t  * p)
       }
       /* same as RIN, but try to set g_mod_sort, first */
       case IFM_SORT_GEME_RIN: {
-         update_g_mod_sort(p, method);
+         if( g_mod_sort <= 0 )
+            update_g_mod_sort(p, method);
          qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
          break;
       }
@@ -1874,16 +1879,16 @@ continue;
    return nfull;
 }
 
-/* if g_mod_sort is 0, try to init, else try to update
+/* if g_mod_sort is 0, try to init, see if an update is needed
  * This is currently used only for IFM_SORT_GEME_RIN.
  *    - sort by RIN
  *    - get apparent mod_sort
  */
-int update_g_mod_sort(param_t * p, int method)
+static int update_g_mod_sort(param_t * p, int method)
 {
    finfo_t  * fp;
    int        ind; 
-   int        gmod;
+   int        sort_mod=0, sort_base=0;
 
    if( method != IFM_SORT_GEME_RIN ) {
       fprintf(stderr,"** update_g_mod_sort: invalid method %d\n", method);
@@ -1897,15 +1902,28 @@ int update_g_mod_sort(param_t * p, int method)
    fp = p->fim_o + p->fim_start;
 
    /* if not yet set, try to initialize with sort */
-   if( g_mod_sort <= 0 ) {
+   if( g_mod_sort <= 0 )
       qsort(fp, p->nfim - p->fim_start, sizeof(finfo_t), compare_by_rin);
-      if( method == IFM_SORT_GEME_RIN ) {
-         gmod = geme_rin_get_sort_n_base(p);
-      }
+
+   if( geme_rin_get_sort_n_base(p, &sort_mod, &sort_base) )
+      return 1;
+
+   /* if not yet set, do so, else compare */
+   if( g_mod_sort <= 0 ) {
+      g_mod_sort = sort_mod;
+      g_mod_sortbase = sort_base;
+      if( gD.level > 1 )
+         fprintf(stderr,"-- init g_mod_sort, base=%d, mod=%d\n",
+                 sort_base, sort_mod);
+   } else if( (g_mod_sort != sort_mod) || (g_mod_sortbase != sort_base) ) {
+      if( gD.level > 1 )
+         fprintf(stderr,"** UPDATE g_mod_sort, base=%d, mod=%d\n",
+                 sort_base, sort_mod);
+      g_mod_sort = sort_mod;
+      g_mod_sortbase = sort_base;
    }
 
-   // for( ind = start; ind < p->nfim; ind++ ) {
-   return -483;
+   return 0;
 }
 
 /* return a g_mod_sort val and base for GEME_RIN method
@@ -1917,7 +1935,7 @@ int update_g_mod_sort(param_t * p, int method)
  *
  *  return 0 on success, -1 on error
  */
-int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
+static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
 {
    finfo_t  * fp;
    int        ind;
