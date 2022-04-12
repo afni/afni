@@ -8,6 +8,7 @@ shinyServer(function(input,output,session) {
   options(warn=-1)
   session$onSessionEnded(function() { cat('\nAll done!\n') ; stopApp() })
   
+  
   ## get data #########################################
   getROIs <- reactive({
     attach(input$fileSel)
@@ -16,13 +17,13 @@ shinyServer(function(input,output,session) {
     return(roi.temp)
   })   ## end getROIs
   
-  
   ## update UI elements ###############################
+  
+  ## get the names of the ROIS
   observeEvent(input$fileSel,{
     temp.rois <- getROIs()
     rois.list <- as.list(names(temp.rois))
     names(rois.list) <- names(temp.rois)
-    
     updateSelectInput(session,"roiSel",choices=rois.list,selected=rois.list)
   })
   
@@ -32,7 +33,7 @@ shinyServer(function(input,output,session) {
     ## get data remove unselected rois
     data <- getROIs()
     
-    validate(need(input$roiSel,'more rois'))
+    validate(need(input$roiSel,'     Need more rois!!!'))
     data <- subset(data,select=input$roiSel)
     
     data$X <- NULL
@@ -96,15 +97,8 @@ shinyServer(function(input,output,session) {
     
   })
   
-  
-  # observeEvent(input$roiSel,{
-  #   roi.temp <- getStats()
-  #   # roi.temp <- subset(roi.temp,select=input$roiSel)
-  #   # print(summary(roi.temp))
-  #   
-  # })
-  ## plot ###############################
-  output$gangPlot <- renderPlot({
+  ## make plot ################################
+  getPlot <- reactive({
     
     ### get the data ###############
     plot.list <- getStats()
@@ -144,13 +138,6 @@ shinyServer(function(input,output,session) {
     ROI.label.size <- input$ROI_label_size
     P.label.size <- input$P_label_size
     
-    ### output settings ##############
-    dpi <- 300
-    units <- "in"                                           # "in", "cm", or "mm"
-    height <- 5
-    width <- 9
-    file.type <- ".jpeg"                   # can be ".jpeg",".pdf",".png",".bmp",".tiff",etc
-    
     ### colors #################
     if( input$colPal == "Blue - Red" ){
       gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
@@ -182,9 +169,9 @@ shinyServer(function(input,output,session) {
       ## color bar
       guides(
         fill=guide_colorbar(
-          barwidth=1,barheight=15,nbin=100,frame.colour="black",
+          barwidth=1,barheight=input$colBarHeight,nbin=100,frame.colour="black",
           frame.linewidth=1.5,ticks.colour="black",title.position="top",
-          title.hjust=-2,title.vjust=4)
+          title.hjust=0,title.vjust=4)
       ) +
       
       ## divide into 2 quantiles (median NOT MEAN!!!)
@@ -200,8 +187,8 @@ shinyServer(function(input,output,session) {
       ## fill for the legend (need to change this for other than P+)
       scale_fill_gradientn(
         colors=gradient.colors,limits=c(0,1),name=legend.title,
-        breaks=c(0,0.05,0.1,0.9,0.95,1),expand=expansion(0),
-        labels=c("0.00","0.05","0.10","0.90", "0.95","1.00")
+        breaks=c(0,0.05,0.1,0.5,0.9,0.95,1),expand=expansion(0),
+        labels=c("0.00","0.05","0.10","0.50","0.90", "0.95","1.00")
       ) +
       
       ## setup both y axes
@@ -230,8 +217,11 @@ shinyServer(function(input,output,session) {
         axis.title=element_text(size=x.label.size,face=xlab.face),
         
         ## label above color bar
-        legend.title.align=5,
-        legend.title=element_text(size=24)
+        legend.title.align=0,
+        legend.title=element_text(size=24),
+        
+        panel.background=element_rect(fill='white'),
+        plot.background=element_rect(fill='white')
       ) +
       
       ## axis labels
@@ -243,194 +233,63 @@ shinyServer(function(input,output,session) {
       ## x axis ticks and range
       scale_x_continuous(labels=waiver(),limits=x.range)
     
-  })
+  })   ## end make plot
+  
+  
+  ## output plot ###############################
+  output$bayesPlot <- renderPlot({
+    getPlot() })
+  
+  # output$gangPlot <- renderImage({
+  #   outfile <- tempfile(fileext = '.png')
+  #   ggsave(outfile,plot=getPlot(),
+  #          width=input$outputWidth,height=input$outputHeight,
+  #          units='in',dpi=input$outputDPI)
+  #   # Return a list containing the filename
+  #   list(src = outfile,
+  #        contentType = 'image/png',
+  #        alt = "This is alternate text")
+  # }, deleteFile = TRUE)
+  
+  ## download plot #################
+  output$downloadPlot <- downloadHandler(
+    filename = function(){
+      paste0(file_path_sans_ext(input$fileSel),'_plot.',input$outputFormat)
+    },
+    content = function(file) {
+      ggsave(file,plot=getPlot(),
+             width=input$outputWidth,height=input$outputHeight,
+             units='in',dpi=input$outputDPI)
+    })
   
   
   
-  
-  
-  
-  
-  
-  
-  ## time plot prep ##########################################
-  output$time_out <- renderPlotly({
-    
-    showNotification("Loading data...",id="loading",duration=NULL,type="error")
-    
-    ## make sure we have something
-    if( input$showHome ){
-      validate(need(input$scoreSel,'Need at least 1 Home Measurement!!'))
-      validate(need(input$InterviewType,'Need at least 1 time of day!!'))
-    }
-    
-    ## get the data
-    plot.df <- getOne()
-    plot.df <- plot.df[order(plot.df$DateTime),]
-    
-    
-    ## ranges #################################
-    
-    ## x
-    x.range <- range(plot.df$DateTime,na.rm=TRUE)
-    
-    ## starting y's
-    y.score.range <- y.cat.range <-  c(100,-100)
-    
-    
-    
-    ## plot by time #####################################
-    plot.ly <- plot_ly(type="scatter",mode="markers+lines")
-    plot.ly <- config(plot.ly,displayModeBar=FALSE)
-    
-    ## home scales #######################################
-    
-    plot.ly <- add_trace(
-      plot.ly,connectgaps=TRUE,
-      x=chron.df$DateTime,
-      y=chron.df[[input$scoreSel[s]]],
-      marker=list(size=marker.size,color=c.col,
-                  line=list(color=c.col,width=line.wd)),
-      line=list(color=c.col,width=line.wd),
-      name=s.name,
-      hoverinfo="text",
-      text=paste0(
-        s.name," ",
-        round(chron.df[[input$scoreSel[s]]],2),"<br>",
-        chron.df$InterviewType,"<br>",
-        wday(chron.df$DateTime,label=TRUE)," ",
-        format(chron.df$DateTime,"%m-%d-%Y")," ",
-        format(chron.df$DateTime,"%H:%M"),"<br>",
-        chron.df$Phase)
-    )
-    
-    
-    temp.df <- subset(chron.df,!is.na(chron.df[[input$scoreSel[s]]]))
-    smo <- loess(temp.df[[input$scoreSel[s]]] ~ 
-                   as.numeric(temp.df$DateTime),span=input$span)
-    plot.ly <- add_lines(plot.ly,x=temp.df$DateTime,y=predict(smo),
-                         name=paste0(s.name,'\nLOESS (',
-                                     input$span,')'),
-                         type='scatter',mode='lines',
-                         line=list(width=line.wd+1.5,color=c.col))
-    rm(list="temp.df")
-    
-    
-    
-    
-    
-    ## end home scales
-    
-    
-    
-    ## decorations ###########################
-    x.axis <- list(range=x.range,title='Date')
-    
-    if( input$showLab ){
-      if( input$showHome | input$showCat ){
-        y.axis=list(range=y.left.range,title='Home')
-        y2.axis=list(range=y.rate.range,title='Lab',overlaying="y",side="right") 
-        l.enged <- list(x=1.1)
-      } else {
-        y.axis=list(range=y.rate.range,title='Lab')
-        y2.axis=list()
-        l.enged <- list()
-      }
-    } else {
-      y.axis=list(range=y.left.range,title='Home') 
-      y2.axis=list()
-      l.enged <- list()
-    }
-    
-    plot.ly <- layout(plot.ly,title=main.title,legend=l.enged,
-                      xaxis=x.axis,yaxis=y.axis,yaxis2=y2.axis,
-                      shapes=c(event.lines,phase.bars))
-    removeNotification(id="loading")
-    plot.ly
-  })   ## end time plot
-  
-  ## box plot prep ##########################################
-  output$box_out <- renderPlotly({
-    
-    showNotification("Loading data...",id="loading",
-                     duration=NULL,type="error")
-    
-    ## make sure we have something
-    validate(need(input$scoreSelBox,'Need at least 1 score!!'))
-    
-    ## get the data and get rid of observations with fake zeros
-    plot.df <- getOne()
-    plot.df <- plot.df[!(is.na(plot.df$MoodAssessmentStart)),]
-    
-    
-    ## title
-    main.title <- paste0(input$subject,"\nLast updated: ",
-                         format(last.date,format="%m/%d/%Y"))
-    
-    
-    
-    ## box plot #####################################################
-    plot.ly <- plot_ly(type="box")
-    plot.ly <- config(plot.ly,displayModeBar=FALSE)
-    
-    plot.ly <- add_trace(
-      plot.ly,
-      x=~plot.df$fac.var,
-      y=plot.df[[input$scoreSelBox[s]]],
-      boxpoints=b.points,jitter=jit,boxmean=show.mean,
-      fillcolor=c.col,
-      marker=list(size=marker.size,color=c.col,
-                  line=list(color=c.col,width=line.wd)),
-      line=list(color="black",width=line.wd),
-      name=s.name,
-      hoverinfo=input$box_info,hoveron="boxes+points",
-      text=paste0(
-        s.name," ",
-        round(plot.df[[input$scoreSelBox[s]]],2),"<br>",
-        plot.df$InterviewType,"<br>",
-        wday(plot.df$DateTime,label=TRUE)," ",
-        format(plot.df$DateTime,"%m-%d-%Y")," ",
-        format(plot.df$DateTime,"%H:%M"),"<br>",
-        plot.df$fac.var)
-    )
-    
-    
-    
-    ## decorations
-    plot.ly <- layout(plot.ly,yaxis=list(range=y.range,title='Score'),
-                      xaxis=list(range='',title=''),title=main.title,
-                      boxmode="group")
-    removeNotification(id="loading")
-    plot.ly
-    
-  })   ## end box plot
-  
-  ## variable tables #####################
-  output$var_tab <- renderTable(colnames=FALSE,{rate.names})
-  
-  output$bad_vars <- renderTable(colnames=FALSE,{
-    
-    ## get the text and split the vars
-    model.vars <- unlist(tstrsplit(input$model_in,'[*+-/^]'))
-    # model.vars <- gsub("[[:space:]]", "",model.vars)
-    bad.vars <- setdiff(as.character(model.vars),rate.names)
-    bad.vars
-  })
-  
-  output$meta_tab <- renderPrint({
-    validate(need(input$model_in,"Please specify model!"))
-    model.vars <- unlist(tstrsplit(input$model_in,'[*+-/^]'))
-    bad.vars <- model.vars[ ! (model.vars %in% rate.names) ]
-    
-    if( length(bad.vars) > 0 ){ return("Check variable names!") }
-    mod.df <- getOne()
-    meta.calc <- try(parse(text=paste0("with(mod.df,",input$model_in,")")),
-                     silent=TRUE)
-    meta.out <- try(eval(meta.calc),silent=TRUE)
-    summary(meta.out)
-  })
   
 })   ## end server ###########################
 
 
 
+# ## variable tables #####################
+# output$var_tab <- renderTable(colnames=FALSE,{rate.names})
+# 
+# output$bad_vars <- renderTable(colnames=FALSE,{
+#   
+#   ## get the text and split the vars
+#   model.vars <- unlist(tstrsplit(input$model_in,'[*+-/^]'))
+#   # model.vars <- gsub("[[:space:]]", "",model.vars)
+#   bad.vars <- setdiff(as.character(model.vars),rate.names)
+#   bad.vars
+# })
+# 
+# output$meta_tab <- renderPrint({
+#   validate(need(input$model_in,"Please specify model!"))
+#   model.vars <- unlist(tstrsplit(input$model_in,'[*+-/^]'))
+#   bad.vars <- model.vars[ ! (model.vars %in% rate.names) ]
+#   
+#   if( length(bad.vars) > 0 ){ return("Check variable names!") }
+#   mod.df <- getOne()
+#   meta.calc <- try(parse(text=paste0("with(mod.df,",input$model_in,")")),
+#                    silent=TRUE)
+#   meta.out <- try(eval(meta.calc),silent=TRUE)
+#   summary(meta.out)
+# })

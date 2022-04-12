@@ -22,12 +22,14 @@ sidebar <- dashboardSidebar(
       selectInput('orderSel','Order By:',order.list),
       
       checkboxInput('x_range_custom','Customize X Axis Range?'),
-      
       conditionalPanel('input.x_range_custom',
                        sliderInput(
                          'plotRange','Range:',
                          min=-0.5,max=0.5,value=c(-0.05,0.05),step=0.01)
       ),
+      
+      # sliderInput('ratioH','Aspect Ratio Height',min=1,max=10,value=7),
+      # sliderInput('ratioW','Aspect Ratio Width',min=1,max=10,value=5),
       
       br()
     ),   ## end subject and date
@@ -42,7 +44,8 @@ sidebar <- dashboardSidebar(
       
       conditionalPanel(
         'input.plot_pars == "Colors"',
-        selectInput('colPal','Color Palette',col.list)
+        selectInput('colPal','Color Palette',col.list),
+        sliderInput('colBarHeight','Color Bar Height',min=5,max=50,value=15)
       ),
       conditionalPanel(
         'input.plot_pars == "Title"',
@@ -70,11 +73,18 @@ sidebar <- dashboardSidebar(
     menuItem(
       "Output",icon=icon('image'),selected=FALSE,startExpanded=FALSE,
       
-      selectInput('outputFormat','File Format',c('png','pdf')),
-      sliderInput('outputHeight','Height (in)',min=3,max=20,value=5),
-      sliderInput('outputWeight','Weight (in)',min=3,max=20,value=5),
+      selectInput('outputFormat','File Format',
+                  c('eps','jpeg','pdf','png','svg','tiff'),selected='png'),
+      sliderInput('outputHeight','Output Height (in)',
+                  min=3,max=20,value=7,step=0.5),
+      sliderInput('outputWidth','Output Width (in)',
+                  min=3,max=20,value=5,step=0.5),
+      sliderInput('outputDPI','Output DPI',min=72,max=600,value=320),
       
-      br()
+      downloadButton('downloadPlot','Download Plot',class='d_button'),
+      tags$head(tags$style(".d_button#downloadPlot{margin-left: 12px;}
+                                .d_button#downloadPlot{color:black;}")),
+      br(),br()
     ),
     
     br()
@@ -84,7 +94,9 @@ sidebar <- dashboardSidebar(
 ## body top #######################################################################
 body <-  dashboardBody(
   
-  fluidRow( plotOutput('gangPlot') ),
+  fluidRow( plotOutput('bayesPlot') ),
+  # fluidRow( imageOutput('gangPlot') ),
+  # 
   br()
   
 )   ## end dashboard body
