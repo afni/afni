@@ -256,7 +256,10 @@ int       g_sort_type      = 0;  /* bitmask: note fields applied in sorting */
 int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
 
 /* modulo sorting: sorting on parameter P, given g_mod_sort/_base
- *    major = (P-g_mod_sort_base) // g_mod_sort   (should be time point)
+ * This is intended to group as echo-major order of slices per time point.
+ * One time point probaly has multiple echoes.
+ *
+ *    major = (P-g_mod_sort_base) // g_mod_sort   (offset time point)
  *    minor = (P-g_mod_sort_base) %  g_mod_sort   (slice within time point)
  */
 int       g_mod_sort       = 0;  /* currently used by compare_by_rin        */
@@ -349,8 +352,6 @@ extern int          g_sop_iuid_min;
 static int          read_obl_info = 1;  /* only process obl_info once */
 static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
-static int         g_compare_by_geh = 0;
-
 
 int compare_finfo_z(const void * v0, const void * v1);
 
@@ -367,6 +368,7 @@ static int         finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort);
 static int         geme_rin_get_sort_n_base(param_t * p, int * gm_sort,
                                             int * gm_base);
 static int         get_num_suffix( char * str );
+static int         must_wait_for_read(param_t * p);
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
@@ -518,6 +520,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     int ret_val, n2read, n2proc;
     int sleep_ms = -1;  /* has not been set from data yet */
     int vs_state = 0;   /* state for volume search, can reset */
+    int must_wait = 0;  /* must we wait to read before searching */
     int nfiles;         /* from read_image_files */
 
     if ( gD.level > 0 ) fprintf( stderr, "-- scanning for first volume\n" );
@@ -539,11 +542,16 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
         n2proc = nfim2proc(p);
         ret_val = nfiles;
 
+        /* must we wait for ret_val > 0 to search? */
+        must_wait = must_wait_for_read(p) && nfiles == 0;
+
         if ( ret_val > 0 || n2proc > 0 )
         {
-            ret_val = volume_search( v, p, &vs_state );
-            if(gD.level>1)
-                fprintf(stderr,"-- volume search returns %d\n", ret_val);
+            if( ! must_wait ) {
+               ret_val = volume_search( v, p, &vs_state );
+               if(gD.level>1)
+                   fprintf(stderr,"-- volume search returns %d\n", ret_val);
+            }
 
             if ( (ret_val == 0 || ret_val == -1) && n2read > 0 ) {
                /* have images, no volume, but more to read: do it */
@@ -1531,6 +1539,15 @@ static int read_image_files(param_t * p)
     /* fill fim_o, set fim_start */
     if( make_sorted_fim_list(p) < 0 ) return -1;
 
+    /* if method is GEME_RIN, require a properly set g_mod_sort */
+    if( newstuff && sort_method(p->opts.sort_method) == IFM_SORT_GEME_RIN ) {
+       if( g_mod_sort <= 0 ) {
+          if( gD.level > 2 )
+             fprintf(stderr,"-- cancel newstuff, for lack of g_mod_sort\n");
+          newstuff = 0;
+       }
+    }
+
     if( gP.opts.flist_details && newstuff && first )
        create_file_list(p, p->opts.flist_details, 1, "first_sort");
 
@@ -1546,6 +1563,13 @@ static int read_image_files(param_t * p)
     return newstuff;
 }
 
+/* return whether volume_search should wait for image reading */
+static int must_wait_for_read(param_t * p)
+{
+   if( sort_method(p->opts.sort_method) == IFM_SORT_GEME_RIN )
+      return 1;
+   return 0;
+}
 
 /*----------------------------------------------------------------------
  * sort fim_o and set fim_start
@@ -1887,7 +1911,6 @@ continue;
 static int update_g_mod_sort(param_t * p, int method)
 {
    finfo_t  * fp;
-   int        ind; 
    int        sort_mod=0, sort_base=0;
 
    if( method != IFM_SORT_GEME_RIN ) {
@@ -1911,25 +1934,28 @@ static int update_g_mod_sort(param_t * p, int method)
    /* if not yet set, do so, else compare */
    if( g_mod_sort <= 0 ) {
       g_mod_sort = sort_mod;
-      g_mod_sortbase = sort_base;
+      g_mod_sort_base = sort_base;
       if( gD.level > 1 )
          fprintf(stderr,"-- init g_mod_sort, base=%d, mod=%d\n",
                  sort_base, sort_mod);
-   } else if( (g_mod_sort != sort_mod) || (g_mod_sortbase != sort_base) ) {
+   } else if( (g_mod_sort != sort_mod) || (g_mod_sort_base != sort_base) ) {
       if( gD.level > 1 )
          fprintf(stderr,"** UPDATE g_mod_sort, base=%d, mod=%d\n",
                  sort_base, sort_mod);
       g_mod_sort = sort_mod;
-      g_mod_sortbase = sort_base;
+      g_mod_sort_base = sort_base;
    }
 
    return 0;
 }
 
 /* return a g_mod_sort val and base for GEME_RIN method
+ * NOTE: geme_index is basically slice index (into one volume/echo)
  *    - find enum/geme_index min values (>0)
+ *       - do not allow echo 0, that means we have not read it in
  *    - find enum/geme_index match
- *    - set base = min(rin), set mod = (match - min)
+ *    - set base = min(rin), set sort=mod = (match - min)
+ *    - gm_sort=group_size should equal necho*geme_slices
  *
  *  fim list is assumed to be sorted by RIN already
  *
@@ -1938,41 +1964,63 @@ static int update_g_mod_sort(param_t * p, int method)
 static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
 {
    finfo_t  * fp;
-   int        ind;
+   int        ind, nfim, geme_slices, necho, group_size;
    int        min_echo, min_geme;
-   int        rin, rin_base=-1, next_base=-1;
+   int        max_echo, max_geme;  /* for sanity testing */
+   int        rin_base=-1, next_base=-1;
 
    if( p->fim_start >= p->nfim )
       return 0;
 
-   /* init fp and min values (set to current) */
+   /* init fp and min/max values (set to current) */
    fp = p->fim_o + p->fim_start;
    min_echo = fp->gex.ge_echo_num;
+   max_echo = fp->gex.ge_echo_num;
    min_geme = fp->gex.ge_me_index;
+   max_geme = fp->gex.ge_me_index;
+
+   /* do early bail if first file has not been read */
+   if( fp->gex.ge_echo_num == 0 )
+      return 0;
+
+   /* override nfim if we find echo 0 (i.e. not read) */
+   nfim = p->nfim;
    
-   /* start at next position and check mins */
+   /* check mins, include first posn for check of echo_num */
    /* if min is not at first image, should we just return? */
-   fp++;
-   for( ind=p->fim_start+1; ind < p->nfim; ind++, fp++ ) {
+   for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
+      /* do not allow bad echo 0, just to be explicit */
+      if( fp->gex.ge_echo_num == 0 ) {
+         /* have unread image, do not include for sorting */
+         nfim = ind;
+         break;
+      }
       if( fp->gex.ge_echo_num < min_echo )
          min_echo = fp->gex.ge_echo_num;
       if( fp->gex.ge_me_index < min_geme )
          min_geme = fp->gex.ge_me_index;
+      if( fp->gex.ge_echo_num > max_echo )
+         max_echo = fp->gex.ge_echo_num;
+      if( fp->gex.ge_me_index > max_geme )
+         max_geme = fp->gex.ge_me_index;
    }
 
    /* now start over and find first match (this must succeed) */
    /* note: this really ought to result in p->fim_start */
-   for( ind=p->fim_start; ind < p->nfim; ind++, fp++ ) {
+   fp = p->fim_o + p->fim_start;
+   for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
       if( (fp->gex.ge_echo_num == min_echo )
           && ( fp->gex.ge_me_index == min_geme ) )
       {
+         /* found base, note and go past */
          rin_base = fp->geh.index;
          break;
       }
    }
 
    /* continue and try to find next match, this is what we are here for */
-   for( ind=p->fim_start; ind < p->nfim; ind++, fp++ ) {
+   /* (start from next position) */
+   for( ind++, fp++ ; ind < nfim; ind++, fp++ ) {
       if( (fp->gex.ge_echo_num == min_echo )
           && ( fp->gex.ge_me_index == min_geme ) )
       {
@@ -1981,21 +2029,98 @@ static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
       }
    }
 
-   /* see if we have what we came for */
+   if( gD.level > 2 )
+      fprintf(stderr,"-- rin_base = %d, next_base = %d, ind = %d\n",
+              rin_base, next_base, ind);
 
-   /* juuuuust to be sure */
-   if( rin_base < 0 ) {
-      fprintf(stderr,"** geme_rin_get_mod_sort: missing base\n");
-      return -1;
-   }
+   /* see if we have what we came for, if not, come back later */
 
-   /* only 1 echo set, so no new information, just return */
    if( next_base < 0 )
       return 0;
 
+   /* SANITY CHECKS: we have a matching echo/geme pair, do a few sanity checks
+    *
+    *   - if num_chan set, max echo should match
+    *      - else, set num_chan
+    *   - if num_slices set, num geme should match
+    *   - require to find max_echo/max_geme match, too
+    *   - want nechos*ngeme to equal next_base-rin_base
+    *     (else missing slices?)
+    *     (do not allow NE*NG >= 2*(next_base-rin_base : fail 3 times?)
+    */
+   /* note evaluated echoes and slices */
+   necho = max_echo - min_echo + 1;
+   geme_slices = max_geme - min_geme + 1;
+   group_size = next_base - rin_base;
+   if( gD.level > 2 )
+      fprintf(stderr, "-- GRGSB: init necho=%d, gslices=%d, gsize=%d\n",
+              necho, geme_slices, group_size);
+
+   /* first is num_chan */
+   if( p->opts.num_chan > 0 ) {
+      if( p->opts.num_chan != max_echo ) {
+         fprintf(stderr,"** GRGSB: want %d echoes, but have min/max %d/%d\n",
+                 p->opts.num_chan, min_echo, max_echo);
+         /* what to do?  let's trust the given option */
+      }
+   } else {
+      fprintf(stderr,"++ found %d echoes, setting num_chan\n", necho);
+      p->opts.num_chan = necho;
+   }
+   if( p->opts.num_slices > 0 ) {
+      if( p->opts.num_slices != geme_slices ) {
+         fprintf(stderr,"** GRGSB: want %d slices, but have %d geme slices\n",
+                 p->opts.num_slices, geme_slices);
+      }
+   }
+
+   /* requre nechoes * ngem match (i.e. want 2 full echoes) */
+   {  int nfound = 0;
+      fp = p->fim_o + p->fim_start;
+      for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
+         if( (fp->gex.ge_echo_num == max_echo )
+             && ( fp->gex.ge_me_index == max_geme ) ) {
+            nfound++;
+            if( nfound == 2 ) break;
+         }
+      }
+      /* if we do not have a match for max pair, come back later */
+      if( nfound < 2 ) {
+         if( gD.level > 1 )
+            fprintf(stderr,"-- have min chan/echo match, but not max...\n");
+         return 0;
+      }
+      if( gD.level > 1 )
+         fprintf(stderr,"-- have min and max chan/echo match, proceeding...\n");
+   }
+
+   /* want nechos*ngeme to equal next_base-rin_base */
+   /* if NE*NG >=2(next-cur), fail a few times      */
+   {  static int nfail = 3;
+      if( group_size != (necho*geme_slices) ) {
+         /* maybe we found a pair match early, come back later (max 3 tries) */
+         if( group_size >= 2*(necho*geme_slices) ) {
+            if( gD.level > 1 )
+               fprintf(stderr,"-- have gsize %d, but necho %d, gslices %d\n",
+                       group_size, necho, geme_slices);
+            nfail--;
+            if( nfail >= 0 ) return 0;
+            fprintf(stderr,"** have group_size %d, necho %d, gslices %d\n"
+                           "   trusting latter pair to proceed\n",
+                    group_size, necho, geme_slices);
+            group_size = necho * geme_slices;
+         }
+      }
+   }
+
+   /* please end the inSANITY CHECKS */
+
    /* set base = min, sort = rin diff */
+   if( gD.level > 1 )
+      fprintf(stderr,"++ setting sortnbase: %d, %d\n", group_size, rin_base);
+
    *gm_base = rin_base;
-   *gm_sort = next_base - rin_base;
+   *gm_sort = group_size;
 
    return 0;
 }
@@ -2639,7 +2764,7 @@ static int read_new_images( param_t * p )
 
          if( p->max2read > 0 && nread >= p->max2read ) {
             if( gD.level > 2 )
-               fprintf(stderr, "-- RNI: read max of %d images", nread);
+               fprintf(stderr, "-- RNI: read max of %d images\n", nread);
             break;
          }
       } else {          /* error */
@@ -2866,7 +2991,12 @@ int compare_by_rin(const void * v0, const void * v1)
 
    /*-- 0020 0013: REL Instance Number (sort_type 16 or 32(mod)) --*/
 
-   /* possibly do modulo sorting */
+   /* possibly do modulo sorting
+    * (a time index should contain g_mod_sort slice images)
+    * (g_mod_sort should be nslices_per_time_point = nechoes*nslices_per_vol)
+    *
+    * sort by: time index, echo number, RIN
+    */
    if( g_mod_sort > 0 ) {
       /* major axis = time index (ind/mod_sort) */
       ind0 = (p0->geh.index - g_mod_sort_base) / g_mod_sort;
@@ -2874,11 +3004,18 @@ int compare_by_rin(const void * v0, const void * v1)
       if( ind0 < ind1 ) { g_sort_type |= 32; return -dir; }
       if( ind0 > ind1 ) { g_sort_type |= 32; return dir; }
 
+      /* else, sub-major axis = echo number */
+      if( p0->gex.ge_echo_num < p1->gex.ge_echo_num )
+         { g_sort_type |= 32; return -dir; }
+      if( p0->gex.ge_echo_num > p1->gex.ge_echo_num )
+         { g_sort_type |= 32; return dir; }
+   
       /* else, minor axis = slice index at time (ind%mod_sort) */
-      ind0 = (p0->geh.index - g_mod_sort_base) % g_mod_sort;
-      ind1 = (p1->geh.index - g_mod_sort_base) % g_mod_sort;
-      if( ind0 < ind1 ) { g_sort_type |= 32; return -dir; }
-      if( ind0 > ind1 ) { g_sort_type |= 32; return dir; }
+      /* can sort by geme_ind, RIN, or RIN%mod_sort, choose RIN */
+      /* (we COULD just fall through here) */
+   
+      if( p0->geh.index < p1->geh.index ) { g_sort_type |= 32; return -dir; }
+      if( p0->geh.index > p1->geh.index ) { g_sort_type |= 32; return dir; }
 
       /* we should not get here: whine a few times and return equal */
       if( nwarn > 0 ) {
@@ -3720,6 +3857,8 @@ char * sort_method_str(int method)
       case IFM_SORT_GEME:     return "geme_index";
       case IFM_SORT_NUM_SUFF: return "num_suffix";
       case IFM_SORT_ZPOSN:    return "zposn";
+      case IFM_SORT_RIN:      return "rin";
+      case IFM_SORT_GEME_RIN: return "geme_rin";
    }
 
    return "UNKNOWN";
