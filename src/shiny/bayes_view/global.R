@@ -1,43 +1,56 @@
 ## top ##################################
-## 01/2022 Justin Rajendra
-## Gang RBA 
+## 04/2022 Justin Rajendra
+## bayes view
 ## global
 
-suppressPackageStartupMessages(library(shiny))
-suppressPackageStartupMessages(library(data.table))
-suppressPackageStartupMessages(library(shinydashboard))
-suppressPackageStartupMessages(library(plotly))
-suppressPackageStartupMessages(library(RColorBrewer))
-suppressPackageStartupMessages(library(tools))
-library(ggplot2)
-library(ggridges)
-library(dplyr)
-library(tidyr)
-library(scales)
+# suppressPackageStartupMessages(library(shiny))
+# suppressPackageStartupMessages(library(data.table))
+# suppressPackageStartupMessages(library(shinydashboard))
+# suppressPackageStartupMessages(library(plotly))
+# suppressPackageStartupMessages(library(RColorBrewer))
+# suppressPackageStartupMessages(library(tools))
+# library(ggplot2)
+# library(ggridges)
+# library(dplyr)
+# library(tidyr)
+# library(scales)
 
-## clean up
-rm(list=ls())
+# ## clean up
+# rm(list=ls())
 
-# ## for the wrong dates on the server
-# Sys.setenv(TZ="America/New_York")
+## check for packages and load them #################
+pkgs <- c('shiny','data.table','shinydashboard','plotly','RColorBrewer',
+          'tools','ggplot2','ggridges','dplyr','tidyr','scales')
+for(pkg in pkgs){
+    if(!require(pkg,character.only=TRUE)){
+        print(paste0("ERROR: Missing ",pkg,"! please install it with: ",
+                     "@afni_R_package_install -custom ",pkg))
+        quit(save="no")
+    } else {
+        require(pkg,character.only=TRUE)
+    }
+}
 
-## helper functions #############################
-
+## get arguments and check if folder is there #################
+args <- commandArgs(TRUE)
+data.path <- args[1]
+if(!dir.exists(data.path)){
+    print(paste0("ERROR: ",data.path," does not exist!"))
+    quit(save="no")
+}
 
 ## get file list ####################################
 
-file.temp <- list_files_with_exts('data',ext=c('RData'))
+file.temp <- list_files_with_exts(data.path,ext=c('RData'))
 file.list <- as.list(file.temp)
 names(file.list) <- basename(file_path_sans_ext(file.temp))
 rm(file.temp)
-
 
 ## lists for choices ##################################
 
 order.list <- list('P-plus','Original')
 f.face.list <- list('Plain'='plain','Bold'='bold','Italic'='italic',
                     'Bold Italic'='bold.italic')
-
 
 ### plot parameters ##################################
 trans <- 0.25
