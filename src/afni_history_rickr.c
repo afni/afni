@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Apr, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_fedora_35_shared and OS_notes.linux_fedora_35.txt",
+   NULL
+ } ,
+
  {  6, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow for REML-only errts on surface",
    "Thanks to P Molfese for bringing it up."

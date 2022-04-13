@@ -1,0 +1,20 @@
+
+# Fedora 35 Linux setup, 12 Apr, 2022   R Reynolds
+
+# Steps to create a build machine (and extras for running programs).
+# - should work with Makefile.linux_fedora_35_shared
+
+   sudo dnf install -y tcsh
+   sudo dnf upgrade
+   sudo dnf install -y                                                   \
+            openmotif-devel mesa-libGLw-devel mesa-libGLU-devel          \
+            gsl-devel python3-devel expat-devel libXpm-devel libXi-devel \
+            gcc-c++ python3-matplotlib xorg-x11-server-Xvfb R
+
+   # extra R dependencies needed to run Gang's programs
+   # (needed to build dependencies, more specifically)
+   sudo dnf install -y NLopt-devel libcurl-devel udunits2-devel openssl-devel
+
+   # extras (not needed for build)
+   sudo dnf install -y netpbm-progs gnome-tweaks ipython meld python3-scipy
+
