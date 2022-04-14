@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, Apr, 2021, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_BUG_FIX,
+   "Replacement was not occuring if ROIs were purged by modal smoothing.",
+   "Fixed that bug, hopefully improving robustness to such error in future.\n"
+},
+
 { 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "Add '-disp_def_params' so the user can see the default params.",
    "The params will also now get displayed during runtime.\n"

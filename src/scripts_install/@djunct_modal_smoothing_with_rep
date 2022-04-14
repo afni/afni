@@ -18,11 +18,18 @@
 #   + all intermediate files are now *.nii.gz, to play more nicerly
 #     with @animal_warper
 #
-set version   = "0.4";  set rev_dat   = "March 3, 2021"
+#set version   = "0.4";  set rev_dat   = "March 3, 2021"
 # [PT] 
 #   + Squashing the WEIRDEST bug ever, where either line spacing or
 #     not doublequoting a safe filename caused an error.  Thanks,
-#     Veena, for helping to track this down!
+#     Veena, for helping to track this down.
+#
+set version   = "0.5";  set rev_dat   = "April 14, 2022"
+# [PT] 
+#   + Squash a bug: no replacement was happening at present, since the
+#     grep string in the table was incorrect.  Fixed that, and hopefully
+#     should check to prevent such a mismatch of information from 
+#     happening again.
 #
 # ----------------------------------------------------------------
 
@@ -191,19 +198,30 @@ foreach nn ( `seq 0 1 ${nvi}` )
         "${dset_inp}[${nn}]"                    \
         "${modesmooth}"
 
-    set check_lost = `grep "Selector of lost ROI values" "${report}"`
-    set check_diff = `grep "Nroi difference"             "${report}"`
+    set check_lost = `grep "Selector of lost ROIs"  "${report}"`
+    set check_diff = `grep "Nroi difference"        "${report}"`
+    set ndiff      = ${check_diff[5]}
+    
+    # check for inconsistencies in difference measures
+    if ( ( ${#check_lost} > 0 ) && ( "${ndiff}" == "0" ) ) then
+        echo "** ERROR: disagreement (A) between lines in report?"
+        echo "   ${check_lost}"
+        echo "   ${check_diff}"
+        goto BAD_EXIT
+    endif
 
-    if ( ${#check_lost} > 0 ) then
-        if ( "${check_diff[5]}" == "0" ) then
-            echo "** ERROR: disagreement between lines in report?"
+    if ( "${ndiff}" != "0" ) then
+        if ( "${check_lost}" == "" ) then
+            echo "** ERROR: disagreement (B) between lines in report?"
             echo "   ${check_lost}"
             echo "   ${check_diff}"
             goto BAD_EXIT
         endif
-    
+
         @ count_remake += 1
     endif
+
+    # after this, we assume both lines of differences are consistent
 end
 
 # -------- go through and *check* if we need to make any new dsets ---------
@@ -226,13 +244,14 @@ else
         set nnn    = `printf "%05d" "${nn}"`
         set report = "rep_${nnn}.txt"
 
-        set check_lost = `grep "Selector of lost ROI values" "${report}"`
-        set check_diff = `grep "Nroi difference"             "${report}"`
+        set check_lost = `grep "Selector of lost ROIs"  "${report}"`
+        set check_diff = `grep "Nroi difference"        "${report}"`
+        set ndiff      = ${check_diff[5]}
 
         if ( ${#check_lost} > 0 ) then
             # REMAKE this volume
             echo "++ Modal smoothing check [${nnn}] : REMAKE"
-            if ( "${check_diff[5]}" == "0" ) then
+            if ( "${ndiff}" == "0" ) then
                 echo "** ERROR: disagreement between lines in report (pass2)?"
                 echo "   ${check_lost}"
                 echo "   ${check_diff}"
@@ -241,7 +260,9 @@ else
 
             @ count_remake2 += 1
 
-            set str_sel = "${check_lost[8]}"  # which ROIs to be put back
+            set str_sel = "${check_lost[7]}"  # which ROIs to be put back
+            echo "++ Use this str selector about lost ROIs: ${str_sel}"
+
             set remake  = ${gpref}_${nnn}_RE.nii.gz
 
             3dcalc  ${owrite}                                   \
