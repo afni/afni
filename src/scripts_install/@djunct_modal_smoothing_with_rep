@@ -378,7 +378,7 @@ COMMAND OPTIONS ~1~
 -ver
 -input       (NB: assumes < 10**5 subbricks in this dset)
 -prefix
--modesmooth
+-modesmooth  (NB: fills in X in: 3dLocalstat -nbhd "SPHERE(-X)" ...)
 -overwrite
 -no_clean
 
