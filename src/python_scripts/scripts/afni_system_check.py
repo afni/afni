@@ -19,7 +19,8 @@ from afnipy import option_list as OL
 from afnipy import afni_util as UTIL
 from afnipy import lib_system_check as SC
 
-g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.cshrc', '.tcshrc']
+g_dotfiles = ['.profile', '.bash_profile', '.bashrc', '.bash_dyld_vars',
+              '.cshrc', '.tcshrc', '.zshrc' ]
 
 g_help_string = """
 =============================================================================
@@ -89,55 +90,121 @@ R Reynolds    July, 2013
 """
 
 g_help_rc_files = """
-RC (run commands) files applied at start up:
+        RC (run commands) background
 
-   0. login shells:
+RC files applied in a new shell are based on the way the shell is invoked
+and the actual shell being used.  There are 3 ways a shell can be invoked,
+as a login shell, and interactive shell, or a non-interactive shell.
 
-      Login shells happen when a user first logs in on a machine, e.g.,
+   a. A login shell is one where a user first logs in on a machine, e.g.,
 
          - at a console login
          - when login is via ssh
 
-      This help section focuses on commonly used user control files,
-      omitting files like /etc/csh.cshrc and .history.
+      In many cases, login shells are also interactive, but the do not need
+      to be.
 
-      The noted RC files all belong under a user's $HOME directory.
+   b. An interactive shell is meant for reading commands from stdin (standard
+      input), such as when a user opens a new terminal, or simply types
+      a shell name and hits <enter>, e.g. "bash"<enter>.  It is meant to
+      continue processing new commands until the input stream ends.
+
+   c. A non-interactive shell is one that a user does not interact with, such
+      as with a shell script.
 
 
-   1.  csh/tcsh RC files: .tcshrc .cshrc
+This help section focuses on commonly used user control files, omitting files
+like /etc/csh.cshrc and .history.  It also does not cover every possibility
+of dot files for each shell.  There are often many files that are searched
+for in each case, but we stick to what might be most standard.
 
-      1a. csh/tcsh non-login shell (e.g. opening a new terminal):
-         
-         .tcshrc (else .cshrc)
+The noted RC files all belong under a user's $HOME directory, though there
+can be system files under /etc, and the files do not necessarily need to be
+under $HOME.
 
-      1b. csh/tcsh login shell (e.g. ssh login):
+
+   1. csh/tcsh RC files: .tcshrc .cshrc
+
+      1a. csh/tcsh login shell (e.g. ssh login):
 
          .tcshrc (else .cshrc)
          .login
 
-       * alternate orders may be compiled in
+      1b. csh/tcsh non-login shell (e.g. opening a new terminal):
+
+         .tcshrc (else .cshrc)
+
+      1c. csh/tcsh non-interactive shell (e.g. running a script)
+
+         .tcshrc (else .cshrc)
+
+         This is the same as for an interactive shell.
 
 
-   2.  bash RC files: .bashrc .bash_profile 
+   2. bash RC files: .bashrc .bash_profile 
 
-      2a. bash non-login shell (e.g. opening a new terminal):
-         
-         .bashrc
-
-      2b. bash login shell (e.g. ssh login):
+      2a. bash login shell (e.g. ssh login):
 
          .bash_profile (else .bash_login) (else .profile)
 
+         Note that via ssh, the shell is both a login and an interactive one.
+      
 
-   3.  sh RC files: .profile
+      2b. bash interactive, non-login shell
+          (e.g. opening a new terminal):
+         
+         .bashrc
 
-      3a. sh (bash as sh) non-login shell:
+      2c. bash non-interactive, non-login shell
+          (e.g. from running a script)
+         
+          NOTHING*  (no dot files are processed by default)
+
+          * If needed (such as for a bash script that runs afni or suma),
+            consider setting BASH_ENV to a file that contains needed
+            variables, such as $DYLD_LIBRARY_PATH.  For example:
+
+            ~/.bashrc:
+                export BASH_ENV=~/.bash_dyld_vars
+
+            ~/.bash_dyld_vars:
+                export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace
+
+   3. sh RC files: .profile
+
+      3a. sh (bash as sh) login shell:
+
+         .profile
+
+      3b. sh (bash as sh) non-login shell:
+      3c. sh (bash as sh) non-innteractive shell:
 
        * nothing is read
 
-      3b. sh (bash as sh) login shell:
+   4. zsh rc files: .zshenv, .zshrc, .zlogin
 
-         .profile
+      4a. zsh login shell:
+
+         .zshenv
+         .zprofile
+
+      4b. zsh interactive shell:
+
+         .zshenv
+         .zshrc
+
+      4c. zsh non-interactive shell
+
+         .zshenv
+
+
+      To put this another way, the following is a sequence of files read at
+      startup, depending on the type of shell.
+
+        .zshenv         - always
+        .zprofile       - if login
+        .zshrc          - if interactive
+        .zlogin         - if login
 
 """
 
@@ -235,9 +302,12 @@ g_history = """
    1.17 Jan 11, 2022
         - add -disp_ver_matplotlib
         - matplotlib version >= 2.2 is now required in AFNI
+   1.18 Apr 15, 2022 
+        - fix .bashrc help, it is not read in non-interactive shell
+        - look for .zshrc
 """
 
-g_version = "afni_system_check.py version 1.17, January 11, 2022"
+g_version = "afni_system_check.py version 1.18, April 14, 2022"
 
 
 class CmdInterface:
