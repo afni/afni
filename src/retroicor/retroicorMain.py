@@ -34,12 +34,14 @@ retroicorMain.py - a main python program, to model cardiac and respratory contri
    Other options:
       -verb LEVEL               : Set the verbosity level
       -abt 0|1                  : Output a and b coefficients to terminal (Default = false)
-      -aby 0|1                  : Output time series based on a,b coefficients (Default = false)                      
+      -aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
+      -niml 0|1                 : Output in niml format                     
       
    Required options:
       -r <name>                 : Read the given 1D text file containing respiration data
       -c <name>                 : Read the given 1D text file containing ECG data
       -o <name>                 : Output filename
+      -s <# slices>             : Number of slices
 
 -----------------------------------------------------------------------------
 PD Lauren    March 2022
@@ -59,11 +61,12 @@ class MyInterface:
    """interface class for MyLibrary (whatever that is)
      
       This uses lib_1D.py as an example."""
-   def __init__(self, verb=1, cardiacFile='', respiratoryFile='', outputFile=''):
+   def __init__(self, verb=1, cardiacFile='', respiratoryFile='', outputFile='', nSlices=0):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
       self.user_opts       = None
+      self.self            = False
 
       # timing variables
       self.ad              = None
@@ -73,8 +76,10 @@ class MyInterface:
       self.cardiacFile     = cardiacFile
       self.respiratoryFile = respiratoryFile
       self.outputFile = outputFile
-      self.abt = False
-      self.aby = False
+      self.nSlices         = nSlices
+      self.abt             = False
+      self.aby             = False
+      self.niml            = False
 
       # initialize valid_opts
       self.init_options()
@@ -95,6 +100,8 @@ class MyInterface:
                       helpstr='Output a and b coefficients to terminal (Default = false)')
       self.valid_opts.add_opt('-aby', 1, [],            \
                       helpstr='Output time series based on a,b coefficients (Default = false)')
+      self.valid_opts.add_opt('-niml', 1, [],            \
+                      helpstr='Output in niml format (Default = false)')
 
       # required parameters
       self.valid_opts.add_opt('-r', 1, [], 
@@ -103,6 +110,8 @@ class MyInterface:
                       helpstr='Read the given 1D text file containing ECG data (Required)')
       self.valid_opts.add_opt('-o', 1, [], 
                       helpstr='Output filename (Required)')
+      self.valid_opts.add_opt('-s', 1, [], 
+                      helpstr='Number of slices (Required)')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -174,6 +183,13 @@ class MyInterface:
                 self.outputFile = val
             continue
 
+         elif opt.name == '-s':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.nSlices = val
+            continue
+
          # general options
 
          elif opt.name == '-verb':
@@ -195,9 +211,17 @@ class MyInterface:
             else:
                 self.aby = val
             continue
+
+         elif opt.name == '-niml':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.niml = val
+            continue
       
       # Check required options supplied
-      if (len(self.cardiacFile)<1 | len(self.respiratoryFile)<1 | len(self.outputFile)<1):
+      if (len(self.cardiacFile)<1 | len(self.respiratoryFile)<1 | \
+          len(self.outputFile)<1 | self.nSlices == 0):
          print(g_help_string)
          return 1           
 
@@ -210,8 +234,15 @@ class MyInterface:
       if self.verb > 1:
          print('-- processing...')
          
-      retroicor.runAnalysis(self.cardiacFile, self.respiratoryFile, \
-                            self.outputFile, self.abt, self.aby)
+      parameters=dict()
+      parameters['-c'] = self.cardiacFile
+      parameters['-r'] = self.respiratoryFile
+      parameters['-s'] = self.nSlices
+      parameters['-abt'] = self.abt
+      parameters['-aby'] = self.aby
+      parameters['-niml'] = self.niml
+        
+      retroicor.runAnalysis(parameters)
 
       return 0
 

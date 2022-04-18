@@ -6,6 +6,12 @@ import math
 import scipy
 from scipy.signal import find_peaks
 import pandas as pd
+from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
+from lib_RetroTS.PhaseEstimator import phase_estimator
+from lib_RetroTS.PeakFinder import peak_finder
+from numpy import size, shape, column_stack, savetxt
+
+
 
 # Glocal constants
 M = 3
@@ -271,6 +277,129 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
     return phases
 
+def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
+    
+    respiration_file = parameters['-r']
+    # Estimate RVT
+    respiration_info = dict()
+    respiration_info["amp_phase"] = 1
+    respiration_info["frequency_cutoff"] = 3
+    respiration_peak, error = peak_finder(respiration_info, respiration_file)
+    respiration_info.update(respiration_peak)
+    respiration_phased = phase_estimator(respiration_info["amp_phase"], respiration_info)
+    respiration_phased["legacy_transform"] = 0
+    # respiration_phased["rvt_shifts"] = range(0,len(respiratory_phases))
+    respiration_phased["rvt_shifts"] = range(0,len(columnNames))
+    respiration_phased["rvtrs_slc"] = 0
+    respiration_phased["time_series_time"] = np.abs(respiratory_phases)
+    respiration_phased["interpolation_style"] = "linear"
+    rvt = rvt_from_peakfinder(respiration_phased)
+    rvt['number_of_slices'] = int(parameters['-s'])
+    numSlices = rvt['number_of_slices']
+    # print('rvt = ', rvt)
+    # print('type(rvt) = ', type(rvt))
+    # print('rvt keys = ', rvt.keys())
+    # print('rvt["rvt"] = ', rvt['rvt'])
+    # print('rvt["rv"] = ', rvt['rv'])
+    # print('rvt["rvtrs"] = ', rvt['rvtrs'])
+    # print('len(rvt["rvtrs"]) = ', len(rvt['rvtrs']))
+    # print('rvt["rvtrs_slc"] = ', rvt['rvtrs_slc'])
+    # print('len(rvt["rvtrs_slc"]) = ', len(rvt['rvtrs_slc']))
+    # print('len(rvt["rvtrs_slc"][0]) = ', len(rvt['rvtrs_slc'][0]))
+    respiration_info.update(rvt)
+    # print('respiration_info["number_of_slices"] = ', respiration_info['number_of_slices'])
+    respiration_info.update(respiration_peak)
+    respiration_info.update(respiration_phased)
+    # print('respiration_info["number_of_slices"] = ', respiration_info['number_of_slices'])
+    # print('respiration_info keys = ', respiration_info.keys())
+    # print('respiration_info["rvtrs_slc"] = ', respiration_info["rvtrs_slc"])
+    print('respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"])
+    # print('dims(respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"].shape)
+    # print('respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"])
+    # print('respiratory_phases[0:16] = ', respiratory_phases[0:16])
+    
+    nx = 8
+    ny = int((len(respiratory_phases)/(4*numSlices)))
+    nz = numSlices
+    
+    respiration_info["phase_slice_reg"] = np.empty((nx,ny,nz))
+    count = 0
+    for k in range(nz):
+        for j in range(ny):
+            for i in range(nx):
+                # respiration_info["phase_slice_reg"][i,j,k] = respiratory_phases[count]
+                respiration_info["phase_slice_reg"][i,j,k] = 0
+                count += 1
+            
+    # respiration_info["phase_slice_reg"] = respiratory_phases
+    # respiration_info["phase_slice_reg"].reshape(int((len(respiratory_phases)/(4*numSlices)),4,numSlices))
+
+    head = (
+        "<RetroTSout\n"
+        'ni_type = "%d*double"\n'
+        'ni_dimen = "%d"\n'
+        'ColumnLabels = ' + '"'.join(columnNames).join( '"')
+    )
+    
+    label = head
+    cnt = 0
+    dCnt = 0
+    respInc = 0
+    cardInc = 0
+    reml_out = []
+    print('numSlices = ', numSlices)
+    print('type(data) = ', type(data))
+    m = np.array(data)
+    print('data.shape = ', m.shape)
+    for i in range(0, numSlices):
+        # RVT
+        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
+            cnt += 1
+
+            reml_out.append(
+                respiration_info["rvtrs_slc"][j]
+            )  # same regressor for each slice
+            label = "%s s%d.RVT%d ;" % (label, i, j)
+        # Resp
+        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
+            cnt += 1
+            for i in range(0,4):
+                reml_out.append(
+                    m[:,i]
+                )  # same regressor for each slice
+            label = "%s s%d.Resp%d ;" % (label, i, j)
+        # Card
+        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
+            cnt += 1
+            for i in range(0,8):
+                reml_out.append(
+                    m[:,i]
+                )  # same regressor for each slice
+            label = "%s s%d.Card%d ;" % (label, i, j)
+                
+    print('cnt = ', cnt)
+    print('nx = ', nx)
+    print('ny = ', ny)
+    print('nz = ', nz)
+    print('len(respiratory_phases) = ', len(respiratory_phases))
+    print('len(data[0]) = ', len(data[0]))
+
+    tail = '"\n>'
+    tailclose = "</RetroTSout>"
+
+    fid = open(("%s.slibase.1D" % '/home/peterlauren/retroicor/out'), "w")
+    savetxt(
+        "%s.slibase.1D" % '/home/peterlauren/retroicor/out',
+        column_stack(reml_out),
+        fmt="%.4f",
+        delimiter=" ",
+        newline="\n",
+        header=("%s%s" % (label, tail)),
+        footer=("%s" % tailclose),
+    )
+    # TODO: Add code
+    return 0
+
 def getPhysiologicalNoiseComponents(parameters):
     cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
     
@@ -334,20 +463,28 @@ def getPhysiologicalNoiseComponents(parameters):
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
         data.append(addend)
     
+    if (parameters['-niml']):
+        niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
+        return data
+    
     df = pd.DataFrame(data,columns=columnNames)
         
     return df    
 
-def runAnalysis(cardiacFile, respiratoryFile, outputFile, abt, aby):
+def runAnalysis(parameters):
     # parameters = retroicorClass.getParameters()
     
-    parameters=dict()
-    parameters['-c'] = cardiacFile
-    parameters['-r'] = respiratoryFile
-    parameters['-abt'] = abt
-    parameters['-aby'] = aby
+    # parameters=dict()
+    # parameters['-c'] = cardiacFile
+    # parameters['-r'] = respiratoryFile
+    # parameters['-s'] = nSlices
+    # parameters['-abt'] = abt
+    # parameters['-aby'] = aby
+    # parameters['-niml'] = niml
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    if parameters['-niml']:
+        return 0
     
     physiologicalNoiseComponents.to_csv(outputFile)
     
