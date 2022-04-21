@@ -216,10 +216,6 @@ static char * g_milestones[] =
 
 /* rcr - todo:
  *
- * AFNI dset:
- *    - no way to know run (effect of -nt?)
- *    - how to pass slice pattern?
- *    - oblique info
  */
 
 #include <stdio.h>
@@ -664,10 +660,30 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 
 int update_max2read(param_t * p, int max)
 {
+   int newmax;
+
    if( gD.level > 2 )
       fprintf(stderr,"+d updating max2read from %d to %d\n", p->max2read, max);
 
    if( max <= 0 ) return 1;
+
+   /* if doing modulo sorting and it is set, possibly increase max2read
+    * to be a multiple of the modulo value */
+   if( g_mod_sort > 0 ) {
+      /* abuse integer arithmetic to round up to next multile of mod */
+      /* require to be as large as 2 groups */
+      newmax = (max+g_mod_sort-1)/g_mod_sort * g_mod_sort;
+      if( newmax < 2*g_mod_sort )
+         newmax = 2*g_mod_sort;
+
+      if( newmax > max ) {
+         if( gD.level > 1 )
+            fprintf(stderr,"+d update max2read to next multiple of mod_sort\n"
+                           "   max2read %d, max %d, applied newmax %d\n",
+                    p->max2read, max, newmax);
+         max = newmax;
+      }
+   }
 
    p->max2read = max;
 
@@ -1529,6 +1545,9 @@ static int read_image_files(param_t * p)
 
     /* dicom_org: remove any limit on images processed */
     if( p->opts.dicom_org ) p->max2read = -1;
+    else if ( g_mod_sort > 0 )
+       /* force max to be multiple of any sort group */
+       update_max2read(p, p->max2read);
 
     /* now actually try to read new images, starting from fim_skip    */
     /* note: this implies wherether there is something new to process */
@@ -1667,13 +1686,10 @@ static int make_sorted_fim_list(param_t  * p)
          if( g_mod_sort <= 0 )
             update_g_mod_sort(p, method, n2sort);
 
-         /* if still not ready, quit */
-         if( g_mod_sort <= 0 ) {
-            n2sort = 0;
-         } else {
-            // qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
+         /* if ready, sort */
+         if( g_mod_sort > 0 )
             do_sort_by_rin(p, fp, n2sort);
-         }
+
          break;
       }
    }
@@ -1826,6 +1842,9 @@ int sort_by_geme_index(param_t * p)
    /* be sure we have enough space for counters */
    if( snacq > ilist.nall ) resize_int_list(&ilist, snacq);
 
+   /* set the modulo sort size, to affect reading images in useful chuncks */
+   g_mod_sort = snacq;
+
    /* and track overall minimum - just for reporting */
    if( s_geme_min == -1 ) {
       if( gD.level > 1 ) fprintf(stderr,"-- have initial geme_min = %d\n", min);
@@ -1929,11 +1948,11 @@ static int update_g_mod_sort(param_t * p, int method, int n2proc)
    if( method != IFM_SORT_GEME_RIN ) {
       fprintf(stderr,"** update_g_mod_sort: invalid method %d\n", method);
       return 0;
-   }      
+   }
 
    if( p->fim_start >= p->nfim )
       return 0;
-  
+
    /* point to start */
    fp = p->fim_o + p->fim_start;
 
@@ -1978,7 +1997,7 @@ static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length)
               "\n"
               "++ do_sort_by_rin : "
               "mod_sort = %d, base = %d, length = %d, l/s = %d, lms %d\n",
-              g_mod_sort, g_mod_sort_base, length, 
+              g_mod_sort, g_mod_sort_base, length,
               g_mod_sort ? length/g_mod_sort : 0,
               g_mod_sort ? length%g_mod_sort : 0);
 
@@ -2036,7 +2055,7 @@ static int geme_rin_get_sort_n_base(param_t * p, int n2proc,
 
    /* override nfim if we find echo 0 (i.e. not read) */
    nfim = p->fim_start + n2proc;
-   
+
    /* check mins, include first posn for check of echo_num */
    /* if min is not at first image, should we just return? */
    for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
@@ -2778,6 +2797,7 @@ static int read_new_images( param_t * p )
    char      back5[6] = { '\x8', '\x8', '\x8', '\x8', '\x8', '\x0' };
    int       index, rv, nread, nerrs;
    int       n2read, stat=0;
+   int       more2read=0, tmp;
 
    if( p->nfim <= 0 )              return 0;    /* no names to read */
    if( p->fim_skip < 0 )           return 0;    /* waiting to start */
@@ -2800,6 +2820,24 @@ static int read_new_images( param_t * p )
    nerrs = 0;
 
    n2read = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_READ);
+
+   /* if g_mod_sort, set more2read so resulting TO_PROC totals would
+    * be a multiple of g_mod_osrt */
+   if( g_mod_sort > 0 ) {
+      tmp  = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_PROC);
+      tmp += nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_SORT);
+      tmp += p->max2read;
+      tmp = tmp % g_mod_sort;
+
+      /* if tmp is not 0 (it was not a multiple of g_mod_sort), adjust */
+      if( tmp ) {
+         more2read = g_mod_sort - tmp;
+
+         if( gD.level > 2 )
+            fprintf(stderr,"-- adjusting max2read %d by more2read %d\n",
+                    p->max2read, more2read);
+      }
+   }
 
    if( n2read > 300 && p->max2read <= 0 ) stat = n2read/100;
    if( stat && gD.level )
@@ -2832,7 +2870,8 @@ static int read_new_images( param_t * p )
          if( stat && gD.level && !(nread%stat) )
             fprintf(stderr,"%s %3d%%", back5, (int)(100.0*nread/n2read));
 
-         if( p->max2read > 0 && nread >= p->max2read ) {
+         /* limit nread to max, possibly adjusted to next g_mod_sort */
+         if( p->max2read > 0 && nread >= (p->max2read+more2read) ) {
             if( gD.level > 2 )
                fprintf(stderr, "-- RNI: read max of %d images\n", nread);
             break;
@@ -3079,11 +3118,11 @@ int compare_by_rin(const void * v0, const void * v1)
          { g_sort_type |= 32; return -dir; }
       if( p0->gex.ge_echo_num > p1->gex.ge_echo_num )
          { g_sort_type |= 32; return dir; }
-   
+
       /* else, minor axis = slice index at time (ind%mod_sort) */
       /* can sort by geme_ind, RIN, or RIN%mod_sort, choose RIN */
       /* (we COULD just fall through here) */
-   
+
       if( p0->geh.index < p1->geh.index ) { g_sort_type |= 32; return -dir; }
       if( p0->geh.index > p1->geh.index ) { g_sort_type |= 32; return dir; }
 
@@ -3093,7 +3132,7 @@ int compare_by_rin(const void * v0, const void * v1)
          nwarn--;
       }
    }
-   
+
    /* else, use non-modulo RIN */
    if     ( p0->geh.index < p1->geh.index ) { g_sort_type |= 16; return -dir; }
    else if( p0->geh.index > p1->geh.index ) { g_sort_type |= 16; return dir; }
