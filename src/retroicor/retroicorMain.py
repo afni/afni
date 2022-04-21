@@ -30,18 +30,21 @@ retroicorMain.py - a main python program, to model cardiac and respratory contri
       -hist                     : Show module history
       -show_valid_opts          : List valid options
       -ver                      : Show current version
-
-   Other options:
-      -verb LEVEL               : Set the verbosity level
-      -abt 0|1                  : Output a and b coefficients to terminal (Default = false)
-      -aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
-      -niml 0|1                 : Output in niml format                     
       
    Required options:
       -r <name>                 : Read the given 1D text file containing respiration data
       -c <name>                 : Read the given 1D text file containing ECG data
       -o <name>                 : Output filename
       -s <# slices>             : Number of slices
+      -TR <number>              : Repetition time (TR)
+      -Nt <integer>             : Number of time points
+      -Sr <integer>             : Samples per second (Hertz)
+
+   Other options:
+      -verb LEVEL               : Set the verbosity level
+      -abt 0|1                  : Output a and b coefficients to terminal (Default = false)
+      -aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
+      -niml 0|1                 : Output in niml format                     
 
 -----------------------------------------------------------------------------
 PD Lauren    March 2022
@@ -61,7 +64,8 @@ class MyInterface:
    """interface class for MyLibrary (whatever that is)
      
       This uses lib_1D.py as an example."""
-   def __init__(self, verb=1, cardiacFile='', respiratoryFile='', outputFile='', nSlices=0):
+   def __init__(self, verb=1, cardiacFile='', respiratoryFile='', outputFile='',\
+                nSlices=0,TR=0,Nt=0,Sr=0):
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
@@ -77,6 +81,9 @@ class MyInterface:
       self.respiratoryFile = respiratoryFile
       self.outputFile = outputFile
       self.nSlices         = nSlices
+      self.TR              = TR
+      self.Nt              = Nt
+      self.Sr              = Sr
       self.abt             = False
       self.aby             = False
       self.niml            = False
@@ -112,6 +119,12 @@ class MyInterface:
                       helpstr='Output filename (Required)')
       self.valid_opts.add_opt('-s', 1, [], 
                       helpstr='Number of slices (Required)')
+      self.valid_opts.add_opt('-TR', 1, [], 
+                      helpstr='Repetition time (TR) (Required)')
+      self.valid_opts.add_opt('-Nt', 1, [], 
+                      helpstr='Number of time points (Required)')
+      self.valid_opts.add_opt('-Sr', 1, [], 
+                      helpstr='Samples per second (Hertz) (Required)')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -190,6 +203,27 @@ class MyInterface:
                 self.nSlices = val
             continue
 
+         elif opt.name == '-TR':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.TR = val
+            continue
+
+         elif opt.name == '-Nt':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.Nt = val
+            continue
+
+         elif opt.name == '-Sr':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            else:
+                self.Sr = val
+            continue
+
          # general options
 
          elif opt.name == '-verb':
@@ -218,10 +252,11 @@ class MyInterface:
             else:
                 self.niml = val
             continue
-      
+ 
       # Check required options supplied
-      if (len(self.cardiacFile)<1 | len(self.respiratoryFile)<1 | \
-          len(self.outputFile)<1 | self.nSlices == 0):
+      if (len(self.cardiacFile)<1 or len(self.respiratoryFile)<1 or \
+          len(self.outputFile)<1 or self.nSlices == 0 or self.TR == 0 or \
+              self.Nt == 0 or self.Sr == 0):
          print(g_help_string)
          return 1           
 
@@ -238,6 +273,9 @@ class MyInterface:
       parameters['-c'] = self.cardiacFile
       parameters['-r'] = self.respiratoryFile
       parameters['-s'] = self.nSlices
+      parameters['-TR'] = self.TR
+      parameters['-Nt'] = self.Nt
+      parameters['-Sr'] = self.Sr
       parameters['-abt'] = self.abt
       parameters['-aby'] = self.aby
       parameters['-niml'] = self.niml

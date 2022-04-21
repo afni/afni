@@ -288,7 +288,6 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     respiration_info.update(respiration_peak)
     respiration_phased = phase_estimator(respiration_info["amp_phase"], respiration_info)
     respiration_phased["legacy_transform"] = 0
-    # respiration_phased["rvt_shifts"] = range(0,len(respiratory_phases))
     respiration_phased["rvt_shifts"] = range(0,len(columnNames))
     respiration_phased["rvtrs_slc"] = 0
     respiration_phased["time_series_time"] = np.abs(respiratory_phases)
@@ -296,27 +295,9 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     rvt = rvt_from_peakfinder(respiration_phased)
     rvt['number_of_slices'] = int(parameters['-s'])
     numSlices = rvt['number_of_slices']
-    # print('rvt = ', rvt)
-    # print('type(rvt) = ', type(rvt))
-    # print('rvt keys = ', rvt.keys())
-    # print('rvt["rvt"] = ', rvt['rvt'])
-    # print('rvt["rv"] = ', rvt['rv'])
-    # print('rvt["rvtrs"] = ', rvt['rvtrs'])
-    # print('len(rvt["rvtrs"]) = ', len(rvt['rvtrs']))
-    # print('rvt["rvtrs_slc"] = ', rvt['rvtrs_slc'])
-    # print('len(rvt["rvtrs_slc"]) = ', len(rvt['rvtrs_slc']))
-    # print('len(rvt["rvtrs_slc"][0]) = ', len(rvt['rvtrs_slc'][0]))
     respiration_info.update(rvt)
-    # print('respiration_info["number_of_slices"] = ', respiration_info['number_of_slices'])
     respiration_info.update(respiration_peak)
     respiration_info.update(respiration_phased)
-    # print('respiration_info["number_of_slices"] = ', respiration_info['number_of_slices'])
-    # print('respiration_info keys = ', respiration_info.keys())
-    # print('respiration_info["rvtrs_slc"] = ', respiration_info["rvtrs_slc"])
-    print('respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"])
-    # print('dims(respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"].shape)
-    # print('respiration_info["phase_slice_reg"] = ', respiration_info["phase_slice_reg"])
-    # print('respiratory_phases[0:16] = ', respiratory_phases[0:16])
     
     nx = 8
     ny = int((len(respiratory_phases)/(4*numSlices)))
@@ -330,39 +311,32 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
                 # respiration_info["phase_slice_reg"][i,j,k] = respiratory_phases[count]
                 respiration_info["phase_slice_reg"][i,j,k] = 0
                 count += 1
-            
-    # respiration_info["phase_slice_reg"] = respiratory_phases
-    # respiration_info["phase_slice_reg"].reshape(int((len(respiratory_phases)/(4*numSlices)),4,numSlices))
 
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
         'ni_dimen = "%d"\n'
-        'ColumnLabels = ' + '"'.join(columnNames).join( '"')
+        'ColumnLabels = '
+        % ((shape(respiration_info["rvtrs_slc"])[0]+8)*numSlices, int(parameters['-Nt']))
     )
     
     label = head
-    cnt = 0
     dCnt = 0
     respInc = 0
     cardInc = 0
     reml_out = []
-    print('numSlices = ', numSlices)
-    print('type(data) = ', type(data))
     m = np.array(data)
-    print('data.shape = ', m.shape)
+    n = np.array(respiration_info["rvtrs_slc"])
+    print('shape(respiration_info["rvtrs_slc"]) = ', n.shape)
     for i in range(0, numSlices):
         # RVT
         for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
-            cnt += 1
-
             reml_out.append(
                 respiration_info["rvtrs_slc"][j]
             )  # same regressor for each slice
             label = "%s s%d.RVT%d ;" % (label, i, j)
         # Resp
         for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
-            cnt += 1
             for i in range(0,4):
                 reml_out.append(
                     m[:,i]
@@ -370,20 +344,12 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
             label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
         for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
-            cnt += 1
             for i in range(0,8):
                 reml_out.append(
                     m[:,i]
                 )  # same regressor for each slice
             label = "%s s%d.Card%d ;" % (label, i, j)
                 
-    print('cnt = ', cnt)
-    print('nx = ', nx)
-    print('ny = ', ny)
-    print('nz = ', nz)
-    print('len(respiratory_phases) = ', len(respiratory_phases))
-    print('len(data[0]) = ', len(data[0]))
-
     tail = '"\n>'
     tailclose = "</RetroTSout>"
 
@@ -397,7 +363,7 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
         header=("%s%s" % (label, tail)),
         footer=("%s" % tailclose),
     )
-    # TODO: Add code
+
     return 0
 
 def getPhysiologicalNoiseComponents(parameters):
