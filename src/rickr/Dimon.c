@@ -354,6 +354,7 @@ static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
 
 int compare_finfo_z(const void * v0, const void * v1);
+static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length);
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
@@ -365,15 +366,15 @@ int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
 static int         finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort);
-static int         geme_rin_get_sort_n_base(param_t * p, int * gm_sort,
-                                            int * gm_base);
+static int         geme_rin_get_sort_n_base(param_t * p, int n2proc,
+                                            int * gm_sort, int * gm_base);
 static int         get_num_suffix( char * str );
 static int         must_wait_for_read(param_t * p);
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
 int                get_sop_iuid_index(ge_extras * ep);
-static int         update_g_mod_sort(param_t * p, int method);
+static int         update_g_mod_sort(param_t * p, int method, int n2proc);
 
 /* oblique function protos */
 extern void   mri_read_dicom_reset_obliquity();
@@ -390,6 +391,7 @@ int append_new_finfo_entry(param_t * p, char * fname);
 
 int compare_finfo_t            (const void * v0, const void * v1);
 int nfim_in_state              (param_t * p, int start, int end, int state);
+int nfim_set2state             (param_t * p, int fmax, int sold, int snew);
 int nfim2proc                  (param_t * p);
 
 static int check_error         ( int * retry, float tr, char * note );
@@ -1654,14 +1656,24 @@ static int make_sorted_fim_list(param_t  * p)
          break;
       }
       case IFM_SORT_RIN:     {
+         n2sort = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_PROC);
          qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
          break;
       }
       /* same as RIN, but try to set g_mod_sort, first */
       case IFM_SORT_GEME_RIN: {
+         n2sort = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_PROC);
+         /* try to init */
          if( g_mod_sort <= 0 )
-            update_g_mod_sort(p, method);
-         qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
+            update_g_mod_sort(p, method, n2sort);
+
+         /* if still not ready, quit */
+         if( g_mod_sort <= 0 ) {
+            n2sort = 0;
+         } else {
+            // qsort(fp, n2sort, sizeof(finfo_t), compare_by_rin);
+            do_sort_by_rin(p, fp, n2sort);
+         }
          break;
       }
    }
@@ -1814,7 +1826,7 @@ int sort_by_geme_index(param_t * p)
    /* be sure we have enough space for counters */
    if( snacq > ilist.nall ) resize_int_list(&ilist, snacq);
 
-   /* and track overall minimum */
+   /* and track overall minimum - just for reporting */
    if( s_geme_min == -1 ) {
       if( gD.level > 1 ) fprintf(stderr,"-- have initial geme_min = %d\n", min);
       s_geme_min = min;
@@ -1828,7 +1840,7 @@ int sort_by_geme_index(param_t * p)
    }
 
    clear_int_list(&ilist);
-   ilist.num = ngeme;
+   ilist.num = ngeme; /* for each geme_index, track number currently found */
    /* set sindex values and states of ready image sets to TO_PROC */
    nt = geme_set_sort_indices(p, &ilist, ngeme, min);
    if( nt < 0 ) return -1;
@@ -1862,14 +1874,15 @@ int geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme, int memin)
    fp = p->fim_o + p->fim_start;
    for( ind = p->fim_start; ind < p->nfim; ind++, fp++ ) {
       if( fp->state != IFM_FSTATE_TO_SORT ) {
+         if( fp->state < IFM_FSTATE_TO_SORT )
+            fprintf(stderr,"== GSSI: skip state %d image %s\n",
+                    fp->state, fp->fname);
+         continue;
+      }
 
-if( fp->state < IFM_FSTATE_TO_SORT )
-   fprintf(stderr,"== GSSI: skip state %d image %s\n", fp->state, fp->fname);
-continue;
-}
       mebase = fp->gex.ge_me_index - memin;
 
-      /* this should be a real, global sorted index (of TO_PROC images) */
+      /* this should be a sortable index (of current TO_PROC/TO_SORT images) */
       fp->sindex = ilist->list[mebase]*ngeme + mebase + p->fim_start;
       ilist->list[mebase]++;
    }
@@ -1908,7 +1921,7 @@ continue;
  *    - sort by RIN
  *    - get apparent mod_sort
  */
-static int update_g_mod_sort(param_t * p, int method)
+static int update_g_mod_sort(param_t * p, int method, int n2proc)
 {
    finfo_t  * fp;
    int        sort_mod=0, sort_base=0;
@@ -1924,11 +1937,11 @@ static int update_g_mod_sort(param_t * p, int method)
    /* point to start */
    fp = p->fim_o + p->fim_start;
 
-   /* if not yet set, try to initialize with sort */
+   /* if not yet set, try to initialize with RIN sort */
    if( g_mod_sort <= 0 )
-      qsort(fp, p->nfim - p->fim_start, sizeof(finfo_t), compare_by_rin);
+      qsort(fp, n2proc, sizeof(finfo_t), compare_by_rin);
 
-   if( geme_rin_get_sort_n_base(p, &sort_mod, &sort_base) )
+   if( geme_rin_get_sort_n_base(p, n2proc, &sort_mod, &sort_base) )
       return 1;
 
    /* if not yet set, do so, else compare */
@@ -1949,8 +1962,44 @@ static int update_g_mod_sort(param_t * p, int method)
    return 0;
 }
 
+static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length)
+{
+   int ns, newlen;
+
+   if( g_mod_sort && length ) {
+      newlen = length/g_mod_sort*g_mod_sort;
+      fprintf(stderr, "++ DSBR: resetting len from %d to %d\n", length, newlen);
+      length = newlen;
+   }
+
+   /* possibly state what is going on */
+   if( gD.level > 2 ) {
+      fprintf(stderr,
+              "\n"
+              "++ do_sort_by_rin : "
+              "mod_sort = %d, base = %d, length = %d, l/s = %d, lms %d\n",
+              g_mod_sort, g_mod_sort_base, length, 
+              g_mod_sort ? length/g_mod_sort : 0,
+              g_mod_sort ? length%g_mod_sort : 0);
+
+      fprintf(stderr,"-- sort %d, from %4d to %4d, %d * %d sets = %d\n",
+                     length, p->fim_start, p->fim_start+length-1, g_mod_sort,
+                     g_mod_sort ? length/g_mod_sort : 0,
+                     g_mod_sort ? length/g_mod_sort*g_mod_sort : 0);
+
+      fprintf(stderr,"   RIN range from %d to %d\n",
+                     fp->geh.index, fp[length-1].geh.index);
+   }
+
+
+   qsort(fp, length, sizeof(finfo_t), compare_by_rin);
+}
+
+
 /* return a g_mod_sort val and base for GEME_RIN method
  * NOTE: geme_index is basically slice index (into one volume/echo)
+ * NOTE: all n2proc images should be past state TO_READ
+ *
  *    - find enum/geme_index min values (>0)
  *       - do not allow echo 0, that means we have not read it in
  *    - find enum/geme_index match
@@ -1958,10 +2007,12 @@ static int update_g_mod_sort(param_t * p, int method)
  *    - gm_sort=group_size should equal necho*geme_slices
  *
  *  fim list is assumed to be sorted by RIN already
+ *  n2proc is number of images in PROC state (starting from fim_start)
  *
  *  return 0 on success, -1 on error
  */
-static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
+static int geme_rin_get_sort_n_base(param_t * p, int n2proc,
+                                    int * gm_sort, int * gm_base)
 {
    finfo_t  * fp;
    int        ind, nfim, geme_slices, necho, group_size;
@@ -1969,7 +2020,7 @@ static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
    int        max_echo, max_geme;  /* for sanity testing */
    int        rin_base=-1, next_base=-1;
 
-   if( p->fim_start >= p->nfim )
+   if( p->fim_start >= p->nfim || n2proc < 0 )
       return 0;
 
    /* init fp and min/max values (set to current) */
@@ -1984,7 +2035,7 @@ static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
       return 0;
 
    /* override nfim if we find echo 0 (i.e. not read) */
-   nfim = p->nfim;
+   nfim = p->fim_start + n2proc;
    
    /* check mins, include first posn for check of echo_num */
    /* if min is not at first image, should we just return? */
@@ -1993,6 +2044,8 @@ static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
       if( fp->gex.ge_echo_num == 0 ) {
          /* have unread image, do not include for sorting */
          nfim = ind;
+         fprintf(stderr,"** should not find echo 0\n");
+         exit(1);
          break;
       }
       if( fp->gex.ge_echo_num < min_echo )
@@ -2125,7 +2178,7 @@ static int geme_rin_get_sort_n_base(param_t * p, int * gm_sort, int * gm_base)
    return 0;
 }
 
-/* for all images, if state >= TO_PROC and state < TO_READ,
+/* for all images, if state == TO_PROC or state == TO_SORT,
  * set state to TO_SORT
  * if nacq == -1, try to init from gex.ge_nim_acq
  *
@@ -2179,6 +2232,7 @@ int geme_set_range_n_state(param_t * p, int start, int * pmin, int * pmax,
    *pmax = max;
 
    /* maybe set nacq based on range of values */
+   /* note: nacq is still accurate to apply even if partial (can grow) */
    newnacq = max - min + 1;
    if( newnacq > 0 ) {
       if( *nacq < 0 ) {
@@ -2325,6 +2379,22 @@ int nfim2proc(param_t * p)
    for( ind = p->fim_start; ind < p->nfim; ind++ )
       if( p->fim_o[ind].state != IFM_FSTATE_TO_PROC ) break;
    return ind - p->fim_start;
+}
+
+/* set any sold states to snew, limit fim index to fmax */
+int nfim_set2state(param_t * p, int fmax, int sold, int snew)
+{
+   int ind, nset=0;
+
+   if( p->nfim <= 0 || p->fim_start >= p->nfim ) return 0;
+   if( p->fim_start >= fmax )                    return 0;
+
+   for( ind = p->fim_start; ind <= fmax; ind++ )
+      if( p->fim_o[ind].state == sold ) {
+         p->fim_o[ind].state = snew;
+         nset++;
+      }
+   return nset;
 }
 
 
@@ -2978,10 +3048,10 @@ int compare_by_rin(const void * v0, const void * v1)
    /* if states differ, just sort by state */
    if( p0->state != p1->state ) return p0->state - p1->state;
 
-   /* if state is not TO_PROC, sort by findex */
-   if( p0->state != IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
+   /* if state is TO_READ, sort by findex */
+   if( p0->state > IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
 
-   /* both states are TO_PROC, apply desired sorting here */
+   /* both states are TO_PROC/TO_SORT, apply desired sorting here */
 
    /* run */
    if( p0->geh.uv17 != p1->geh.uv17 ) {
@@ -6660,7 +6730,11 @@ FILE * get_file_pointer(char * fname, char * mesg, int index)
          fprintf(stderr,"** failed to open '%s' for writing\n",fnew);
          return NULL;
       }
-      if( fnew != fname ) free(fnew);
+
+      if( fnew != fname ){
+         free(fnew);
+         fnew = NULL;
+      }
    }
 
     if( gD.level > 2 ) fprintf(stderr,"+d opening file for '%s'...\n",
