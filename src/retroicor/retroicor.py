@@ -302,15 +302,6 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     nx = 8
     ny = int((len(respiratory_phases)/(4*numSlices)))
     nz = numSlices
-    
-    respiration_info["phase_slice_reg"] = np.empty((nx,ny,nz))
-    count = 0
-    for k in range(nz):
-        for j in range(ny):
-            for i in range(nx):
-                # respiration_info["phase_slice_reg"][i,j,k] = respiratory_phases[count]
-                respiration_info["phase_slice_reg"][i,j,k] = 0
-                count += 1
 
     head = (
         "<RetroTSout\n"
@@ -328,27 +319,29 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     m = np.array(data)
     n = np.array(respiration_info["rvtrs_slc"])
     print('shape(respiration_info["rvtrs_slc"]) = ', n.shape)
+    print('shape(m) = ', m.shape)
+    offset = 0
     for i in range(0, numSlices):
         # RVT
         for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
             reml_out.append(
-                respiration_info["rvtrs_slc"][j]
+                respiration_info["rvtrs_slc"][j][0:8]
             )  # same regressor for each slice
             label = "%s s%d.RVT%d ;" % (label, i, j)
         # Resp
-        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
-            for i in range(0,4):
-                reml_out.append(
-                    m[:,i]
-                )  # same regressor for each slice
+        for j in range(0, 4):
+            reml_out.append(
+                m[j+offset,:]
+                )
             label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
-        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
-            for i in range(0,8):
-                reml_out.append(
-                    m[:,i]
-                )  # same regressor for each slice
+        offset += 4
+        for j in range(0,4):
+            reml_out.append(
+                m[j+offset,:]
+            )  # same regressor for each slice
             label = "%s s%d.Card%d ;" % (label, i, j)
+        offset += 4
                 
     tail = '"\n>'
     tailclose = "</RetroTSout>"
