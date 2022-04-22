@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "if tedana executable must be in PATH, check",
+   NULL
+ } ,
+
+ { 22, Apr, 2022, RCR, "Dimon", MAJOR, TYPE_NEW_OPT,
+   "add -sort_method cases rin and geme_rin",
+   NULL
+ } ,
+
  { 22, Apr, 2022, RCR, "afni", MINOR, TYPE_NEW_OPT,
    "add -no_frivolities option, to directly set that",
    NULL

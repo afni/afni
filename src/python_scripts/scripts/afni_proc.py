@@ -725,9 +725,10 @@ g_history = """
        - fix help example: remove inappropriate -epi_strip from -align_opts_aea
        - add ap_uvars: dir_suma_spec, suma_specs
     7.37 Apr  6, 2022: allow REML errts on surface
+    7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
 """
 
-g_version = "version 7.37, April 6, 2022"
+g_version = "version 7.38, April 22, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1188,6 +1189,9 @@ class SubjProcSream:
         self.surf_spec_base = ''        # basename of first spec
         self.surf_svi_ref  = ''         # iter var reference (e.g. ${hemi})
         self.surf_hemilist = ''         # e.g. ['lh', 'rh']
+
+        # external programs required for execution
+        self.required_progs = []        # e.g. 'tedana'
 
         # updated throughout processing...
         self.bindex     = 0             # current block index
@@ -3013,6 +3017,20 @@ class SubjProcSream:
           '    echo "   (consider: @update.afni.binaries -defaults)"\n'       \
           '    exit\n'                                                        \
           'endif\n\n' % (g_requires_afni[0][0], g_requires_afni[0][0]) )
+
+        # if we need to run external programs, make sure they are in the PATH
+        if len(self.required_progs) > 0:
+          tstr = "# will run external programs, so be sure they are in PATH\n"
+          for prog in self.required_progs:
+            tstr += "which %s\n"                                             \
+                    "if ( $status ) then\n"                                  \
+                    "   echo '** missing required external program: %s'\n"   \
+                    "   echo '   (perhaps a conda environment is needed)'\n" \
+                    "   exit 1\n"                                            \
+                    "endif\n"                                                \
+                    % (prog, prog)
+          tstr += "\n"
+          self.write_text(tstr)
 
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \

@@ -3195,12 +3195,21 @@ def db_mod_combine(block, proc, user_opts):
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
-   if not rv:
-      if ocmeth[0:6] == 'tedana' and \
-            proc.find_block_order('combine', 'blur') == -1 :
-         if not proc.user_opts.have_yes_opt('-blur_in_mask'):
-            # okay, finally whine here
-            print("** when using tedana results, consider '-blur_in_mask yes'")
+   if rv:
+      return
+
+   if ocmeth[0:6] == 'tedana' and \
+         proc.find_block_order('combine', 'blur') == -1 :
+      if not proc.user_opts.have_yes_opt('-blur_in_mask'):
+         # okay, finally whine here
+         print("** when using tedana results, consider '-blur_in_mask yes'")
+
+   # note the applied method
+   proc.combine_method = ocmeth
+
+   # and if we need 'tedana', require it at execution time
+   if proc.combine_method.find('m_ted') >= 0:
+      proc.required_progs.append('tedana')
 
    block.valid = 1
 
@@ -3225,10 +3234,8 @@ def db_cmd_combine(proc, block):
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv: return
 
-   # probably not reachable, but at least for clarity...
+   # should not be reachable, but at least for clarity...
    if ocmeth not in g_oc_methods:
-      print("OC method %s not in list of valid methods:\n   %s" \
-            % (ocmeth, ', '.join(g_oc_methods)))
       return
 
    # check use of tedana.py vs. tedana from MEICA group
@@ -3279,8 +3286,7 @@ def db_cmd_combine(proc, block):
    # (do not apply ME script changes anymore)
    proc.use_me = 0
 
-   # success, note the applied method
-   proc.combine_method = ocmeth
+   # the applied combine_method is stored in mod()
 
    return cmd
 
