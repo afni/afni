@@ -6122,36 +6122,42 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
-#if !defined(NO_FRIVOLITIES)
-      prog->hidden_faces_pb =
-            XtVaCreateManagedWidget(
-               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("All AFNI Faces") ,
-                  XmNmarginHeight , 0 ,
-                  XmNtraversalOn , True  ,
-                  XmNinitialResourcesPersistent , False ,
-               NULL ) ;
-      XtAddCallback( prog->hidden_faces_pb , XmNactivateCallback ,
-                     AFNI_hidden_CB , im3d ) ;
-#else
+      /* init to not set, consider global no_friv [22 Apr 2022 rickr] */
       prog->hidden_faces_pb = NULL ;
+
+#if !defined(NO_FRIVOLITIES)
+      if( ! GLOBAL_argopt.no_frivolities ) {
+         prog->hidden_faces_pb =
+               XtVaCreateManagedWidget(
+                  "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                     LABEL_ARG("All AFNI Faces") ,
+                     XmNmarginHeight , 0 ,
+                     XmNtraversalOn , True  ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+         XtAddCallback( prog->hidden_faces_pb , XmNactivateCallback ,
+                        AFNI_hidden_CB , im3d ) ;
+     }
 #endif
 
       /*----------*/
 
-#if !defined(NO_FRIVOLITIES)
-      prog->hidden_splashes_pb =           /* 12 Sep 2007 */
-            XtVaCreateManagedWidget(
-               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("All AFNI Splashes") ,
-                  XmNmarginHeight , 0 ,
-                  XmNtraversalOn , True  ,
-                  XmNinitialResourcesPersistent , False ,
-               NULL ) ;
-      XtAddCallback( prog->hidden_splashes_pb , XmNactivateCallback ,
-                     AFNI_hidden_CB , im3d ) ;
-#else
+      /* init to not set, consider global no_friv [22 Apr 2022 rickr] */
       prog->hidden_splashes_pb = NULL ;
+
+#if !defined(NO_FRIVOLITIES)
+      if( ! GLOBAL_argopt.no_frivolities ) {
+         prog->hidden_splashes_pb =           /* 12 Sep 2007 */
+               XtVaCreateManagedWidget(
+                  "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                     LABEL_ARG("All AFNI Splashes") ,
+                     XmNmarginHeight , 0 ,
+                     XmNtraversalOn , True  ,
+                     XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+         XtAddCallback( prog->hidden_splashes_pb , XmNactivateCallback ,
+                        AFNI_hidden_CB , im3d ) ;
+      }
 #endif
 
       /*----------*/

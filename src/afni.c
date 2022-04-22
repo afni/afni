@@ -1442,6 +1442,13 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -no_frivolities option (22 Apr 2022) ----- */
+
+      if( strcmp(argv[narg],"-no_frivolities") == 0 ){  /* 22 Apr 2022 [rcr] */
+         GLOBAL_argopt.no_frivolities = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -no1D option (27 Jan 2000) ----- */
 
       if( strncmp(argv[narg],"-no1D",5) == 0 ){
@@ -2882,6 +2889,10 @@ STATUS("call 0") ;
 #else
         nosplash = AFNI_yesenv("AFNI_NOSPLASH") ;
 #endif
+        /* allow no_friv control   [22 Apr 2022 rickr] */
+        if( GLOBAL_argopt.no_frivolities )
+          nosplash = 1 ;
+
         if( !nosplash ){
           char *hh ;
           AFNI_splashup() ; eltime = COX_clock_time() ;
