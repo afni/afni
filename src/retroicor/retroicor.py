@@ -346,6 +346,9 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
         header=("%s%s" % (label, tail)),
         footer=("%s" % tailclose),
     )
+    
+    print('Theoretical number of time points: ', len(cardiac_phases)/(float(parameters['-Sr'])*float(parameters['-TR'])))
+    print('Actual number of time points: ', parameters['-Nt'])
 
     return 0
 
