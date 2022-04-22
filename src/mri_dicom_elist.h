@@ -41,17 +41,19 @@ static char *elist[] = {
 
  "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
 
- /*--- The following are added for GE multi-echo EPI sequences [RCR - Aug 2014] ---*/
+ /*--- GE multi-echo EPI sequences [RCR - Aug 2014] ---*/
  "0008 0018" ,  /* SOP (service object pair) Instance UID - unique to DICOM file*/
+ "0018 0081" ,  /* ACQ Echo Time    (new GE field) [RCR - 24 Mar 2022] */
+ "0018 0086" ,  /* ACQ Echo Number  (new GE field) [RCR - 24 Mar 2022] */
  "0019 10a2" ,  /* GE multi-echo index   */
  "0020 1002" ,  /* Images in Acquisition */
 
- /*--- The following are for Siemens 3D mosaic images [RCR/DRG 1 Jun 2016] --*/
+ /*--- Siemens 3D mosaic images [RCR/DRG 1 Jun 2016] --*/
 
  "0018 0023" ,  /* ACQ MR Acquisition Type */
  "0019 100a" ,  /* unnamed MR header num mosaic slices */
 
- /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
+ /*--- multi-frame DICOM files [RWC - 02 May 2008] ---*/
 
  "0020 0105" ,  /* Number of temporal positions */
  "0020 0010" ,  /* study number  */
@@ -108,21 +110,23 @@ NULL } ;
 #define E_TRANSFER_SYNTAX            29    /* 05 Jul 2006 */
 
 #define E_SOP_IUID                   30    /* 28 Aug 2014: GEME sort [rickr] */
-#define E_GE_ME_INDEX                31    /* 15 Aug 2014: GEME sort [rickr] */
-#define E_NIM_IN_ACQ                 32    /* 19 Aug 2014: GE multi-echo sort */
+#define E_GE_ECHO_TIME               31    /* 24 Mar 2022: echo time [rickr] */
+#define E_GE_ECHO_NUMBER             32    /* 24 Mar 2022: echo num  [rickr] */
+#define E_GE_ME_INDEX                33    /* 15 Aug 2014: GEME sort [rickr] */
+#define E_NIM_IN_ACQ                 34    /* 19 Aug 2014: GE multi-echo sort */
 
-#define E_MR_ACQ_TYPE                33    /* 01 Jun 2016: Siemens 3D acq */
-#define E_SIEMENS_3D_NSLICES         34    /* 01 Jun 2016: Siemens 3D acq */
+#define E_MR_ACQ_TYPE                35    /* 01 Jun 2016: Siemens 3D acq */
+#define E_SIEMENS_3D_NSLICES         36    /* 01 Jun 2016: Siemens 3D acq */
 
-#define E_NUMBER_OF_TIMES            35    /* 02 May 2008 */
-#define E_RS_STUDY_NUM               36    /* 10 Feb 2005: for Imon [rickr] */
-#define E_RS_SERIES_NUM              37
-#define E_INSTANCE_NUMBER            38
-#define E_TIME_INDEX_ID              39
-#define E_TIME_INDEX                 40
-#define E_STACK_INDEX                41
+#define E_NUMBER_OF_TIMES            37    /* 02 May 2008 */
+#define E_RS_STUDY_NUM               38    /* 10 Feb 2005: for Imon [rickr] */
+#define E_RS_SERIES_NUM              39
+#define E_INSTANCE_NUMBER            40
+#define E_TIME_INDEX_ID              41
+#define E_TIME_INDEX                 42
+#define E_STACK_INDEX                43
 
-#define E_RS_IMAGE_INDEX             42    /* 06 May 2010: for PET [rickr] */
+#define E_RS_IMAGE_INDEX             44    /* 06 May 2010: for PET [rickr] */
 
 
 /*----------------------------------------------------------------------------*/

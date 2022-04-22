@@ -1,0 +1,148 @@
+
+general outline of Dimon main()
+   init_options()
+      - init main structs: gD, GS, GAC, g_dicom_ctrl, A
+      - populate p->opts struct from options
+      - perform a few checks and var inits
+   init_extras()
+      - set 'nice' level and possibly init afni communication
+   find_first_volume()
+      - scan scan p->fim_o for a complete volume
+      - while not done
+         - read_image_files()    : read actual Dicom files (in state TO_READ)
+            - get_sorted_file_names()
+               - apply alphabetical or other file name sorting
+            - read_new_images()
+               - populate p->fim_o list with newly read images
+                  - read those in state IFM_FSTATE_TO_READ
+                  - set state to TO_PROC
+            - make_sorted_fim_list()
+               - n2sort = p->nfim - p->fim_start;
+               - method = sort_method()
+               - fp = p->fim_o + p->fim_start
+               - sort p->fim_o in the new range (from fim_start to nfim)
+                  - apply main sort, such as DEFAULT, GEME, NUM_SUFF
+               - possibly post-order as zt
+               - update fim_start to point to next TO_PROC image
+                 (in case there are TO_SKIP images)
+                  - p->fim_start += index
+         - n2proc = nfim2proc() = num images in TO_PROC state
+         - volume_search()
+         - if no vol: think about life and paramaters, nap, try again
+         - have vol, so...
+            - update params (now that we know what to look for)
+            - send vol to afni -rt
+            - set sent image states to FSTATE_DONE
+   find_more_volumes()
+      - set to handle many signals by hf_signal()
+      - set_volume_stats()
+      - while not done
+         - while there are read volumes that match v0
+            - set_volume_stats()
+            - send vol to afni -rt
+            - update sent image states to FSTATE_DONE
+         - read_image_files() : read any files in state TO_READ
+         - n2proc = nfim2proc() = num images in TO_PROC state
+         - if no volume of images to proc
+            - quit, whine or read_image_files()
+
+
+
+states:
+   IFM_FSTATE_TO_READ      - ready to read image
+                           - set at start of read_image_files()
+   IFM_FSTATE_TO_PROC      - ready to start processing (from filename)
+   IFM_FSTATE_TO_SORT      - ready to sort (window sorting)
+                           - currently specific to GEME sorting
+                           - it is within range of images to sort
+   IFM_FSTATE_DONE         - finished sending volume
+
+
+Sorting images make_sorted_fim_list():
+   - search from offset fim_start
+   - based on sort_method, sort_acq_time, sort_num_suff, dicom_org
+
+   - sort:
+      IFM_SORT_ACQ_TIME (same as DEFAULT, but with gsba set)
+         g_sort_by_atime = 1;
+         compare_finfo_t()
+
+      IFM_SORT_GEME
+         sort_by_geme_index()
+            /* for all current images
+                  if ready to sort, set state = TO_PROC, else TO_SORT
+                  fp->sindex = sortable index
+             */
+            n2sort = p->nfim - p->fim_start;
+            /* set next imgs to TO_SORT, set pmin, pmax, nacq */
+            geme_set_range_n_state(p, p->fim_start, &min, &max, &snacq)
+               /* set pmin (geme_min), pmax, nacq, and state to TO_SORT */
+               /* (nacq can grow, it would still be useful)            */
+               - find first TO_PROC/TO_SORT (might be unnecessary)
+               - if snacq not set, snacq = guess_predefined_nacq
+                  - get from p->fim_o[ind].gex.ge_nim_acq,
+                     - DICOM field 0020 1002 (E_NIM_IN_ACQ)
+                  - or set to num_slices * num_chan (if both > 0)
+               - for all images:
+                  - if bad state, stip
+                  - set state to TO_SORT
+                  - get min/max geme indexes
+               - if snacq < max-min+1 (# geme indexes), set to that
+            ngeme = max-min+1 (current value)
+            if( ngeme < snacq ) return 0;
+            clear_int_list(&ilist) /* of length ngeme */
+            nt = geme_set_sort_indices(p, &ilist, ngeme, min)
+               - set each TO_SORT image fp->sindex to sortable index
+                 within this sort group (via ilist)
+               - nfull = number of full sets (= min(ilist->list))
+               - for each nfull TO_SORT image
+                    set state to TO_PROC
+               return nfull (unused)
+            qsort(n2sort, compare_by_sindex)
+   
+      IFM_SORT_RIN
+         n2sort = nfim_in_state(TO_PROC)
+         qsort(n2sort, compare_by_rin)
+
+      IFM_SORT_RIN
+         set all TO_PROC to TO_SORT   (all read images to TO_SORT state)
+         n2proc = nfim_in_state(TO_SORT)
+         update_g_mod_sort(p, method, n2sort)
+            /* try to set g_mod_sort/g_mod_sort_base */
+            if( g_mod_sort < 0 ) qsort(compare_by_rin)
+            geme_rin_get_sort_n_base(n2proc, &sort_mod, &sort_base)
+               /* possibly get new sort_mod/sort_base vals */
+               - find matching min echo_num, ge_me_index images
+               - also, find matching max echo_num, ge_me_index images
+                 (suggests we have 2 complete echo set of slices)
+               - expect necho*nslices == g_mod_sort
+         if( g_mod_sort <= 0 ) n2sort = 0
+
+      IFM_SORT_DEFAULT
+         compare_finfo_t()
+            - sort by state (if diff)
+            - state is not TO_PROC, sort by findex
+            - return compare_finfo()
+               - sort by run (if diff)
+               - if( g_sort_by_atime ) sort by atime
+               - sort by IMAGE INDEX (0054 1330) (if diff)
+               - sort by REL Inst Num (0020 0013) (if diff)
+               - return 0 (equal)
+
+      IFM_SORT_NUM_SUFF
+         compare_finfo_num_suff()
+            - sort by state (if diff, return compare_by_num_suff)
+            - same state:
+               - if state != TO_PROC, sort by findex
+               - else, return compre_by_num_suff()
+               compare_by_num_suff()
+                  - if diff, sort
+                  - else sort alphabetically
+
+      IFM_SORT_ZPOSN
+         compare_finfo_z()
+            - sort by state
+            - if equal && not TO_PROC: sort by findex
+            - sort by volume index (findex/g_num_slices)
+            - sort by zoff
+            - sort by findex

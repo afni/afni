@@ -52,6 +52,8 @@ int   g_is_oblique = 0;
 int   g_image_ori_ind[3] = {0, 0, 0};                   /* ior, jor, kor  */
 float g_image_posn[3]    = {-666.0, -666.0, -666.0};    /* IMAGE_POSITION */
 int   g_ge_nim_acq = -1;               /* number of images in acquisition */
+float g_ge_echo_time = -1.0;           /* GE echo time */
+int   g_ge_echo_num = -1;              /* GE echo number */
 int   g_ge_me_index = -1;
 int   g_sop_iuid_maj = -1;             /* ID SOP Instanced UID (major)    */
 int   g_sop_iuid_min = -1;             /* ID SOP Instanced UID (minor)    */
@@ -889,6 +891,18 @@ ENTRY("mri_read_dicom") ;
    }
 
    /**---------- for GE multi-echo sorting ----------**/
+
+   /* check for GE echo time */
+   if( epos[E_GE_ECHO_TIME] ){
+      ddd = strstr(epos[E_GE_ECHO_TIME],"//");
+      if( ddd ) g_ge_echo_time = SFLT(ddd+2);
+   }
+
+   /* check for GE echo number */
+   if( epos[E_GE_ECHO_NUMBER] ){
+      ddd = strstr(epos[E_GE_ECHO_NUMBER],"//");
+      if( ddd ) g_ge_echo_num = SINT(ddd+2);
+   }
 
    /* check for GE multi-echo index */
    if( epos[E_GE_ME_INDEX] ){
