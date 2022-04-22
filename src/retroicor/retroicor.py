@@ -299,10 +299,6 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     respiration_info.update(respiration_peak)
     respiration_info.update(respiration_phased)
     
-    nx = 8
-    ny = int((len(respiratory_phases)/(4*numSlices)))
-    nz = numSlices
-
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
@@ -312,14 +308,8 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     )
     
     label = head
-    dCnt = 0
-    respInc = 0
-    cardInc = 0
     reml_out = []
-    m = np.array(data)
-    n = np.array(respiration_info["rvtrs_slc"])
-    print('shape(respiration_info["rvtrs_slc"]) = ', n.shape)
-    print('shape(m) = ', m.shape)
+    dataArray = np.array(data)
     offset = 0
     for i in range(0, numSlices):
         # RVT
@@ -331,14 +321,14 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
         # Resp
         for j in range(0, 4):
             reml_out.append(
-                m[j+offset,:]
+                dataArray[j+offset,:]
                 )
             label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
         offset += 4
         for j in range(0,4):
             reml_out.append(
-                m[j+offset,:]
+                dataArray[j+offset,:]
             )  # same regressor for each slice
             label = "%s s%d.Card%d ;" % (label, i, j)
         offset += 4
