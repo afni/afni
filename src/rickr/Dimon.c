@@ -160,10 +160,11 @@ static char * g_history[] =
     " 4.27 Aug 31, 2021 [rickr]: add -gert_chan_digits\n"
     " 4.28 Nov  8, 2021 [rickr]: add -milestones\n"
     " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
+    " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.29 (February 16, 2022)"
+#define DIMON_VERSION "version 4.30 (April 22, 2022)"
 
 static char * g_milestones[] =
 {
@@ -178,6 +179,7 @@ static char * g_milestones[] =
     " 2012.03 : multi-channel/multi-echo input\n",
     " 2013.01 : handle inputs AFNI, NIFTI (and GEMS 4.x, DICOM)\n",
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
+    " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -1983,13 +1985,7 @@ static int update_g_mod_sort(param_t * p, int method, int n2proc)
 
 static void do_sort_by_rin(param_t * p, finfo_t  * fp, int length)
 {
-   int ns, newlen;
-
-   if( g_mod_sort && length ) {
-      newlen = length/g_mod_sort*g_mod_sort;
-      fprintf(stderr, "++ DSBR: resetting len from %d to %d\n", length, newlen);
-      length = newlen;
-   }
+   int ns;
 
    /* possibly state what is going on */
    if( gD.level > 2 ) {
@@ -2823,7 +2819,7 @@ static int read_new_images( param_t * p )
 
    /* if g_mod_sort, set more2read so resulting TO_PROC totals would
     * be a multiple of g_mod_osrt */
-   if( g_mod_sort > 0 ) {
+   if( g_mod_sort > 0 && p->max2read > 0 ) {
       tmp  = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_PROC);
       tmp += nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_SORT);
       tmp += p->max2read;
@@ -3087,7 +3083,7 @@ int compare_by_rin(const void * v0, const void * v1)
    /* if states differ, just sort by state */
    if( p0->state != p1->state ) return p0->state - p1->state;
 
-   /* if state is TO_READ, sort by findex */
+   /* if state is TO_READ, sort by findex (this is really immaterial) */
    if( p0->state > IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
 
    /* both states are TO_PROC/TO_SORT, apply desired sorting here */
@@ -5267,6 +5263,12 @@ printf(
 "    %s -infile_pre data/im -sort_by_num_suffix -no_wait -num_chan 3 \\\n"
 "          -sort_method geme_index\n"
 "\n"
+"  A5. sort by geme_rin with 3-echo EPI data\n"
+"      (sub-sort RIN by echo/RIN in groups of necho*nslices)\n"
+"\n"
+"    %s -infile_pre data/im -sort_by_num_suffix -no_wait \\\n"
+"          -sort_method geme_rin\n"
+"\n"
 "  B. for GERT_Reco:\n"
 "\n"
 "    %s -infile_prefix run_003/image -gert_create_dataset\n"
@@ -5470,7 +5472,7 @@ printf(
 "\n"
 "  ---------------------------------------------------------------\n",
 prog, prog, prog, prog, prog, prog, prog,
-prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
 
@@ -6057,10 +6059,12 @@ printf(
     "\n"
     "           none            : do not apply any real-time sorting\n"
     "           acq_time        : by acqusition time, if set\n"
-    "           default         : sort by run, [ATIME], IIND, RIND\n"
+    "           default         : sort by run, [ATIME], IIND, RIN\n"
     "           geme_index      : by GE multi-echo index\n"
     "           num_suffix      : based on numeric suffix\n"
     "           zposn           : based on z-coordinate and input order\n"
+    "           rin             : sort by RIN (0020 0013)\n"
+    "           geme_rin        : sort by RIN, subsort by echo/RIN\n"
     "\n"
     "        more detailed method descriptions:\n"
     "\n"
@@ -6077,7 +6081,7 @@ printf(
     "           default\n"
     "\n"
     "             Sort by run, acq_time (maybe), image index (0054 1330),\n"
-    "             and REL Instance Number (0020 0013).\n"
+    "             and REL Instance Number, or RIN (0020 0013).\n"
     "\n"
     "           geme_index\n"
     "\n"
@@ -6100,6 +6104,46 @@ printf(
     "             Sort by z-coordinate.  This is limited to a single volume\n"
     "             window of images, so num_slices should be set if there is\n"
     "             more than 1 volume.\n"
+    "\n"
+    "           rin\n"
+    "\n"
+    "             Sort by RIN (0020 0013).  \n"
+    "\n"
+    "           geme_rin\n"
+    "\n"
+    "             Sort GE multi-echo images by RIN (0020 0013).\n"
+    "\n"
+    "             This method essentially does a pre-sort by RIN (possibly\n"
+    "             implied by -sort_by_num_suffix, before images are\n"
+    "             actually read in), followed by a secondard grouped sort.\n"
+    "\n"
+    "             Note that for this method to work in real-time mode, the\n"
+    "             input files must be either alphabetized in RIN order, or\n"
+    "             there must be numerical RIN-order file suffix, to pre-sort \n"
+    "             using -sort_by_num_suffix.  Without that, real-time sorting\n"
+    "             might not work.\n"
+    "\n"
+    "             In non-real-time mode (using -dicom_org), all images are\n"
+    "             read up front, so the RIN sorting can simply come from\n"
+    "             that DICOM field.\n"
+    "\n"
+    "             Given that the images are first sorted by RIN, then they\n"
+    "             are sub-sorted in groups of NES\n"
+    "                   NES = nechos * nslices_per_volume\n"
+    "             where the major axis is echo number (ACQ Echo Number),\n"
+    "             and the minor axis is RIN (could be slice or GEME_INDEX).\n"
+    "\n"
+    "                   0020 0013 - RIN - Instance Nnumber\n"
+    "                   0018 0086 - echo - ACQ Echo Number\n"
+    "\n"
+    "             Basically, for each echo, that set of NES slices is sorted\n"
+    "             together.  That effectively makes the overall sort as:\n"
+    "\n"
+    "                major 1 : time point (multiple echos and volume slices)\n"
+    "                          (has NES slices per time point = echo volumes)\n"
+    "                major 2 : echo number\n"
+    "                          (each echo in this group is a single volume)\n"
+    "                minor   : slice (within that echo of that volume)\n"
     "\n"
     "    -start_file S_FILE : have %s process starting at S_FILE\n"
     "\n"
