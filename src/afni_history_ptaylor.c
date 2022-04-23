@@ -69,6 +69,15 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Apr , 2022 , PT , "@afni_refacer_make_master_addendum" , MINOR , TYPE_GENERAL,
+   "Now creates a v2.0 of the shell.",
+   "The new shell removes more face.  Asked for by A. Basavaraj.\n"
+},
+{ 23, Apr , 2022 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
+   "Can specify which shell to use, because there are newer shell(s).",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
 { 22, Apr, 2022, PT , "afni" , MINOR, TYPE_BUG_FIX,
    "The '-bysub ..' opt wasn't working, because a 'find' cmd was bad.",
    "Reformatted the 'find', though it might still benefit from other tweaks.\n"
