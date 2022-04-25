@@ -4,6 +4,10 @@
 
 # example run in ~/AFNI_data6/FT_analysis/FT/SUMA :
 #  chauffeur_suma.py -surf_spec   ../SUMA/std.141*_?h.spec -surf_anat ../SUMA/FT_SurfVol.nii -prefix TEST
+#
+#
+# example run in ~/AFNI_data6/FT_analysis/FT.surf.results:
+#  chauffeur_suma.py -surf_spec   ../FT/SUMA/std.60*_?h.spec -surf_anat ../FT/SUMA/FT_SurfVol.nii -prefix TEST3 -dset_lh stats.FT.surf.lh.niml.dset -dset_rh stats.FT.surf.rh.niml.dset 
 
 
 # system libraries
@@ -97,18 +101,16 @@ if __name__ == '__main__':
     '''.format( surf_dir=pars.surf_dir, surf_anat=pars.surf_anat, 
                 all_spec=' '.join(pars.surf_spec_list),
                 all_hemi=' '.join(pars.surf_list_hemi),
-                all_ldv=' '.join(pars.surf_list_ldv) )
+                all_ldv =' '.join(pars.surf_list_ldv) )
 
     if pars.dset_list_lh or pars.dset_list_rh :
-        sss_dset = """
+        sss_dset = """# 'overlay' dsets
     set all_dset_lh = ( {all_dset_lh} )
     set all_dset_rh = ( {all_dset_rh} )
     set ndset_lh    = ${{#all_dset_lh}}
     set ndset_rh    = ${{#all_dset_rh}}
     """.format( all_dset_lh=' '.join(pars.dset_list_lh),
                 all_dset_rh=' '.join(pars.dset_list_rh) )
-
-
 
     sss_svar = ''
     for svar in pars.all_svar.keys():
@@ -122,9 +124,10 @@ if __name__ == '__main__':
     str_FULL+= lat.commandize( sss_surf, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=2 )
-    str_FULL+= lat.commandize( sss_dset, cmdindent=0, 
-                               ALIGNASSIGN=True, ALLEOL=False,
-                               padpost=2 )
+    if pars.dset_list_lh or pars.dset_list_rh :
+        str_FULL+= lat.commandize( sss_dset, cmdindent=0, 
+                                   ALIGNASSIGN=True, ALLEOL=False,
+                                   padpost=2 )
     str_FULL+= lat.commandize( sss_svar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -239,7 +242,7 @@ if __name__ == '__main__':
 
     # -------------------------------------------------------------------------
 
-    ban = lat.bannerize( 'start suma',
+    ban = lat.bannerize( 'start SUMA',
                          padpost=2 )
 
     # set ldv      = {svar_ldv}

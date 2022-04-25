@@ -132,14 +132,17 @@ if ( 1 ) then
         while( $Xnotfound )
             set xdisplay = `count -dig 1 3 999 R1`
             if ( -e /tmp/.X${xdisplay}-lock ) continue
+
             echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
             Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
             sleep 1
+
             jobs > zzerm.$ranval.txt
             grep -q Xvfb zzerm.$ranval.txt
             set Xnotfound = $status
             \\rm -f zzerm.$ranval.txt
             if ( $Xnotfound == 0 ) break ;
+
             @ ntry++
             if ( $ntry > 99 ) then
                 echo "** ERROR: can't start Xvfb -- exiting"
@@ -162,6 +165,9 @@ def make_text_good_exit():
 # ---------------------------------- 
 
 GOOD_EXIT:
+    # A la bob:  stop Xvfb if we started it ourselves
+    if ( $?killX ) kill %1
+
     echo ""
     echo "++ DONE (good exit)"
     echo "   See:  ${opref}"
@@ -179,6 +185,9 @@ def make_text_bad_exit():
 # ---------------------------------- 
 
 BAD_EXIT:
+    # A la bob:  stop Xvfb if we started it ourselves
+    if ( $?killX ) kill %1
+
     echo ""
     echo "++ DONE (bad exit): check for errors"
     echo ""
@@ -210,11 +219,11 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     text+= cmd 
 
     cmd = """
-    # start suma with desired surface
+    # start SUMA with desired surface
     suma                                                    \\
         -npb   ${portnum}                                   \\
         -niml                                               \\
-        -spec  "${spec}"                                    \\
+        -spec  "${surf_dir}/${spec}"                        \\
         -sv    "${surf_anat}"   &
     """
     text+= cmd
@@ -259,8 +268,46 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
         text+= cmd 
 
     #### !!!! ADD DSETS TO LOAD/VIEW HERE!
+    ###  FIX SLABELS?
     if pars.dset_list_lh or pars.dset_list_rh :
         cmd = """
+    if ( "${hemi}" == "lh" ) then
+        foreach jj ( `seq 1 1 ${ndset_lh}` )
+            set jjj    = `printf "%03d" $jj`
+            set slabel = slab_"${hemi}"_${jjj}
+
+            DriveSuma -echo_edu                                     \\
+                -npb ${portnum}                                     \\
+                -com surf_cont -surf_label ${slabel}                \\
+                -com surf_cont -load_dset ${all_dset_lh[$jj]}
+
+            DriveSuma -echo_edu                                     \\
+                -npb ${portnum}                                     \\
+                -com surf_cont -switch_surf ${slabel}               \\
+                -com surf_cont -I_sb 7 -I_range -1 1                \\
+                               -T_sb 8 -T_val 3.313                 \\
+                               -switch_cmap Reds_and_Blues_Inv
+
+        end
+    else if ( "${hemi}" == "rh" ) then
+        foreach jj ( `seq 1 1 ${ndset_rh}` )
+            set jjj    = `printf "%03d" $jj`
+            set slabel = slab_"${hemi}"_${jjj}
+
+            DriveSuma -echo_edu                                     \\
+                -npb ${portnum}                                     \\
+                -com surf_cont -surf_label ${slabel}                \\
+                -com surf_cont -load_dset ${all_dset_rh[$jj]}
+
+            DriveSuma -echo_edu                                     \\
+                -npb ${portnum}                                     \\
+                -com surf_cont -switch_surf ${slabel}               \\
+                -com surf_cont -I_sb 7 -I_range -1 1                \\
+                               -T_sb 8 -T_val 3.313                 \\
+                               -switch_cmap Reds_and_Blues_Inv
+
+        end
+    endif
 
     """
         text+= cmd
@@ -275,7 +322,7 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     DriveSuma -echo_edu                                            \\
         -npb ${{portnum}}                                            \\
         -com viewer_cont -autorecord "${{wdir}}/${{tmp1}}.jpg"         \\
-        -com viewer_cont -key "Ctrl+${{turns[{jj}]}}"                     \\
+        -com viewer_cont -key "Ctrl+${{turns[{jj}]}}"                   \\
         -com viewer_cont -key 'Ctrl+r'
 
     """.format(jj=jj)
@@ -287,7 +334,7 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
             cmd = """
     cd ${{wdir}}
 
-    # crop and clean
+    # image proc: crop and clean
     set tmp2 = "tmp2_${{hemi}}_${{turns[{jj}]}}.jpg"
     2dcat -echo_edu                                                \\
         -autocrop_atol 0                                           \\
@@ -306,7 +353,7 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
 
     cd -
 
-    # store name for later concatenation
+    # store image name for later concatenation
     set list_imgs = ( ${{list_imgs}} ${{wdir}}/${{tmp3}} )
     """.format(jj=jj)
             text+= cmd 
@@ -405,6 +452,15 @@ DSVAR = {
     'opref'     : '${odir}/${oname}.${img_ext}',
     'tmpcode'   : '`3dnewid -fun11`',
     'wdir'      : None,
+}
+
+# defaults for overlay viewing
+DOLAY = {
+    'I_sb'      : 0,
+    'I_range'   : [None, None],        # always use 2 vals
+    'T_sb'      : None,
+    'T_val'     : None,
+    'cmap'      : 'Reds_and_Blues_Inv',
 }
 
 # ----------------------------------------------------------------------------
@@ -682,9 +738,11 @@ class InOpts:
             head = fff
 
         tpath, ttype = make_abs_path( tail )
-        hpath, htype = make_abs_path( head )
+        hpath, htype = make_abs_path( fff )
         if ttype != 'dir' or htype != 'file' :
-            AB.EP1("problem with spec file name")
+            print(ttype != 'dir')
+            print(htype != 'file')
+            AB.EP1("problem with spec file name {}".format(fff))
 
         if self.surf_dir != None :
             if self.surf_dir != tail :
