@@ -53,9 +53,10 @@
 
 afni_history_struct rickr_history[] = {
 
- { 22, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
-   "if tedana executable must be in PATH, check",
-   NULL
+ { 27, Apr, 2022, RCR, "Makefile.macos_11_ARM_clang", MINOR, TYPE_MODIFY,
+   "(w/dglen) modify recent mac builds to get all X packages from homebrew",
+   "Modified Makefile.macos_11_ARM_clang, Makefile.macos_10.15_clang, and\n"
+   "the corresponding other_builds/OS_notes files."
  } ,
 
  { 22, Apr, 2022, RCR, "Dimon", MAJOR, TYPE_NEW_OPT,
