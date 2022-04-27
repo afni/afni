@@ -23,7 +23,7 @@
 #
 #  brew install
 #    libpng jpeg expat freetype fontconfig openmotif libomp
-#    libxt gsl glib pkg-config gcc autoconf mesa mesa-glu
+#    libxt gsl glib pkg-config gcc autoconf mesa mesa-glu libxpm
 #  (gcc version 10 used here by default)
 
 # also brew install netpbm libiconv

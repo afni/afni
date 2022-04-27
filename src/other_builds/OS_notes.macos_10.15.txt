@@ -11,8 +11,8 @@
 # default, though actually at the moment 'gcc' is just Mac's clang):
 
   brew update
-  brew install  libpng jpeg expat freetype fontconfig openmotif libomp
-                libxt gsl glib pkg-config gcc
+  brew install  libpng jpeg expat freetype fontconfig openmotif libomp \
+                libxt gsl glib pkg-config gcc mesa mesa-glu libxpm
 
 # LINK the following, but note that:
 # + many of these existed already on my machine
