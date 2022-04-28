@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Apr, 2022, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
+   "afni_util.py:common_dir() : watch for the deadly JR scenario!",
+   NULL
+ } ,
+
  { 27, Apr, 2022, RCR, "Makefile.macos_11_ARM_clang", MINOR, TYPE_MODIFY,
    "(w/dglen) modify recent mac builds to get all X packages from homebrew",
    "Modified Makefile.macos_11_ARM_clang, Makefile.macos_10.15_clang, and\n"

@@ -3448,7 +3448,21 @@ def common_dir(flist):
    """return the directory name that is common to all files (unless trivial)"""
    dname, junk = first_last_match_strs(flist)
    if len(dname) > 0 and dname[-1] == '/': dname = dname[0:-1]
-   if not os.path.isdir(dname): dname = os.path.dirname(dname)
+   # enter the JR scenario:
+   #   if dname IS a directory, make sure the flist items are under it
+   #   - consider: data/s1001/... data/s1002/... data/s1003/...
+   #   - so dname = data/s100
+   #   - BUT, what if dname exists as a separate subject directory?!?
+   if not os.path.isdir(dname):
+      dname = os.path.dirname(dname)
+   else:
+      # if we are in JR scenario, we still want to use dirname()
+      dlen = len(dname)
+      # if dname ends in / or flist[0] continues with /, we are okay
+      if dname[-1] != '/' and len(flist[0]) > dlen:
+         if flist[0][dlen] != '/':
+            # aha!
+            dname = os.path.dirname(dname)
 
    if is_trivial_dir(dname): return ''
    return dname
