@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 28, Apr, 2022, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
    "afni_util.py:common_dir() : watch for the deadly JR scenario!",
-   NULL
+   "Thanks to J Ritchie for unconvering this, peculiar, issue."
  } ,
 
  { 27, Apr, 2022, RCR, "Makefile.macos_11_ARM_clang", MINOR, TYPE_MODIFY,
