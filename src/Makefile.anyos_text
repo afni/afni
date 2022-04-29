@@ -1,0 +1,15 @@
+# This Makefile was written to create a text-only distribution.
+# It will not include binaries, such as afni or suma.
+
+SYSTEM_NAME = anyos_text
+
+MKDIR  = /bin/mkdir
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+INSTALLDIR = ./$(SYSTEM_NAME)
+
+MAKE = make
+include Makefile.INCLUDE

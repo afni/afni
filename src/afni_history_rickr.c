@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "prepare for the all-important anyos_text distribution",
+   "Add Makefile.anyos_text and an install_text target in Makefile.Include."
+ } ,
+
  { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "apply PRId64 for some int64_t printing",
    "Modified niml.h, niml_elemio.c, mri_transpose.c, thd_loaddblk.c."
