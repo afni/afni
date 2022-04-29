@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "apply PRId64 for some int64_t printing",
+   "Modified niml.h, niml_elemio.c, mri_transpose.c, thd_loaddblk.c."
+ } ,
+
  { 28, Apr, 2022, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
    "afni_util.py:common_dir() : watch for the deadly JR scenario!",
    "Thanks to J Ritchie for unconvering this, peculiar, issue."
