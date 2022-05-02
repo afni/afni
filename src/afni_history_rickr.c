@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, May, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add distribution packages anyos_text and anyos_text_atlas",
+   NULL
+ } ,
+
  { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "prepare for the all-important anyos_text distribution",
    "Add Makefile.anyos_text and an install_text target in Makefile.Include."
