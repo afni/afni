@@ -84,6 +84,7 @@ history for $prog :
   3.17 21 Oct 2021 : allow for previously set DYLD_LIBRARY_PATH in tcsh
   3.18 10 Jan 2022 : if no .tcshrc, create one to source .cshrc
   3.19 11 Jan 2022 : if not found, init .afnirc/.sumarc
+  3.20  3 May 2022 : for anyos packages, test update with AFNI_version.txt
 
 -------------------------------------------------------------------------------
 EOF
@@ -92,7 +93,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.19, January 11, 2022"
+set aub_version = "3.20, May 3, 2022"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -340,9 +341,9 @@ endif
 if ( $help ) then
 cat << EOF
 ------------------------------------------------------------
-$prog   - upgrade AFNI binaries
+$prog   - upgrade AFNI binaries ~1~
 
-Update the AFNI binaries, either via '-defaults' or by the
+Install or update the AFNI binaries, either via '-defaults' or by the
 '-bindir' and/or '-package' options.
 
 examples:
@@ -352,28 +353,39 @@ examples:
        The default package is linux_openmp_64 (Linux) or macos_10.12_local
        (OS X).  The default binary directory is ~/abin.
 
-       $prog -defaults -do_extras
+       @update.afni.binaries -defaults
 
 
     root user: initial install or udpate
 
-       $prog -package linux_openmp_64 -bindir /usr/local/AFNIbin
-       $prog -local_package linux_openmp_64.tgz -bindir /usr/local/AFNIbin
+       @update.afni.binaries -package linux_openmp_64 \\
+                             -bindir /usr/local/AFNIbin
+       @update.afni.binaries -local_package linux_openmp_64.tgz \\
+                             -bindir /usr/local/AFNIbin
 
 
     other examples:
 
-       $prog -defaults
-       $prog -defaults -package macos_10.12_local
-       $prog -package linux_openmp_64
-       $prog -package linux_openmp_64 -bindir ~/abin
-       $prog -package linux_openmp_64 -programs suma 3dRSFC
-       $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
-       $prog -show_obsoletes
+       @update.afni.binaries -defaults
+       @update.afni.binaries -defaults -package macos_10.12_local
+       @update.afni.binaries -package linux_openmp_64
+       @update.afni.binaries -package linux_openmp_64 -bindir ~/abin
+       @update.afni.binaries -package linux_openmp_64 -programs suma 3dRSFC
+       @update.afni.binaries -package linux_openmp_64 \\
+                             -programs file_tool python_scripts/*.py
+       @update.afni.binaries -show_obsoletes
 
-       $prog -local_package macos_10.12_local.tgz
+       @update.afni.binaries -local_package macos_10.12_local.tgz
 
-options:
+
+    examples to install packages without compiled binaries:
+
+       @update.afni.binaries -no_recur -package anyos_text -bindir anyos_text
+       @update.afni.binaries -no_recur -package anyos_text_atlas \\
+                             -bindir anyos_text_atlas
+
+------------------------------------------------------------
+options: ~1~
 
     -help                 : show this help
     -help_sys_progs       : list system programs that block update
@@ -424,6 +436,8 @@ options:
            -apsearch yes
            -do_dotfiles
            -make_backup yes
+
+        This has come full-circle to be the same as -defaults.
 
     -echo                 : turn on shell command echo
 
@@ -1058,6 +1072,8 @@ if ( $local_package == "" ) then
            exit
         endif
      end
+   else if ( $package =~ anyos* ) then
+     set pp = AFNI_version.txt
    else
      set pp = afni
    endif

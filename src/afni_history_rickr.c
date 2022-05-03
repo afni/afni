@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, May, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "for anyos_* packages, test for update using AFNI_version.txt",
+   NULL
+ } ,
+
  {  2, May, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add distribution packages anyos_text and anyos_text_atlas",
    NULL
