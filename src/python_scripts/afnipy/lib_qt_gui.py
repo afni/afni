@@ -1560,9 +1560,9 @@ class TcshCommandWindow(QtGui.QMainWindow):
       self.setCentralWidget(self.widget)
       self.resize(700,500)
 
-      # updates to QTextEdit widgets
-      self.Edit_out.setLineWrapMode(QtGui.QTextEdit.NoWrap)
-      self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+      # updates to QTextEdit widgets (I don't recall why)
+      # self.Edit_out.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+      # self.Edit_err.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
       # set callbacks
       # self.Bstart.clicked.connect(self.cb_start)

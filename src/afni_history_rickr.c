@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, May, 2022, RCR, "uber_subject.py", MICRO, TYPE_GENERAL,
+   "update to deal with minor changes to python modules",
+   NULL
+ } ,
+
  {  3, May, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "for anyos_* packages, test for update using AFNI_version.txt",
    NULL
