@@ -348,8 +348,9 @@ def retro_ts(
         parameters['-aby'] = 0
         fourierSeries = retroicor.getFourierSeries(parameters)
         fsDims = shape(fourierSeries)
-        numTimePts = int(fsDims[0]/(8*number_of_slices))
-        print('numTimePts = ', numTimePts)
+        numTimePts = int(fsDims[0]/number_of_slices)
+        numTimePts = min(numTimePts,220)
+        print('***WARNING: Only ', numTimePts, ' timepoints.  Should be 220')
         inc = 0
         print('shape(fourierSeries) = ', shape(fourierSeries))
         print('type(fourierSeries) = ', type(fourierSeries))
