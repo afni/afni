@@ -13,8 +13,10 @@ shinyServer(function(input,output,session) {
   getROIs <- reactive({
     attach(input$fileSel)
     roi.temp <- as.data.frame(ps0)
+    mod.terms <- terms
     detach(paste0('file:',input$fileSel),character.only=TRUE)
-    return(roi.temp)
+    rois.out <- list(roi.temp,mod.terms)
+    return(rois.out)
   })   ## end getROIs
   
   ## update UI elements ###############################
@@ -22,18 +24,73 @@ shinyServer(function(input,output,session) {
   ## get the names of the ROIS
   observeEvent(input$fileSel,{
     temp.rois <- getROIs()
+    temp.terms <- temp.rois[[2]]
+    temp.rois <- temp.rois[[1]]
+    
     rois.list <- as.list(names(temp.rois))
     names(rois.list) <- names(temp.rois)
     updateSelectInput(session,"roiSel",choices=rois.list,selected=rois.list)
+    
+    ## get the plot title from the last term
+    last.term <- temp.terms[length(temp.terms)]
+    if( last.term == 1 ){ last.term <- "Intercept" }
+    updateTextInput(session,'x_label',value=last.term)
+    # updateSliderInput(session,'colBarHeight',value=length(rois.list))
   })
+  
+  ## check plot dimensions in pixels
+  output$cur_plot_dim <- renderText({
+    if( input$autoWidth ){
+      plot.w <- session$clientData[["output_bayesPlot_width"]]
+    } else {
+      plot.w <- input$plotWidth
+    }
+    # plot.h <- session$clientData[["output_bayesPlot_height"]]
+    plot.h <- length(input$roiSel) * input$axesHeight
+    paste(plot.w,"x",plot.h)
+    # paste(input$dimension[1], input$dimension[2],
+    #       input$dimension[3],input$dimension[4])
+    # input$dimension[2]/input$dimension[1])
+  })
+  
+  ## check plot dimensions in pixels
+  output$out_plot_dim <- renderText({
+    plot.w <- round(input$outputWidth / input$outputDPI,2)
+    plot.h <- round(input$outputHeight / input$outputDPI,2)
+    paste(plot.w,"x",plot.h)
+  })
+  
+  ## match output dimensions if you change current views
+  observeEvent(
+    c(input$autoWidth,input$plotWidth,
+      session$clientData[["output_bayesPlot_width"]]),
+    {
+      if( input$autoWidth ){
+        plot.w <- session$clientData[["output_bayesPlot_width"]]
+      } else {
+        plot.w <- input$plotWidth
+      }
+      updateSliderInput(session,'outputWidth',value=plot.w)
+    })
+  
+  observeEvent(input$plotRes,{
+    updateSliderInput(session,'outputDPI',value=input$plotRes)
+  })
+  
+  observe({
+    
+    updateSliderInput(session,'outputHeight',
+                      value=length(input$roiSel) * input$axesHeight)
+  })
+  
   
   ## get stats ################################
   getStats <- reactive({
     
     ## get data remove unselected rois
-    data <- getROIs()
+    data <- getROIs()[[1]]
     
-    validate(need(input$roiSel,'     Need more rois!!!'))
+    validate(need(all(input$roiSel %in% names(data)),'     Need more rois!!!'))
     data <- subset(data,select=input$roiSel)
     
     data$X <- NULL
@@ -119,7 +176,9 @@ shinyServer(function(input,output,session) {
     }
     
     ### labels / titles ############
-    legend.title <- "P+"
+    legend.title <- input$colBar_title
+    legend.title.size <- input$colBar_title_size
+    legend.title.face <- input$colBar_face
     
     ## main title
     graph.title <- input$plotTitle
@@ -127,31 +186,27 @@ shinyServer(function(input,output,session) {
     title.face <- input$title_face
     
     ## x axis
-    x.axis.labs <- "Posterior Distribution"
-    x.axis.size <- input$x_axis_size
+    x.axis.labs <- input$x_label
     x.label.size <- input$x_label_size
     xlab.face <- input$xlab_face
+    x.axis.size <- input$x_axis_size
+    xtick.face <- input$x_axis_face
     
     ## y axes
     y.axis.labs <- data_stats$ROI
     sec.y.axis.labs <- sprintf('%.3f',data_stats$P)
     ROI.label.size <- input$ROI_label_size
     P.label.size <- input$P_label_size
+    bar.label.size <- input$colBar_size
     
     ### colors #################
-    if( input$colPal == "Blue - Red" ){
+    gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
+    if( input$colPal == "Default" ){
       gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
-    } else if( input$colPal == "Dark2" ){
-      gradient.colors <- brewer.pal(6,"Dark2")
-    } else if( input$colPal == "Set1" ){
-      gradient.colors <-  brewer.pal(6,"Set1")
-    } else if( input$colPal == "Accent" ){
-      gradient.colors <- brewer.pal(6,"Accent")
-    } else if( input$colPal == "Rainbow" ){
-      gradient.colors <- rainbow(6)[c(1,3,4,5,6)]
     } else {
-      gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
-    }
+      gradient.colors <- brewer.pal(input$numCols,input$colPal)
+    } 
+    if( input$revCols ){ gradient.colors <- rev(gradient.colors) }
     
     ### ranges #######
     if( input$x_range_custom ){
@@ -169,9 +224,16 @@ shinyServer(function(input,output,session) {
       ## color bar
       guides(
         fill=guide_colorbar(
-          barwidth=1,barheight=input$colBarHeight,nbin=100,frame.colour="black",
-          frame.linewidth=1.5,ticks.colour="black",title.position="top",
-          title.hjust=0,title.vjust=4)
+          barwidth=1,barheight=input$colBarHeight,nbin=1000,
+          frame.colour="black",frame.linewidth=1.5,ticks.colour="black",
+          title.position="top",title.hjust=0,title.vjust=1)
+      ) +
+      
+      ## fill for the legend (need to change this for other than P+)
+      scale_fill_gradientn(
+        colors=gradient.colors,limits=c(0,1),name=legend.title,
+        breaks=c(0,0.05,0.1,0.5,0.9,0.95,1),expand=expansion(0),
+        labels=c("0.00","0.05","0.10","0.50","0.90", "0.95","1.00")
       ) +
       
       ## divide into 2 quantiles (median NOT MEAN!!!)
@@ -184,21 +246,15 @@ shinyServer(function(input,output,session) {
         xintercept=0,linetype="solid",alpha=1,size=1,color="green3"
       ) +
       
-      ## fill for the legend (need to change this for other than P+)
-      scale_fill_gradientn(
-        colors=gradient.colors,limits=c(0,1),name=legend.title,
-        breaks=c(0,0.05,0.1,0.5,0.9,0.95,1),expand=expansion(0),
-        labels=c("0.00","0.05","0.10","0.50","0.90", "0.95","1.00")
-      ) +
-      
       ## setup both y axes
       scale_y_continuous(
-        breaks=1:length(rois),labels=y.axis.labs,
+        breaks=1:length(rois),labels=y.axis.labs,expand=c(0,0.2),
         sec.axis=sec_axis(~.,breaks=1:length(rois),labels=sec.y.axis.labs)
       ) +
       
       ## configure the ridgeline plot
-      theme_ridges(font_size=ROI.label.size,grid=TRUE,center_axis_labels=TRUE) +
+      theme_ridges(font_size=bar.label.size,grid=TRUE,
+                   center_axis_labels=TRUE) +
       
       ## title
       ggtitle(graph.title) +
@@ -213,13 +269,16 @@ shinyServer(function(input,output,session) {
         axis.text.y.right=element_text(size=P.label.size),
         
         ## x axis
-        axis.text.x=element_text(size=x.axis.size),
+        axis.text.x=element_text(size=x.axis.size,face=xtick.face),
         axis.title=element_text(size=x.label.size,face=xlab.face),
         
         ## label above color bar
         legend.title.align=0,
-        legend.title=element_text(size=24),
+        legend.title=element_text(size=legend.title.size,
+                                  face=legend.title.face),
+        legend.justification="top",
         
+        ## background fill
         panel.background=element_rect(fill='white'),
         plot.background=element_rect(fill='white')
       ) +
@@ -237,8 +296,23 @@ shinyServer(function(input,output,session) {
   
   
   ## output plot ###############################
-  output$bayesPlot <- renderPlot({
-    getPlot() })
+  ## need observe here to get the variables for height
+  observe({
+    validate(need(length(input$roiSel) > 0,'     Need more rois!!!'))
+    output$bayesPlot <- renderPlot({
+      getPlot() }, 
+      res=input$plotRes,
+      height=length(input$roiSel) * input$axesHeight,
+      width=({
+        if( input$autoWidth ){
+          p.width <- 'auto'
+        } else {
+          p.width <- input$plotWidth
+        }
+        p.width
+      })
+    )
+  })
   
   # output$gangPlot <- renderImage({
   #   outfile <- tempfile(fileext = '.png')
@@ -252,14 +326,42 @@ shinyServer(function(input,output,session) {
   # }, deleteFile = TRUE)
   
   ## download plot #################
+  
+  ## plot warnings
+  
+  observeEvent(
+    c(input$outputWidth,input$outputDPI),
+    {
+      if( (input$outputWidth / input$outputDPI) > 50 ){
+        showNotification("Output file width > 50 inches!!!",
+                         type='error',duration=NULL)
+      }
+    })
+  observeEvent(
+    c(input$outputHeight,input$outputDPI),
+    {
+      if( (input$outputHeight / input$outputDPI) > 50 ){
+        showNotification("Output file height > 50 inches!!!",
+                         type='error',duration=NULL)
+      }
+    })
+  
   output$downloadPlot <- downloadHandler(
     filename = function(){
       paste0(file_path_sans_ext(input$fileSel),'_plot.',input$outputFormat)
     },
     content = function(file) {
+      
+      validate(need((input$outputWidth / input$outputDPI) > 50,
+                    '     Output file width is greater than 50 inches!!!'))   
+      validate(need(input$outputHeight / input$outputDPI > 50,
+                    '     Output file height is greater than 50 inches!!!'))
+      
       ggsave(file,plot=getPlot(),
              width=input$outputWidth,height=input$outputHeight,
-             units='in',dpi=input$outputDPI)
+             units='px',
+             dpi=input$outputDPI
+      )
     })
   
   
