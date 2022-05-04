@@ -257,6 +257,7 @@ class MyInterface:
       if (len(self.cardiacFile)<1 or len(self.respiratoryFile)<1 or \
           len(self.outputFile)<1 or self.nSlices == 0 or self.TR == 0 or \
               self.Nt == 0 or self.Sr == 0):
+         print('Help! ')
          print(g_help_string)
          return 1           
 

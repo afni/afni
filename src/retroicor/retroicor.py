@@ -16,6 +16,7 @@ from numpy import size, shape, column_stack, savetxt
 # Glocal constants
 M = 3
 numSections = 1
+NUM_RVT = 5
 
 class retroicorClass:
 
@@ -279,6 +280,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
 
 def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     
+    global NUM_RVT
+    
     respiration_file = parameters['-r']
     # Estimate RVT
     respiration_info = dict()
@@ -288,7 +291,8 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     respiration_info.update(respiration_peak)
     respiration_phased = phase_estimator(respiration_info["amp_phase"], respiration_info)
     respiration_phased["legacy_transform"] = 0
-    respiration_phased["rvt_shifts"] = range(0,len(columnNames))
+    respiration_phased["rvt_shifts"] = range(0,NUM_RVT)
+    print('respiration_phased["rvt_shifts"] = ', respiration_phased["rvt_shifts"])
     respiration_phased["rvtrs_slc"] = 0
     respiration_phased["time_series_time"] = np.abs(respiratory_phases)
     respiration_phased["interpolation_style"] = "linear"
@@ -335,6 +339,8 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
                 
     tail = '"\n>'
     tailclose = "</RetroTSout>"
+    
+    print('shape(reml_out) = ', shape(reml_out))
 
     fid = open(("%s.slibase.1D" % '/home/peterlauren/retroicor/out'), "w")
     savetxt(
@@ -351,6 +357,58 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     print('Actual number of time points: ', parameters['-Nt'])
 
     return 0
+
+def getFourierSeries(parameters):
+    cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
+    
+    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength)
+    
+    respiratory_peaks, respiratory_troughs, fullLength = \
+        getRespiratoryPeaks(parameters) 
+    
+    respiratory_phases = determineRespiratoryPhases(parameters, \
+            respiratory_peaks, respiratory_troughs)
+        
+    if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
+                                # Resonance in Medicine 44:162–167 (2000)
+        # Get a coefficients
+        cardiacACoeffs = getACoeffs(parameters, '-c', cardiac_phases)
+        respiratoryACoeffs = getACoeffs(parameters, '-r', respiratory_phases)
+        
+        # Get b coefficients
+        cardiacBCoeffs = getBCoeffs(parameters, '-c', cardiac_phases)
+        respiratoryBCoeffs = getBCoeffs(parameters, '-r', respiratory_phases)
+    else:   # a and b coefficients set to 1.0
+        cardiacACoeffs = [1.0]
+        respiratoryACoeffs = [1.0]
+        cardiacBCoeffs = [1.0]
+        respiratoryBCoeffs = [1.0]
+        cardiacACoeffs.append(1.0)
+        respiratoryACoeffs.append(1.0)
+        cardiacBCoeffs.append(1.0)
+        respiratoryBCoeffs.append(1.0)
+    
+    global M
+    global numSections
+        
+    # Make data matrix
+    data = []
+    T = len(respiratory_phases)
+    print('T = ', T)
+    for t in range(0,T):
+        sum = 0
+        addend = []
+        for m in range(1,M):
+            m0 = m - 1
+            addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
+            addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+        for m in range(1,M):
+            m0 = m - 1
+            addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
+            addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+        data.append(addend)
+        
+    return data
 
 def getPhysiologicalNoiseComponents(parameters):
     cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
@@ -402,6 +460,7 @@ def getPhysiologicalNoiseComponents(parameters):
     # Make output table data matrix
     data = []
     T = len(respiratory_phases)
+    print('T = ', T)
     for t in range(0,T):
         sum = 0
         addend = []
