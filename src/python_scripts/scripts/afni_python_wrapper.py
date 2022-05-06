@@ -157,6 +157,12 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
          The 'l' stands for 'line' (or 'list').  This is akin to -print,
          but prints a list with one element per line.
 
+         Examples for lprint:
+
+            # show alt+z slice timing for 20 slices and TR=2s
+            afni_python_wrapper.py \\
+                -lprint "slice_pattern_to_timing('alt+z', 20, 2)"
+
       -listfunc [SUB_OPTS] FUNC LIST ... : execute FUNC(LIST)
 
          With this option, LIST is a list of values to be passed to FUNC().

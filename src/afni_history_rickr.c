@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, May, 2022, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add functions slice_pattern_to_order, slice_pattern_to_timing",
+   NULL
+ } ,
+
  {  3, May, 2022, RCR, "uber_subject.py", MICRO, TYPE_GENERAL,
    "update to deal with minor changes to python modules",
    NULL
