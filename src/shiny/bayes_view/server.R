@@ -352,10 +352,10 @@ shinyServer(function(input,output,session) {
     },
     content = function(file) {
       
-      validate(need((input$outputWidth / input$outputDPI) > 50,
-                    '     Output file width is greater than 50 inches!!!'))   
-      validate(need(input$outputHeight / input$outputDPI > 50,
-                    '     Output file height is greater than 50 inches!!!'))
+      # validate(need((input$outputWidth / input$outputDPI) > 50,
+      #               '     Output file width is greater than 50 inches!!!'))   
+      # validate(need(input$outputHeight / input$outputDPI > 50,
+      #               '     Output file height is greater than 50 inches!!!'))
       
       ggsave(file,plot=getPlot(),
              width=input$outputWidth,height=input$outputHeight,
