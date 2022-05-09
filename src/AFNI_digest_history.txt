@@ -1,3 +1,39 @@
+AFNI Digest, week of 2022/05/09.
+
+SUMA on ARM-architecture Mac OS.  For those compiling their own AFNI
+package on an ARM Mac OS (we will not mention Prantik by name), suma
+started crashing after an OS update due to apparent inconsistencies in
+the X11/motif/GL libraries.  Now, Makefile.macos_11_ARM_clang and
+other_builds/OS_notes.macos_11_ARM.txt have been updated to install
+mesa libraries (from homebrew) and to link more preferentially to
+homebrew.  This happily resolves the issue (and applies to Mac OS 12,
+as well).
+
+AFNI on Fedora 35.  For those who build AFNI on their own Fedora
+systems (rather than downloading binaries), install instructions and a
+Makefile have been added for compiling AFNI under Fedora 35.  See
+OS_notes.linux_fedora_35.txt and Makefile.linux_fedora_35_shared under
+other_builds for more information.
+
+AFNI on any OS.  For those compiling AFNI on their own computers, new
+sub-packages have been created that do not contain any precompiled
+binaries, and therefore can be run on any OS.  The anyos_text package
+contains all shell scripts, python files and other text files, while
+anyos_text_atlas also contains the atlases.  This allows one to easily
+initialize an AFNI directory that can be later populated with compiled
+software.  For example, consider the command:
+   @update.afni.binaries                 \
+       -no_recur                         \
+       -package anyos_text_atlas         \
+       -bindir anyos_text_atlas
+
+AFNI Docker container.  Instructions for downloading and using an AFNI
+Container from Docker Hub have been updated here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html
+Many thanks to Vinai Roopchansingh for help with this.
+
+========================================================================
+
 AFNI Digest, week of 2022/04/05.
 
 nifti_tool
