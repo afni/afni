@@ -26,10 +26,11 @@ import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 from lib_RetroTS.PeakFinder import peak_finder
-from lib_RetroTS.PhaseEstimator import phase_estimator
-from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
-from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
+#from lib_RetroTS.PhaseEstimator import phase_estimator
 import retroicor
+from retroicor import phase_estimator
+from retroicor import rvt_from_peakfinder
+from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 def setup_exceptionhook():
     """
@@ -316,23 +317,18 @@ def retro_ts(
     # Get the phase
     if respiration_peak:
         print("Estimating phase for respiration_info")
-        respiration_phased = phase_estimator(
+        print('respiration_info["amp_phase"] = ', respiration_info["amp_phase"])
+        respiration_phased, rvt = phase_estimator(
             respiration_info["amp_phase"], respiration_info
         )
     else:
         respiration_phased = {}
     if cardiac_peak:
-        print("Estimating phase for cardiac_info")
-        print(cardiac_info["v"])
-        cardiac_phased = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
-        print('shape(cardiac_info["amp_phase"]) = ', shape(cardiac_info["amp_phase"]))
-        print('type(cardiac_phased) = ', type(cardiac_phased))
-        print('cardiac_phased.keys() = ', cardiac_phased.keys())
-        print('cardiac_phased["phase_slice_reg"] = ', cardiac_phased["phase_slice_reg"])
-        print('shape(cardiac_phased["phase_slice_reg")] = ', shape(cardiac_phased["phase_slice_reg"]))
+        cardiac_phased, rvt = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
         # Order in which cardiac phases written out
+        print('shape(cardiac_phased) = ', shape(cardiac_phased))
         for i in range(0,10):   # First 10 slices
-            print(cardiac_phased["phase_slice_reg"][0,:,i])
+            print(cardiac_phased[0,:,i])
     else:
         cardiac_phased = {}
 
@@ -353,12 +349,13 @@ def retro_ts(
         print('***WARNING: Only ', numTimePts, ' timepoints.  Should be 220')
         inc = 0
         print('shape(fourierSeries) = ', shape(fourierSeries))
+        print('shape(respiration_phased) = ', shape(respiration_phased))
         print('type(fourierSeries) = ', type(fourierSeries))
         for t in range(0,numTimePts):
             for s in range(0,number_of_slices):
                 for i in range(0,4):
-                    respiration_phased["phase_slice_reg"][t][i][s] = fourierSeries[inc][i]
-                    cardiac_phased["phase_slice_reg"][t][i][s] = fourierSeries[inc][i+4]
+                    respiration_phased[t][i][s] = fourierSeries[inc][i]
+                    cardiac_phased[t][i][s] = fourierSeries[inc][i+4]
                 inc += 1
             
         # numTimePts = 
@@ -367,13 +364,13 @@ def retro_ts(
         # for i in range(0,10):
         #     print(fourierSeries[i])
 
-    respiration_info.update(respiration_phased)
-    cardiac_info.update(cardiac_phased)
+    # respiration_info.update(respiration_phased)
+    # cardiac_info.update(cardiac_phased)
 
-    if respiration_phased:
+    if len(respiration_phased) > 0:
         print("Computing RVT from peaks")
         print(respiration_info["p_trace_r"])
-        rvt = rvt_from_peakfinder(respiration_phased)
+        # rvt = rvt_from_peakfinder(respiration_phased)
         respiration_info.update(rvt)
 
     # Show some results
@@ -408,6 +405,7 @@ def retro_ts(
     n_e = 0
     if "time_series_time" in respiration_info:
         n_n = len(respiration_info["time_series_time"])
+        print('respiration_info = ', respiration_info)
         n_r_p = size(respiration_info["phase_slice_reg"], 1)
         n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
@@ -415,7 +413,7 @@ def retro_ts(
         n_n = len(
             cardiac_phased["time_series_time"]
         )  # ok to overwrite len(respiration_info.tst), should be same.
-        n_e = size(cardiac_phased["phase_slice_reg"], 1)
+        n_e = size(cardiac_phased, 1)
 
     if (
         main_info["cardiac_out"] == 0
@@ -459,19 +457,19 @@ def retro_ts(
                     label = "%s s%d.RVT%d ;" % (label, i, j)
         # Resp
         if main_info["respiration_out"] != 0:
-            for j in range(0, size(respiration_info["phase_slice_reg"], 2)):
+            for j in range(0, size(respiration_info, 2)):
                 for i in range(0, main_info["number_of_slices"]):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = respiration_info["phase_slice_reg"][
+                    main_info["reml_out"][:, cnt] = respiration_info[
                         :, j, i
                     ]
                     label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
         if main_info["Card_out"] != 0:
-            for j in range(0, size(cardiac_info["phase_slice_reg"], 2)):
+            for j in range(0, size(cardiac_info, 2)):
                 for i in range(0, main_info["number_of_slices"]):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = cardiac_info["phase_slice_reg"][
+                    main_info["reml_out"][:, cnt] = cardiac_info[
                         :, j, i
                     ]
                     label = "%s s%d.Card%d ;" % (label, i, j)
@@ -488,18 +486,18 @@ def retro_ts(
                     label = "%s s%d.RVT%d ;" % (label, i, j)
             if main_info["respiration_out"] != 0:
                 # Resp
-                for j in range(0, shape(respiration_info["phase_slice_reg"])[1]):
+                for j in range(0, shape(respiration_phased)[1]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        respiration_info["phase_slice_reg"][:, j, i]
+                        respiration_phased[:, j, i]
                     )
                     label = "%s s%d.Resp%d ;" % (label, i, j)
             if main_info["cardiac_out"] != 0:
                 # Card
-                for j in range(0, shape(cardiac_info["phase_slice_reg"])[1]):
+                for j in range(0, shape(cardiac_phased)[1]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        cardiac_info["phase_slice_reg"][:, j, i]
+                        cardiac_phased[:, j, i]
                     )
                     label = "%s s%d.Card%d ;" % (label, i, j)
         fid = open(("%s.slibase.1D" % main_info["prefix"]), "w")
