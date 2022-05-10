@@ -292,7 +292,6 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     respiration_phased = phase_estimator(respiration_info["amp_phase"], respiration_info)
     respiration_phased["legacy_transform"] = 0
     respiration_phased["rvt_shifts"] = range(0,NUM_RVT)
-    print('respiration_phased["rvt_shifts"] = ', respiration_phased["rvt_shifts"])
     respiration_phased["rvtrs_slc"] = 0
     respiration_phased["time_series_time"] = np.abs(respiratory_phases)
     respiration_phased["interpolation_style"] = "linear"
@@ -340,8 +339,6 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     tail = '"\n>'
     tailclose = "</RetroTSout>"
     
-    print('shape(reml_out) = ', shape(reml_out))
-
     fid = open(("%s.slibase.1D" % '/home/peterlauren/retroicor/out'), "w")
     savetxt(
         "%s.slibase.1D" % '/home/peterlauren/retroicor/out',
@@ -483,7 +480,6 @@ def getPhysiologicalNoiseComponents(parameters):
     return df   
 
 def phase_estimator(amp_phase, phase_info):
-    print('phase_estimator in retroicor')
     """
     v_name='',
     amp_phase=0,
@@ -575,12 +571,9 @@ def phase_estimator(amp_phase, phase_info):
         return_phase_list = []
         for phasee_column in phasee["phasee_list"]:
             return_phase.append(phase_base(amp_phase, phasee_column))
-        print('shape(return_phase_list) = ', shape(return_phase_list))
         return return_phase_list
     else:
-        print('amp_phase = ', amp_phase)
         return_phase, rvt = phase_base(amp_phase, phasee)
-        print('1: rvt = ', rvt)
         return return_phase, rvt
 
 def my_hist(x, bin_centers):
@@ -608,7 +601,6 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     #
     #           Ziad, Oct 30 96 / modified March 18 97
 
-    print('type(x) = ', type(x))
     if type(x) != type(array):
         if type(x) != type(np.ndarray):
             x = x.reshape(-1)
@@ -806,7 +798,6 @@ def phase_base(amp_type, phasee):
         )
 
     rvt = rvt_from_peakfinder(phasee)
-    print('rvt = ', rvt)
     return phasee["phase_slice_reg"], rvt
 
 def rvt_from_peakfinder(r):
@@ -891,7 +882,6 @@ def rvt_from_peakfinder(r):
         shf = r["rvt_shifts"][i]
         nsamp = int(round(shf * r["phys_fs"]))
         sind = np.add(list(range(0, len(r["t"]))), nsamp)
-        print(sind)
         sind[np.nonzero(sind < 0)] = 0
         sind[np.nonzero(sind > (len(r["t"]) - 1))] = len(r["t"]) - 1
         rvt_shf = scipy.interpolate.interp1d(
@@ -919,9 +909,6 @@ def rvt_from_peakfinder(r):
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
             pass
 
-    print('r = ', r)
-    # print('r[3] = ', r[3])
-    print('r["rvtrs_slc"] = ', r["rvtrs"])
     return r['rvtrs_slc']
 
 

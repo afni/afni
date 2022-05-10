@@ -312,7 +312,6 @@ def retro_ts(
         else:
             cardiac_peak = {}
 
-    print('main_info["resp_peak"] = respiration_peak')
     main_info["resp_peak"] = respiration_peak
     main_info["card_peak"] = cardiac_peak
     respiration_info.update(respiration_peak)
@@ -322,23 +321,16 @@ def retro_ts(
     # print('len(respiration_peak) = ', len(respiration_peak))
     if respiration_peak:
         print("Estimating phase for respiration_info")
-        print('respiration_info["amp_phase"] = ', respiration_info["amp_phase"])
         respiration_phased, rvt = phase_estimator(
             respiration_info["amp_phase"], respiration_info
         )
     else:
         respiration_phased = {}
     
-    print('2: rvt = ', rvt)
     if cardiac_peak:
         cardiac_phased, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
-        # Order in which cardiac phases written out
-        print('shape(cardiac_phased) = ', shape(cardiac_phased))
-        for i in range(0,10):   # First 10 slices
-            print(cardiac_phased[0,:,i])
     else:
         cardiac_phased = {}
-    print('3: rvt = ', rvt)
 
     if retroicor_algorithm:
         parameters=dict()
@@ -356,30 +348,12 @@ def retro_ts(
         numTimePts = min(numTimePts,220)
         print('***WARNING: Only ', numTimePts, ' timepoints.  Should be 220')
         inc = 0
-        print('shape(fourierSeries) = ', shape(fourierSeries))
-        print('shape(respiration_phased) = ', shape(respiration_phased))
-        print('type(fourierSeries) = ', type(fourierSeries))
         for t in range(0,numTimePts):
             for s in range(0,number_of_slices):
                 for i in range(0,4):
                     respiration_phased[t][i][s] = fourierSeries[inc][i]
                     cardiac_phased[t][i][s] = fourierSeries[inc][i+4]
                 inc += 1
-            
-        # numTimePts = 
-        # print('shape(fourierSeries) = ', shape(fourierSeries))
-        # print('type(fourierSeries) = ', type(fourierSeries))
-        # for i in range(0,10):
-        #     print(fourierSeries[i])
-
-    # respiration_info.update(respiration_phased)
-    # cardiac_info.update(cardiac_phased)
-
-    if len(respiration_phased) > 0:
-        print("Computing RVT from peaks")
-        print(respiration_info["p_trace_r"])
-        # rvt = rvt_from_peakfinder(respiration_phased)
-        # respiration_info.update(rvt)
 
     # Show some results
     if show_graphs:
@@ -413,7 +387,6 @@ def retro_ts(
     n_e = 0
     if "time_series_time" in respiration_info:
         n_n = len(respiration_info["time_series_time"])
-        print('respiration_info = ', respiration_info)
         n_r_p = size(respiration_info["phase_slice_reg"], 1)
         n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
@@ -452,8 +425,6 @@ def retro_ts(
 
     label = head
 
-    print('shape(rvt) = ', shape(rvt))
-    print('rvt[0:16] = ', rvt[0:16])
     main_info["reml_out"] = []
     if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
         # RVT
@@ -745,8 +716,6 @@ Output:
     if (opt_dict["-n"] == None):
         print('WARNING: Number of slices not given.')
         
-    print('opt_dict["-retroicor"] = ', opt_dict["-retroicor"])
-
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     retro_ts(
         respiration_file=opt_dict["-r"],
