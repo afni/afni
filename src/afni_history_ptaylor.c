@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, May , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Update/fix to mask resampling if present and if deobliqueing with 3dWarp.",
+   "Replace wsinc5 interp with NN interp---better for mask.  Thanks, RCR!\n"
+},
+
 { 23, Apr , 2022 , PT , "@afni_refacer_make_master_addendum" , MINOR , TYPE_GENERAL,
    "Now creates a v2.0 of the shell.",
    "The new shell removes more face.  Asked for by A. Basavaraj.\n"

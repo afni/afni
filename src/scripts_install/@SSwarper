@@ -137,10 +137,14 @@
 #     + [PT] cp initial/raw anat to $odir 
 #          + also cp any initial/raw mask_ss to $odir 
 #
-set version   = "2.54";   set rev_dat   = "Feb 1, 2022"
+#set version   = "2.54";   set rev_dat   = "Feb 1, 2022"
 #     + [PT] Put clearer ERROR messaging in a couple spots
 #          + remove any non-programmatic exclamation marks. those are BAD
 #            to have in t/csh scripts, even in comments.
+#
+set version   = "2.55";   set rev_dat   = "May 10, 2022"
+#     + [PT] for 3dWarp-deobliqueing, use NN interp for mask, not wsinc5
+#            -> thanks, RCR
 #
 # ----------------------------------------------------------------
 
@@ -545,9 +549,10 @@ if ( ${DO_DEOB} ) then
 
     if ( "${mask_ss}" != "" ) then
         set mask_do = $odir/maskDO."${SubID}".nii.gz
+        # [PT: 10 May 2022] kernel from wsinc5 -> NN, as noticed by RCR
         3dWarp                        \
             -deoblique                \
-            -wsinc5                   \
+            -NN                       \
             -prefix "${mask_do}"      \
             "${mask_ss}"
         # ... and this will be new "input" dset
