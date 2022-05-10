@@ -8417,13 +8417,13 @@ def db_cmd_gen_review(proc):
     if proc.ssr_uvars:
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
+    gcmd = UTIL.add_line_wrappers('gen_ss_review_scripts.py -exit0%s\n' % lopts)
 
     cmd += '# -------------------------------------------------\n'      \
            '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            '%s'                                                         \
-           'gen_ss_review_scripts.py -exit0'                            \
-           '%s\n\n' % (jp_str, lopts)
+           '%s\n' % (jp_str, gcmd)
 
     return cmd
 

@@ -726,9 +726,10 @@ g_history = """
        - add ap_uvars: dir_suma_spec, suma_specs
     7.37 Apr  6, 2022: allow REML errts on surface
     7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
+    7.39 May 10, 2022: do not apply global line wrappers to QC block
 """
 
-g_version = "version 7.38, April 22, 2022"
+g_version = "version 7.39, May 10, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2603,7 +2604,9 @@ class SubjProcSream:
         if self.epi_review:
             cmd_str = db_cmd_gen_review(self)
             if cmd_str:
-                self.write_text(add_line_wrappers(cmd_str))
+                # no wrappers for QC block (out.ap_uvars.txt) [10 May 2022]
+                # self.write_text(add_line_wrappers(cmd_str))
+                self.write_text(cmd_str)
                 if self.verb > 1:
                     print("+d generated EPI review script %s" % self.epi_review)
             else:

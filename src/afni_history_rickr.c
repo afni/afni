@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "do not add global line wrapper to QC block",
+   "Avoid line wrappers in the generation of out.ap_uvars.txt (might happen\n"
+   "when copy_anat dset has a very long name, for example).\n"
+   "Thanks to E Chang for pointing out the issue."
+ } ,
+
  {  6, May, 2022, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "add functions slice_pattern_to_order, slice_pattern_to_timing",
    NULL
