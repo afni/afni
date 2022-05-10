@@ -480,58 +480,6 @@ def getPhysiologicalNoiseComponents(parameters):
     return df   
 
 def phase_estimator(amp_phase, phase_info):
-    """
-    v_name='',
-    amp_phase=0,
-    t=[],
-    x=[],
-    iz=[],   # zero crossing (peak) locations
-    p_trace=[],
-    tp_trace=[],
-    n_trace=[],
-    tn_trace=[],
-    prd=[],
-    t_mid_prd=[],
-    p_trace_mid_prd=[],
-    phase=[],
-    rv=[],
-    rvt=[],
-    var_vector=[],
-    phys_fs=(1 / 0.025),
-    zero_phase_offset=0.5,
-    quiet=0,
-    resample_fs=(1 / 0.025),
-    f_cutoff=10,
-    fir_order=80,
-    resample_kernel='linear',
-    demo=0,
-    as_window_width=0,
-    as_percover=0,
-    as_fftwin=0,
-    sep_dups=0,
-    phasee_list=0,
-    show_graphs=0
-    """
-    """
-    Example: PhaseEstimator.phase_estimator(amp_phase, info_dictionary)
-    or PhaseEstimator.phase_estimator(v) where v is a list
-    if v is a matrix, each column is processed separately.
-    :param var_vector: column vector--list of list(s)
-    :param phys_fs: Sampling frequency
-    :param zero_phase_offset: Fraction of the period that corresponds to a phase of 0
-                                0.5 means the middle of the period, 0 means the 1st peak
-    :param quiet:
-    :param resample_fs:
-    :param frequency_cutoff:
-    :param fir_order: BC ???
-    :param resample_kernel:
-    :param demo:
-    :param as_window_width:
-    :param as_percover:
-    :param fftwin:
-    :param sep_dups:
-    :return: *_phased: phase estimation of input signal
-    """
     phasee = dict(
         v_name="",
         t=[],
@@ -676,7 +624,6 @@ def phase_base(amp_type, phasee):
         gR = z_scale(phasee["v"], 0, mxamp)  # Scale, per Glover 2000's paper
         bins = np.arange(0.01, 1.01, 0.01) * mxamp
         hb_value = my_hist(gR, bins)
-        # hb_value = histogram(gR, bins)
         if phasee["show_graphs"] == 1:
             center = (bins[:-1] + bins[1:]) / 2
             plt.bar(center, hb_value[: len(hb_value) - 1])  # , align='center')
@@ -705,8 +652,6 @@ def phase_base(amp_type, phasee):
         )  # Not sure why you would replace the
         # list that you created 10 lines prior to this
         # Add a fake point to tptrace and tntrace to avoid ugly if statements
-        # phasee["tp_trace"].append(phasee["t"][-1])
-        # phasee["tn_trace"].append(phasee["t"][-1])
         phasee["tp_trace"] = np.append(phasee["tp_trace"], phasee["t"][-1])
         phasee["tn_trace"] = np.append(phasee["tn_trace"], phasee["t"][-1])
         while i < len(phasee["v"]):
@@ -764,10 +709,6 @@ def phase_base(amp_type, phasee):
     # is evenly divisible by the step and add one more to the time series in
     # order to match Matlab, which uses closed ranges  1 Jun 2017 [D Nielson]
     if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
-        # phasee["time_series_time"] = append(
-        #     phasee["time_series_time"],
-        #     [phasee["time_series_time"][-1] + phasee["volume_tr"]],
-        # )
         phasee["time_series_time"].append(
             [phasee["time_series_time"][-1] + phasee["volume_tr"]],
         )
@@ -840,13 +781,6 @@ def rvt_from_peakfinder(r):
     r["rvt"] = r["rv"][0 : nptrc - 1] / r["prd"]
     if r["p_trace_r"].any:
         r["rvr"] = np.subtract(r["p_trace_r"], r["n_trace_r"])
-        # Debugging lines below
-        # with open('rvr.csv', 'w') as f:
-        #     for i in r['rvr']:
-        #         f.write("%s\n" % i)
-        # with open('prdR.csv', 'w') as f:
-        #     for i in r['prdR']:
-        #         f.write("%s\n" % i)
         r["rvtr"] = np.ndarray(np.shape(r["rvr"]))
         np.divide(r["rvr"], r["prdR"], r["rvtr"])
         # Smooth RVT so that we can resample it at volume_tr later
@@ -856,10 +790,6 @@ def rvt_from_peakfinder(r):
         b = scipy.signal.firwin(numtaps=(r["fir_order"] + 1), cutoff=w, window="hamming")
         v = r["rvtr"]
         np.around(v, 6, v)
-        # Debugging lines below
-        # with open('a.csv', 'w') as f:
-        #     for i in v:
-        #         f.write("%s\n" % i)
         mv = np.mean(v)
         # remove the mean
         v = v - mv
@@ -913,16 +843,6 @@ def rvt_from_peakfinder(r):
 
 
 def runAnalysis(parameters):
-    # parameters = retroicorClass.getParameters()
-    
-    # parameters=dict()
-    # parameters['-c'] = cardiacFile
-    # parameters['-r'] = respiratoryFile
-    # parameters['-s'] = nSlices
-    # parameters['-abt'] = abt
-    # parameters['-aby'] = aby
-    # parameters['-niml'] = niml
-    
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if parameters['-niml']:
         return 0

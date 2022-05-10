@@ -80,43 +80,6 @@ def retro_ts(
     phys_json=None,
     retroicor_algorithm=False
 ):
-    """
-
-    :param respiration_file:
-    :param cardiac_file:
-    :param phys_fs:
-    :param number_of_slices:
-    :param volume_tr:
-    :param prefix:
-    :param slice_offset:
-    :param slice_major:
-    :param rvt_shifts:
-    :param respiration_cutoff_frequency:
-    :param cardiac_cutoff_frequency:
-    :param interpolation_style: kind : str or int, optional
-        Specifies the kind of interpolation as a string:
-            "linear", "nearest", "zero", 'slinear', "quadratic", "cubic",
-            Where 'slinear', "quadratic" and "cubic" refer to a spline
-            interpolation of first, second or third order
-        Or as an integer specifying the order of the spline interpolator to
-        use. Default is "linear".
-    :param fir_order:
-    :param quiet:
-    :param demo:
-    :param rvt_out:
-    :param cardiac_out:
-    :param respiration_out:
-    :param slice_order:
-    :param show_graphs:
-    :param legacy_transform: Important-this will specify whether you use the original Matlab code's version or the
-        potentially bug-corrected version for the final phase correction in lib_RetroTS/RVT_from_PeakFinder.py
-    :param phys_file: IDS formatted physio file in tab separated format. May
-            be gzipped.
-    :param phys_json: BIDS formatted physio metadata json file. If not specified
-            the json corresponding to the phys_file will be loaded.
-    :retroicor: Use the retroicor algorithm based directly on the Gary Glover paper.
-    :return:
-    """
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
@@ -231,15 +194,10 @@ def retro_ts(
     respiration_info["frequency_cutoff"] = main_info["respiration_cutoff_frequency"]
     # Amplitude-based phase for respiration
     respiration_info["amp_phase"] = 1
-    # respiration_info['as_percover'] = 50  # Percent overlap of windows for fft
-    # respiration_info['as_windwidth'] = 0  # Window width in seconds for fft, 0 for full window
-    # respiration_info['as_fftwin'] = 0     # 1 == hamming window. 0 == no windowing
     cardiac_info = dict(main_info)
     cardiac_info["frequency_cutoff"] = main_info["cardiac_cutoff_frequency"]
     # Time-based phase for cardiac signal
     cardiac_info["amp_phase"] = 0
-    
-    # return 0
 
     # Handle file inputs
     if (((phys_file is not None) and (respiration_file is not None))
@@ -361,25 +319,6 @@ def retro_ts(
             print("Showing RVT Peaks for R\n")
             show_rvt_peak(respiration_info, 1)
 
-    """
-    # Not sure if this code is necessary, 'if 0' is never run in MATLAB
-    # Show RVT graphs goes here, currently not important though
-
-    if 0:
-        # Write retroicor regressors
-        for i in range(0, opt['main_info['number_of_slices']']):
-            fname = '%s.RetroCard.slc%02d.1D' % (opt['Prefix'], i)
-            #wryte3(cardiac_phased['phase_slice_reg'][:,:,i], fname, 1);
-            savetxt(fname, cardiac_phased['phase_slice_reg'][:,:,i], fmt="%12.6G")
-            fname = sprintf('%s.RetroResp.slc%02d.1D', Opt.Prefix, i);
-            # wryte3(respiration_info.phase_slice_reg(:,:,i), fname, 1);
-            savetxt(fname, respiration_phased['phase_slice_reg'][:,:,i], fmt="%12.6G")
-
-        # And write the RVT puppy, plus or minus a few seconds delay
-        fname = '%s.RetroRVT.1D' % opt['Prefix']
-        # wryte3(respiration_info.rvtrs_slc, fname, 1);
-        savetxt(fname, rvt['rvtrs_slc'], fmt="%12.6G")
-    """
     # also generate files as 3dREMLfit likes them
     n_n = 0
     n_r_v = 0
@@ -497,15 +436,7 @@ def retro_ts(
         header=("%s%s" % (label, tail)),
         footer=("%s" % tailclose),
     )
-    """
-    fid.write('%s', label)
-    fid.write('%s ', tail)
-    for i in range(0, len(main_info['reml_out'])):
-        fid.write('%s ', main_info['reml_out'][i, :])
-        fprintf(fid, '\n ')
-    fprintf(fid, '%s', tailclose)
-    fclose(fid)
-    """
+
     main_info["error"] = 0
 
     return main_info
