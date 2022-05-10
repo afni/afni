@@ -117,6 +117,7 @@ def retro_ts(
     :retroicor: Use the retroicor algorithm based directly on the Gary Glover paper.
     :return:
     """
+
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
     main_info = {
@@ -237,6 +238,8 @@ def retro_ts(
     cardiac_info["frequency_cutoff"] = main_info["cardiac_cutoff_frequency"]
     # Time-based phase for cardiac signal
     cardiac_info["amp_phase"] = 0
+    
+    # return 0
 
     # Handle file inputs
     if (((phys_file is not None) and (respiration_file is not None))
@@ -309,12 +312,14 @@ def retro_ts(
         else:
             cardiac_peak = {}
 
+    print('main_info["resp_peak"] = respiration_peak')
     main_info["resp_peak"] = respiration_peak
     main_info["card_peak"] = cardiac_peak
     respiration_info.update(respiration_peak)
     cardiac_info.update(cardiac_peak)
-
+    
     # Get the phase
+    # print('len(respiration_peak) = ', len(respiration_peak))
     if respiration_peak:
         print("Estimating phase for respiration_info")
         print('respiration_info["amp_phase"] = ', respiration_info["amp_phase"])
@@ -323,14 +328,17 @@ def retro_ts(
         )
     else:
         respiration_phased = {}
+    
+    print('2: rvt = ', rvt)
     if cardiac_peak:
-        cardiac_phased, rvt = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
+        cardiac_phased, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
         # Order in which cardiac phases written out
         print('shape(cardiac_phased) = ', shape(cardiac_phased))
         for i in range(0,10):   # First 10 slices
             print(cardiac_phased[0,:,i])
     else:
         cardiac_phased = {}
+    print('3: rvt = ', rvt)
 
     if retroicor_algorithm:
         parameters=dict()
@@ -371,7 +379,7 @@ def retro_ts(
         print("Computing RVT from peaks")
         print(respiration_info["p_trace_r"])
         # rvt = rvt_from_peakfinder(respiration_phased)
-        respiration_info.update(rvt)
+        # respiration_info.update(rvt)
 
     # Show some results
     if show_graphs:
@@ -444,6 +452,8 @@ def retro_ts(
 
     label = head
 
+    print('shape(rvt) = ', shape(rvt))
+    print('rvt[0:16] = ', rvt[0:16])
     main_info["reml_out"] = []
     if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
         # RVT
@@ -478,10 +488,10 @@ def retro_ts(
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
-                for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
+                for j in range(0, shape(rvt)[0]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        respiration_info["rvtrs_slc"][j]
+                        rvt[j,:]
                     )  # same regressor for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
             if main_info["respiration_out"] != 0:

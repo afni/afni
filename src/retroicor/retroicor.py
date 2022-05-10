@@ -483,6 +483,7 @@ def getPhysiologicalNoiseComponents(parameters):
     return df   
 
 def phase_estimator(amp_phase, phase_info):
+    print('phase_estimator in retroicor')
     """
     v_name='',
     amp_phase=0,
@@ -574,11 +575,13 @@ def phase_estimator(amp_phase, phase_info):
         return_phase_list = []
         for phasee_column in phasee["phasee_list"]:
             return_phase.append(phase_base(amp_phase, phasee_column))
+        print('shape(return_phase_list) = ', shape(return_phase_list))
         return return_phase_list
     else:
         print('amp_phase = ', amp_phase)
-        return_phase = phase_base(amp_phase, phasee)
-        return return_phase
+        return_phase, rvt = phase_base(amp_phase, phasee)
+        print('1: rvt = ', rvt)
+        return return_phase, rvt
 
 def my_hist(x, bin_centers):
     """
@@ -803,6 +806,7 @@ def phase_base(amp_type, phasee):
         )
 
     rvt = rvt_from_peakfinder(phasee)
+    print('rvt = ', rvt)
     return phasee["phase_slice_reg"], rvt
 
 def rvt_from_peakfinder(r):
@@ -915,7 +919,10 @@ def rvt_from_peakfinder(r):
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
             pass
 
-    return r
+    print('r = ', r)
+    # print('r[3] = ', r[3])
+    print('r["rvtrs_slc"] = ', r["rvtrs"])
+    return r['rvtrs_slc']
 
 
 def runAnalysis(parameters):
