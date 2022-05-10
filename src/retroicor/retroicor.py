@@ -769,7 +769,7 @@ def rvt_from_peakfinder(r):
                 r["tp_trace"] = r["tp_trace"][0:dm]
             else:
                 r["n_trace"] = r["n_trace"][0:dm]
-                r["tn_trace"] = r["tn_trace"][0:dm]
+                # r["tn_trace"] = r["tn_trace"][0:dm]
 
     r["rv"] = np.subtract(r["p_trace"], r["n_trace"])
     # NEED TO consider which starts first and
