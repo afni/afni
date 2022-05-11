@@ -207,6 +207,8 @@ set SSopt      = " "
 
 set mask_ss    = ""
 
+set more_echo  = ""
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -368,6 +370,7 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-echo" ) then
         set echo
+        set more_echo = "-echo"
 
     # ---------- fin ------------------
 
@@ -503,7 +506,7 @@ if ( $nvolbase < 5 ) then
 endif
 
 # [PT: Oct 19, 2020] Add in new QC: initial source-base overlap
-@djunct_overlap_check                             \
+@djunct_overlap_check  ${more_echo}               \
     -ulay   "${Adataset}"                         \
     -olay   "$Basedset"                           \
     -prefix ${odir}/init_qc_00_overlap_usrc_obase
@@ -750,7 +753,7 @@ set ulay  = "${pref}TAL5.nii"
 set olay  = "${Basedset}"
 set opref_qc_nl0 = "${odir}/init_qc_01_nl0.${SubID}.jpg"
 
-@djunct_edgy_align_check               \
+@djunct_edgy_align_check ${more_echo}  \
     -montx            8                \
     -monty            1                \
     -ulay             "${ulay}"        \

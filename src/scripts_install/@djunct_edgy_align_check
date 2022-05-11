@@ -147,6 +147,8 @@ set all_views        = ( 1 1 1 )
 
 set ftype            = JPEG              # output file format
 
+set more_echo        = ""
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -174,6 +176,10 @@ while ( $ac <= $#argv )
         set olay = "$argv[$ac]"
 
     #  ---------- opts ---------------
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+        set more_echo = "-echo"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -475,7 +481,7 @@ set ethr = ${vvv[2]}
 
 # take image, from the workdir
 
-@chauffeur_afni                             \
+@chauffeur_afni  ${more_echo}               \
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
     -olay  "${fout}"                        \
@@ -541,6 +547,7 @@ COMMAND OPTIONS ~1~
 -hview
 -help
 -ver
+-echo
 -ulay              ULAY
 -olay              OLAY
 -prefix            PREFIX

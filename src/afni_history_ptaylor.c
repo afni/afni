@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, May , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
+{ 10, May , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
+{ 10, May , 2022 , PT , "@SSwarper" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
 { 10, May , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
    "Update/fix to mask resampling if present and if deobliqueing with 3dWarp.",
    "Replace wsinc5 interp with NN interp---better for mask.  Thanks, RCR!\n"
