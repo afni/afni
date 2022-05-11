@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, May , 2022 , PT , "SurfLocalstat" , MINOR , TYPE_BUG_FIX,
+   "The 'mean' stat was accumulating int, not float, values.",
+   "This effective truncation/'digitizing' error should be fixed now.\n"
+},
+
 { 10, May , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
    "Add -echo opt, and can propagate.",
    "For debugging\n"
