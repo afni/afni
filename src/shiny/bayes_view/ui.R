@@ -157,14 +157,19 @@ sidebar <- dashboardSidebar(
 
 ## body top #######################################################################
 body <-  dashboardBody(
+
+  tabsetPanel(
+    type = "tabs",
+    tabPanel(
+      "Plot",br(),
+      div(style='width:auto;overflow-x:scroll;height:800px;overflow-y:auto;',
+          plotOutput('bayesPlot'))),
+    
+    tabPanel("Table",br(),
+             dataTableOutput("statsTable"))
+  ),
   
-  div(style='width:auto;overflow-x:scroll;height:800px;overflow-y:auto;',
-      plotOutput('bayesPlot'))
-  ,
-  # fluidRow( imageOutput('gangPlot') ),
-  # 
   br()
-  
 )   ## end dashboard body
 
 ## run it

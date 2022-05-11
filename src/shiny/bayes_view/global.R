@@ -20,7 +20,7 @@
 
 ## check for packages and load them #################
 pkgs <- c('shiny','data.table','shinydashboard','plotly','RColorBrewer',
-          'tools','ggplot2','ggridges','dplyr','tidyr','scales')
+          'tools','ggplot2','ggridges','dplyr','tidyr','scales','DT')
 for(pkg in pkgs){
     if(!require(pkg,character.only=TRUE)){
         print(paste0("ERROR: Missing ",pkg,"! please install it with: ",

@@ -78,7 +78,6 @@ shinyServer(function(input,output,session) {
   })
   
   observe({
-    
     updateSliderInput(session,'outputHeight',
                       value=length(input$roiSel) * input$axesHeight)
   })
@@ -101,7 +100,7 @@ shinyServer(function(input,output,session) {
     colnames(data) <- rois
     data_stats <- data.frame(1:length(rois))
     
-    # create ROI column instead of numerics to match threat table above
+    # create ROI column instead of numerics to match  table above
     data_stats$ROI <- rois
     data_stats$P <- colSums(data > 0)/nobj
     data_stats$Pn <- ifelse(data_stats$P < .5, 1-data_stats$P, data_stats$P)
@@ -150,9 +149,7 @@ shinyServer(function(input,output,session) {
     # 
     data.out <- list(data_stats,data_long)
     return(data.out)
-    
-    
-  })
+  })   ## end getStats
   
   ## make plot ################################
   getPlot <- reactive({
@@ -364,7 +361,83 @@ shinyServer(function(input,output,session) {
       )
     })
   
+  ## output stats table #######################
+  output$statsTable <- DT::renderDataTable({
+    
+    ## get data remove unselected rois
+    data <- getROIs()[[1]]
+    
+    validate(need(all(input$roiSel %in% names(data)),'     Need more rois!!!'))
+    data <- subset(data,select=input$roiSel)
+    
+    data$X <- NULL
+    nobj=dim(data)[1]
+    # rename columns with ROI list
+    # print(summary(data))
+    rois <- names(data)
+    colnames(data) <- rois
+    data_stats <- data.frame(1:length(rois))
+    
+    # create ROI column instead of numerics to match  table above
+    data_stats$ROI <- rois
+    data_stats$P <- colSums(data > 0)/nobj
+    data_stats$Pn <- ifelse(data_stats$P < .5, 1-data_stats$P, data_stats$P)
+    
+    ## calculate more stats
+    data_stats$mean <- colMeans(data)  
+    data_stats$median <- apply(data,2, quantile,.5) # # median: quantile(x, probs=.5)
+    
+    data_stats$median2 <- data_stats$median3 <- data_stats$median4 <- data_stats$median
+    data_stats$median22 <- data_stats$median23 <- data_stats$median24 <- data_stats$median233 <- data_stats$median2
+    
+    # # order type
+    # if( input$orderSel == 'P-plus' ){
+    #   data_stats <- data_stats[order(data_stats$mean),]
+    # } else if( input$orderSel == 'Original' ) {
+    #   data_stats <- data_stats[order(data_stats$median),]
+    # }
+    
+    ## remove first counting variable
+    data_stats <- data_stats[2:length(data_stats)]
+    # data_stats <- datatable(as.data.frame(data_stats))
+    # data_stats <- formatRound(table=data_stats,digits=4)
+    
+    brks <- quantile(data_stats$Pn, probs = seq(.05, .95, .05), na.rm = TRUE)
+    
+    print(brks)
+    
+    gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
+    if( input$colPal == "Default" ){
+      gradient.colors <- c("blue","cyan","gray","gray","yellow","#C9182B")
+    } else {
+      gradient.colors <- brewer.pal(input$numCols,input$colPal)
+    } 
+    if( input$revCols ){ gradient.colors <- rev(gradient.colors) }
+    # 19 values
+    
+    datatable(
+      data_stats,
+      extensions="FixedColumns",
+      options=list(pageLength=100,scrollX=TRUE,
+                   fixedColumns = list(leftColumns = 2))) %>% 
+      
+      formatSignif(columns=c(3:length(data_stats)),digits=4) 
+    # %>% 
+      
+      # 
+      # formatStyle(
+      #   'Pn',
+      #   background = styleInterval(data_stats$Pn, gradient.colors)
+      # )
+    
+    
+      # formatStyle(backgroundColor = styleInterval(brks, gradient.colors))
+    
+  }
   
+  
+  # server = FALSE,selection = 'single')
+  )
   
   
 })   ## end server ###########################
