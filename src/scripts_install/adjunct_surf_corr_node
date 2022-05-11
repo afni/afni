@@ -1,0 +1,335 @@
+#!/bin/tcsh
+
+set version   = "0.1";  set rev_dat   = "May 11, 2022"
+# + [PT] short program for calculating whole-surf correlation of a
+#   node location, with blurring.  The node can be specified on either
+#   L or R hemisphere, and be applied to either left or right hemi
+#   - mainly aiming to be used for APQC HTML for surf block
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_surf_corr_node.tcsh"
+set tpname    = "${this_prog:gas/.tcsh//}"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# ----------------------- set defaults --------------------------
+
+set input   = ""
+set i_gii   = ""
+set node    = ""
+set xset    = ""
+
+set nbhd_rad = 4
+
+set opref   = "surf_corr"
+set odir    = "."
+
+set pppp    = "`3dnewid -fun11`"
+set wdir    = "__workdir_SCN_${pppp}"
+
+
+set DO_CLEAN  = 1                       # default: keep working dir
+
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # ---------------- required
+    if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-i_gii" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set i_gii = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-node" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set node = "$argv[$ac]"
+
+    # ---------------- opt 
+
+    else if ( "$argv[$ac]" == "-xset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set xset = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    else if ( "$argv[$ac]" == "-nbhd_rad" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set nbhd_rad = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-wdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = `dirname "$argv[$ac]"`
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# =======================================================================
+
+# ----------------- check for missing/badly named inputs
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: missing '-input ..' dset, please provide"
+    goto BAD_EXIT
+else if ( ! -e "${input}" ) then
+    echo "** ERROR: can't find '-input ..' dset: ${input}"
+    goto BAD_EXIT
+endif
+
+if ( "${i_gii}" == "" ) then
+    echo "** ERROR: missing '-i_gii ..' dset, please provide"
+    goto BAD_EXIT
+else if ( ! -e "${i_gii}" ) then
+    echo "** ERROR: can't find '-i_gii ..' dset: ${i_gii}"
+    goto BAD_EXIT
+endif
+
+# optional input; if not provided, make the same as input
+if ( "${xset}" != "" ) then
+    # separate dset for 3dTcorr1D
+    if ( "${xset}" == "" ) then
+        echo "** ERROR: missing '-xset ..' dset, please provide"
+        goto BAD_EXIT
+    else if ( ! -e "${xset}" ) then
+        echo "** ERROR: can't find '-xset ..' dset: ${xset}"
+        goto BAD_EXIT
+    endif
+else
+    # input dset will be used for 3dTcorr1D, too
+    echo "++ Using input dset for 3dTcorr1D, too"
+    set xset = "${input}"
+endif
+
+if ( "${node}" == "" ) then
+    echo "** ERROR: missing '-node ..' value, please provide"
+    goto BAD_EXIT
+endif
+
+# ----------------- check for inconsistent inputs
+
+# make sure node numbers match
+set nnode_surf = `SurfInfo                 \
+                    -quiet                 \
+                    -N_Node                \
+                    -i_gii   "${i_gii}"`
+
+set nnode_input = `3dinfo -ni "${input}"`
+set nnode_xset  = `3dinfo -ni "${xset}"`
+
+if ( ${nnode_surf} != ${nnode_input} || \
+     ${nnode_surf} != ${nnode_xset}  ) then
+    echo "** ERROR: mismatched number of nodes."
+    echo "   The the surface has: ${nnode_surf}"
+    echo "   The input dset has : ${nnode_input}"
+    echo "   The xset dset has  : ${nnode_xset}"
+    goto BAD_EXIT
+endif
+
+# strip away possible alphabetic part of node, for comparison
+set node_num = ${node:gas/L//}
+set node_num = ${node_num:gas/R//}
+
+set is_node_ok1 = `echo "${node_num} >= 0" | bc`
+set is_node_ok2 = `echo "${node_num} < ${nnode_input}" | bc`
+if ( ${is_node_ok1} != 1 || ${is_node_ok2} != 1 ) then
+    echo "** ERROR: node value '${node_num}' (from '${node}')"
+    echo "   is not in allowed range:  [0, ${nnode_input})"
+    goto BAD_EXIT
+endif
+
+# ---------------------- output dir + wdir 
+ 
+# check output directory, use input one if nothing given
+
+if ( ! -e ${odir} ) then
+    echo "++ Making new output directory: ${odir}"
+    \mkdir -p ${odir}
+endif
+
+# make the working directory
+if ( ! -e ${odir}/${wdir} ) then
+    echo "++ Making working directory: ${odir}/${wdir}"
+    \mkdir -p ${odir}/${wdir}
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      ${odir}/${wdir}"
+endif
+
+# ====================================================================
+# do work
+
+set node_file = ${odir}/${wdir}/nodelist.1D
+set dset_blur = ${odir}/${wdir}/dset_00_input_blurred
+set dset_mean = ${odir}/${wdir}/dset_01_mean_time_series
+set ts_mean_r = ${odir}/${wdir}/time_series_mean_row.1D
+set ts_mean_c = ${odir}/${wdir}/time_series_mean_col.1D
+
+echo "${node}" > ${node_file}
+
+# blur whole dset, using nbhd blur radius
+SurfLocalstat                                                       \
+    -overwrite                                                      \
+    -nbhd_rad   ${nbhd_rad}                                         \
+    -stat       mean                                                \
+    -input      "${input}"                                          \
+    -i_gii      "${i_gii}"                                          \
+    -prefix     ${dset_blur}
+
+
+# extract time series at single location: single point at n_mask node
+SurfLocalstat                                                       \
+    -overwrite                                                      \
+    -nbhd_rad   0.000001                                            \
+    -stat       mean                                                \
+    -n_mask     ${node_file}                                        \
+    -input      "${dset_blur}.niml.dset"                            \
+    -i_gii      "${i_gii}"                                          \
+    -prefix     ${dset_mean}
+
+# get the single 1D time series out and dump to file; columnize
+3dinfo -max -sb_delim ' ' ${dset_mean}.niml.dset > ${ts_mean_r}
+1dcat  ${ts_mean_r}\' > ${ts_mean_c}
+
+3dTcorr1D                                                           \
+    -overwrite                                                      \
+    -prefix     "${odir}/${opref}"                                  \
+    "${xset}"                                                       \
+    "${ts_mean_c}"
+
+
+# ---------------------------------------------------------------------
+exit
+# move out of wdir to the odir
+cd ..
+
+set whereout = $PWD
+
+if ( $DO_CLEAN == 1 ) then
+    echo "\n+* Removing temporary axialization working dir: '${wdir}'\n"
+    \rm -rf ./${wdir}    
+else
+    echo "\n++ NOT removing temporary axialization working dir: '${wdir}'\n"
+endif
+
+echo ""
+echo "++ DONE! View the finished, axialized product:"
+echo "     ${whereout}/\*"
+echo ""
+
+
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+This is an adjunct program for calculating a whole-surface correlation
+from the blurred time series of a particular node.  This should be
+useful with surf-block APQC HTML making, in particular.
+
+Options ~1~
+
+-h
+-help
+-hview
+-ver
+-echo
+-input     IN    : dset from which single time series is extracted
+-i_gii     GII   : gifti surface dset for blur set estimation
+-xset      XSET  : dset where whole-surf corr is calc'ed (if not specified, 
+                   will be the IN dset)
+-node      N     : which node to select from (e.g., 400L)
+-nbhd_rad  NR    : radius for blurring
+-prefix    PPP   : output prefix (can have path)
+-wdir      WDIR  : name of working directory (no path)
+-no_clean
+
+Example ~1~
+
+adjunct_surf_corr_node.tcsh                                     \
+    -input   errts.FT.surf.lh.niml.dset                         \
+    -i_gii   ../FT/SUMA/std.60.lh.smoothwm.gii                  \
+    -node    400L                                               \
+    -prefix  surf_corr_400L.lh
+
+adjunct_surf_corr_node.tcsh                                     \
+    -input   errts.FT.surf.lh.niml.dset                         \
+    -xset    errts.FT.surf.rh.niml.dset                         \
+    -i_gii   ../FT/SUMA/std.60.rh.smoothwm.gii                  \
+    -node    400L                                               \
+    -prefix  surf_corr_400L.rh
+
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

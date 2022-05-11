@@ -69,22 +69,27 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+{ 11, May , 2022 , PT , "adjunct_surf_corr_node" , MINOR , TYPE_NEW_PROG,
+   "New script for calculating whole-surf corr from a node, with blur.",
+   "To be used as part of surf block APQC HTML.\n"
+},
+
+{ 1, Apr , 2022 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "Add '-disp_def_params' so the user can see the default params.",
    "The params will also now get displayed during runtime.\n"
 },
 
-{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+{ 1, Apr , 2022 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "Add many more '-min_* ..' options for controlling badness criteria.",
    "Asked for by user nseider: hope these are helpful!\n"
 },
 
-{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_MODIFY,
+{ 1, Apr , 2022 , PT , "3dZipperZapper" , MINOR , TYPE_MODIFY,
    "Actually output the number of bad slices per volume.",
    "Previously had some ~fancy encoding about criterion of badness (why?).\n"
 },
 
-{ 1, Apr , 2021 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
+{ 1, Apr , 2022 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
    "New opts '-dont_use_*' to turn off some of the drop criteria at will.",
    "Also put in help descriptions about drop criteria, in Notes.\n"
 },
