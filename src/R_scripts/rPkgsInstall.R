@@ -40,7 +40,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Feb 25, 2020
+Version 0.0.3, May 13, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -54,17 +54,17 @@ Usage:
 
    ex1 <- 
 "\n--------------------------------
-Example 1 --- Install all the R packages that are currently required in 
-AFNI programs:
+Example 1 --- Install all the R packages that are currently required for most
+AFNI programs except for RBA, MBA and TRR, which require the R package 'brms':
    rPkgsInstall -pkgs ALL
    rPkgsInstall -pkgs ALL -site 'http://cloud.r-project.org'\n"
 
    ex2 <- 
 "\n--------------------------------
 Example 2 --- Install user-specified R packages:
-   rPkgsInstall -pkgs 'gsl'
+   rPkgsInstall -pkgs 'brms'
    rPkgsInstall -pkgs 'afex,phia,paran'
-   rPkgsInstall -pkgs 'snow,nlme' -site 'http://cloud.r-project.org'\n"
+   rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cloud.r-project.org'\n"
 
    ex3 <- 
 "\n--------------------------------
@@ -109,9 +109,18 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         within single/double quotes. For example, -pkgs \"afex,phia\". If",
    "         package_list is set as ALL, all the following packages required for",
    "         AFNI programs will be installed, updated, or removed:\n",
-   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'brms',",
-   "         'corrplot', 'metafor'. You can use rPkgsInstall to install, update, or",
-   "         remove any R packages, and they do not have to be in the list above. \n", sep = '\n'
+   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'psych'",
+   "         'corrplot', 'metafor'.\n",
+   "         You can use rPkgsInstall to install, update, or remove any R packages,",
+   "         and those packages do not have to be in the list above.\n",
+   "         ***NOTE*** these R packages should be good enough for running all major",
+   "         programs that use R except for programs such as RBA, MBA and TRR, which",
+   "         require installing the R package 'brms'. To install 'brms', run the",
+   "         following command at the terminal:\n",
+   "         rPkgsInstall -pkgs 'brms'\n",
+   "         Or, type the following in R:\n",
+   "         install.packages(\"brms\").", 
+   "           \n", sep = '\n'
              ) ),
 
       '-check' = apl(n = 0,  h = paste(
@@ -190,7 +199,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'brms', 'corrplot', 'metafor') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }
