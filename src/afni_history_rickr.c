@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, May, 2022, RCR, "Makefile.INCLUDE", MINOR, TYPE_NEW_OPT,
+   "add to prog lists",
+   NULL
+ } ,
+
  { 10, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "do not add global line wrapper to QC block",
    "Avoid line wrappers in the generation of out.ap_uvars.txt (might happen\n"
