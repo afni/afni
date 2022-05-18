@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, May, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "allow for pb00 dsets in standard space",
+   "Thanks to Erik (MB audachang) for noting it."
+ } ,
+
  { 17, May, 2022, RCR, "Makefile.INCLUDE", MINOR, TYPE_NEW_OPT,
    "add to prog lists",
    NULL
