@@ -292,7 +292,13 @@ static Xclu_opt **opt_Xclu = NULL ;
 static char *Xclu_arg      = NULL ; /* 10 Sep 2016 */
 
 static int do_global_etac  = 1 ;    /* Sep 2018 */
-static int do_local_etac   = 0 ;
+
+#define DISABLE_LOCAL_ETAC          /* May 2020 - hard disable of Local ETAC */
+#ifdef  DISABLE_LOCAL_ETAC
+# define do_local_etac        0
+#else
+ static int do_local_etac   = 0 ;
+#endif
 
 static char *clustsim_prog = NULL ; /* 30 Aug 2016 */
 static char *clustsim_opt  = NULL ;
@@ -2538,9 +2544,11 @@ int main( int argc , char *argv[] )
    /* Initialize global/local ETAC calculations [Sep 2018] */
 
    if( AFNI_yesenv("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 1 ;
-   if( AFNI_yesenv("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 1 ;
    if( AFNI_noenv ("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 0 ;
+#ifndef DISABLE_LOCAL_ETAC
+   if( AFNI_yesenv("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 1 ;
    if( AFNI_noenv ("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 0 ;
+#endif
 
    while( nopt < argc ){
 
@@ -2802,14 +2810,16 @@ int main( int argc , char *argv[] )
 
      /*-----  local and global ETAC [Sep 2018]  -----*/
 
+#ifndef DISABLE_LOCAL_ETAC
      if( strcasecmp(argv[nopt],"-ETAC_local") == 0 ){
        do_Xclustsim = do_local_etac = 1 ; nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
-       do_Xclustsim = do_global_etac = 1 ; nopt++ ; continue ;
-     }
      if( strcasecmp(argv[nopt],"-noETAC_local") == 0 ){
        do_local_etac = 0 ; nopt++ ; continue ;
+     }
+#endif
+     if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
+       do_Xclustsim = do_global_etac = 1 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-noETAC_global") == 0 ){
        do_global_etac = 0 ; nopt++ ; continue ;
@@ -5612,11 +5622,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        DESTROY_IMARR(inar) ;
      } /*-- end of 5percent stuff --*/
 
-     /* run 3d[X]ClustSim using the outputs from the above as the simulations */
+     /*--- run 3d[X]ClustSim using the outputs from the above as the simulations ---*/
 
      if( do_clustsim ){    /*----- 3dClustsim -----*/
 
-       for( icase=0 ; icase < ncase ; icase++ ){
+       for( icase=0 ; icase < ncase ; icase++ ){  /* loop over blur cases */
          sprintf(fname,"%s.CSim%s.cmd",prefix_clustsim,clab[icase]) ;
          if( !use_sdat ){
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
@@ -5675,9 +5685,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        } /* end of loop over icase */
 
-     } /* end of 3dClustSim */
+     } /*----- end of 3dClustSim -----*/
 
-     if( do_Xclustsim ){ /*----- ETAC -----*/
+     if( do_Xclustsim ){ /*----- run ETAC = 3dXClustSim + 3dMultiThresh -----*/
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
@@ -5793,6 +5803,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
                           /*----------------------------------------------------*/
 
+           /*-- Next, run 3dMultiThresh to actually threshold the ETAC way --*/
+
            if( ncase >= 1 ){ /* use 3dXClustSim results to make a union mask */
              int ifarp , farp ; char sfarp[8] ;
              for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* loop over FPR goals [23 Aug 2017] */
@@ -5801,7 +5813,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
-                   if( do_local_etac ){
+                   if( do_local_etac ){  /* remember, Local ETAC is NOT recommended */
                      sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
                                     cprefix[icase] ) ;
                      sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
@@ -5825,7 +5837,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loops over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,  /* combine the masks */
                             "3dmask_tool -input %s.ETACtmask.*.nii* -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
@@ -5877,7 +5889,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loop over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1pos.*.nii* -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
@@ -5928,7 +5940,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loop over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1neg.*.nii* -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
