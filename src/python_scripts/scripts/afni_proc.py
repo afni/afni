@@ -18,6 +18,7 @@ from afnipy.db_mod import *
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
 from afnipy import lib_tedana_afni as TED
+from afnipy import lib_format_cmd_str as FCS
 
 # ----------------------------------------------------------------------
 # globals
@@ -727,9 +728,10 @@ g_history = """
     7.37 Apr  6, 2022: allow REML errts on surface
     7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
     7.39 May 10, 2022: do not apply global line wrappers to QC block
+    7.40 May 24, 2022: add -command_comment_style
 """
 
-g_version = "version 7.39, May 10, 2022"
+g_version = "version 7.40, May 24, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1276,6 +1278,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
                         helpstr='one run, many echoes of multi-echo data')
 
+        self.valid_opts.add_opt('-command_comment_style', 1, [],
+                        acplist=['none', 'compact', 'pretty'],
+                        helpstr='define trailing AP command comment style')
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
         self.valid_opts.add_opt('-scr_overwrite', 0, [],
@@ -3417,9 +3422,12 @@ class SubjProcSream:
         self.write_text('echo "execution finished: `date`"\n\n')
 
         # and append execution command, for a record
+        # let user choose style: none, compact, pretty
+        style, rv = self.user_opts.get_string_opt('-command_comment_style',
+                                                  default='compact')
         opt = self.user_opts.find_opt('-no_proc_command')
-        if not opt:
-            tstr = UTIL.get_command_str(args=self.argv)
+        if not opt and style != 'none':
+            tstr = self.get_ap_command_str(style=style)
             self.write_text('\n\n' + tstr)
 
         if self.user_opts.find_opt('-ask_me'):
@@ -3430,6 +3438,26 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+    def get_ap_command_str(self, style='compact'):
+       """return a commented command string, depending on the desired form"""
+       if style == 'none':
+          return ''
+
+       if style not in ['compact', 'pretty']:
+          print("** AP.get_ap_command_str: invalid style %s" % style)
+       if style == 'pretty':
+          # get a straight command, and prettify it
+          tstr = UTIL.get_command_str(args=self.argv,
+                                      preamble=0, comment=0, wrap=0)
+          # and run PT's niceify on it
+          allopts = self.valid_opts.all_opt_names()
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+                                              list_cmd_args=allopts)
+       else:
+          tstr = UTIL.get_command_str(args=self.argv)
+
+       return tstr
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -4440,6 +4468,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        return status and instance (if None, quit)
     """
+
     proc = SubjProcSream('subject regression')
     proc.init_opts()
 

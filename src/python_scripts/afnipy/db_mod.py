@@ -11574,6 +11574,17 @@ g_help_options = """
             -e option to tcsh (as suggested), but maybe the user does not wish
             to do so.
 
+        -command_comment_style STYLE: set style for final AP command comment
+
+                e.g. -command_comment_style pretty
+
+            This controls the format for the trailing afni_proc.py commented
+            command at the end of the proc script.  STYLE can be:
+
+                none        - no trailing command will be included
+                compact     - the original compact form will be included
+                pretty      - the PT-special pretty form will be included
+
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
                 e.g. -copy_anat Elvis/mprage+orig

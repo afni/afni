@@ -558,7 +558,7 @@ def afni_niceify_cmd_str( sss,
 
     if type(sss) != str:
         print("** ERROR: need sss to be a string")
-        return ''
+        return 1, ''
 
     big_list = listify_argv_str( sss, 
                                  list_cmd_args=list_cmd_args,
