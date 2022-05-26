@@ -56,8 +56,8 @@ def setup_exceptionhook():
 def getSliceOffsets(offsetDict):
     slice_offset = offsetDict["slice_offset"]
     
-    # Determining main_info['slice_offset'] based upon main_info['slice_order'], main_info['volume_tr'],
-    #  and main_info['number_of_slices'].
+    # Determining slice_offset based upon slice_order, volume_tr,
+    #  and number_of_slices.
     tt = 0.0  # Default float value to start iterations
     dtt = float(offsetDict["volume_tr"]) / float(
         offsetDict["number_of_slices"]
@@ -70,10 +70,10 @@ def getSliceOffsets(offsetDict):
     ):
         slice_offsets = [0] * offsetDict[
             "number_of_slices"
-        ]  # Initial value for main_info['slice_offset']
+        ]  # Initial value for slice_offset
     slice_file_list = (
         []
-    )  # List for using external file for main_info['slice_offset'] values/
+    )  # List for using external file for slice_offset values/
     # Indicates if using external file in last loop
     if offsetDict["slice_order"][0:3] == "alt":  # Alternating?
         for i in range(0, offsetDict["number_of_slices"], 2):
@@ -113,7 +113,7 @@ def getSliceOffsets(offsetDict):
         slice_offsets = offlist
 
     else:  # Open external file specified in argument line,
-        # fill SliceFileList with values, then load into main_info['slice_offset']
+        # fill SliceFileList with values, then load into slice_offset
         with open(offsetDict["slice_order"], "r") as f:
             for i in f.readlines():
                 # read times, in seconds
@@ -217,8 +217,6 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
         else:
             cardiac_peak = {}
 
-    # main_info["resp_peak"] = respiration_peak
-    # main_info["card_peak"] = cardiac_peak
     respiration_info.update(respiration_peak)    
     cardiac_info.update(cardiac_peak)
     
@@ -255,32 +253,6 @@ def retro_ts(
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
-    main_info = {
-        "respiration_file": respiration_file,
-        "cardiac_file": cardiac_file,
-        "phys_fs": phys_fs,
-        "number_of_slices": number_of_slices,
-        "volume_tr": volume_tr,
-        "prefix": prefix,
-        "slice_offset": slice_offset,
-        "slice_major": slice_major,
-        "rvt_shifts": rvt_shifts,
-        "respiration_cutoff_frequency": respiration_cutoff_frequency,
-        "cardiac_cutoff_frequency": cardiac_cutoff_frequency,
-        "interpolation_style": interpolation_style,  # replacement for 'ResamKernel' variable name
-        "fir_order": fir_order,
-        "quiet": quiet,
-        "demo": demo,
-        "rvt_out": rvt_out,
-        "cardiac_out": cardiac_out,
-        "respiration_out": respiration_out,
-        "slice_order": slice_order,
-        "show_graphs": show_graphs,
-        "zero_phase_offset": zero_phase_offset,
-        "legacy_transform": legacy_transform,
-        "phys_file": phys_file,
-        "phsio_json": phys_json,
-    }
      
     # Update slice offsets
     offsetDict = dict()
@@ -379,100 +351,100 @@ def retro_ts(
         n_e = size(cardiac_phased, 1)
 
     if (
-        main_info["cardiac_out"] == 0
-        and main_info["respiration_out"] == 0
-        and main_info["rvt_out"] == 0
+        cardiac_out == 0
+        and respiration_out == 0
+        and rvt_out == 0
     ):
         print(
             "Options cardiac_out, respiration_out, and RVT_out all 0.\nNo output required.\n"
         )
         return
 
-    temp_y_axis = main_info["number_of_slices"] * (
-        (main_info["rvt_out"]) * int(n_r_v)
-        + (main_info["respiration_out"]) * int(n_r_p)
-        + (main_info["cardiac_out"]) * int(n_e)
+    temp_y_axis = number_of_slices * (
+        (rvt_out) * int(n_r_v)
+        + (respiration_out) * int(n_r_p)
+        + (cardiac_out) * int(n_e)
     )
-    main_info["reml_out"] = zeros((n_n, temp_y_axis))
+    reml_out = zeros((n_n, temp_y_axis))
     cnt = 0
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
         'ni_dimen = "%d"\n'
         'ColumnLabels = "'
-        % (size(main_info["reml_out"], 1), size(main_info["reml_out"], 0))
+        % (size(reml_out, 1), size(reml_out, 0))
     )
     tail = '"\n>'
     tailclose = "</RetroTSout>"
 
     label = head
 
-    main_info["reml_out"] = []
-    if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
+    reml_out = []
+    if slice_major == 0:  # old approach, not handy for 3dREMLfit
         # RVT
-        if main_info["rvt_out"] != 0:
+        if rvt_out != 0:
             for j in range(0, size(respiration_info["rvtrs_slc"], 2)):
-                for i in range(0, main_info["number_of_slices"]):
+                for i in range(0, number_of_slices):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = respiration_info["rvtrs_slc"][
+                    reml_out[:, cnt] = respiration_info["rvtrs_slc"][
                         :, j
                     ]  # same for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
         # Resp
-        if main_info["respiration_out"] != 0:
+        if respiration_out != 0:
             for j in range(0, size(respiration_info, 2)):
-                for i in range(0, main_info["number_of_slices"]):
+                for i in range(0, number_of_slices):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = respiration_info[
+                    reml_out[:, cnt] = respiration_info[
                         :, j, i
                     ]
                     label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
-        if main_info["Card_out"] != 0:
+        if cardiac_out != 0:
             for j in range(0, size(cardiac_info, 2)):
-                for i in range(0, main_info["number_of_slices"]):
+                for i in range(0, number_of_slices):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = cardiac_info[
+                    reml_out[:, cnt] = cardiac_info[
                         :, j, i
                     ]
                     label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s.retrots.1D", main_info["prefix"]), "w")
+        fid = open(("%s.retrots.1D", prefix), "w")
     else:
-        for i in range(0, main_info["number_of_slices"]):
-            if main_info["rvt_out"] != 0:
+        for i in range(0, number_of_slices):
+            if rvt_out != 0:
                 # RVT
                 for j in range(0, shape(rvt)[0]):
                     cnt += 1
-                    main_info["reml_out"].append(
+                    reml_out.append(
                         rvt[j,:]
                     )  # same regressor for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
-            if main_info["respiration_out"] != 0:
+            if respiration_out != 0:
                 # Resp
                 for j in range(0, shape(respiration_phased)[1]):
                     cnt += 1
-                    main_info["reml_out"].append(
+                    reml_out.append(
                         respiration_phased[:, j, i]
                     )
                     label = "%s s%d.Resp%d ;" % (label, i, j)
-            if main_info["cardiac_out"] != 0:
+            if cardiac_out != 0:
                 # Card
                 for j in range(0, shape(cardiac_phased)[1]):
                     cnt += 1
-                    main_info["reml_out"].append(
+                    reml_out.append(
                         cardiac_phased[:, j, i]
                     )
                     label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s.slibase.1D" % main_info["prefix"]), "w")
+        fid = open(("%s.slibase.1D" % prefix), "w")
         
-        print('Output file ', ("%s.slibase.1D" % main_info["prefix"]))
+        print('Output file ', ("%s.slibase.1D" % prefix))
 
     # remove very last ';'
     label = label[1:-2]
 
     savetxt(
-        "%s.slibase.1D" % main_info["prefix"],
-        column_stack(main_info["reml_out"]),
+        "%s.slibase.1D" % prefix,
+        column_stack(reml_out),
         fmt="%.4f",
         delimiter=" ",
         newline="\n",
@@ -480,9 +452,7 @@ def retro_ts(
         footer=("%s" % tailclose),
     )
 
-    main_info["error"] = 0
-
-    return main_info
+    return 0
 
 
 if __name__ == "__main__":
