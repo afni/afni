@@ -25,12 +25,11 @@ __author__ = "Joshua Zosky" # Modified a bit by gianfranco
 import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
-# from lib_RetroTS.PeakFinder import peak_finder
+from lib_RetroTS.PeakFinder import peak_finder
 #from lib_RetroTS.PhaseEstimator import phase_estimator
 import retroicor
 from retroicor import phase_estimator
 from retroicor import rvt_from_peakfinder
-from retroicor import peak_finder
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 def setup_exceptionhook():
@@ -52,200 +51,6 @@ def setup_exceptionhook():
             print("We cannot setup exception hook since not in interactive mode")
 
     sys.excepthook = _pdb_excepthook
-    
-def getSliceOffsets(offsetDict):
-    slice_offset = offsetDict["slice_offset"]
-    
-    # Determining main_info['slice_offset'] based upon main_info['slice_order'], main_info['volume_tr'],
-    #  and main_info['number_of_slices'].
-    tt = 0.0  # Default float value to start iterations
-    dtt = float(offsetDict["volume_tr"]) / float(
-        offsetDict["number_of_slices"]
-    )  # Increments for iteration
-    # init slice_offsets, unless Custom order
-    # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
-    if (
-        (offsetDict["slice_order"] not in ["Custom", "custom"])
-        or len(slice_offset) != offsetDict["number_of_slices"]
-    ):
-        slice_offsets = [0] * offsetDict[
-            "number_of_slices"
-        ]  # Initial value for main_info['slice_offset']
-    slice_file_list = (
-        []
-    )  # List for using external file for main_info['slice_offset'] values/
-    # Indicates if using external file in last loop
-    if offsetDict["slice_order"][0:3] == "alt":  # Alternating?
-        for i in range(0, offsetDict["number_of_slices"], 2):
-            slice_offsets[i] = tt
-            tt += dtt
-        for i in range(1, offsetDict["number_of_slices"], 2):
-            slice_offsets[i] = tt
-            tt += dtt
-    elif offsetDict["slice_order"][0:3] == "seq":  # Sequential?
-        for i in range(0, offsetDict["number_of_slices"]):
-            slice_offsets[i] = tt
-            tt += dtt
-    elif offsetDict["slice_order"] in ["Custom", "custom"] \
-        and type(slice_offset) == str:
-
-        # If slice_order is custom, parse from slice_offset string.
-        # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
-        try:
-           offlist = eval(slice_offset)
-           # noff = len(offlist)
-        except:
-           try:
-              offlist = [float(v) for v in slice_offset.split()]
-           except:
-              print("** failed to apply custom slice timing from: %s" \
-                    % slice_offset)
-              return
-        if len(offlist) != offsetDict["number_of_slices"]:
-           print("** error: slice_offset len = %d, but %d slices" \
-              % (len(offlist), offsetDict["number_of_slices"]))
-           return
-
-        # success, report and apply
-        print("applying custom slice timing, min = %g, max = %g" \
-              % (min(offlist), max(offlist)))
-        slice_offset = offlist
-        slice_offsets = offlist
-
-    else:  # Open external file specified in argument line,
-        # fill SliceFileList with values, then load into main_info['slice_offset']
-        with open(offsetDict["slice_order"], "r") as f:
-            for i in f.readlines():
-                # read times, in seconds
-                slice_file_list.append(float(i))
-
-            # Check that slice acquisition times match the number of slices
-            if len(slice_file_list) != offsetDict["number_of_slices"]:
-                print("Could not read enough slice offsets from file")
-                print("File should have as many offsets as number_of_slices")
-                quit()
-            slice_offsets = slice_file_list
-    if (
-        offsetDict["slice_order"][3] == "-" and slice_file_list == []
-    ):  # Check for a minus to indicate
-        #  a reversed offset list
-        slice_offsets.reverse()
-    if (
-        offsetDict["quiet"] != 1
-    ):  # Show the slice timing (P.S. Printing is very time consuming in python)
-        print("Slice timing: %s" % slice_offsets)
-        
-    return slice_offsets
-    
-    
-def getPeaks(main_info, phys_file, phys_json_arg, respiration_out, cardiac_out, rvt_out):
-    # Create information copy for each type of signal
-    respiration_info = dict()
-    respiration_info["respiration_file"] = main_info["respiration_file"]
-    respiration_info["phys_fs"] = main_info["phys_fs"]
-    respiration_info["number_of_slices"] = main_info["number_of_slices"]
-    respiration_info["volume_tr"] = main_info["volume_tr"]
-    respiration_info["slice_offset"] = main_info["slice_offset"]
-    respiration_info["rvt_shifts"] = main_info["rvt_shifts"]
-    respiration_info["interpolation_style"] = main_info["interpolation_style"]
-    respiration_info["legacy_transform"] = main_info["legacy_transform"]
-    
-    # Amplitude-based phase for respiration
-    respiration_info["amp_phase"] = 1
-
-    cardiac_info = dict()
-    cardiac_info["phys_fs"] = main_info["phys_fs"]
-    cardiac_info["cardiac_file"] = main_info["cardiac_file"]
-    cardiac_info["number_of_slices"] = main_info["number_of_slices"]
-    cardiac_info["volume_tr"] = main_info["volume_tr"]
-    cardiac_info["slice_offset"] = main_info["slice_offset"]
-    cardiac_info["rvt_shifts"] = main_info["rvt_shifts"]
-    cardiac_info["interpolation_style"] = main_info["interpolation_style"]
-    cardiac_info["frequency_cutoff"] = main_info["cardiac_cutoff_frequency"]
-    cardiac_info["fir_order"] = main_info["fir_order"]
-    cardiac_info["zero_phase_offset"] = main_info["zero_phase_offset"]
-    cardiac_info["legacy_transform"] = main_info["legacy_transform"]
-
-    # Time-based phase for cardiac signal
-    cardiac_info["amp_phase"] = 0
-
-    # Handle file inputs
-    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
-        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
-        raise ValueError('You should not pass a BIDS style phsyio file'
-                         ' and respiration or cardiac files.')
-    # Get the peaks for respiration_info and cardiac_info
-    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
-    cardiac_peak = {}
-    respiration_peak = {}
-    if phys_file:
-        if phys_json_arg is None:
-            phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
-        with open(phys_json, 'rt') as h:
-            phys_meta = json.load(h)
-        phys_ending = phys_file.split(".")[-1]
-        if phys_ending == 'gz':
-            opener = gzip.open
-        else:
-            opener = open
-        phys_dat = {k:[] for k in phys_meta['Columns']}
-        with opener(phys_file, 'rt') as h:
-            for pl in h.readlines():
-                pls = pl.split("\t")
-                for k,v in zip(phys_meta['Columns'], pls):
-                    phys_dat[k].append(float(v))
-        for k in phys_meta['Columns']:
-            phys_dat[k] = array(phys_dat[k])
-            if k.lower() == 'respiratory':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if respiration_out or rvt_out:
-                   if not respiration_info["phys_fs"]:
-                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   respiration_peak, error = peak_finder(respiration_info,
-                                                         v=phys_dat[k])
-                   if error:
-                       print("Died in respiratory PeakFinder")
-                       return
-                else:
-                   # user opted out
-                   respiration_peak = {}
-            elif k.lower() == 'cardiac':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if cardiac_out != 0:
-                   if not respiration_info["phys_fs"]:
-                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
-                   if error:
-                       print("Died in cardiac PeakFinder")
-                       return
-                else:
-                   # user opted out
-                   cardiac_peak = {}
-            else:
-                print("** warning phys data contains column '%s', but\n" \
-                      "   RetroTS only handles cardiac or reipiratory data" % k)
-    else:
-        if respiration_info["respiration_file"]:
-            respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
-            if error:
-                print("Died in respiratory PeakFinder")
-                return
-        else:
-            respiration_peak = {}
-        if cardiac_info["cardiac_file"]:
-            cardiac_peak, error = peak_finder(cardiac_info, cardiac_info["cardiac_file"])
-            if error:
-                print("Died in cardiac PeakFinder")
-                return
-        else:
-            cardiac_peak = {}
-
-    # main_info["resp_peak"] = respiration_peak
-    # main_info["card_peak"] = cardiac_peak
-    respiration_info.update(respiration_peak)    
-    cardiac_info.update(cardiac_peak)
-    
-    return respiration_info, cardiac_info, respiration_peak, cardiac_peak
 
 
 def retro_ts(
@@ -303,20 +108,172 @@ def retro_ts(
         "legacy_transform": legacy_transform,
         "phys_file": phys_file,
         "phsio_json": phys_json,
+        "retroicor": retroicor_algorithm
     }
-     
-    # Update slice offsets
-    offsetDict = dict()
-    offsetDict["slice_offset"] = slice_offset
-    offsetDict["volume_tr"] = volume_tr
-    offsetDict["number_of_slices"] = number_of_slices
-    offsetDict["slice_order"] = slice_order
-    offsetDict["quiet"] = quiet
-    main_info["slice_offset"] = getSliceOffsets(offsetDict)
-  
-    # Get time series
-    respiration_info, cardiac_info, respiration_peak, cardiac_peak = getPeaks(main_info, phys_file, phys_json,\
-                    respiration_out, cardiac_out, rvt_out)
+    # Determining main_info['slice_offset'] based upon main_info['slice_order'], main_info['volume_tr'],
+    #  and main_info['number_of_slices'].
+    tt = 0.0  # Default float value to start iterations
+    dtt = float(main_info["volume_tr"]) / float(
+        main_info["number_of_slices"]
+    )  # Increments for iteration
+    # init slice_offsets, unless Custom order
+    # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
+    if (
+        (main_info["slice_order"] not in ["Custom", "custom"])
+        or len(main_info["slice_offset"]) != main_info["number_of_slices"]
+    ):
+        main_info["slice_offset"] = [0] * main_info[
+            "number_of_slices"
+        ]  # Initial value for main_info['slice_offset']
+    slice_file_list = (
+        []
+    )  # List for using external file for main_info['slice_offset'] values/
+    # Indicates if using external file in last loop
+    if main_info["slice_order"][0:3] == "alt":  # Alternating?
+        for i in range(0, main_info["number_of_slices"], 2):
+            main_info["slice_offset"][i] = tt
+            tt += dtt
+        for i in range(1, main_info["number_of_slices"], 2):
+            main_info["slice_offset"][i] = tt
+            tt += dtt
+    elif main_info["slice_order"][0:3] == "seq":  # Sequential?
+        for i in range(0, main_info["number_of_slices"]):
+            main_info["slice_offset"][i] = tt
+            tt += dtt
+    elif main_info["slice_order"] in ["Custom", "custom"] \
+        and type(slice_offset) == str:
+
+        # If slice_order is custom, parse from slice_offset string.
+        # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
+        try:
+           offlist = eval(slice_offset)
+           noff = len(offlist)
+        except:
+           try:
+              offlist = [float(v) for v in slice_offset.split()]
+           except:
+              print("** failed to apply custom slice timing from: %s" \
+                    % slice_offset)
+              return
+        if len(offlist) != main_info["number_of_slices"]:
+           print("** error: slice_offset len = %d, but %d slices" \
+              % (len(offlist), main_info["number_of_slices"]))
+           return
+
+        # success, report and apply
+        print("applying custom slice timing, min = %g, max = %g" \
+              % (min(offlist), max(offlist)))
+        slice_offset = offlist
+        main_info["slice_offset"] = offlist
+
+    else:  # Open external file specified in argument line,
+        # fill SliceFileList with values, then load into main_info['slice_offset']
+        with open(main_info["slice_order"], "r") as f:
+            for i in f.readlines():
+                # read times, in seconds
+                slice_file_list.append(float(i))
+
+            # Check that slice acquisition times match the number of slices
+            if len(slice_file_list) != main_info["number_of_slices"]:
+                print("Could not read enough slice offsets from file")
+                print("File should have as many offsets as number_of_slices")
+                quit()
+            main_info["slice_offset"] = slice_file_list
+    if (
+        main_info["slice_order"][3] == "-" and slice_file_list == []
+    ):  # Check for a minus to indicate
+        #  a reversed offset list
+        main_info["slice_offset"].reverse()
+    if (
+        main_info["quiet"] != 1
+    ):  # Show the slice timing (P.S. Printing is very time consuming in python)
+        print("Slice timing: %s" % main_info["slice_offset"])
+
+    # Create information copy for each type of signal
+    respiration_info = dict(main_info)
+    respiration_info["frequency_cutoff"] = main_info["respiration_cutoff_frequency"]
+    # Amplitude-based phase for respiration
+    respiration_info["amp_phase"] = 1
+    cardiac_info = dict(main_info)
+    cardiac_info["frequency_cutoff"] = main_info["cardiac_cutoff_frequency"]
+    # Time-based phase for cardiac signal
+    cardiac_info["amp_phase"] = 0
+
+    # Handle file inputs
+    if (((phys_file is not None) and (respiration_file is not None))
+        or ((phys_file is not None) and (cardiac_file is not None))):
+        raise ValueError('You should not pass a BIDS style phsyio file'
+                         ' and respiration or cardiac files.')
+    # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    cardiac_peak = {}
+    respiration_peak = {}
+    if phys_file:
+        if phys_json is None:
+            phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
+        with open(phys_json, 'rt') as h:
+            phys_meta = json.load(h)
+        phys_ending = phys_file.split(".")[-1]
+        if phys_ending == 'gz':
+            opener = gzip.open
+        else:
+            opener = open
+        phys_dat = {k:[] for k in phys_meta['Columns']}
+        with opener(phys_file, 'rt') as h:
+            for pl in h.readlines():
+                pls = pl.split("\t")
+                for k,v in zip(phys_meta['Columns'], pls):
+                    phys_dat[k].append(float(v))
+        for k in phys_meta['Columns']:
+            phys_dat[k] = array(phys_dat[k])
+            if k.lower() == 'respiratory':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["respiration_out"] or main_info["rvt_out"]:
+                   if not main_info['phys_fs']:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   respiration_peak, error = peak_finder(respiration_info,
+                                                         v=phys_dat[k])
+                   if error:
+                       print("Died in respiratory PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   respiration_peak = {}
+            elif k.lower() == 'cardiac':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if main_info["cardiac_out"] != 0:
+                   if not main_info['phys_fs']:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
+                   if error:
+                       print("Died in cardiac PeakFinder")
+                       return
+                else:
+                   # user opted out
+                   cardiac_peak = {}
+            else:
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or reipiratory data" % k)
+    else:
+        if respiration_file:
+            respiration_peak, error = peak_finder(respiration_info, respiration_file)
+            if error:
+                print("Died in respiratory PeakFinder")
+                return
+        else:
+            respiration_peak = {}
+        if cardiac_file:
+            cardiac_peak, error = peak_finder(cardiac_info, cardiac_file)
+            if error:
+                print("Died in cardiac PeakFinder")
+                return
+        else:
+            cardiac_peak = {}
+
+    main_info["resp_peak"] = respiration_peak
+    main_info["card_peak"] = cardiac_peak
+    respiration_info.update(respiration_peak)
+    cardiac_info.update(cardiac_peak)
     
     # Get the phase
     # print('len(respiration_peak) = ', len(respiration_peak))
