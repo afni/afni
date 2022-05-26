@@ -138,33 +138,10 @@ def getSliceOffsets(offsetDict):
     return slice_offsets
     
     
-def getPeaks(main_info, phys_file, phys_json_arg, respiration_out, cardiac_out, rvt_out):
-    # Create information copy for each type of signal
-    respiration_info = dict()
-    respiration_info["respiration_file"] = main_info["respiration_file"]
-    respiration_info["phys_fs"] = main_info["phys_fs"]
-    respiration_info["number_of_slices"] = main_info["number_of_slices"]
-    respiration_info["volume_tr"] = main_info["volume_tr"]
-    respiration_info["slice_offset"] = main_info["slice_offset"]
-    respiration_info["rvt_shifts"] = main_info["rvt_shifts"]
-    respiration_info["interpolation_style"] = main_info["interpolation_style"]
-    respiration_info["legacy_transform"] = main_info["legacy_transform"]
+def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respiration_out, cardiac_out, rvt_out):
     
     # Amplitude-based phase for respiration
     respiration_info["amp_phase"] = 1
-
-    cardiac_info = dict()
-    cardiac_info["phys_fs"] = main_info["phys_fs"]
-    cardiac_info["cardiac_file"] = main_info["cardiac_file"]
-    cardiac_info["number_of_slices"] = main_info["number_of_slices"]
-    cardiac_info["volume_tr"] = main_info["volume_tr"]
-    cardiac_info["slice_offset"] = main_info["slice_offset"]
-    cardiac_info["rvt_shifts"] = main_info["rvt_shifts"]
-    cardiac_info["interpolation_style"] = main_info["interpolation_style"]
-    cardiac_info["frequency_cutoff"] = main_info["cardiac_cutoff_frequency"]
-    cardiac_info["fir_order"] = main_info["fir_order"]
-    cardiac_info["zero_phase_offset"] = main_info["zero_phase_offset"]
-    cardiac_info["legacy_transform"] = main_info["legacy_transform"]
 
     # Time-based phase for cardiac signal
     cardiac_info["amp_phase"] = 0
@@ -312,11 +289,34 @@ def retro_ts(
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
-    main_info["slice_offset"] = getSliceOffsets(offsetDict)
+    slice_offset = getSliceOffsets(offsetDict)
+
+    # Create information dictionary for each type of signal
+    respiration_info = dict()
+    respiration_info["respiration_file"] = respiration_file
+    respiration_info["phys_fs"] = phys_fs
+    respiration_info["number_of_slices"] = number_of_slices
+    respiration_info["volume_tr"] = volume_tr
+    respiration_info["slice_offset"] = slice_offset
+    respiration_info["rvt_shifts"] = rvt_shifts
+    respiration_info["interpolation_style"] = interpolation_style
+    respiration_info["legacy_transform"] = legacy_transform
+    cardiac_info = dict()
+    cardiac_info["phys_fs"] = phys_fs
+    cardiac_info["cardiac_file"] = cardiac_file
+    cardiac_info["number_of_slices"] = number_of_slices
+    cardiac_info["volume_tr"] = volume_tr
+    cardiac_info["slice_offset"] = slice_offset
+    cardiac_info["rvt_shifts"] = rvt_shifts
+    cardiac_info["interpolation_style"] = interpolation_style
+    cardiac_info["frequency_cutoff"] = cardiac_cutoff_frequency
+    cardiac_info["fir_order"] = fir_order
+    cardiac_info["zero_phase_offset"] = zero_phase_offset
+    cardiac_info["legacy_transform"] = legacy_transform
   
     # Get time series
-    respiration_info, cardiac_info, respiration_peak, cardiac_peak = getPeaks(main_info, phys_file, phys_json,\
-                    respiration_out, cardiac_out, rvt_out)
+    respiration_info, cardiac_info, respiration_peak, cardiac_peak = getPeaks(respiration_info,\
+                    cardiac_info, phys_file, phys_json, respiration_out, cardiac_out, rvt_out)
     
     # Get the phase
     # print('len(respiration_peak) = ', len(respiration_peak))
