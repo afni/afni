@@ -1,15 +1,11 @@
 import sys
 import numpy as np
 from numpy.fft import fft, ifft
-import matplotlib as mp
 from matplotlib import pyplot as plt 
-from matplotlib import pylab
 from pylab import plot, subplot, show, figure, text
 import math
-import scipy
 from scipy.signal import find_peaks
 import pandas as pd
-# from lib_RetroTS.PeakFinder import peak_finder
 from numpy import size, shape, column_stack, savetxt
 from array import array
 from scipy.signal import firwin, lfilter 
@@ -972,7 +968,7 @@ def remove_duplicates(t, v, quiet):
     v = v[: j + 1]
     return t, v
 
-def peak_finder(var_v, filename=None, v=None):
+def peak_finder(var_v, filename=None, phys_dat=None):
     """,
                 phys_fs=(1 / 0.025),
                 zero_phase_offset=0.5,
@@ -1036,9 +1032,6 @@ def peak_finder(var_v, filename=None, v=None):
     r = {}
     # Some filtering
     nyquist_filter = var_vector["phys_fs"] / 2.0
-    # w[1] = 0.1/filter_nyquist  # Cut frequencies below 0.1Hz
-    # w[2] = var_vector['frequency_cutoff']/filter_nyquist  # Upper cut off frequency normalized
-    # b = signal.firwin(var_vector['fir_order'], w, 'bandpass')  # FIR filter of order 40
     w = var_vector["frequency_cutoff"] / nyquist_filter
     b = firwin(
         numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
@@ -1086,16 +1079,18 @@ def peak_finder(var_v, filename=None, v=None):
     for i_column in range(nl):
         if L and not os.path.isdir(L):
             r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])"""
-    # with open(r['v_name'], "rb") as f:
-    # v = f.read()
-    # v = map(int, v)
-    if v is None:
-        v = []
+    
+    if phys_dat is None: # No BIDS style physio file
+        # Read repiration file into phys_dat
+        phys_dat = []
         with open(r["v_name"], "rb") as h:
             for line in h:
-                v.append(float(line.strip()))
+                phys_dat.append(float(line.strip()))
+                
+    print('r["v_name"] = ', r["v_name"])
+    print('phys_dat = ', phys_dat)
     
-    v_np = np.asarray(v)
+    v_np = np.asarray(phys_dat)
     # else:
     # r_list[i_column]['v_name'] = 'vector input col %d' % i_column
     # v = var_vector[i_column]
@@ -1243,7 +1238,6 @@ def peak_finder(var_v, filename=None, v=None):
 
         if var_vector["quiet"] == 0:
             print("--> Improved peak location\n--> Removed duplicates")
-            # style.use('ggplot')
             subplot(211)
             plot(r["tp_trace"], r["p_trace"], "r+", r["tp_trace"], r["p_trace"], "r")
             plot(r["tn_trace"], r["n_trace"], "b+", r["tn_trace"], r["n_trace"], "b")
@@ -1283,7 +1277,6 @@ def peak_finder(var_v, filename=None, v=None):
     if var_vector["interpolation_style"] != "":
         # Interpolate to slice sampling time grid:
         step_interval = 1.0 / var_vector["resample_fs"]
-        # r['tR'] = numpy.arange(0, max(r['t']) + step_interval, step_interval)
 
         # allow for a ratio that is barely below an integer
         #                               5 Jun, 2017 [rickr]
@@ -1307,16 +1300,14 @@ def peak_finder(var_v, filename=None, v=None):
             bounds_error=False,
         )
         r["p_trace_r"] = r["p_trace_r"](r["tR"])
-        # r['tn_trace'] = r['tn_trace'].squeeze()
-        # r['n_trace'] = r['n_trace'].squeeze()
+
         r["n_trace_r"] = interp1d(
             r["tn_trace"],
             r["n_trace"],
             var_vector["interpolation_style"],
             bounds_error=False,
         )(r["tR"])
-        # r['t_mid_prd'] = r['t_mid_prd'].squeeze()
-        # r['prd'] = r['prd'].squeeze()
+
         r["prdR"] = interp1d(
             r["t_mid_prd"],
             r["prd"],
@@ -1328,11 +1319,6 @@ def peak_finder(var_v, filename=None, v=None):
         r["p_trace_r"] = clean_resamp(r["p_trace_r"])
         r["n_trace_r"] = clean_resamp(r["n_trace_r"])
         r["prdR"] = clean_resamp(r["prdR"])
-
-        # if (i_column != nl):
-        # input('Hit enter to proceed...','s')
-        # if var_vector['quiet'] == 0:
-        # plotsign2(1)
 
     return r, e
 

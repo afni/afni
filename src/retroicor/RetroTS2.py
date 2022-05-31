@@ -25,8 +25,6 @@ __author__ = "Joshua Zosky" # Modified a bit by gianfranco
 import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
-# from lib_RetroTS.PeakFinder import peak_finder
-#from lib_RetroTS.PhaseEstimator import phase_estimator
 import retroicor
 from retroicor import phase_estimator
 from retroicor import rvt_from_peakfinder
@@ -147,6 +145,7 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
     cardiac_info["amp_phase"] = 0
 
     # Handle file inputs
+    # BIDS = Brain Imaging Data Structure
     if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
         or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
         raise ValueError('You should not pass a BIDS style phsyio file'
@@ -157,22 +156,35 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
     respiration_peak = {}
     if phys_file:
         if phys_json_arg is None:
+            # Remove .gz extension and give tab-separated file a .json extension
             phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
+        # Use json reader to read file data into phys_meta
         with open(phys_json, 'rt') as h:
             phys_meta = json.load(h)
+        # phys_ending is last element following a period
         phys_ending = phys_file.split(".")[-1]
+        
+        # Choose file opening function on the basis of whether file is gzippped
         if phys_ending == 'gz':
-            opener = gzip.open
+            opener = gzip.open 
         else:
             opener = open
+            
+        # Read Columns field of JSON file
         phys_dat = {k:[] for k in phys_meta['Columns']}
+        
+        # Append tab delimited phys_file to phys_dat
         with opener(phys_file, 'rt') as h:
             for pl in h.readlines():
                 pls = pl.split("\t")
                 for k,v in zip(phys_meta['Columns'], pls):
                     phys_dat[k].append(float(v))
+                    
+        # Read columns field from JSON data
         for k in phys_meta['Columns']:
             phys_dat[k] = array(phys_dat[k])
+            
+            # Read respiratory component
             if k.lower() == 'respiratory':
                 # create peaks only if asked for    25 May 2021 [rickr]
                 if respiration_out or rvt_out:
@@ -185,7 +197,9 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
                        return
                 else:
                    # user opted out
-                   respiration_peak = {}
+                   respiration_peak = {}    # No respiratory component
+            
+            # Read cardiac component
             elif k.lower() == 'cardiac':
                 # create peaks only if asked for    25 May 2021 [rickr]
                 if cardiac_out != 0:
@@ -197,11 +211,11 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
                        return
                 else:
                    # user opted out
-                   cardiac_peak = {}
+                   cardiac_peak = {}    # No cardiac component
             else:
                 print("** warning phys data contains column '%s', but\n" \
                       "   RetroTS only handles cardiac or reipiratory data" % k)
-    else:
+    else:   # Not a JSON file
         if respiration_info["respiration_file"]:
             respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
             if error:
@@ -254,7 +268,7 @@ def retro_ts(
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
      
-    # Update slice offsets
+    # Update slice offsets.  Note that this is done before teh data is read
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
     offsetDict["volume_tr"] = volume_tr
@@ -264,6 +278,7 @@ def retro_ts(
     slice_offset = getSliceOffsets(offsetDict)
 
     # Create information dictionary for each type of signal
+    # Note that this is done by reading the relevant input parameters
     respiration_info = dict()
     respiration_info["respiration_file"] = respiration_file
     respiration_info["phys_fs"] = phys_fs
@@ -287,8 +302,9 @@ def retro_ts(
     cardiac_info["legacy_transform"] = legacy_transform
   
     # Get time series
-    respiration_info, cardiac_info, respiration_peak, cardiac_peak = getPeaks(respiration_info,\
-                    cardiac_info, phys_file, phys_json, respiration_out, cardiac_out, rvt_out)
+    respiration_info, cardiac_info, respiration_peak, cardiac_peak =\
+        getPeaks(respiration_info, cardiac_info, phys_file, phys_json,\
+                 respiration_out, cardiac_out, rvt_out)
     
     # Get the phase
     # print('len(respiration_peak) = ', len(respiration_peak))
@@ -451,7 +467,7 @@ def retro_ts(
         header=("%s%s" % (label, tail)),
         footer=("%s" % tailclose),
     )
-
+    
     return 0
 
 
