@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
              "+ 'output' should be the new text file, eventually readme_env.h\n"
              "\n"
              "Therefore, an enterprising youth might run:\n"
-"  quotize readme_env < AFNI/afni/doc/README/README.environment > NEW.txt\n"
+"  quotize readme_env < ~/AFNI/afni/doc/README/README.environment > NEW.txt\n"
              "... and then check the NEW.txt, perhaps comparing it to\n"
              "the existing readme_env.h for good luck.\n"
              "If happy with the updates, then replace the earlier form\n"
