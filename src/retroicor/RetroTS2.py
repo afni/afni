@@ -159,7 +159,7 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
             # Remove .gz extension and give tab-separated file a .json extension
             phys_json = phys_file.replace(".gz", "").replace(".tsv", ".json")
         # Use json reader to read file data into phys_meta
-        with open(phys_json, 'rt') as h:
+        with open(phys_json_arg, 'rt') as h:
             phys_meta = json.load(h)
         # phys_ending is last element following a period
         phys_ending = phys_file.split(".")[-1]
@@ -181,20 +181,21 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
                     phys_dat[k].append(float(v))
                     
         # Read columns field from JSON data
+        print('Read columns field from JSON data')
         for k in phys_meta['Columns']:
             phys_dat[k] = array(phys_dat[k])
             
             # Read respiratory component
-            if k.lower() == 'respiratory':
+            if k.lower() == 'respiratory' or k.lower() == 'respiration':
                 # create peaks only if asked for    25 May 2021 [rickr]
                 if respiration_out or rvt_out:
                    if not respiration_info["phys_fs"]:
                        respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   respiration_peak, error = peak_finder(respiration_info,
-                                                         v=phys_dat[k])
-                   if error:
-                       print("Died in respiratory PeakFinder")
-                       return
+                   # respiration_peak, error = peak_finder(respiration_info,
+                   #                                       v=phys_dat[k])
+                   respiration_file = None
+                   var_v = phys_dat[k]
+                   phys_resp_dat = phys_dat[k]
                 else:
                    # user opted out
                    respiration_peak = {}    # No respiratory component
@@ -205,31 +206,40 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
                 if cardiac_out != 0:
                    if not respiration_info["phys_fs"]:
                        cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
-                   if error:
-                       print("Died in cardiac PeakFinder")
-                       return
+                   # cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
+                   cardiac_file = None
+                   var_v = phys_dat[k]
+                   phys_cardiac_dat = phys_dat[k]
                 else:
                    # user opted out
                    cardiac_peak = {}    # No cardiac component
             else:
                 print("** warning phys data contains column '%s', but\n" \
-                      "   RetroTS only handles cardiac or reipiratory data" % k)
+                      "   RetroTS only handles cardiac or respiratory data" % k)
     else:   # Not a JSON file
         if respiration_info["respiration_file"]:
-            respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
-            if error:
-                print("Died in respiratory PeakFinder")
-                return
+            # respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
+            respiration_file = respiration_info["respiration_file"]
+            var_v = None
+            phys_resp_dat = None
         else:
             respiration_peak = {}
         if cardiac_info["cardiac_file"]:
-            cardiac_peak, error = peak_finder(cardiac_info, cardiac_info["cardiac_file"])
-            if error:
-                print("Died in cardiac PeakFinder")
-                return
+            # cardiac_peak, error = peak_finder(cardiac_info, cardiac_info["cardiac_file"])
+            cardiac_file = cardiac_info["cardiac_file"]
+            var_v = None
+            phys_cardiac_dat = None
         else:
             cardiac_peak = {}
+
+    respiration_peak, error = peak_finder(respiration_info, respiration_file, phys_resp_dat)
+    if error:
+        print("Died in respiratory PeakFinder")
+        return
+    cardiac_peak, error = peak_finder(cardiac_info, cardiac_file, phys_cardiac_dat)
+    if error:
+        print("Died in cardiac PeakFinder")
+        return
 
     respiration_info.update(respiration_peak)    
     cardiac_info.update(cardiac_peak)
