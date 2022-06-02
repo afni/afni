@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 
 set stat = 0
-set sdir = $PWD
+set sdir = "$PWD"
 set ok_1surf = 0
 set ok_Gsurf = 0
 set ok_Gvol = 0

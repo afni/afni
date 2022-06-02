@@ -1,10 +1,10 @@
 #!/bin/tcsh -f
 
 set stat = 0
-set sdir = $PWD
+set sdir = "$PWD"
 
 set cdir = `\pwd | \grep AFNI_ClustScatDemo`
-if ($status == 0 && ${cdir} != '') then
+if ($status == 0 && "${cdir}" != '') then
    echo "You should not run this command from a directory under AFNI_ClustScatDemo"
    set sugdir = `echo $cdir | sed 's/AFNI_ClustScatDemo/ /g' | cut -f 1 -d ' '`
    echo "Consider running this script again with: "
