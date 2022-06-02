@@ -33,7 +33,7 @@ set version   = "1.4";   set rev_dat   = "Feb 12, 2019"
 
 set this_prog = "fat_proc_connec_vis"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # [PT: Nov 12, 2020] add in, because compressor can cause weirdness
 # with overwriting at times
@@ -56,8 +56,6 @@ else
 endif
 
 # ----------------------- set defaults --------------------------
-
-set here = $PWD
 
 set fNN       = ()         # to be list of int ROI maps
 set odir      = ""
@@ -446,7 +444,7 @@ echo "   ... and possibly add something like '-vol dt_FA.nii.gz'?\n"
 #echo "       $runf\n"
 
 if ( "$DO_CLEAN" == "1" ) then
-    cd $here
+    cd "$here"
     echo "\n Removing temporary working directory ($wdir).\n"
     \rm -rf $wdir
 else

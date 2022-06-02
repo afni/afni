@@ -38,7 +38,7 @@ set version   = "1.7";   set rev_dat   = "Feb 12, 2019"
 
 set this_prog = "fat_proc_select_vols"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -373,7 +373,7 @@ else
 
         if ( "$DO_CLEAN" == "1" ) then
             echo "\n++ Cleaning working directory!\n"
-            cd $here
+            cd "$here"
             \rm -rf $wdir
         else
             echo "\n++ NOT removing working directory '$wdir'.\n"

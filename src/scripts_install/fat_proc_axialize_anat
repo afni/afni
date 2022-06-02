@@ -106,7 +106,7 @@ set version   = "4.32";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_axialize_anat"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -988,18 +988,18 @@ endif
 
 # move out of wdir to the odir
 cd ..
-set whereout = $PWD
+set whereout = "$PWD"
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n+* Removing temporary axialization working dir: '$wdir'\n"
-    cd $here
+    cd "$here"
     \rm -rf $wdir
 else
     echo "\n++ NOT removing temporary axialization working dir: '$wdir'\n"
 endif
 
 echo ""
-echo "++ DONE! View the finished, axialized product:"
+echo "++ DONE.  View the finished, axialized product:"
 echo "     $whereout/$fout"
 echo ""
 
