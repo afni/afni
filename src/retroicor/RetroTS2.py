@@ -134,16 +134,10 @@ def getSliceOffsets(offsetDict):
         print("Slice timing: %s" % slice_offsets)
         
     return slice_offsets
-    
-    
-def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respiration_out, cardiac_out, rvt_out):
-    
-    # Amplitude-based phase for respiration
-    respiration_info["amp_phase"] = 1
 
-    # Time-based phase for cardiac signal
-    cardiac_info["amp_phase"] = 0
-
+def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
+                        phys_json_arg, respiration_out, cardiac_out, rvt_out):
+    
     # Handle file inputs
     # BIDS = Brain Imaging Data Structure
     if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
@@ -152,8 +146,80 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
                          ' and respiration or cardiac files.')
     # Get the peaks for respiration_info and cardiac_info
     # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
-    cardiac_peak = {}
-    respiration_peak = {}
+    if phys_file:
+        # Use json reader to read file data into phys_meta
+        with open(phys_json_arg, 'rt') as h:
+            phys_meta = json.load(h)
+        # phys_ending is last element following a period
+        phys_ending = phys_file.split(".")[-1]
+        
+        # Choose file opening function on the basis of whether file is gzippped
+        if phys_ending == 'gz':
+            opener = gzip.open 
+        else:
+            opener = open
+            
+        # Read Columns field of JSON file
+        phys_dat = {k:[] for k in phys_meta['Columns']}
+        
+        # Append tab delimited phys_file to phys_dat
+        with opener(phys_file, 'rt') as h:
+            for pl in h.readlines():
+                pls = pl.split("\t")
+                for k,v in zip(phys_meta['Columns'], pls):
+                    phys_dat[k].append(float(v))
+                    
+        # Read columns field from JSON data
+        print('Read columns field from JSON data')
+        for k in phys_meta['Columns']:
+            phys_dat[k] = array(phys_dat[k])
+            
+            # Read respiratory component
+            if k.lower() == 'respiratory' or k.lower() == 'respiration':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if respiration_out or rvt_out:
+                   if not respiration_info["phys_fs"]:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   # respiration_peak, error = peak_finder(respiration_info,
+                   #                                       v=phys_dat[k])
+                   respiration_file = None
+                   phys_resp_dat = phys_dat[k]
+            
+            # Read cardiac component
+            elif k.lower() == 'cardiac':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if cardiac_out != 0:
+                   if not respiration_info["phys_fs"]:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   # cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
+                   cardiac_file = None
+                   phys_cardiac_dat = phys_dat[k]
+            else:
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or respiratory data" % k)
+    else:   # Not a JSON file
+        if respiration_info["respiration_file"]:
+            # respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
+            respiration_file = respiration_info["respiration_file"]
+            phys_resp_dat = None
+        if cardiac_info["cardiac_file"]:
+            # cardiac_peak, error = peak_finder(cardiac_info, cardiac_info["cardiac_file"])
+            cardiac_file = cardiac_info["cardiac_file"]
+            phys_cardiac_dat = None
+            
+    return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
+    
+    
+def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respiration_out, cardiac_out, rvt_out):
+    
+    # Handle file inputs
+    # BIDS = Brain Imaging Data Structure
+    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
+        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
+        raise ValueError('You should not pass a BIDS style phsyio file'
+                         ' and respiration or cardiac files.')
+    # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
     if phys_file:
         if phys_json_arg is None:
             # Remove .gz extension and give tab-separated file a .json extension
@@ -232,10 +298,12 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
         else:
             cardiac_peak = {}
 
+    respiration_peak = {}
     respiration_peak, error = peak_finder(respiration_info, respiration_file, phys_resp_dat)
     if error:
         print("Died in respiratory PeakFinder")
         return
+    cardiac_peak = {}
     cardiac_peak, error = peak_finder(cardiac_info, cardiac_file, phys_cardiac_dat)
     if error:
         print("Died in cardiac PeakFinder")
@@ -310,14 +378,29 @@ def retro_ts(
     cardiac_info["fir_order"] = fir_order
     cardiac_info["zero_phase_offset"] = zero_phase_offset
     cardiac_info["legacy_transform"] = legacy_transform
-  
-    # Get time series
-    respiration_info, cardiac_info, respiration_peak, cardiac_peak =\
-        getPeaks(respiration_info, cardiac_info, phys_file, phys_json,\
-                 respiration_out, cardiac_out, rvt_out)
     
+    # Get input file parameters
+    respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
+        getInputFileParameters(respiration_info, cardiac_info, phys_file,\
+                            phys_json, respiration_out, cardiac_out, rvt_out)
+        
+    
+    respiration_peak = {}
+    respiration_peak, error = peak_finder(respiration_info, respiration_file, phys_resp_dat)
+    if error:
+        print("Died in respiratory PeakFinder")
+        return
+    cardiac_peak = {}
+    cardiac_peak, error = peak_finder(cardiac_info, cardiac_file, phys_cardiac_dat)
+    if error:
+        print("Died in cardiac PeakFinder")
+        return
+
+    respiration_info.update(respiration_peak)    
+    cardiac_info.update(cardiac_peak)
+       
     # Get the phase
-    # print('len(respiration_peak) = ', len(respiration_peak))
+    respiration_info["amp_phase"] = 1 # Amplitude-based phase for respiration
     if respiration_peak:
         print("Estimating phase for respiration_info")
         respiration_phased, rvt = phase_estimator(
@@ -326,6 +409,7 @@ def retro_ts(
     else:
         respiration_phased = {}
     
+    cardiac_info["amp_phase"] = 0   # Time-based phase for cardiac signal
     if cardiac_peak:
         cardiac_phased, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
     else:
