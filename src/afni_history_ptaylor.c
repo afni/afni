@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, June , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_PROG,
+   "New program for unifizing brightness.",
+   "Should be helpful for alignment.\n"
+},
+
 { 11, May , 2022 , PT , "SurfLocalstat" , MINOR , TYPE_BUG_FIX,
    "The 'mean' stat was accumulating int, not float, values.",
    "This effective truncation/'digitizing' error should be fixed now.\n"
