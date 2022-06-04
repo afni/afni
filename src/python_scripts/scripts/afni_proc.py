@@ -1436,11 +1436,13 @@ class SubjProcSream:
                         helpstr='external EPI volume for align_epi_anat.py')
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
                         helpstr='additional options for align_epi_anat.py')
+        self.valid_opts.add_opt('-align_opts_eunif', -1, [],
+                        helpstr='additional opts for epi unformity correction')
         self.valid_opts.add_opt('-align_epi_strip_method', 1, [],
                         acplist=['3dSkullStrip','3dAutomask','None'],
                         helpstr="specify method for 'skull stripping' the EPI")
         self.valid_opts.add_opt('-align_unifize_epi', 1, [],
-                        acplist=['yes','no'],
+                        acplist=['yes', 'no', 'unif', 'local'],
                         helpstr='3dUnifize EPI base before passing to aea.py')
 
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
