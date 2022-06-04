@@ -12679,6 +12679,16 @@ g_help_options = """
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
 
+        -align_opts_eunif OPTS ... : add options to EPI uniformity command
+
+                e.g. -align_opts_eunif -wdir_name work.epi_unif -no_clean
+
+            This option allows the user to add extra options to the EPI
+            uniformity correction command, probably 3dLocalUnifize (possibly
+            3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
+
         -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
                 e.g. -align_epi_strip_method 3dSkullStrip
@@ -12696,16 +12706,30 @@ g_help_options = """
             Please see "3dSkullStrip -help" for more information.
             Please see "3dAutomask -help" for more information.
 
-        -align_unifize_epi yes/no: run uniformity correction on EPI base volume
+        -align_unifize_epi METHOD: run uniformity correction on EPI base volume
 
-                e.g. -align_unifize_epi yes
+                e.g. -align_unifize_epi local
                 default: no
 
-            Use this option to run "3dUnifize -T2" on the vr_base dataset
+            Use this option to run uniformity correction on the vr_base dataset
             for the purpose of alignment to the anat.
 
-            The uniformity corrected volume is only used for anatomical
-            alignment.
+            The older yes/no METHOD choices were based on 3dUnifize.  The
+            METHOD choices now include:
+
+                local   : use 3dLocalUnifize ... (aka the "P Taylor special")
+                unif    : use 3dUnifize -T2 ...
+                yes     : (old choice) equivalent to unif
+                no      : do not run EPI uniformity correction
+
+            The uniformity corrected EPI volume is only used for anatomical
+            alignment, and possibly visual quality control.
+
+            One can use option -align_opts_eunif to pass extra options to
+            either case (3dLocalUnifize or 3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
+            Please see "3dUnifize -help" for more information.
 
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 

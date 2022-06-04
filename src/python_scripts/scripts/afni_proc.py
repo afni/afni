@@ -729,12 +729,14 @@ g_history = """
     7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
     7.39 May 10, 2022: do not apply global line wrappers to QC block
     7.40 May 24, 2022: add -command_comment_style
+    7.41 Jun  4, 2022: add -align_unifize_epi local method, -align_opts_eunif
 """
 
-g_version = "version 7.40, May 24, 2022"
+g_version = "version 7.41, June 4, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
