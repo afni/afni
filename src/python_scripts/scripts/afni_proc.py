@@ -986,8 +986,8 @@ class SubjProcSream:
         self.have_task_regs   = 0       # any proc.stims or proc.extra_stims?
 
         # general file tracking
-        self.uvars      = None          # general uvars, aking to for ss_review
-        self.ap_uvars   = 'out.ap_uvars.json' # JSON file to put AP uvars in
+        self.uvars      = VO.VarsObject() # general uvars, for AP uvars
+        self.ap_uv_file = 'out.ap_uvars.json' # JSON file to put AP uvars in
                                         # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]

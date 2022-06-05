@@ -1132,6 +1132,9 @@ def db_cmd_align(proc, block):
                   '3dUnifize -T2%s -input %s -prefix %s\n\n'  \
                   % (exopts, epi_in.shortinput(), epi_out.out_prefix())
 
+       # add this to AP uvars list
+       proc.uvars.set_var('vr_base_unif', [epi_out.shortinput(head=1)])
+
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
     if opt and opt.parlist: essopt = "       -epi_strip %s \\\n"%opt.parlist[0]
@@ -8425,11 +8428,11 @@ def db_cmd_gen_review(proc):
 
     # make json prep string
     jp_str = ''
-    if json_prep and proc.ap_uvars:
+    if json_prep and proc.ap_uv_file:
        jp_str = '\n%s\n'                                            \
                 '# initialize gen_ss_review_scripts.py with %s\n'   \
-                % (json_prep, proc.ap_uvars)
-       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uvars
+                % (json_prep, proc.ap_uv_file)
+       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uv_file
 
     if proc.ssr_uvars:
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
@@ -8489,7 +8492,7 @@ EOF
 
     jstr += '# and convert the txt format to JSON\n'                          \
             'cat %s | afni_python_wrapper.py -eval "data_file_to_json()" \\\n'\
-            '  > %s\n' % (tfile, proc.ap_uvars)
+            '  > %s\n' % (tfile, proc.ap_uv_file)
 
     return jstr
 
@@ -8547,6 +8550,10 @@ def ap_uvars_table(proc):
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
+
+    # add all generically specified uvars
+    for attr in proc.uvars.attributes(name=0):
+       aptab.append([attr, proc.uvars.val(attr)])
 
     return aptab
 
