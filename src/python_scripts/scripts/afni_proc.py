@@ -729,10 +729,12 @@ g_history = """
     7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
     7.39 May 10, 2022: do not apply global line wrappers to QC block
     7.40 May 24, 2022: add -command_comment_style
-    7.41 Jun  4, 2022: add -align_unifize_epi local method, -align_opts_eunif
+    7.41 Jun  6, 2022:
+       - add -align_unifize_epi local method, -align_opts_eunif
+       - create final_epi_unif volume, in case of EPI uniformity correction
 """
 
-g_version = "version 7.41, June 4, 2022"
+g_version = "version 7.41, June 6, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1021,11 +1023,13 @@ class SubjProcSream:
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
+        self.vr_base_unif = None        # afni_name for any unifized volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
         self.epi_final  = None          # vr_base_dset or warped version of it
+        self.epi_final_unif = None      # unifized vr_base or warped version
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block

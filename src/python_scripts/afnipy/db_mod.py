@@ -1132,8 +1132,8 @@ def db_cmd_align(proc, block):
                   '3dUnifize -T2%s -input %s -prefix %s\n\n'  \
                   % (exopts, epi_in.shortinput(), epi_out.out_prefix())
 
-       # add this to AP uvars list
-       proc.uvars.set_var('vr_base_unif', [epi_out.shortinput(head=1)])
+       # store unifized EPI for warping and then uvars
+       proc.vr_base_unif = epi_out
 
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
@@ -2760,6 +2760,16 @@ def db_cmd_volreg(proc, block):
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
+
+        # also, warp any unifized EPI for QC
+        if proc.vr_base_unif is not None:
+            wprefix = 'final_epi_unif'
+            proc.epi_final_unif = proc.vr_base_dset.new(new_pref=wprefix)
+            proc.epi_final_unif.new_view(proc.view)
+            st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
+                        source=proc.vr_base_unif.nice_input(),
+                        prefix=wprefix, dim=dim, ewopts=ewarp_opts)
+            cmd += wtmp + '\n'
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
@@ -8550,6 +8560,10 @@ def ap_uvars_table(proc):
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
+
+    if proc.epi_final_unif is not None:
+       proc.uvars.set_var('final_epi_unif_dset',
+                          [proc.epi_final_unif.shortinput(head=1)])
 
     # add all generically specified uvars
     for attr in proc.uvars.attributes(name=0):
