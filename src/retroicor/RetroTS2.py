@@ -425,9 +425,9 @@ def retro_ts(
 
     if retroicor_algorithm:
         parameters=dict()
-        parameters['-c'] = cardiac_file
-        parameters['-r'] = respiration_file
-        parameters['-s'] = number_of_slices
+        parameters['-cardFile'] = cardiac_file
+        parameters['-respFile'] = respiration_file
+        parameters['-numSlices'] = number_of_slices
         parameters['-TR'] = volume_tr
         parameters['-Nt'] = 220
         parameters['-Sr'] = phys_fs
@@ -583,10 +583,10 @@ This function creates slice-based regressors for regressing out components of
     heart rate, respiration and respiration volume per time.
 
 Windows Example:
-C:\\afni\\python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20 -v 2
+C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Mac/Linux Example:
-/usr/afni/python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20 -v 2
+/usr/afni/python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Input
 ================================================================================
@@ -595,11 +595,11 @@ Input
 
     Method 1:
     ---------
-    :param -r: (respiration_file) Respiration data file
+    :param -respFile: (respiration_file) Respiration data file
     :param -c: (cardiac_file) Cardiac data file
-    :param -p: (phys_fs) Physiological signal sampling frequency in Hz.
-    :param -n: (number_of_slices) Number of slices
-    :param -v: (volume_tr) Volume TR in seconds
+    :param -freq: (phys_fs) Physiological signal sampling frequency in Hz.
+    :param -numSlices: (number_of_slices) Number of slices
+    :param -volume_tr: (volume_tr) Volume TR in seconds
     Note:   These parameters are the only single-letter parameters, as they are
             mandatory and frequently typed. The following optional parameters
             must be fully spelled out.
@@ -610,7 +610,7 @@ Input
             be gzipped.
     :param -phys_json: BIDS formatted physio metadata json file. If not specified
             the json corresponding to the phys_file will be loaded.
-    :param -n: (number_of_slices) Number of slices
+    :param -numSlices: (number_of_slices) Number of slices
     :param -v: (volume_tr) Volume TR in seconds
 
 
@@ -670,26 +670,26 @@ Input
             For example, the following 4 commands would produce identical
             output, based on 10 slices using a (non-default) alt-z slice order:
 
-               RetroTS.py -c ECG.1D -r Resp.1D             \\
-                          -v 2 -p 50 -n 10 -prefix fred    \\
+               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+                          -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order alt-z
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
-               RetroTS.py -c ECG.1D -r Resp.1D             \\
-                          -v 2 -p 50 -n 10 -prefix fred    \\
+               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+                          -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
-               RetroTS.py -c ECG.1D -r Resp.1D             \\
-                          -v 2 -p 50 -n 10 -prefix fred    \\
+               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+                          -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
-               RetroTS.py -c ECG.1D -r Resp.1D             \\
-                          -v 2 -p 50 -n 10 -prefix fred    \\
+               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+                          -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order slice_offsets.txt
 
 
@@ -710,19 +710,19 @@ Output:
     option "-prefix".
 
     Example:
-    C:\\afni\\python RetroTS.py -r resp_file.dat -c card_file.dat -p 50 -n 20
-        -v 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
+    C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
+        -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
 
         Output:
         The file "subject12_regressors.slibase.1D" will be saved to current
         directory, including respiratory regressors and cardiac regressors.
 
         """,
-        "-r": None,
-        "-c": None,
-        "-p": None,
-        "-n": None,
-        "-v": None,
+        "-respFile": None,
+        "-cardFile": None,
+        "-freq": None,
+        "-numSlices": None,
+        "-volume_tr": None,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
         "-slice_major": 1,
@@ -772,19 +772,19 @@ Output:
                     print("%s" % key)
                 quit()
             temp_opt = opt
-    if opt_dict["-p"]:
-        opt_dict["-p"] = float(opt_dict["-p"])
+    if opt_dict["-freq"]:
+        opt_dict["-freq"] = float(opt_dict["-freq"])
     
-    if (opt_dict["-n"] == None):
+    if (opt_dict["-numSlices"] == None):
         print('WARNING: Number of slices not given.')
         
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     retro_ts(
-        respiration_file=opt_dict["-r"],
-        cardiac_file=opt_dict["-c"],
-        phys_fs=opt_dict["-p"],
-        number_of_slices=int(opt_dict["-n"]),
-        volume_tr=float(opt_dict["-v"]),
+        respiration_file=opt_dict["-respFile"],
+        cardiac_file=opt_dict["-cardFile"],
+        phys_fs=opt_dict["-freq"],
+        number_of_slices=int(opt_dict["-numSlices"]),
+        volume_tr=float(opt_dict["-volume_tr"]),
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],
         slice_major=opt_dict["-slice_major"],
