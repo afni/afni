@@ -29,6 +29,7 @@ import retroicor
 from retroicor import phase_estimator
 from retroicor import rvt_from_peakfinder
 from retroicor import peak_finder
+from retroicor import readRawInputData
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 def setup_exceptionhook():
@@ -298,13 +299,15 @@ def getPeaks(respiration_info, cardiac_info, phys_file, phys_json_arg, respirati
         else:
             cardiac_peak = {}
 
-    respiration_peak = {}
-    respiration_peak, error = peak_finder(respiration_info, respiration_file, phys_resp_dat)
+    respiration_peak = {}   
+    v_np = readRawInputData(respiration_info, respiration_file, phys_dat)
+    respiration_peak, error = peak_finder(respiration_info, v_np)
     if error:
         print("Died in respiratory PeakFinder")
         return
     cardiac_peak = {}
-    cardiac_peak, error = peak_finder(cardiac_info, cardiac_file, phys_cardiac_dat)
+    v_np = readRawInputData(cardiac_info, cardiac_file, phys_dat)
+    cardiac_peak, error = peak_finder(cardiac_info, v_np)
     if error:
         print("Died in cardiac PeakFinder")
         return
@@ -384,14 +387,19 @@ def retro_ts(
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                             phys_json, respiration_out, cardiac_out, rvt_out)
         
-    
+
+    # Read in raw data, and find peaks for respiration   
     respiration_peak = {}
-    respiration_peak, error = peak_finder(respiration_info, respiration_file, phys_resp_dat)
+    v_np = readRawInputData(respiration_info, respiration_file, phys_resp_dat)
+    respiration_peak, error = peak_finder(respiration_info, v_np)
     if error:
         print("Died in respiratory PeakFinder")
         return
+
+    # Read in raw data, and find peaks for cardiac    
     cardiac_peak = {}
-    cardiac_peak, error = peak_finder(cardiac_info, cardiac_file, phys_cardiac_dat)
+    v_np = readRawInputData(cardiac_info, cardiac_file, phys_cardiac_dat)
+    cardiac_peak, error = peak_finder(cardiac_info, v_np)
     if error:
         print("Died in cardiac PeakFinder")
         return

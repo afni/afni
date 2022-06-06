@@ -968,7 +968,7 @@ def remove_duplicates(t, v, quiet):
     v = v[: j + 1]
     return t, v
 
-def peak_finder(var_v, filename=None, phys_dat=None):
+def readRawInputData(respcard_info, filename=None, phys_dat=None):
     """,
                 phys_fs=(1 / 0.025),
                 zero_phase_offset=0.5,
@@ -1018,7 +1018,7 @@ def peak_finder(var_v, filename=None, phys_dat=None):
         as_fftwin=0,
         sep_dups=0,
     )
-    var_vector.update(var_v)
+    var_vector.update(respcard_info)
     default_div = 1 / 0.025
     if (var_vector["phys_fs"] != default_div) and (
         var_vector["resample_fs"] == default_div
@@ -1081,7 +1081,7 @@ def peak_finder(var_v, filename=None, phys_dat=None):
             r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])"""
     
     if phys_dat is None: # No BIDS style physio file
-        # Read repiration file into phys_dat
+        # Read repiration/cardiac file into phys_dat
         phys_dat = []
         with open(r["v_name"], "rb") as h:
             for line in h:
@@ -1091,10 +1091,98 @@ def peak_finder(var_v, filename=None, phys_dat=None):
     print('phys_dat = ', phys_dat)
     
     v_np = np.asarray(phys_dat)
-    # else:
-    # r_list[i_column]['v_name'] = 'vector input col %d' % i_column
-    # v = var_vector[i_column]
+    
+    return v_np
 
+
+def peak_finder(respcard_info, v_np):
+    """,
+                phys_fs=(1 / 0.025),
+                zero_phase_offset=0.5,
+                quiet=0,
+                resample_fs=(1 / 0.025),
+                frequency_cutoff=10,
+                fir_order=80,
+                interpolation_style='linear',
+                demo=0,
+                as_window_width=0,
+                as_percover=0,
+                as_fftwin=0,
+                sep_dups=0):
+    """
+    """
+    Example: PeakFinder('Resp*.1D') or PeakFinder(var_vector) where var_vector is a column vector.
+    If var_vector is a matrix, each column is processed separately.
+    :param var_vector: column vector--list of list(s)
+    :param phys_fs: Sampling frequency
+    :param zero_phase_offset: Fraction of the period that corresponds to a phase of 0
+                                0.5 means the middle of the period, 0 means the 1st peak
+    :param quiet:
+    :param resample_fs:
+    :param frequency_cutoff:
+    :param fir_order: BC ???
+    :param interpolation_style:
+    :param demo:
+    :param as_window_width:
+    :param as_percover:
+    :param fftwin:
+    :param sep_dups:
+    :return: [r, e] r = Peak of var_vector; e = error value
+    """
+    
+    # v_np = readRawInputData(respcard_info, filename, phys_dat)
+    # print('v_np = ', v_np)
+
+    e = False  # default value for e
+    nl = 1  # temporary, delete this line when above lines get fixed with glob
+    
+    var_vector = dict(
+        quiet=0,
+        resample_fs=(1 / 0.025),
+        frequency_cutoff=10,
+        fir_order=80,
+        demo=0,
+        as_window_width=0,
+        as_percover=0,
+        as_fftwin=0,
+        sep_dups=0,
+    )
+    var_vector.update(respcard_info)
+    default_div = 1 / 0.025
+    if (var_vector["phys_fs"] != default_div) and (
+        var_vector["resample_fs"] == default_div
+    ):
+        var_vector["resample_fs"] = var_vector["phys_fs"]
+    if var_vector["demo"]:
+        var_vector["quiet"] = 0
+    
+    nyquist_filter = var_vector["phys_fs"] / 2.0
+    w = var_vector["frequency_cutoff"] / nyquist_filter
+    b = firwin(
+        numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
+    )  # FIR filter of order 40
+    for i in range(nl):
+        r = {
+            # "v_name": filename,
+            "t": [],
+            "x": [],
+            "iz": [],  # zero crossing (peak) locations
+            "p_trace": [],
+            "tp_trace": [],
+            "n_trace": [],
+            "tn_trace": [],
+            "prd": [],
+            "t_mid_prd": [],
+            "p_trace_mid_prd": [],
+            "phase": [],
+            "rv": [],
+            "rvt": [],
+        }
+    no_dups = 1  # Remove duplicates that might come up when improving peak location
+
+  
+
+  
     window_width = 0.2  # Window for adjusting peak location in seconds
     # Remove the mean
     v_np_mean = np.mean(v_np)
