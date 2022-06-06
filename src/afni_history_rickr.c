@@ -53,7 +53,7 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+ {  6, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -align_unifize_epi local method, -align_opts_eunif",
    "To apply 3dLocalUnifize from P Taylor."
  } ,

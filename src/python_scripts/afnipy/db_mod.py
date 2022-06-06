@@ -2769,7 +2769,8 @@ def db_cmd_volreg(proc, block):
             st, wtmp = apply_catenated_warps(proc, wapply, base=allinbase,
                         source=proc.vr_base_unif.nice_input(),
                         prefix=wprefix, dim=dim, ewopts=ewarp_opts)
-            cmd += wtmp + '\n'
+            cmnt = '# also warp the unifized EPI (for QC)\n'
+            cmd += cmnt + wtmp + '\n'
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
