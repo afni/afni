@@ -2052,7 +2052,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
-    comm  = '''Compare the quality of alignment between the *unifized* EPI 
+    comm  = '''Compare the quality of alignment between the EPI 
     (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
     follow ventricles and gyral patterns'''
 
