@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
+   "Fix how the AMASK_FOCUS_* keywords apply for '-box_focus_slices ..'.",
+   "They didn't work before, but now do/should/might/perhaps/pleeeez.\n"
+},
+
 { 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add new ve2a QC, via new uvar final_epi_unif_dset.",
    "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"

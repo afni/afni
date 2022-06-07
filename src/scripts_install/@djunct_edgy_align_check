@@ -83,9 +83,12 @@
 #          + add in '-save_ftype ..' opt, because somehow @animal_warper
 #            is using it
 #
-set version   = "1.49";   set rev_dat   = "June 3, 2022"
+#set version   = "1.49";   set rev_dat   = "June 3, 2022"
 # + [PT] new opt: '-ulay_range_am ..', for automasking ulay for
 #         percentile calcs
+#
+set version   = "1.50";   set rev_dat   = "June 7, 2022"
+# + [PT] fix how AMASK_FOCUS_* works here
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
@@ -372,8 +375,18 @@ set wdir = "${odir}/${wdir_name}"
 
 if ( ${DO_USE_REFBOX} ) then
     echo "++ Copy refbox (${refbox_add[2]}) to workdir"
+
+    # [PT: June 7, 2022] fix how this works with AMASK_FOCUS_*
+    if ( "${refbox_add[2]}" == "AMASK_FOCUS_ULAY" ) then
+        set aaa = "${ulay}"
+    else if ( "${refbox_add[2]}" == "AMASK_FOCUS_OLAY" ) then
+        set aaa = "${olay}"
+    else
+        set aaa = "${refbox_add[2]}"
+    endif
+
     3dcalc                                  \
-        -a       "${refbox_add[2]}"         \
+        -a       "${aaa}"                   \
         -expr    'a'                        \
         -prefix  ${wdir}/REFBOX.nii
     # ... and this will become our new refbox dset name
