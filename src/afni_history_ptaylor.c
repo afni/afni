@@ -69,6 +69,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add new ve2a QC, via new uvar final_epi_unif_dset.",
+   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"
+},
+
+{ 6, June , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Some new opts to control ulay brightness, esp. for APQC HTML.",
+   "New opts: '-ulay_range_am ..' and '-ulay_min_fac ..'\n"
+},
+
+{ 6, June , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new opts to control ulay brightness, esp. for APQC HTML.",
+   "New opts: '-ulay_range_am ..' and '-ulay_min_fac ..'\n"
+},
+
 { 3, June , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_PROG,
    "New program for unifizing brightness.",
    "Should be helpful for alignment.\n"
@@ -138,7 +153,7 @@ afni_history_struct ptaylor_history[] = {
    "Also put in help descriptions about drop criteria, in Notes.\n"
 },
 
-{ 20, Mar , 2022 , PT , "apqc_make_HTML.py" , MICRO , TYPE_BUG_FIX,
+{ 20, Mar , 2022 , PT , "apqc_make_html.py" , MICRO , TYPE_BUG_FIX,
    "Fix display of subj ID from 'Top' button in case when subj ID starts num.",
    "In such cases, the unicode char for next line was misinterpreted.\n"
 },

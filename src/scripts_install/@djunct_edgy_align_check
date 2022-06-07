@@ -78,17 +78,21 @@
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
 #
-set version   = "1.48";   set rev_dat   = "Jan 12, 2022"
+#set version   = "1.48";   set rev_dat   = "Jan 12, 2022"
 #     + [PT] Because Daniel doesn't like crash/warnings.
 #          + add in '-save_ftype ..' opt, because somehow @animal_warper
 #            is using it
+#
+set version   = "1.49";   set rev_dat   = "June 3, 2022"
+# + [PT] new opt: '-ulay_range_am ..', for automasking ulay for
+#         percentile calcs
 #
 # ----------------------------------------------------------------
 setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_edgy_align_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = "$PWD"
+set here      = $PWD
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -124,8 +128,9 @@ set mcolor         = 'black'             # color of montage gap
 set cbar           = "Reds_and_Blues_Inv" # default colorbar; can adjust
 
 set urange_meth    = "-ulay_range"
-set umin           = "0%"
 set umax           = "120%"
+set umin           = "0%"
+set umin_fac       = ""
 
 set refbox_add     = ( "-pass" "-pass" )
 
@@ -226,6 +231,24 @@ while ( $ac <= $#argv )
         @ ac += 1
         set umax = "$argv[$ac]"
         set urange_meth = "-ulay_range_nz"
+
+    # [PT: June 3, 2020] can use this alternate ulay range method for
+    # @chauffeur_afni
+    else if ( "$argv[$ac]" == "-ulay_range_am" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set urange_meth = "-ulay_range_am"
+
+    # [PT: June 5, 2020] extra opt for ulay range control, allow it to
+    # dip lower than standard percentile
+    else if ( "$argv[$ac]" == "-ulay_min_fac" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin_fac = "-ulay_min_fac $argv[$ac]"
 
     # [PT: May 26, 2020] use olay grid; specify interp func type,
     # e.g., wsinc5 or NN
@@ -486,6 +509,7 @@ set ethr = ${vvv[2]}
     "${refbox_add[1]}"  "$refbox_add[2]"    \
     -olay  "${fout}"                        \
     "${urange_meth}" "${umin}" "${umax}"    \
+    ${umin_fac}                             \
     -func_range_perc_nz 33                  \
     -cbar "${cbar}"                         \
     -set_subbricks 0 0 0                    \
@@ -514,7 +538,7 @@ else
     echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
 
-cd "${here}"
+cd ${here}
 
 echo ""
 echo "++ DONE! Image output:"
@@ -559,6 +583,8 @@ COMMAND OPTIONS ~1~
 -set_dicom_xyz     XX YY ZZ
 -ulay_range        umin umax
 -ulay_range_nz     umin umax
+-ulay_range_am     umin umax
+-umin_fac          UF
 -montx             MX
 -monty             MY
 -use_olay_grid     INTERP
