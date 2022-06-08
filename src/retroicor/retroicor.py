@@ -1130,9 +1130,6 @@ def peak_finder(respcard_info, v_np):
     :return: [r, e] r = Peak of var_vector; e = error value
     """
     
-    # v_np = readRawInputData(respcard_info, filename, phys_dat)
-    # print('v_np = ', v_np)
-
     e = False  # default value for e
     nl = 1  # temporary, delete this line when above lines get fixed with glob
     
@@ -1163,7 +1160,6 @@ def peak_finder(respcard_info, v_np):
     )  # FIR filter of order 40
     for i in range(nl):
         r = {
-            # "v_name": filename,
             "t": [],
             "x": [],
             "iz": [],  # zero crossing (peak) locations
@@ -1179,9 +1175,6 @@ def peak_finder(respcard_info, v_np):
             "rvt": [],
         }
     no_dups = 1  # Remove duplicates that might come up when improving peak location
-
-  
-
   
     window_width = 0.2  # Window for adjusting peak location in seconds
     # Remove the mean
@@ -1208,10 +1201,6 @@ def peak_finder(respcard_info, v_np):
 
     # force 't' to have the same length as 'x', rather than trusting
     # divisions (when it should come out evenly)  5 Jun, 2017 [rickr]
-    #
-    # r['t'] = numpy.arange(0.,
-    #                       float(nt) / var_vector['phys_fs'],
-    #                       (1. / var_vector['phys_fs']))  # # % FIX FIX FIX
     fsi = 1.0 / var_vector["phys_fs"]
     r["t"] = np.array([i * fsi for i in range(len(r["x"]))])
 
