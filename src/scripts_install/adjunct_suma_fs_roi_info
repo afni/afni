@@ -21,7 +21,7 @@ set version   = "0.3";  set rev_dat   = "Feb 9, 2021"
 
 set this_prog = "adjunct_suma_fs_roi_info"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 set subj      = ""
 set odir      = ""
@@ -91,7 +91,7 @@ set oroi_2009 = "stats_fs_rois_2009_${subj}.1D"
 set oseg_2000 = "stats_fs_segs_2000_${subj}.1D"
 set oseg_2009 = "stats_fs_segs_2009_${subj}.1D"
 
-cd ${odir}           # now all files we need are just "here"
+cd "${odir}"           # now all files we need are just "here"
 
 # =========================== Actual Plots ==============================
 

@@ -83,6 +83,8 @@ g_ss_uvar_fields = [ \
                        'vr_base_min_outlier+orig.HEAD'],
    ['final_epi_dset',  'set final EPI base dataset',
                        'final_epi_vr_base_min_outlier+tlrc.HEAD'],
+   ['final_epi_unif_dset', 'set final EPI unifized dataset',
+                       'final_epi_vr_base_min_outlier+tlrc.HEAD'],
    ['final_view',      'set final view of data (orig/tlrc)', 
                        'tlrc'],
    ['template',        'anatomical template', 

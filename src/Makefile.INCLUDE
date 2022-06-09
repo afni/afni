@@ -260,6 +260,7 @@ PY_LIBS = $(shell cd $(PY_LIB_DIR); echo *.py; cd ..)
 
 R_DIR = R_scripts
 R_TCSH_DIR = scripts_for_r
+R_TCSH_SCRIPTS = $(shell cd $(R_TCSH_DIR); echo *; cd ..)
 
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
@@ -316,9 +317,10 @@ totality_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug install_nop
 # Create program list
 # (keep this as a simplified form of prog_list, or just depend on prog_list?)
 echo_progs:
-	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)            \
-             `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`     \
-             $(PY_SCRIPTS) $(DISCO_SCRIPTS)"                    \
+	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)                \
+             `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`              \
+             `$(MAKE) -s -f ptaylor/Makefile.ptaylor.INCLUDE echo_progs` \
+             $(PY_SCRIPTS) $(DISCO_SCRIPTS) $(R_TCSH_SCRIPTS)"           \
              | tr ' ' '\n' | LC_COLLATE=C sort | uniq
 
 prog_list_bin:
@@ -331,8 +333,8 @@ prog_list_bin:
 
 prog_list_scripts:
 	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`         \
-                $(PY_SCRIPTS) $(DISCO_SCRIPTS)"                 \
-                | tr ' ' '\n' | LC_COLLATE=C sort | uniq        \
+                $(PY_SCRIPTS) $(DISCO_SCRIPTS) $(R_TCSH_SCRIPTS)"    \
+                | tr ' ' '\n' | LC_COLLATE=C sort | uniq             \
 	        > prog_list_scripts.txt
 
 prog_list: prog_list_bin prog_list_scripts
@@ -352,7 +354,9 @@ list_lists:
 	     list_py_libs list_r_scripts list_scripts_for_r
 
 list_afni_progs:
-	echo $(PROGRAMS) | tr ' ' '\n' | LC_COLLATE=C sort
+	echo "$(PROGRAMS) 				                  \
+	     `$(MAKE) -s -f ptaylor/Makefile.ptaylor.INCLUDE echo_progs`" \
+	     | tr ' ' '\n' | LC_COLLATE=C sort
 
 list_suma_progs:
 	echo $(SUMA_PROGS) $(SUMA_GTS_PROGS) | tr ' ' '\n' | LC_COLLATE=C sort

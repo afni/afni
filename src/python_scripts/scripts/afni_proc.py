@@ -18,6 +18,7 @@ from afnipy.db_mod import *
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
 from afnipy import lib_tedana_afni as TED
+from afnipy import lib_format_cmd_str as FCS
 
 # ----------------------------------------------------------------------
 # globals
@@ -727,12 +728,17 @@ g_history = """
     7.37 Apr  6, 2022: allow REML errts on surface
     7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
     7.39 May 10, 2022: do not apply global line wrappers to QC block
+    7.40 May 24, 2022: add -command_comment_style
+    7.41 Jun  6, 2022:
+       - add -align_unifize_epi local method, -align_opts_eunif
+       - create final_epi_unif volume, in case of EPI uniformity correction
 """
 
-g_version = "version 7.39, May 10, 2022"
+g_version = "version 7.41, June 6, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
@@ -982,8 +988,8 @@ class SubjProcSream:
         self.have_task_regs   = 0       # any proc.stims or proc.extra_stims?
 
         # general file tracking
-        self.uvars      = None          # general uvars, aking to for ss_review
-        self.ap_uvars   = 'out.ap_uvars.json' # JSON file to put AP uvars in
+        self.uvars      = VO.VarsObject() # general uvars, for AP uvars
+        self.ap_uv_file = 'out.ap_uvars.json' # JSON file to put AP uvars in
                                         # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]
@@ -1017,11 +1023,13 @@ class SubjProcSream:
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
+        self.vr_base_unif = None        # afni_name for any unifized volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
         self.epi_final  = None          # vr_base_dset or warped version of it
+        self.epi_final_unif = None      # unifized vr_base or warped version
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -1276,6 +1284,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
                         helpstr='one run, many echoes of multi-echo data')
 
+        self.valid_opts.add_opt('-command_comment_style', 1, [],
+                        acplist=['none', 'compact', 'pretty'],
+                        helpstr='define trailing AP command comment style')
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
         self.valid_opts.add_opt('-scr_overwrite', 0, [],
@@ -1431,11 +1442,13 @@ class SubjProcSream:
                         helpstr='external EPI volume for align_epi_anat.py')
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
                         helpstr='additional options for align_epi_anat.py')
+        self.valid_opts.add_opt('-align_opts_eunif', -1, [],
+                        helpstr='additional opts for epi unformity correction')
         self.valid_opts.add_opt('-align_epi_strip_method', 1, [],
                         acplist=['3dSkullStrip','3dAutomask','None'],
                         helpstr="specify method for 'skull stripping' the EPI")
         self.valid_opts.add_opt('-align_unifize_epi', 1, [],
-                        acplist=['yes','no'],
+                        acplist=['yes', 'no', 'unif', 'local'],
                         helpstr='3dUnifize EPI base before passing to aea.py')
 
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
@@ -3417,9 +3430,12 @@ class SubjProcSream:
         self.write_text('echo "execution finished: `date`"\n\n')
 
         # and append execution command, for a record
+        # let user choose style: none, compact, pretty
+        style, rv = self.user_opts.get_string_opt('-command_comment_style',
+                                                  default='compact')
         opt = self.user_opts.find_opt('-no_proc_command')
-        if not opt:
-            tstr = UTIL.get_command_str(args=self.argv)
+        if not opt and style != 'none':
+            tstr = self.get_ap_command_str(style=style)
             self.write_text('\n\n' + tstr)
 
         if self.user_opts.find_opt('-ask_me'):
@@ -3430,6 +3446,26 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+    def get_ap_command_str(self, style='compact'):
+       """return a commented command string, depending on the desired form"""
+       if style == 'none':
+          return ''
+
+       if style not in ['compact', 'pretty']:
+          print("** AP.get_ap_command_str: invalid style %s" % style)
+       if style == 'pretty':
+          # get a straight command, and prettify it
+          tstr = UTIL.get_command_str(args=self.argv,
+                                      preamble=0, comment=0, wrap=0)
+          # and run PT's niceify on it
+          allopts = self.valid_opts.all_opt_names()
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+                                              list_cmd_args=allopts)
+       else:
+          tstr = UTIL.get_command_str(args=self.argv)
+
+       return tstr
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -4440,6 +4476,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        return status and instance (if None, quit)
     """
+
     proc = SubjProcSream('subject regression')
     proc.init_opts()
 

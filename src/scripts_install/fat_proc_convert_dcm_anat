@@ -56,7 +56,7 @@ set version   = "3.52";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_convert_dcm_anat"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here     = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -214,7 +214,7 @@ if ( "$idir" != "" ) then
     endif
 
     # get back home for running stuff
-    cd $here 
+    cd "$here"
 endif
 
 # ---------- if input nifti, check existence
@@ -263,15 +263,15 @@ endif
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
-    set wdir = $odir/${wdir}_$opref
+    set wdir = "$odir/${wdir}_$opref"
 else
-    set wdir = $odir/$wdir
+    set wdir = "$odir/$wdir"
 endif
 
 # make the working directory
-if ( ! -e $wdir ) then
+if ( ! -e "$wdir" ) then
     echo "++ Making working directory: $wdir"
-    \mkdir -p $wdir
+    \mkdir -p "$wdir"
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "     $wdir"
@@ -330,7 +330,7 @@ if ( "$idir" != "" ) then
 
     # clean up possible extraneous files
 
-    cd $wdir
+    cd "$wdir"
     set all_nii = `\ls ${npref}*.nii.gz`
 
     if ( ${#all_nii} < "1" ) then
@@ -353,10 +353,10 @@ if ( "$inii" != "" ) then
         -overwrite                      \
         -a "$inii"                      \
         -expr 'a'                       \
-        -prefix $wdir/$fout
+        -prefix "$wdir/$fout"
 
     # ... and match with where things would be from "$idir" input
-    cd $wdir
+    cd "$wdir"
     set all_nii = "$fout" 
 endif
 
@@ -394,7 +394,7 @@ else
         -overwrite
 endif
 
-cd $here 
+cd "$here"
 
 set check = `3dinfo -prefix "$odir/$ofile"`
 if ( "$check" == "NO-DSET" ) then
@@ -404,7 +404,7 @@ else
     echo "\nAll done!"
     cd $odir
     echo "\nYour output anatomical is:\n\t$PWD/$ofile\n"
-    cd $here
+    cd "$here"
 endif 
 
 # ---------------- imager -------------------
@@ -437,8 +437,8 @@ endif
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n++ Cleaning working directory!\n"
-    cd $here
-    \rm -rf $wdir
+    cd "$here"
+    \rm -rf "$wdir"
 else
     echo "\n++ NOT removing working directory '$wdir'.\n"
 endif

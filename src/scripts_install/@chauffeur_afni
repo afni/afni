@@ -321,8 +321,15 @@
 #set version   = "6.30";   set rev_dat   = "Oct 21, 2021"
 #     + [PT] max allowed bufac is actually 8, not 4.  
 #
-set version   = "6.31";   set rev_dat   = "Feb 3, 2022"
+#set version   = "6.31";   set rev_dat   = "Feb 3, 2022"
 #     + [PT] add "-left_is_left .." and "-left_is_posterior .." options
+#
+#set version   = "6.4";   set rev_dat   = "June 3, 2022"
+#     + [PT] add '-ulay_range_am ..' and '-olay_range_am ..' opts
+#
+set version   = "6.41";   set rev_dat   = "June 6, 2022"
+#     + [PT] add '-ulay_min_fac ..' opt to allow refined control of ulay
+#       brightness/grayscale mapping.  Useful in APQC
 #
 # =====================================================================
 
@@ -431,8 +438,9 @@ set obl_resam_refbox  = wsinc5   # focus box: def resampling method for obl
 set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
 set EDGE_ENHANCE_FAC = ''         # for enhancing edges, by a factor, in ulay
 
-set umin = ''
-set umax = ''
+set umax     = ''
+set umin     = ''
+set umin_fac = ''
 
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
@@ -644,6 +652,14 @@ while ( $ac <= $#argv )
         @ ac += 1
         set frange_perc = "$argv[$ac]"
         set olay_nz = "-non-zero"  
+        set USER_FRANGE = 2
+
+    # refers to olay; for automasking in 3dBrickStat call
+    else if ( "$argv[$ac]" == "-func_range_perc_am" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set frange_perc = "$argv[$ac]"
+        set olay_nz = "-automask"  
         set USER_FRANGE = 2
 
     else if ( "$argv[$ac]" == "-pbar_posonly" ) then
@@ -952,6 +968,23 @@ while ( $ac <= $#argv )
         set umax = "$argv[$ac]"
         set ulay_nz = "-non-zero"
         set USER_ULAY_RANGE = 1
+
+    # for automasking during 3dBrickStat call
+    else if ( "$argv[$ac]" == "-ulay_range_am" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set ulay_nz = "-automask"
+        set USER_ULAY_RANGE = 1
+
+    # supplement to push the lower boundary a bit; only works if user
+    # entered the range
+    else if ( "$argv[$ac]" == "-ulay_min_fac" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin_fac = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-edgy_ulay" ) then
         set DO_EDGEIFY_ULAY = 1
@@ -1723,7 +1756,26 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                     set umax = `echo " $amax[2] * $umax_scale " | bc`
                 endif
 
-                echo "++ Ulay to be visualized within user range:"
+                set umin_fac_text = ""
+                if ( "${umin_fac}" != "" ) then
+                    if ( `echo "${umin_fac} <= 0" | bc` || \
+                         `echo "${umin_fac} > 1" | bc` ) then
+                        echo "+* WARN: ignoring ulay_min_fac: ${umin_fac}"
+                        echo "   Supposed to be in interval (0, 1]"
+                    else
+                        echo "++ Use umin factor     : ${umin_fac}"
+                        echo "   Init. umin and umax : ${umin}, ${umax}"
+                        set umin_new = `echo "scale=5; ${umin} - ${umin_fac} * (${umax} -${umin})/1.0" | bc`
+                        if ( `echo "${umin_new} > 0" | bc` ) then
+                            set umin = "${umin_new}"
+                        else 
+                            set umin = 0
+                        endif
+                        set umin_fac_text = " (adjusted by umin_fac)"
+                    endif
+                endif
+
+                echo "++ Ulay to be visualized within user range${umin_fac_text}:"
                 echo "  [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
 
             else
@@ -2472,6 +2524,19 @@ COMMAND OPTIONS ~1~
                     DR: SET_ULAY_RANGE) "Special Ulay Range" and
                     "Combining %ile values..." in NOTES, below.
 
+-ulay_range_am UMIN UMAX 
+                   :same as the preceding opt, but over just *automasked* 
+                    voxels
+
+-ulay_min_fac UMF  :a finesse-full option for further adjusting ulay
+                    grayscale mapping, when applying '-ulay_range_am
+                    ..'.  UMF must be a numerical value in range (0,
+                    1].  This value is used to lower the lower end of
+                    the ulay range (UMIN) by this fraction of the difference
+                    between the upper and lower bounds. Thus, if A and B are
+                    the min and max, respectively, for the ulay, then 
+                    A -> max(0, A-UMF*(B-A)).
+
 -edgy_ulay         :turn the ulay volume into edges (via 3dedge3).  All 
                     other opt/values like the '-ulay_range*' will refer
                     to this edge-ified version, *except* for the 
@@ -2516,6 +2581,9 @@ COMMAND OPTIONS ~1~
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
                    non-zero values (def: 100).
+
+-func_range_perc_am FRP :same as above option, but this is a percentile
+                   among *automasked* voxel values.
 
 -obliquify  OBL    :the ulay and/or the olay may have been acquired
                     with oblique coordinate axes; by default, the

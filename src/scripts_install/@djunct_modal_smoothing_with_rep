@@ -35,7 +35,7 @@ set version   = "0.5";  set rev_dat   = "April 14, 2022"
 
 set this_prog = "@djunct_modal_smoothing_with_rep"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 
@@ -342,7 +342,7 @@ else
     echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
 
-cd ${here}
+cd "${here}"
 
 echo ""
 echo "++ DONE.  Output from modal smoothing (with replacement):"

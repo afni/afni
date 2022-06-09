@@ -203,8 +203,16 @@ auth = 'PA Taylor'
 # new library: lib_apqc_stats_dset.py
 # + as part of this, adding in fuller stats representation by default.
 #
-ver = '3.93' ; date = 'Jan 26, 2022'
+#ver = '3.93' ; date = 'Jan 26, 2022'
 # [PT] epi-anat overlap in vorig QC block 
+#
+#ver = '4.0' ; date = 'June 5, 2022'
+# [PT] ve2a: better %ile range for ulay: should have have better contrast
+# + ve2a: also introduce scaling/values for local-unifized EPI as ulay
+#
+ver = '4.01' ; date = 'June 6, 2022'
+# [PT] ve2a: new scaling for ulay, extra control of grayscale with
+#   ulay_min_fac
 #
 #########################################################################
 
@@ -2038,7 +2046,8 @@ def apqc_vorig_olap( obase, qcb, qci ):
 
 # ----------------------------------------------------------------------
 
-# ['final_anat', 'final_epi_dset']
+# ['final_anat', 'final_epi_dset'],
+# ['final_anat', 'final_epi_unif_dset']
 def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
@@ -2047,33 +2056,50 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
     follow ventricles and gyral patterns'''
 
+    # [pt: June 5, 2022] because we want both better contrast for
+    # 'normal' ulay=EPI, and also possibility of having normalized
+    # brightness EPI
+    ulay_ran = [1, 95]
+    if qci == "epi2anat" :
+        epi_lab   = "EPI"
+        ulay_dset = 'final_epi_dset'
+        umin_fac  = 0.2
+    elif qci == "epiunif2anat" :
+        epi_lab   = "EPI, unifized"
+        ulay_dset = 'final_epi_unif_dset'
+        umin_fac  = 0.1
+    else:
+        print("** ERROR: unrecognized qci code for ve2a: '{}'".format(qci))
+        sys.exit(2)
+
     pre = '''
-    set opref = {}
-    set focus_box = {}
-    set ulay_name = `3dinfo -prefix ${{final_epi_dset}}`
+    set opref = {opref}
+    set focus_box = {focusbox}
+    set ulay_name = `3dinfo -prefix ${{{ulay_dset}}}`
     set olay_name = `3dinfo -prefix ${{final_anat}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
-    '''.format( opref, focusbox )
+    '''.format( opref=opref, focusbox=focusbox, ulay_dset=ulay_dset )
 
     # [PT: May 26, 2020] update the way this is now, for cleaner views
     #  -->  olay = anat edges
     #  -->  ulay = EPI, regridded to anat
-    #  -->  ulay_range 2-95% 
+    #  -->  ulay_range 1-95% 
     cmd = '''
     @djunct_edgy_align_check
-    -olay              ${final_anat}
-    -box_focus_slices  ${focus_box}
-    -ulay              ${final_epi_dset}
+    -olay              ${{final_anat}}
+    -box_focus_slices  ${{focus_box}}
+    -ulay              ${{final_epi_dset}}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "98%"
+    -ulay_range_am     "{umin}%" "{umax}%"
+    -ulay_min_fac      {umin_fac}
     -no_cor
-    -prefix  ${odir_img}/${opref}
-    '''
+    -prefix  ${{odir_img}}/${{opref}}
+    '''.format(umin = ulay_ran[0], umax = ulay_ran[1], umin_fac = umin_fac)
 
-    ttext = '''"ulay: ${ulay_name} (EPI)" ,, '''
+    ttext = '''"ulay: ${{ulay_name}} ({epi_lab})" ,, '''.format(epi_lab=epi_lab)
     ttext+= '''"olay: ${olay_name} (anat edges)"'''
 
     jsontxt = '''
@@ -3878,14 +3904,15 @@ those might have been flipped.'''
     # [PT: May 26, 2020] update the way this is now, for cleaner views
     #  -->  olay = anat edges
     #  -->  ulay = EPI, regridded to anat
-    #  -->  ulay_range 2-95% 
+    #  -->  ulay_range 1-95%             
     cmd0 = '''
     @djunct_edgy_align_check
     -olay              ${fdset_0_orig}
     -box_focus_slices  ${focus_box}
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "98%"
+    -ulay_range_am     "1%" "95%"
+    -ulay_min_fac      0.2
     -no_cor
     -prefix            ${odir_img}/${opref_o}
     '''
@@ -3908,7 +3935,8 @@ those might have been flipped.'''
     -box_focus_slices  ${focus_box}
     -ulay              ${ulay_flip}
     -use_olay_grid     wsinc5
-    -ulay_range_nz     "2%" "98%"
+    -ulay_range_am     "1%" "95%"
+    -ulay_min_fac      0.2
     -no_cor
     -prefix            ${odir_img}/${opref_f}
     '''

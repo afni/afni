@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set sdir = $PWD
+set sdir = "$PWD"
 
 if ("$1" =~ -h* || $# < 5) then
 	if ("$1" =~ "-comments") then
@@ -58,7 +58,7 @@ if ( ! -f $asrc/$abin/libmri.a) then
 endif
 
 DEED:
-cd $sdir/$pdd
+cd "$sdir/$pdd"
 
 if (1) then
    #remove no constant option, gcc4.2 compiler does not get it
@@ -282,4 +282,4 @@ COMMENTS:
    echo ''
    goto END
 END:
-cd $sdir
+cd "$sdir"
