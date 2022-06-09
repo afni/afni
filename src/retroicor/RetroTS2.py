@@ -172,8 +172,13 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                     
         # Process StartTime is in JSON file
         if ('StartTime' in phys_meta and "StartTime" not in respiration_info):
-            respiration_info["StartTime"] = float(phys_meta["StartTime"])            
-            cardiac_info["StartTime"] = float(phys_meta["StartTime"])            
+            startTime = float(phys_meta["StartTime"])
+            if (startTime > 0):
+                print('***** WARNING: JSON file gives positive start time which is not currently handled')
+                print('    Start time must be <= 0')
+            else:
+                respiration_info["StartTime"] = startTime            
+                cardiac_info["StartTime"] = startTime            
                     
         print('phys_meta = ', phys_meta)
         # Read columns field from JSON data
