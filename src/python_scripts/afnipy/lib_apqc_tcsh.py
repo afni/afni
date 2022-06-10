@@ -210,9 +210,12 @@ auth = 'PA Taylor'
 # [PT] ve2a: better %ile range for ulay: should have have better contrast
 # + ve2a: also introduce scaling/values for local-unifized EPI as ulay
 #
-ver = '4.01' ; date = 'June 6, 2022'
+#ver = '4.01' ; date = 'June 6, 2022'
 # [PT] ve2a: new scaling for ulay, extra control of grayscale with
 #   ulay_min_fac
+#
+ver = '4.10' ; date = 'June 6, 2022'
+# [PT] starting adding full names of dsets to image-paired JSONs
 #
 #########################################################################
 
@@ -2103,6 +2106,9 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     ttext = '''"ulay: ${{ulay_name}} ({epi_lab})" ,, '''.format(epi_lab=epi_lab)
     ttext+= '''"olay: ${olay_name} (anat edges)"'''
 
+    dtext_u = '''"dset: ${{{ulay_dset}}}"'''.format( ulay_dset=ulay_dset )
+    dtext_o = '''"dset: ${final_anat}"'''
+
     jsontxt = '''
     cat << EOF >! ${{tjson}}
     itemtype    :: VOL
@@ -2111,9 +2117,11 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     text        :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-                ttext )
+                ttext, dtext_u, dtext_o )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2132,8 +2140,11 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
-    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
+               dtext_u, dtext_o )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2185,6 +2196,8 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     ttext = '''"ulay: ${ulay_name} (anat)" ,, '''
     ttext+= '''"olay: ${olay_name} (template edges, ${main_dset_sp} space)"'''
 
+    dtext_u = '''"dset: ${final_anat}"'''
+    dtext_o = '''"dset: ${main_dset}"'''
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -2194,9 +2207,11 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     text        :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-                ttext )
+                ttext, dtext_u, dtext_o )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2215,8 +2230,11 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
-    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1], 
+               dtext_u, dtext_o )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2309,6 +2327,9 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     ttext = ''
     ttext+= '''"olay: corr of WB-average errts with each voxel (${olay_name})"'''
 
+    dtext_u = '''"dset: ${ulay_dset}"'''
+    dtext_o = '''"dset: ${olay_dset}"'''
+
     # As default, use :: and ,, as major and minor delimiters,
     # respectively, because those should be useful in general.  
     # NB: because we want the single apostrophe to appear as a text
@@ -2321,9 +2342,11 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     blockid_hov :: {}
     title       :: {}
     text        :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-                ttext )
+                ttext, dtext_u, dtext_o )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2344,9 +2367,11 @@ def apqc_regr_corr_errts( obase, qcb, qci,
     blockid_hov :: {}
     title       :: {}
     subtext     :: {} 
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-               osubtext2 )
+               osubtext2, dtext_u, dtext_o )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2793,6 +2818,13 @@ def apqc_vstat_stvol( obase, qcb, qci,
     ttext+= '''"olay: [${olaybrick}] '${olaylabel}' (in ${olay_name})" ,, '''
     ttext+= '''" thr: [${thrbrick}] '${thrlabel}' (df = ${thr_dof})"'''
 
+    dtext_u = '''"dset: ${ulay_dset}"'''
+    dtext_o = '''"dset: ${stats_dset}" ,, '''
+    dtext_o+= '''"olay_idx: ${olaybrick}" ,, '''
+    dtext_o+= '''"olay_label: ${olaylabel}" ,, '''
+    dtext_o+= '''"thr_idx: ${thrbrick}" ,, '''
+    dtext_o+= '''"thr_label: ${thrlabel}"'''
+
 
     # As default, use :: and ,, as major and minor delimiters,
     # respectively, because those should be useful in general.  
@@ -2806,9 +2838,11 @@ def apqc_vstat_stvol( obase, qcb, qci,
     blockid_hov :: {}
     title       :: {}
     text        :: {}
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-                ttext )
+                ttext, dtext_u, dtext_o )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2829,9 +2863,11 @@ def apqc_vstat_stvol( obase, qcb, qci,
     blockid_hov :: {}
     title       :: {}
     subtext     :: {} 
+    dset_ulay   :: {}
+    dset_olay   :: {}
     EOF
     '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-               osubtext2 )
+               osubtext2, dtext_u, dtext_o )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
