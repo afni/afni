@@ -2059,6 +2059,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     # [pt: June 5, 2022] because we want both better contrast for
     # 'normal' ulay=EPI, and also possibility of having normalized
     # brightness EPI
+    # [pt: June 9, 2022] as of now, epiunif2anat won't happen anymore
     ulay_ran = [1, 95]
     if qci == "epi2anat" :
         epi_lab   = "EPI"

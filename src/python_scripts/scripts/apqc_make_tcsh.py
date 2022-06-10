@@ -211,9 +211,14 @@ auth = 'PA Taylor'
 # [PT] AP can now pass opts here via '-html_review_opts ..'
 # - first one is '-mot_grayplot_off', for S Torrisi.
 #
-ver = '4.01' ; date = 'June 6, 2022' 
+#ver = '4.01' ; date = 'June 6, 2022' 
 # [PT] new ve2a entry, if EPI is unifized (via uvar=final_epi_unif_dset)
 #    + also better control of brightness scaling for edgy EPI/anat images
+#
+ver = '4.02' ; date = 'June 10, 2022' 
+# [PT] ... and just like that, no longer make second ve2a image anymore,
+#      that would be based on final_epi_unif_dset. Was extraneous/unnec.
+#      An ex-parrot.
 #
 #########################################################################
 
@@ -533,24 +538,6 @@ if __name__ == "__main__":
         ban      = lat.bannerize('EPI and anatomical alignment')
         obase    = 'qc_{:02d}'.format(idx) # will get appended to
         cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
-    # --------------------------------------------------------------------
-
-    # QC block: "ve2a"
-    # item    : EPI (unifized form) to anat align
-
-    ldep  = ['final_anat', 'final_epi_unif_dset']
-    if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
-
-        ban      = lat.bannerize('Unifized EPI and anatomical alignment')
-        obase    = 'qc_{:02d}'.format(idx) # will get appended to
-        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epiunif2anat", 
-                                            focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
