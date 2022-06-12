@@ -1,6 +1,6 @@
 What is AFNI?
 ----------------------
-
+  
 .. image:: https://travis-ci.org/afni/afni.svg?branch=master
     :target: https://travis-ci.org/afni/afni
     
