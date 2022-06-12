@@ -74,7 +74,7 @@ Getting started with AFNI: quick guides
     
     * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/unix_tutorial/index.html>`_
 
-* Code examples
+* Code, command, script and functionality examples
 
     * `Tutorials and demos <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html>`_
 
