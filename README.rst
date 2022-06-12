@@ -86,7 +86,7 @@ Stuff to do as needed
 
     git add -f FILE1 FILE2 ...
 
-- Sending the local updates to the master (github.com) repository
+- Sending the local updates to the master (github.com) repository::
 
     git push origin master
 
