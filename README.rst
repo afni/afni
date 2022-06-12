@@ -20,7 +20,7 @@ analysis and display of multiple MRI modalities:
       <li>resting state, task-based or naturalistic paradigms</li>
       <li>single- or multi-echo acquisitions</li>
     </ul>
-  <li>anatomical/structural MRI
+  <li>anatomical/structural MRI</li>
   <li>diffusion weighted imaging (DWI)</li>
     <ul>
       <li>for DTI or HARDI modeling and tractography</li>
