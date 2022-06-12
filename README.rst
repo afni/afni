@@ -15,7 +15,7 @@ AFNI (Analysis of Functional NeuroImages) is a suite of programs for looking at 
 images at all stages of analysis.  It contains C, Python and R programs, as well as shell scripts, primarily developed for the 
 analysis and display of multiple MRI modalities: 
  <ul>
-   <li>functional MRI (FMRI), whether , and acquired with
+   <li>functional MRI (FMRI)
      <ul>
        <li>resting state, task-based or naturalistic paradigms</li>
        <li>single- or multi-echo acquisitions</li>
@@ -28,6 +28,7 @@ analysis and display of multiple MRI modalities:
      </ul>
    </li>
 </ul> 
+
 ... and has tools that have been applied to other modalities, such as ECoG, EEG, MEG, and more.  
 It has graphical displays for both slice-wise and surface-based viewing.
   
