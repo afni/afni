@@ -58,7 +58,7 @@ Getting started with AFNI: quick guides
 
 * Educational resources:
 
-    * `AFNI Academy series`
+    * `AFNI Academy series <https://www.youtube.com/c/afnibootcamp>`_
     
     * Additional Bootcamp recordings:
     
@@ -68,7 +68,6 @@ Getting started with AFNI: quick guides
     
         https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html
 
-.. _AFNI Academy series: https://www.youtube.com/c/afnibootcamp
 
 
 * Code examples
