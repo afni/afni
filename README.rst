@@ -62,7 +62,7 @@ Getting started with AFNI: quick guides
     
     * `Additional Bootcamp recordings <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html>`_
         
-    * `Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>_
+    * `Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>`_
 
 
 
