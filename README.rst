@@ -60,35 +60,23 @@ Getting started with AFNI: quick guides
 
     * `AFNI Academy series <https://www.youtube.com/c/afnibootcamp>`_
     
-    * Additional Bootcamp recordings:
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+    * `Additional Bootcamp recordings <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html>`_
         
-    * Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs:
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html
+    * `Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>_
 
 
 
 * Code examples
 
-    * Tutorials and demos:
-        
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+    * `Tutorials and demos <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html>`_
 
-    * Publication-based code examples (AFNI Codex):
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_toc.html
+    * `Publication-based code examples (AFNI Codex) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_toc.html>`_
 
 * Additional
 
-    * Nonhuman projects and processing (with demos):
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html
+    * `Nonhuman projects and processing (with demos) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html>`_
         
-    * Templates and atlases:
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html
+    * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
 
 
 
