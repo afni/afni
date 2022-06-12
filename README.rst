@@ -1,4 +1,4 @@
-What the H*** is AFNI?
+What is AFNI?
 ----------------------
 
 .. image:: https://travis-ci.org/afni/afni.svg?branch=master
@@ -12,13 +12,13 @@ What the H*** is AFNI?
 
 
 AFNI (Analysis of Functional NeuroImages) is a suite of programs for looking at and analyzing MRI brain
-images.  It comprises a suite of C, Python, R programs and shell scripts primarily developed for the 
+images at all stages of analysis.  It contains C, Python and R programs, as well as shell scripts, primarily developed for the 
 analysis and display of multiple MRI modalities: anatomical, functional MRI (FMRI) and diffusion 
-weighted (DW) data.  It has graphical displays for both slice-wise and surface-based viewing.
+weighted imaging (DWI) data.  It has graphical displays for both slice-wise and surface-based viewing.
   
 | Please visit these websites for more information:
-| https://afni.nimh.nih.gov/
 | https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
+| https://afni.nimh.nih.gov/
 
 |
 
@@ -35,8 +35,10 @@ doc/
     documentation for AFNI (though this is outdated; current doc content resides in its own git tree here: https://github.com/afni/afni_doc)
 src/
     source code for AFNI
+src/python_scripts/
+    Python command programs and library files; distributed together as the "afnipy" module, which can be imported and used as ``from afnipy import ...``
 tests/
-    tests for AFNI
+    tests for AFNI codebase
 
 Relevant git-ology for AFNI
 ---------------------------
@@ -53,6 +55,10 @@ First time stuff
 2. Create a copy of the repository on your machine::
 
     git clone https://github.com/afni/afni.git
+
+3. Forking a branch and making a pull request (PR):
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/pull_requests/pr_ex.html
 
 Stuff to do as needed
 ~~~~~~~~~~~~~~~~~~~~~
