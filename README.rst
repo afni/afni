@@ -58,7 +58,7 @@ Getting started with AFNI: quick guides
 
     * `Instructions per OS <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
     
-    * `Docker notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html>`_
+    * `Docker container notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html>`_
 
 * Educational resources
 
@@ -66,10 +66,13 @@ Getting started with AFNI: quick guides
     
     * `Additional Bootcamp recordings <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html>`_
         
-    * `Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>`_
+    * `Links to AFNI handouts, keyboard shortcuts and startup tips <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>`_
+    
+    * `Page linking to all program helps <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/main_toc.html>`_
+    
+    * `"Classified" program guide (AFNI programs grouped thematically) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html>`_
     
     * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/unix_tutorial/index.html>`_
-
 
 * Code examples
 
@@ -79,11 +82,14 @@ Getting started with AFNI: quick guides
 
 * Additional resources
 
+    * `Methods publications and reference list <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html>`_
+
     * `Nonhuman projects and processing (with demos) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html>`_
         
     * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
 
     * `Statistics notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html>`_
+    
 
 Relevant git-ology for AFNI
 ---------------------------
