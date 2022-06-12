@@ -36,7 +36,7 @@ doc/
 src/
     source code for AFNI
 src/python_scripts/
-    Python command programs and library files; distributed together as the "afnipy" module, which can be imported and used as ``from afnipy import ...``
+    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
 tests/
     tests for AFNI codebase
 
@@ -63,7 +63,7 @@ First time stuff
 Stuff to do as needed
 ~~~~~~~~~~~~~~~~~~~~~
 
-- Getting updates from the repository::
+- Getting updates from the master branch of the repository::
 
     git pull origin master
 
