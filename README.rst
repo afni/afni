@@ -54,7 +54,7 @@ tests/
 Getting started with AFNI: quick guides
 ----------------------------------------------
 
-* `[Installing AFNI on your system (instructions per OS)]<https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
+* `Installing AFNI on your system (instructions per OS) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
 
 * Educational resources:
 
