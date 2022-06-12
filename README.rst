@@ -16,8 +16,8 @@ images at all stages of analysis.  It contains C, Python and R programs, as well
 analysis and display of multiple MRI modalities: 
 
 - functional MRI (FMRI)
-    - resting state, task-based or naturalistic paradigms
-    - single- or multi-echo acquisitions
+  - resting state, task-based or naturalistic paradigms
+  - single- or multi-echo acquisitions
 - anatomical/structural MRI
 - diffusion weighted imaging (DWI)
   - for DTI or HARDI modeling and tractography
