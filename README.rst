@@ -51,45 +51,45 @@ src/python_scripts/
 tests/
     tests for AFNI codebase
 
-Getting started with AFNI: quick guides
+
+Getting started with AFNI: quick guide links
 ----------------------------------------------
 
-* A [Installing AFNI on your system (instructions per OS)](https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html)
+* Installing AFNI on your system
 
-* Educational resources:
-
-    * AFNI Academy series:
+    * `Instructions per OS <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
     
-        https://www.youtube.com/c/afnibootcamp
+    * `Docker container notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html>`_
 
-    * Additional Bootcamp recordings:
+* Educational resources
+
+    * `AFNI Academy series <https://www.youtube.com/c/afnibootcamp>`_
     
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+    * `Additional Bootcamp recordings <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html>`_
         
-    * Links to AFNI handouts, keyboard shortcuts, startup tips and "classified" programs:
+    * `Links to AFNI handouts, keyboard shortcuts and startup tips <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>`_
     
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html
+    * `Page linking to all program helps <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/main_toc.html>`_
     
-* Code examples
+    * `"Classified" program guide (AFNI programs grouped thematically) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html>`_
+    
+    * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/unix_tutorial/index.html>`_
 
-    * Tutorials and demos:
+* Code, command, script and functionality examples
+
+    * `Tutorials and demos <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html>`_
+
+    * `Publication-based code examples (AFNI Codex) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_toc.html>`_
+
+* Additional resources
+
+    * `Methods publications and reference list <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html>`_
+
+    * `Nonhuman projects and processing (with demos) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html>`_
         
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html
+    * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
 
-    * Publication-based code examples (AFNI Codex):
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_toc.html
-
-* Additional
-
-    * Nonhuman projects and processing (with demos):
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html
-        
-    * Templates and atlases:
-    
-        https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html
-
+    * `Statistics notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html>`_
 
 
 Relevant git-ology for AFNI
