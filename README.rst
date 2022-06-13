@@ -23,33 +23,18 @@ analysis and display of multiple MRI modalities:
 * diffusion weighted imaging (DWI)
     * for DTI or HARDI modeling and tractography
 
-... and has tools that have been applied to other modalities, such as ECoG, EEG, MEG, and more.  
+Many AFNI programs have been applied and adapted to other modalities, such as ECoG, EEG, MEG, and more.  
 
 It has graphical displays for both slice-wise and surface-based viewing.  In both cases, many aspects of visualization can be scripted for automatic image generation.
   
 | Please visit these websites for more information:
-| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
-| https://afni.nimh.nih.gov/
+| AFNI homepage: https://afni.nimh.nih.gov/
+| Main AFNI docs: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
 
 |
 
 | For questions on using AFNI programs, our Message Board is here:  
 | https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
-
-
-AFNI code directory
--------------------
-
-Currently top directory contains three sub-directories
-
-doc/
-    documentation for AFNI (though this is outdated; current doc content resides in its own git tree here: https://github.com/afni/afni_doc)
-src/
-    source code for AFNI
-src/python_scripts/
-    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
-tests/
-    tests for AFNI codebase
 
 
 Getting started with AFNI: quick guide links
@@ -90,6 +75,21 @@ Getting started with AFNI: quick guide links
     * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
 
     * `Statistics notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html>`_
+
+
+AFNI code directory
+-------------------
+
+Currently, the top directory contains three sub-directories, each with further code stratification:
+
+doc/
+    documentation for AFNI (though this is outdated; current doc content resides in its own git tree here: https://github.com/afni/afni_doc)
+src/
+    source code for AFNI
+src/python_scripts/
+    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
+tests/
+    tests for AFNI codebase
 
 
 Relevant git-ology for AFNI
