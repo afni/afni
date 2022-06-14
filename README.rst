@@ -75,6 +75,8 @@ Getting started with AFNI: quick guide links
     * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
 
     * `Statistics notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html>`_
+    
+    * ` Notes on building AFNI Sphinx docs (afni_doc) locally <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/sphinx_docs/setup.html>`_
 
 
 AFNI code directory
