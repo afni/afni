@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jun, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove essentially duped final_epi_unif dset and uvar",
+   NULL
+ } ,
+
+ {  6, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -align_unifize_epi local method, -align_opts_eunif",
+   "To apply 3dLocalUnifize from P Taylor."
+ } ,
+
+ { 24, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -command_comment_style",
+   "As requested by the ominous P Taylor."
+ } ,
+
  { 18, May, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "allow for pb00 dsets in standard space",
    "Thanks to Erik (MB audachang) for noting it."

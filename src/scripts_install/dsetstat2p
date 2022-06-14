@@ -9,11 +9,9 @@ set version   = "1.0";  set rev_dat   = "July 1, 2019"
 
 set this_prog = "dsetstat2p"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
-
-set here = $PWD
 
 set ibrick    = ""      # a single brick of a volume
 set istat     = ""      # to be stat

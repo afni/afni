@@ -85,7 +85,7 @@ set version   = "3.8";   set rev_dat   = "Feb 12, 2019"
  
 set this_prog = "fat_proc_filter_dwis" 
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 

@@ -41,7 +41,7 @@ setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_overlap_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 
@@ -459,7 +459,7 @@ else
     echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
 
-cd ${here}
+cd "${here}"
 
 echo ""
 echo "++ DONE! Image output:"

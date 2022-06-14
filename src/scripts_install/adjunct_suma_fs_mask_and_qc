@@ -29,7 +29,7 @@ set version   = "0.33";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "adjunct_suma_fs_mask_and_qc"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 set subj      = ""
 set odir      = ""

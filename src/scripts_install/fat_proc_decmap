@@ -48,7 +48,7 @@ set version   = "3.31";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_decmap"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -444,7 +444,7 @@ endif
 # --------------------------------------------------------
 
 # leave working dir
-cd $here
+cd "$here"
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n Removing temporary file(s) in working dir: $wdir"

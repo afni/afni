@@ -23,7 +23,7 @@ greeting.RprogDemo <- function ()
   return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           ================== Welcome to 3dMEPFM ==============================
           #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          Version 1.0.0, January 2019
+          Version 1.0.1, May 19 2022
           Author: Cesar Caballero Gaudes (c.caballero@bcbl.eu)
           Basque Center on Cognition, Brain and Language, Spain
           #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -155,6 +155,11 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
       "     Also .1D files where each column is a voxel timecourse.             \n",
       "     If an .1D file is input, you MUST specify the TR with option -TR.   \n"
     ) ),
+
+       '-dbgArgs' = apl(n=0, h = paste( # Gang Chen: added May 19, 2022
+   "-dbgArgs: This option will enable R to save the parameters in a",
+   "         file called .3dMEPFM.dbg.AFNI.args in the current directory",
+   "          so that debugging can be performed.\n", sep='\n')),
 
     '-mask' = apl(1, h = paste(
       "-mask MASK: Process voxels inside this mask only. Default is no masking. \n"
@@ -382,6 +387,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
   com_history <-AFNI.command.history(ExecName, args,NULL)
   lop <- AFNI.new.options.list(history = com_history, parsed_args = ops)
   lop$input <- NULL
+  lop$dbgArgs <- FALSE # Gang Chen: for debugging purpose
   lop$TR <- NULL
   lop$mask <- NULL
   lop$nNodes <- 1
@@ -414,6 +420,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
     switch(opname,
 
            input  = lop$input <- c(lop$input,ops[[i]]),
+	   dbgArgs = lop$dbgArgs <- TRUE,
            TR = lop$TR <- ops[[i]],
            mask = lop$mask <- ops[[i]],
            maxiterfactor = lop$maxiterfactor <- ops[[i]],
@@ -817,7 +824,9 @@ Rprog.MEPFM <- function( inData, infoDeconv = NULL) {
 if (!exists('.DBG_args')) {
   args = (commandArgs(TRUE))
   rfile <- first.in.path(sprintf('%s.R',ExecName))
-  save(args, rfile, file=sprintf('.%s.dbg.AFNI.args',ExecName), ascii = TRUE)
+  if ( '-dbgArgs' %in% args ) {
+     try(save(args, rfile, file=sprintf('.%s.dbg.AFNI.args',ExecName), ascii = TRUE), silent=TRUE)
+  }
 } else {
   note.AFNI("Using .DBG_args resident in workspace");
   args <- .DBG_args

@@ -6,7 +6,7 @@
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set stat = 0
-set CurDir = $PWD
+set CurDir = "$PWD"
 set tmps = `3dnewid -fun`
 
 goto PARSE_COMMAND
@@ -507,14 +507,14 @@ DOWNSAMPLE:
       endif
       set SurfAnatPrefix = $tmpPrefix
       set SurfAnat = $SurfAnatPrefix$SurfAnatView
-      cd $CurDir
+      cd "$CurDir"
    endif
    goto Ret_DOWNSAMPLE
 
 STRIP_EXP_VOL:
    #strip skull off of EXP_VOL
    set Skip = 0
-   cd $CurDir
+   cd "$CurDir"
    if ($StripSkull == 1 || $StripSkull == 3 ) then
       set ExpAnat_NoSkullPrefix = $ExpAnatPrefix"_ns"
       set ExpAnat_NoSkull = $ExpAnatPrefix"_ns"$ExpAnatView
@@ -620,7 +620,7 @@ ALIGN_CENTERS:
 RESAMPLE:
    #resample Experiment volume to look like SurfAnat
    set Skip = 0
-   cd $CurDir
+   cd "$CurDir"
    set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"$clpbelow
    set ExpAnat_Resamp = $ExpAnat_ResampPrefix$SurfAnatView
    echo ""
@@ -672,7 +672,7 @@ RESAMPLE:
    goto Ret_RESAMPLE
    
 REGISTER:
-   cd $CurDir
+   cd "$CurDir"
    if ($prefix == '') then
       set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
    else
@@ -1311,7 +1311,7 @@ BEND:
    goto END
    
 END:
-   cd $CurDir
+   cd "$CurDir"
    if ($cleanup) then
       \rm -f pre.${tmps}.* >& /dev/null
       foreach ff ($rmlist)

@@ -12,7 +12,7 @@ set version   = "1.1";  set rev_dat   = "Feb 21, 2021"
 
 set this_prog = "@djunct_edgy_align_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 

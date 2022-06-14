@@ -1,6 +1,6 @@
 #!/bin/tcsh -fe
 
-set CurDir = $PWD
+set CurDir = "$PWD"
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
