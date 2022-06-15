@@ -93,6 +93,11 @@ static int   nsim        = 0 ;     /* ncase * niter_clust = number of sim volume
 # define do_FARvox   0
 #endif
 
+/* Debugging threshold stuff -- 03 Jun 2022 [RWC] */
+
+static int do_cutoff_stepping = 0 ;
+static int cutoff_bot = 0 , cutoff_top = 0 ;
+
 /* p-value thresholds, etc. */
 
 #define PMAX 0.5
@@ -228,6 +233,19 @@ void get_options( int argc , char **argv )
 ENTRY("get_options") ;
 
   while( nopt < argc ){  /* scan until all args processed */
+
+    /*-----  -cutoff_step  [03 Jun 2022] -----*/
+
+    if( strcasecmp(argv[nopt],"-cutoff_step") == 0 ){ /* for debugging */
+      if( ++nopt >= argc-1 )
+        ERROR_exit("Need 2 values after '%s' :(",argv[nopt-1]) ;
+      do_cutoff_stepping = 1 ;
+      cutoff_bot = (int)strtod(argv[nopt++],NULL) ;
+      cutoff_top = (int)strtod(argv[nopt++],NULL) ;
+      if( cutoff_bot < 1 || cutoff_top < cutoff_bot )
+        ERROR_exit("Illegal values in '%s %s %s'",argv[nopt-3],argv[nopt-2],argv[nopt-1]) ;
+      continue ;
+    }
 
     /*-----  -ncase N lab1 lab2 ... labN -----*/
 
@@ -1034,6 +1052,21 @@ static float inverse_interp_extreme( float alpha0, float alpha1, float alphat,
    return xx ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Find the closest value in the history to the goal */
+
+int find_closest_value( float fgoal ,
+                        int ntfp , float *tfs , float *fps )
+{
+   int jj, jd ; float adf, mdf ;
+   mdf = fabsf(fps[0]-fgoal) ; jd = 0 ;
+   for( jj=1 ; jj < ntfp ; jj++ ){
+     adf = fabsf(fps[jj]-fgoal) ;
+     if( adf < mdf ){ mdf = adf ; jd = jj ; }
+   }
+   return jd ;
+}
+
 /*===========================================================================*/
 /* this is too complicated, and should be function-ized :( */
 /* which will never happen :) */
@@ -1056,6 +1089,8 @@ int main( int argc , char *argv[] )
    int ifarp ;
    float *gthrout , *gthrH ;
    int ntfp=0 , ntfp_all=0 ; float *tfs=NULL , *fps=NULL ;
+   int use_regula_falsi ;
+   float tfrac_breakout , farperc_breakout ; int nedge,npt,nmin,ntest,jthresh ;
 
    /*----- help me if you can (I'm feeling down) -----*/
 
@@ -1126,6 +1161,12 @@ int main( int argc , char *argv[] )
        " -prefix      something useful\n"
        " -verb        be more verbose\n"
        " -quiet       silentium est aureum\n"
+       "\n"
+       " -cutoff_step a b\n"
+       "              Instead of searching for goal FAR values, just scan thru\n"
+       "              the cutoff steps to compute the FAR rate at each value\n"
+       "              for a <= cutoff <= b\n"
+       "            * This is for debugging [RWC]\n"
 
 #if 0 /* disabled */
        " -FOMcount    turn on FOMcount output\n"
@@ -1539,10 +1580,11 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
 
      nit33 = 1.0f/(niter_clust+0.333f) ;
 
-     ntfp = 0 ; ntfp_all = 128 ;
-     tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
-     fps  = (float *)malloc(sizeof(float)*ntfp_all) ;
+     ntfp = 0 ; ntfp_all = 128 ;                       /* keeping track of */
+     tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;  /* results for all   */
+     fps  = (float *)malloc(sizeof(float)*ntfp_all) ;  /* tfrac levels tried */
 
+#define PPERC 0.222f  /* precision of desired result */
      farlast = farplist[0] ;
      for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){  /* loop over FAR goals */
 
@@ -1552,45 +1594,61 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
          INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
                       abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
-       /* tfrac = FOM count fractional threshold;
-                  will be adjusted to find the farp_goal FPR goal */
+       /* set tfrac = initial FOM count fractional threshold;
+                      tfrac will be adjusted to find the farp_goal FPR goal */
 
        if( ifarp == 0 ){                                     /* first time thru */
          tfrac = (4.0f+farp_goal)*0.000777f ;
+
        } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
          tfrac *= 1.0777f * farp_goal / farlast ;     /* adjust previous result */
+
        } else {
-         int jj, jd ; float adf, mdf ;         /* later: use closest in history */
-         mdf = fabsf(fps[0]-farp_goal) ; jd = 0 ;   /* to adjust starting point */
-         for( jj=1 ; jj < ntfp ; jj++ ){
-           adf = fabsf(fps[jj]-farp_goal) ;
-           if( adf < mdf ){ mdf = adf ; jd = jj ; }
+         int jd ; float fj,tj ;                     /* later: use closest in history */
+         qsort_floatfloat( ntfp , tfs , fps ) ;     /* to adjust starting point */
+         jd = find_closest_value( farp_goal , ntfp,tfs,fps ) ;
+         fj = fps[jd] ; tj = tfs[jd] ;
+         if( jd == ntfp-1 && fj <= farp_goal ){           /* beyond last */
+           tfrac = 1.0111f * tj * farp_goal / fj ;
+         } else if( jd == 0 && fj >= farp_goal ){         /* below first (shouldn't happen) */
+           tfrac = 0.9876f * tj * farp_goal / fj ;
+           WARNING_message("farp_goal=%.1g%% is weirdly small compared to %.1g%%",farp_goal,fj) ;
+         } else if( fabsf(fj-farp_goal) <= PPERC ){       /* very close (shouldn't happen) */
+           tfrac = tj ;
+           WARNING_message("farp_goal=%.1g%% is very close to previously seen %.1g%%",farp_goal,fj) ;
+         } else {                                         /* in between somewhere */
+           float fn,tn ; int jn ;
+           if( fj <= farp_goal ) jn = jd+1 ;  /* set 'neighor' index jn so that */
+           else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
+           fn = fps[jn] ; tn = tfs[jn] ;
+           if( fabsf(tn-tj) < 0.01f || fabsf(fn-fj) < 0.01f ){ /* shouldn't happen (I hope) */
+             tfrac = tj ;
+           } else {                                        /* linear interpolation to */
+             tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ; /* get t as a function of f */
+           }
          }
-         tfrac = 1.0111f * tfs[jd] * farp_goal / fps[jd] ;
        }
 
        itrac = 0 ;
        farpercold = farperc = 0.0f ; tfracold = tfrac ;
+       use_regula_falsi = 1 ;
 
-   /*--- Loop back to here with adjusted tfrac ---*/
+   /*--- Loop back to here and compute FPR with adjusted tfrac ---*/
 
 GARP_LOOPBACK:
      {
-       float min_tfrac,a0,a1 ; int nedge,nmin,ntest,npt,jthresh ;
+       float min_tfrac ;
        min_tfrac = 6.0f / niter_clust ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
        itrac++ ;                                      /* number of iterations */
        nfar = 0 ;                                          /* total FAR count */
        nedge = nmin = ntest = 0 ;                     /* number of edge cases */
 
-         /* we take ithresh-th largest FOM for each case as the threshold */
-#if 0
-       ithresh = (int)(tfrac*niter_clust) ;                  /* FOM count threshold */
-#else
-       ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
-#endif
+       /* we take ithresh-th largest FOM for each case as the threshold */
 
-         /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
+       ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
+
+       /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
 
        ithresh_list[itrac-1] = ithresh ;
        if( itrac > 3 &&
@@ -1603,31 +1661,36 @@ GARP_LOOPBACK:
        if( verb )
          ININFO_message("     #%d: Testing global thresholds at %g ==> %d",itrac,tfrac,ithresh) ;
 
-       /* compute the global thresholds for each case */
+       /* compute the global thresholds for each case, given ithresh and tfrac */
 
-       for( qcase=0 ; qcase < ncase ; qcase++ ){
-         for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-           npt = nfomglob[qcase][qpthr] ; /* how many FOM values here */
-           jthresh = ithresh ;         /* default index of FOM thresh */
+#define COMPUTE_FTHAR(iith,tfff) \
+   do{ float a0,a1 ;                                                     \
+      nedge = 0 ;                                                        \
+      for( qcase=0 ; qcase < ncase ; qcase++ ){                          \
+       for( qpthr=0 ; qpthr < npthr ; qpthr++ ){                         \
+        npt = nfomglob[qcase][qpthr] ; /* how many FOM values here */    \
+        jthresh = iith ;            /* default index of FOM thresh */    \
+        if( jthresh+1 >= npt ){   /* edge case: too few FOM values */    \
+          jthresh = npt-2 ; nedge++ ;         /* should not happen */    \
+        }                                                                \
+        a0 = ((float)jthresh+0.666f)*nit33 ;                             \
+        a1 = a0 + nit33 ;                                                \
+        fthar0[qcase][qpthr] = inverse_interp_extreme(                   \
+                                   a0,a1,tfff,                           \
+                                   fomglob0[qcase][qpthr][jthresh],      \
+                                   fomglob0[qcase][qpthr][jthresh+1] ) ; \
+        fthar1[qcase][qpthr] = inverse_interp_extreme(                   \
+                                   a0,a1,tfff,                           \
+                                   fomglob1[qcase][qpthr][jthresh],      \
+                                   fomglob1[qcase][qpthr][jthresh+1] ) ; \
+        fthar2[qcase][qpthr] = inverse_interp_extreme(                   \
+                                   a0,a1,tfff,                           \
+                                   fomglob2[qcase][qpthr][jthresh],      \
+                                   fomglob2[qcase][qpthr][jthresh+1] ) ; \
+      }}                                                                 \
+   } while(0)
 
-           if( jthresh+1 >= npt ){   /* edge case: too few FOM values */
-             jthresh = npt-2 ; nedge++ ;         /* should not happen */
-           }
-           a0 = ((float)jthresh+0.666f)*nit33 ;
-           a1 = a0 + nit33 ;
-           fthar0[qcase][qpthr] = inverse_interp_extreme(
-                                      a0,a1,tfrac,
-                                      fomglob0[qcase][qpthr][jthresh],
-                                      fomglob0[qcase][qpthr][jthresh+1] ) ;
-           fthar1[qcase][qpthr] = inverse_interp_extreme(
-                                      a0,a1,tfrac,
-                                      fomglob1[qcase][qpthr][jthresh],
-                                      fomglob1[qcase][qpthr][jthresh+1] ) ;
-           fthar2[qcase][qpthr] = inverse_interp_extreme(
-                                      a0,a1,tfrac,
-                                      fomglob2[qcase][qpthr][jthresh],
-                                      fomglob2[qcase][qpthr][jthresh+1] ) ;
-       }}
+       COMPUTE_FTHAR(ithresh,tfrac) ;
 
        /*-------------- now loop over realizations and threshold them --------*/
  AFNI_OMP_START ;     /*------------ start parallel section ------------------*/
@@ -1644,7 +1707,8 @@ GARP_LOOPBACK:
      far = MRI_FLOAT_PTR(fim) ; }
 
      /* use the thresholds computed above to multi-threshold
-        each realization, and create count of total FA and in each voxel */
+        each realization, and create count of total FA and in each voxel
+        -- this is the slow slow slow part ------------------------------ */
 
 /* #pragma omp for schedule(dynamic,333) */
 #pragma omp for                                            /* parallelized */
@@ -1679,7 +1743,8 @@ GARP_LOOPBACK:
      farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
      farlast    = farperc ;                         /* save for next FPR goal */
 
-     /* save results for later re-use */
+     /* save ALL results of tfrac vs. farperc for later re-use */
+
      if( ntfp == ntfp_all ){
        ntfp_all += 128 ;
        tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
@@ -1687,44 +1752,111 @@ GARP_LOOPBACK:
      }
      tfs[ntfp] = tfrac ; fps[ntfp] = farperc ; ntfp++ ;
 
-     /* farcut = precision desired for our FPR goal */
-     farcut = 0.222f ;
-     if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
-
      if( verb )
-       ININFO_message("         global FPR=%.2f%% (%.1fs)", farperc,COX_clock_time() ) ;
+       ININFO_message("         global FPR=%.2f%% (%.1fs nedge=%d)", farperc,COX_clock_time(),nedge ) ;
      MEMORY_CHECK(" ") ;
 
-     /* if no substantial progress, quit */
+     /* farcut = precision desired for our FPR goal (in percents) */
+     /*          that is, between farp_goal-farcut and farp_goal+farcut */
 
-     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0222f ){
-       ININFO_message("         ((Progress too slow - breaking out **))") ;
+     farcut = PPERC ;
+     if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;  /* be less picky as iterations mount */
+
+     /* check for convergence! */
+
+     if( fabsf(farperc-FG_GOAL) <= farcut ){
+       if( verb )
+         ININFO_message("         ** CONVERGENCE within precision %.3f%%" , farcut) ;
        goto GARP_BREAKOUT ;
      }
 
-     /* try another tfrac to get closer to our goal? */
+     /* if no substantial progress from last time, quit */
 
-     if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
-       float fff , dtt ;
-       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.1f ){ /* scale */
-         fff = FG_GOAL/farperc ;
-         if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         dtt = (fff-1.0f)*tfrac ;        /* tfrac step */
-         if( itrac > 2 ) dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
-         ttemp = tfrac ; tfrac += dtt ;
-       } else {                                      /* linear inverse interpolate */
-         fff = (farperc-farpercold)/(tfrac-tfracold) ;
-         ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
-       }
-#define TFTOP (0.666f*TOPFRAC)
-       tfracold = ttemp ;
-            if( tfrac < min_tfrac ) tfrac = min_tfrac ;
-       else if( tfrac > TFTOP     ) tfrac = TFTOP ;
-       goto GARP_LOOPBACK ;
+     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0222f ){
+       ININFO_message("         ((Progress too slow - breaking out))" ) ;
+       goto GARP_BREAKOUT ;
      }
 
+     if( itrac >= MAXITE ){
+       ININFO_message("         ((Too many iterations - breaking out))" ) ;
+       goto GARP_BREAKOUT ;
+     }
+
+     /* try another tfrac to get closer to our goal */
+
+     use_regula_falsi = (itrac > 1 && itrac < 5) ; /* RF only gets 3 chances */
+     ttemp = tfrac ;
+
+     { float fff , dtt ;
+       /* on first step thus far -- just scale to try to get closer */
+       if( itrac == 1 ){
+         fff = FG_GOAL/farperc ;  /* ratio of how far off we are */
+         if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+         dtt = (fff-1.0f)*tfrac ;        /* tfrac step */
+         tfrac += dtt ;
+
+       /* on subsequent steps */
+       } else {
+         int jd ; float fj,tj ;                     /* find closest in history */
+         qsort_floatfloat( ntfp , tfs , fps ) ;
+         jd = find_closest_value( farp_goal , ntfp,tfs,fps ) ;
+         fj = fps[jd] ; tj = tfs[jd] ;
+
+         if( jd == ntfp-1 && fj <= farp_goal ){      /* beyond last in history */
+           fff   = 1.0111f * farp_goal / fj ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac *= fff ;
+
+         } else if( jd == 0 && fj >= farp_goal ){    /* below first (shouldn't happen) */
+           fff   = 0.9876f * farp_goal / fj ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac *= fff ;
+
+         } else if( fabsf(fj-farp_goal) < PPERC ){   /* should not happen */
+           tfrac = tj ;
+
+         } else {                                    /* bracketed, by God! */
+           float fn,tn ; int jn ;
+           if( fj <= farp_goal ) jn = jd+1 ;  /* set 'neighor' index jn so that */
+           else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
+           fn = fps[jn] ; tn = tfs[jn] ;
+           if( fabsf(tn-tj) < 0.01f || fabsf(fn-fj) < 0.01f ){ /* shouldn't happen (I hope) */
+             tfrac = tj ;
+           } else if( use_regula_falsi ){     /* linear interpolation in f to find t*/
+             tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ;
+           } else {                           /* binary search in t values */
+             tfrac = 0.5f*(tn+tj) ;           /* (if regula falsi didn't work) */
+             WARNING_message("         switched from regula falsi to bisection") ;
+           }
+         }
+       }
+     } /* end of computing updated tfrac for next iteration */
+
+#define TFTOP (0.666f*TOPFRAC)
+     tfracold = ttemp ;
+          if( tfrac < min_tfrac ) tfrac = min_tfrac ;
+     else if( tfrac > TFTOP     ) tfrac = TFTOP ;
+
+     goto GARP_LOOPBACK ;  /* now try again */
+
 GARP_BREAKOUT: ; /*nada*/
-   } /* end of iterations to find the ideal farperc */
+    } /* end of iterations to find the ideal farperc */
+
+       /* find the closest result in the entire list thus far */
+
+       { int jd ;
+         jd = find_closest_value( farp_goal , ntfp,tfs,fps ) ;  /* use the closest result */
+         tfrac_breakout = tfs[jd] ; farperc_breakout = fps[jd] ;
+       }
+
+       /* recompute thresholds if necessary -- if closest result
+          above does not corresponde to tfrac used in the last iteration! */
+
+       if( tfrac_breakout != tfrac ){
+         tfrac = tfrac_breakout ; farperc = farperc_breakout ;
+         ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
+         COMPUTE_FTHAR(ithresh,tfrac) ;
+       }
 
        /*---::: Write results out, then this farp_goal is done :::---*/
 
@@ -2496,7 +2628,7 @@ FARP_LOOPBACK:
      tfs[ntfp] = tfrac ; fps[ntfp] = farperc ; ntfp++ ;
 
      /* farcut = precision desired for our FPR goal */
-     farcut = 0.222f ;
+     farcut = PPERC ;
      if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
 
      if( verb )
