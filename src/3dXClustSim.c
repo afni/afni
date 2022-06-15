@@ -1794,6 +1794,7 @@ GARP_LOOPBACK:
          if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
          dtt = (fff-1.0f)*tfrac ;        /* tfrac step */
          tfrac += dtt ;
+         ININFO_message("         ((%d: Updating tfrac by simple scaling))" , itrac ) ;
 
        /* on subsequent steps */
        } else {
@@ -1806,14 +1807,17 @@ GARP_LOOPBACK:
            fff   = 1.0111f * farp_goal / fj ;
            if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
            tfrac *= fff ;
+           ININFO_message("         ((%d: Updating tfrac by up-scaling))" , itrac ) ;
 
          } else if( jd == 0 && fj >= farp_goal ){    /* below first (shouldn't happen) */
            fff   = 0.9876f * farp_goal / fj ;
            if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
            tfrac *= fff ;
+           ININFO_message("         ((%d: Updating tfrac by down-scaling))" , itrac ) ;
 
          } else if( fabsf(fj-farp_goal) < PPERC ){   /* should not happen */
            tfrac = tj ;
+           ININFO_message("         ((%d: Not updating tfrac - should not happen!))" , itrac ) ;
 
          } else {                                    /* bracketed, by God! */
            float fn,tn ; int jn ;
@@ -1822,11 +1826,13 @@ GARP_LOOPBACK:
            fn = fps[jn] ; tn = tfs[jn] ;
            if( fabsf(tn-tj) < 0.01f || fabsf(fn-fj) < 0.01f ){ /* shouldn't happen (I hope) */
              tfrac = tj ;
+             ININFO_message("         ((%d: Not updating tfrac - shouldn't happen!))" , itrac ) ;
            } else if( use_regula_falsi ){     /* linear interpolation in f to find t*/
              tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ;
+             ININFO_message("         ((%d: Updating tfrac by linear interpolation))" , itrac ) ;
            } else {                           /* binary search in t values */
              tfrac = 0.5f*(tn+tj) ;           /* (if regula falsi didn't work) */
-             WARNING_message("         switched from regula falsi to bisection") ;
+             ININFO_message("         ((%d: Updating tfrac by bisection))" , itrac ) ;
            }
          }
        }
