@@ -1833,8 +1833,10 @@ GARP_LOOPBACK:
            else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
            fn = fps[jn] ; tn = tfs[jn] ;
            if( fabsf(tn-tj) < 0.00001f || fabsf(fn-fj) < 0.001f ){ /* shouldn't happen (I hope) */
-             tfrac = tj ;
-             ININFO_message("         ((%d: Not updating tfrac - shouldn't happen!))" , itrac ) ;
+             fff   = cbrtf( farp_goal / fj ) ;
+             if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+             tfrac = tj*fff ;
+             ININFO_message("         ((%d: Updating tfrac in close quarters - kind of weird))" , itrac ) ;
            } else if( use_regula_falsi ){     /* linear interpolation in f to find t*/
              tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ;
              ININFO_message("         ((%d: Updating tfrac by linear interpolation))" , itrac ) ;
