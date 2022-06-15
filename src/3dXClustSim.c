@@ -1832,7 +1832,7 @@ GARP_LOOPBACK:
            if( fj <= farp_goal ) jn = jd+1 ;  /* set 'neighor' index jn so that */
            else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
            fn = fps[jn] ; tn = tfs[jn] ;
-           if( fabsf(tn-tj) < 0.01f || fabsf(fn-fj) < 0.01f ){ /* shouldn't happen (I hope) */
+           if( fabsf(tn-tj) < 0.00001f || fabsf(fn-fj) < 0.001f ){ /* shouldn't happen (I hope) */
              tfrac = tj ;
              ININFO_message("         ((%d: Not updating tfrac - shouldn't happen!))" , itrac ) ;
            } else if( use_regula_falsi ){     /* linear interpolation in f to find t*/
