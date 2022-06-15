@@ -1604,17 +1604,23 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
          tfrac *= 1.0777f * farp_goal / farlast ;     /* adjust previous result */
 
        } else {
-         int jd ; float fj,tj ;                     /* later: use closest in history */
+         int jd ; float fj,tj,fff ;                 /* later: use closest in history */
          qsort_floatfloat( ntfp , tfs , fps ) ;     /* to adjust starting point */
          jd = find_closest_value( farp_goal , ntfp,tfs,fps ) ;
          fj = fps[jd] ; tj = tfs[jd] ;
          if( jd == ntfp-1 && fj <= farp_goal ){           /* beyond last */
-           tfrac = 1.0111f * tj * farp_goal / fj ;
+           fff = 1.0111f * farp_goal / fj ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac = tj * fff ;
          } else if( jd == 0 && fj >= farp_goal ){         /* below first (shouldn't happen) */
-           tfrac = 0.9876f * tj * farp_goal / fj ;
+           fff = 0.9876f * farp_goal / fj ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac = tj * fff ;
            WARNING_message("farp_goal=%.1g%% is weirdly small compared to %.1g%%",farp_goal,fj) ;
          } else if( fabsf(fj-farp_goal) <= PPERC ){       /* very close (shouldn't happen) */
-           tfrac = tj ;
+           fff   = cbrtf( farp_goal / fj ) ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac = tj*fff ;
            WARNING_message("farp_goal=%.1g%% is very close to previously seen %.1g%%",farp_goal,fj) ;
          } else {                                         /* in between somewhere */
            float fn,tn ; int jn ;
@@ -1816,8 +1822,10 @@ GARP_LOOPBACK:
            ININFO_message("         ((%d: Updating tfrac by down-scaling))" , itrac ) ;
 
          } else if( fabsf(fj-farp_goal) < PPERC ){   /* should not happen */
-           tfrac = tj ;
-           ININFO_message("         ((%d: Not updating tfrac - should not happen!))" , itrac ) ;
+           fff   = cbrtf( farp_goal / fj ) ;
+           if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+           tfrac = tj*fff ;
+           ININFO_message("         ((%d: Updating tfrac by scaling from historical best fit))" , itrac ) ;
 
          } else {                                    /* bracketed, by God! */
            float fn,tn ; int jn ;
