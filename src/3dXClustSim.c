@@ -1599,9 +1599,11 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
 
        if( ifarp == 0 ){                                     /* first time thru */
          tfrac = (4.0f+farp_goal)*0.000777f ;
+         ININFO_message("     Initial tfrac set by ad hoc formula") ;
 
        } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
-         tfrac *= 1.0777f * farp_goal / farlast ;     /* adjust previous result */
+         tfrac  = 1.0666f * tfs[0] * farp_goal / fps[0] ;  /* adjust that result */
+         ININFO_message("     Initial tfrac by scaling from previous result") ;
 
        } else {
          int jd ; float fj,tj,fff ;                 /* later: use closest in history */
@@ -1612,25 +1614,30 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
            fff = 1.0111f * farp_goal / fj ;
            if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
            tfrac = tj * fff ;
+           ININFO_message("     Initial tfrac by scaling from largest previous result") ;
          } else if( jd == 0 && fj >= farp_goal ){         /* below first (shouldn't happen) */
            fff = 0.9876f * farp_goal / fj ;
            if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
            tfrac = tj * fff ;
-           WARNING_message("farp_goal=%.1g%% is weirdly small compared to %.1g%%",farp_goal,fj) ;
+           ININFO_message("     Initial tfrac by scaling from smallest previous result") ;
          } else if( fabsf(fj-farp_goal) <= PPERC ){       /* very close (shouldn't happen) */
            fff   = cbrtf( farp_goal / fj ) ;
            if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
            tfrac = tj*fff ;
-           WARNING_message("farp_goal=%.1g%% is very close to previously seen %.1g%%",farp_goal,fj) ;
+           ININFO_message("     Initial tfrac by scaling from previous result close to desired FPR") ;
          } else {                                         /* in between somewhere */
            float fn,tn ; int jn ;
            if( fj <= farp_goal ) jn = jd+1 ;  /* set 'neighor' index jn so that */
            else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
            fn = fps[jn] ; tn = tfs[jn] ;
            if( fabsf(tn-tj) < 0.00001f || fabsf(fn-fj) < 0.001f ){ /* shouldn't happen (I hope) */
-             tfrac = tj ;
+             fff   = cbrtf( farp_goal / fj ) ;
+             if( fff > 1.666f ) fff = 1.666f ; else if( fff < 0.600f ) fff = 0.600f ;
+             tfrac = tj*fff ;
+             ININFO_message("     Initial tfrac by scaling from very flat part of FPR(t) curve") ;
            } else {                                        /* linear interpolation to */
              tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ; /* get t as a function of f */
+             ININFO_message("     Initial tfrac by linear interpolation betwixt previous results") ;
            }
          }
        }
@@ -1873,6 +1880,8 @@ GARP_BREAKOUT: ; /*nada*/
          ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
          COMPUTE_FTHAR(ithresh,tfrac) ;
        }
+
+       farlast = farperc ;                         /* save for next FPR goal */
 
        /*---::: Write results out, then this farp_goal is done :::---*/
 
