@@ -1809,6 +1809,8 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     set opbarrt = ${{odir_img}}/${{opref}}.pbar
     '''.format( opref, ulay_name )
 
+    dtext_u = '''"dset: ${ulay}"'''
+
     # get min/max for informational purposes
     cmd1 = '''
     set minmax = `3dBrickStat 
@@ -1864,9 +1866,10 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     blockid_hov :: {}
     title       :: {}
     text        :: {}
+    dset_ulay   :: {}
     EOF
     '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
-                STR_json_text )
+                STR_json_text, dtext_u )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
