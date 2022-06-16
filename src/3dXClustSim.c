@@ -1664,7 +1664,7 @@ GARP_LOOPBACK:
        /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
 
        ithresh_list[itrac-1] = ithresh ;
-       if( itrac > 3 &&
+       if( itrac > 4 &&
            (ithresh_list[itrac-2] == ithresh || ithresh_list[itrac-3] == ithresh) ){
          ININFO_message("     #%d: would re-iterate at %g ==> %d ; breaking out",
                         itrac,tfrac,ithresh ) ;
@@ -1797,7 +1797,7 @@ GARP_LOOPBACK:
 
      /* try another tfrac to get closer to our goal */
 
-     use_regula_falsi = (itrac > 1 && itrac < 5) ; /* RF only gets 3 chances */
+     use_regula_falsi = (itrac > 1 && itrac < 4) ; /* RF only gets 2 chances */
      ttemp = tfrac ;
 
      { float fff , dtt ;
@@ -1876,6 +1876,8 @@ GARP_BREAKOUT: ; /*nada*/
           above does not corresponde to tfrac used in the last iteration! */
 
        if( tfrac_breakout != tfrac ){
+         ININFO_message("      ** Replacing final tfrac=%g FPR=%.3g%% with best seen: %g %.3gg%%" ,
+                        tfrac , farperc , tfrac_breakout , farperc_breakout ) ;
          tfrac = tfrac_breakout ; farperc = farperc_breakout ;
          ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
          COMPUTE_FTHAR(ithresh,tfrac) ;
