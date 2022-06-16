@@ -3,8 +3,14 @@
  *
  * compile example (consider -pedantic or -Wall):
  *
- * gcc -o clib_01_read_write clib_01_read_write.c       \
- *     -I../include -L../lib -lniftiio -lznz -lz -lm
+ *   gcc -o clib_01_read_write clib_01_read_write.c       \
+ *       -I../include -L../lib -lniftiio -lznz -lz -lm
+ *
+ * or, to compile here, without existing libraries:
+ *
+ *   gcc -DHAVE_ZLIB clib_01_read_write.c -o clib_01_read_write \
+ *       -I ../../niftilib -I ../../znzlib                      \
+ *       ../../niftilib/nifti1_io.c ../../znzlib/znzlib.c -lz -lm
  *
  * R Reynolds   14 Apr 2009
  *----------------------------------------------------------------------
@@ -53,14 +59,14 @@ int main(int argc, char * argv[])
       else if( ! strcmp(argv[ac], "-output") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -output\n");
-            return 2;
+            return 1;
          }
          fout = argv[ac];
       }
       else if( ! strcmp(argv[ac], "-verb") ) {
          if( ++ac >= argc ) {
             fprintf(stderr, "** missing argument for -verb\n");
-            return 2;
+            return 1;
          }
          nifti_set_debug_level(atoi(argv[ac]));
       }
@@ -77,7 +83,7 @@ int main(int argc, char * argv[])
    nim = nifti_image_read(fin, 1);
    if( !nim ) {
       fprintf(stderr,"** failed to read NIfTI image from '%s'\n", fin);
-      return 2;
+      return 1;
    }
 
    /* assign nifti_image fname/iname pair, based on output filename
@@ -85,7 +91,11 @@ int main(int argc, char * argv[])
    if( nifti_set_filenames(nim, fout, 1, 1) ) return 1;
 
    /* if we get here, write the output dataset */
-   nifti_image_write( nim );
+   if( nifti_image_write_status( nim ) ) {
+      fprintf(stderr, "** failed to write nifti_image\n");
+      nifti_image_free( nim ) ;
+      return 1;
+   }
 
    /* and clean up memory */
    nifti_image_free( nim );
