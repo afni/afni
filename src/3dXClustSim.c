@@ -1627,7 +1627,7 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
            if( fj <= farp_goal ) jn = jd+1 ;  /* set 'neighor' index jn so that */
            else                  jn = jd-1 ;  /* farp_goal is between fps[jd] and fps[jn] */
            fn = fps[jn] ; tn = tfs[jn] ;
-           if( fabsf(tn-tj) < 0.01f || fabsf(fn-fj) < 0.01f ){ /* shouldn't happen (I hope) */
+           if( fabsf(tn-tj) < 0.00001f || fabsf(fn-fj) < 0.001f ){ /* shouldn't happen (I hope) */
              tfrac = tj ;
            } else {                                        /* linear interpolation to */
              tfrac = (farp_goal-fj)*(tn-tj)/(fn-fj) + tj ; /* get t as a function of f */
