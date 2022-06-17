@@ -93,10 +93,10 @@ static int   nsim        = 0 ;     /* ncase * niter_clust = number of sim volume
 # define do_FARvox   0
 #endif
 
-/* Debugging threshold stuff -- 03 Jun 2022 [RWC] */
+/* Debugging threshold stuff -- Jun 2022 [RWC] */
 
-static int do_cutoff_stepping = 0 ;
-static int cutoff_bot = 0 , cutoff_top = 0 ;
+static int do_tfrac_stepping = 0 ;
+static float tfrac_bot = 0.0f , tfrac_top = 0.0f ;
 
 /* p-value thresholds, etc. */
 
@@ -234,15 +234,15 @@ ENTRY("get_options") ;
 
   while( nopt < argc ){  /* scan until all args processed */
 
-    /*-----  -cutoff_step  [03 Jun 2022] -----*/
+    /*-----  -tfrac_step  [Jun 2022] -----*/
 
-    if( strcasecmp(argv[nopt],"-cutoff_step") == 0 ){ /* for debugging */
+    if( strcasecmp(argv[nopt],"-tfrac_step") == 0 ){ /* for debugging */
       if( ++nopt >= argc-1 )
         ERROR_exit("Need 2 values after '%s' :(",argv[nopt-1]) ;
-      do_cutoff_stepping = 1 ;
-      cutoff_bot = (int)strtod(argv[nopt++],NULL) ;
-      cutoff_top = (int)strtod(argv[nopt++],NULL) ;
-      if( cutoff_bot < 1 || cutoff_top < cutoff_bot )
+      do_tfrac_stepping = 1 ;
+      tfrac_bot = strtod(argv[nopt++],NULL) ;
+      tfrac_top = strtod(argv[nopt++],NULL) ;
+      if( tfrac_bot <= 0.0f || tfrac_top < tfrac_bot )
         ERROR_exit("Illegal values in '%s %s %s'",argv[nopt-3],argv[nopt-2],argv[nopt-1]) ;
       continue ;
     }
@@ -1162,10 +1162,10 @@ int main( int argc , char *argv[] )
        " -verb        be more verbose\n"
        " -quiet       silentium est aureum\n"
        "\n"
-       " -cutoff_step a b\n"
+       " -tfrac_step a b\n"
        "              Instead of searching for goal FAR values, just scan thru\n"
-       "              the cutoff steps to compute the FAR rate at each value\n"
-       "              for a <= cutoff <= b\n"
+       "              the tfrac steps to compute the FAR rate at each value\n"
+       "              for a <= tfrac <= b (stepsize = a)\n"
        "            * This is for debugging [RWC]\n"
 
 #if 0 /* disabled */
@@ -1586,23 +1586,31 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
 
 #define PPERC 0.222f  /* precision of desired result */
      farlast = farplist[0] ;
+
+     if( do_tfrac_stepping ){  /* Debugggggging stuff [Jun 2022] */
+       numfarp = 1 + (int)( (tfrac_top - tfrac_bot) / tfrac_bot ) ;
+     }
+
      for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){  /* loop over FAR goals */
 
        farp_goal = farplist[ifarp] ;
 
-       if( verb )
+       if( !do_tfrac_stepping && verb )
          INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
                       abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
        /* set tfrac = initial FOM count fractional threshold;
                       tfrac will be adjusted to find the farp_goal FPR goal */
 
-       if( ifarp == 0 ){                                     /* first time thru */
+       if( do_tfrac_stepping ){
+         tfrac = tfrac_bot * ( 1.0f + ifarp ) ;
+
+       } else if( ifarp == 0 ){                              /* first time thru */
          tfrac = (4.0f+farp_goal)*0.000777f ;
          ININFO_message("     Initial tfrac set by ad hoc formula") ;
 
        } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
-         tfrac  = 1.0666f * tfs[0] * farp_goal / fps[0] ;  /* adjust that result */
+         tfrac  = 1.0666f * tfs[0] * farp_goal / fps[0] ; /* adjust that result */
          ININFO_message("     Initial tfrac by scaling from previous result") ;
 
        } else {
@@ -1664,7 +1672,7 @@ GARP_LOOPBACK:
        /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
 
        ithresh_list[itrac-1] = ithresh ;
-       if( itrac > 4 &&
+       if( !do_tfrac_stepping && itrac > 4 &&
            (ithresh_list[itrac-2] == ithresh || ithresh_list[itrac-3] == ithresh) ){
          ININFO_message("     #%d: would re-iterate at %g ==> %d ; breaking out",
                         itrac,tfrac,ithresh ) ;
@@ -1769,6 +1777,8 @@ GARP_LOOPBACK:
        ININFO_message("         global FPR=%.2f%% (%.1fs nedge=%d)", farperc,COX_clock_time(),nedge ) ;
      MEMORY_CHECK(" ") ;
 
+     if( do_tfrac_stepping ) goto GARP_BREAKOUT ;
+
      /* farcut = precision desired for our FPR goal (in percents) */
      /*          that is, between farp_goal-farcut and farp_goal+farcut */
 
@@ -1867,7 +1877,8 @@ GARP_BREAKOUT: ; /*nada*/
 
        /* find the closest result in the entire list thus far */
 
-       { int jd ;
+       if( ! do_tfrac_stepping ){
+         int jd ;
          jd = find_closest_value( farp_goal , ntfp,tfs,fps ) ;  /* use the closest result */
          tfrac_breakout = tfs[jd] ; farperc_breakout = fps[jd] ;
        }
@@ -1875,8 +1886,8 @@ GARP_BREAKOUT: ; /*nada*/
        /* recompute thresholds if necessary -- if closest result
           above does not corresponde to tfrac used in the last iteration! */
 
-       if( tfrac_breakout != tfrac ){
-         ININFO_message("      ** Replacing final tfrac=%g FPR=%.3g%% with best seen: %g %.3gg%%" ,
+       if( ! do_tfrac_stepping && tfrac_breakout != tfrac ){
+         ININFO_message("      ** Replacing final tfrac=%g FPR=%.5g%% with best seen: %g %.5g%%" ,
                         tfrac , farperc , tfrac_breakout , farperc_breakout ) ;
          tfrac = tfrac_breakout ; farperc = farperc_breakout ;
          ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
@@ -1887,7 +1898,8 @@ GARP_BREAKOUT: ; /*nada*/
 
        /*---::: Write results out, then this farp_goal is done :::---*/
 
-       { char *qpref , *cpt , *qax[2] ;
+       if( ! do_tfrac_stepping ){
+         char *qpref , *cpt , *qax[2] ;
          NI_element *qel ;
          float *qar ; int nqq , qdim[2] , iqq ; float gval ;
 
@@ -1999,7 +2011,7 @@ GARP_BREAKOUT: ; /*nada*/
 
        } /* end of writing out NIML elements with global thresholds */
 
-     } /*--- end of loop over FAR goals ---*/
+     } /*--- end of loop over FAR goals (or tfrac stepping) ---*/
 
      /*::: it's NOT the end of the world (yet) :::*/
 
@@ -2021,6 +2033,22 @@ GARP_BREAKOUT: ; /*nada*/
      }
      free(fomglob0); free(fomglob1); free(fomglob2); free(nfomglob);
      free(fthar0)  ; free(fthar1)  ; free(fthar2)  ;
+
+     /*-- Jun 2022: write out the entire table of (tfrac,FPR) values --*/
+
+     if( verb ){
+       int jd ;
+       qsort_floatfloat( ntfp , tfs , fps ) ;
+       fprintf(stderr,
+               "\n"
+               "# TABLE OF ALL COMPUTED (tfrac,FPR) pairs\n"
+               "#  tfrac       FPR\n"
+               "#----------  ----------\n") ;
+       for( jd=0 ; jd < ntfp ; jd++ )
+         fprintf(stderr," %10.5g  %10.5g\n",tfs[jd],fps[jd]) ;
+       fprintf(stderr,"\n") ;
+     }
+
 
      /*-------- can exit NOW NOW NOW unless local ETAC is on the menu --------*/
 
