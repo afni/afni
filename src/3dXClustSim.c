@@ -1769,7 +1769,7 @@ GARP_LOOPBACK:
      if( ntfp == ntfp_all ){
        ntfp_all += 128 ;
        tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
-       fps = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
+       fps = (float *)realloc(fps,sizeof(float)*ntfp_all) ;
      }
      tfs[ntfp] = tfrac ; fps[ntfp] = farperc ; ntfp++ ;
 
