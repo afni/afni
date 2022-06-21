@@ -137,6 +137,10 @@ cat << EOF
                 shiny shinydashboard plotly colourpicker data.table
                 gplots RColorBrewer psych
 
+      -bayes_view : Packages the program bayes_view.
+                    Lots of shiny and ggplots packages.
+                    Only needed if you want to run bayes_view.
+                          
       -circos : Packages for FATCAT_matplot.
                 Installs OmicCircos via biocLite.
                 Actually runs OmicCircos_pkg_install.R.
