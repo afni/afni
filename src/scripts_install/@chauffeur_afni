@@ -3069,6 +3069,32 @@ EXAMPLES.
 
 # ========================================================================
 
+TROUBLESHOOTING ~1~
+
+1) Sometimes, people running this program (or others that use it)
+   might see an error involving "/tmp/.X11-unix", such as:
+
+     -- trying to start Xvfb :570
+     [1] 53344
+     _XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+     _XSERVTransSocketUNIXCreateListener: mkdir(/tmp/.X11-unix) failed, errno = 2
+     _XSERVTransMakeAllCOTSServerListeners: failed to create listener for local
+     (EE)
+     Fatal server error:
+     (EE) Cannot establish any listening sockets - Make sure an X server isn't already running(EE)
+
+   The following has appears to be a good solution (NB: it does
+   require having administrative or sudo privileges):
+
+     mkdir /tmp/.X11-unix
+     sudo chmod 1777 /tmp/.X11-unix
+     sudo chown root /tmp/.X11-unix/
+
+   This is described more here:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/auto_image/auto_%40chauffeur_afni.html#troubleshooting
+
+# ========================================================================
+
 EXAMPLES ~1~
 
  A) Basic vanilla: make a 3x5 montage of just a ulay; there will

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jun, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove essentially duped final_epi_unif dset and uvar",
+   NULL
+ } ,
+
  {  6, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -align_unifize_epi local method, -align_opts_eunif",
    "To apply 3dLocalUnifize from P Taylor."

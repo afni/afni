@@ -1,4 +1,4 @@
-What the H*** is AFNI?
+What is AFNI?
 ----------------------
 
 .. image:: https://travis-ci.org/afni/afni.svg?branch=master
@@ -12,13 +12,24 @@ What the H*** is AFNI?
 
 
 AFNI (Analysis of Functional NeuroImages) is a suite of programs for looking at and analyzing MRI brain
-images.  It comprises a suite of C, Python, R programs and shell scripts primarily developed for the 
-analysis and display of multiple MRI modalities: anatomical, functional MRI (FMRI) and diffusion 
-weighted (DW) data.  It has graphical displays for both slice-wise and surface-based viewing.
+images at all stages of analysis (planning, setting up acquisiton, preprocessing, analysis, quality control and statistical analysis).  It contains C, Python and R programs, as well as shell scripts, primarily developed for the 
+analysis and display of multiple MRI modalities: 
+
+* functional MRI (FMRI)
+    * resting state, task-based or naturalistic paradigms
+    * single- or multi-echo acquisitions
+* anatomical/structural MRI
+    * at various field strengths
+* diffusion weighted imaging (DWI)
+    * for DTI or HARDI modeling and tractography
+
+Many AFNI programs have been applied and adapted to other modalities, such as ECoG, EEG, MEG, and more.  
+
+It has graphical displays for both slice-wise and surface-based viewing.  In both cases, many aspects of visualization can be scripted for automatic image generation.
   
 | Please visit these websites for more information:
-| https://afni.nimh.nih.gov/
-| https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
+| AFNI homepage: https://afni.nimh.nih.gov/
+| Main AFNI docs: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/ 
 
 |
 
@@ -26,17 +37,62 @@ weighted (DW) data.  It has graphical displays for both slice-wise and surface-b
 | https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
 
 
+Getting started with AFNI: quick guide links
+----------------------------------------------
+
+* Installing AFNI on your system
+
+    * `Instructions per OS <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/main_toc.html>`_
+    
+    * `Docker container notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html>`_
+
+* Educational resources
+
+    * `AFNI Academy series <https://www.youtube.com/c/afnibootcamp>`_
+    
+    * `Additional Bootcamp recordings <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html>`_
+        
+    * `Links to AFNI handouts, keyboard shortcuts and startup tips <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html>`_
+    
+    * `Page linking to all program helps <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/main_toc.html>`_
+    
+    * `"Classified" program guide (AFNI programs grouped thematically) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html>`_
+    
+    * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/unix_tutorial/index.html>`_
+
+* Code, command, script and functionality examples
+
+    * `Tutorials and demos <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/main_toc.html>`_
+
+    * `Publication-based code examples (AFNI Codex) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_toc.html>`_
+
+* Additional resources
+
+    * `Methods publications and reference list <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html>`_
+
+    * `Nonhuman projects and processing (with demos) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/nonhuman/main_toc.html>`_
+        
+    * `Templates and atlases <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/main_toc.html>`_
+
+    * `Statistics notes <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/statistics/main_toc.html>`_
+    
+    * `Notes on building AFNI Sphinx docs (afni_doc) locally <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/sphinx_docs/setup.html>`_
+
+
 AFNI code directory
 -------------------
 
-Currently top directory contains three sub-directories
+Currently, the top directory contains three sub-directories, each with further code stratification:
 
 doc/
     documentation for AFNI (though this is outdated; current doc content resides in its own git tree here: https://github.com/afni/afni_doc)
 src/
     source code for AFNI
+src/python_scripts/
+    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
 tests/
-    tests for AFNI
+    tests for AFNI codebase
+
 
 Relevant git-ology for AFNI
 ---------------------------
@@ -54,10 +110,14 @@ First time stuff
 
     git clone https://github.com/afni/afni.git
 
+3. Forking a branch and making a pull request (PR):
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/devdocs/pull_requests/pr_ex.html
+
 Stuff to do as needed
 ~~~~~~~~~~~~~~~~~~~~~
 
-- Getting updates from the repository::
+- Getting updates from the master branch of the repository::
 
     git pull origin master
 
@@ -80,7 +140,7 @@ Stuff to do as needed
 
     git add -f FILE1 FILE2 ...
 
-- Sending the local updates to the master (github.com) repository
+- Sending the local updates to the master (github.com) repository::
 
     git push origin master
 

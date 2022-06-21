@@ -3,18 +3,6 @@
 ## bayes view
 ## global
 
-# suppressPackageStartupMessages(library(shiny))
-# suppressPackageStartupMessages(library(data.table))
-# suppressPackageStartupMessages(library(shinydashboard))
-# suppressPackageStartupMessages(library(plotly))
-# suppressPackageStartupMessages(library(RColorBrewer))
-# suppressPackageStartupMessages(library(tools))
-# library(ggplot2)
-# library(ggridges)
-# library(dplyr)
-# library(tidyr)
-# library(scales)
-
 # ## clean up
 # rm(list=ls())
 
@@ -40,14 +28,12 @@ if(!dir.exists(data.path)){
 }
 
 ## get file list ####################################
-
 file.temp <- list_files_with_exts(data.path,ext=c('RData'))
 file.list <- as.list(file.temp)
 names(file.list) <- basename(file_path_sans_ext(file.temp))
 rm(file.temp)
 
 ## lists for choices ##################################
-
 order.list <- list('P-plus','Original')
 f.face.list <- list('Plain'='plain','Bold'='bold','Italic'='italic',
                     'Bold Italic'='bold.italic')
@@ -70,3 +56,8 @@ gang.col <- c("blue","cyan","gray","gray","yellow","#C9182B")
 col.list <- list("Blue - Red","Dark2","Set1","Rainbow","Accent")
 
 ### stat functions ##################################
+
+Mode <- function(x) {
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x, ux)))]
+}

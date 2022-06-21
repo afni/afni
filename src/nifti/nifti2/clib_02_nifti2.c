@@ -102,7 +102,10 @@ int main(int argc, char * argv[])
    if( nifti_set_filenames(nim, fout, 1, 1) ) return 1;
 
    /* if we get here, write the output dataset */
-   nifti_image_write( nim );
+   if( nifti_image_write_status( nim ) ) {
+      fprintf(stderr, "** failed to write nifti_image\n");
+      return 1;
+   }
 
    /* and clean up memory */
    nifti_image_free( nim );
