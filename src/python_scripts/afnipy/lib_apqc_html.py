@@ -35,10 +35,14 @@
 # + tweak some text
 # + add embedded URLs, where appropriate
 #
-ver = '2.61' ; date = 'Mar 10, 2022' 
+#ver = '2.61' ; date = 'Mar 10, 2022' 
 # [PT] bug fix in m_tedana button creation
 # + fix oversight in wrap_button(), where different buttons pointed to
 #   only one tedana directory.  Thanks, Dan H for noting this!
+#
+ver = '3.0' ; date = 'June 18, 2022' 
+# [Taylor Hanayik] add in updates for QC button functionality
+# + specifically, to accommodate local flask server (open_apqc.py)
 #
 #########################################################################
 
@@ -955,7 +959,7 @@ ondblclick="reallyAllYourBaseAreBelongToUs({2})">
     y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsave )
 
     y+= '''<button class="button-generic button-RHS btn3save" title="{}" '''.format( bsave_hover ) 
-    y+= '''onclick="doSaveAllInfo()">'''
+    y+= '''onclick="doQuit()">'''
     y+= '''{}</button>\n'''.format( bsave )
 
     y+= '''<button class="button-generic button-RHS btn3help" title="{}" '''.format( bhelp_hover ) 
@@ -991,13 +995,19 @@ def make_javascript_btn_func(subj ):
 var allBtn1, allTd1, allhr_sec;  // selection/location IDs
 var topi, previ;                 // keeps our current/last location
 var jsonfile = "apqc_{0}.json";  // json file: apqc_SUBJ.json
-var qcjson;                      // I/O json of QC button responses
+var qcjson = {{}};                 // I/O json of QC button responses
 var nb_offset = 66-1;            // navbar height: needed for scroll/jump
 
 // properties of QC buttons that get toggled through
 const bkgds   = [ "#fff" , "#67a9cf", "#d7191c"  ];
 const valeurs = [ "?"    , "+"      , "X"        ];
 const tcols   = [ "#777" , "#FFF"   , "#000"     ];
+
+// check where server is running (to alert users before filling in buttons)
+let url = window.location.href
+let is_served = url.startsWith('file:') ? false : true
+console.log('is_served', is_served)
+
 
 '''.format( subj )
 
@@ -1006,29 +1016,37 @@ const tcols   = [ "#777" , "#FFF"   , "#000"     ];
     # gets run at loadtime
     y+= '''
 //window.onload = function() {
-function RunAtStart() {
-
+async function RunAtStart() {
     // initialize arrays and location
     initializeParams();
 
     // read in JSON
+    /*
     loadJSON(jsonfile, function(unparsed_json) {
       // give the global variable values
-      window.qcjson = JSON.parse(unparsed_json);
+      qcjson = JSON.parse(unparsed_json);
+      console.log(window.qcjosn)
     });
-
+    */
+    qcjson = await loadJSON(jsonfile)
+    console.log(qcjson)
     CheckJsonfileMatchesQcbuttons();
-
     ApplyJsonfileToQcbuttons();
+    //postJSON(qcjson)
 };
 
 '''
 
-    # OFF AT HTE MOMENT, but a guard for reloading page
+    # OFF AT THE MOMENT, but a guard for reloading page
     y+= '''
     window.onbeforeunload = function(event)
     {
-        return confirm();
+      doQuit()
+      let seriouslyQuit = confirm()
+      if (seriouslyQuit) {
+        doQuit()
+      }
+      return seriouslyQuit;
     };
 '''
 
@@ -1052,17 +1070,37 @@ function initializeParams() {
     # set to read synchronously, which is necessary for the JSON to
     # load fully before use-- slower, but this is a small file
     y+= '''
-function loadJSON(ifile, callback) {   
-  var xobj = new XMLHttpRequest();
-  xobj.overrideMimeType("application/json");
-  xobj.open('GET', ifile, false);  // need 'false' for synchrony!
-  xobj.onreadystatechange = function () {
-    if (xobj.readyState == 4 && xobj.status == "200") { !!!!
-      callback(xobj.responseText);
-    }
-  };
-  xobj.send(null);  
+
+async function loadJSON(ifile) {
+    let json = await fetch(ifile)
+    .then(response => response.json())
+    return json
 }
+
+async function postJSON(data = {}, quit=false) {
+    let route = ''
+    if (quit){
+      route = 'quit'
+    } else {
+      route = 'save'
+    }
+    let url = 'http://localhost:5000/'+route
+    // Default options are marked with *
+      const response = await fetch(url, {
+        method: quit ? 'GET' : 'POST', // *GET, POST, PUT, DELETE, etc.
+        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: quit ? null : JSON.stringify(data) // body data type must match "Content-Type" header
+    });
+    qcjson = await response.json()
+    console.log(qcjson)
+    return qcjson; // parses JSON response into native JavaScript objects
+}
+
+
 '''
 
     # Both the QC element names AND their order need to match
@@ -1229,6 +1267,7 @@ function changeColor(button) {
   button.style.borderColor = bkgds[newidx];     // set bkgd
   button.textContent       = valeurs[newidx];
   checkIfButtonCommented( button );            // set text
+  doSaveAllInfo();
 }
 '''
 
@@ -1382,6 +1421,7 @@ function clearCommentForm(cid, cfID) {
     thisButtonGetsAComment(bid, null);
 
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
 '''
 
@@ -1549,12 +1589,28 @@ function findCol(colname) {
 function doSaveAllInfo() {
     updateLocalJson();
 
-    var text     = JSON.stringify(qcjson);
+    //var text     = JSON.stringify(qcjson);
     //var filename = "apqc.json";
-    saveDownloadJsonfile(text, jsonfile);
-
+    //saveDownloadJsonfile(text, jsonfile);
+    postJSON(qcjson);
 } 
 '''
+
+    # The Quitter
+    y+= '''
+
+function doQuit() {
+    updateLocalJson();
+    //var text     = JSON.stringify(qcjson);
+    //var filename = "apqc.json";
+    //saveDownloadJsonfile(text, jsonfile);
+    postJSON(qcjson, true);
+}
+
+'''
+
+
+
     # The Helper
     y+= '''
 function doShowHelp() {
