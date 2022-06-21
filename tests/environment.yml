@@ -20,6 +20,6 @@ dependencies:
   - pytest-xdist
   - pip:
     - darker
-    - git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading
+    - git+https://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading
     - pdbpp
     - -e .
