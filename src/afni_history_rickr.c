@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jun, 2022, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
+   "apply mask_epi_anat in help examples, rather than full_mask",
+   NULL
+ } ,
+
+ { 17, Jun, 2022, RCR, "NIFTI", MINOR, TYPE_NEW_OPT,
+   "add and apply nifti_image_write_status in NIFTI-1 and -2",
+   NULL
+ } ,
+
  { 13, Jun, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "remove essentially duped final_epi_unif dset and uvar",
    NULL
