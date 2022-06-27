@@ -484,37 +484,12 @@ def getPhysiologicalNoiseComponents(parameters):
 
 def phase_estimator(amp_phase, phase_info):
     phasee = dict(
-        v_name="",
-        t=[],
-        x=[],
-        iz=[],  # zero crossing (peak) locations
-        volume_tr=2,
-        p_trace=[],
-        tp_trace=[],
-        n_trace=[],
-        tn_trace=[],
-        prd=[],
-        t_mid_prd=[],
-        p_trace_mid_prd=[],
-        phase=[],
-        rv=[],
-        rvt=[],
-        var_vector=[],
-        phys_fs=(1 / 0.025),
-        zero_phase_offset=0.5,
         quiet=0,
-        resample_fs=(1 / 0.025),
         frequency_cutoff=10,
         fir_order=80,
-        resample_kernel="linear",
         demo=0,
-        as_window_width=0,
-        as_percover=0,
-        as_fftwin=0,
-        sep_dups=0,
         phasee_list=0,
         show_graphs=0,
-        number_of_slices=0,
     )
     phasee.update(phase_info)
     if isinstance(phasee["phasee_list"], type([])):
@@ -579,15 +554,13 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
 
 def phase_base(amp_type, phasee):
     """
-
-
     :type phasee: object
     :param amp_type:    if 0, it is a time-based phase estimation
                         if 1, it is an amplitude-based phase estimation
     :param phasee: phasee information
     :return:
     """
-    if amp_type == 0:
+    if amp_type == 0:   # Phase not based on amplitude
         # Calculate the phase of the trace, with the peak to be the start of the phase
         nptrc = len(phasee["tp_trace"])
         phasee["phase"] = -2 * np.ones(size(phasee["t"]))
@@ -907,29 +880,34 @@ def fftsegs(ww, po, nv):
     return bli, ble, num
 
 def analytic_signal(vi, windwidth, percover, win):
-    nvi = len(vi)
-    # h = np.zeros(vi.shape)
+    nvi = len(vi)   # Length of input array
+
+    # Get segments used for FFT calculations
+    # bli, ble: Two (Nblck = nvi / jmp) x 1 vectors defining the segments' starting and ending indices
+    # jmp is the between blocks jump
+    # num: An nv x 1 vector containing the number of segments each sample belongs to
     bli, ble, num = fftsegs(windwidth, percover, nvi)
-    for ii in range(len(bli)):
-        v = vi[bli[ii] : ble[ii] + 1]
-        nv = len(v)
-        if win == 1:
+          
+    for ii in range(len(bli)): # Iterate over the fft segments
+        v = vi[bli[ii] : ble[ii] + 1]   # Segment ii
+        nv = len(v)                     # Length of segment ii
+        if win == 1:                    # Apply Hamming window before doing FT?
             fv = fft(v * np.hamming(nv))
         else:
             fv = fft(v)
-        wind = np.zeros(v.size)
+        wind = np.zeros(v.size)         # Initialize output window to all zeros
         # zero negative frequencies, double positive frequencies
-        if nv % 2 == 0:
-            wind[0] = 1  # keep DC
+        if nv % 2 == 0: # Length of segemnet is even
+            wind[0] = 1  # keep DC component
             wind[(nv // 2)] = 1
             wind[1 : (nv // 2)] = 2  # double pos. freq
 
-        else:
-            wind[0] = 1
+        else:           # Length of segment odd
+            wind[0] = 1  # keep DC component
             wind[list(range(1, (nv + 1) // 2))] = 2
-        h = ifft(fv * wind)
+        h = ifft(fv * wind) # Get inverse FT
     for i in range(len(h)):
-        h[i] /= np.complex(num[i])
+        h[i] /= np.complex(num[i])  # Return array are complex numbers with imagimary components set to zero
     return h
 
 def remove_pn_duplicates(tp, vp, tn, vn, quiet):
@@ -1092,6 +1070,12 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     
     v_np = np.asarray(phys_dat)
     
+    # Trim leading datapoints if they precede start time
+    if ('StartTime' in respcard_info and respcard_info['StartTime']<0):
+        start_index = round(-respcard_info['StartTime'] * respcard_info["phys_fs"])
+        print('start_index = ', start_index)
+        v_np = v_np[start_index:-1]
+    
     return v_np
 
 
@@ -1121,7 +1105,6 @@ def peak_finder(respcard_info, v_np):
     :param resample_fs:
     :param frequency_cutoff:
     :param fir_order: BC ???
-    :param interpolation_style:
     :param demo:
     :param as_window_width:
     :param as_percover:
@@ -1144,21 +1127,29 @@ def peak_finder(respcard_info, v_np):
         as_fftwin=0,
         sep_dups=0,
     )
-    var_vector.update(respcard_info)
-    default_div = 1 / 0.025
-    if (var_vector["phys_fs"] != default_div) and (
+    var_vector.update(respcard_info) # Add info. from respiratory or cradiac info.
+    default_div = 1 / 0.025          # Default frequency is 40 Hz
+    
+    # Update frequency if given as argument
+    if (var_vector["phys_fs"] != default_div) and ( 
         var_vector["resample_fs"] == default_div
     ):
         var_vector["resample_fs"] = var_vector["phys_fs"]
     if var_vector["demo"]:
-        var_vector["quiet"] = 0
+        var_vector["quiet"] = 0 # Make verbose if demo mode
     
-    nyquist_filter = var_vector["phys_fs"] / 2.0
-    w = var_vector["frequency_cutoff"] / nyquist_filter
+    nyquist_filter = var_vector["phys_fs"] / 2.0 # The Nyquist frequency is half the sampling rate
+    
+    # Frequency cutoff over Nyquist frequency to avoid aliasing
+    w = var_vector["frequency_cutoff"] / nyquist_filter 
+    
+    # A finite impulse response (FIR) filter is a filter whose impulse response (or 
+    #   response to any finite length input) is of finite duration, because it 
+    #   settles to zero in finite time.
     b = firwin(
         numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
     )  # FIR filter of order 40
-    for i in range(nl):
+    for i in range(nl): # nl is currently (temporarily) hard coded at 1
         r = {
             "t": [],
             "x": [],
@@ -1177,16 +1168,19 @@ def peak_finder(respcard_info, v_np):
     no_dups = 1  # Remove duplicates that might come up when improving peak location
   
     window_width = 0.2  # Window for adjusting peak location in seconds
+    
     # Remove the mean
     v_np_mean = np.mean(v_np)
     v_np = v_np - v_np_mean
-    r["v"] = v_np  # Store it for debugging (found it is used in phase estimator)
+    r["v"] = v_np  # Store result for debugging (found it is used in phase estimator)
+    
     # Filter both ways to cancel phase shift
-    v_np = lfilter(b, 1, v_np, axis=0)
-    v_np = np.flipud(v_np)
-    v_np = lfilter(b, 1, v_np)
-    v_np = np.flipud(v_np)
-    # Get the analytic signal
+    v_np = lfilter(b, 1, v_np, axis=0)  # Apply Hamming window FIR filter to v_np array
+    v_np = np.flipud(v_np)              # Flip v_np array
+    v_np = lfilter(b, 1, v_np)          # Reapply Hamming window FIR filter
+    v_np = np.flipud(v_np)              # Flip v_np array back
+    
+    # Get the analytic signal.  (Local function)
     r["x"] = analytic_signal(
         v_np,
         var_vector["as_window_width"] * var_vector["phys_fs"],
@@ -1204,51 +1198,63 @@ def peak_finder(respcard_info, v_np):
     fsi = 1.0 / var_vector["phys_fs"]
     r["t"] = np.array([i * fsi for i in range(len(r["x"]))])
 
+    # Rectify imaginary points on r["x"] where next imaginary point is not positive
     iz = np.nonzero((r["x"][0 : nt - 1].imag * r["x"][1:nt].imag) <= 0)
+    # Get first array of result.  This approximates a straight line with a positive slope.
+    # Maybe reflects the phase (although it is not the phase)
+    # More likely integral of oxygenation over time.
     iz = iz[0]
+    
+    # Sign of difference between current imaginary point and previous imaginary point
     polall = -np.sign(r["x"][0 : nt - 1].imag - r["x"][1:nt].imag)
-    pk = (r["x"][iz]).real
-    pol = polall[iz]
-    tiz = []
+    
+    pk = (r["x"][iz]).real           # Peaks and troughs with original values
+    pol = polall[iz]                 # Peaks and troughs with peaks set to 1 and troughs to -1
+    
+    # Time warped time points
+    tiz = []  
     for i in iz:
-        tiz.append(r["t"][i])
+        tiz.append(r["t"][i])        
+        
+    # Get peak values and locations
     ppp = np.nonzero(pol > 0)
-    ppp = ppp[0]
+    ppp = ppp[0]    # Indices of peaks
     p_trace = []
-    tp_trace = []
+    tp_trace = []    
     for i in ppp:
-        p_trace.append(pk[i])
-        tp_trace.append(tiz[i])
+        p_trace.append(pk[i])   # Value of peaks
+        tp_trace.append(tiz[i]) # Location of peaks
+    
+    # Get trough values and locations
     ppp = np.nonzero(pol < 0)
-    ppp = ppp[0]
+    ppp = ppp[0]    # Indices of troughs 
     n_trace = []
     tn_trace = []
     for i in ppp:
-        n_trace.append(pk[i])
-        tn_trace.append(tiz[i])
+        n_trace.append(pk[i])        # Value of troughs
+        tn_trace.append(tiz[i])      # Location of troughs
 
+    # Plot peaks and troughs
     if var_vector["quiet"] == 0:
         print(
             "--> Load signal\n--> Smooth signal\n--> Calculate analytic signal Z\n--> Find zero crossing of imag(Z)\n"
         )
         figure(1)
         subplot(211)
-        plot(r["t"], np.real(r["x"]), "g")
-        # plot (r_list[i_column].t, imag(r_list[i_column]['x']),'g')
-        plot(tp_trace, p_trace, "ro")
-        plot(tn_trace, n_trace, "bo")
-        # plot (r_list[i_column].t, abs(r_list[i_column]['x']),'k')
+        plot(r["t"], np.real(r["x"]), "g") #Lines connecting peaks and troughs
+        plot(tp_trace, p_trace, "ro")   # Peak locations and values
+        plot(tn_trace, n_trace, "bo")   # Trough locations and values
         subplot(413)
         vn = np.real(r["x"]) / (abs(r["x"]) + np.spacing(1))
         plot(r["t"], vn, "g")
         ppp = np.nonzero(pol > 0)
         ppp = ppp[0]
         for i in ppp:
-            plot(tiz[i], vn[iz[i]], "ro")
+            plot(tiz[i], vn[iz[i]], "ro")   # Peak locations with values set to 1
         ppp = np.nonzero(pol < 0)
         ppp = ppp[0]
         for i in ppp:
-            plot(tiz[i], vn[iz[i]], "bo")
+            plot(tiz[i], vn[iz[i]], "bo")   # Trough locations with values set to -1
         if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
@@ -1256,9 +1262,9 @@ def peak_finder(respcard_info, v_np):
 
     # Some polishing
     if 1 == 1:
-        nww = np.ceil((window_width / 2) * var_vector["phys_fs"])
-        pkp = pk
-        r["iz"] = iz
+        nww = np.ceil((window_width / 2) * var_vector["phys_fs"]) # window_width currently hard-coded to 0.2
+        pkp = pk             # Current peaks and troughs with original values
+        r["iz"] = iz         # Peak and trough locations
         for i in range(len(iz)):
             ###################### left off here, turns out there's a
             # difference in floating point precision in the calculation
@@ -1267,25 +1273,28 @@ def peak_finder(respcard_info, v_np):
             # force these to ints    17 May 2017 [DNielson]
             n0 = int(max(2, iz[i] - nww))
             n1 = int(min(nt, iz[i] + nww))
-            temp = (r["x"][n0 : n1 + 1]).real
-            if pol[i] > 0:
-                xx, ixx = np.max(temp, 0), np.argmax(temp, 0)
-            else:
-                xx, ixx = np.min(temp, 0), np.argmin(temp, 0)
-            r["iz"][i] = n0 + ixx - 1
-            pkp[i] = xx
+            temp = (r["x"][n0 : n1 + 1]).real # Real components of r["x"] where r["x"] is the analytic signal
+            if pol[i] > 0:  # Peak
+                xx, ixx = np.max(temp, 0), np.argmax(temp, 0)  # Value and index of peak
+            else:           # Trough
+                xx, ixx = np.min(temp, 0), np.argmin(temp, 0)  # Value and index of trough
+            r["iz"][i] = n0 + ixx - 1   # Refined index
+            pkp[i] = xx                 # Refined value
             if i == 100:
                 print("pause")
-        tizp = r["t"][r["iz"]]
+        tizp = r["t"][r["iz"]]          # Refined indices of peaks and troughs
 
+        # Get refined peaks
         ppp = np.nonzero(pol > 0)
         ppp = ppp[0]
-        r["p_trace"] = pkp[ppp]
-        r["tp_trace"] = tizp[ppp]
+        r["p_trace"] = pkp[ppp]         # Peak value
+        r["tp_trace"] = tizp[ppp]       # Peak location
+        
+        # Get refined troughs
         ppp = np.nonzero(pol < 0)
         ppp = ppp[0]
-        r["n_trace"] = pkp[ppp]
-        r["tn_trace"] = tizp[ppp]
+        r["n_trace"] = pkp[ppp]         # Trough value
+        r["tn_trace"] = tizp[ppp]       # Trough location
 
         if no_dups:
             # remove duplicates
@@ -1308,21 +1317,23 @@ def peak_finder(respcard_info, v_np):
                     r["n_trace"],
                     var_vector["quiet"],
                 )
-            if len(r["p_trace"]) != len(r["n_trace"]):
-                print("Bad news in tennis shoes. I'm outta here.\n")
+            if len(r["p_trace"]) != len(r["n_trace"]):  # Number of troughs different from number of peaks
+                print("Number of troughs different from number of peaks.\n")
                 e = True
                 return r, e
 
         if var_vector["quiet"] == 0:
             print("--> Improved peak location\n--> Removed duplicates")
             subplot(211)
+            # Peaks with actual values
             plot(r["tp_trace"], r["p_trace"], "r+", r["tp_trace"], r["p_trace"], "r")
+            # Troughs with actual values
             plot(r["tn_trace"], r["n_trace"], "b+", r["tn_trace"], r["n_trace"], "b")
             if var_vector["demo"]:
                 # need to add a pause here - JZ
                 # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
                 pass
-    else:
+    else:       # Not currently used
         tizp = tiz
         r["iz"] = iz
         pkp = pk
@@ -1334,11 +1345,11 @@ def peak_finder(respcard_info, v_np):
         )  # This seems like a mistake, the .m file's version is highly suspect
 
     # Calculate the period
-    nptrc = len(r["tp_trace"])
+    nptrc = len(r["tp_trace"])  # Peak indices
     print(r["tp_trace"])
-    r["prd"] = r["tp_trace"][1:nptrc] - r["tp_trace"][0 : nptrc - 1]
-    r["p_trace_mid_prd"] = (r["p_trace"][1:nptrc] + r["p_trace"][0 : nptrc - 1]) / 2.0
-    r["t_mid_prd"] = (r["tp_trace"][1:nptrc] + r["tp_trace"][0 : nptrc - 1]) / 2.0
+    r["prd"] = r["tp_trace"][1:nptrc] - r["tp_trace"][0 : nptrc - 1]    # Array of intervals between peaks
+    r["p_trace_mid_prd"] = (r["p_trace"][1:nptrc] + r["p_trace"][0 : nptrc - 1]) / 2.0 # Array of midpoints betweem successive peaks
+    r["t_mid_prd"] = (r["tp_trace"][1:nptrc] + r["tp_trace"][0 : nptrc - 1]) / 2.0 # Array of mean values betweem successive peaks
     if var_vector["quiet"] == 0:
         print("--> Calculated the period (from beat to beat)\n")
         subplot(211)
@@ -1351,25 +1362,20 @@ def peak_finder(respcard_info, v_np):
             pass
         show()
 
+    # Interpolate
     if var_vector["interpolation_style"] != "":
         # Interpolate to slice sampling time grid:
-        step_interval = 1.0 / var_vector["resample_fs"]
+        step_interval = 1.0 / var_vector["resample_fs"] # Multiplicative inverse of -freq
 
         # allow for a ratio that is barely below an integer
         #                               5 Jun, 2017 [rickr]
-        step_size = int(max(r["t"]) / step_interval + g_epsilon) + 1
+        step_size = int(max(r["t"]) / step_interval + g_epsilon) + 1  # g_epsilon hardcoded to 0.00001
         r["tR"] = []
 
+        # Make progressive array of step intervals (Straight line)
         for i in range(0, step_size):
             r["tR"].append(i * step_interval)
-        """
-        with open('tR.csv', 'w') as f:
-            for i in r['tR']:
-                f.write("%s\n" % i)
-        # Squeeze these arrays down from an [x,y] shape to an [x,] shape in order to use interp1d
-        r['tp_trace'] = r['tp_trace'].squeeze()
-        r['p_trace'] = r['p_trace'].squeeze()
-        """
+
         r["p_trace_r"] = interp1d(
             r["tp_trace"],
             r["p_trace"],
@@ -1378,6 +1384,7 @@ def peak_finder(respcard_info, v_np):
         )
         r["p_trace_r"] = r["p_trace_r"](r["tR"])
 
+        # Interpolate r["n_trace"] to temporal range of v_np but with time warping specified by r["tn_trace"]
         r["n_trace_r"] = interp1d(
             r["tn_trace"],
             r["n_trace"],
@@ -1385,6 +1392,7 @@ def peak_finder(respcard_info, v_np):
             bounds_error=False,
         )(r["tR"])
 
+        # Interpolate r["prd"] to temporal range of v_np but with time warping specified by r["tn_trace"]
         r["prdR"] = interp1d(
             r["t_mid_prd"],
             r["prd"],

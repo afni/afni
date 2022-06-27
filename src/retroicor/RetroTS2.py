@@ -292,20 +292,11 @@ def retro_ts(
     print('Get input file parameters')
     respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                            phys_json, respiration_out, cardiac_out, rvt_out)
+                            phys_json, respiration_out, cardiac_out, rvt_out)        
         
-
-    # Read in raw data, and find peaks for respiration   
+    # Read in raw data, and find peaks for respiration measurements
     print('Read in raw data, and find peaks for respiration')
-    respiration_peak = {}
     v_np = readRawInputData(respiration_info, respiration_file, phys_resp_dat)
-    
-    # Trim leading datapoints if they precede start time
-    print('respiration_info = ', respiration_info)
-    if ('StartTime' in respiration_info and respiration_info['StartTime']<0):
-        start_index = round(-respiration_info['StartTime'] * respiration_info["phys_fs"])
-        print('start_index = ', start_index)
-        v_np = v_np[start_index:-1]
 
     # Find respiratory peaks
     respiration_peak, error = peak_finder(respiration_info, v_np)
@@ -313,14 +304,8 @@ def retro_ts(
         print("Died in respiratory PeakFinder")
         return
 
-    # Read in raw data, and find peaks for cardiac    
-    cardiac_peak = {}
+    # Read in raw data, and find peaks for cardiac measurements    
     v_np = readRawInputData(cardiac_info, cardiac_file, phys_cardiac_dat)
-    
-    # Trim leading datapoints if they precede start time
-    if ('StartTime' in cardiac_info and cardiac_info['StartTime']<0):
-        start_index = round(-cardiac_info['StartTime'] * cardiac_info["phys_fs"])
-        v_np = v_np[start_index:-1]
 
     # Find cardiac peaks
     cardiac_peak, error = peak_finder(cardiac_info, v_np)
@@ -328,6 +313,7 @@ def retro_ts(
         print("Died in cardiac PeakFinder")
         return
 
+    # Update respiratory and cardiac info with peak info
     respiration_info.update(respiration_peak)    
     cardiac_info.update(cardiac_peak)
        
@@ -339,15 +325,14 @@ def retro_ts(
             respiration_info["amp_phase"], respiration_info
         )
     else:
-        respiration_phased = {}
-    
+        respiration_phased = {}    
     cardiac_info["amp_phase"] = 0   # Time-based phase for cardiac signal
     if cardiac_peak:
         cardiac_phased, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
     else:
         cardiac_phased = {}
 
-    if retroicor_algorithm:
+    if retroicor_algorithm: # Peter Lauren's implementation from 2000 Glover paper
         parameters=dict()
         parameters['-cardFile'] = cardiac_file
         parameters['-respFile'] = respiration_file
