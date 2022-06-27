@@ -72,14 +72,36 @@ shinyServer(function(input,output,session) {
             }
             updateSliderInput(session,'outputWidth',value=plot.w)
         })
-    
     observeEvent(input$plotRes,{
         updateSliderInput(session,'outputDPI',value=input$plotRes)
     })
-    
     observe({
         updateSliderInput(session,'outputHeight',
                           value=length(input$roiSel) * input$axesHeight)
+    })
+    
+    ## reset current view dimensions
+    observeEvent(input$resetDim,{
+        updateSliderInput(session,'axesHeight',value=25)
+        updateCheckboxInput(session,'autoWidth',value=TRUE)
+        updateSliderInput(session,'plotRes',value=72)
+        updateCheckboxInput(session,'x_range_custom',value=FALSE)
+    })
+    
+    ## reset decorations
+    observeEvent(input$resetDecor,{
+        # updateSelectInput(session,'plot_pars',selected='Colors')
+        updateSelectInput(session,'colPal',selected='Default')
+        updateSliderInput(session,'numCols',value=6)
+        updateCheckboxInput(session,'revCols',value=FALSE)
+        updateSliderInput(session,'colBarHeight',value=15)
+        updateSliderInput(session,'colBar_size',value=10)
+        updateTextInput(session,'colBar_title',value="P+")
+        updateSliderInput(session,'colBar_title_size',value=24)
+        updateSelectInput(session,'colBar_face',selected='plain')
+        
+        
+        
     })
     
     
@@ -415,9 +437,9 @@ shinyServer(function(input,output,session) {
                     'copy',
                     list(extend='csv',filename=outName,title=NULL), 
                     list(extend='excel',filename=outName,title=NULL)
+                    )
                 )
-            )
-        ) %>%
+            ) %>%
             
             formatSignif(columns=c(3:length(data_stats)),digits=4)
         
