@@ -91,19 +91,42 @@ shinyServer(function(input,output,session) {
     ## reset decorations
     observeEvent(input$resetDecor,{
         # updateSelectInput(session,'plot_pars',selected='Colors')
+        
+        ## colors
         updateSelectInput(session,'colPal',selected='Default')
         updateSliderInput(session,'numCols',value=6)
         updateCheckboxInput(session,'revCols',value=FALSE)
+        
+        ## color bar
         updateSliderInput(session,'colBarHeight',value=15)
         updateSliderInput(session,'colBar_size',value=10)
         updateTextInput(session,'colBar_title',value="P+")
         updateSliderInput(session,'colBar_title_size',value=24)
         updateSelectInput(session,'colBar_face',selected='plain')
         
+        ## title
+        updateTextInput(session,'plotTitle',
+                        value="Posterior Distribution")
+        updateSliderInput(session,'title_size',value=24)
+        updateSelectInput(session,'title_face',selected='bold')
         
+        ## x axis
+        updateSliderInput(session,'x_label_size',value=20)
+        updateSelectInput(session,'xlab_face',selected='plain')
+        updateSliderInput(session,'x_axis_size',value=15)
+        updateSelectInput(session,'x_axis_face',selected='plain')
         
     })
     
+    ## reset x_label
+    observeEvent(input$resetDecor,{
+        ## get the plot title from the last term
+        temp.rois <- getROIs()
+        temp.terms <- temp.rois[[2]]
+        last.term <- temp.terms[length(temp.terms)]
+        if( last.term == 1 ){ last.term <- "Intercept" }
+        updateTextInput(session,'x_label',value=last.term)
+    })
     
     ## get stats ################################
     getStats <- reactive({
