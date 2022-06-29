@@ -605,9 +605,9 @@ def phase_base(amp_type, phasee):
         if phasee["show_graphs"] == 1:  # Display histogram
             center = (bins[:-1] + bins[1:]) / 2
             plt.bar(center, hb_value[: len(hb_value) - 1], label='Histogram of input values')  # , align='center')
-            plt.xlabel("Input value")
-            plt.ylabel("Count")
-            plt.title("Histogram of input values")
+            # plt.xlabel("Input value")
+            # plt.ylabel("Count")
+            # plt.title("Histogram of input values")
             plt.show()
         # find the polarity of each time point in v
         i = 0
@@ -660,9 +660,9 @@ def phase_base(amp_type, phasee):
             # clf
             x= phasee['t']
             plt.plot(x, gR, "b")          
-            plt.xlabel("time (s) aka phasee['t']")
-            plt.ylabel("Input scaled to [0,max(input)](gR)")
-            plt.title("Input scaled per Grover (2000) versus time (s)")
+            # plt.xlabel("time (s) aka phasee['t']")
+            # plt.ylabel("Input scaled to [0,max(input)](gR)")
+            # plt.title("Input scaled per Grover (2000) versus time (s)")
             
             # Inspiration
             ipositive = np.nonzero(phasee["phase_pol"] > 0)
@@ -683,9 +683,9 @@ def phase_base(amp_type, phasee):
             inegative_y = np.zeros(size(inegative_x))
             inegative_y.fill(0.45 * mxamp)
             plt.plot(inegative_x, inegative_y, "g.")
-            plt.xlabel("time (s) aka phasee['t']")
-            plt.ylabel("Input value (unscaled")
-            plt.title("Inspiration (red) and expiration (green) versus time (s)")
+            # plt.xlabel("time (s) aka phasee['t']")
+            # plt.ylabel("Input value (unscaled")
+            # plt.title("Inspiration (red) and expiration (green) versus time (s)")
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
