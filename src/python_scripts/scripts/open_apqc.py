@@ -7,8 +7,10 @@ import glob
 import argparse
 import signal
 
+### PT:  have to do something to capture ~ and interpret it
 def parse_qc_html_path(pstr):
-    """
+    """Take in a string pstr that should be the path to an APQC index.html
+file, and return two things:
 
     """
 
@@ -36,7 +38,7 @@ def parse_qc_html_path(pstr):
         print("** ERROR: found too many ({}) apqc_*.json".format(napqc_json))
         sys.exit(1)
 
-    return qc_dir, apqc_json
+    return qc_dir, apqc_json[0]
 
 
 start_dir = os.getcwd()
@@ -50,16 +52,15 @@ parser = argparse.ArgumentParser()
 
 
 parser.add_argument('-i', nargs='+') # relative path to index.html
-args = parser.parse_args()
+args  = parser.parse_args()
 ipath = args.i[0]           # later deal with LIST ASPECT
 
-print("++ ipath is {}".format(ipath))
 
 qc_dir, apqc_json = parse_qc_html_path(ipath)
 
-
-print("++ apqc_json is {}".format(apqc_json))
-print("++ qc_dir is {}".format(qc_dir))
+print("++ ipath     : {}".format(ipath))
+print("++ apqc_json : {}".format(apqc_json))
+print("++ qc_dir    : {}".format(qc_dir))
 
 app = Flask(__name__) # initialize flask app
 CORS(app) # let CORS package upgrade app
