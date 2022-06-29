@@ -45,7 +45,7 @@ extern "C" {
 
       Mainly adding low-level IO and changing things to allow gzipped files
       to be read and written
-      Full backwards compatability should have been maintained
+      Full backwards compatibility should have been maintained
 
    Modified by: Rick Reynolds (SSCC/DIRP/NIMH, National Institutes of Health)
    Date: December 2004
@@ -299,8 +299,12 @@ int          nifti_read_subregion_image( nifti_image * nim,
                                          void ** data );
 
 void         nifti_image_write   ( nifti_image * nim ) ;
+int          nifti_image_write_status( nifti_image *nim );
+
 void         nifti_image_write_bricks(nifti_image * nim,
                                       const nifti_brick_list * NBL);
+int          nifti_image_write_bricks_status(nifti_image * nim,
+                                             const nifti_brick_list * NBL);
 void         nifti_image_infodump( const nifti_image * nim ) ;
 
 void         nifti_disp_lib_hist( void ) ;     /* to display library history */
@@ -515,7 +519,7 @@ typedef struct {
     char const * const name;           /* text string to match #define */
 } nifti_type_ele;
 
-#undef  LNI_FERR /* local nifti file error, to be compact and repetative */
+#undef  LNI_FERR /* local nifti file error, to be compact and repetitive */
 #define LNI_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
 

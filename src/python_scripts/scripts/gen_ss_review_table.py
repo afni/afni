@@ -63,6 +63,9 @@ examples:
               -infiles sub*/s*.results/out.ss*.txt                    \\
               -write_outliers outliers.values.txt
 
+      * To show a complete table of subjects to keep rather than outliers to
+        drop, add option -show_keepers.
+
    4. report outliers: subjects with varying columns, where they should not
 
       gen_ss_review_table.py                                          \\
@@ -149,6 +152,13 @@ process options:
    -show_infiles        : include input files in reviewtable result
 
       Force the first output column to be the input files.
+
+   -show_keepers        : show a table of subjects kept rather than dropped
+
+      By default, -report_outliers shows a subject table of any outliers.
+      With -show_keepers, the table is essentially inverted.  Subjects with
+      no outliers would be shown, and the displayed outlier limits would be
+      logically negated (e.g.  GE:1.25 would change to LT:1.25).
 
    -report_outliers LABEL COMP [VAL] : report outliers, where comparison holds
 
@@ -284,9 +294,10 @@ g_history = """
         - default:  in valid comparison, eval blank test vals as non-outliers
           with opt: eval blank test vals as outliers
           (previously, any non-float was viewed as an outlier)
+   1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
 """
 
-g_version = "gen_ss_review_table.py version 1.4, July 15, 2021"
+g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
 
 
 class MyInterface:
@@ -300,6 +311,7 @@ class MyInterface:
       self.showlabs        = 0  # flag - print labels at end
       self.show_infiles    = 0  # flag - include input file in table
       self.show_missing    = 0  # flag - print missing keys
+      self.show_keepers    = 0  # flag - show subjects to keep rather than drop
 
       # control
       self.valid_out_seps  = ['space', 'comma', 'tab']
@@ -374,6 +386,8 @@ class MyInterface:
                     helpstr='show list of labels found')
       vopts.add_opt('-show_infiles', 0, [],
                     helpstr='make tablefile output start with input files')
+      vopts.add_opt('-show_keepers', 0, [],
+                    helpstr='show subs to keep rather than outliers to drop')
       vopts.add_opt('-show_missing', 0, [],
                     helpstr='show all missing keys')
       vopts.add_opt('-write_outliers', 1, [],
@@ -507,6 +521,9 @@ class MyInterface:
 
          elif opt.name == '-show_infiles':
             self.show_infiles = 1
+
+         elif opt.name == '-show_keepers':
+            self.show_keepers = 1
 
          elif opt.name == '-show_missing':
             self.show_missing = 1
@@ -855,9 +872,21 @@ class MyInterface:
       nrows = len(table)
       rev_labels = [otest[0] for otest in test_list]
       firstind = table[0].index(rev_labels[0])
-      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
       # copy original row 2 for VARY comparison
       varyrow = table[2][:]
+
+      # do we actually output the keepers, rather than the droppers?
+      # (if so, change subject lable to SHOW_KEEP)
+      if self.show_keepers:
+         if table[0][0] == 'subject' and table[1][0] == 'SHOW':
+            table[1][0] = 'SHOW_KEEP'
+
+         # then negate the labels, so we match the output
+         if self.verb > 1:
+            print('++ keepers change from %s' % table[1])
+         table[1] = [self.negate_test_str(test) for test in table[1]]
+         if self.verb > 1:
+            print('   keepers change to   %s' % table[1])
 
       # list of "failure" rows to keep in table (start with 2 header rows)
       faillist = [0, 1]
@@ -900,7 +929,7 @@ class MyInterface:
                # outliers are kept but tracked, else values are cleared
                if outlier:
                   all_passed = 0
-               else:
+               elif not self.show_keepers:
                   # fill the position based on type
                   if self.ro_fill_type == 'blank':
                      table[rind][posn] = ''
@@ -909,8 +938,15 @@ class MyInterface:
                   # else leave as value
                posn += 1
 
-         if not all_passed:
-            faillist.append(rind)
+         # decide whether to store droppers or keepers
+         if self.show_keepers:
+            # keepers, keep those who pass all
+            if all_passed:
+               faillist.append(rind)
+         else:
+            # droppers, keep those who do not pass all (they fail any)
+            if not all_passed:
+               faillist.append(rind)
 
       # if faillist is empty (len==2), what to do?
       failtable = [table[failind] for failind in faillist]
@@ -919,6 +955,22 @@ class MyInterface:
          print("** have empty test values, default is not outliers")
 
       return 0, failtable
+
+   def negate_test_str(self, test):
+      """for outliers, return a logically negated test string
+         e.g., GT:0.1 gets returned as LE:0.1
+      """
+      head = test[0:2]
+      tail = test[2:]
+      if head == 'EQ': return 'NE%s' % tail
+      if head == 'NE': return 'EQ%s' % tail
+      if head == 'LT': return 'GE%s' % tail
+      if head == 'LE': return 'GT%s' % tail
+      if head == 'GT': return 'LE%s' % tail
+      if head == 'GE': return 'LT%s' % tail
+
+      # otherwise, no change
+      return test
 
    def ro_val_is_outlier(self, tval, comp, bval):
       """return whether "tval comp bval" seems true, e.g.

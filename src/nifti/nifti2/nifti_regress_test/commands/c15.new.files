@@ -7,11 +7,11 @@ nifti_tool -make_im -prefix new4.nii.gz
 nifti_tool -make_im -prefix new5.nia
 
 # test reading them
-nifti_tool -copy_im -prefix ncopy1.nii -infiles new1.hdr
-nifti_tool -copy_im -prefix ncopy2.nii -infiles new2.hdr.gz
-nifti_tool -copy_im -prefix ncopy3.nii -infiles new3.img.gz
-nifti_tool -copy_im -prefix ncopy4.nii -infiles new4.nii.gz
-nifti_tool -copy_im -prefix ncopy5.nii -infiles new5.nia
+nifti_tool -copy_image -prefix ncopy1.nii -infiles new1.hdr
+nifti_tool -copy_image -prefix ncopy2.nii -infiles new2.hdr.gz
+nifti_tool -copy_image -prefix ncopy3.nii -infiles new3.img.gz
+nifti_tool -copy_image -prefix ncopy4.nii -infiles new4.nii.gz
+nifti_tool -copy_image -prefix ncopy5.nii -infiles new5.nia
 
 # verify that they are all the same
 # note: MAKE_IM defaults to NIFTI-2, while .nia is NIFTI-1, 

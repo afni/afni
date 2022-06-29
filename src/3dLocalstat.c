@@ -128,6 +128,8 @@ void usage_3dLocalstat(int detail)
 "               * min    = minimum\n"
 "               * max    = maximum\n"
 "               * absmax = maximum of the absolute values\n"
+"               * mconex = Michelson contrast of extrema:\n"
+"                          |A-B|/(|A|+|B|), where A=max and B=min\n"
 "               * mode   = mode\n"
 "               * nzmode = non-zero mode\n"
 "               * num    = number of the values in the region:\n"
@@ -271,7 +273,7 @@ void usage_3dLocalstat(int detail)
 int main( int argc , char *argv[] )
 {
    char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
-                       "kurt; min; max; absmax; num; nznum; fnznum;"
+                       "kurt; min; max; absmax; mconex; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
                        "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12;"
                        "mode;nzmode;filled;unfilled;has_mask;has_mask2;ALL;" };
@@ -656,6 +658,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
        else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
+       else if( strcasecmp(cpt,"mconex")== 0 ) code[ncode++] = NSTAT_MCONEX;
        else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
        else if( strcasecmp(cpt,"nznum") == 0 ) code[ncode++] = NSTAT_NZNUM ;
        else if( strcasecmp(cpt,"fnznum")== 0 ) code[ncode++] = NSTAT_FNZNUM;
@@ -754,8 +757,9 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
          code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
          code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
-         code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
-         code[ncode++] = NSTAT_SUM   ; code[ncode++] = NSTAT_MODE   ;
+         code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_MCONEX;
+         code[ncode++] = NSTAT_NUM   ;
+         code[ncode++] = NSTAT_SUM   ; code[ncode++] = NSTAT_MODE  ;
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
@@ -797,6 +801,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
      lcode[NSTAT_MIN]     = "MIN"  ;   lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
+     lcode[NSTAT_MCONEX]  = "MCONEX" ;
      lcode[NSTAT_VAR]     = "VAR"  ;   lcode[NSTAT_NUM]        = "NUM"    ;
      lcode[NSTAT_FWHMx]   = "FWHMx";   lcode[NSTAT_PERCENTILE] = "PERC";
      lcode[NSTAT_FWHMy]   = "FWHMy";   lcode[NSTAT_SUM]        = "SUM"    ;

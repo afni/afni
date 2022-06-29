@@ -9,12 +9,12 @@
 #
 #  brew install
 #    libpng jpeg expat freetype fontconfig openmotif libomp
-#    libxt gsl glib pkg-config, gcc (version 10 used here by default)
+#    libxt gsl glib pkg-config gcc mesa mesa-glu
+#  (brew gcc version 10 used here by default)
 #
 #
 
 
-# brew install gsl
 # put this symbolic link for needed library
 #ln -s /usr/local/Cellar/gsl/2.6/lib/libgsl.25.dylib /usr/local/lib/libgsl.dylib 
 #ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.4.dylib /usr/local/lib/libXm.4.dylib
@@ -36,10 +36,11 @@ USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
 # ------------------------------
-# python from C
-#IPYTHON     = -I/Users/molfesepj/anaconda3/include/python3.8 -DSELENIUM_READY
-#LPYTHON     = -L/Users/molfesepj/anaconda3/lib/python3.8/config
-#LDPYTHON    = -lpython3.8
+# (no) python from C
+#   - would need to be for a single python version (apply localally as desired)
+# IPYTHON   = -I/Users/molfesepj/anaconda3/include/python3.8 -DSELENIUM_READY
+# LPYTHON   = -L/Users/molfesepj/anaconda3/lib/python3.8/config
+# LDPYTHON  = -lpython3.8
 
 # ----------------------------------------------------------------------
 # X configuration
@@ -104,7 +105,8 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            chmod u+w *.dylib ;                                \
                            if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
 
-IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/include
+# for IFLAGS or LFLAGS (including for SUMA), put homebrew before other sys dirs
+IFLAGS = -I. -I/usr/local/include $(XROOT_I) -I/usr/include
          
 LFLAGS = -L. -L/usr/local/lib $(XROOT_L) -L/usr/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
 
@@ -164,10 +166,10 @@ GLw_LIB = libGLws.a
 
 SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${usr_ROOT}/lib/glib-2.0/include -I${usr_ROOT}/include/glib-2.0 
-#SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
-SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+#SUMA_LINK_PATH = $(LFLAGS) $(XROOT_L) -L..
+SUMA_LINK_PATH = $(LFLAGS) $(XROOT_L) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${usr_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(GLw_LIB) $(LLIBS) $(XLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${usr_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER 

@@ -846,7 +846,10 @@ ENTRY("THD_init_session_recursive") ;
    /* get list of all subdir names */
 
    cmd = (char *)malloc(sizeof(char)*(strlen(dirname)+128)) ;
-   sprintf( cmd, "find %s -type d -depth -9", dirname) ;
+   /* [PT: 18 Apr 2022] bug fix for this command, would not work as it
+      was previously (see below); might still need help/changing? */
+   sprintf( cmd, "find %s -maxdepth 9 -type d", dirname );
+   //sprintf( cmd, "find %s -type d -depth -9", dirname) ;
    flist = THD_suck_pipe( cmd ) ;
    if( flist == NULL || strlen(flist) < 1 ) RETURN(NULL) ;
 

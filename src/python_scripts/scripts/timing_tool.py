@@ -275,6 +275,16 @@ examples: ~1~
 
              timing_tool.py -multi_timing stim*.txt -tr 2.0 -warn_tr_stats
 
+       d. create a histogram of stim time offsets within the TR
+          (time modulo TR)
+          (quietly output offsets, and pipe them through 3dhistog)
+
+             timing_tool.py -timing stim01_houses.txt -verb 0 \\
+                            -show_tr_offsets -tr 1.25         \\
+                            | 3dhistog -nbin 20 1D:stdin
+
+          consider also:  3dhistog -noempty 1D:stdin
+
    Example 11.  test a file for local/global timing issues ~2~
 
        Test a timing file for timing issues, which currently means having
@@ -847,6 +857,21 @@ action options (apply to single timing element, only): ~1~
         This prints the current (possibly modified) single timing data to the
         terminal.  If the user is making multiple modifications to the timing
         data, they may wish to display the updated timing after each step.
+
+   -show_tr_offsets             : display within-TR offsets of stim times ~2~
+
+        Displays all stimulus times, modulo the TR.  Some examples:
+
+            stim time       offset (using TR = 2s)
+            ---------       ------
+               0.7           0.7
+               9.7           1.7
+              10.3           0.3
+              15.8           1.8
+
+        Use -verb 0 to get only the times (in case of scripting).
+
+            See also '-show_tr_stats', '-warn_tr_stats'.
 
    -show_tr_stats               : display within-TR statistics of stimuli ~2~
 
@@ -2045,6 +2070,8 @@ class ATInterface:
                          helpstr='perform operations per run (one file each)')
       self.valid_opts.add_opt('-run_len', -1, [], okdash=0,
                          helpstr='specify the lengths of each run (seconds)')
+      self.valid_opts.add_opt('-show_tr_offsets', 0, [], 
+                         helpstr='show stimulus times modulo the TR')
       self.valid_opts.add_opt('-show_tr_stats', 0, [], 
                          helpstr='show fractional TR stats timing files')
       self.valid_opts.add_opt('-show_tsv_label_details', 0, [], 
@@ -2452,6 +2479,9 @@ class ATInterface:
                print("** '%s' requires -multi_timing" % opt.name)
                return 1
             if self.multi_show_isi_stats(): return 1
+
+         elif opt.name == '-show_tr_offsets':
+            if self.show_tr_offsets(): return 1
 
          elif opt.name == '-show_tr_stats':
             if not self.timing and len(self.m_timing) == 0:
@@ -3146,7 +3176,7 @@ class ATInterface:
          return 1
 
       # maybe one file per run
- 
+
       if self.per_run == 2:
          prefix = fname
          if fname.endswith('.1D') and len(fname) > 3:
@@ -3215,6 +3245,37 @@ class ATInterface:
                               tr=self.tr, rest_file=self.all_rest_file)
       if rv and self.verb > 2:
          print(amt.make_data_string(nplaces=self.nplaces,mesg='ISI FAILURE'))
+
+      return 0
+
+   def show_tr_offsets(self):
+      """show output from get_TR_offsets()
+      """
+
+      if not self.timing:
+         print('** no timing, cannot show stats')
+         return 1
+
+      if self.tr <= 0.0:
+         print("** show_tr_stats requires -tr  (> 0)")
+         return 1
+
+      offsets = self.timing.get_TR_offsets(self.tr)
+      if len(offsets) <= 0:
+         return 1
+
+      # convert to strings
+      soff = ['%g'%t for t in offsets]
+
+      # print the soff vals, depending on verbosity
+      if self.verb == 0:
+         jstr = ' '
+         print(jstr.join(soff))
+      else:
+         jstr = '\n   '
+         print("offsets:")
+         print(jstr + jstr.join(soff))
+         print()
 
       return 0
 

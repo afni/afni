@@ -48,6 +48,19 @@ Boolean activeClipPlanes = True;
 int locallySelectedPlane;
 DList *list = NULL;
 
+void initializeIncrement(float objectMinMax[3][2]){
+    float max = 0;
+    int i;
+    float dim;
+    
+    for (i=0; i<3; ++i){
+        dim = objectMinMax[i][1] - objectMinMax[i][0];
+        max = MAX(max, dim);
+    }
+    
+    scrollInc = max/40;
+}
+
 Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySelectedPlane){
     int i, planeIndex;
     char *FuncName = "toggleClippingPlaneMode";
@@ -67,9 +80,8 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
     SUMA_UpdateViewerTitle(sv);
 
     if (clippingPlaneMode){
-   
         if (resetClippingPlanes){
-            SUMAg_CF->N_ClipPlanes = 1;
+            // SUMAg_CF->N_ClipPlanes = 1;
             resetClippingPlanes=0;
         }
 
@@ -80,7 +92,9 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             for (i=5; i>=0; --i){
                 sprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], "%d", SUMAg_CF->N_ClipPlanes+1);
                 clipPlaneTransform(0,0,0,0,SUMAg_CF->N_ClipPlanes, 0, 0);
-                if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                // if (i>0) clipPlaneTransform(0,0,0,0,i-1, 1, 0);
+                // if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
+                if (!makeClipIdentificationPlane(i, w, sv)){
                     fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
                     exit(1);
                 }
@@ -88,7 +102,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             active[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
             previouslyActive[0] = 1;    // First clipping plane will be active (as it will be toggled twice)
             *locallySelectedPlane = 0;
-            // SUMAg_CF->N_ClipPlanes = 6;
+            SUMAg_CF->N_ClipPlanes = 6;
         } else if (!activeClipPlanes){  // Toggle plane 1 on
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### Toggle plane 1 on\n");
@@ -105,59 +119,71 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
             loadSavedClippingPlanes(clippingPlaneFile, locallySelectedPlane);
             sv->clippingPlaneIncrement = scrollInc;
         }
-
-        // Turn on clipping planes and their colored squares
+/*
+        This part is commented out because it causes the gray ghost plane
+        // Turn on clipping planes and their colored squares.  
+        // Ghost plane seems to be produced here.  Seems to be related to first plane
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
             fprintf(stderr, "### Turn on clipping planes and their colored squares\n");
+        // DEBUG for (i=1; i<SUMAg_CF->N_ClipPlanes; ++i){
+        // DEBUG for (i=0; i<1; ++i){
         for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
             active[i] = !(previouslyActive[i]); // Invert activation state since it's about to be toggled
             clipPlaneTransform(0,0,0,0,i, 1, 0);   // Toggle activation state
 
             // Display clip plane identification mode if required
-            if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
+            // DEBUG if (clipPlaneIdentificationMode) clipIdentificationPlane[i]->Show = 1;
         }
-        
+*/
         if (!((XtPointer)sv->X->GLXAREA)){
             fprintf(stderr, "*** Error: Color map widget, GLXAREA, is NULL\n");
             // SUMA_X_SurfaceViewer_Create();
         }
+
         if ((XtPointer)sv->X->GLXAREA) SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);    // Refresh
+
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
 
         // Squares only displayed for active clipping planes
         for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
             clipIdentificationPlane[planeIndex]->Show = active[planeIndex];
-
+/*
+        This part is commented out because it causes the gray ghost plane
         clipPlaneTransform(0,0,0,0,*locallySelectedPlane, 0, 0);     // Ensure correct plane selected
-
+*/
         // Darken inactive clip planes
         if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
             fprintf(stderr, "### Darken inactive clip planes\n");
         darkenInactiveClipPlaneSquares(*locallySelectedPlane);
-        /*
+
         lightenActiveClipPlaneSquare(*locallySelectedPlane);
-        */
     } else {
         previousClipPlaneIdentificationMode = clipPlaneIdentificationMode;
         for (i=0; i<6; ++i){
             previouslyActive[i] = active[i];    // Record activation state before leaving clip plane mode
             clipPlaneIdentificationMode = 0;
-
-            // Turn off display of clip plane identification squares
-            for (planeIndex=0; planeIndex<SUMAg_CF->N_ClipPlanes; ++planeIndex)
-                clipIdentificationPlane[planeIndex]->Show = 0;
         }
+
+        // Turn off display of clip plane identification squares
+        for (planeIndex=0; planeIndex<6; ++planeIndex)
+            clipIdentificationPlane[planeIndex]->Show = 0;
     }
 
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Update increment in header and refresh viewer\n");
     SUMA_UpdateViewerTitle(sv);         // Update increment in header
     SUMA_postRedisplay(w, NULL, NULL);  // Refresh window
-    
+
     if (!clippingPlaneMode && SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### toggleClippingPlaneMode: sv->N_ColList = %d\n", sv->N_ColList);
 
     justEnteredClippingPlaneMode = 0;
+    
+    // Hide squares associated with inactive planes
+    for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i){
+        if (!(active[i])) clipIdentificationPlane[i]->Show = 0;
+    }
+
     return 1;
 }
 
@@ -582,7 +608,7 @@ void makeCommonNodesOfRectangleDarkRed(SUMA_SurfaceObject *SO){
 
 void makeCommonNodesOfRectangleDarkGreen(SUMA_SurfaceObject *SO){
     int i;
-   
+
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1){
         fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO = %p\n", SO);
         if (SO) fprintf(stderr, "### makeCommonNodesOfRectangleDarkGreen: SO->idcode_str = %s\n", SO->idcode_str);
@@ -1387,8 +1413,6 @@ Bool makeAxisObject(Widget w, SUMA_SurfaceViewer *sv){
     float plane[4], points[4][3];
     int i, j;
 
-    fprintf(stderr, "Make mesh axes\n");
-
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Make axis object\n");
 
@@ -1477,7 +1501,7 @@ Bool makeClipIdentificationPlane(int planeIndex, Widget w, SUMA_SurfaceViewer *s
     if (!SO){
         fprintf(stderr, "Error makeClipIdentificationPlane: Error drawing clipping plane rectangle.\n");
         return False;
-    }
+    } 
     clipIdentificationPlane[planeIndex] = SO;   // Record pointer to clip identification plane object
 
     // Avoid gray planes
@@ -1673,7 +1697,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     SUMA_SurfaceViewer *sv;
     Widget w=NULL;
     static SUMA_Boolean    firstCall = 1;
-
+    
     if (reset){
         planeIndex = 0;
         // These ranges determine
@@ -1688,17 +1712,15 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         activePlane = 0;
         active[0] = 1;
         planeIndex = 0;
-
-        // DEBUG
     }
-
+    
     // Change active plane.  Input active plane index is 1-indexed but local planeIndex is 0-indexed
     //  activePlane<-0 means keep existing active plane.  If activePlane too high, select highest indexed plane
     if (activePlane >=0 && !toggleOffOn){
         if (activePlane <= SUMAg_CF->N_ClipPlanes)  planeIndex = activePlane;
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
-
+    
     // Set up normal offset loactions s.t. clipping planes just enclose existing objects
     if (firstCall)  {
         // Get ranges of orthogonal axes
@@ -1715,14 +1737,20 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         // Store previous object axes ranges as gloabl for clipping plane functions
         memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
-    }
+        
+        // Initialize increment to 1/40 max width of bounding box
+        initializeIncrement(objectMinMax);
+        // TODO: Add code
 
+        for (i=1; i<6; ++i) planeD[i] = HUGE;
+    }
+    
     // Turn clipping plane on or off as required
     if (toggleOffOn){
         active[activePlane] = !(active[activePlane]);
         clipIdentificationPlane[activePlane]->Show = (clipPlaneIdentificationMode && active[activePlane]);
     }
-
+    
     if (flip){
         planeA[planeIndex] = -planeA[planeIndex];
         planeB[planeIndex] = -planeB[planeIndex];
@@ -1746,7 +1774,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         if (oldPlaneA*planeA[planeIndex] < 0.1) planeA[planeIndex] = -planeA[planeIndex];
         planeC[planeIndex] = planeC[planeIndex]*cos(planePhi[planeIndex]*degrees2rad);
     }
-
+    
     // Apply rotational, and translational, parameters to selected clipping plane
     SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
 
@@ -1755,14 +1783,14 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
     activeClipPlane[1] = planeB[planeIndex];
     activeClipPlane[2] = planeC[planeIndex];
     activeClipPlane[3] = planeD[planeIndex];
-
+    
     // Show user which clip plane is active
     if (clipPlaneIdentificationMode){
         if (planeIndex != SUMAg_CF->N_ClipPlanes) updateClipSquare(planeIndex);
 
         SUMA_postRedisplay(w, NULL, NULL);  // Refresh window.  (Not sure this is necessary or helps)
     }
-
+    
     // Record rotation angles
     clippingPlaneTheta[planeIndex] = planeTheta[planeIndex];
     clippingPlanePhi[planeIndex] = planePhi[planeIndex];

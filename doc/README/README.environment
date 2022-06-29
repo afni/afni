@@ -3778,9 +3778,9 @@ relevant calculation. If you do not set a variable, and you do
 not use the 3dttest++ command line option, you will get whatever
 the default ETAC method(s) are enabled.
 
----------------------------
-Variable: AFNI_CLUSTIM_MEGA
----------------------------
+----------------------------
+Variable: AFNI_CLUSTSIM_MEGA
+----------------------------
 Set this variable to YES to force the use of the '-MEGA' option
 in 3dClustSim. The primary reason for this usage is to force
 '3dttest -Clustsim' to use '-MEGA' rather than the default '-LOTS'.
@@ -3996,7 +3996,8 @@ AFNI_REALTIME_DATAMODE = Number
 AFNI_REALTIME_CHMERMODE = Number
 
         If set, this variable controls the initial setting of the
-        "ChannelMerge" control, where 0=none, 1=sum, 2=L1 norm, 3=L2norm.
+        "ChannelMerge" control, where:
+            0=none,  1=sum,  2=L1 norm,  3=L2norm.  4=T2* est,  5=Opt Comb
         If not set, the default value is 0.
 
 AFNI_REALTIME_CM_REG_MODE = Number
@@ -4516,3 +4517,11 @@ Variable:  AFNI_ICORR_UBER_USER
 ------------------------------------
 If set to YES, enable distance measures that are not ready for prime
 time in the instacorr interface.
+
+------------------------------------
+Variable:  AFNI_SKIP_TCSV_SCAN
+------------------------------------
+If set to YES, do not scan for CSV files at afni startup (default: not
+set, so effectively doing the scan), which is the same as using option
+-notcsv.
+

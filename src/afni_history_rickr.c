@@ -53,6 +53,275 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jun, 2022, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
+   "apply mask_epi_anat in help examples, rather than full_mask",
+   NULL
+ } ,
+
+ { 17, Jun, 2022, RCR, "NIFTI", MINOR, TYPE_NEW_OPT,
+   "add and apply nifti_image_write_status in NIFTI-1 and -2",
+   NULL
+ } ,
+
+ { 13, Jun, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove essentially duped final_epi_unif dset and uvar",
+   NULL
+ } ,
+
+ {  6, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -align_unifize_epi local method, -align_opts_eunif",
+   "To apply 3dLocalUnifize from P Taylor."
+ } ,
+
+ { 24, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -command_comment_style",
+   "As requested by the ominous P Taylor."
+ } ,
+
+ { 18, May, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "allow for pb00 dsets in standard space",
+   "Thanks to Erik (MB audachang) for noting it."
+ } ,
+
+ { 17, May, 2022, RCR, "Makefile.INCLUDE", MINOR, TYPE_NEW_OPT,
+   "add to prog lists",
+   NULL
+ } ,
+
+ { 10, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "do not add global line wrapper to QC block",
+   "Avoid line wrappers in the generation of out.ap_uvars.txt (might happen\n"
+   "when copy_anat dset has a very long name, for example).\n"
+   "Thanks to E Chang for pointing out the issue."
+ } ,
+
+ {  6, May, 2022, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add functions slice_pattern_to_order, slice_pattern_to_timing",
+   NULL
+ } ,
+
+ {  3, May, 2022, RCR, "uber_subject.py", MICRO, TYPE_GENERAL,
+   "update to deal with minor changes to python modules",
+   NULL
+ } ,
+
+ {  3, May, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "for anyos_* packages, test for update using AFNI_version.txt",
+   NULL
+ } ,
+
+ {  2, May, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add distribution packages anyos_text and anyos_text_atlas",
+   NULL
+ } ,
+
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "prepare for the all-important anyos_text distribution",
+   "Add Makefile.anyos_text and an install_text target in Makefile.Include."
+ } ,
+
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "apply PRId64 for some int64_t printing",
+   "Modified niml.h, niml_elemio.c, mri_transpose.c, thd_loaddblk.c."
+ } ,
+
+ { 28, Apr, 2022, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
+   "afni_util.py:common_dir() : watch for the deadly JR scenario!",
+   "Thanks to J Ritchie for unconvering this, peculiar, issue."
+ } ,
+
+ { 27, Apr, 2022, RCR, "Makefile.macos_11_ARM_clang", MINOR, TYPE_MODIFY,
+   "(w/dglen) modify recent mac builds to get all X packages from homebrew",
+   "Modified Makefile.macos_11_ARM_clang, Makefile.macos_10.15_clang, and\n"
+   "the corresponding other_builds/OS_notes files."
+ } ,
+
+ { 22, Apr, 2022, RCR, "Dimon", MAJOR, TYPE_NEW_OPT,
+   "add -sort_method cases rin and geme_rin",
+   NULL
+ } ,
+
+ { 22, Apr, 2022, RCR, "afni", MINOR, TYPE_NEW_OPT,
+   "add -no_frivolities option, to directly set that",
+   NULL
+ } ,
+
+ { 12, Apr, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_fedora_35_shared and OS_notes.linux_fedora_35.txt",
+   NULL
+ } ,
+
+ {  6, Apr, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow for REML-only errts on surface",
+   "Thanks to P Molfese for bringing it up."
+ } ,
+
+ {  5, Apr, 2022, RCR, "3dTshift", MINOR, TYPE_ENHANCE,
+   "allow for shifting a single slice (or voxel) time series",
+   "Also, add a help example demonstrating this."
+ } ,
+
+ {  4, Apr, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "update .circleci/config.yml, using docker version 19.03.13 to 20.10.11",
+   "Done with P Taylor."
+ } ,
+
+ {  1, Apr, 2022, RCR, "@radial_correlate", MICRO, TYPE_BUG_FIX,
+   "create ulay in all cases",
+   NULL
+ } ,
+
+ { 22, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add ap_uvars dir_suma_spec, suma_specs",
+   "Also, remove inappropriate -epi_strip from -align_opts_aea in example."
+ } ,
+
+ { 18, Mar, 2022, RCR, "eg_main_chrono.py", MICRO, TYPE_ENHANCE,
+   "add a little more edu",
+   NULL
+ } ,
+
+ { 17, Mar, 2022, RCR, "@radial_correlate", MICRO, TYPE_MODIFY,
+   "change saved ulay to be from orig EPI (to avoid detrended one)",
+   "Done to appease the scrutinous P Taylor."
+ } ,
+
+ { 16, Mar, 2022, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_tr_offsets",
+   "See Example 10 d."
+ } ,
+
+ { 15, Mar, 2022, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
+   "cast run_time_to_polort output to int, for py2.7",
+   "Thanks to P Taylor for pointing it out."
+ } ,
+
+ { 12, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use aea.py instead of allin for extra -align_epi_ext_dset registration",
+   "align_epi_anat.py would deal with a difference in obliquity"
+ } ,
+
+ { 10, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "run 3dAllineate for -align_epi_ext_dset to volreg base",
+   NULL
+ } ,
+
+ {  8, Mar, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "apply -polort in @radial_correlate",
+   NULL
+ } ,
+
+ {  7, Mar, 2022, RCR, "@radial_correlate", MINOR, TYPE_NEW_OPT,
+   "add -polort; default is 2",
+   NULL
+ } ,
+
+ {  6, Mar, 2022, RCR, "@diff.tree", MICRO, TYPE_NEW_OPT,
+   "add -diff_prog",
+   NULL
+ } ,
+
+ {  3, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "update block help; rename to quality control review",
+   NULL
+ } ,
+
+ {  2, Mar, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib repo",
+   NULL
+ } ,
+
+ {  1, Mar, 2022, RCR, "nifti_tool", MAJOR, TYPE_NEW_OPT,
+   "allow conversion between any 2 int or float types (except float128)",
+   "Add -copy_image, -convert2dtype, -convert_verify, -convert_fail_choice.\n"
+   "Conversion operations happen in nt_image_read and nt_read_bricks,\n"
+   "and can therefore be applied to most data-included operations.\n"
+   "Requested by J Teves."
+ } ,
+
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix removal of spaces with -combine_opts_tedana",
+   "Thanks to J Teves for noting the problem."
+ } ,
+
+ {  1, Mar, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "make pythonic the default html_review_style",
+   "Done to appease the ever-demanding P Taylor."
+ } ,
+
+ { 28, Feb, 2022, RCR, "3dZcutup", MICRO, TYPE_BUG_FIX,
+   "fix typo in bounds check on -keep (was backward)",
+   "Thanks to Yixiang (on AFNI MB) for letting us know."
+ } ,
+
+ { 20, Feb, 2022, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with nifti_clib",
+   NULL
+ } ,
+
+ { 18, Feb, 2022, RCR, "@Install_APMULTI_Demo2_realtime", MAJOR, TYPE_NEW_PROG,
+   "new install script for APMULTI_Demo2_realtime",
+   "This is a demo for running AFNI's real-time system, without needing to\n"
+   "bother the scanner.  It demonstrates use if single- and multi-echo\n"
+   "DICOM input, and various sets of data that can be passed from afni to\n"
+   "an external program (realtime_receiver.py in this case)."
+ } ,
+
+ { 16, Feb, 2022, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "propagate obliquity in case of -ftype AFNI",
+   NULL
+ } ,
+
+ { 15, Feb, 2022, RCR, "gen_ss_review_table.py", MICRO, TYPE_MODIFY,
+   "display SHOW_KEEP for subjects on -show_keepers",
+   NULL
+ } ,
+
+ { 14, Feb, 2022, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -show_keepers",
+   "Show table of subjects kept, rather than those with any outliers.\n"
+   "Added on the authority of P Taylor."
+ } ,
+
+ { 10, Feb, 2022, RCR, "afni_python_wrapper.py", MINOR, TYPE_BUG_FIX,
+   "change import to try from afnipy first",
+   "Biowulf has old afnipy/*.py files in abin.\n"
+   "Thanks to P Kusmierek and P Taylor for reporting the problem."
+ } ,
+
+ { 10, Feb, 2022, RCR, "3dPval", MICRO, TYPE_BUG_FIX,
+   "fix dealing with an unknown option",
+   "Previously warned, but forgot to skip option (or break, depending).\n"
+   "Change to failure."
+ } ,
+
+ {  9, Feb, 2022, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fix FIR blur padding",
+   "As noted by PT, volumes were not being properly blurred near edges.\n"
+   "Fix edge padding to be applied for entire FIR length, not just at\n"
+   "full FIR offset."
+ } ,
+
+ {  8, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -html_review_opts for passing options to apqc_make_tcsh.py",
+   "Done for S Torrisi."
+ } ,
+
+ {  7, Feb, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "create out.ap_uvars.json, and apply via gssrs -init_uvas_json",
+   "A minor assist in helping P Taylor take over this spiral galaxy arm..."
+ } ,
+
+ {  3, Feb, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add -init_uvas_json",
+   "Allow passing a json file, akin to passing many -uvar options."
+ } ,
+
+ {  3, Feb, 2022, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add data_file_to_json()",
+   "This is a file conversion function that uses the util library."
+ } ,
+
  { 29, Jan, 2022, RCR, "README.environment", MICRO, TYPE_ENHANCE,
    "update AFNI_REALTIME_Mask_Vals with new modes",
    "Describe All_Data_light and ROIs_and_data."

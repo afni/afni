@@ -72,7 +72,7 @@ set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_map_to_dti"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -419,15 +419,15 @@ endif
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
-    set wdir = $odir/${wdir}_$opref
+    set wdir = "$odir/${wdir}_$opref"
 else
-    set wdir = $odir/$wdir
+    set wdir = "$odir/$wdir"
 endif
 
 # make the working directory
-if ( ! -e $wdir ) then
+if ( ! -e "$wdir" ) then
     echo "++ Making working directory: $wdir"
-    \mkdir $wdir
+    \mkdir "$wdir"
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
@@ -486,7 +486,7 @@ endif
 
 # copy the t1w file to wdir via resampling: match t2w-t1w orients
 set orient_t2w = `3dinfo -orient "$ibase"`
-set t1res      = $wdir/f00_t1res.nii
+set t1res      = "$wdir/f00_t1res.nii"
 set T1TOMAP    = $t1res                 # we will apply map to this!
 3dresample                          \
     -overwrite                      \
@@ -501,7 +501,7 @@ if ( "$imtrx" == "" ) then
     # prep this side for aligning with a bit of unifizing and brightness
     # thresholding
     echo "++ Unifize T1w proc vol."
-    set t1uni = $wdir/f01_t1uni.nii
+    set t1uni = "$wdir/f01_t1uni.nii"
     3dUnifize                            \
         -GM                              \
         -prefix  $t1uni                  \
@@ -509,7 +509,7 @@ if ( "$imtrx" == "" ) then
         -overwrite 
 
     echo "++ Threshold T1w proc vol."
-    set t1thr = $wdir/f02_t1thr.nii
+    set t1thr = "$wdir/f02_t1thr.nii"
     set v1 = `3dBrickStat -non-zero -automask   \
                 -percentile 95 1 95 ${t1uni}`
     echo ${v1[2]}
@@ -518,11 +518,11 @@ if ( "$imtrx" == "" ) then
            -prefix $t1thr                       \
            -overwrite
 
-    set t1align   = $wdir/f05_t1align.nii
+    set t1align   = "$wdir/f05_t1align.nii"
 
     echo "++ Calculating alignment matrix."
 
-    set imtrx = $wdir/map_to_dti.aff12.1D
+    set imtrx = "$wdir/map_to_dti.aff12.1D"
 
     3dAllineate   -echo_edu               \
         -1Dmatrix_save  $imtrx            \
@@ -543,7 +543,7 @@ endif
 echo "++ Apply alignment matrix."
 
 # --> always match dti grid...
-set t1mapped = $wdir/f06_t1mapped.nii
+set t1mapped = "$wdir/f06_t1mapped.nii"
 if ( 1 ) then
     echo "++ Outputting final image to t2w space"
     3dAllineate   -echo_edu               \
@@ -696,7 +696,7 @@ echo "++ Done workin'.  Just need to copy the final dset."
 
 if ( $DO_VIEWER == 1 ) then
 
-    set vedge = $wdir/f10_edges.nii
+    set vedge = "$wdir/f10_edges.nii"
 
     echo "++ Calc edges of source."
     3dedge3                         \
@@ -824,7 +824,7 @@ endif
 # clean, by default
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n++ Cleaning working directory!\n"
-    \rm -rf $wdir
+    \rm -rf "$wdir"
 else
     echo "\n++ NOT removing working directory '$wdir'.\n"
 endif

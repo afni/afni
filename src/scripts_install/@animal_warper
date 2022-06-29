@@ -3185,7 +3185,7 @@ Options ~1~
                        alignment step (via align_epi_anat.py). With this
                        option, you can change the movement type to be
                        any of the values allowed by align_epi_anat.py---
-                       note that you should *no* include the hypthen from
+                       note that you should *not* include the hyphen from
                        the align_epi_anat.py option name, and if the option
                        takes two terms, then you should put it in quotes, 
                        such as: "cmass cmass"  (default: "giant_move").

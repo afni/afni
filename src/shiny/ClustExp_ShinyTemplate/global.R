@@ -44,6 +44,7 @@ group.df  <- read.csv(paste0('data/',GroupFile))
 ## mean data extracted per subject
 MeanFile <- paste0(prefix,'_p_uncor_',p_val,'_mean.csv')
 mean.df  <- read.csv(paste0('data/',MeanFile),check.names=FALSE)
+mean.df <- data.table(mean.df)
 
 ## reshape to long and filter by subjects included from analysis
 mean.df <- melt(mean.df,variable.name='coord',id.vars=c('Subj','InputFile'))
@@ -55,6 +56,7 @@ mean.df <- merge(mean.df,group.df,by=c('InputFile','Subj'))
 ## peak data extracted per subject
 PeakFile <- paste0(prefix,'_p_uncor_',p_val,'_peak.csv')
 peak.df  <- read.csv(paste0('data/',PeakFile),check.names=FALSE)
+peak.df <- data.table(peak.df)
 
 ## reshape to long and filter by subjects included from analysis
 peak.df <- melt(peak.df,variable.name='coord',id.vars=c('Subj','InputFile'))

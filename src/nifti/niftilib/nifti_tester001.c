@@ -40,8 +40,8 @@ nifti_image * generate_reference_image( const char * write_image_filename , int 
   reference_header.dim[3]=11;
   reference_header.dim[4]=7;
   reference_header.dim[5]=3;
-  reference_header.dim[6]=1; //This MUST be 1 anything else is invalid due to code that usees huristics to fix other possible problems;
-  reference_header.dim[7]=1; //This MUST be 1 anything else is invalid due to code that usees huristics to fix other possible problems;
+  reference_header.dim[6]=1; //This MUST be 1 anything else is invalid due to code that uses heuristics to fix other possible problems;
+  reference_header.dim[7]=1; //This MUST be 1 anything else is invalid due to code that uses heuristics to fix other possible problems;
   reference_header.intent_p1=10101010.101F;
   reference_header.intent_p2=987654321.0F;
   reference_header.intent_p3=-1234.0F;
@@ -84,7 +84,7 @@ nifti_image * generate_reference_image( const char * write_image_filename , int 
   reference_header.magic[3]='\0';
   /* String is purposfully too long */
   strncpy(reference_header.intent_name,"PHANTOM_DATA to be used for regression testing the nifti reader/writer",16);
-  strncpy(reference_header.descrip,"This is a very long dialog here to use up more than 80 characters of space to test to see if the code is robust enough to deal appropriatly with very long and obnoxious lines.",80);
+  strncpy(reference_header.descrip,"This is a very long dialog here to use up more than 80 characters of space to test to see if the code is robust enough to deal appropriately with very long and obnoxious lines.",80);
 
   {
   int nbyper;
@@ -226,7 +226,14 @@ int main (int argc, char *argv[])
               NIFTITEST_FALSE,&Errors);
     }
     PrintTest("Create reference image",reference_image==0,NIFTITEST_TRUE,&Errors);
-    nifti_image_write   ( reference_image ) ;
+    if( nifti_image_write_status( reference_image ) )
+    {
+      printf("ERROR: failed to write nifti_image.");
+      fflush(stdout);
+      nifti_image_free(reference_image);
+      return EXIT_FAILURE;
+    }
+
     /*
      * test nifti_copy_extension
      */
@@ -351,7 +358,12 @@ int main (int argc, char *argv[])
   nifti_image * reference_image =
     generate_reference_image("TestAsciiImage.nia",&Errors);
   reference_image->nifti_type = 3;
-  nifti_image_write(reference_image);
+  if( nifti_image_write_status( reference_image ) )
+  {
+    printf("ERROR: failed to write nifti_image.");
+    fflush(stdout);
+  }
+
   nifti_image * reloaded_image = nifti_image_read("TestAsciiImage.nia",1);
   PrintTest("Read/Write Ascii image",
             reloaded_image == 0,NIFTITEST_FALSE,&Errors);

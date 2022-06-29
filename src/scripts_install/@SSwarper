@@ -137,10 +137,14 @@
 #     + [PT] cp initial/raw anat to $odir 
 #          + also cp any initial/raw mask_ss to $odir 
 #
-set version   = "2.54";   set rev_dat   = "Feb 1, 2022"
+#set version   = "2.54";   set rev_dat   = "Feb 1, 2022"
 #     + [PT] Put clearer ERROR messaging in a couple spots
 #          + remove any non-programmatic exclamation marks. those are BAD
 #            to have in t/csh scripts, even in comments.
+#
+set version   = "2.55";   set rev_dat   = "May 10, 2022"
+#     + [PT] for 3dWarp-deobliqueing, use NN interp for mask, not wsinc5
+#            -> thanks, RCR
 #
 # ----------------------------------------------------------------
 
@@ -202,6 +206,8 @@ set saveall    = ""         # for 3dQwarp (def: don't);  just for debugging
 set SSopt      = " "
 
 set mask_ss    = ""
+
+set more_echo  = ""
 
 # ------------------- process options, a la rr ----------------------
 
@@ -364,6 +370,7 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-echo" ) then
         set echo
+        set more_echo = "-echo"
 
     # ---------- fin ------------------
 
@@ -499,7 +506,7 @@ if ( $nvolbase < 5 ) then
 endif
 
 # [PT: Oct 19, 2020] Add in new QC: initial source-base overlap
-@djunct_overlap_check                             \
+@djunct_overlap_check  ${more_echo}               \
     -ulay   "${Adataset}"                         \
     -olay   "$Basedset"                           \
     -prefix ${odir}/init_qc_00_overlap_usrc_obase
@@ -545,9 +552,10 @@ if ( ${DO_DEOB} ) then
 
     if ( "${mask_ss}" != "" ) then
         set mask_do = $odir/maskDO."${SubID}".nii.gz
+        # [PT: 10 May 2022] kernel from wsinc5 -> NN, as noticed by RCR
         3dWarp                        \
             -deoblique                \
-            -wsinc5                   \
+            -NN                       \
             -prefix "${mask_do}"      \
             "${mask_ss}"
         # ... and this will be new "input" dset
@@ -745,7 +753,7 @@ set ulay  = "${pref}TAL5.nii"
 set olay  = "${Basedset}"
 set opref_qc_nl0 = "${odir}/init_qc_01_nl0.${SubID}.jpg"
 
-@djunct_edgy_align_check               \
+@djunct_edgy_align_check ${more_echo}  \
     -montx            8                \
     -monty            1                \
     -ulay             "${ulay}"        \

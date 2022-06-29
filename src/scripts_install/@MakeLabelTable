@@ -1,10 +1,12 @@
 #!/bin/tcsh
+onintr END
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
+set tmpdir = .
 set stat = 0
-set RNS = `3dnewid -fun`
-set log = /tmp/${RNS}.MLT.log
+set RNS = "mlt_`3dnewid -fun`"
+set log = ${tmpdir}/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
@@ -169,19 +171,19 @@ MAKE_TABLE:
       set pbar = "ROI_i256"
    endif
 
-   if ( -f /tmp/${RNS}.___lt.txt) rm -f /tmp/${RNS}.___lt.txt
-   if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
-   if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
+   if ( -f ${tmpdir}/${RNS}.___lt.txt) rm -f ${tmpdir}/${RNS}.___lt.txt
+   if ( -f ${tmpdir}/${RNS}.___ll.txt) rm -f ${tmpdir}/${RNS}.___ll.txt
+   if ( -f ${tmpdir}/${RNS}.___kk.txt) rm -f ${tmpdir}/${RNS}.___kk.txt
    set cnt = 1
-   set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+   set N_llist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
       # get the label from the temporary file parsed above
-      set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
+      set ll = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_`
       # get the value index
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       # get the longname if there is one
       if ($lncol) then
-         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+         set ln = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_ln_`
       else
          set ln =  ""
       endif
@@ -193,11 +195,11 @@ MAKE_TABLE:
             # check for long names here and add these on if they exist
             if ("$ln" != "") then
                printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
             # the more usual case of no long names - just name and number
             else
                printf '"%d" "%s%02d"\n' $ind "$ll" $ci \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
 
             endif
             if ($status) then
@@ -206,19 +208,19 @@ MAKE_TABLE:
                echo ""
                goto BEND
             endif
-            printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
-            printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
+            printf '%d\n' $ind >> ${tmpdir}/${RNS}.___kk.txt
+            printf '%s%02d\n' "$ll" $ci >> ${tmpdir}/${RNS}.___ll.txt
             @ ci ++
          end
       else
          # add long name if it exists to entry
          if ("$ln" != "") then
             printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
         else
             # the more usual case of no long names - just name and number
              printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
           endif
             if ($status) then
                echo "Error:"
@@ -226,26 +228,26 @@ MAKE_TABLE:
                echo ""
                goto BEND
             endif
-         printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
-         printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
+         printf '%d\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
+         printf '%s\n' "$ll" >> ${tmpdir}/${RNS}.___ll.txt
       endif
       @ cnt ++
    end
 
-   set n = `wc -l /tmp/${RNS}.___ll.txt`
+   set n = `wc -l ${tmpdir}/${RNS}.___ll.txt`
    set n = $n[1]
-   uniq /tmp/${RNS}.___ll.txt > /tmp/${RNS}.___llu.txt
-   set nu = `wc -l /tmp/${RNS}.___llu.txt`
+   uniq ${tmpdir}/${RNS}.___ll.txt > ${tmpdir}/${RNS}.___llu.txt
+   set nu = `wc -l ${tmpdir}/${RNS}.___llu.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
          echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
       goto BEND
    endif
-   set n = `wc -l /tmp/${RNS}.___kk.txt`
+   set n = `wc -l ${tmpdir}/${RNS}.___kk.txt`
    set n = $n[1]
-   uniq /tmp/${RNS}.___kk.txt > /tmp/${RNS}.___kku.txt
-   set nu = `wc -l /tmp/${RNS}.___kku.txt`
+   uniq ${tmpdir}/${RNS}.___kk.txt > ${tmpdir}/${RNS}.___kku.txt
+   set nu = `wc -l ${tmpdir}/${RNS}.___kku.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
@@ -259,7 +261,7 @@ MAKE_TABLE:
       printf 'ni_dimen="%d"\n' $nu[1] >> $labeltable
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
       # take index and label, each in quotes, not longnames if any to labeltable 
-      uniq /tmp/${RNS}.___lt.txt | awk '{print $1 " " $2}' >> $labeltable
+      uniq ${tmpdir}/${RNS}.___lt.txt | awk '{print $1 " " $2}' >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
 
 PUT_TABLE:
@@ -282,17 +284,17 @@ MAKE_ATLAS_TABLE:
       set pbar = "ROI_i256"
    endif
 
-   if ( -f /tmp/${RNS}.___lt.txt) rm -f /tmp/${RNS}.___lt.txt
-   if ( -f /tmp/${RNS}.___ll.txt) rm -f /tmp/${RNS}.___ll.txt
-   if ( -f /tmp/${RNS}.___kk.txt) rm -f /tmp/${RNS}.___kk.txt
+   if ( -f ${tmpdir}/${RNS}.___lt.txt) rm -f ${tmpdir}/${RNS}.___lt.txt
+   if ( -f ${tmpdir}/${RNS}.___ll.txt) rm -f ${tmpdir}/${RNS}.___ll.txt
+   if ( -f ${tmpdir}/${RNS}.___kk.txt) rm -f ${tmpdir}/${RNS}.___kk.txt
    set cnt = 1
-   set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+   set N_llist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
-      set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
+      set ll = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_`
 
       # get the longname if there is one
       if ($lncol) then
-         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+         set ln = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_ln_`
       else
          set ln =  ""
       endif
@@ -308,25 +310,25 @@ MAKE_ATLAS_TABLE:
          set ci = 1
          foreach ind ($inds)
             printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
             if ($status) then
                echo "Error:"
                echo "printf command failed at: $ind $ll"
                echo ""
                goto BEND
             endif
-            printf '%d\n' $ind >> /tmp/${RNS}.___kk.txt
-            printf '%s%02d\n' "$ll" $ci >> /tmp/${RNS}.___ll.txt
+            printf '%d\n' $ind >> ${tmpdir}/${RNS}.___kk.txt
+            printf '%s%02d\n' "$ll" $ci >> ${tmpdir}/${RNS}.___ll.txt
             @ ci ++
          end
       else
          set ln_len = `echo $ln |wc -c`
          if ("$ln_len" == "1") then
              printf '"%d" "%s" ""\n' $llistmin[$cnt] "$ll" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
          else
             printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
-               >> /tmp/${RNS}.___lt.txt
+               >> ${tmpdir}/${RNS}.___lt.txt
          endif
          if ($status) then
             echo "Error:"
@@ -335,26 +337,26 @@ MAKE_ATLAS_TABLE:
             echo ""
             goto BEND
          endif
-         printf '%d\n' $llistmin[$cnt] >> /tmp/${RNS}.___kk.txt
-         printf '%s\n' "$ll" >> /tmp/${RNS}.___ll.txt
+         printf '%d\n' $llistmin[$cnt] >> ${tmpdir}/${RNS}.___kk.txt
+         printf '%s\n' "$ll" >> ${tmpdir}/${RNS}.___ll.txt
       endif
       @ cnt ++
    end
 
-   set n = `wc -l /tmp/${RNS}.___ll.txt`
+   set n = `wc -l ${tmpdir}/${RNS}.___ll.txt`
    set n = $n[1]
-   uniq /tmp/${RNS}.___ll.txt > /tmp/${RNS}.___llu.txt
-   set nu = `wc -l /tmp/${RNS}.___llu.txt`
+   uniq ${tmpdir}/${RNS}.___ll.txt > ${tmpdir}/${RNS}.___llu.txt
+   set nu = `wc -l ${tmpdir}/${RNS}.___llu.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
          echo "ERROR: `ccalc -i $n -$nu` Labels dropped because of duplicates"
       goto BEND
    endif
-   set n = `wc -l /tmp/${RNS}.___kk.txt`
+   set n = `wc -l ${tmpdir}/${RNS}.___kk.txt`
    set n = $n[1]
-   uniq /tmp/${RNS}.___kk.txt > /tmp/${RNS}.___kku.txt
-   set nu = `wc -l /tmp/${RNS}.___kku.txt`
+   uniq ${tmpdir}/${RNS}.___kk.txt > ${tmpdir}/${RNS}.___kku.txt
+   set nu = `wc -l ${tmpdir}/${RNS}.___kku.txt`
    set nu = $nu[1]
    if ($nu < $n) then
       if (! $quiet_death) \
@@ -363,12 +365,12 @@ MAKE_ATLAS_TABLE:
    endif
 
 
-      uniq /tmp/${RNS}.___lt.txt > /tmp/${RNS}.___ult.txt
-      set ne = `wc -l /tmp/${RNS}.___ult.txt`
+      uniq ${tmpdir}/${RNS}.___lt.txt > ${tmpdir}/${RNS}.___ult.txt
+      set ne = `wc -l ${tmpdir}/${RNS}.___ult.txt`
       printf '<atlas_point_list\n' > $labeltable
       printf ' ni_form="ni_group">\n\n' >> $labeltable
       foreach n (`count -digits 1 1 $ne[1] 1`)
-         set lln = `sed -n ${n}p /tmp/${RNS}.___ult.txt`
+         set lln = `sed -n ${n}p ${tmpdir}/${RNS}.___ult.txt`
          set cogval = `echo $lln[1] |tr -d \"`
          if ($SKIPNOVOX) then
             set count = `3dBrickStat -count -non-zero $target_dset"<$cogval>"`
@@ -506,7 +508,13 @@ PARSE:
    set mode = 0
    set autolab = 0
    set LONGNAMES = 0
-   if ( -f TMPLIST_${RNS}_) \rm -f TMPLIST_${RNS}_
+
+   if ( ! -d ${tmpdir} ) then
+      echo "Temporary files folder '${tmpdir}' does not exist."
+      goto BEND
+   endif
+
+   if ( -f ${tmpdir}/TMPLIST_${RNS}_) \rm -f ${tmpdir}/TMPLIST_${RNS}_
 	set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -647,10 +655,10 @@ PARSE:
          goto CONTINUE
       endif
 
-      if ("$argv[$cnt]" == "-LT_to_CSV") then
+      if ("$argv[$cnt]" == "-LT_to_CSV" || "$argv[$cnt]" == "-LT_to_qCSV" ) then
          set SubLoc = $cnt
          if ($SubLoc == $Narg) then
-            if (! $quiet_death) echo "Need labeltable after -LT_to_CSV"
+            if (! $quiet_death) echo "Need labeltable after -LT_to_CSV or -LT_to_qCSV"
             goto BEND
          else
             @ cnt ++
@@ -666,10 +674,17 @@ PARSE:
                goto BEND
             endif
             echo 'key,label' > $labeltablecsv
-            niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
+            if ( "$argv[$SubLoc]" == "-LT_to_qCSV" ) then
+               niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
+                  \sed '/^#/d' | \sed 's/^ //g' | \sed 's/ *$//g' | \
+                  sed '/^[[:blank:]]*$/d' | \
+                  \tr ' ' ',' >> $labeltablecsv
+            else
+               niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
                   \sed '/^#/d' | \sed 's/^ //g' | \sed 's/ *$//g' | \
                   \sed 's/"//g' | sed '/^[[:blank:]]*$/d' | \
                   \tr ' ' ',' >> $labeltablecsv
+            endif
             echo "Labeltable now in $labeltablecsv"
             goto END
          endif
@@ -830,8 +845,8 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif
-            echo $argv[$cnt] >> TMPLIST_${RNS}_
-            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+            echo $argv[$cnt] >> ${tmpdir}/TMPLIST_${RNS}_
+            set N_llist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
 
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
@@ -853,7 +868,7 @@ PARSE:
                if (! $quiet_death) \
                   printf "Bad range values of [%d %d] for label '%s'\n" \
                    $llistmin[$#llistmin] $llistmax[$#llistmax] \
-                   `sed -n ${N_llist}p TMPLIST_${RNS}_`
+                   `sed -n ${N_llist}p ${tmpdir}/TMPLIST_${RNS}_`
                goto BEND
             endif
 			endif
@@ -874,8 +889,8 @@ PARSE:
                   echo "Label name $argv[$cnt] cannot start with '-'"
                goto BEND
             endif
-            echo $argv[$cnt] >> TMPLIST_${RNS}_
-            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+            echo $argv[$cnt] >> ${tmpdir}/TMPLIST_${RNS}_
+            set N_llist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
             @ cnt ++
             if ($argv[$cnt] =~ -*) then
                if (! $quiet_death) \
@@ -1054,27 +1069,27 @@ PARSE_LABEL_FILE:
 	    # get labels from label file
 	    awk -F "$delim" '{print $'$iL'}' $flab | \
 	             sed 's/^ *//g' | sed 's/ *$//g' | \
-	             sed '/^ *$/d' > TMPLIST_${RNS}_
-	    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+	             sed '/^ *$/d' > ${tmpdir}/TMPLIST_${RNS}_
+	    set N_llist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
 	    set llistmax = ($llistmin)
 
 	    # get long names from label file
 	    if ($lncol) then
 	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
 	#          sed 's/^ *//g' | sed 's/ *$//g' | \
-	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+	#          sed '/^ *$/d' > ${tmpdir}/TMPLIST_${RNS}_ln_
 	# awk way gets all columns after longname column to handle extra spaces
 	#       awk -F "$delim" -v N=$lncol \
 	#          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
-	#          > TMPLIST_${RNS}_ln_
+	#          > ${tmpdir}/TMPLIST_${RNS}_ln_
     # cut way - simpler with cut command and works with other delimiters and comma
     # also supports last column selector
            ### [PT: Sep 29, 2021] need quotes around ${delim}
            # unfortunately, mac version doesn't support --delimiter
-    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
+    #       cat $flab | cut --delimiter="${delim}" -f${lncol}-${last_lncol} > ${tmpdir}/TMPLIST_${RNS}_ln_
     # squeeze multiple spaces down to single space
-           cat  $flab | tr -s " " | cut -d"${delim}" -f${lncol}-${last_lncol} > TMPLIST_${RNS}_ln_
-	       set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+           cat  $flab | tr -s " " | cut -d"${delim}" -f${lncol}-${last_lncol} > ${tmpdir}/TMPLIST_${RNS}_ln_
+	       set N_lnlist = `\wc -l ${tmpdir}/TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
 	    endif
 
 	    set llistmax = ($llistmin)
@@ -1103,7 +1118,7 @@ PARSE_LABEL_FILE:
 	    if ( $status ) then
 	       echo "Failed to parse $flab columns make sure column"
 	       echo "selectors and delimiters are OK."
-	echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
+	echo "Got '`sed -n $1p ${tmpdir}/TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
 	       echo ""
 	       goto BEND
 	    endif
@@ -1111,7 +1126,7 @@ PARSE_LABEL_FILE:
 
    if (0) then
       echo "Have:"
-      cat TMPLIST_${RNS}_
+      cat ${tmpdir}/TMPLIST_${RNS}_
       echo $llistmin
       echo $llistmax
    endif
@@ -1208,6 +1223,7 @@ HELP:
    echo "                                DSET and write it out as an"
    echo "                                Atlas Point List to POINTLIST"
    echo "    -LT_to_CSV LABELTABLE: Transform Label Table LABELTABLE to a CSV format"
+   echo "    -LT_to_qCSV LABELTABLE: Transform Label Table LABELTABLE to a quoted CSV format"
    echo ""
    echo "   Example:"
    echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
@@ -1257,12 +1273,12 @@ BEND:
    goto END
 
 END:
-\rm -f TMPLIST_${RNS}_ >& /dev/null
+\rm -f ${tmpdir}/TMPLIST_${RNS}_ >& /dev/null
 if ($stat == 0) then
    if (-f $log) then
-       \rm /tmp/${RNS}.$log:t  >& /dev/null
+       \rm ${tmpdir}/${RNS}.$log:t  >& /dev/null
    endif
    # delete some of the temporary files
-   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* /tmp/${RNS}*  >& /dev/null
+   \rm LABEL_TABEL_NOT_SET lt_${RNS}.* TMPLIST_${RNS}* ${tmpdir}/TMPLIST_${RNS}* ${tmpdir}/${RNS}*  >& /dev/null
 endif
 exit $stat

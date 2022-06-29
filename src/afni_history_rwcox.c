@@ -49,6 +49,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , MAR , 2022 , RWC , "3dttest++" , MINOR, TYPE_BUG_FIX ,
+   "Patch unfathomable problem with -permute and -covariates combined" ,
+   "Covariate matrices are constructed BEFORE permutation is setup, and\n"
+   "that caused a problem. Patched around that." } ,
+
  { 15 , DEC , 2021 , RWC , "3dttest++ and 3dClustSim" , MINOR , TYPE_NEW_ENV ,
    "AFNI_CLUSTSIM_MEGA" ,
    "If AFNI_CLUSTSIM_MEGA is set to 'YES', then 3dttest++ will run 3dClustSim\n"

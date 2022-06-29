@@ -3,7 +3,7 @@
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 set stat = 0
-set sdir = $PWD
+set sdir = "$PWD"
 set pname = `basename $0`
 
 goto PARSE

@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.9, March 13, 2021 
+Version 1.0.10, Feb 28, 2022 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -141,10 +141,13 @@ Usage: ~1~
  
  install.packages(\'cmdstanr\', repos = c(\'https://mc-stan.org/r-packages/\', getOption(\'repos\')))
     
- Follow the instruction here for the installation of \'cmdstan\': 
-    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
- If \'cmdstan\' is installed in a directory other than home, use option -StanPath 
- to specify the path (e.g., -StanPath \'~/my/stan/path\').
+ Then install \'cmdstan\' using the following command in R:
+
+ cmdstanr::install_cmdstan(cores = 2)
+# Follow the instruction here for the installation of \'cmdstan\': 
+#    https://mc-stan.org/cmdstanr/articles/cmdstanr.html
+# If \'cmdstan\' is installed in a directory other than home, use option -StanPath 
+# to specify the path (e.g., -StanPath \'~/my/stan/path\').
 
  In addition, if you want to show the ridge plots of the posterior distributions
  through option -ridgePlot, make sure that the following R packages are installed:
@@ -194,10 +197,10 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the options -WCP and -StanPath. For example, the script assumes a 
-   computer with 24 CPUs (6 CPUs per chain):
+   with the option -WCP. For example, the script assumes a computer with 24 CPUs
+   (6 CPUs per chain):
 
-   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   RBA -prefix myResult -chains 4 -WCP 6 \\
    -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' \\
    -dataTable myData.txt  \\
 
@@ -215,13 +218,13 @@ Example 1 --- Simplest scenario. Values from regions are the input from
    data table so that they can be incorporated into the BML model using the option -tstat
    or -se with the following script (assuming the tstat column is named as 'tvalue),
 
-   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   RBA -prefix myResult -chains 4 -WCP 6 \\
    -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -tstat tvalue \\
    -dataTable myData.txt  \\
 
    or (assuming the se column is named as 'SE'),
 
-   RBA -prefix myResult -chains 4 -WCP 6 -StanPath '~/my/stan/path' \\
+   RBA -prefix myResult -chains 4 -WCP 6 \\
    -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -se SE \\
    -dataTable myData.txt  \\
 
@@ -238,7 +241,7 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the options -WCP and -StanPath. For example, For example, consider adding 
+   with the option -WCP. For example, For example, consider adding 
    '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
@@ -270,7 +273,7 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
 
    If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
    ...), a speedup feature can be adopted through within-chain parallelization
-   with the optionis -WCP and -StanPath. For example, For example, consider 
+   with the option -WCP. For example, For example, consider 
    adding '-WCP 6' on a computer with 24 CPUs.
 
    The input file 'myData.txt' is formatted as below:
@@ -503,15 +506,15 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
    "         chain will be assigned with 6 threads.\n", sep='\n')),
 
-   '-StanPath' = apl(n = 1, d = 1, h = paste(
-   "-StanPath dir: Use this option to specify the path (directory) where 'cmdstan' is",
-   "         is installed on the computer. Together with option '-WCP', within-chain",
-   "         parallelization can be used to speed up runtime. To take advantage of",
-   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
-   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
-   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
-   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
-   "         '-StanPath \"~/here/is/myStanPath\"'.\n", sep='\n')),
+#   '-StanPath' = apl(n = 1, d = 1, h = paste(
+#   "-StanPath dir: Use this option to specify the path (directory) where 'cmdstan' is",
+#   "         is installed on the computer. Together with option '-WCP', within-chain",
+#   "         parallelization can be used to speed up runtime. To take advantage of",
+#   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
+#   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
+#   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
+#   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
+#   "         '-StanPath \"~/here/is/myStanPath\"'.\n", sep='\n')),
 
       '-PDP' = apl(n = 2, d = NA, h = paste(
    "-PDP nr nc: Specify the layout of posterior distribution plot (PDP) with nr rows",
@@ -569,7 +572,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop <- AFNI.new.options.list(history = '', parsed_args = ops)
       lop$chains <- 1
       lop$WCP    <- FALSE
-      lop$StanPath   <- NULL
+      #lop$StanPath   <- NULL
       lop$iterations <- 1000
       lop$model  <- 1
       lop$cVars  <- NULL
@@ -602,7 +605,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
              WCP        = lop$WCP    <- ops[[i]],
-             StanPath   = lop$StanPath   <- ops[[i]],
+             #StanPath   = lop$StanPath   <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
              verb   = lop$verb   <- ops[[i]],
              model  = lop$model  <- ops[[i]],
@@ -789,9 +792,9 @@ options(mc.cores = parallel::detectCores())
 # within-chain parallelization?
 if(lop$WCP) {
    require('cmdstanr')
-   if(!grepl('\\/$', lop$StanPath)) lop$StanPath <- paste0(lop$StanPath, '/') # make sure / is added to the path
-   path <- ifelse(is.null(lop$StanPath), '~/cmdstan', paste0(lop$StanPath, 'cmdstan'))
-   set_cmdstan_path(path)
+   #if(!grepl('\\/$', lop$StanPath)) lop$StanPath <- paste0(lop$StanPath, '/') # make sure / is added to the path
+   #path <- ifelse(is.null(lop$StanPath), '~/cmdstan', paste0(lop$StanPath, 'cmdstan'))
+   #set_cmdstan_path(path)
    #set_cmdstan_path('~/cmdstan') # where is this located for the user?
 }
 
@@ -990,7 +993,7 @@ addTrans <- function(color,trans)
 
 plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
    h <- ceiling(8*nr/(nc*2))  # plot window height
-   pdf(paste0(fn, ".pdf"), width=w, height=h)
+   pdf(paste0(fn, "_PDF.pdf"), width=w, height=h)
    #dev.new(width=w, height=h)
    par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
    qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
@@ -1183,7 +1186,7 @@ ridge <- function(dat, xlim, labx, wi, hi) {
        x = NULL,
        y = NULL) +
      scale_x_continuous(limits = xlim)+xlab(labx)
-     ggsave(file = paste0(labx, ".pdf"), width=wi, height=hi, dpi = 120)
+     ggsave(file = paste0(labx, "_ridge.pdf"), width=wi, height=hi, dpi = 120)
 }
 
 # for Intercept and quantitative variables
@@ -1276,7 +1279,7 @@ sumGLM <- function(ll, tm, nR, DF, nd) {
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects under GLM for %s (for reference only): no adjustment for multiplicity =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df, 8)
+   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df[2], 8)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }

@@ -1003,7 +1003,7 @@ NI_dpr("ENTER NI_write_element\n") ;
 
 #undef  AF
 #define AF      
-#define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s nout=%lld\n",q,nout);return -1;} else ntot+=nout
+#define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s nout=%" PRId64 "\n",q,nout);return -1;} else ntot+=nout
 
    if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
 

@@ -43,7 +43,7 @@ future symbol collisions are avoided.
 
 -  If you download the `nifti_clib` sourcecode inside your source tree,
    be sure to add `nifti_clib` to the `.gitignore` to ensure that it does
-   not accidently get commited to your source tree.
+   not accidentally get committed to your source tree.
 
 ```bash
   git clone https://github.com/NIFTI-Imaging/nifti_clib.git

@@ -30,6 +30,7 @@ endif
 ## set the defaults
 set afni    = "boo"
 set shiny   = "boo"
+set bayes   = "boo"
 set custom  = "boo"
 set circos  = "boo"
 set ChangeMirror = "boo"
@@ -37,6 +38,7 @@ set ChangeMirror = "boo"
 ## list of packages
 set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','brms')"
 set discoPkgs = "c('shiny','shinydashboard','plotly','colourpicker','data.table','gplots','RColorBrewer','psych')"
+set bayesPkgs = "c('shiny','data.table','shinydashboard','plotly','RColorBrewer','ggplot2','ggridges','dplyr','tidyr','scales')"
 set custList  = ""
 
 ## show help
@@ -52,6 +54,8 @@ while ( $narg <= $amax )
         set afni = "yay"
     else if ( "$argv[$narg]" == "-shiny" ) then
         set shiny = "yay"
+    else if ( "$argv[$narg]" == "-bayes_view" ) then
+        set bayes = "yay"
     else if ( "$argv[$narg]" == "-circos" ) then
         set circos = "yay"
     else if ( "$argv[$narg]" == "-custom" ) then
@@ -83,6 +87,12 @@ endif
 if ( $shiny == "yay" ) then
     echo "Installing: ${discoPkgs}" ; echo
     Rscript -e "install.packages(${discoPkgs},repos='${CranMirror}')"
+endif
+
+## install bayes_view shiny stuff
+if ( $bayes == "yay" ) then
+    echo "Installing: ${bayesPkgs}" ; echo
+    Rscript -e "install.packages(${bayesPkgs},repos='${CranMirror}')"
 endif
 
 ## install OmicCircos
@@ -127,6 +137,10 @@ cat << EOF
                 shiny shinydashboard plotly colourpicker data.table
                 gplots RColorBrewer psych
 
+      -bayes_view : Packages the program bayes_view.
+                    Lots of shiny and ggplots packages.
+                    Only needed if you want to run bayes_view.
+                          
       -circos : Packages for FATCAT_matplot.
                 Installs OmicCircos via biocLite.
                 Actually runs OmicCircos_pkg_install.R.

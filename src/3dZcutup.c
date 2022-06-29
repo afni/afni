@@ -97,7 +97,7 @@ int main( int argc , char * argv[] )
          }
          keep_bot = strtol( argv[++iarg] , NULL , 10 ) ;
          keep_top = strtol( argv[++iarg] , NULL , 10 ) ;
-         if( keep_bot < 0 || keep_top > keep_bot ){
+         if( keep_bot < 0 || keep_bot > keep_top ){
             fprintf(stderr,"*** Nonsense values after -keep!\n"); exit(1);
          }
          iarg++ ; continue ;

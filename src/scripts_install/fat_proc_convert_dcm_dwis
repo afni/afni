@@ -62,7 +62,7 @@ set version = "3.4"; set rev_dat = "Aug 15, 2018"
 
 set this_prog = "fat_proc_convert_dcm_dwis"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here     = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -382,8 +382,8 @@ else
 
     # check for old relics
     foreach dd ( $idir ) 
-        cd $here
-        cd $dd
+        cd "$here"
+        cd "$dd"
 
         echo "++ Checking ${dd} for preexisting NIFTIs ... "
 
@@ -394,7 +394,7 @@ else
         endif
     end
 
-    cd $here
+    cd "$here"
     echo "++ --> OK, good, no competing NIFTIs in any DICOM directory."
 endif
 
@@ -497,7 +497,7 @@ else
     set Nsets = $#fNII
 endif
 
-##!!!! HERE:
+## HERE:
 foreach ii ( `seq 1 1 $Nsets` )
 
     # tmp sub-wdirs for dumping dcm2niix output or input
@@ -547,8 +547,8 @@ end
 
 # ============ do the major rearranging/sorting/combining ================
 
-cd $here
-cd $wdir
+cd "$here"
+cd "$wdir"
 
 set Nsets = $#all_tdir
 echo "++ Found $Nsets sets of DTI data in ${wdir}..."
@@ -714,8 +714,8 @@ endif
 
 if ( "$DO_CLEAN" == "1" ) then
     echo "\n++ Cleaning working directory!\n"
-    cd $here
-    \rm -rf $wdir
+    cd "$here"
+    \rm -rf "$wdir"
 else
     echo "\n++ NOT removing working directory '$wdir'.\n"
 endif

@@ -620,7 +620,7 @@ def make_uniformity_commands(proc, umeth):
 
     cmd  = "# %s\n"                                                       \
            "# perform '%s' uniformity correction on anatomical dataset\n" \
-           % (block_header('uniformity correction'), umeth)
+           % (block_header('anat_unif'), umeth)
 
     cmd += "3dUnifize -prefix %s%s%s %s\n\n" \
            % (opre, gmstr, other_opts, proc.anat.pv())
@@ -695,7 +695,7 @@ def make_outlier_commands(proc, block):
     val, err = proc.user_opts.get_type_opt(int, '-outlier_polort')
     if err: return
     elif val != None and val >= 0: polort = val
-    else: polort = UTIL.get_default_polort(proc.tr, proc.reps)
+    else: polort = proc.regress_polort
 
     # use Legendre polynomials?
     opt = proc.user_opts.find_opt('-outlier_legendre')
@@ -770,16 +770,20 @@ def run_radial_correlate(proc, block, full=0):
               '# data check: compute correlations with spherical averages\n' \
               % block_header('@radial_correlate (%s)' % block.label)
 
-       cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
-              '%s'                                                      \
-              '                  %s\n\n' % (rdir, other_opts, dsets)
+       cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
+              '                  -rdir %s \\\n'                           \
+              '%s'                                                        \
+              '                  %s\n\n'                                  \
+              % (proc.regress_polort, rdir, other_opts, dsets)
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
               '# data check: compute correlations with spherical ~averages\n' \
-              '@radial_correlate -nfirst 0 -do_clean yes -rdir %s \\\n'       \
+              '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
+              '                  -rdir %s \\\n'                               \
               '%s'                                                            \
-              '                  %s\n\n' % (rdir, other_opts, dsets)
+              '                  %s\n\n'                                      \
+              % (proc.regress_polort, rdir, other_opts, dsets)
 
     return 0, cmd
 
@@ -1068,6 +1072,7 @@ def db_mod_align(block, proc, user_opts):
     # maybe adjust EPI skull stripping method
     apply_uopt_to_block('-align_epi_strip_method', user_opts, block)
     apply_uopt_to_block('-align_unifize_epi', user_opts, block)
+    apply_uopt_to_block('-align_opts_eunif', user_opts, block)
 
     block.valid = 1
 
@@ -1083,28 +1088,49 @@ def db_cmd_align(proc, block):
     # first note EPI alignment base and sub-brick, as done in volreg block
     # (alignEA EPI and base might be given externally via -align_epi_base_dset)
     if proc.align_ebase != None:
+        basepre = proc.align_epre
         basevol = "%s%s" % (proc.align_epre,proc.view)
         bind = 0
+        # if using external anat base, run extra allineat to epi base
     elif proc.vr_ext_base != None or proc.vr_int_name != '':
+        basepre = proc.vr_ext_pre
         basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
         bind = 0
     else:
         rind, bind = proc.get_vr_base_indices()
         if rind < 0:
-            rind, bind = 0, 0
-            print('** warning: will use align base defaults: %d, %d'%(rind,bind))
-            # return (allow as success now, for no volreg block)
+           rind, bind = 0, 0
+           print('** warning: will use align base defaults: %d, %d'%(rind,bind))
+           # return (allow as success now, for no volreg block)
+        basepre = proc.prev_prefix_form(rind+1, block, view=0)
         basevol = proc.prev_prefix_form(rind+1, block, view=1)
 
     # should we unifize EPI?  if so, basevol becomes result
     ucmd = ''
-    if block.opts.have_yes_opt('-align_unifize_epi', default=0):
+    oname = '-align_unifize_epi'
+    umeth, err = block.opts.get_string_opt(oname, default='no')
+    if umeth != 'no' and not err:
        epi_in = BASE.afni_name(basevol)
        epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
+       basepre = epi_out.prefix
        basevol = epi_out.shortinput()
-       ucmd = '# run uniformity correction on EPI base\n' \
-              '3dUnifize -T2 -input %s -prefix %s\n\n'    \
-              % (epi_in.shortinput(), epi_out.out_prefix())
+       # get any additional options
+       opts, rv = block.opts.get_string_list('-align_opts_eunif')
+       if opts:
+          exopts = " \\\n    %s" % ' '.join(opts)
+       else:
+          exopts = ''
+
+       # PT special: using 3dLocalUnifize
+       if umeth == 'local':
+           ucmd = '# run (localized) uniformity correction on EPI base\n' \
+                  '3dLocalUnifize -input %s -prefix %s%s\n\n'             \
+                  % (epi_in.shortinput(), epi_out.out_prefix(), exopts)
+       # default = 'yes' or 'unif'
+       else:
+           ucmd = '# run uniformity correction on EPI base\n' \
+                  '3dUnifize -T2%s -input %s -prefix %s\n\n'  \
+                  % (exopts, epi_in.shortinput(), epi_out.out_prefix())
 
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
@@ -1151,7 +1177,55 @@ def db_cmd_align(proc, block):
     if not e2a: # store xform file
         proc.anat_warps.append(proc.a2e_mat)
 
+    # ------------------------------------------------------------
+    # if ext a2e base, align to volreg base via 'intermediate' xform
+    # (a2e base should always be proc.vr_ext_pre now)
+    #
+    # align_epi_anat.py basically did anat2inter, append inter2epi
+    if proc.align_ebase and proc.find_block('volreg'):
+       if proc.verb > 0:
+          print("++ align anat/epi base %s with epi/epi base %s" \
+                % (basepre, proc.vr_ext_pre))
 
+       # so aea really did anat2inter, compute inter2epi usinng another aea
+       #  - intermediate was proc.align_ebase, real ebase is proc.vr_ext_pre
+       #  - basevol is proc.align_ebase
+       #  - use aea to handle potential obliquity difference
+       #  - use basepre to track outputfile
+       suffix = '_abase2ebase'
+       # output is $basepre$suffix = ext_align_epi_abase2ebase
+       acmd = '# have external anat2epi base, so align with local one\n' \
+              'align_epi_anat.py -dset1to2 \\\n'    \
+              '       -dset1 %s%s \\\n'             \
+              '       -dset2 %s%s \\\n'             \
+              '       -suffix %s \\\n'              \
+              '       -dset1_strip 3dAutomask \\\n' \
+              '       -dset2_strip 3dAutomask \\\n' \
+              '       -giant_move -cost lpa \\\n'   \
+              '       -volreg off -tshift off\n\n'  \
+              % (basepre, proc.view, proc.vr_ext_pre, proc.view, suffix)
+
+       pre_i2e   = "%s%s" % (basepre, suffix)
+       mat_i2e   = '%s_mat.aff12.1D' % pre_i2e
+       pre_cat   = 'anat2epi_concat'
+       mat_cat   = '%s_mat.aff12.1D' % pre_cat
+       mat_a2i   = proc.a2e_mat # old mat is anat to inter
+       # now concatenate the xforms so EPI ~= outer(inner(anat))
+       # - so xform a2e = i2e * a2i
+       acmd += '# and concatenate the affine transformations\n' \
+               '# (make %s the full anat to EPI base xform)\n'  \
+               'cat_matvec -ONELINE \\\n'                       \
+               '           %s \\\n'                             \
+               '           %s \\\n'                             \
+               '         > %s\n\n'                              \
+               % (mat_cat, mat_i2e, mat_a2i, mat_cat)
+
+       # now a2e_mat is the concatenated anat to epi base
+       proc.a2e_mat = mat_cat
+       cmd += acmd
+
+
+    # ------------------------------------------------------------
     # if e2a:   update anat and tlrc to '_ss' version (intermediate, stripped)
     #           (only if skull: '-anat_has_skull no' not found in extra_opts)
     #           (not if using adwarp)
@@ -1164,7 +1238,7 @@ def db_cmd_align(proc, block):
             proc.anat.prefix = "%s%s" % (proc.anat.prefix, suffix)
             if proc.tlrcanat:
                 if not proc.tlrcanat.exist():
-                   proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix, suffix)
+                   proc.tlrcanat.prefix = "%s%s" % (proc.tlrcanat.prefix,suffix)
             proc.tlrc_ss = 0
             proc.anat_has_skull = 0     # make note that skull is gone
             istr = 'intermediate, stripped,'
@@ -3138,12 +3212,21 @@ def db_mod_combine(block, proc, user_opts):
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
-   if not rv:
-      if ocmeth[0:6] == 'tedana' and \
-            proc.find_block_order('combine', 'blur') == -1 :
-         if not proc.user_opts.have_yes_opt('-blur_in_mask'):
-            # okay, finally whine here
-            print("** when using tedana results, consider '-blur_in_mask yes'")
+   if rv:
+      return
+
+   if ocmeth[0:6] == 'tedana' and \
+         proc.find_block_order('combine', 'blur') == -1 :
+      if not proc.user_opts.have_yes_opt('-blur_in_mask'):
+         # okay, finally whine here
+         print("** when using tedana results, consider '-blur_in_mask yes'")
+
+   # note the applied method
+   proc.combine_method = ocmeth
+
+   # and if we need 'tedana', require it at execution time
+   if proc.combine_method.find('m_ted') >= 0:
+      proc.required_progs.append('tedana')
 
    block.valid = 1
 
@@ -3168,10 +3251,8 @@ def db_cmd_combine(proc, block):
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv: return
 
-   # probably not reachable, but at least for clarity...
+   # should not be reachable, but at least for clarity...
    if ocmeth not in g_oc_methods:
-      print("OC method %s not in list of valid methods:\n   %s" \
-            % (ocmeth, ', '.join(g_oc_methods)))
       return
 
    # check use of tedana.py vs. tedana from MEICA group
@@ -3222,8 +3303,7 @@ def db_cmd_combine(proc, block):
    # (do not apply ME script changes anymore)
    proc.use_me = 0
 
-   # success, note the applied method
-   proc.combine_method = ocmeth
+   # the applied combine_method is stored in mod()
 
    return cmd
 
@@ -3377,7 +3457,10 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    fave_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
-   exoptstr = '          %s \\\n' % ''.join(exopts)
+   if len(exopts) > 0:
+      exoptstr = '          %s \\\n' % ' '.join(exopts)
+   else:
+      exoptstr = ''
 
 
    # actually run tedana
@@ -6143,7 +6226,11 @@ def db_cmd_regress(proc, block):
     # if REML and errts_pre, append _REML to errts_pre
     if block.opts.find_opt('-regress_reml_exec') and stop_opt \
        and proc.errts_pre_3dd:
-        if not proc.surf_anat: proc.errts_pre = proc.errts_pre_3dd + '_REML'
+        eorig = proc.errts_pre_3dd
+        if proc.surf_anat:
+           proc.errts_pre = eorig.replace('.niml.dset','_REML.niml.dset')
+        else:
+           proc.errts_pre = eorig + '_REML'
 
     # create all_runs dataset
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
@@ -6372,7 +6459,13 @@ def db_cmd_reml_exec(proc, block, short=0):
     cmd +='%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
           '%s'                                                                \
           '%stcsh -x stats.REML_cmd %s%s\n' % (istr,astr, istr,aopts, reml_opts)
-    if not proc.surf_anat: proc.errts_reml = proc.errts_pre_3dd + '_REML'
+    # use REML errts for future computations
+    if proc.surf_anat:
+       errnew = proc.errts_pre_3dd.replace('.niml.dset','_REML.niml.dset')
+       errnew = errnew.replace('$hemi', '${hemi}')
+    else:
+       errnew = proc.errts_pre_3dd + '_REML'
+    proc.errts_reml = errnew
 
     # if 3dDeconvolve fails, terminate the script
     if not short:
@@ -6813,7 +6906,7 @@ def db_cmd_tsnr(proc, comment, signal, noise, view,
     dname = 'TSNR%s%s$subj%s' % (name_qual, proc.sep_char, suff)
 
     if detrend:
-        polort=UTIL.get_default_polort(proc.tr, proc.reps)
+        polort=proc.regress_polort
         detcmd="%s3dDetrend -polort %d -prefix rm.noise.det%s " \
                "-overwrite %s%s\n"\
                % (istr, polort, suff, noise, vsuff)
@@ -8293,7 +8386,7 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
-    # (if ME, force it here, and get all echoes)
+    # (if ME, force it here, and get all echoes - save and restore use_me)
     use_me = proc.use_me
     proc.use_me = proc.have_me
     dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-2)
@@ -8303,12 +8396,18 @@ def db_cmd_gen_review(proc):
     else:
        mestr = ''
 
-    cmd = "# %s\n\n"                                                    \
+    if proc.html_rev_style != 'none':
+       hcom = ' and HTML report'
+    else:
+       hcom = ""
+
+    cmd = "# %s\n"                                                      \
+          "# generate quality control review scripts%s\n\n"             \
           "# generate a review script for the unprocessed EPI data\n"   \
           "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
-          % (block_header('auto block: generate review scripts'),
+          % (block_header('auto block: QC_review'), hcom,
              mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py
@@ -8317,43 +8416,143 @@ def db_cmd_gen_review(proc):
           print('-- no regress block, skipping gen_ss_review_scripts.py')
        return cmd
 
-    # misc options to pass directly (gen_ss will not figure out)
+    # Generate AP uvars JSON file, both for gssrs and APQC.
+    # (was passing via direct opts, but change to json)
+    json_prep = prep_gssrs_json_str(proc)
+
+    # --- misc options to pass directly (gen_ss will not figure out)
     lopts = ''
-    if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
-    if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
-    if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
 
-    # subsequent options get their own lines
-    if lopts != '': lopts = ' \\\n   %s' % lopts
-
-    if proc.anat_orig is not None:
-       lopts += ' \\\n    -copy_anat %s' % proc.anat_orig.shortinput(head=1)
-    if proc.combine_method is not None:
-       lopts += ' \\\n    -combine_method %s' % proc.combine_method
-
-    if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
-       if proc.surf_anat: ename = proc.errts_final
-       else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
-       lopts += ' \\\n    -errts_dset %s' % ename
-
-    # specify mask dataset to be used for stats, since it might not be clear
-    # (no longer def in TSNR)                                    22 Feb 2021
-    if proc.mask and not proc.surf_anat:
-       lopts += ' \\\n    -mask_dset %s' % proc.mask.shortinput(head=1)
-
-    # generally include the review output file name as a uvar
-    if proc.ssr_b_out != '':
-       lopts += ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
+    # make json prep string
+    jp_str = ''
+    if json_prep and proc.ap_uv_file:
+       jp_str = '\n%s\n'                                            \
+                '# initialize gen_ss_review_scripts.py with %s\n'   \
+                % (json_prep, proc.ap_uv_file)
+       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uv_file
 
     if proc.ssr_uvars:
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
-    cmd += '# generate scripts to review single subject results\n'      \
+    gcmd = UTIL.add_line_wrappers('gen_ss_review_scripts.py -exit0%s\n' % lopts)
+
+    cmd += '# -------------------------------------------------\n'      \
+           '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py -exit0'                            \
-           '%s\n\n' % lopts
+           '%s'                                                         \
+           '%s\n' % (jp_str, gcmd)
 
     return cmd
+
+def prep_gssrs_json_str(proc):
+    """instead of passing options to gssrs, generate a JSON file with
+       corresponding lists.
+       Generate a shell string to create the JSONN file, e.g.,
+
+cat << EOF | afni_python_wrapper.py -eval "data_file_to_json()" \
+           > stuff.json
+   mot_limit   :     0.3
+   out_limit   :     0.05
+   copy_anat   :     FT_anat+orig.HEAD
+   mask_dset   :     mask_epi_anat.$subj+tlrc.HEAD
+EOF
+
+       First generate a table, so that we can choose a reasonble column size.
+
+       return an appropriate string, or ''
+    """
+    # --- get the uvars table, and return empty if table is
+    aptab = ap_uvars_table(proc)
+    if len(aptab) == 0:
+       return ''
+
+    # --- generate the table string
+
+    # use the max length for ':' position
+    maxlen = max([len(e[0]) for e in aptab])
+
+    # could make this tight, but this is more readable
+    slist = []
+    for entry in aptab:
+       slist.append("  %-*s : %s" % (maxlen, entry[0], ' '.join(entry[1])))
+    uvar_str = '\n'.join(slist)
+
+    # --- generate the complete JSON generation string
+    #     (currently using afni_util.py (via apw) to convert from
+    #      plain text to JSON)
+
+    tfile = 'out.ap_uvars.txt'
+    jstr = '# write AP uvars into a simple txt file\n'  \
+           'cat << EOF > %s\n'                          \
+           '%s\n'                                       \
+           'EOF\n\n' % (tfile, uvar_str)
+
+    jstr += '# and convert the txt format to JSON\n'                          \
+            'cat %s | afni_python_wrapper.py -eval "data_file_to_json()" \\\n'\
+            '  > %s\n' % (tfile, proc.ap_uv_file)
+
+    return jstr
+
+def ap_uvars_table(proc):
+    """generate a string only table of AP uvars
+       
+       each entry has entry[0] = label, entry[1] = list of values
+       e.g., table = [
+                        ['mot_limit', ['0.3']]
+                        ['cheeses', ['cheddar', 'brie', 'muenster']]
+                     ]
+    """
+
+    # it seems preferable to list all uvars together, so make sure
+    # anything listed here is in the main library
+    g_ap_uvars = ['mot_limit', 'out_limit', 'motion_dset',
+                  'copy_anat', 'combine_method', 'errts_dset', 'mask_dset',
+                  'dir_suma_spec', 'suma_specs',
+                  'ss_review_dset']
+
+    from afnipy import lib_ss_review as LSSR
+    ss_uvars = LSSR.def_ss_uvar_names()
+    for apuv in g_ap_uvars:
+       if apuv not in ss_uvars:
+          print("** warning: ss uvars is missing ap uvar %s" % apuv)
+
+    # generate a uvars table of strings
+    aptab = []
+    if proc.mot_cen_lim > 0.0:
+       aptab.append(['mot_limit', ['%s' % proc.mot_cen_lim]])
+    if proc.out_cen_lim > 0.0:
+       aptab.append(['out_limit', ['%s' % proc.out_cen_lim]])
+    if proc.mot_extern != '' :
+       aptab.append(['motion_dset', ['%s' % proc.mot_file]])
+
+    if proc.anat_orig is not None:
+       aptab.append(['copy_anat', ['%s' % proc.anat_orig.shortinput(head=1)]])
+    if proc.combine_method is not None:
+       aptab.append(['combine_method', ['%s' % proc.combine_method]])
+    # surface spec info
+    if proc.surf_spec_dir != '':
+       aptab.append(['dir_suma_spec', ['%s' % proc.surf_spec_dir]])
+    if len(proc.surf_spec_base) > 0:
+       aptab.append(['suma_specs', proc.surf_spec_base])
+
+    if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
+       if proc.surf_anat: ename = proc.errts_final
+       else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
+       aptab.append(['errts_dset', ['%s' % ename]])
+
+    # specify mask dataset to be used for stats, since it might not be clear
+    # (no longer def in TSNR)                                    22 Feb 2021
+    if proc.mask and not proc.surf_anat:
+       aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
+
+    if proc.ssr_b_out != '':
+       aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
+
+    # add all generically specified uvars
+    for attr in proc.uvars.attributes(name=0):
+       aptab.append([attr, proc.uvars.val(attr)])
+
+    return aptab
 
 def block_header(hname, maxlen=74, hchar='=', endchar=''):
     """return a title string of 'hchar's with the middle chars set to 'name'
@@ -8541,12 +8740,20 @@ g_help_intro = """
     optional blocks (the default is to _not_ apply these blocks) ~2~
 
         align       : align EPI anat anatomy (via align_epi_anat.py)
+        combine     : combine echoes into one
         despike     : truncate spikes in each voxel's time series
         empty       : placeholder for some user command (uses 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
-        combine     : combine echoes into one, per run
         surf        : project volumetric data into the surface domain
         tlrc        : warp anat to standard space
+
+    implicit blocks (controlled by program, added when appropriate) ~2~
+
+        blip                   : perform B0 distortion correction
+        outcount               : temporal outlier detection
+        quality control review : generate QC review scripts and HTML report
+        @radial_correlate      : QC - compute local neighborhood correlations
+        uniformity correction  : anatomical uniformity correction
 
     ==================================================
     DEFAULTS: basic defaults for each block (blocks listed in default order) ~1~
@@ -11388,6 +11595,17 @@ g_help_options = """
             -e option to tcsh (as suggested), but maybe the user does not wish
             to do so.
 
+        -command_comment_style STYLE: set style for final AP command comment
+
+                e.g. -command_comment_style pretty
+
+            This controls the format for the trailing afni_proc.py commented
+            command at the end of the proc script.  STYLE can be:
+
+                none        - no trailing command will be included
+                compact     - the original compact form will be included
+                pretty      - the PT-special pretty form will be included
+
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
                 e.g. -copy_anat Elvis/mprage+orig
@@ -11599,6 +11817,12 @@ g_help_options = """
             text file (@epi_review.$subj, by default).
 
             See also '-gen_epi_review'.
+
+        -html_review_opts  ...   : pass extra options to apqc_make_tcsh.py
+
+                e.g. -html_review_opts -mot_grayplot_off
+
+            Blindly pass the given options to apqc_make_tcsh.py.
 
         -html_review_style STYLE : specify generation method for HTML review
 
@@ -12429,7 +12653,7 @@ g_help_options = """
                 e.g. -align_opts_aea -cost lpc+ZZ
                 e.g. -align_opts_aea -cost lpc+ZZ -check_flip
                 e.g. -align_opts_aea -Allineate_opts -source_automask+4
-                e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
+                e.g. -align_opts_aea -giant_move -AddEdge
                 e.g. -align_opts_aea -skullstrip_opts -blur_fwhm 2
 
             This option allows the user to add extra options to the alignment
@@ -12452,8 +12676,22 @@ g_help_options = """
             one should investigate whether the axes are correctly labeled, or
             even labeled at all.
 
+          * Please do not include -epi_strip with this -align_opts_aea option.
+            That option to align_epi_anat.py should be controlled by
+            -align_epi_strip_method.
+
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
+
+        -align_opts_eunif OPTS ... : add options to EPI uniformity command
+
+                e.g. -align_opts_eunif -wdir_name work.epi_unif -no_clean
+
+            This option allows the user to add extra options to the EPI
+            uniformity correction command, probably 3dLocalUnifize (possibly
+            3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
 
         -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
@@ -12472,16 +12710,30 @@ g_help_options = """
             Please see "3dSkullStrip -help" for more information.
             Please see "3dAutomask -help" for more information.
 
-        -align_unifize_epi yes/no: run uniformity correction on EPI base volume
+        -align_unifize_epi METHOD: run uniformity correction on EPI base volume
 
-                e.g. -align_unifize_epi yes
+                e.g. -align_unifize_epi local
                 default: no
 
-            Use this option to run "3dUnifize -T2" on the vr_base dataset
+            Use this option to run uniformity correction on the vr_base dataset
             for the purpose of alignment to the anat.
 
-            The uniformity corrected volume is only used for anatomical
-            alignment.
+            The older yes/no METHOD choices were based on 3dUnifize.  The
+            METHOD choices now include:
+
+                local   : use 3dLocalUnifize ... (aka the "P Taylor special")
+                unif    : use 3dUnifize -T2 ...
+                yes     : (old choice) equivalent to unif
+                no      : do not run EPI uniformity correction
+
+            The uniformity corrected EPI volume is only used for anatomical
+            alignment, and possibly visual quality control.
+
+            One can use option -align_opts_eunif to pass extra options to
+            either case (3dLocalUnifize or 3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
+            Please see "3dUnifize -help" for more information.
 
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 

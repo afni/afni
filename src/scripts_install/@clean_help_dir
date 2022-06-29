@@ -1,14 +1,14 @@
 #!/bin/tcsh -f
 
 set stat = 0
-set sdir = $PWD
+set sdir = "$PWD"
 set hdir = `apsearch -afni_help_dir`
 set fout = "/tmp/CHD_`3dnewid -fun`"
 
-if ( ! -d $hdir) then
+if ( ! -d "$hdir") then
    #Try one more shot
    cd 
-   set hdir = $PWD/.afni/help
+   set hdir = "$PWD/.afni/help"
    cd -
 endif
 set pname = `basename $0`
@@ -16,7 +16,7 @@ set pname = `basename $0`
 goto PARSE
 RET_PARSE:
 
-cd $hdir
+cd "$hdir"
 
 \ls -1  | sed -n '/.*help$/p' | \
    sed 's/\.20[0-9][0-9]_[0-9][0-9]_[0-3][0-9]-[0-9][0-9]_[0-9][0-9]_[0-9][0-9]\.help//g'       | \
@@ -60,7 +60,7 @@ end
 
 # combine command completion files into all_progs.COMP*
 
-set nleft = `ls -1 $hdir/ | wc -l`
+set nleft = `ls -1 "$hdir/" | wc -l`
 echo "$N_change redundant help files deleted, $nleft help files left."
 
 # ------------------------------------------------------------
@@ -178,7 +178,7 @@ else
 endif
 
 # finished, return and return
-cd $sdir
+cd "$sdir"
 goto END
 
 # "subroutines", such as option parsing and help output
@@ -222,10 +222,10 @@ PARSE:
    end
    
    if ("$uhdir" != '') then
-      set hdir = $uhdir
+      set hdir = "$uhdir"
    endif
       
-   if ( ! -d $hdir ) then
+   if ( ! -d "$hdir" ) then
       echo "Could not find home directory $hdir"
       goto BEND
    endif
@@ -248,7 +248,7 @@ BEND:
    
 END:
    if ( -f $fout) \rm -f /tmp/CHD_*
-   cd $sdir
+   cd "$sdir"
    exit $stat
 
 

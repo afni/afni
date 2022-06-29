@@ -192,6 +192,30 @@ class VarsObject(object):
          if verb > 1:
             print("== merge: setting %s %s = %s" % (atr, dtype, val))
 
+   def set_var_list_w_defs(self, dfill, defs, verb=1):
+      """fill in all attributes from dictionary dfill
+            dfull   : dict to fill from
+            defs    : obj to get var type from
+
+         return 0 on success
+      """
+
+      if type(dfill) != type({}):
+         print("** trying to fill VO with non-dict type %s" % type(dfill))
+         return 1
+
+      if verb > 2:
+         print("++ set_vlist_WD: filling with %d keys" % len(dfill.keys()))
+
+      errs = 0
+      for key in dfill.keys():
+         if self.set_var_with_defs(key, dfill[key], defs, 
+                                   as_type=1, verb=verb):
+            errs += 1
+
+      if errs: return 1
+      else:    return 0
+
    def set_var_with_defs(self, vname, vlist, defs, as_type=0, oname='',
                         verb=1, spec=None, csort=1):
       """try to set vname = value based on vlist

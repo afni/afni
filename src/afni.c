@@ -696,6 +696,8 @@ void AFNI_syntax(void)
      "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
      "   -notsv         they are synonyms): each tells AFNI not to read\n"
      "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
+     "                  You can also set env AFNI_SKIP_TCSV_SCAN = YES to the\n"
+     "                  same effect.\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
@@ -1327,6 +1329,9 @@ ENTRY("AFNI_parse_args") ;
    /* 04/06/2020 discoraj */
    GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
+   /* Jan 2022 ZSS */
+   GLOBAL_argopt.read_tcsv = !AFNI_yesenv("AFNI_SKIP_TCSV_SCAN") ;
+
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
@@ -1434,6 +1439,13 @@ ENTRY("AFNI_parse_args") ;
       if( strcmp(argv[narg],"-layout") == 0 ){
          if( narg+1 >= argc ) ERROR_exit("need an argument after -layout!") ;
          GLOBAL_argopt.layout_fname = argv[++narg] ;  /* just a pointer */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -no_frivolities option (22 Apr 2022) ----- */
+
+      if( strcmp(argv[narg],"-no_frivolities") == 0 ){  /* 22 Apr 2022 [rcr] */
+         GLOBAL_argopt.no_frivolities = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -2877,6 +2889,10 @@ STATUS("call 0") ;
 #else
         nosplash = AFNI_yesenv("AFNI_NOSPLASH") ;
 #endif
+        /* allow no_friv control   [22 Apr 2022 rickr] */
+        if( GLOBAL_argopt.no_frivolities )
+          nosplash = 1 ;
+
         if( !nosplash ){
           char *hh ;
           AFNI_splashup() ; eltime = COX_clock_time() ;

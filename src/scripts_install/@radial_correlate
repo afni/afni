@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 # main input variables ($run is the typical one to set)
 set nfirst = 3
+set polort = 2          # polort for trend removal
 set percentile = 80
 set cthresh = 0.9       # use 0 to turn off
 set sphere_rad = 20     # use 0 to turn off
@@ -101,6 +102,9 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-percentile" ) then
       @ ac += 1
       set percentile = $argv[$ac]
+   else if ( "$argv[$ac]" == "-polort" ) then
+      @ ac += 1
+      set polort = $argv[$ac]
    else if ( "$argv[$ac]" == "-rdir" ) then
       @ ac += 1
       set rdir = $argv[$ac]
@@ -197,7 +201,9 @@ if ( $do_corr == 'yes' ) then
    endif
 
    # if cleaning, make a temporary dir for storage
-   if ( $do_clean == yes ) mkdir $rdir/$clean_dir
+   if ( $do_clean == yes ) then
+      mkdir $rdir/$clean_dir
+   endif
 
 else if ( ! -d $rdir ) then
    echo "** error, missing results dir : $rdir"
@@ -289,6 +295,8 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set sset = $prefix.scaled
    set cset = $prefix.corr
 
+   set eset_orig = $eset                # store original
+
    if ( $mask_in != "" ) then
       set mset = $mask_in
    endif
@@ -302,7 +310,18 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    endif
    set nmask = `3dBrickStat -non-zero -count $mset`
 
-   if ( $do_corr == 'yes' && -f tt.scale1$view.HEAD ) \rm -f tt.*
+   if ( $do_corr == 'yes' && -f tt.scale1$view.HEAD ) then
+      \rm -f tt.*
+   endif
+
+   # ----------------------------------------
+   # possibly detrend (after any automask)
+   if ( $polort >= 0 ) then
+      set detset = det.$ichr$ind02
+      echo "-- detrend -polort $polort, new eset = $detset"
+      3dTproject -quiet -polort $polort -prefix $detset -input $eset$view
+      set eset = $detset
+   endif
 
    # ----------------------------------------
    # compute the correlation dataset, either with the average scaled
@@ -340,36 +359,46 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                echo "++ merge blur: rad $sphere_rad, FWHM $rad2"
                3dmerge -1blur_fwhm $rad2 -doall                         \
                        -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
+            endif
          else
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
                -stat mean -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          endif
+         # correlate blur/ave dset with base dset
          3dTcorrelate -prefix $cset sphere.mean.$rad.$ichr$ind02$view $eset$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
-         3dTstat -mean -datum float -prefix $prefix.mean $eset$view
-         3dcalc -a $eset$view -b $prefix.mean$view -c $mset \
-                -expr 'c*(a-b)/b' -datum float -prefix tt.scale1
-         3dTstat -sos -datum float -prefix tt.sos tt.scale1$view
-         3dcalc -a tt.scale1$view -b tt.sos$view -c $mset   \
-                 -expr 'c*a/sqrt(b)' -prefix $sset
+         # (only needed to use simple dot project, so forget)
 
-         3dmaskave -quiet -mask $mset $sset$view > $prefix.mean_signal.1D
+         # 3dTstat -mean -datum float -prefix $prefix.mean $eset_orig$view
+         # 3dcalc -a $eset$view -b $prefix.mean$view -c $mset \
+         #        -expr 'c*(a-b)/b' -datum float -prefix tt.scale1
+         # 3dTstat -sos -datum float -prefix tt.sos tt.scale1$view
+         # 3dcalc -a tt.scale1$view -b tt.sos$view -c $mset   \
+         #         -expr 'c*a/sqrt(b)' -prefix $sset
+
+         3dmaskave -quiet -mask $mset $eset$view > $prefix.mean_signal.1D
 
          3dTcorr1D -mask $mset -pearson -prefix $cset \
-                 $sset$view $prefix.mean_signal.1D
+                 $eset$view $prefix.mean_signal.1D
       endif
 
-      # if cleaning, hide what we want to easily delete the rest
+      # extract ulay volume
+      3dbucket -prefix $ulay $eset_orig$view'[0]'
+
+      # if cleaning, hide what we want to keep
+      # (to easily delete the rest)
       if ( $do_clean == yes ) then
-          3dbucket -prefix $ulay $eset$view'[0]'
           \mv $ulay* $clean_dir
           \cp $cset$view* $clean_dir
       endif
    endif
 
    # if we are not clustering, continue on to next dataset
-   if ( $do_clust != 'yes' ) continue
+   if ( $do_clust != 'yes' ) then
+      echo "---- done\n"
+      continue
+   endif
 
    # ----------------------------------------
    # now look for the largest cluster of voxels thresholded at 80-percentile
@@ -693,6 +722,9 @@ echo "                       If 'yes', create the correlation volumes."
 echo "                       If 'no', simply assume they already exist."
 echo "                       This is for re-testing a previous execution."
 echo ""
+echo "   -polort POLORT    : detrend time series with given poly degree"
+echo "                       default = $polort"
+echo ""
 echo "   -rdir RESULTS_DIR : directory to do computations in"
 echo "                       default = $rdir"
 echo ""
@@ -800,6 +832,10 @@ $prog modification history:
           - handle special cases of errts and all_runs
           - do this by partitioning results into r* and d* dataset names
    0.6  : May 30, 2019: full Gaussian by default, not truncated
+   0.7  : Mar  7, 2022: add -polort; minor cleanup
+          - new default: detrend with polort $polort
+   0.8  : Mar 17, 2022: change saved ulay to be from orig EPI
+   0.9  : Apr  1, 2022: extract ulay also in non-clean case
 
 EOF
 

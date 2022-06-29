@@ -1,0 +1,208 @@
+#**************************************************************
+# Notes for building AFNI on Apple Silicon ARM M1 or M2 CPU 
+# with Mac OS 11 (Big Sur) or 12 (Monterey),
+# using this makefile:
+# Makefile.macos_11_ARM
+# 
+#**************************************************************
+# install xcode and XQuartz as described in earlier Mac installation
+# instructions.
+#  Install Xcode and XQuartz
+#  Copy+paste:
+
+#  xcode-select --install
+
+#   For …
+
+#  … OS X >= 10.11, click on this link:
+#   http://www.xquartz.org
+#  Then click on the “Quick Download” DMG, and follow the instructions to install.
+#**************************************************************
+Terminal security preferences
+The Terminal app needs extra permissions for programs like AFNI to look in some directories.
+Otherwise, you can get a spray of warnings everytime the afni GUI opens.
+You can give the Terminal app more permissions in 
+Mac OS Preferences (Apple menu or Gear icon in dock, Security & Privacy,Privacy tab)
+Select the Lock to unlock settings. 
+If Terminal is not on list of applications on right, add it with the "+", and navigate
+to the Applications/Utilities/Terminal
+Then select Terminal to have check mark for full disk access
+#**************************************************************
+# Homebrew installation
+
+# INSTALL the following with homebrew (for gcc, ver=10 is used here by
+
+# default, though actually at the moment 'gcc' is just Mac's clang):
+
+#install homebrew via this command (as before)
+
+ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+
+  brew update
+  brew install  libpng jpeg expat freetype fontconfig openmotif libomp \
+                libxt gsl glib pkg-config gcc netpbm libiconv          \
+                mesa mesa-glu libxpm
+
+#**************************************************************
+# R installation
+# Install R for ARM64 (latest version is 4.1.2 at this time)
+# https://cran.r-project.org/mirrors.html
+# for example:
+# http://cran.wustl.edu/bin/macosx/big-sur-arm64/base/R-4.1.2-arm64.pkg
+# open package from browser, agree to prompts, provide password/touchid sensor
+#**************************************************************
+
+# update or create symbolic links
+# LINK the following, but note that:
+# + many of these existed already on my machine
+# + many of these are version dependent, and so must be searched for.
+# We might end up scripting some of this...
+#
+# These links all existed already on my computer:
+# 
+#   ln -s /opt/homebrew/Cellar/gsl/2.7.1/lib/libgsl.dylib                 \
+#         /opt/homebrew/lib/libgsl.dylib  
+#   ln -s /opt/homebrew/Cellar/openmotif/2.3.8_1/lib/libXm.4.dylib         \
+#         /opt/homebrew/lib/libXm.4.dylib
+#   # if XQuartz doesn't include libXm (as it used to), then use this:
+#   ln -s /opt/homebrew/Cellar/openmotif/2.3.8_1/lib/libXm.a               \
+#         /opt/homebrew/lib/libXm.a
+#   ln -s /opt/homebrew/Cellar/jpeg/9e/lib/libjpeg.a                       \
+#         /opt/homebrew/lib/libjpeg.a
+# Changed make makefile to use libjpeg.a, so didn't need this one
+#    ln -s /opt/homebrew/Cellar/jpeg/9e/lib/libjpeg.a                       \
+#          /opt/homebrew/lib/libjpeg.9.a
+
+# did have to do this link:
+    ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h        \
+          /opt/homebrew/include/pgm.h
+
+  cp Makefile.macos_11_ARM_clang Makefile
+# 
+# note either clang or gcc10,gcc11 or later should all work
+# ... and then firing off the make:
+#
+#   make vastness|tee make_mac11_ARM_clang.log
+#
+# make sure the installation all worked okay, and there are no missing
+# programs, usually because of missing dependencies
+
+# copy installation directory to standardish afni binary directory
+mkdir -P ~/abin
+cp -r macos_11_ARM_M1_clang/* ~/abin/
+
+# get atlases and templates
+cd
+wget https://afni.nimh.nih.gov/pub/dist/atlases/afni_atlases_dist.tgz
+tar xvf afni_atlases_dist.tgz
+# either put the atlases in the abin directory with the executables
+# or set the AFNI_ATLAS_PATH to include the afni_atlases_dist directory
+cp afni_atlases_dist/* ~/abin/
+
+# install all the R packages
+sudo rPkgsInstall -pkgs ALL
+
+# set the path in .zshrc, .cshrc and .bashrc
+export PATH=$PATH:~/abin
+export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace
+
+#**************************************************************
+# python, miniconda installation
+# miniconda is considered experimental
+https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+bash ~/Downloads/Miniforge3-MacOSX-arm64.sh
+
+% bash ~/Downloads/Miniforge3-MacOSX-arm64.sh
+
+Welcome to Miniforge3 4.11.0-2
+
+In order to continue the installation process, please review the license
+agreement.
+Please, press ENTER to continue
+>>> ENTER
+
+
+Press space bar to advance through the license agreement and agree to terms
+
+Do you accept the license terms? [yes|no]
+[no] >>> yes
+
+Miniforge3 will now be installed into this location:
+/Users/dglen/miniforge3
+
+  - Press ENTER to confirm the location
+  - Press CTRL-C to abort the installation
+  - Or specify a different location below
+
+Press Enter...
+
+Do you wish the installer to initialize Miniforge3
+by running conda init? [yes|no]
+[no] >>> no
+
+Open a new terminal tab with Cmd-t
+conda init bash tcsh zsh
+
+Open another new terminal tab with Cmd-t (close the two previous tabs)
+Check if conda installed and the version (should be this or greater)
+
+conda -V     
+conda 4.11.0
+
+conda create -y                 \
+      -n py39_afni_tiny         \
+      python=3.9                \
+      matplotlib numpy scipy
+
+# add to default shell startup files (you can pick one or all)
+echo "conda activate py39_afni_tiny" >> .zshrc
+echo "conda activate py39_afni_tiny" >> .bash_profile
+echo "conda activate py39_afni_tiny" >> .tcshrc
+
+# turn off conda environment name in prompt
+# (need to open yet another terminal to see this afterwards)
+conda config --set changeps1 False
+
+#**************************************************************
+# download bootcamp data - same instructions as usual
+Prepare for Bootcamp
+Copy+paste:
+
+curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
+tar xvzf CD.tgz
+cd CD
+tcsh s2.cp.files . ~
+cd ..
+
+#**************************************************************
+# install circos, shiny
+# installing from shell did not work, but installing from within R
+# using source partially worked ....
+R
+install.packages("BiocManager", type="source")
+BiocManager::install()
+install.packages("shiny", type="source")
+
+# circos installation doesn't seem to work yet
+install.packages("circos", type="source", dependencies = TRUE )
+Warning message:
+package ‘circos’ is not available for this version of R
+
+A version of this package for your version of R might be available elsewhere,
+see the ideas at
+https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages 
+
+And from R GUI using 0-Cloud repository, install package OmicCircos (with dependencies)
+
+The downloaded source packages are in
+	‘/private/var/folders/wx/4__kqjcd6ng8tvrxn4zd9hyc0000gp/T/RtmpjpXKaL/downloaded_packages’
+Warning: unable to access index for repository http://www.bioconductor.org/packages/3.13/extra/src/contrib:
+  cannot open URL 'http://www.bioconductor.org/packages/3.13/extra/src/contrib/PACKAGES'
+
+Installed BioCircos, RCircos (CRAN repository from source)
+
+#**************************************************************
+# testing afni_proc.py pipeline with pythonic (matplotlib) graphics and browser QC
+cd ~/AFNI_data6/FT_analysis
+tcsh s15.proc.FT.uber.NL
+afni_open FT.NL.results/QC_FT.NL/index.html

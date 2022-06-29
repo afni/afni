@@ -73,9 +73,16 @@
 #    + check if user entered 'pythonic', but their system CAN'T HANDLE 
 #      THE TRUTH, and just downgrade to 'basic'
 #
-ver = '1.94' ; date = 'Jan 20, 2022' 
+#ver = '1.94' ; date = 'Jan 20, 2022' 
 # [PT] add in obj attribute so warning about pythonic->basic can be 
 #      more directly provided to user
+#
+#ver = '1.95' ; date = 'Feb 8, 2022' 
+# [PT] AP can now pass opts here via '-html_review_opts ..'
+# - first one is '-mot_grayplot_off', for S Torrisi.
+#
+ver = '1.96' ; date = 'Feb 10, 2022' 
+# [PT] matplotlib ver check to be >= 2.2, not just >2.2
 #
 #########################################################################
 
@@ -1739,13 +1746,40 @@ def parse_1dplot_args(full_argv):
 
 help_string_apqc_make_tcsh = '''
 
-Help is here.
+This program creates the single subject (ss) HTML review script
+'@ss_review_html', which itself generates images and text that form
+the afni_proc.py quality control (APQC) HTML.
 
--uvar_json
--subj_dir
--review_style {{{}}}
+It is typically run by the afni_proc.py (AP) proc* script itself.
 
-'''.format( "|".join(ok_review_styles) )
+Options:
+
+-uvar_json  UJ    :(req) UJ is a text file of uvars ("user variables")
+                   created by gen_ss_review.py that catalogues important
+                   files in the results directory, for the APQC.
+
+-subj_dir   SD    :(req) location of AP results directory (often '.', as
+                   this program is often run from within the AP results 
+                   directory).
+
+-review_style RS  :(opt) the 'style' of the APQC HTML output HTML.  Allowed
+                   keywords are:
+                       {{{}}}
+                   + Using 'pythonic' is the recommended way to go: the
+                   1D images are the clearest and most informative.
+                   It means you need the Python module Matplotlib
+                   (v>=2.2) installed, which should be a light dependency.
+                   + Using 'basic' means that no Matplotlib will be
+                   used, just 1dplot, and the images will be more,
+                   well, basic-looking.
+                   + Using 'none' means no APQC HTML is generated (boooooo).
+
+-mot_grayplot_off :(opt) turn off the grayplot generation.  This
+                   option was created for a specific case of a user who had
+                   a huuuge dataset and the grayplot took annoyingly long
+                   to estimate.  Not recommended to use, generally. 
+
+'''.format( ", ".join(ok_review_styles) )
 
 # -------------------------------------------------------------------
 
@@ -1758,6 +1792,7 @@ class apqc_tcsh_opts:
         self.subjdir  = ""
         self.revstyle = "basic"
         self.pythonic2basic = 0
+        self.do_mot_grayplot = True
 
     def set_json(self, json):
         self.json = json
@@ -1767,6 +1802,12 @@ class apqc_tcsh_opts:
 
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
+
+    def set_mot_grayplot(self, tf):
+        if tf:
+            self.do_mot_grayplot = True
+        else:
+            self.do_mot_grayplot = False
 
     # check requirements
     def check_req(self):
@@ -1849,6 +1890,11 @@ def parse_tcsh_args(argv):
             i+= 1
             iopts.set_revstyle(argv[i])
 
+        # --- apres moi, le deluge ---
+        ### AP can now pass opts here via '-html_review_opts ..'
+        elif argv[i] == "-mot_grayplot_off":
+            iopts.set_mot_grayplot(False)
+
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))
             sys.exit(2)
@@ -1895,7 +1941,7 @@ def check_apqc_pythonic_ok():
         try:
             ulist = [int(x) for x in MOD.split('.')]
             vlist = [int(x) for x in mver.split('.')]
-            if vlist[0] > ulist[0]:
+            if vlist[0] >= ulist[0]:
                 bad_for_pythonic = 0
             elif vlist[0] == ulist[0] and vlist[1] >= ulist[1]:
                 bad_for_pythonic = 0

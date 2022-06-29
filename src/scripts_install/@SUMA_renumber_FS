@@ -39,7 +39,7 @@ endif
 echo "++ Running @SUMA_renumber_FS version: $ver"
 
 set sumadir = $1
-set here = $PWD
+set here = "$PWD"
 
 cd $1
 

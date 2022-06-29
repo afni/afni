@@ -90,9 +90,9 @@ float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
    if( TR  < 0.0f ) TR = 1.0f ;
    tframe = TR / nzz ;  /* time per slice */
 
-   if( nzz == 1 ||
-       (tpattern == NULL || *tpattern == '\0' ||
-        strcasecmp(tpattern,"zero")==0 || strcasecmp(tpattern,"simult")==0) ){
+   /* allow nzz == 1, even single voxel input    [5 Apr 2022 rickr] */
+   if( tpattern == NULL || *tpattern == '\0' ||
+        strcasecmp(tpattern,"zero")==0 || strcasecmp(tpattern,"simult")==0 ) {
 
       /*--- do nothing [leave it all zeros] ---*/
 

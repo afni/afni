@@ -1,0 +1,148 @@
+#!/bin/tcsh -fe
+
+set stat = 0
+set sdir = "$PWD"
+
+# [RR: Feb 18, 2022] creation
+
+set demo = APMULTI_Demo2_realtime
+set demo_link = https://afni.nimh.nih.gov/pub/dist/data/afni_demos/$demo.tgz
+set readme = README_welcome.txt
+
+goto PARSE
+RET_PARSE:
+
+if ( -d ./$demo) then
+echo ""
+echo "ERROR:"
+echo "   Directory ./$demo exists already"
+echo "   If you want to recreate it, remove it with:"
+echo ""
+echo "rm -rf $demo"
+echo ""
+echo "   then run `basename $0` $argv again."
+echo ""
+echo "Otherwise to run demos, see contents of ${demo}/${readme}"
+echo ""
+goto END
+   endif
+
+echo "++ Going to fetch demo: ${demo}"
+
+if ($use_curl == -1) then
+   which curl
+   if ($status) then
+      set use_curl = 0;
+   else
+      set use_curl = 1;
+   endif
+endif
+
+# download
+if ($use_curl == 0) then
+   set cmd = ( wget $demo_link )
+else
+   set cmd = ( curl -O $demo_link )
+endif
+echo $cmd
+$cmd
+
+# and unpack (quietly)
+echo tar xzf $demo.tgz
+tar xzf $demo.tgz
+cd $demo
+
+if ( -f ${readme} ) then
+   cat ${readme}
+else
+   echo "Please see ${demo}/${readme}"
+   echo "********************************************************"
+endif
+
+cd -
+
+goto END
+
+PARSE:
+   set Narg = $#
+   set use_curl = -1
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-curl") then
+         set use_curl = 1
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-wget") then
+         set use_curl = 0
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+cat <<EOF
+   
+Overview ~1~
+
+This script fetches the demo data+scripts corresponding to AFNI's Demo #2
+for experimenting with AFNI's real-time system, possibly in the context of
+multi-echo data.  This demonstrates commands one can use to run a real-time
+system, mimicing what happens at a scanner.
+
+The applied programs are:
+
+   Dimon                : to send data to afni
+   afni                 : volreg, possibly send data to realtime_receiver.py
+   realtime_receiver.py : to receive (and possibly print) some data from afni
+                          (motion, ROI averages?, voxel data?)
+
+After the archive is downloaded and unpacked, see its ${readme}
+for details.
+
+Options ~1~
+
+   [-wget] : Use wget to download archive. Script chooses by default
+             with preference for curl
+   [-curl] : Use curl to download archive. Script chooses by default
+             with preference for curl
+
+Examples ~1~
+
+1) Just get everything, default operation:
+
+    @Install_${demo}
+
+2) Get everything, specify download tool:
+
+    @Install_${demo} -wget
+
+
+EOF
+
+   goto END
+
+BEND:
+   echo "Failed"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
+

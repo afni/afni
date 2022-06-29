@@ -18,7 +18,23 @@
 #
 # --------------------------------------------------------------------------
 
-set base_pres = 
+set base_pres = "$1"
+
+if ( "${base_pres}" == "" ) then
+    cat <<EOF
+
+** ERROR: please provide one command line argument value: the base
+   name of the presentation, BNAME.  This script globs for BNAME*.png
+   to convert.
+
+   Thus, if you made a slide presentation called 'fig_slides.odp' and
+   exported them, you c/w/should enter: 
+
+     tcsh do_img_crop+convert.tcsh fig_slides
+
+EOF
+    exit 1
+endif
 
 # get all images---annoyingly, they have spaces
 set all_img = ( ${base_pres}*.png )

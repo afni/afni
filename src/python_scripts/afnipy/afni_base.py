@@ -1380,6 +1380,15 @@ def EP( S, indent=True, end_exit=True):
     if end_exit :
        sys.exit(1)
 
+def EP1( S, indent=True):
+    '''Error print string S, and return 1.
+
+    Basically, compact form of EP(...)
+    '''
+    APRINT(S, ptype='ERROR', indent=indent)
+
+    return 1
+
 def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S
 

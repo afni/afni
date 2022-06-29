@@ -45,9 +45,10 @@ static char * g_history[] =
   "     - fix memory loss and lost dset history\n"
   "0.8  22 May 2020: add -NN1, -NN2 and -NN3 options\n",
   "     - fix tiny origin shift due to zeropad truncation effects\n"
+  "0.9  24 Jun 2022: use mask_epi_anat in examples (over full_mask)\n",
 };
 
-static char g_version[] = "3dmask_tool version 0.8, 22 May 2020";
+static char g_version[] = "3dmask_tool version 0.9, 24 June 2022";
 
 #include "mrilib.h"
 
@@ -697,17 +698,18 @@ int show_help(void)
    "\n"
    "   c1. compute an intersection mask, this time with EPI masks\n"
    "\n"
-   "      3dmask_tool -input full_mask.*+tlrc.HEAD -prefix mask_inter \\\n"
+   "      3dmask_tool -input mask_epi_anat.*+tlrc.HEAD -prefix mask_inter \\\n"
    "                  -frac 1.0\n"
    "\n"
    "   c2. compute a mask of 70%% overlap\n"
    "\n"
-   "      3dmask_tool -input full_mask.*+tlrc.HEAD -prefix mask_overlap.7 \\\n"
-   "                  -frac 0.7\n"
+   "      3dmask_tool -input mask_epi_anat.*+tlrc.HEAD \\\n"
+   "                  -prefix group_mask_olap.7 -frac 0.7\n"
+   "\n"
    "   c3. simply count the voxels that overlap\n"
    "\n"
-   "      3dmask_tool -input full_mask.*+tlrc.HEAD -prefix mask.counts \\\n"
-   "                  -count\n"
+   "      3dmask_tool -input mask_epi_anat.*+tlrc.HEAD \\\n"
+   "                  -prefix mask.counts -count\n"
    "\n"
    "   d. fill holes\n"
    "\n"
@@ -852,7 +854,7 @@ int show_help(void)
    "    -inputs DSET1 ...       : specify the set of inputs (taken as masks)\n"
    "\n"
    "            e.g. -inputs group_mask.nii\n"
-   "            e.g. -inputs full_mask.subj*+tlrc.HEAD\n"
+   "            e.g. -inputs mask_epi_anat.*+tlrc.HEAD\n"
    "            e.g. -inputs amygdala_subj*+tlrc.HEAD\n"
    "\n"
    "        Use this option to specify the input datasets to process.  Any\n"
