@@ -483,6 +483,8 @@ def getPhysiologicalNoiseComponents(parameters):
     return df   
 
 def phase_estimator(amp_phase, phase_info):
+    
+    # Phase determination parameters
     phasee = dict(
         quiet=0,
         frequency_cutoff=10,
@@ -492,14 +494,14 @@ def phase_estimator(amp_phase, phase_info):
         show_graphs=0,
     )
     phasee.update(phase_info)
-    if isinstance(phasee["phasee_list"], type([])):
+    if isinstance(phasee["phasee_list"], type([])): # No phase list
         return_phase = []
         return_phase_list = []
         for phasee_column in phasee["phasee_list"]:
             return_phase.append(phase_base(amp_phase, phasee_column))
         return return_phase_list
     else:
-        return_phase, rvt = phase_base(amp_phase, phasee)
+        return_phase, rvt = phase_base(amp_phase, phasee)   # Actually determine the phase
         return return_phase, rvt
 
 def my_hist(x, bin_centers):
@@ -562,19 +564,19 @@ def phase_base(amp_type, phasee):
     """
     if amp_type == 0:   # Phase not based on amplitude
         # Calculate the phase of the trace, with the peak to be the start of the phase
-        nptrc = len(phasee["tp_trace"])
-        phasee["phase"] = -2 * np.ones(size(phasee["t"]))
-        i = 0
-        j = 0
-        while i <= (nptrc - 2):
-            while phasee["t"][j] < phasee["tp_trace"][i + 1]:
-                if phasee["t"][j] >= phasee["tp_trace"][i]:
+        nptrc = len(phasee["tp_trace"]) # Number of peaks
+        phasee["phase"] = -2 * np.ones(size(phasee["t"]))   # Array of -2s, the length of the input data
+        i = 0   # i increments over the peak indices
+        j = 0   # j increments over the time point indices
+        while i <= (nptrc - 2): # For each peak
+            while phasee["t"][j] < phasee["tp_trace"][i + 1]: # Examine signal between this and next peak
+                if phasee["t"][j] >= phasee["tp_trace"][i]:   # Must be at least the index of the current peak
                     # Note: Using a constant 244 period for each interval
                     # causes slope discontinuity within a period.
                     # One should resample period[i] so that it is
                     # estimated at each time in phasee['t'][j],
                     # dunno if that makes much of a difference in the end however.
-                    if j == 10975:
+                    if j == 10975:  # Don't do the following block for this temporal index
                         pass
                     phasee["phase"][j] = (
                         phasee["t"][j] - phasee["tp_trace"][i]
@@ -595,56 +597,74 @@ def phase_base(amp_type, phasee):
         phasee["phase"] = phasee["phase"] * 2 * math.pi
     else:  # phase based on amplitude
         # at first scale to the max
-        mxamp = max(phasee["p_trace"])
-        phasee["phase_pol"] = []
+        mxamp = max(phasee["p_trace"])  # Maximum peak value
+        phasee["phase_pol"] = []        # Only used for amplitude-based phase
         gR = z_scale(phasee["v"], 0, mxamp)  # Scale, per Glover 2000's paper
-        bins = np.arange(0.01, 1.01, 0.01) * mxamp
-        hb_value = my_hist(gR, bins)
-        if phasee["show_graphs"] == 1:
+        bins = np.arange(0.01, 1.01, 0.01) * mxamp # Hundred bins in 1% increments up to maximum peak
+        hb_value = my_hist(gR, bins)    # Histogram input using bins
+        if phasee["show_graphs"] == 1:  # Display histogram
             center = (bins[:-1] + bins[1:]) / 2
-            plt.bar(center, hb_value[: len(hb_value) - 1])  # , align='center')
+            plt.bar(center, hb_value[: len(hb_value) - 1], label='Histogram of input values')  # , align='center')
+            plt.xlabel("Input value")
+            plt.ylabel("Count")
+            plt.title("Histogram of input values")
             plt.show()
         # find the polarity of each time point in v
         i = 0
         itp = 0
         inp = 0
-        tp = phasee["tp_trace"][0]
-        tn = phasee["tn_trace"][0]
+        tp = phasee["tp_trace"][0]  # Location of first peak
+        tn = phasee["tn_trace"][0]  # Location of first trough
+        
+        # Find location of first peak or trough
         while (
             (i <= len(phasee["v"])) and (phasee["t"][i] < tp) and (phasee["t"][i] < tn)
         ):
             phasee["phase_pol"].append(0)
             i += 1
-        if tp < tn:
+                    
+        if tp < tn: # If first peak precedes first trought
             # Expiring phase (peak behind us)
-            cpol = -1
+            cpol = -1   # Polarity of -1 means expiration
             itp = 1
-        else:
+        else:       # First trough precedes first peak
             # Inspiring phase (bottom behind us)
-            cpol = 1
+            cpol = 1    # Polarity of 1 means inpiration
             inp = 1
+            
         phasee["phase_pol"] = np.zeros(
             size(phasee["v"])
         )  # Not sure why you would replace the
         # list that you created 10 lines prior to this
+        
         # Add a fake point to tptrace and tntrace to avoid ugly if statements
         phasee["tp_trace"] = np.append(phasee["tp_trace"], phasee["t"][-1])
         phasee["tn_trace"] = np.append(phasee["tn_trace"], phasee["t"][-1])
-        while i < len(phasee["v"]):
+        
+        # Assign polarities to every input timepoint
+        while i < len(phasee["v"]): # Process every input time point
             phasee["phase_pol"][i] = cpol
             if phasee["t"][i] == phasee["tp_trace"][itp]:
-                cpol = -1
-                itp = min((itp + 1), (len(phasee["tp_trace"]) - 1))
+                cpol = -1   # Expiration polarity
+                itp = min((itp + 1), (len(phasee["tp_trace"]) - 1)) # Expiration minimum
             elif phasee["t"][i] == phasee["tn_trace"][inp]:
-                cpol = 1
-                inp = min((inp + 1), (len(phasee["tn_trace"]) - 1))
-            # cpol, inp, itp, i, R
-            i += 1
-        phasee["tp_trace"] = np.delete(phasee["tp_trace"], -1)
-        phasee["tn_trace"] = np.delete(phasee["tn_trace"], -1)
+                cpol = 1   # Inspiration polarity
+                inp = min((inp + 1), (len(phasee["tn_trace"]) - 1)) # Inspiration minimum
+            i += 1  # Next point
+            
+        phasee["tp_trace"] = np.delete(phasee["tp_trace"], -1) # Remove last peak
+        phasee["tn_trace"] = np.delete(phasee["tn_trace"], -1) # Remove last trough
+        
+        # Plot graphs if required
         if phasee["show_graphs"] == 1:
             # clf
-            plt.plot(phasee["t"], gR, "b")
+            x= phasee['t']
+            plt.plot(x, gR, "b")          
+            plt.xlabel("time (s) aka phasee['t']")
+            plt.ylabel("Input scaled to [0,max(input)](gR)")
+            plt.title("Input scaled per Grover (2000) versus time (s)")
+            
+            # Inspiration
             ipositive = np.nonzero(phasee["phase_pol"] > 0)
             ipositive = ipositive[0]
             ipositive_x = []
@@ -653,6 +673,8 @@ def phase_base(amp_type, phasee):
             ipositive_y = np.zeros(size(ipositive_x))
             ipositive_y.fill(0.55 * mxamp)
             plt.plot(ipositive_x, ipositive_y, "r.")
+            
+            # Exspiration
             inegative = np.nonzero(phasee["phase_pol"] < 0)
             inegative = inegative[0]
             inegative_x = []
@@ -661,7 +683,11 @@ def phase_base(amp_type, phasee):
             inegative_y = np.zeros(size(inegative_x))
             inegative_y.fill(0.45 * mxamp)
             plt.plot(inegative_x, inegative_y, "g.")
+            plt.xlabel("time (s) aka phasee['t']")
+            plt.ylabel("Input value (unscaled")
+            plt.title("Inspiration (red) and expiration (green) versus time (s)")
             plt.show()
+            
         # Now that we have the polarity, without computing sign(dR/dt)
         #   as in Glover et al 2000, calculate the phase per eq. 3 of that paper
         # First the sum in the numerator
@@ -671,8 +697,12 @@ def phase_base(amp_type, phasee):
         shb = sum(hb_value)
         hbsum = []
         hbsum.append(float(hb_value[0]) / shb)
+        
+        # Next the sum in the denominator
         for i in range(1, 100):
             hbsum.append(hbsum[i - 1] + (float(hb_value[i]) / shb))
+            
+        # Next multiply by polarity
         for i in range(len(phasee["t"])):
             phasee["phase"].append(math.pi * hbsum[int(gR[i]) - 1] * phasee["phase_pol"][i])
         phasee["phase"] = np.array(phasee["phase"])
