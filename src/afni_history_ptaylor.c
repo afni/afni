@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, June , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "Add more button saving to apqc_*.json files.",
+   "Have A+, Ax, A? and clr save to the apqc_*.json now.'\n"
+},
+
 { 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
    "Fix how the AMASK_FOCUS_* keywords apply for '-box_focus_slices ..'.",
    "They didn't work before, but now do/should/might/perhaps/pleeeez.\n"

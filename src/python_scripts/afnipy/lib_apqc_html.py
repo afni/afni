@@ -40,9 +40,12 @@
 # + fix oversight in wrap_button(), where different buttons pointed to
 #   only one tedana directory.  Thanks, Dan H for noting this!
 #
-ver = '3.0' ; date = 'June 18, 2022' 
+#ver = '3.0' ; date = 'June 18, 2022' 
 # [Taylor Hanayik] add in updates for QC button functionality
 # + specifically, to accommodate local flask server (open_apqc.py)
+#
+ver = '3.01' ; date = 'June 28, 2022' 
+# [PT] have the A+, A-, A? and clr buttons *also* update apqc_*.json
 #
 #########################################################################
 
@@ -1377,7 +1380,8 @@ function reallyAllYourBaseAreBelongToUs(ii) {
      if ( ii < 0 ) {
         sendCommentToButtonAndForm("", bid);
      }
-   } 
+   }
+   doSaveAllInfo() 
 } 
 '''
 
@@ -1586,6 +1590,7 @@ function findCol(colname) {
 
     # The Saver
     y+= '''
+// the function that saves QC button ratings and comments to the *.json
 function doSaveAllInfo() {
     updateLocalJson();
 
