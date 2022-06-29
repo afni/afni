@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.9, Dec 19, 2021
+Version 2.0.10, June 29, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -884,9 +884,10 @@ process.LME.opts <- function (lop, verb = 0) {
       # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
-      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
+      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
 
    # number of fixed-effects variables involved in the model
