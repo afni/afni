@@ -25,7 +25,8 @@ Help string
 g_history = """
    history for: chauffeur_suma.py  
 
-   0.0  Mar 17, 2022    - initial version
+   0.0   Mar 17, 2022    - initial version
+   0.01  Jun 30, 2022    - tweak opt/error handling
 """
 
 # watch formatting of g_history
@@ -576,6 +577,11 @@ class InOpts:
         return 0
 
     def process_options(self):
+        """
+        return  1 on valid and exit        (e.g. -help)
+        return  0 on valid and continue    (e.g. do main processing)
+        return -1 on invalid               (bad things, panic, abort)
+        """
 
         # process any optlist_ options
         self.valid_opts.check_special_opts(sys.argv)
@@ -586,29 +592,29 @@ class InOpts:
         # if no arguments are given, apply -help
         if len(sys.argv) <= 1 or '-help' in sys.argv or '-h' in sys.argv:
             print(g_help_string)
-            return 0
+            return 1
 
         if '-hist' in sys.argv:
             print(g_history)
-            return 0
+            return 1
 
         if '-show_valid_opts' in sys.argv:
             self.valid_opts.show(mesg='', verb=1)
-            return 0
+            return 1
 
         if '-show_valid_opts_only' in sys.argv:
             self.valid_opts.show(mesg='', verb=0, show_count=0)
-            return 0
+            return 1
 
         if '-ver' in sys.argv:
             print(g_version)
-            return 0
+            return 1
 
         # ============================================================
         # read options specified by the user
         self.user_opts = OL.read_options(sys.argv, self.valid_opts)
         uopts = self.user_opts            # convenience variable
-        if not uopts: return 1            # error condition
+        if not uopts: return -1           # error condition
 
         # ------------------------------------------------------------
         # process non-chronological options, verb comes first
@@ -630,8 +636,8 @@ class InOpts:
 
             if opt.name == '-surf_anat':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
-                if self.set_surf_anat(val): return 1
+                if val != None and err: return -1
+                if self.set_surf_anat(val): return -1
 
             #if opt.name == '-dir_fs_suma':
             #    val, err = uopts.get_string_opt('', opt=opt)
@@ -640,57 +646,56 @@ class InOpts:
 
             if opt.name == '-subj':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
-                if self.set_subj(val): return 1
+                if val != None and err: return -1
+                if self.set_subj(val): return -1
 
             if opt.name == '-dset_lh':
                 val, err = uopts.get_string_list('', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 for vvv in val:
-                    if self.add_hemi_dset(vvv, 'lh'): return 1
+                    if self.add_hemi_dset(vvv, 'lh'): return -1
 
             if opt.name == '-dset_rh':
                 val, err = uopts.get_string_list('', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 for vvv in val:
-                    if self.add_hemi_dset(vvv, 'rh'): return 1
+                    if self.add_hemi_dset(vvv, 'rh'): return -1
 
             if opt.name == '-prefix':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
-                if self.set_prefix(val): return 1
+                if val != None and err: return -1
+                if self.set_prefix(val): return -1
 
             if opt.name == '-img_ext':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
-                if self.set_img_ext(val): return 1
+                if val != None and err: return -1
+                if self.set_img_ext(val): return -1
 
 
             if opt.name == '-libgl_software':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
             if opt.name == '-position_original':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
             if opt.name == '-environ_warnings':
                 val, err = uopts.get_string_opt('', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
 
             # general options
 
             elif opt.name == '-verb':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: return 1
+                if val != None and err: return -1
                 else: self.verb = val
                 continue
 
         return 0
 
     def finalize_attributes(self):
-        print("DO!")
 
         if self.all_svar['odir'] == None :
             self.all_svar['odir'] = '${surf_dir}'

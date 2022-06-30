@@ -17,8 +17,6 @@ import sys, os
 from afnipy import lib_drive_suma as lds
 from afnipy import lib_apqc_tcsh  as lat      # for str formatting
 
-print(lds.g_version)
-
 # -----------------------------------------------------------------------
 
 def main():
@@ -26,7 +24,7 @@ def main():
     if not opts: return 1
 
     opts_ok = opts.process_options()
-    if opts_ok > 0: return 1
+    if opts_ok > 0: return 0
 
     #rv = opts.execute()
     #if rv > 0: return 1
@@ -36,7 +34,17 @@ def main():
 if __name__ == '__main__':
 
     opts    = lds.InOpts()
+    if not opts:
+        print('** ERROR: failed to even start processing options')
+        sys.exit(-2)
+
     opts_ok = opts.process_options()
+    if opts_ok > 0: 
+        sys.exit(0)
+    elif opts_ok < 0:
+        print('** ERROR: failed when processing options')
+        sys.exit(opts_ok)
+
     pars    = lds.suma_chauffeur_pars(opts)
     
     #    sys.exit(main())
