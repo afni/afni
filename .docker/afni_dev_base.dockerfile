@@ -168,7 +168,7 @@ RUN python3 -m pip install \
         pytest-cov \
         pytest-xdist \
         scipy \
-        git+git://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
+        git+https://github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_multi_threading \
   && fix-permissions /opt \
   && git config --global user.name "Docker Almighty" \
   && git config --global user.email "nobody@example.com" \

@@ -146,4 +146,5 @@ Updates since 3.0.1
          - can consider moving to C library
          - suggest against poorly named -copy_im option (removed from -help)
          - added c22.copy_image.sh test script
+         - added nifti_image_write_status (NIFTI-1,2), and applied it
 

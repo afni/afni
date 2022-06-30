@@ -400,12 +400,14 @@ static char const * const gni2_history[] =
   "2.11  3 Oct, 2019 [rickr]: added nifti_[d]mat33_mul\n",
   "2.1.0  18 Jun, 2020 [leej3,hmjohnson,rickr]:\n"
   "     - changed to more formal library versioning\n",
-  "2.1.0.1 - non-release update\n"
-  "        2 Mar, 2022 [rickr]: cast a few more pedantic void*'s\n"
+  "2.1.0.1 - non-release update -  2 Mar, 2022 [rickr]\n"
+  "        - cast a few more pedantic void*'s\n"
+  "2.1.0.2 - non-release update - 16 Jun, 2022 [rickr]\n"
+  "        - add nifti_image_write_status\n",
   "----------------------------------------------------------------------\n"
 };
 
-static const char gni_version[] = NIFTI2_IO_SOURCE_VERSION " (2 Mar, 2022)";
+static const char gni_version[] = NIFTI2_IO_SOURCE_VERSION " (16 Jun, 2022)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
@@ -518,6 +520,8 @@ static char *escapize_string   (const char *str);
 static int  nifti_ext_type_index(nifti_image * nim, int ecode);
 
 /* internal I/O routines */
+static int nifti_image_write_engine(nifti_image *nim, int write_opts,
+        const char * opts, znzFile * imgfile, const nifti_brick_list * NBL);
 static znzFile nifti_image_load_prep( nifti_image *nim );
 static int     has_ascii_header(znzFile fp);
 /*---------------------------------------------------------------------------*/
@@ -7768,24 +7772,42 @@ znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
 }
 
 
+/*----------------------------------------------------------------------*/
+/*! This writes the header (and optionally the image data) to file.
+ *
+ * This is now just a front-end for nifti_image_write_engine, but the
+ * engine will return a status (for success of write), which is promptly
+ * ignored by this function.
+ *
+ * \sa nifti_image_write_engine
+*//*--------------------------------------------------------------------*/
+znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
+               const char * opts, znzFile imgfile, const nifti_brick_list * NBL)
+{
+   znzFile loc_img = imgfile;   /* might be NULL, might point to open struct */
+   (void)nifti_image_write_engine(nim, write_opts, opts, &loc_img, NBL);
+   return loc_img;
+}
+
 #undef  ERREX
-#define ERREX(msg)                                                \
- do{ fprintf(stderr,"** ERROR: nifti_image_write_hdr_img: %s\n",(msg)) ;  \
-     return fp ; } while(0)
+#define ERREX(msg)                                                      \
+ do{ fprintf(stderr,"** ERROR: nifti_image_write_engine: %s\n",(msg)) ; \
+     if( imgfile ) *imgfile = fp;                                       \
+     return 1 ; } while(0)
 
 
 /* ----------------------------------------------------------------------*/
 /*! This writes the header (and optionally the image data) to file
  *
- * If the image data file is left open it returns a valid znzFile handle.
- * It also uses imgfile as the open image file is not null, and modifies
- * it inside.
+ * If imgfile points to a NULL znzFile, it modifies it to a valid and open
+ * handle.  If it points to an non-NULL znzFile, it uses that as the open
+ * image and simply modifies that structure.  This also depends on write_opts.
  *
  * \param nim        nifti_image to write to disk
  * \param write_opts flags whether to write data and/or close file (see below)
  * \param opts       file-open options, probably "wb" from nifti_image_write()
- * \param imgfile    optional open znzFile struct, for writing image data
-                     (may be NULL)
+ * \param imgfile    pointer to optionaly open znzFile, for writing image data
+                     (must not be NULL, contents might be NULL)
  * \param NBL        optional nifti_brick_list, containing the image data
                      (may be NULL)
  *
@@ -7799,27 +7821,29 @@ znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
  * \sa nifti_image_write, nifti_image_write_hdr_img, nifti_image_free,
  *     nifti_set_filenames
 *//*---------------------------------------------------------------------*/
-znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
-               const char * opts, znzFile imgfile, const nifti_brick_list * NBL)
+static int nifti_image_write_engine(nifti_image *nim, int write_opts,
+        const char * opts, znzFile * imgfile, const nifti_brick_list * NBL)
 {
    nifti_1_header n1hdr ;
    nifti_2_header n2hdr ;
    znzFile        fp=NULL;
    int64_t        ss ;
    int            write_data, leave_open;
-   int            nver=1, hsize=(int)sizeof(nifti_1_header);  /* 5 Aug 2015 */
-   char           func[] = { "nifti_image_write_hdr_img2" };
+   int            nver, hsize;
+   char           func[] = { "nifti_image_write_engine" };
 
    write_data = write_opts & 1;  /* just separate the bits now */
    leave_open = write_opts & 2;
 
-   if( ! nim                              ) ERREX("NULL input") ;
+   /* check for valid input */
+   if( ! nim || ! imgfile                 ) ERREX("NULL input") ;
    if( ! nifti_validfilename(nim->fname)  ) ERREX("bad fname input") ;
    if( write_data && ! nim->data && ! NBL ) ERREX("no image data") ;
 
    if( write_data && NBL && ! nifti_NBL_matches_nim(nim, NBL) )
       ERREX("NBL does not match nim");
 
+   /* chit-chat */
    if( g_opts.debug > 1 ){
       fprintf(stderr,"-d writing nifti file '%s'...\n", nim->fname);
       if( g_opts.debug > 2 )
@@ -7827,18 +7851,32 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
                  nim->nifti_type, nim->iname_offset);
    }
 
-   if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
-      return nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
-   else if( nim->nifti_type == NIFTI_FTYPE_NIFTI2_1 ||
+   /* get to work */
+
+   /* if non-standard ASCII, just write output and return */
+   if( nim->nifti_type == NIFTI_FTYPE_ASCII ) {
+      *imgfile = nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
+      return 0; /* write_ascii has no status, either */
+   }
+
+   /* create a header structure to write out */
+   if( nim->nifti_type == NIFTI_FTYPE_NIFTI2_1 ||
             nim->nifti_type == NIFTI_FTYPE_NIFTI2_2 ) {
       nifti_set_iname_offset(nim, 2);
-      if( nifti_convert_nim2n2hdr(nim, &n2hdr) ) return NULL;
+      if( nifti_convert_nim2n2hdr(nim, &n2hdr) ) {
+         *imgfile = NULL;
+         return 1;
+      }
       nver = 2; /* we will write NIFTI-2 */
       hsize = (int)sizeof(nifti_2_header);
-   }
-   else {
+   } else {
       nifti_set_iname_offset(nim, 1);
-      if( nifti_convert_nim2n1hdr(nim, &n1hdr) ) return NULL;
+      if( nifti_convert_nim2n1hdr(nim, &n1hdr) ) {
+         *imgfile = NULL;
+         return 1;
+      }
+      nver = 1;
+      hsize = (int)sizeof(nifti_1_header);  /* 5 Aug 2015 */
    }
 
    /* if writing to 2 files, make sure iname is set and different from fname */
@@ -7849,23 +7887,27 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
        }
        if( nim->iname == NULL ){ /* then make a new one */
          nim->iname = nifti_makeimgname(nim->fname,nim->nifti_type,0,0);
-         if( nim->iname == NULL ) return NULL;
+         if( nim->iname == NULL ) {
+            *imgfile = NULL;
+            return 1;
+         }
        }
    }
 
-   /* if we have an imgfile and will write the header there, use it */
-   if( ! znz_isnull(imgfile) && (nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ||
-                                 nim->nifti_type == NIFTI_FTYPE_NIFTI2_1) ){
+   /* if we have an imgfile and will also write the header there, use it */
+   if( ! znz_isnull(*imgfile) && (nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ||
+                                  nim->nifti_type == NIFTI_FTYPE_NIFTI2_1) ){
       if( g_opts.debug > 2 ) fprintf(stderr,"+d using passed file for hdr\n");
-      fp = imgfile;
-   }
-   else {
+      fp = *imgfile;
+   } else {
+      /* we will write the header to a new file */
       if( g_opts.debug > 2 )
          fprintf(stderr,"+d opening output file %s [%s]\n",nim->fname,opts);
       fp = znzopen( nim->fname , opts , nifti_is_gzfile(nim->fname) ) ;
       if( znz_isnull(fp) ){
          LNI_FERR(func,"cannot open output file",nim->fname);
-         return fp;
+         *imgfile = fp;
+         return 1;
       }
    }
 
@@ -7876,27 +7918,31 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
 
    if( ss < hsize ){
       LNI_FERR(func,"bad header write to output file",nim->fname);
-      znzclose(fp); return fp;
+      znzclose(fp); *imgfile = fp; return 1;
    }
 
-   /* partial file exists, and errors have been printed, so ignore return */
+   /* write extensions; any errors will be printed */
    if( nim->nifti_type != NIFTI_FTYPE_ANALYZE )
-      (void)nifti_write_extensions(fp,nim);
+      if( nifti_write_extensions(fp,nim) < 0 ) {
+         znzclose(fp); *imgfile = fp; return 1;
+      }
 
    /* if the header is all we want, we are done */
    if( ! write_data && ! leave_open ){
       if( g_opts.debug > 2 ) fprintf(stderr,"-d header is all we want: done\n");
-      znzclose(fp); return(fp);
+      znzclose(fp); *imgfile = fp; return 0;
    }
 
+   /* if multiple files (hdr/img), close fp and use (any) *imgfile for data */
    if( (nim->nifti_type != NIFTI_FTYPE_NIFTI1_1) &&
        (nim->nifti_type != NIFTI_FTYPE_NIFTI2_1) ){ /* get a new file pointer */
       znzclose(fp);         /* first, close header file */
-      if( ! znz_isnull(imgfile) ){
+      /* use any valid *imgfile for img */
+      if( ! znz_isnull(*imgfile) ){
          if(g_opts.debug > 2) fprintf(stderr,"+d using passed file for img\n");
-         fp = imgfile;
-      }
-      else {
+         fp = *imgfile;
+      } else {
+         /* else we need a new img file pointer */
          if( g_opts.debug > 2 )
             fprintf(stderr,"+d opening img file '%s'\n", nim->iname);
          fp = znzopen( nim->iname , opts , nifti_is_gzfile(nim->iname) ) ;
@@ -7904,12 +7950,16 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
       }
    }
 
+   /* have image pointer, ready to write */
+
    znzseek(fp, nim->iname_offset, SEEK_SET);  /* in any case, seek to offset */
 
    if( write_data ) nifti_write_all_data(fp,nim,NBL);
    if( ! leave_open ) znzclose(fp);
 
-   return fp;
+   *imgfile = fp;
+
+   return 0;
 }
 
 
@@ -7970,12 +8020,61 @@ znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
 *//*------------------------------------------------------------------------*/
 void nifti_image_write( nifti_image *nim )
 {
-   znzFile fp = nifti_image_write_hdr_img(nim,1,"wb");
-   if( fp ){
+   (void)nifti_image_write_status(nim);
+}
+
+
+/*--------------------------------------------------------------------------*/
+/*! Write a nifti_image to disk, returning 0 on success, else failure.
+
+    This simple write function takes a nifti_image as input and returns
+    the status of the operation.  It is akin to nifti_image_write, but
+    returns the status.  Changing nifti_image_write from void to int
+    would have backward compatibility ramifications.
+
+   \sa nifti_image_write_bricks, nifti_image_free, nifti_set_filenames,
+       nifti_image_write_engine, nifti_image_write
+*//*------------------------------------------------------------------------*/
+int nifti_image_write_status( nifti_image *nim )
+{
+   znzFile fp=NULL;   /* required for _engine, but promptly ignored */
+   int     rv;
+
+   rv = nifti_image_write_engine(nim, 1, "wb", &fp, NULL);
+
+   if( fp ){ /* this should not happen, as we requested file closure */
       if( g_opts.debug > 2 ) fprintf(stderr,"-d niw: done with znzFile\n");
       free(fp);
    }
-   if( g_opts.debug > 1 ) fprintf(stderr,"-d nifti_image_write: done\n");
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-d nifti_image_write_status: done, status %d\n", rv);
+
+   return rv;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! similar to nifti_image_write_status, but data is in NBL struct,
+    not nim->data
+
+   \return 0 on success, 1 on error
+
+   \sa nifti_image_write, nifti_image_free, nifti_set_filenames, nifti_free_NBL
+*//*--------------------------------------------------------------------*/
+int nifti_image_write_bricks_status( nifti_image *nim,
+                                     const nifti_brick_list * NBL )
+{
+   znzFile fp=NULL;
+   int     rv;
+
+   rv = nifti_image_write_engine(nim, 1, "wb", &fp, NBL);
+   if( fp ){
+      if( g_opts.debug > 2 ) fprintf(stderr,"-d niwb: done with znzFile\n");
+      free(fp);
+   }
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-d niwb: done writing bricks, status %d\n", rv);
+   return rv;
 }
 
 
@@ -7986,12 +8085,7 @@ void nifti_image_write( nifti_image *nim )
 *//*--------------------------------------------------------------------*/
 void nifti_image_write_bricks( nifti_image *nim, const nifti_brick_list * NBL )
 {
-   znzFile fp = nifti_image_write_hdr_img2(nim,1,"wb",NULL,NBL);
-   if( fp ){
-      if( g_opts.debug > 2 ) fprintf(stderr,"-d niwb: done with znzFile\n");
-      free(fp);
-   }
-   if( g_opts.debug > 1 ) fprintf(stderr,"-d niwb: done writing bricks\n");
+   (void)nifti_image_write_bricks_status(nim, NBL);
 }
 
 

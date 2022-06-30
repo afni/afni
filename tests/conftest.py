@@ -40,7 +40,7 @@ from afni_test_utils import data_management as dm  # noqa: E40
 if "environ" not in inspect.signature(xvfbwrapper.Xvfb).parameters.keys():
     raise EnvironmentError(
         "Version of xvfbwrapper does not have the environ keyword. "
-        "Consider installing one that does. e.g. 'pip install git+git://"
+        "Consider installing one that does. e.g. 'pip install git+https://"
         "github.com/leej3/xvfbwrapper.git@add_support_for_xquartz_and_m"
         "ulti_threading' "
     )

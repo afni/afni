@@ -697,6 +697,7 @@ where:
 
  -no_images   : (opt) don't make pretty images to automatically view the 
                 results of re/defacing;  but why wouldn't you want those?
+                This disables use of Xvfb.
 
  -overwrite   : (opt) final two file outputs will overwrite any existing
                 files of the same name (def: don't do this).  NB: this 
