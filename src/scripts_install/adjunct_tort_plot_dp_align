@@ -20,14 +20,14 @@ set ver = "2.1";  set rev_dat   = "Nov 5, 2020"
 # ----------------------------------------------------------------
 
 set this_prog = "adjunct_tort_plot_dp_align"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 
 set ifile   = ""
 set oimage  = ""
 
-set odir    = $here
+set odir    = "$here"
 set opref   = ""
 
 set xlab        = "vol index"
@@ -101,10 +101,10 @@ if ( "${opref}" == "" ) then
     goto BAD_EXIT
 endif
  
-set o_alpar  = ${odir}/${opref}_align.1D
-set o_enorm  = ${odir}/${opref}_enorm.1D
-set ojpg     = ${odir}/${opref}.jpg
-set osvg     = ${odir}/${opref}.svg
+set o_alpar  = "${odir}/${opref}_align.1D"
+set o_enorm  = "${odir}/${opref}_enorm.1D"
+set ojpg     = "${odir}/${opref}.jpg"
+set osvg     = "${odir}/${opref}.svg"
 
 set ifile_base  = `basename "${ifile}"`
 set title_jpg   = "DIFFPREP alignment params and enorm"
@@ -120,9 +120,9 @@ endif
  
 # check output directory, use input one if nothing given
 
-if ( ! -e $odir ) then
+if ( ! -e "$odir" ) then
     echo "++ Making new output directory: $odir"
-    \mkdir -p $odir
+    \mkdir -p "$odir"
 endif
 
 # --------- check for SVG plotting

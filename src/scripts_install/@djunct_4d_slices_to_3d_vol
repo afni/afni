@@ -2,7 +2,7 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set here      = $PWD
+set here      = "$PWD"
 set this_prog = @djunct_4d_slices_to_3d_vol
 
 # --------------------- revision history -------------------------
@@ -180,7 +180,7 @@ if ( "$iseto" != "" ) then
 
     if ( ( $Nvo == 1 ) && ( $Nvu == 1 ) ) then
         echo "** ERROR: both inputs are single vols?"
-        echo "   This should not be happening here!"
+        echo "   This should not be happening here"
         goto BAD_EXIT
     else if ( ( $Nvo == 1 ) || ( $Nvu == 1 ) ) then
         echo "++ OK numbers of vols ($Nvo and $Nvu)"
@@ -201,7 +201,7 @@ endif
 
 if ( $Nvfinal == 1 ) then
     echo "** ERROR: Only have a single volume?"
-    echo "   This should not be happening here!"
+    echo "   This should not be happening here"
     goto BAD_EXIT
 endif
 

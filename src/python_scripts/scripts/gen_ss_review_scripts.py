@@ -928,9 +928,10 @@ g_history = """
                         'orig voxel counts', 'orig volume center'
    1.21 Jan 24, 2022: added combine_method field, just to pass to json
    1.22 Feb  3, 2022: added -init_uvars_json
+   1.23 May 18, 2022: allow for tlrc as initial view
 """
 
-g_version = "gen_ss_review_scripts.py version 1.22, February 3, 2022"
+g_version = "gen_ss_review_scripts.py version 1.23, May 18, 2022"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1492,8 +1493,10 @@ class MyInterface:
             if estr == '': ee = estr
             else:          ee = '%s%s' % (sep, estr)
             pref = 'pb00%s' % sep
-            suf  = '%sr01%s%stcat+orig.HEAD' % (sep, ee, sep)
-            glist = UTIL.glob_list_minus_pref_suf(pref, suf)
+            for vstr in ['orig', 'tlrc']:
+               suf  = '%sr01%s%stcat+%s.HEAD' % (sep, ee, sep, vstr)
+               glist = UTIL.glob_list_minus_pref_suf(pref, suf)
+               if len(glist) >= 1: break
             if len(glist) >= 1: break
          if len(glist) >= 1: break
 

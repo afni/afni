@@ -9,7 +9,7 @@ set version   = "1.0";  set rev_dat   = "Feb 3, 2020"
 
 set this_prog = "@djunct_anonymize"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 

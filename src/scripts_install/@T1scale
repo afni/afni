@@ -2,30 +2,30 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 set stat = 0
-set stdir = $PWD
+set stdir = "$PWD"
 
 goto PARSE
 RET_PARSE:
 
 COPY_DATA:
-      if ( ! -f $odir/amask+orig.HEAD ||   \
-           ! -f $odir/T1+orig.HEAD ||  \
-           ! -f $odir/PD+orig.HEAD   ) then
-   3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix $odir/T1
+      if ( ! -f "$odir/amask+orig.HEAD" ||   \
+           ! -f "$odir/T1+orig.HEAD" ||  \
+           ! -f "$odir/PD+orig.HEAD"   ) then
+   3dcalc ${overW} -datum short -a $T1 -expr 'a' -prefix "$odir/T1"
    if ( $do_align == 1) then
       3dAllineate -base $T1 -input $PD -nmi -onepass -warp shr \
-                  -prefix $odir/PD
+                  -prefix "$odir/PD"
    else
-      3dcalc ${overW} -datum short -a $PD -expr 'a' -prefix $odir/PD
+      3dcalc ${overW} -datum short -a $PD -expr 'a' -prefix "$odir/PD"
    endif
-   set afh = ($afh $odir/T1+orig.HEAD $odir/PD+orig.HEAD)
+   set afh = ($afh "$odir/T1+orig.HEAD" "$odir/PD+orig.HEAD")
    if ($imask != '') then
-      3dcalc ${overW} -datum byte -a $imask -expr 'a' -prefix $odir/umask
+      3dcalc ${overW} -datum byte -a $imask -expr 'a' -prefix "$odir/umask"
       set afh = ($afh umask+orig.HEAD)
    else
-      3dmerge ${overW} -1blur_fwhm 25 -prefix $odir/PDsm $odir/PD+orig
-      3dAutomask ${overW} -prefix $odir/amask $odir/PDsm+orig
-      \rm -f $odir/PDsm+orig.* 
+      3dmerge ${overW} -1blur_fwhm 25 -prefix "$odir/PDsm" "$odir/PD+orig"
+      3dAutomask ${overW} -prefix "$odir/amask" "$odir/PDsm+orig"
+      \rm -f "$odir"/PDsm+orig.* 
       set afh = ($afh amask+orig.HEAD)
    endif
       else
@@ -33,7 +33,7 @@ COPY_DATA:
       endif
    
 NEWMASK:
-   cd $odir
+   cd "$odir"
    if ( "$menh" != "0.0" && ! -f hmask+orig.HEAD) then
       3dSkullStrip -head -input T1+orig -prefix SS
       3dcalc -a SS_head+orig -datum byte -expr 'step(a-1)' -prefix hmask
@@ -41,10 +41,10 @@ NEWMASK:
    else
       if ( "$menh" != "0.0" ) echo "Reusing hmask+orig.HEAD"
    endif
-   cd $idir
+   cd "$idir"
 
 STMASK:
-   cd $odir
+   cd "$odir"
    if ( $STmask != 0 && ! -f T1PD.ns.dmsk+orig.HEAD ) then
       3dcalc -a T1+orig -b PD+orig -expr "sqrt(a*b)"  \
              -prefix T1PD
@@ -54,7 +54,7 @@ STMASK:
    endif
    
 STATIT:
-   cd $odir
+   cd "$odir"
    set LSmopt = ''
    if ($PDmask != '') then
       set LSmopt = "-mask ../$PDmask"
@@ -67,11 +67,11 @@ STATIT:
       else
          echo "Reusing PD.ls"
       endif
-   cd $idir
+   cd "$idir"
    
       
 SCALEIT:
-   cd $odir
+   cd "$odir"
    if ("$menh" == 0.0) then
       if ( $imask != '') then
          set mm = umask+orig.HEAD
@@ -149,17 +149,17 @@ SCALEIT:
    endif   
    
    
-   cd $idir
+   cd "$idir"
 
 HISTORY:
-   cd $odir
+   cd "$odir"
    foreach ff ($afh)
       3dinfo -history $ff | grep -q @T1scale
       if ($status) then
          3dNotes -h "`basename $0` $argv" $ff
       endif
    end
-   cd $idir
+   cd "$idir"
    
 goto END
 
@@ -173,7 +173,7 @@ set olabel = 'loc_st'
 set sigset = 'sigset'
 set suff = 'nosuf'
 set imask = ''
-set idir = $PWD
+set idir = "$PWD"
 set T1 = ''
 set PD = ''
 set menh = 0.0
@@ -331,13 +331,13 @@ end
 if ("$odir" == '') then
    set odir = "T1scale"
 endif
-if (! -d $odir) mkdir -p $odir
-if (! -d $odir) then
+if (! -d "$odir") mkdir -p "$odir"
+if (! -d "$odir") then
    echo "Failed to create $odir"
    goto BEND
 endif
-cd $odir
-set odir = $PWD
+cd "$odir"
+set odir = "$PWD"
 cd -
          
 if ($T1 == '') then
@@ -381,7 +381,7 @@ HELP:
    echo "   -unmasked_uni: Do not apply masking to uniformized volume (default)"
    echo "                  You can mask the output after you decide which mask"
    echo "                  is best. Here is an example with smask:\n"
-   echo "                  3dcalc -a T1.uni+orig. -b smask+orig. \"
+   echo "                  3dcalc -a T1.uni+orig. -b smask+orig. \\"
    echo "                         -expr 'step(b)*a' -prefix T1.uni.m"
    echo "   -masked_uni: Apply masking to uniformized volume"
    echo ""
@@ -398,7 +398,7 @@ set stat = 1
 goto END
 
 END:
-cd $idir
+cd "$idir"
 exit $stat
 
 

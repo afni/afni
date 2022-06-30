@@ -20,7 +20,8 @@ set outprefix = "rdc"
 set keep_rm_files = ""
 set NN = "1"
 
-set here = `pwd`
+set here = "$PWD"
+
 # ------------------------ process user options --------------------------
 set ac = 1
 if ($#argv < 1) then

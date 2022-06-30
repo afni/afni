@@ -53,6 +53,99 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jun, 2022, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
+   "apply mask_epi_anat in help examples, rather than full_mask",
+   NULL
+ } ,
+
+ { 17, Jun, 2022, RCR, "NIFTI", MINOR, TYPE_NEW_OPT,
+   "add and apply nifti_image_write_status in NIFTI-1 and -2",
+   NULL
+ } ,
+
+ { 13, Jun, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "remove essentially duped final_epi_unif dset and uvar",
+   NULL
+ } ,
+
+ {  6, Jun, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -align_unifize_epi local method, -align_opts_eunif",
+   "To apply 3dLocalUnifize from P Taylor."
+ } ,
+
+ { 24, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -command_comment_style",
+   "As requested by the ominous P Taylor."
+ } ,
+
+ { 18, May, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "allow for pb00 dsets in standard space",
+   "Thanks to Erik (MB audachang) for noting it."
+ } ,
+
+ { 17, May, 2022, RCR, "Makefile.INCLUDE", MINOR, TYPE_NEW_OPT,
+   "add to prog lists",
+   NULL
+ } ,
+
+ { 10, May, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "do not add global line wrapper to QC block",
+   "Avoid line wrappers in the generation of out.ap_uvars.txt (might happen\n"
+   "when copy_anat dset has a very long name, for example).\n"
+   "Thanks to E Chang for pointing out the issue."
+ } ,
+
+ {  6, May, 2022, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add functions slice_pattern_to_order, slice_pattern_to_timing",
+   NULL
+ } ,
+
+ {  3, May, 2022, RCR, "uber_subject.py", MICRO, TYPE_GENERAL,
+   "update to deal with minor changes to python modules",
+   NULL
+ } ,
+
+ {  3, May, 2022, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "for anyos_* packages, test for update using AFNI_version.txt",
+   NULL
+ } ,
+
+ {  2, May, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add distribution packages anyos_text and anyos_text_atlas",
+   NULL
+ } ,
+
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "prepare for the all-important anyos_text distribution",
+   "Add Makefile.anyos_text and an install_text target in Makefile.Include."
+ } ,
+
+ { 29, Apr, 2022, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "apply PRId64 for some int64_t printing",
+   "Modified niml.h, niml_elemio.c, mri_transpose.c, thd_loaddblk.c."
+ } ,
+
+ { 28, Apr, 2022, RCR, "gen_group_command.py", MINOR, TYPE_BUG_FIX,
+   "afni_util.py:common_dir() : watch for the deadly JR scenario!",
+   "Thanks to J Ritchie for unconvering this, peculiar, issue."
+ } ,
+
+ { 27, Apr, 2022, RCR, "Makefile.macos_11_ARM_clang", MINOR, TYPE_MODIFY,
+   "(w/dglen) modify recent mac builds to get all X packages from homebrew",
+   "Modified Makefile.macos_11_ARM_clang, Makefile.macos_10.15_clang, and\n"
+   "the corresponding other_builds/OS_notes files."
+ } ,
+
+ { 22, Apr, 2022, RCR, "Dimon", MAJOR, TYPE_NEW_OPT,
+   "add -sort_method cases rin and geme_rin",
+   NULL
+ } ,
+
+ { 22, Apr, 2022, RCR, "afni", MINOR, TYPE_NEW_OPT,
+   "add -no_frivolities option, to directly set that",
+   NULL
+ } ,
+
  { 12, Apr, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
    "add Makefile.linux_fedora_35_shared and OS_notes.linux_fedora_35.txt",
    NULL

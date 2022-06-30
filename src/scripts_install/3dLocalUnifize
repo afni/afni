@@ -1,0 +1,336 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.0";  set rev_dat   = "June 3, 2022"
+# [PT]  creation of this script, which (at present) is a useful
+#       precursor for EPI-anatomical alignment.
+#
+set version   = "1.0";  set rev_dat   = "June 3, 2022"
+# [PT]  add help file
+#
+# ----------------------------------------------------------------
+
+set abbrev = "LocalUni"
+
+# ----------------------- set defaults --------------------------
+
+set input     = ""
+set opref     = ""
+set odir      = "."
+
+set pppp      = "`3dnewid -fun11`"
+set wdir_base = "__wdir_${abbrev}"
+set wdir_name = "${wdir_base}_${pppp}"
+
+set local_perc = 50
+set local_rad  = -3
+set local_mask = "-automask"
+
+set filt_thr   = 1.5
+
+set overwrite  = ""
+
+set DO_CLEAN  = 1                       # default: keep working dir
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
+    # ----------- required
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    # ----------- 3dLocalStat opts
+
+    else if ( "$argv[$ac]" == "-local_perc" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set local_perc = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-local_rad" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set local_rad = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-local_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set local_mask = "$argv[$ac]"
+
+
+    else if ( "$argv[$ac]" == "-wdir_name" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir_name = "$argv[$ac]"
+
+        set check     = `echo "${wdir_name}" | grep '/'`
+        if ( "${check}" != "" ) then
+            echo "\n\n** ERROR: -wdir_name arg must not have '/':"
+            echo "   '${wdir_name}'\n\n"
+            goto BAD_EXIT
+        endif
+
+    else if ( "$argv[$ac]" == "-filter_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set filt_thr = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set overwrite = "-overwrite"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: missing input file. Use '-input ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${opref}" == "" ) then
+    echo "** ERROR: missing output prefix. Use '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+
+# ===================== output dir + wdir =======================
+ 
+echo "++ Start 3dLocalUnifize work"
+
+# check output directory, use input one if nothing given
+
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: ${odir}"
+    \mkdir -p "${odir}"
+endif
+
+set wdir = "${odir}/${wdir_name}"
+
+# make the working directory
+if ( ! -e "${wdir}" ) then
+    echo "++ Making working directory: ${wdir}"
+    \mkdir -p "${wdir}"
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      ${wdir}"
+endif
+
+# ======================= main program work ===========================
+
+# Copy original image in
+
+set idset    = "${input}"
+set odset_cp = dset_00_cp.nii.gz
+
+3dTcat ${overwrite}                                                 \
+    -prefix   "${wdir}/${odset_cp}"                                 \
+    "${idset}"
+
+cd "${wdir}"
+
+# Calc the smooth/median image
+
+set idset    = "${odset_cp}"
+set odset_lu = dset_01_lu.nii.gz
+
+3dLocalstat ${overwrite}                                            \
+    ${local_mask}                                                   \
+    -nbhd     "SPHERE(${local_rad})"                                \
+    -stat     "perc:${local_perc}:${local_perc}:1"                  \
+    -prefix   "${odset_lu}"                                         \
+    "${idset}"
+
+# Calc the ratio of original to this
+
+set idset     = "${odset_lu}"
+set jdset     = "${odset_cp}"
+set odset_rat = dset_02_rat.nii.gz
+
+3dcalc ${overwrite}                                                \
+    -a       "${idset}"                                            \
+    -b       "${jdset}"                                            \
+    -expr    "b/a"                                                 \
+    -prefix  "${odset_rat}"
+
+set dset_out = "${odset_rat}"
+
+# (opt) Filter possible outlier ratio values
+
+if ( `echo "${filt_thr} > 0 " | bc` ) then
+    echo "++ Apply filter threshold to scaled image: ${filt_thr}"
+
+    set idset      = "${odset_rat}"
+    set odset_filt = dset_03_filt.nii.gz
+
+    3dcalc ${overwrite}                                            \
+        -a       "${idset}"                                        \
+        -expr    "maxbelow(${filt_thr},a)"                         \
+        -prefix  "${odset_filt}"
+
+    set dset_out = "${odset_filt}"
+else
+    echo "++ NO filter threshold will be applied to the scaled image"
+
+endif
+
+# ----------- finish
+
+3dcopy ${overwrite}                                               \
+    "${dset_out}"                                                 \
+    "../${opref}"
+
+# ------------------------- wrap up ----------------------------
+
+# move out of wdir to the odir
+cd ..
+set whereout = "$PWD"
+
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n+* Removing the working dir: '${wdir_name}'\n"
+    \rm -rf "${wdir_name}"
+else
+    echo "\n++ NOT removing the working dir: '${wdir_name}'\n"
+endif
+
+echo ""
+echo "++ DONE! View the finished, axialized product:"
+echo "     ${whereout}/${opref}"
+echo ""
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+This program takes an input and generates a simple "unifized" output
+volume.  It estimates the median in the local neighborhood of each
+voxel, and uses that to scale each voxel's brightness.  The result is
+a new dataset of brightness of order 1, which still has the
+interesting structure(s) present in the original.
+
+This program's output looks very useful to help with dataset alignment
+(esp. EPI-to-anatomical) in a wide array of cases.
+
+ver   : ${version}
+date  : ${rev_dat}
+auth  : PA Taylor (SSCC, NIMH, NIH)
+
+
+USAGE ~1~
+
+This program is generall run as:
+
+    3dLocalUnifize [options] -prefix DSET_OUT -input DSET_IN
+
+where the following options exist:
+
+  -input     DSET_IN  :(req) input dataset
+  
+  -prefix   DSET_OUT  :(req) output dataset name, including path
+
+  -wdir_name WD       :name of temporary working directory, which 
+                       should not contain any path information---it will be
+                       created in the same directory as the final dataset
+                       is created
+                       (def: ${wdir_base}_, plus a random alphanumeric str)
+
+  -echo               :run this program very verbosely (def: don't do so)
+
+  -no_clean           :do not remove the working directory (def: remove it)
+
+ ... and the following are 'tinkering' options, likely not needed by
+  most users:
+
+  -local_rad LR       :the spherical neighborhood's radius for the 
+                       3dLocalStat step (def: ${local_rad})
+
+  -local_perc LP      :the percentile used in the 3dLocalStat step,
+                       generating the scaling volume 
+                       (def: ${local_perc})
+
+  -local_mask LM      :the masking option used in the 3dLocalStat step,
+                       which should be enclosed in quotes for passing along
+                       to the internal program call.  To remove any masking,
+                       put a pair of empty quotes for LM
+                       (def: "${local_mask}")
+
+  -filter_thr FT      :put a ceiling on values in the final, scaled dataset,
+                       whose values should be of order 1; setting FT to be a
+                       value <=0 turns off this final filtering
+                       (def: ${filt_thr})
+
+
+NOTES ~1~
+
+  This program is designed to not need a lot of tinkering with
+  options, such as the '-local_* ..' ones.  In most cases, the default
+  scaling will be useful.
+
+
+EXAMPLES ~1~
+
+  1. Basic local unifizing:
+     3dLocalUnifize                                                  \\
+        -prefix  vr_base_LU                                          \\
+        -input   vr_base_min_outlier+orig.HEAD
+
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

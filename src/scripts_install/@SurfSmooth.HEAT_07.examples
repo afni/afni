@@ -19,7 +19,7 @@ endif
 
 set pt=$pt/afni
 
-set od = $PWD
+set od = "$PWD"
 
 CREATE_DATA:
 set avelist = ()

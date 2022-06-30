@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # This program is just a patch/add-on to the
 # "@afni_refacer_make_master" program.  It is not really meant for
 # general use.  Instead, it records the very practical/empirical steps
@@ -16,7 +18,64 @@
 
 # Output file name: afni_refacer_shell_sym_1.0.nii.gz
 
-# ---------------------------------------------------------------------------
+set version   = "3.0";   set rev_dat   = "Apr 23, 2022"
+# [PT: 22 Apr 2022] updated to make a re/de-face volume that clips
+# away more.  might soon become the default
+#
+set version   = "3.1";   set rev_dat   = "Apr 26, 2022"
+# [PT] helpify, sliiiightly
+
+# ============================================================================
+# defaults/inputs
+
+set all_idset = ( afni_refacer_MNIbmask10.nii.gz \
+                  afni_refacer_shell.nii.gz      )
+
+# ============================================================================
+# read in + interpret cmd line opts
+
+# don't allow this functionality, because this program takes no
+# options to run (at present)
+###if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # there really aren't any options to use here...
+
+    # -------------------------------------------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end
+
+# ============================================================================
+# start working
+
+# check for necessary input dsets
+
+foreach idset ( ${all_idset} )
+    ### [PT] someday, perhaps switch to using @Find* here, instead of
+    ### demanding only local files
+    #set ipath = `@FindAfniDsetPath "${idset}"`
+    #if ( "${ipath}" == "" ) then
+    if ( ! -e ${idset} ) then
+        echo "** ERROR: missing dset: ${idset}"
+        exit 1
+    endif
+end
 
 # --------- make extra shell to patch holes in other shell -----------
 
@@ -129,17 +188,24 @@ echo "\n++ start work on main shell\n"
     -dump_no_labtab                     \
     -prefix  __shell_07_min1_region
 
-# finally, combine-- hopefully done now!
+# finally, combine-- hopefully done now! ... and use nscale
 3dcalc                                           \
     -overwrite                                   \
     -a __shell_06_blurinmask.nii                 \
     -b __shell_07_min1_region_GMI.nii.gz         \
     -expr 'a+not(a)*(-1)*step(b)'                \
-    -prefix afni_refacer_shell_sym_1.0.nii.gz  \
-    -datum short
+    -prefix afni_refacer_shell_sym_1.0.nii.gz    \
+    -datum short                                 \
+    -nscale
 
+# [PT: 23 Apr 2022] now use as base for v2.0, too
+3dcopy                                           \
+    afni_refacer_shell_sym_1.0.nii.gz            \
+    afni_refacer_shell_sym_2.0.nii.gz
 
 # --------------------- for defacing part ------------------------------
+
+# [PT: 23 Apr 2022] use '-nscale' so shell is short type
 
 echo "\n++ work on defacing part\n"
 
@@ -147,9 +213,10 @@ echo "\n++ work on defacing part\n"
 #   face and ears
 
 3dcalc                                          \
-    -a afni_refacer_shell_sym_1.0.nii.gz      \
+    -a afni_refacer_shell_sym_1.0.nii.gz        \
     -expr 'bool(a)'                             \
-    -prefix __deface_00_bool.nii
+    -prefix __deface_00_bool.nii                \
+    -nscale
 
 ### [PT: Jan 24, 2020] this step later deemed unnecesary.  Don't need
 ### to shrink defacing volume
@@ -161,26 +228,120 @@ echo "\n++ work on defacing part\n"
 # only use slices below a certain level; retain shell values
 3dcalc                                          \
     -a __deface_00_bool.nii                     \
-    -b afni_refacer_shell_sym_1.0.nii.gz      \
+    -b afni_refacer_shell_sym_1.0.nii.gz        \
     -expr   'b*step(a)*isnegative(z+30)*ispositive(z+142)*isnegative(y-59)' \
     -prefix __deface_02_inf_sli.nii             \
-    -datum short
+    -datum short                                \
+    -nscale
+
+# [PT: 22 Apr 2022] make this 'other' defacer that removes more
+# face, for v2.0
+3dcalc                                          \
+    -a __deface_00_bool.nii                     \
+    -b afni_refacer_shell_sym_1.0.nii.gz        \
+    -expr   'b*step(a)*isnegative(z+5)*ispositive(z+175)*isnegative(y-59)' \
+    -prefix __deface_03_inf_sli.nii             \
+    -datum short                                \
+    -nscale
+# ... and trims away sub-brain stuff more
+3dcalc                                           \
+    -a __deface_03_inf_sli.nii                   \
+    -expr 'a-iszero(a)*isnegative(z+90)'         \
+    -prefix __deface_04_inf_sli.nii              \
+    -datum short                                  \
+    -nscale
+
+
 
 # --------------------- combine parts and finish ---------------------------
 
 echo "\n++ combine re- and de-facers, and finalize\n"
 
+# ------------------------
+
+echo "++ Make v1.0"
+
 3dTcat                                            \
     -overwrite                                    \
-    -prefix afni_refacer_shell_sym_1.0.nii.gz   \
-    afni_refacer_shell_sym_1.0.nii.gz           \
+    -prefix afni_refacer_shell_sym_1.0.nii.gz     \
+    afni_refacer_shell_sym_1.0.nii.gz             \
     __deface_02_inf_sli.nii
 
-3drefit -sublabel 0 "refacer" afni_refacer_shell_sym_1.0.nii.gz
-3drefit -sublabel 1 "defacer" afni_refacer_shell_sym_1.0.nii.gz
+3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_1.0.nii.gz
+3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_1.0.nii.gz
+
+3dNotes                                                              \
+    -h "Created with @afni_refacer_make_master_addendum v${version}" \
+    afni_refacer_shell_sym_1.0.nii.gz
+
+# ------------------------
+
+echo "++ Make v2.0"
+
+3dTcat                                            \
+    -overwrite                                    \
+    -prefix afni_refacer_shell_sym_2.0.nii.gz     \
+    afni_refacer_shell_sym_2.0.nii.gz             \
+    __deface_04_inf_sli.nii
+
+3drefit -sublabel 0 "refacer"   afni_refacer_shell_sym_2.0.nii.gz
+3drefit -sublabel 1 "defacer"   afni_refacer_shell_sym_2.0.nii.gz
+
+3dNotes                                                              \
+    -h "Created with @afni_refacer_make_master_addendum v${version}" \
+    afni_refacer_shell_sym_2.0.nii.gz
+
 
 echo ""
-echo "\n++ DONE:  afni_refacer_shell_sym_1.0.nii.gz\n"
+echo ""
+echo "++ DONE:"
+echo "   afni_refacer_shell_sym_1.0.nii.gz"
+echo "   afni_refacer_shell_sym_2.0.nii.gz"
 echo ""
 
-exit 0
+goto GOOD_EXIT
+
+# =============================================================================
+# =============================================================================
+
+SHOW_VERSION:
+
+    echo "$version"
+
+    goto GOOD_EXIT
+
+# ---------------------------------- 
+
+SHOW_HELP:
+
+cat <<EOF
+
+This is an adjunct program.  It actually takes no command line
+arguments to run.
+
+written by PA Taylor, the nearly anonymous
+---------------------------------------------------------------------
+Options
+
+-help
+-ver
+
+EOF
+
+    goto GOOD_EXIT
+ 
+# ---------------------------------- 
+
+FAIL_MISSING_ARG:
+    echo "** missing parameter for option $argv[$ac]"
+    goto BAD_EXIT
+
+# ---------------------------------- 
+
+BAD_EXIT:
+    exit 1
+
+# ---------------------------------- 
+
+GOOD_EXIT:
+    exit 0

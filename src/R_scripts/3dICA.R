@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICA.R, an AFNI IVA Package!
 #-----------------------------------------------------------
-#Version 0.0.3, Aug 20, 2010
+#Version 0.0.4, Jun 9, 2022
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: https://afni.nimh.nih.gov/sscc/gangc/ica.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -67,7 +67,7 @@ dimx <- Data$dim[1]
 dimy <- Data$dim[2]
 dimz <- Data$dim[3]
 tp   <- Data$dim[4]
-head <- Data$header
+head <- Data #Data$header
 #NOTE <- Data$header$HISTORY_NOTE
 #ORIG <- Data$origin
 #DELTA <- Data$delta

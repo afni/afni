@@ -72,10 +72,10 @@ else
          #Try locally, as a quick fix
          echo "Warning: Searching for ${fsdb} locally..."
          if ( -f ./${fsdb} ) then
-            set fsp = $PWD
+            set fsp = "$PWD"
             echo "   Using $fsp/${fsdb}"
          else if ( -f ./SUMA/${fsdb} ) then
-            set fsp = $PWD/SUMA
+            set fsp = "$PWD/SUMA"
             echo "   Using $fsp/${fsdb}"
          else
             echo "Could not find ${fsdb}"
@@ -83,24 +83,24 @@ else
          endif
 
       else
-         set fsp = $bin:h
+         set fsp = "$bin:h"
          #peel off a couple of layers
-         if ( ! -f $fsp/${fsdb}) then
-            set fsp = $fsp:h
+         if ( ! -f "$fsp/${fsdb}") then
+            set fsp = "$fsp:h"
          endif
-         if ( ! -f $fsp/${fsdb}) then
-            set fsp = $fsp:h
+         if ( ! -f "$fsp/${fsdb}") then
+            set fsp = "$fsp:h"
          endif
-         if ( ! -f $fsp/${fsdb}) then
-            set fsp = $fsp:h
+         if ( ! -f "$fsp/${fsdb}") then
+            set fsp = "$fsp:h"
          endif
-         if ( ! -f $fsp/${fsdb}) then
+         if ( ! -f "$fsp/${fsdb}") then
             echo "Cannot find LUT"
             goto END
          endif
       endif
 
-      sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/${fsdb} \
+      sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' "$fsp/${fsdb}" \
          |   sed 's/^/#/g' | cut -d' ' -f1,2 > ${pplabels}
    endif
 endif

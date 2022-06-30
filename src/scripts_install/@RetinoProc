@@ -18,7 +18,7 @@ if ($#argv) then
 endif
 
 set stat = 0
-set idir = $PWD
+set idir = "$PWD"
 # allow surface format to change
 set stype = .asc
 
@@ -41,9 +41,9 @@ AUTOVAR:
       set specs = ($specs $spec_right)
    endif
    set sdir = `dirname "$specs[1]"`
-   cd $sdir
-   set sdir = $PWD
-   cd $idir
+   cd  "$sdir"
+   set sdir = "$PWD"
+   cd  "$idir"
    set A2E_opt = ''
    set AEA_opt = ''
    
@@ -227,10 +227,10 @@ REGISTER_EPI_REFS:
                      -cubic -overwrite \
                      -prefix EpiAnatRef   \
                      -1Dfile EpiAnatRef.1D   \
-                     $idir/"$u_EpiAnatRef"      
+                     "$idir/$u_EpiAnatRef"      
          else
             echo "Just copying $idir/$u_EpiAnatRef to EpiAnatRef"
-            3dTcat $eu -prefix EpiAnatRef $idir/$u_EpiAnatRef 
+            3dTcat $eu -prefix EpiAnatRef "$idir/$u_EpiAnatRef"
          endif
       else
          echo "Reusing EpiAnatRef"
@@ -243,7 +243,7 @@ REGISTER_EPI_REFS:
          echo "Reusing existing EpiAnatRef"
       endif
    endif   
-   cd $idir
+   cd "$idir"
    
 REGISTER_TS:
    cd $rdir
@@ -287,7 +287,7 @@ REGISTER_TS:
  echo "Mismatch between numbers of ortfiles ($#dortsets) and vrsets ($#vrsets)"
       goto BEND
    endif
-   cd $idir
+   cd "$idir"
 
 ALIGN_EXPANAT_TO_EPI:
    if ("$u_SVolAtEpi" != '') then
@@ -310,20 +310,20 @@ ALIGN_EXPANAT_TO_EPI:
    else
       echo "AVol@Epi already present"
    endif
-   cd $idir
+   cd "$idir"
    
 ALIGN_SURFVOL_TO_EXPANAT:
    cd $rdir
    if ( ! -f SVol@Epi+orig.HEAD ) then
       @SUMA_AlignToExperiment    $eu -exp_anat AVol@Epi+orig  \
-                                 -surf_anat $sdir/${u_SVol:t}  \
+                                 -surf_anat "$sdir/${u_SVol:t}"  \
                                  ${A2E_opt} -prefix SVol@Epi \
                                  -wd   
       cat_matvec SVol@Epi+orig.HEAD::WARPDRIVE_MATVEC_INV_000000 > SVol2Epi.1D
    else
       echo "SVol@Epi already present"
    endif
-   cd $idir
+   cd "$idir"
 
 SET_POLORT:
    cd $rdir
@@ -336,7 +336,7 @@ SET_POLORT:
    end
    set polort = `ccalc -form fint -eval "1 + $TR*$nts_max/150"`
    set ort_adjust = $polort
-   cd $idir
+   cd "$idir"
 
 DETREND:
    cd $rdir
@@ -375,7 +375,7 @@ DETREND:
       endif
       set ort_adjust = `ccalc -form int -eval "$polort+$nvr"`
    end
-   cd $idir         
+   cd "$idir"
    
 RETINO_START:
 set sdc = 0
@@ -414,7 +414,7 @@ foreach sd ($sides)
                echo "Reusing existing {$p}.${sd}.niml.dset "
             endif
          end
-         cd $idir
+         cd "$idir"
       else
          echo "Time series already on surface, skipping 3dVol2Surf"
       endif
@@ -441,7 +441,7 @@ foreach sd ($sides)
             echo "No runs for $stim_direc[$tp]"
          endif
       end
-      cd $idir
+      cd "$idir"
       
    SMOOTH_IF_DESIRED:
       cd $rdir
@@ -498,7 +498,7 @@ foreach sd ($sides)
             echo "No user data for $class $stim_direc[$tp]" 
          endif
       end
-      cd $idir
+      cd "$idir"
    
    MAKE_REFS:
       cd $rdir
@@ -559,7 +559,7 @@ foreach sd ($sides)
             endif
          end   
       endif
-      cd $idir
+      cd "$idir"
 
    PHASE:
       cd $rdir
@@ -656,7 +656,7 @@ foreach sd ($sides)
          endif
       end                 
               
-      cd $idir
+      cd "$idir"
    
    VFR:
       cd $rdir
@@ -719,7 +719,7 @@ foreach sd ($sides)
       end
   
    NEXT_SIDE:
-   cd $idir
+   cd "$idir"
    #Finish side loop   
 end
 
@@ -745,7 +745,7 @@ EXAMINE_RESULTS:
    if (-f SVol@Epi+orig.HEAD) then
       set svo = '-sv SVol@Epi+orig '
    endif
-   set spr = `ParseName -cwd $PWD -out RelName $sps` 
+   set spr = `ParseName -cwd "$PWD" -out RelName $sps` 
    echo "suma -spec $spr $svo -niml &" >> @ShowResult
    echo "prompt_user -pause 'Wait until SUMA is up then press OK'" \
                >> @ShowResult
@@ -781,7 +781,7 @@ EXAMINE_RESULTS:
    
    chmod u+x @ShowResult
    
-   cd $idir
+   cd "$idir"
 
 goto END
 

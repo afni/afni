@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.13,  Feb 1, 2021
+Version 4.0.14,  June 27, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -896,9 +896,10 @@ process.MVM.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars[1])) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
-      if(!is.null(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
+      #if(!is.null(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
+      if(!is.null(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
 
    # set the covariate default values at their centers

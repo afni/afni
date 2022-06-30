@@ -39,7 +39,7 @@ set version   = "1.21";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "adjunct_apqc_tsnr_general"
 set tpname    = "${this_prog:gas/adjunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 set ulay  = ""
 set olay  = ""

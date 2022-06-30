@@ -227,7 +227,7 @@ ENTRY("mri_interleave_columns") ;
       RETURN(NULL);
    }
    if( oldim->nx * oldim->ny != oldim->nvox ) {
-      fprintf(stderr,"** interleave_cols: nx*ny != nvox (%d,%d,%lld)\n",
+      fprintf(stderr,"** interleave_cols: nx*ny != nvox (%d,%d,%" PRId64 ")\n",
               oldim->nx, oldim->ny, oldim->nvox);
       RETURN(NULL);
    }

@@ -3778,9 +3778,9 @@ relevant calculation. If you do not set a variable, and you do
 not use the 3dttest++ command line option, you will get whatever
 the default ETAC method(s) are enabled.
 
----------------------------
-Variable: AFNI_CLUSTIM_MEGA
----------------------------
+----------------------------
+Variable: AFNI_CLUSTSIM_MEGA
+----------------------------
 Set this variable to YES to force the use of the '-MEGA' option
 in 3dClustSim. The primary reason for this usage is to force
 '3dttest -Clustsim' to use '-MEGA' rather than the default '-LOTS'.
@@ -4521,5 +4521,7 @@ time in the instacorr interface.
 ------------------------------------
 Variable:  AFNI_SKIP_TCSV_SCAN
 ------------------------------------
-If set to YES, do not scan for CSV files at afni startup. Same as using option -notcsv 
+If set to YES, do not scan for CSV files at afni startup (default: not
+set, so effectively doing the scan), which is the same as using option
+-notcsv.
 

@@ -2869,7 +2869,8 @@ static int SUMA_nstat_mean(SUMA_DSET *din, int icol, float *fin_orig,
    static char   FuncName[]={"SUMA_nstat_mean"};
    char         *lblcp=NULL;
    int           node, bind, bnode; /* node index, neighb index, neighb node */
-   int           fp=-1, nval=0;     /* float value, num values */
+   float         fp=-1;             /* [PT] bug fix: (really) float value */
+   int           nval=0;            /* num values */
    SUMA_Boolean  LocalHead=NOPE;
    
    SUMA_ENTRY;

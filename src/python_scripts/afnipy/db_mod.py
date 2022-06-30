@@ -1072,6 +1072,7 @@ def db_mod_align(block, proc, user_opts):
     # maybe adjust EPI skull stripping method
     apply_uopt_to_block('-align_epi_strip_method', user_opts, block)
     apply_uopt_to_block('-align_unifize_epi', user_opts, block)
+    apply_uopt_to_block('-align_opts_eunif', user_opts, block)
 
     block.valid = 1
 
@@ -1106,14 +1107,30 @@ def db_cmd_align(proc, block):
 
     # should we unifize EPI?  if so, basevol becomes result
     ucmd = ''
-    if block.opts.have_yes_opt('-align_unifize_epi', default=0):
+    oname = '-align_unifize_epi'
+    umeth, err = block.opts.get_string_opt(oname, default='no')
+    if umeth != 'no' and not err:
        epi_in = BASE.afni_name(basevol)
        epi_out = epi_in.new(new_pref=('%s_unif' % epi_in.prefix))
        basepre = epi_out.prefix
        basevol = epi_out.shortinput()
-       ucmd = '# run uniformity correction on EPI base\n' \
-              '3dUnifize -T2 -input %s -prefix %s\n\n'    \
-              % (epi_in.shortinput(), epi_out.out_prefix())
+       # get any additional options
+       opts, rv = block.opts.get_string_list('-align_opts_eunif')
+       if opts:
+          exopts = " \\\n    %s" % ' '.join(opts)
+       else:
+          exopts = ''
+
+       # PT special: using 3dLocalUnifize
+       if umeth == 'local':
+           ucmd = '# run (localized) uniformity correction on EPI base\n' \
+                  '3dLocalUnifize -input %s -prefix %s%s\n\n'             \
+                  % (epi_in.shortinput(), epi_out.out_prefix(), exopts)
+       # default = 'yes' or 'unif'
+       else:
+           ucmd = '# run uniformity correction on EPI base\n' \
+                  '3dUnifize -T2%s -input %s -prefix %s\n\n'  \
+                  % (exopts, epi_in.shortinput(), epi_out.out_prefix())
 
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
@@ -3195,12 +3212,21 @@ def db_mod_combine(block, proc, user_opts):
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
-   if not rv:
-      if ocmeth[0:6] == 'tedana' and \
-            proc.find_block_order('combine', 'blur') == -1 :
-         if not proc.user_opts.have_yes_opt('-blur_in_mask'):
-            # okay, finally whine here
-            print("** when using tedana results, consider '-blur_in_mask yes'")
+   if rv:
+      return
+
+   if ocmeth[0:6] == 'tedana' and \
+         proc.find_block_order('combine', 'blur') == -1 :
+      if not proc.user_opts.have_yes_opt('-blur_in_mask'):
+         # okay, finally whine here
+         print("** when using tedana results, consider '-blur_in_mask yes'")
+
+   # note the applied method
+   proc.combine_method = ocmeth
+
+   # and if we need 'tedana', require it at execution time
+   if proc.combine_method.find('m_ted') >= 0:
+      proc.required_progs.append('tedana')
 
    block.valid = 1
 
@@ -3225,10 +3251,8 @@ def db_cmd_combine(proc, block):
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv: return
 
-   # probably not reachable, but at least for clarity...
+   # should not be reachable, but at least for clarity...
    if ocmeth not in g_oc_methods:
-      print("OC method %s not in list of valid methods:\n   %s" \
-            % (ocmeth, ', '.join(g_oc_methods)))
       return
 
    # check use of tedana.py vs. tedana from MEICA group
@@ -3279,8 +3303,7 @@ def db_cmd_combine(proc, block):
    # (do not apply ME script changes anymore)
    proc.use_me = 0
 
-   # success, note the applied method
-   proc.combine_method = ocmeth
+   # the applied combine_method is stored in mod()
 
    return cmd
 
@@ -8402,22 +8425,22 @@ def db_cmd_gen_review(proc):
 
     # make json prep string
     jp_str = ''
-    if json_prep and proc.ap_uvars:
+    if json_prep and proc.ap_uv_file:
        jp_str = '\n%s\n'                                            \
                 '# initialize gen_ss_review_scripts.py with %s\n'   \
-                % (json_prep, proc.ap_uvars)
-       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uvars
+                % (json_prep, proc.ap_uv_file)
+       lopts += ' \\\n    -init_uvars_json %s' % proc.ap_uv_file
 
     if proc.ssr_uvars:
        lopts += ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
 
+    gcmd = UTIL.add_line_wrappers('gen_ss_review_scripts.py -exit0%s\n' % lopts)
 
     cmd += '# -------------------------------------------------\n'      \
            '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            '%s'                                                         \
-           'gen_ss_review_scripts.py -exit0'                            \
-           '%s\n\n' % (jp_str, lopts)
+           '%s\n' % (jp_str, gcmd)
 
     return cmd
 
@@ -8466,7 +8489,7 @@ EOF
 
     jstr += '# and convert the txt format to JSON\n'                          \
             'cat %s | afni_python_wrapper.py -eval "data_file_to_json()" \\\n'\
-            '  > %s\n' % (tfile, proc.ap_uvars)
+            '  > %s\n' % (tfile, proc.ap_uv_file)
 
     return jstr
 
@@ -8524,6 +8547,10 @@ def ap_uvars_table(proc):
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
+
+    # add all generically specified uvars
+    for attr in proc.uvars.attributes(name=0):
+       aptab.append([attr, proc.uvars.val(attr)])
 
     return aptab
 
@@ -11568,6 +11595,17 @@ g_help_options = """
             -e option to tcsh (as suggested), but maybe the user does not wish
             to do so.
 
+        -command_comment_style STYLE: set style for final AP command comment
+
+                e.g. -command_comment_style pretty
+
+            This controls the format for the trailing afni_proc.py commented
+            command at the end of the proc script.  STYLE can be:
+
+                none        - no trailing command will be included
+                compact     - the original compact form will be included
+                pretty      - the PT-special pretty form will be included
+
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
                 e.g. -copy_anat Elvis/mprage+orig
@@ -12645,6 +12683,16 @@ g_help_options = """
             Please see "align_epi_anat.py -help" for more information.
             Please see "3dAllineate -help" for more information.
 
+        -align_opts_eunif OPTS ... : add options to EPI uniformity command
+
+                e.g. -align_opts_eunif -wdir_name work.epi_unif -no_clean
+
+            This option allows the user to add extra options to the EPI
+            uniformity correction command, probably 3dLocalUnifize (possibly
+            3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
+
         -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
                 e.g. -align_epi_strip_method 3dSkullStrip
@@ -12662,16 +12710,30 @@ g_help_options = """
             Please see "3dSkullStrip -help" for more information.
             Please see "3dAutomask -help" for more information.
 
-        -align_unifize_epi yes/no: run uniformity correction on EPI base volume
+        -align_unifize_epi METHOD: run uniformity correction on EPI base volume
 
-                e.g. -align_unifize_epi yes
+                e.g. -align_unifize_epi local
                 default: no
 
-            Use this option to run "3dUnifize -T2" on the vr_base dataset
+            Use this option to run uniformity correction on the vr_base dataset
             for the purpose of alignment to the anat.
 
-            The uniformity corrected volume is only used for anatomical
-            alignment.
+            The older yes/no METHOD choices were based on 3dUnifize.  The
+            METHOD choices now include:
+
+                local   : use 3dLocalUnifize ... (aka the "P Taylor special")
+                unif    : use 3dUnifize -T2 ...
+                yes     : (old choice) equivalent to unif
+                no      : do not run EPI uniformity correction
+
+            The uniformity corrected EPI volume is only used for anatomical
+            alignment, and possibly visual quality control.
+
+            One can use option -align_opts_eunif to pass extra options to
+            either case (3dLocalUnifize or 3dUnifize).
+
+            Please see "3dLocalUnifize -help" for more information.
+            Please see "3dUnifize -help" for more information.
 
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 

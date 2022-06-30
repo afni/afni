@@ -69,9 +69,73 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 11, May , 2022 , PT , "adjunct_surf_corr_node" , MINOR , TYPE_NEW_PROG,
-   "New script for calculating whole-surf corr from a node, with blur.",
-   "To be used as part of surf block APQC HTML.\n"
+{ 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
+   "Fix how the AMASK_FOCUS_* keywords apply for '-box_focus_slices ..'.",
+   "They didn't work before, but now do/should/might/perhaps/pleeeez.\n"
+},
+
+{ 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add new ve2a QC, via new uvar final_epi_unif_dset.",
+   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"
+},
+
+{ 6, June , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Some new opts to control ulay brightness, esp. for APQC HTML.",
+   "New opts: '-ulay_range_am ..' and '-ulay_min_fac ..'\n"
+},
+
+{ 6, June , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new opts to control ulay brightness, esp. for APQC HTML.",
+   "New opts: '-ulay_range_am ..' and '-ulay_min_fac ..'\n"
+},
+
+{ 3, June , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_PROG,
+   "New program for unifizing brightness.",
+   "Should be helpful for alignment.\n"
+},
+
+{ 11, May , 2022 , PT , "SurfLocalstat" , MINOR , TYPE_BUG_FIX,
+   "The 'mean' stat was accumulating int, not float, values.",
+   "This effective truncation/'digitizing' error should be fixed now.\n"
+},
+
+{ 10, May , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
+{ 10, May , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
+{ 10, May , 2022 , PT , "@SSwarper" , MICRO , TYPE_NEW_OPT,
+   "Add -echo opt, and can propagate.",
+   "For debugging\n"
+},
+
+{ 10, May , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Update/fix to mask resampling if present and if deobliqueing with 3dWarp.",
+   "Replace wsinc5 interp with NN interp---better for mask.  Thanks, RCR!\n"
+},
+
+{ 23, Apr , 2022 , PT , "@afni_refacer_make_master_addendum" , MINOR , TYPE_GENERAL,
+   "Now creates a v2.0 of the shell.",
+   "The new shell removes more face.  Asked for by A. Basavaraj.\n"
+},
+{ 23, Apr , 2022 , PT , "@afni_refacer_run" , MINOR , TYPE_NEW_OPT,
+   "Can specify which shell to use, because there are newer shell(s).",
+   "That shrunk fonts down one size; now bump back up @chauffeur_afni calls.\n"
+},
+
+{ 22, Apr, 2022, PT , "afni" , MINOR, TYPE_BUG_FIX,
+   "The '-bysub ..' opt wasn't working, because a 'find' cmd was bad.",
+   "Reformatted the 'find', though it might still benefit from other tweaks.\n"
+},
+
+{ 14, Apr, 2022, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_BUG_FIX,
+   "Replacement was not occuring if ROIs were purged by modal smoothing.",
+   "Fixed that bug, hopefully improving robustness to such error in future.\n"
 },
 
 { 1, Apr , 2022 , PT , "3dZipperZapper" , MINOR , TYPE_NEW_OPT,
@@ -94,7 +158,7 @@ afni_history_struct ptaylor_history[] = {
    "Also put in help descriptions about drop criteria, in Notes.\n"
 },
 
-{ 20, Mar , 2022 , PT , "apqc_make_HTML.py" , MICRO , TYPE_BUG_FIX,
+{ 20, Mar , 2022 , PT , "apqc_make_html.py" , MICRO , TYPE_BUG_FIX,
    "Fix display of subj ID from 'Top' button in case when subj ID starts num.",
    "In such cases, the unicode char for next line was misinterpreted.\n"
 },

@@ -18,6 +18,7 @@ from afnipy.db_mod import *
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
 from afnipy import lib_tedana_afni as TED
+from afnipy import lib_format_cmd_str as FCS
 
 # ----------------------------------------------------------------------
 # globals
@@ -725,12 +726,20 @@ g_history = """
        - fix help example: remove inappropriate -epi_strip from -align_opts_aea
        - add ap_uvars: dir_suma_spec, suma_specs
     7.37 Apr  6, 2022: allow REML errts on surface
+    7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
+    7.39 May 10, 2022: do not apply global line wrappers to QC block
+    7.40 May 24, 2022: add -command_comment_style
+    7.41 Jun  6, 2022:
+       - add -align_unifize_epi local method, -align_opts_eunif
+       - create final_epi_unif volume, in case of EPI uniformity correction
+    7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
 """
 
-g_version = "version 7.37, April 6, 2022"
+g_version = "version 7.42, June 13, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
@@ -980,8 +989,8 @@ class SubjProcSream:
         self.have_task_regs   = 0       # any proc.stims or proc.extra_stims?
 
         # general file tracking
-        self.uvars      = None          # general uvars, aking to for ss_review
-        self.ap_uvars   = 'out.ap_uvars.json' # JSON file to put AP uvars in
+        self.uvars      = VO.VarsObject() # general uvars, for AP uvars
+        self.ap_uv_file = 'out.ap_uvars.json' # JSON file to put AP uvars in
                                         # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]
@@ -1018,8 +1027,8 @@ class SubjProcSream:
         self.vr_warp_mast = None        # local -volreg_warp_master dset
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
-        self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
-        self.epi_final  = None          # vr_base_dset or warped version of it
+        self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
+        self.epi_final    = None        # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -1189,6 +1198,9 @@ class SubjProcSream:
         self.surf_svi_ref  = ''         # iter var reference (e.g. ${hemi})
         self.surf_hemilist = ''         # e.g. ['lh', 'rh']
 
+        # external programs required for execution
+        self.required_progs = []        # e.g. 'tedana'
+
         # updated throughout processing...
         self.bindex     = 0             # current block index
         self.pblabel    = 'xxx'         # previous block label
@@ -1271,6 +1283,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
                         helpstr='one run, many echoes of multi-echo data')
 
+        self.valid_opts.add_opt('-command_comment_style', 1, [],
+                        acplist=['none', 'compact', 'pretty'],
+                        helpstr='define trailing AP command comment style')
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
         self.valid_opts.add_opt('-scr_overwrite', 0, [],
@@ -1426,11 +1441,13 @@ class SubjProcSream:
                         helpstr='external EPI volume for align_epi_anat.py')
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
                         helpstr='additional options for align_epi_anat.py')
+        self.valid_opts.add_opt('-align_opts_eunif', -1, [],
+                        helpstr='additional opts for epi unformity correction')
         self.valid_opts.add_opt('-align_epi_strip_method', 1, [],
                         acplist=['3dSkullStrip','3dAutomask','None'],
                         helpstr="specify method for 'skull stripping' the EPI")
         self.valid_opts.add_opt('-align_unifize_epi', 1, [],
-                        acplist=['yes','no'],
+                        acplist=['yes', 'no', 'unif', 'local'],
                         helpstr='3dUnifize EPI base before passing to aea.py')
 
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
@@ -2599,7 +2616,9 @@ class SubjProcSream:
         if self.epi_review:
             cmd_str = db_cmd_gen_review(self)
             if cmd_str:
-                self.write_text(add_line_wrappers(cmd_str))
+                # no wrappers for QC block (out.ap_uvars.txt) [10 May 2022]
+                # self.write_text(add_line_wrappers(cmd_str))
+                self.write_text(cmd_str)
                 if self.verb > 1:
                     print("+d generated EPI review script %s" % self.epi_review)
             else:
@@ -3014,6 +3033,20 @@ class SubjProcSream:
           '    exit\n'                                                        \
           'endif\n\n' % (g_requires_afni[0][0], g_requires_afni[0][0]) )
 
+        # if we need to run external programs, make sure they are in the PATH
+        if len(self.required_progs) > 0:
+          tstr = "# will run external programs, so be sure they are in PATH\n"
+          for prog in self.required_progs:
+            tstr += "which %s\n"                                             \
+                    "if ( $status ) then\n"                                  \
+                    "   echo '** missing required external program: %s'\n"   \
+                    "   echo '   (perhaps a conda environment is needed)'\n" \
+                    "   exit 1\n"                                            \
+                    "endif\n"                                                \
+                    % (prog, prog)
+          tstr += "\n"
+          self.write_text(tstr)
+
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \
                       '    set subj = $argv[1]\n'                            \
@@ -3396,9 +3429,12 @@ class SubjProcSream:
         self.write_text('echo "execution finished: `date`"\n\n')
 
         # and append execution command, for a record
+        # let user choose style: none, compact, pretty
+        style, rv = self.user_opts.get_string_opt('-command_comment_style',
+                                                  default='compact')
         opt = self.user_opts.find_opt('-no_proc_command')
-        if not opt:
-            tstr = UTIL.get_command_str(args=self.argv)
+        if not opt and style != 'none':
+            tstr = self.get_ap_command_str(style=style)
             self.write_text('\n\n' + tstr)
 
         if self.user_opts.find_opt('-ask_me'):
@@ -3409,6 +3445,26 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+    def get_ap_command_str(self, style='compact'):
+       """return a commented command string, depending on the desired form"""
+       if style == 'none':
+          return ''
+
+       if style not in ['compact', 'pretty']:
+          print("** AP.get_ap_command_str: invalid style %s" % style)
+       if style == 'pretty':
+          # get a straight command, and prettify it
+          tstr = UTIL.get_command_str(args=self.argv,
+                                      preamble=0, comment=0, wrap=0)
+          # and run PT's niceify on it
+          allopts = self.valid_opts.all_opt_names()
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+                                              list_cmd_args=allopts)
+       else:
+          tstr = UTIL.get_command_str(args=self.argv)
+
+       return tstr
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -4419,6 +4475,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        return status and instance (if None, quit)
     """
+
     proc = SubjProcSream('subject regression')
     proc.init_opts()
 

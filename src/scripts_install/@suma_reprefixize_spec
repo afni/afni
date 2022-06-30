@@ -17,7 +17,7 @@ set version   = "1.1";  set rev_dat   = "May 30, 2018"
 
 set this_prog = "@suma_reprefixize_spec"
 set tpname    = "${this_prog:gas/@//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 

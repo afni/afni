@@ -97,6 +97,9 @@ class OptionList:
         # self.olist.sort(cmp=compare_comopts)
         self.olist.sort(key=comopts_key)
 
+    def all_opt_names(self):
+        return [opt.name for opt in self.olist]
+
     def show(self, mesg = '', verb = 0, show_count=-1):
         if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
                                       (mesg, self.label, len(self.olist)))

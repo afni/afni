@@ -39,8 +39,10 @@ Then select Terminal to have check mark for full disk access
  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
   brew update
-  brew install  libpng jpeg expat freetype fontconfig openmotif libomp
-                libxt gsl glib pkg-config gcc netpbm libiconv
+  brew install  libpng jpeg expat freetype fontconfig openmotif libomp \
+                libxt gsl glib pkg-config gcc netpbm libiconv          \
+                mesa mesa-glu libxpm
+
 #**************************************************************
 # R installation
 # Install R for ARM64 (latest version is 4.1.2 at this time)
