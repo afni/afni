@@ -27,6 +27,7 @@ g_history = """
 
    0.0   Mar 17, 2022    - initial version
    0.01  Jun 30, 2022    - tweak opt/error handling
+   0.02  Jun 30, 2022    - change how spec files and their dir are handled
 """
 
 # watch formatting of g_history
@@ -224,8 +225,8 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     suma                                                    \\
         -npb   ${portnum}                                   \\
         -niml                                               \\
-        -spec  "${surf_dir}/${spec}"                        \\
-        -sv    "${surf_anat}"   &
+        -spec  "${surf_spec_dir}/${spec}"                   \\
+        -sv    "${surf_vol}"   &
     """
     text+= cmd
 
@@ -488,9 +489,10 @@ class InOpts:
 
         # file info
         self.subj                   = None            # cd come from SUMA dir
-        self.surf_spec_list         = []
-        self.surf_anat              = None            
-        self.surf_dir               = None
+        self.surf_spec_inp          = []              # tmp only: may have paths
+        self.surf_spec_list         = []              # final: only fnames
+        self.surf_vol               = None            
+        self.surf_spec_dir          = None
 
         self.dset_list_lh           = []
         self.dset_list_rh           = []
@@ -502,33 +504,33 @@ class InOpts:
 
         # initialize valid_opts
         self.init_options()
-        self.finalize_attributes()
-
 
     def init_options(self):
         self.valid_opts = OL.OptionList('valid opts')
 
         # required parameters 
         # **** CHANGE
+
         self.valid_opts.add_opt('-surf_spec', -1, [],
                                 req=1, okdash=0,
-            helpstr='spec file(s) for underlaying')
+            helpstr='spec file(s) for underlaying; may or may not have path')
 
-        self.valid_opts.add_opt('-surf_anat', 1, [], 
+        self.valid_opts.add_opt('-surf_vol', 1, [], 
                                 req=1,
-            helpstr='anat file(s) accompanying surfs')
+            helpstr='anatomical file accompanying surfs; include path, if nec')
 
         self.valid_opts.add_opt('-prefix', 1, [], 
                                 req=1,
             helpstr='set the output prefix for final image (without ext)')
 
-        #self.valid_opts.add_opt('-dir_fs_suma', 1, [], 
-        #    helpstr='(req) location of FS-created SUMA/ dir')
+        # opt params (primary)
 
         self.valid_opts.add_opt('-subj', 1, [], 
             helpstr='(opt) can input subject ID (otherwise it will be guessed)')
 
-        # opt params (primary)
+        self.valid_opts.add_opt('-surf_spec_dir', 1, [], 
+            helpstr='(opt) way to specify dir holding surf_spec file(s)')
+
         self.valid_opts.add_opt('-dset_lh', -1, [], 
             helpstr='main dataset(s) to display/overlay on the ' +
                     'left hemisphere.  For now, can be only one dset')
@@ -634,15 +636,15 @@ class InOpts:
                 for vvv in val:
                     if self.add_surf_spec(vvv): return 1
 
-            if opt.name == '-surf_anat':
+            if opt.name == '-surf_vol':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
-                if self.set_surf_anat(val): return -1
+                if self.set_surf_vol(val): return -1
 
-            #if opt.name == '-dir_fs_suma':
-            #    val, err = uopts.get_string_opt('', opt=opt)
-            #    if val != None and err: return 1
-            #    if self.set_dir_fs_suma(val): return 1
+            if opt.name == '-surf_spec_dir':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return 1
+                if self.set_surf_spec_dir(val): return 1
 
             if opt.name == '-subj':
                 val, err = uopts.get_string_opt('', opt=opt)
@@ -693,12 +695,16 @@ class InOpts:
                 else: self.verb = val
                 continue
 
+        # finalize/merge some info about spec files and paths
+        self.merge_surf_spec_info()
+        self.finalize_attributes()
+
         return 0
 
     def finalize_attributes(self):
 
         if self.all_svar['odir'] == None :
-            self.all_svar['odir'] = '${surf_dir}'
+            self.all_svar['odir'] = '${surf_spec_dir}'
 
         # tmp working dir
         if self.all_svar['wdir'] == None :
@@ -730,43 +736,116 @@ class InOpts:
 
         return 0
 
-    def add_surf_spec(self, fff):
-        """Verify spec file name, and get its abs path
+    def merge_surf_spec_info(self):
+        """Part of finalizing attributes (so after all opts have been read
+        in).  
+
+        The spec files paths can be either given as part of the
+        spec_file names, or via surf_spec_dir.  Check all these for
+        consistency, depending on what is given.
+
         """
 
-        if '/' in fff :
-            split_fff = fff.split('/')
-            tail = '/'.join(split_fff[:-1])
-            head = split_fff[-1]
+        if not len(self.surf_spec_inp) :
+            AB.EP1("No surf spec files provided???")
+
+        # did user specify dir path?
+        if self.surf_spec_dir != None :
+            # if so, make sure no path parts in spec file names
+            for fff in self.surf_spec_inp:
+                if '/' in fff :
+                    AB.EP1("Cannot have path in '-surf_spec ..' inputs "
+                           "when using '-surf_spec_dir ..'.\n"
+                           "This spec file breaks that rule: {}".format(fff))
+            
+                # also make sure each spec file exists
+                file_spec = '/'.join([self.surf_spec_dir, fff])
+                fpath, ftype = make_abs_path( file_spec )
+                if ftype != 'file' :
+                    print("type '{}' != 'file'".format(ftype))
+                    AB.EP1("final spec name not a file: {}".format(file_spec))
+
+                # and if we get here, it is OK to add to list
+                self.surf_spec_list.append( fff )
         else:
-            tail = '.'
-            head = fff
+            # in this case, any path info must be in each spec_file name
+            for fff in self.surf_spec_inp:
+                # separate any path info and file name
+                if '/' in fff :
+                    split_fff = fff.split('/')
+                    tail = '/'.join(split_fff[:-1])
+                    head = split_fff[-1]
+                else:
+                    tail = '.'
+                    head = fff
 
-        tpath, ttype = make_abs_path( tail )
-        hpath, htype = make_abs_path( fff )
-        if ttype != 'dir' or htype != 'file' :
-            print(ttype != 'dir')
-            print(htype != 'file')
-            AB.EP1("problem with spec file name {}".format(fff))
+                # make sure each spec file exists
+                tpath, ttype = make_abs_path( tail )
+                hpath, htype = make_abs_path( fff )
+                if ttype != 'dir' or htype != 'file' :
+                    print("type '{}' != 'dir'".format(ttype))
+                    print("type '{}' != 'file'".format(htype))
+                    AB.EP1("problem with spec file name {}".format(fff))
 
-        if self.surf_dir != None :
-            if self.surf_dir != tail :
-                AB.WP("spec files do not have same suma dirs?")
+                if self.surf_spec_dir != None :
+                    if self.surf_spec_dir != tail :
+                        AB.EP("spec files do not have same suma dirs? "
+                              "not allowed")
+                else:
+                    self.surf_spec_dir = tail
 
-        self.surf_dir = tail
-        self.surf_spec_list.append( head )
+                # and if we get here, it is OK to add to list
+                self.surf_spec_list.append( head )
+
+
+        # Finally, verify that the dir exists
 
         return 0
 
-    def set_surf_anat(self, fname):
+
+    def add_surf_spec(self, fff):
+        """simply add; everything gets checked later (because path info may
+        come from separate source)
+
+        """
+
+        print("TEST spec: ", fff)
+
+        self.surf_spec_inp.append( fff )
+        print("TEST len spec: ", len(self.surf_spec_inp))
+
+        return 0
+
+    def set_surf_spec_dir(self, ddd):
+        """Verify dir holding spec file(s), and get its absolute path
+        """
+        
+        # verify ddd exists, and is a dir
+        dddpath, dddtype = make_abs_path( ddd )
+        if dddtype != 'dir' :
+            print("type '{}' != 'dir'".format(dddtype))
+            AB.EP1("surf_spec_dir not a dir: '{}'".format(ddd))
+
+        # remove any final slash
+        if ddd[-1] == '/' :
+            # make sure not *only* slash for path
+            if len(ddd) == 1 :
+                AB.EP1("impossible surf_spec_dir: '{}'".format(ddd))
+            self.surf_spec_dir = ddd[:-1]
+        else:
+            self.surf_spec_dir = ddd
+        
+        return 0
+
+    def set_surf_vol(self, fname):
         """Verify anatomical dset file name, and get its abs path
         """
 
         fpath, ftype = make_abs_path(fname)
         if ftype != 'file' :
-            AB.EP1("problem with surf_anat file name")
+            AB.EP1("problem with surf_vol file name")
 
-        self.surf_anat = fname
+        self.surf_vol = fname
 
         return 0
 
@@ -815,8 +894,8 @@ class suma_chauffeur_pars:
         # file info
         self.subj                   = None            # cd come from SUMA dir
         self.surf_spec_list         = None
-        self.surf_anat              = None
-        self.surf_dir               = None   
+        self.surf_spec_dir          = None   
+        self.surf_vol               = None
          
         self.surf_nspec             = None
         self.surf_list_std          = []              # len matches spec_list
@@ -843,9 +922,9 @@ class suma_chauffeur_pars:
         self.all_bvar = CO.all_bvar
         self.all_svar = CO.all_svar
 
-        self.surf_dir       = CO.surf_dir
-        self.surf_anat      = CO.surf_anat
         self.surf_spec_list = copy.deepcopy(CO.surf_spec_list)
+        self.surf_spec_dir  = CO.surf_spec_dir
+        self.surf_vol       = CO.surf_vol
 
         self.dset_list_lh   = copy.deepcopy(CO.dset_list_lh)
         self.dset_list_rh   = copy.deepcopy(CO.dset_list_rh)
@@ -900,6 +979,7 @@ class suma_chauffeur_pars:
 
         if verb :
             std_as_str = [str(x) for x in self.surf_list_std]
+            AB.IP("Surf spec dir   : {}".format(self.surf_spec_dir))
             AB.IP("Surf list spec  : {}".format(', '.join(self.surf_spec_list)))
             AB.IP("Surf list hemis : {}".format(', '.join(self.surf_list_hemi)))
             AB.IP("Surf list is_std: {}".format(', '.join(std_as_str)))

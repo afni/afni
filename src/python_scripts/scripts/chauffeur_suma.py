@@ -2,12 +2,23 @@
 
 # python3 status: compatible
 
-# example run in ~/AFNI_data6/FT_analysis/FT/SUMA :
-#  chauffeur_suma.py -surf_spec   ../SUMA/std.141*_?h.spec -surf_anat ../SUMA/FT_SurfVol.nii -prefix TEST
+### example run in ~/AFNI_data6/FT_analysis/FT/SUMA :
+#  chauffeur_suma.py -surf_spec   ../SUMA/std.141*_?h.spec -surf_vol ../SUMA/FT_SurfVol.nii -prefix TEST
 #
 #
-# example run in ~/AFNI_data6/FT_analysis/FT.surf.results:
-#  chauffeur_suma.py -surf_spec   ../FT/SUMA/std.60*_?h.spec -surf_anat ../FT/SUMA/FT_SurfVol.nii -prefix TEST3 -dset_lh stats.FT.surf.lh.niml.dset -dset_rh stats.FT.surf.rh.niml.dset 
+### example run in ~/AFNI_data6/FT_analysis/FT.surf.results:
+#  chauffeur_suma.py -surf_spec   ../FT/SUMA/std.60*_?h.spec -surf_vol ../FT/SUMA/FT_SurfVol.nii -prefix TEST3 -dset_lh stats.FT.surf.lh.niml.dset -dset_rh stats.FT.surf.rh.niml.dset 
+#
+#
+#
+### and a more modern example:
+# chauffeur_suma.py                                               \
+#     -surf_spec std.60.FT_lh.spec std.60.FT_rh.spec              \
+#     -surf_spec_dir /home/ptaylor/AFNI_data6/FT_analysis/FT/SUMA \
+#     -surf_vol FT.surf_NEW_SurfVol_Alnd_Exp+orig.HEAD            \
+#     -prefix APQC_SURF_001                                       \
+#     -dset_lh stats.FT.surf_NEW.rh.niml.dset                     \
+#     -dset_rh stats.FT.surf_NEW.rh.niml.dset
 
 
 # system libraries
@@ -19,17 +30,14 @@ from afnipy import lib_apqc_tcsh  as lat      # for str formatting
 
 # -----------------------------------------------------------------------
 
-def main():
-    opts = lds.InOpts()
-    if not opts: return 1
-
-    opts_ok = opts.process_options()
-    if opts_ok > 0: return 0
+#def main():
+    #opts = lds.InOpts()
+    #if not opts: return 1
 
     #rv = opts.execute()
     #if rv > 0: return 1
 
-    return opts.status
+    #return opts.status
 
 if __name__ == '__main__':
 
@@ -100,13 +108,14 @@ if __name__ == '__main__':
                          padpost=2 )
 
     sss_surf = '''
-    set surf_dir = "{surf_dir}"
-    set surf_anat = "{surf_anat}"
+    set surf_spec_dir = "{surf_spec_dir}"
+    set surf_vol = "{surf_vol}"
     set all_spec = ( {all_spec} )
     set all_hemi = ( {all_hemi} )
     set all_ldv  = ( {all_ldv} )
     set nspec    = ${{#all_spec}}
-    '''.format( surf_dir=pars.surf_dir, surf_anat=pars.surf_anat, 
+    '''.format( surf_spec_dir=pars.surf_spec_dir, 
+                surf_vol=pars.surf_vol, 
                 all_spec=' '.join(pars.surf_spec_list),
                 all_hemi=' '.join(pars.surf_list_hemi),
                 all_ldv =' '.join(pars.surf_list_ldv) )
