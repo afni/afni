@@ -99,6 +99,11 @@ afni_history_struct ptaylor_history[] = {
    "This effective truncation/'digitizing' error should be fixed now.\n"
 },
 
+{ 11, May , 2022 , PT , "adjunct_surf_corr_node" , MINOR , TYPE_NEW_PROG,
+   "New script for calculating whole-surf corr from a node, with blur.",
+   "To be used as part of surf block APQC HTML.\n"
+},
+
 { 10, May , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
    "Add -echo opt, and can propagate.",
    "For debugging\n"
