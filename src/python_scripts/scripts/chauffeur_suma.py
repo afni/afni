@@ -109,8 +109,8 @@ if __name__ == '__main__':
 
     sss_surf = '''
     set surf_spec_dir = "{surf_spec_dir}"
-    set surf_vol = "{surf_vol}"
     set all_spec = ( {all_spec} )
+    set surf_vol = "{surf_vol}"
     set all_hemi = ( {all_hemi} )
     set all_ldv  = ( {all_ldv} )
     set nspec    = ${{#all_spec}}
@@ -224,8 +224,8 @@ if __name__ == '__main__':
             print(omsg)
 
         bye_msg = '''
-        ++ Done making (executable) script to generate HTML QC:
-        {}
+        ++ Done making (executable) script to generate HTML QC. Run it with:
+        tcsh {}
         '''.format(otcsh)
 
         bye_msg = lat.commandize(bye_msg, ALLEOL=False)

@@ -28,6 +28,8 @@ g_history = """
    0.0   Mar 17, 2022    - initial version
    0.01  Jun 30, 2022    - tweak opt/error handling
    0.02  Jun 30, 2022    - change how spec files and their dir are handled
+   0.03  Jul 01, 2022    - better scripting of image making, now have either
+                           8 images in a row (both hemi) or 4 (single hemi)
 """
 
 # watch formatting of g_history
@@ -205,9 +207,9 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
 
     text = """\\mkdir -p ${wdir}\n\n"""
 
-    if 1 :
-        cmd = """set list_imgs = ( )\n\n"""
-        text+= cmd 
+    #if 1 :
+    #    cmd = """set list_imgs = ( )\n\n"""
+    #    text+= cmd 
 
     text+= """foreach ii ( `seq 1 1 ${nspec}` )
     set spec = "${all_spec[${ii}]}"
@@ -216,7 +218,7 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     """
 
     cmd = """
-    set turns = ( "left" "right" )
+    # ------------------ setup: mesh/underlay ------------------
     """
     text+= cmd 
 
@@ -259,6 +261,11 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
 
     if 1 :
         cmd = """
+    # ------------------ setup: window/view ------------------
+    """
+        text+= cmd 
+
+        cmd = """
     # Zoom in, crosshair off, node off, faceset off, label off
     DriveSuma -echo_edu                                                \\
         -npb ${portnum}                                                \\
@@ -269,11 +276,19 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     """
         text+= cmd 
 
-    #### !!!! ADD DSETS TO LOAD/VIEW HERE!
-    ###  FIX SLABELS?
-    if pars.dset_list_lh or pars.dset_list_rh :
-        cmd = """
+    cmd = """
+    # ------------------ hemisphere-dependent items ------------------
+
     if ( "${hemi}" == "lh" ) then
+        # directions to turn, and enumeration for image labels+order
+        set turns = ( "left" "right" "Shift+up" "Shift+down" )
+        set nums  = ( 00 01 03 04 )
+    """
+    text+= cmd 
+
+    if pars.dset_list_lh :
+        cmd = """
+        # setup: overlay 
         foreach jj ( `seq 1 1 ${ndset_lh}` )
             set jjj    = `printf "%03d" $jj`
             set slabel = slab_"${hemi}"_${jjj}
@@ -289,9 +304,21 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
                 -com surf_cont -I_sb 7 -I_range -1 1                \\
                                -T_sb 8 -T_val 3.313                 \\
                                -switch_cmap Reds_and_Blues_Inv
-
         end
+        """
+        text+= cmd 
+
+    cmd = """
     else if ( "${hemi}" == "rh" ) then
+        # directions to turn, and enumeration for image labels+order
+        set turns = ( "Shift+up" "Shift+down" "left" "right" )
+        set nums  = ( 02 05 06 07 )
+    """
+    text+= cmd 
+
+    if pars.dset_list_rh :
+        cmd = """
+        # setup: overlay 
         foreach jj ( `seq 1 1 ${ndset_rh}` )
             set jjj    = `printf "%03d" $jj`
             set slabel = slab_"${hemi}"_${jjj}
@@ -309,58 +336,58 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
                                -switch_cmap Reds_and_Blues_Inv
 
         end
-    endif
-
-    """
+        """
         text+= cmd
 
+    cmd = """
+    endif  # done with hemisphere-dependent setup
+    """
+    text+= cmd 
 
+    cmd = """
+    # ------------------ make individual profile images ------------------
+    """
+    text+= cmd 
 
-    for jj in range(1,3):
-        if 1 :
-            cmd = """
-    # sagittal profile {jj}, SNAP
-    set tmp1 = "tmp1_${{hemi}}_${{turns[{jj}]}}"
-    DriveSuma -echo_edu                                            \\
-        -npb ${{portnum}}                                            \\
-        -com viewer_cont -autorecord "${{wdir}}/${{tmp1}}.jpg"         \\
-        -com viewer_cont -key "Ctrl+${{turns[{jj}]}}"                   \\
-        -com viewer_cont -key 'Ctrl+r'
+    cmd = """
+    # go through each turn, snapshot, crop and pad
+    foreach jj ( `seq 1 1 ${#turns}` )
+        set labjj = ${nums[$jj]}_${hemi}_${turns[$jj]}  # label for jj-th view
 
-    """.format(jj=jj)
-            text+= cmd 
+        # SNAP
+        set tmp1 = "tmp1_${labjj}"
+        DriveSuma -echo_edu                                            \\
+            -npb ${portnum}                                            \\
+            -com viewer_cont -autorecord "${wdir}/${tmp1}.jpg"         \\
+            -com viewer_cont -key "Ctrl+${turns[$jj]}"                 \\
+            -com viewer_cont -key 'Ctrl+r'
 
-        # later, will add more options about not necessarily cropping
-        # and/or concatenating
-        if 1 :
-            cmd = """
-    cd ${{wdir}}
+        cd ${wdir}
 
-    # image proc: crop and clean
-    set tmp2 = "tmp2_${{hemi}}_${{turns[{jj}]}}.jpg"
-    2dcat -echo_edu                                                \\
-        -autocrop_atol 0                                           \\
-        -nx 1 -ny 1                                                \\
-        -prefix  ${{tmp2}}                                           \\
-        ${{tmp1}}.*.jpg
+        # image proc: crop
+        set tmp2 = "tmp2_${labjj}.jpg"
+        2dcat -echo_edu                                                \\
+            -autocrop_ctol 0                                           \\
+            -nx 1 -ny 1                                                \\
+            -prefix  ${tmp2}                                           \\
+            ${tmp1}.*.jpg
 
-    \\rm ${{tmp1}}.*.jpg
+        # pad back a bit
+        set tmp3 = "tmp3_${labjj}.jpg"
+        3dZeropad -echo_edu                                            \\
+            -A 5 -P 5 -L 20 -R 20                                      \\
+            -prefix ${tmp3}                                            \\
+            ${tmp2}
 
-    # pad back a bit
-    set tmp3 = "tmp3_${{hemi}}_${{turns[{jj}]}}.jpg"
-    3dZeropad -echo_edu                                            \\
-        -A 20 -P 20 -L 20 -R 20                                    \\
-        -prefix ${{tmp3}}                                            \\
-        ${{tmp2}}
+        # clean a bit
+        \\rm ${tmp1}.*.jpg ${tmp2}
 
-    cd -
+        cd -
 
-    # store image name for later concatenation
-    set list_imgs = ( ${{list_imgs}} ${{wdir}}/${{tmp3}} )
-    """.format(jj=jj)
-            text+= cmd 
+    end
 
-    #set tmp2 = "${{odir}}/${{oname}}_${{turns[{jj}]}}.${{img_ext}}"
+    """
+    text+= cmd 
 
     cmd = """
     # close suma
@@ -381,8 +408,104 @@ def make_text_cat_images():
     text = ''
 
     cmd = """
-    set gwid = 5
-    set gcol = ( 150 150 150 )
+# ------------------ glue cor views, copy sag views ------------------
+    """
+    text+= cmd 
+
+    # [PT] This set of conditions is semi-complicated.  Why is it here?
+    # + Firstly, we have to merge images of very different dimensions
+    #   (the cor vs sag views); 2dcat will pad the cor views a lot,
+    #   which we don't want. So, we "preconcatenate" each cor pair,
+    #   with the result just happening to have about the same dims as
+    #   the sag view.
+    # + Secondly, the structure is complicated, because we might have
+    #   only rh views, or only lh views, or both---and we want the
+    #   ordering in each case to be sensical and consistent.  Hence,
+    #   the different scenarios based on number of images (both vs
+    #   single hemi) and even knowing which hemi it is, if only one is
+    #   used.
+    # + In the future, I might make an adjunct program to do this.
+    #   There are several inputs actually needed here, so I want to
+    #   avoid doing that until everything else is settled.
+    #   -> or maybe the Python prog here will just take care of this.
+
+    cmd = """
+# NB: this odd intermediate step is to keep all 2dcat calls between
+# images of approx. the same dimensions, to reduce unwanted image padding
+
+set list_imgs = ( ${wdir}/tmp3*jpg )
+
+if ( ${#list_imgs} == 8 ) then
+    # just copy the sag views
+    foreach jj ( 1 2 7 8 )
+        \cp ${list_imgs[$jj]}  ${list_imgs[$jj]:gas/tmp3/tmp4/}   
+    end
+
+    # glue together each coronal view pair
+    set tmp4 = "${wdir}/tmp4_02_corA.jpg"
+    2dcat                                             \\
+        -nx 2 -ny 1                                   \\
+        -prefix ${tmp4}                               \\
+        ${list_imgs[3]} ${list_imgs[4]}
+
+    set tmp4 = "${wdir}/tmp4_04_corP.jpg"
+    2dcat                                             \\
+        -nx 2 -ny 1                                   \\
+        -prefix ${tmp4}                               \\
+        ${list_imgs[5]} ${list_imgs[6]}
+
+else if ( ${#list_imgs} == 4 && ${hemi} == "lh" ) then
+    # just copy the sag views
+    foreach jj ( 1 2 )
+        \cp ${list_imgs[$jj]}  ${list_imgs[$jj]:gas/tmp3/tmp4/}   
+    end
+
+    # glue together each coronal view pair
+    set tmp4 = "${wdir}/tmp4_02_corA.jpg"
+    2dcat                                             \\
+        -nx 2 -ny 1                                   \\
+        -prefix ${tmp4}                               \\
+        ${list_imgs[3]} ${list_imgs[4]}
+
+else if ( ${#list_imgs} == 4 && ${hemi} == "rh" ) then
+    # just copy the sag views
+    foreach jj ( 3 4 )
+        \cp ${list_imgs[$jj]}  ${list_imgs[$jj]:gas/tmp3/tmp4/}   
+    end
+
+    # glue together each coronal view pair
+    set tmp4 = "${wdir}/tmp4_08_corA.jpg"
+    2dcat                                             \\
+        -nx 2 -ny 1                                   \\
+        -prefix ${tmp4}                               \\
+        ${list_imgs[1]} ${list_imgs[2]}
+
+else if ( ${#list_imgs} == 0 ) then
+    echo "** ERROR: no images to concatenate?  Badness.  Quitting."
+    exit 1
+
+else 
+    echo "+* WARNING: unrecognized number of images to deal with: ${#list_imgs}"
+    echo "   will just copy all of them to concatenate. But note that I"
+    echo "   don't know what they mean"
+
+    foreach jj ( `seq 1 1 ${#list_imgs}` )
+        \cp ${list_imgs[$jj]}  ${list_imgs[$jj]:gas/tmp3/tmp4/}   
+    end
+endif
+
+    """
+    text+= cmd
+
+
+    cmd = """
+# ------------------ final image concatenation ------------------
+    """
+    text+= lat.commandize( cmd, padpost=2 )
+
+    cmd = """
+    set gwid = 0
+    set list_imgs = ( ${wdir}/tmp4*jpg )
     set nx = ${#list_imgs}
     """
 
@@ -399,7 +522,6 @@ def make_text_cat_images():
     cmd = """
     2dcat              
     -gap     ${gwid}   
-    -gap_col ${gcol}   
     -nx ${nx}          
     -ny 1              
     -prefix ${opref}   
