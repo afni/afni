@@ -70,16 +70,9 @@ if __name__ == '__main__':
 
     ban = lat.bannerize( 'Top level: background environment',
                          padpost=2 )
-
-    sss_benv = ''
-    for benv in pars.all_benv.keys():
-        if type(pars.all_benv[benv]) == str :
-            benv_val = '''"{}"'''.format(pars.all_benv[benv])
-        else:
-            benv_val = '''{}'''.format(pars.all_benv[benv])
-        sss_benv+= '''setenv  {}  {}\n'''.format(benv, benv_val)
-
     str_FULL+= ban
+
+    sss_benv = lds.build_cmds_from_dict(pars.all_benv)
     str_FULL+= lat.commandize( sss_benv, cmdindent=0, 
                                ALIGNASSIGN=False, ALLEOL=False,
                                padpost=1 )
@@ -88,16 +81,9 @@ if __name__ == '__main__':
 
     ban = lat.bannerize( 'Top level: background vars',
                          padpost=2 )
-
-    sss_bvar = ''
-    for bvar in pars.all_bvar.keys():
-        if type(pars.all_bvar[bvar]) == str :
-            bvar_val = '''"{}"'''.format(pars.all_bvar[bvar])
-        else:
-            bvar_val = '''{}'''.format(pars.all_bvar[bvar])
-        sss_bvar+= '''set {} = {}\n'''.format(bvar, bvar_val)
-
     str_FULL+= ban
+
+    sss_bvar = lds.build_cmds_from_dict(pars.all_bvar)
     str_FULL+= lat.commandize( sss_bvar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -106,6 +92,7 @@ if __name__ == '__main__':
 
     ban = lat.bannerize( 'Top level: subject vars',
                          padpost=2 )
+    str_FULL+= ban
 
     # string of surf (underlay) items
     sss_surf = '''
@@ -121,7 +108,6 @@ if __name__ == '__main__':
                 all_hemi=' '.join(pars.surf_list_hemi),
                 all_ldv =' '.join(pars.surf_list_ldv) )
 
-    str_FULL+= ban
     str_FULL+= lat.commandize( sss_surf, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=2 )
@@ -141,14 +127,7 @@ if __name__ == '__main__':
                                    padpost=2 )
 
     # string of subject vars
-    sss_svar = ''
-    for svar in pars.all_svar.keys():
-        if type(pars.all_svar[svar]) == str :
-            svar_val = '''"{}"'''.format(pars.all_svar[svar])
-        else:
-            svar_val = '''{}'''.format(pars.all_svar[svar])
-        sss_svar+= '''set {} = {}\n'''.format(svar, svar_val)
-
+    sss_svar = lds.build_cmds_from_dict(pars.all_svar)
     str_FULL+= lat.commandize( sss_svar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -157,31 +136,32 @@ if __name__ == '__main__':
 
     ban = lat.bannerize( 'Top level: make virtual frame',
                          padpost=1 )
+    str_FULL+= ban
 
     sss_xvfb = lds.make_text_xvfb_frame()
-
-    str_FULL+= ban
     str_FULL+= sss_xvfb
 
     # -------------------------------------------------------------------------
 
     ban = lat.bannerize( 'Surface mesh (underlay) settings',
                          padpost=2 )
+    str_FULL+= ban
 
     # string of subject vars
-    sss_ulay = ''
-    for ulay in pars.all_ulay.keys():
-        if type(pars.all_ulay[ulay]) == str :
-            ulay_val = '''"{}"'''.format(pars.all_ulay[ulay])
-        elif type(pars.all_ulay[ulay]) == list :
-            tmpstr = ' '.join([str(x) for x in pars.all_ulay[ulay]])
-            ulay_val = '''( {} )'''.format(tmpstr)
-        else:
-            ulay_val = '''{}'''.format(pars.all_ulay[ulay])
-        sss_ulay+= '''set {} = {}\n'''.format(ulay, ulay_val)
-
-    str_FULL+= ban
+    sss_ulay = lds.build_cmds_from_dict(pars.all_ulay)
     str_FULL+= lat.commandize( sss_ulay, cmdindent=0, 
+                               ALIGNASSIGN=True, ALLEOL=False,
+                               padpost=1 )
+
+    # -------------------------------------------------------------------------
+
+    ban = lat.bannerize( 'Object (overlay) settings',
+                         padpost=2 )
+    str_FULL+= ban
+
+    # string of subject vars
+    sss_olay = lds.build_cmds_from_dict(pars.all_olay)
+    str_FULL+= lat.commandize( sss_olay, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
 
@@ -189,33 +169,31 @@ if __name__ == '__main__':
 
     ban = lat.bannerize( 'Start SUMA', 
                          padpost=2 )
+    str_FULL+= ban
 
     sss_loop = lds.make_text_loop_hemi(pars, ntoggle_spec=2)
-
-    str_FULL+= ban
     str_FULL+= sss_loop
 
     # -------------------------------------------------------------------------
 
     ban = lat.bannerize( 'Finish images', 
                          padpost=2 )
-
-    sss_cat = lds.make_text_cat_images()
-
     str_FULL+= ban
+
+    sss_cat  = lds.make_text_cat_images()
     str_FULL+= sss_cat
 
     # -------------------------------------------------------------------------
 
     ban = lat.bannerize( 'Bottom level: exit messages',
                          padpost=1, padpre=2 )
+    str_FULL+= ban
 
     sss_exit_bad  = lds.make_text_bad_exit()
-    sss_exit_good = lds.make_text_good_exit()
+    str_FULL     += sss_exit_bad
 
-    str_FULL+= ban
-    str_FULL+= sss_exit_bad
-    str_FULL+= sss_exit_good
+    sss_exit_good = lds.make_text_good_exit()
+    str_FULL     += sss_exit_good
 
     # -------------------------------------------------------------------------
     # -------------------------------------------------------------------------

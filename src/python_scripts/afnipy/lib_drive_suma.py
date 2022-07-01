@@ -37,6 +37,8 @@ g_history = """
                            8 images in a row (both hemi) or 4 (single hemi)
    0.04  Jul 01, 2022    - output partnered text file describing views
    0.05  Jul 01, 2022    - add in DULAY item control (variables for ulay)
+   0.06  Jul 01, 2022    - add in DOLAY item control (variables for olay)
+                           -> though most not used yet
 """
 
 # watch formatting of g_history
@@ -600,12 +602,38 @@ DULAY = {
 
 # defaults for overlay viewing
 DOLAY = {
-    'I_sb'      : 0,
-    'I_range'   : [None, None],        # always use 2 vals
-    'T_sb'      : None,
-    'T_val'     : None,
-    'cmap'      : 'Reds_and_Blues_Inv',
+    'o_I_sb'      : 0,
+    'o_I_range'   : [None, None],        # always use 2 vals
+    'o_T_sb'      : None,
+    'o_T_val'     : None,
+    'o_cmap'      : 'Reds_and_Blues_Inv',
 }
+
+def build_cmds_from_dict(ddd):
+    """From a dictionary ddd, build up a a new string, that contains a set
+    of line-by-line commands (for a tcsh script). 
+
+    Return that string
+
+    """
+
+    if type(ddd) != dict :  return ''
+    if not len(ddd) :       return ''
+
+    sss = ''
+    for dkey in ddd.keys():
+        dval = ddd[dkey]
+        if type(dval) == str :
+            sitem = '''"{}"'''.format(dval)
+        elif type(dval) == list :
+            ritem = ' '.join([str(x) for x in dval])
+            sitem = '''( {} )'''.format(ritem)
+        else:
+            sitem = '''{}'''.format(dval)
+        sss+= '''set {} = {}\n'''.format(dkey, sitem)
+
+    return sss
+
 
 # ----------------------------------------------------------------------------
 
