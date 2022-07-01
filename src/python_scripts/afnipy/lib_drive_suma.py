@@ -2,6 +2,11 @@
 
 # python3 status: compatible
 
+### NTS: may have to stick "axi" in fname for QC HTML building.  Or
+### some other nomenclature to recognize these images.  Well, probably
+### the latter.
+
+
 # system libraries
 import sys, os
 import copy
@@ -30,6 +35,8 @@ g_history = """
    0.02  Jun 30, 2022    - change how spec files and their dir are handled
    0.03  Jul 01, 2022    - better scripting of image making, now have either
                            8 images in a row (both hemi) or 4 (single hemi)
+   0.04  Jul 01, 2022    - output partnered text file describing views
+   0.05  Jul 01, 2022    - add in DULAY item control (variables for ulay)
 """
 
 # watch formatting of g_history
@@ -240,11 +247,11 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
 
     cmd = """
     # set SUMA underlay props
-    DriveSuma -echo_edu                                    \\
-        -npb ${portnum}                                    \\
-        -com surf_cont   -switch_cmap ngray20              \\
-        -com surf_cont   -I_sb  0  -I_range -0.75 0.75     \\
-                         -T_sb -1 
+    DriveSuma -echo_edu                                          \\
+        -npb ${portnum}                                          \\
+        -com surf_cont   -switch_cmap "${u_cmap}"                \\
+        -com surf_cont   -I_sb ${u_I_sb}  -I_range ${u_I_range}  \\
+                         -T_sb ${u_T_sb}
     """
     text+= cmd 
 
@@ -383,9 +390,7 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
         \\rm ${tmp1}.*.jpg ${tmp2}
 
         cd -
-
     end
-
     """
     text+= cmd 
 
@@ -434,6 +439,7 @@ def make_text_cat_images():
 # images of approx. the same dimensions, to reduce unwanted image padding
 
 set list_imgs = ( ${wdir}/tmp3*jpg )
+set text_info = ""
 
 if ( ${#list_imgs} == 8 ) then
     # just copy the sag views
@@ -454,6 +460,8 @@ if ( ${#list_imgs} == 8 ) then
         -prefix ${tmp4}                               \\
         ${list_imgs[5]} ${list_imgs[6]}
 
+    set text_info = "views: left, ant, post, right"
+
 else if ( ${#list_imgs} == 4 && ${hemi} == "lh" ) then
     # just copy the sag views
     foreach jj ( 1 2 )
@@ -466,6 +474,8 @@ else if ( ${#list_imgs} == 4 && ${hemi} == "lh" ) then
         -nx 2 -ny 1                                   \\
         -prefix ${tmp4}                               \\
         ${list_imgs[3]} ${list_imgs[4]}
+
+    set text_info = "views: lat, med, ant, post (lh)"
 
 else if ( ${#list_imgs} == 4 && ${hemi} == "rh" ) then
     # just copy the sag views
@@ -480,6 +490,8 @@ else if ( ${#list_imgs} == 4 && ${hemi} == "rh" ) then
         -prefix ${tmp4}                               \\
         ${list_imgs[1]} ${list_imgs[2]}
 
+    set text_info = "views: med, lat, ant, post (rh)"
+
 else if ( ${#list_imgs} == 0 ) then
     echo "** ERROR: no images to concatenate?  Badness.  Quitting."
     exit 1
@@ -492,6 +504,8 @@ else
     foreach jj ( `seq 1 1 ${#list_imgs}` )
         \cp ${list_imgs[$jj]}  ${list_imgs[$jj]:gas/tmp3/tmp4/}   
     end
+
+    set text_info = "views: unknown"
 endif
 
     """
@@ -501,7 +515,7 @@ endif
     cmd = """
 # ------------------ final image concatenation ------------------
     """
-    text+= lat.commandize( cmd, padpost=2 )
+    text+= lat.commandize( cmd, cmdindent=0, padpost=2 )
 
     cmd = """
     set gwid = 0
@@ -511,13 +525,14 @@ endif
 
     text+= lat.commandize( cmd, cmdindent=0, 
                            ALIGNASSIGN=True, ALLEOL=False,
-                           padpost=2 )
+                           padpost=1 )
 
     cmd = '''
-    echo "++ list of imgs: ${list_imgs}"
+# associated text file info
+echo "${text_info}" > ${otxt}
     '''
+    text+= cmd
 
-    text+= lat.commandize( cmd, padpost=2 )
 
     cmd = """
     2dcat              
@@ -528,7 +543,8 @@ endif
     ${list_imgs}
     """
 
-    text+= lat.commandize( cmd, padpost=1 )
+    text+= lat.commandize( cmd, indent=0, 
+                           padpre=1, padpost=1 )
 
     text+= """
 if ( $status ) then
@@ -539,11 +555,6 @@ endif
 """
 
     return text
-
-
-
-
-
 
 
 # ----------------------------------------------------------------------------
@@ -574,8 +585,17 @@ DSVAR = {
     'oname'     : 'image',
     'img_ext'   : 'jpg',
     'opref'     : '${odir}/${oname}.${img_ext}',
+    'otxt'      : '${odir}/${oname}.txt',
     'tmpcode'   : '`3dnewid -fun11`',
     'wdir'      : None,
+}
+
+# defaults for underlay viewing
+DULAY = {
+    'u_I_sb'      : 0,
+    'u_I_range'   : [-0.75, 0.75],        # always use 2 vals
+    'u_T_sb'      : -1,
+    'u_cmap'      : 'ngray20',
 }
 
 # defaults for overlay viewing
@@ -608,6 +628,9 @@ class InOpts:
         self.all_benv               = DBENV           # top bkgd 'setenv' vars
         self.all_bvar               = DBVAR           # top bkgd 'set' vars
         self.all_svar               = DSVAR           # top subj 'set' vars
+
+        self.all_ulay               = DULAY           # underlay settings
+        self.all_olay               = DOLAY           # overlay settings
 
         # file info
         self.subj                   = None            # cd come from SUMA dir
@@ -931,10 +954,7 @@ class InOpts:
 
         """
 
-        print("TEST spec: ", fff)
-
         self.surf_spec_inp.append( fff )
-        print("TEST len spec: ", len(self.surf_spec_inp))
 
         return 0
 
@@ -1013,6 +1033,9 @@ class suma_chauffeur_pars:
         self.all_bvar               = {}              # top bkgd 'set' vars
         self.all_svar               = {}              # top subj 'set' vars
 
+        self.all_ulay               = {}              # underlay settings
+        self.all_olay               = {}              # overlay settings
+
         # file info
         self.subj                   = None            # cd come from SUMA dir
         self.surf_spec_list         = None
@@ -1038,11 +1061,14 @@ class suma_chauffeur_pars:
 
 
     def set_all_from_cmd(self, CO):
-        print("set all from cmd")
+        print("++ set all items from cmd")
 
         self.all_benv = CO.all_benv
         self.all_bvar = CO.all_bvar
         self.all_svar = CO.all_svar
+
+        self.all_ulay = CO.all_ulay
+        self.all_olay = CO.all_olay
 
         self.surf_spec_list = copy.deepcopy(CO.surf_spec_list)
         self.surf_spec_dir  = CO.surf_spec_dir

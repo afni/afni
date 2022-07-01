@@ -107,6 +107,7 @@ if __name__ == '__main__':
     ban = lat.bannerize( 'Top level: subject vars',
                          padpost=2 )
 
+    # string of surf (underlay) items
     sss_surf = '''
     set surf_spec_dir = "{surf_spec_dir}"
     set all_spec = ( {all_spec} )
@@ -120,6 +121,12 @@ if __name__ == '__main__':
                 all_hemi=' '.join(pars.surf_list_hemi),
                 all_ldv =' '.join(pars.surf_list_ldv) )
 
+    str_FULL+= ban
+    str_FULL+= lat.commandize( sss_surf, cmdindent=0, 
+                               ALIGNASSIGN=True, ALLEOL=False,
+                               padpost=2 )
+
+    # string of dset (overlay) items
     if pars.dset_list_lh or pars.dset_list_rh :
         sss_dset = """# 'overlay' dsets
     set all_dset_lh = ( {all_dset_lh} )
@@ -129,6 +136,11 @@ if __name__ == '__main__':
     """.format( all_dset_lh=' '.join(pars.dset_list_lh),
                 all_dset_rh=' '.join(pars.dset_list_rh) )
 
+        str_FULL+= lat.commandize( sss_dset, cmdindent=0, 
+                                   ALIGNASSIGN=True, ALLEOL=False,
+                                   padpost=2 )
+
+    # string of subject vars
     sss_svar = ''
     for svar in pars.all_svar.keys():
         if type(pars.all_svar[svar]) == str :
@@ -137,14 +149,6 @@ if __name__ == '__main__':
             svar_val = '''{}'''.format(pars.all_svar[svar])
         sss_svar+= '''set {} = {}\n'''.format(svar, svar_val)
 
-    str_FULL+= ban
-    str_FULL+= lat.commandize( sss_surf, cmdindent=0, 
-                               ALIGNASSIGN=True, ALLEOL=False,
-                               padpost=2 )
-    if pars.dset_list_lh or pars.dset_list_rh :
-        str_FULL+= lat.commandize( sss_dset, cmdindent=0, 
-                                   ALIGNASSIGN=True, ALLEOL=False,
-                                   padpost=2 )
     str_FULL+= lat.commandize( sss_svar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -159,6 +163,27 @@ if __name__ == '__main__':
     str_FULL+= ban
     str_FULL+= sss_xvfb
 
+    # -------------------------------------------------------------------------
+
+    ban = lat.bannerize( 'Surface mesh (underlay) settings',
+                         padpost=2 )
+
+    # string of subject vars
+    sss_ulay = ''
+    for ulay in pars.all_ulay.keys():
+        if type(pars.all_ulay[ulay]) == str :
+            ulay_val = '''"{}"'''.format(pars.all_ulay[ulay])
+        elif type(pars.all_ulay[ulay]) == list :
+            tmpstr = ' '.join([str(x) for x in pars.all_ulay[ulay]])
+            ulay_val = '''( {} )'''.format(tmpstr)
+        else:
+            ulay_val = '''{}'''.format(pars.all_ulay[ulay])
+        sss_ulay+= '''set {} = {}\n'''.format(ulay, ulay_val)
+
+    str_FULL+= ban
+    str_FULL+= lat.commandize( sss_ulay, cmdindent=0, 
+                               ALIGNASSIGN=True, ALLEOL=False,
+                               padpost=1 )
 
     # -------------------------------------------------------------------------
 
@@ -180,17 +205,10 @@ if __name__ == '__main__':
     str_FULL+= ban
     str_FULL+= sss_cat
 
-
-
-
-
-
-
-
     # -------------------------------------------------------------------------
 
     ban = lat.bannerize( 'Bottom level: exit messages',
-                         padpost=1, padpre=4 )
+                         padpost=1, padpre=2 )
 
     sss_exit_bad  = lds.make_text_bad_exit()
     sss_exit_good = lds.make_text_good_exit()
@@ -198,10 +216,6 @@ if __name__ == '__main__':
     str_FULL+= ban
     str_FULL+= sss_exit_bad
     str_FULL+= sss_exit_good
-
-
-
-
 
     # -------------------------------------------------------------------------
     # -------------------------------------------------------------------------
