@@ -42,6 +42,7 @@ g_history = """
                            -> though most not used yet
    0.07  Jul 02, 2022    - more closely link ulay and olay opts with drive
                            cmds, and fix how env vars are set
+   0.08  Jul 02, 2022    - elif for opt list;  add -xvfb_off
 """
 
 # watch formatting of g_history
@@ -132,7 +133,7 @@ def make_text_xvfb_frame():
     text = """
 # start the X virtual frame buffer on display, a la bob
 
-if ( 1 ) then 
+if ( ${use_xvfb} ) then 
     if ( $?AFNI_DRIVE_OPTS_XVFB ) then
         set opts_xvfb = ( $AFNI_DRIVE_OPTS_XVFB )
     else
@@ -579,6 +580,8 @@ endif
 # note: the env and var distinctions come from whether the created
 # tcsh script will use set or setenv.
 
+
+
 # default env: environment (setenv) values 
 DBENV = {
     'LIBGL_ALWAYS_SOFTWARE'  : 1,
@@ -791,7 +794,7 @@ class InOpts:
             helpstr='main dataset(s) to display/overlay on the ' +
                     'right hemisphere.  For now, can be only one dset')
 
-        # env control **have to add user opts for these eventually...
+        # bkgd env: **have to add user opts for these eventually...
 
         self.valid_opts.add_opt('-libgl_software', 1, [], 
             helpstr='use software to render (prob do not alter)? ' +
@@ -811,6 +814,11 @@ class InOpts:
             helpstr='see warns when resetting ~/.afnirc env? ' +
                     '(see AENV: AFNI_ENVIRON_WARNINGS) (def: ' +
                     '{})'.format(DBENV['AFNI_ENVIRON_WARNINGS']))
+
+        # bkgd var: **have to add user opts for these eventually...
+
+        self.valid_opts.add_opt('-xvfb_off', 0, [], 
+            helpstr='turn off running SUMA in bkgd; GUI will pop up')
 
         # short, terminal arguments
         self.valid_opts.add_opt('-help', 0, [],           \
@@ -888,56 +896,62 @@ class InOpts:
                 for vvv in val:
                     if self.add_surf_spec(vvv): return 1
 
-            if opt.name == '-surf_vol':
+            elif opt.name == '-surf_vol':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 if self.set_surf_vol(val): return -1
 
-            if opt.name == '-surf_spec_dir':
+            elif opt.name == '-surf_spec_dir':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return 1
                 if self.set_surf_spec_dir(val): return 1
 
-            if opt.name == '-subj':
+            elif opt.name == '-subj':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 if self.set_subj(val): return -1
 
-            if opt.name == '-dset_lh':
+            elif opt.name == '-dset_lh':
                 val, err = uopts.get_string_list('', opt=opt)
                 if val != None and err: return -1
                 for vvv in val:
                     if self.add_hemi_dset(vvv, 'lh'): return -1
 
-            if opt.name == '-dset_rh':
+            elif opt.name == '-dset_rh':
                 val, err = uopts.get_string_list('', opt=opt)
                 if val != None and err: return -1
                 for vvv in val:
                     if self.add_hemi_dset(vvv, 'rh'): return -1
 
-            if opt.name == '-prefix':
+            elif opt.name == '-prefix':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 if self.set_prefix(val): return -1
 
-            if opt.name == '-img_ext':
+            elif opt.name == '-img_ext':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 if self.set_img_ext(val): return -1
 
+            # bkgd env
 
-            if opt.name == '-libgl_software':
+            elif opt.name == '-libgl_software':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
-            if opt.name == '-position_original':
+            elif opt.name == '-position_original':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
-            if opt.name == '-environ_warnings':
+            elif opt.name == '-environ_warnings':
                 val, err = uopts.get_string_opt('', opt=opt)
                 if val != None and err: return -1
                 print("++ Sorry, ignoring you right now!")
+                
+            # bkgd var
+
+            elif uopts.find_opt('-xvfb_off') :
+                self.all_bvar['use_xvfb'] = 0
 
             # general options
 

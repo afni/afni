@@ -169,9 +169,6 @@ if __name__ == '__main__':
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
 
-    print("HEY!", drive_ulay)
-    print("HEY!", drive_olay)
-
     # -------------------------------------------------------------------------
 
     ban = lat.bannerize( 'Start SUMA', 
@@ -234,43 +231,5 @@ if __name__ == '__main__':
         print( bye_msg )
 
     
-
-
     sys.exit(0)
 
-    # -------------------------------------------------------------------------
-
-    ban = lat.bannerize( 'Top level: AFNI/SUMA vars',
-                         padpost=2 )
-
-    # *** !!! ADD??
-    # set ldv      = {svar_ldv}
-    # set subj     = ....
-    cmd_var = '''
-    set dir_suma  = {svar_dir_suma}
-    set ldv       = {svar_ldv}
-    set file_spec = std.${{ldv}}.*both.spec
-
-    '''.format( svar_dir_suma  = opts.dir_fs_suma,
-                svar_spec      = opts.spec,
-                svar_ldv       = opts.ldv )
-
-    str_FULL+= lat.commandize( cmd_var, cmdindent=0, 
-                               ALIGNASSIGN=True, ALLEOL=False,
-                               padpost=2 )
-
-    # -------------------------------------------------------------------------
-
-    ban = lat.bannerize( 'start SUMA',
-                         padpost=2 )
-
-    # set ldv      = {svar_ldv}
-    cmd = '''
-    suma                                
-        -npb  ${portnum}                
-        -spec ${dir_suma}/${file_spec}  
-        -niml &
-    '''
-
-    str_FULL+= ban
-    str_FULL+= lat.commandize( cmd )
