@@ -72,7 +72,7 @@ if __name__ == '__main__':
                          padpost=2 )
     str_FULL+= ban
 
-    sss_benv = lds.build_cmds_from_dict(pars.all_benv)
+    sss_benv, tmp = lds.build_cmds_from_dict(pars.all_benv, use_setenv=True)
     str_FULL+= lat.commandize( sss_benv, cmdindent=0, 
                                ALIGNASSIGN=False, ALLEOL=False,
                                padpost=1 )
@@ -83,7 +83,7 @@ if __name__ == '__main__':
                          padpost=2 )
     str_FULL+= ban
 
-    sss_bvar = lds.build_cmds_from_dict(pars.all_bvar)
+    sss_bvar, tmp = lds.build_cmds_from_dict(pars.all_bvar)
     str_FULL+= lat.commandize( sss_bvar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                                    padpost=2 )
 
     # string of subject vars
-    sss_svar = lds.build_cmds_from_dict(pars.all_svar)
+    sss_svar, tmp = lds.build_cmds_from_dict(pars.all_svar)
     str_FULL+= lat.commandize( sss_svar, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -147,8 +147,10 @@ if __name__ == '__main__':
                          padpost=2 )
     str_FULL+= ban
 
-    # string of subject vars
-    sss_ulay = lds.build_cmds_from_dict(pars.all_ulay)
+    # string of subject vars (and DriveSuma cmd)
+    sss_ulay, drive_ulay = lds.build_cmds_from_dict(pars.all_ulay,
+                                                    var_pre = 'u_',
+                                                    build_drive_cmd = True)
     str_FULL+= lat.commandize( sss_ulay, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
@@ -159,11 +161,16 @@ if __name__ == '__main__':
                          padpost=2 )
     str_FULL+= ban
 
-    # string of subject vars
-    sss_olay = lds.build_cmds_from_dict(pars.all_olay)
+    # string of subject vars (and DriveSuma cmd)
+    sss_olay, drive_olay = lds.build_cmds_from_dict(pars.all_olay,
+                                                    var_pre = 'o_',
+                                                    build_drive_cmd = True)
     str_FULL+= lat.commandize( sss_olay, cmdindent=0, 
                                ALIGNASSIGN=True, ALLEOL=False,
                                padpost=1 )
+
+    print("HEY!", drive_ulay)
+    print("HEY!", drive_olay)
 
     # -------------------------------------------------------------------------
 
@@ -171,7 +178,10 @@ if __name__ == '__main__':
                          padpost=2 )
     str_FULL+= ban
 
-    sss_loop = lds.make_text_loop_hemi(pars, ntoggle_spec=2)
+    sss_loop = lds.make_text_loop_hemi(pars, 
+                                       drive_ulay=drive_ulay,
+                                       drive_olay=drive_olay,
+                                       ntoggle_spec=2)
     str_FULL+= sss_loop
 
     # -------------------------------------------------------------------------

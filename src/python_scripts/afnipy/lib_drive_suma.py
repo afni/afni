@@ -15,7 +15,8 @@ import copy
 from afnipy import option_list   as OL
 from afnipy import afni_util     as UTIL     
 from afnipy import afni_base     as AB     
-from afnipy import lib_apqc_tcsh as lat      # for str formatting
+from afnipy import lib_apqc_tcsh as lat         # for str formatting
+from afnipy import lib_format_cmd_str as lfcs   # for str formatting
 
 # ----------------------------------------------------------------------
 # globals
@@ -39,6 +40,8 @@ g_history = """
    0.05  Jul 01, 2022    - add in DULAY item control (variables for ulay)
    0.06  Jul 01, 2022    - add in DOLAY item control (variables for olay)
                            -> though most not used yet
+   0.07  Jul 02, 2022    - more closely link ulay and olay opts with drive
+                           cmds, and fix how env vars are set
 """
 
 # watch formatting of g_history
@@ -209,7 +212,8 @@ BAD_EXIT:
     return text
 
 
-def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
+def make_text_loop_hemi(pars, drive_ulay='', drive_olay='',
+                        sleep=2, ntoggle_spec=0):
     """
     
     """
@@ -246,16 +250,18 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
     sleep {sleep}
     """.format(sleep=sleep)
     text+= cmd
+    text+= '\n'
 
-    cmd = """
-    # set SUMA underlay props
-    DriveSuma -echo_edu                                          \\
-        -npb ${portnum}                                          \\
-        -com surf_cont   -switch_cmap "${u_cmap}"                \\
-        -com surf_cont   -I_sb ${u_I_sb}  -I_range ${u_I_range}  \\
-                         -T_sb ${u_T_sb}
-    """
+    # DriveSuma surf_cont opts for mesh/ulay comes from pre-built
+    # command of default/user opts
+    if drive_ulay :
+        cmd = '''DriveSuma -echo_edu -npb ${portnum} '''
+        cmd+= drive_ulay
+        a, cmd = lfcs.afni_niceify_cmd_str( cmd, comment_start=' '*4,
+                                            list_cmd_args=DS_CMD_ARGS )
+
     text+= cmd 
+    text+= "\n"
 
     if ntoggle_spec :
         str_toggle = """-key '.' """*ntoggle_spec
@@ -306,13 +312,21 @@ def make_text_loop_hemi(pars, sleep=2, ntoggle_spec=0):
                 -npb ${portnum}                                     \\
                 -com surf_cont -surf_label ${slabel}                \\
                 -com surf_cont -load_dset ${all_dset_lh[$jj]}
+        """
 
-            DriveSuma -echo_edu                                     \\
-                -npb ${portnum}                                     \\
-                -com surf_cont -switch_surf ${slabel}               \\
-                -com surf_cont -I_sb 7 -I_range -1 1                \\
-                               -T_sb 8 -T_val 3.313                 \\
-                               -switch_cmap Reds_and_Blues_Inv
+        text+= cmd
+        text+= '\n'
+        
+        if drive_olay :
+
+            cmd = """DriveSuma -echo_edu -npb ${portnum}  
+                          -com surf_cont -switch_surf ${slabel} """ 
+            cmd+= drive_olay
+            a, cmd = lfcs.afni_niceify_cmd_str( cmd, 
+                                                comment_start=' '*12,
+                                                list_cmd_args=DS_CMD_ARGS )
+
+        cmd+= """
         end
         """
         text+= cmd 
@@ -594,45 +608,110 @@ DSVAR = {
 
 # defaults for underlay viewing
 DULAY = {
-    'u_I_sb'      : 0,
-    'u_I_range'   : [-0.75, 0.75],        # always use 2 vals
-    'u_T_sb'      : -1,
-    'u_cmap'      : 'ngray20',
+    'switch_cmap' : 'ngray20',
+    'I_sb'        : 0,
+    'I_range'     : [-0.75, 0.75],        # always use 2 vals
+    'T_sb'        : -1,
 }
 
 # defaults for overlay viewing
 DOLAY = {
-    'o_I_sb'      : 0,
-    'o_I_range'   : [None, None],        # always use 2 vals
-    'o_T_sb'      : None,
-    'o_T_val'     : None,
-    'o_cmap'      : 'Reds_and_Blues_Inv',
+    'switch_cmap' : 'Reds_and_Blues_Inv',
+#    'I_sb'      : 0,
+#    'I_range'   : None,                 # will always have 2 vals if used
+#    'T_sb'      : None,
+#    'T_val'     : None,
+    'I_sb'        : 7,
+    'I_range'     : [-1, 1],                 # will always have 2 vals if used
+    'T_sb'        : 8,
+    'T_val'       : 3.313,
 }
 
-def build_cmds_from_dict(ddd):
-    """From a dictionary ddd, build up a a new string, that contains a set
-    of line-by-line commands (for a tcsh script). 
+# for nicefying string commands later; just pick a subset that we know
+# might be used; could do a fuller set later.
+DS_CMD_ARGS = ['echo_edu', '-npb', '-com'] # surf_cont']
 
-    Return that string
+def build_cmds_from_dict(ddd, var_pre='', build_drive_cmd=False, 
+                         use_setenv=False):
+    """From a dictionary ddd, build up a a new string, that contains a set
+    of line-by-line commands (for a tcsh script).  Dictionary keys
+    with value None are not used.
+
+    This program can also build a DriveSuma command from the entered
+    parameters, because that is useful with a couple dictionaries.
+    When not building a DriveSuma cmd, then ignore the second string
+    output.
+
+    Parameters
+    ----------
+    ddd: dict
+         input dictionary of items to write 'set ... = ...' (or setenv)
+         tcsh syntax variable definitions for; often multiline
+    var_pre: str
+         default variable name is the key ddd; alternatively, one can 
+         prepend a string to each variable name (useful for ulay and olay
+         settings that otherwise overlap in name)
+    build_drive_cmd: bool
+         some of the ddd dicts are opts to provide to DriveSuma commands;
+         if this opt is set to True, then build that command here at the 
+         same time.  This is useful because if a key has value None, then
+         we can skip its inclusion in the DriveSuma cmd.
+    use_setenv: bool
+         by default, the command string is variable assignment with
+         'set ... = ...'; this opt will switch it to be 'setenv ... ...'.
+         This opt should probably never be used with build_drive_cmd
+
+    Return
+    ------
+    sss: str
+         final output string of the one or more vars being set (tcsh syntax)
+    ds_cmd: str
+         the DriveSuma cmd string using these vars, if build_drive_cmd is True
 
     """
 
-    if type(ddd) != dict :  return ''
-    if not len(ddd) :       return ''
+    if type(ddd) != dict :  return '', ''
+    if not len(ddd) :       return '', ''
 
-    sss = ''
+    if use_setenv and build_drive_cmd :
+        AB.WP("Odd to use both 'use_setenv' and 'build_drive_cmd' together")
+
+    sss    = ''
+    ds_cmd = '-com surf_cont '
+    count  = 0
+
     for dkey in ddd.keys():
+        USE  = True
+        # shell var name to be used
+        dvar_name = '''{}{}'''.format(var_pre, dkey); 
+        dvar = '${'+dvar_name+'}'
+        # value to assign
         dval = ddd[dkey]
+
+        if dval == None :
+            USE = False
         if type(dval) == str :
             sitem = '''"{}"'''.format(dval)
+            dvar  = '''"{}"'''.format(dvar)
         elif type(dval) == list :
             ritem = ' '.join([str(x) for x in dval])
             sitem = '''( {} )'''.format(ritem)
         else:
             sitem = '''{}'''.format(dval)
-        sss+= '''set {} = {}\n'''.format(dkey, sitem)
 
-    return sss
+        if USE :
+            count+= 1
+            if use_setenv :
+                sss+= '''setenv {:35s} {}\n'''.format(dvar_name, sitem)  
+            else:
+                sss+= '''set {} = {}\n'''.format(dvar_name, sitem)
+            if build_drive_cmd :
+                ds_cmd+= ''' -{} {} '''.format(dkey, dvar)
+
+    if count == 0 :
+        AB.WP("NB: no opts added to DriveSuma cmd; nullifying it")
+
+    return sss, ds_cmd
 
 
 # ----------------------------------------------------------------------------
