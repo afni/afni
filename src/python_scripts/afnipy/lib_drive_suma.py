@@ -45,6 +45,7 @@ g_history = """
    0.08  Jul 02, 2022    - elif for opt list;  add -xvfb_off
    0.09  Jul 03, 2022    - start adding -*_?_sb, -*_i_range, -*_t_val opts
    0.10  Jul 03, 2022    - opt to leave suma open (and moved portnum for this)
+   0.11  Jul 03, 2022    - the -*_t_val opts now properly allow % or p ending
 """
 
 # watch formatting of g_history
@@ -1139,12 +1140,20 @@ class InOpts:
         """Set thr as the threshold value, for either dset = 'ulay' or 'olay'
         (must be given).
 
+        Interestingly, 'thr' need not be purely numeric: there can be
+        a '%' or 'p' appended to it, for percentile- or pvalue-based
+        thresholding.
+
         """
 
-        try:
-            thr = float(thr)
-        except:
-            AB.EP1("T_val value must be numeric, not '{}'".format(thr))
+        if thr[-1] == '%' or thr[-1] == 'p' :
+            pass
+        else:
+            try:
+                thr = float(thr)
+            except:
+                AB.EP1("T_val value must end with '%' or 'p' or "
+                       "be purely numeric, not '{}'".format(thr))
 
         if dset == None :     
             AB.EP1("Must specify 'ulay' or 'olay' to set i_sb index")
