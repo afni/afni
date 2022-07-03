@@ -44,6 +44,7 @@ g_history = """
                            cmds, and fix how env vars are set
    0.08  Jul 02, 2022    - elif for opt list;  add -xvfb_off
    0.09  Jul 03, 2022    - start adding -*_?_sb, -*_i_range, -*_t_val opts
+   0.10  Jul 03, 2022    - opt to leave suma open (and moved portnum for this)
 """
 
 # watch formatting of g_history
@@ -227,6 +228,8 @@ def make_text_loop_hemi(pars, drive_ulay='', drive_olay='',
     #    text+= cmd 
 
     text+= """foreach ii ( `seq 1 1 ${nspec}` )
+    set portnum = "`afni -available_npb_quiet`"
+
     set spec = "${all_spec[${ii}]}"
     set hemi = "${all_hemi[${ii}]}"
     set ldv  = "${all_ldv[${ii}]}"
@@ -422,7 +425,9 @@ def make_text_loop_hemi(pars, drive_ulay='', drive_olay='',
 
     cmd = """
     # close suma
-    @Quiet_Talkers -npb_val ${portnum}
+    if ( ${do_quit_suma} || ${use_xvfb} ) then
+        @Quiet_Talkers -npb_val ${portnum}
+    endif
     """
     text+= cmd + "\n"
 
@@ -602,9 +607,9 @@ DBENV = {
 
 # default bvar: background (set) variables
 DBVAR = {
-    'use_xvfb'  : 1,
-    'dispnum'   : -1,
-    'portnum '  : '`afni -available_npb_quiet`',
+    'use_xvfb'     : 1,
+    'do_quit_suma' : 1,
+    'dispnum'      : -1,
 }
 
 # default svar: subject (set) variables
@@ -832,6 +837,9 @@ class InOpts:
         self.valid_opts.add_opt('-xvfb_off', 0, [], 
             helpstr='turn off running SUMA in bkgd; GUI will pop up')
 
+        self.valid_opts.add_opt('-quit_suma_off', 0, [], 
+            helpstr='turn off quitting SUMA at end; only works with -xvfb_off')
+
         # ulay var: 
 
         self.valid_opts.add_opt('-ulay_i_sb', 1, [], 
@@ -859,7 +867,7 @@ class InOpts:
                     '{})'.format(DULAY['T_val']))
 
         self.valid_opts.add_opt('-ulay_cmap', 1, [], 
-            helpstr='switch colormap to CMAP ' +
+            helpstr='switch ulay colormap to CMAP ' +
                     '(see DS: -switch_cmap) (def: ' +
                     '{})'.format(DULAY['switch_cmap']))
 
@@ -890,7 +898,7 @@ class InOpts:
                     '{})'.format(DOLAY['T_val']))
 
         self.valid_opts.add_opt('-olay_cmap', 1, [], 
-            helpstr='switch colormap to CMAP ' +
+            helpstr='switch olay colormap to CMAP ' +
                     '(see DS: -switch_cmap) (def: ' +
                     '{})'.format(DOLAY['switch_cmap']))
 
@@ -1025,8 +1033,11 @@ class InOpts:
                 
             # bkgd var
 
-            elif uopts.find_opt('-xvfb_off') :
+            elif opt.name == '-xvfb_off' :
                 self.all_bvar['use_xvfb'] = 0
+
+            elif opt.name == '-quit_suma_off' :
+                self.all_bvar['do_quit_suma'] = 0
 
             # ulay opts
 
