@@ -78,7 +78,7 @@ class OptionList:
                 npar    : number of parameters
                               > 0 --> require exactly that number
                               < 0 --> require at least the positive number
-                deflist : default parmeter list (required, for now)
+                deflist : default parameter list (required, for now)
                 acplist : list of acceptable values
                 req     : flag: is this required?
                 setpar  : flag: set option parlist from deflist
@@ -230,7 +230,7 @@ class OptionList:
         if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print("** expecting 1 parmeter for option '%s', have: %s" % \
+            print("** expecting 1 parameter for option '%s', have: %s" % \
                   (opt_name, opt.parlist))
             return default, 1
         return opt.parlist[0], 0
