@@ -43,6 +43,7 @@ g_history = """
    0.07  Jul 02, 2022    - more closely link ulay and olay opts with drive
                            cmds, and fix how env vars are set
    0.08  Jul 02, 2022    - elif for opt list;  add -xvfb_off
+   0.09  Jul 03, 2022    - start adding -*_?_sb, -*_i_range, -*_t_val opts
 """
 
 # watch formatting of g_history
@@ -351,17 +352,25 @@ def make_text_loop_hemi(pars, drive_ulay='', drive_olay='',
                 -npb ${portnum}                                     \\
                 -com surf_cont -surf_label ${slabel}                \\
                 -com surf_cont -load_dset ${all_dset_rh[$jj]}
+        """
 
-            DriveSuma -echo_edu                                     \\
-                -npb ${portnum}                                     \\
-                -com surf_cont -switch_surf ${slabel}               \\
-                -com surf_cont -I_sb 7 -I_range -1 1                \\
-                               -T_sb 8 -T_val 3.313                 \\
-                               -switch_cmap Reds_and_Blues_Inv
+        text+= cmd
+        text+= '\n'
+        
+        if drive_olay :
 
+            cmd = """DriveSuma -echo_edu -npb ${portnum}  
+                          -com surf_cont -switch_surf ${slabel} """ 
+            cmd+= drive_olay
+            a, cmd = lfcs.afni_niceify_cmd_str( cmd, 
+                                                comment_start=' '*12,
+                                                list_cmd_args=DS_CMD_ARGS )
+
+        cmd+= """
         end
         """
-        text+= cmd
+        text+= cmd 
+
 
     cmd = """
     endif  # done with hemisphere-dependent setup
@@ -614,20 +623,21 @@ DULAY = {
     'switch_cmap' : 'ngray20',
     'I_sb'        : 0,
     'I_range'     : [-0.75, 0.75],        # always use 2 vals
-    'T_sb'        : -1,
+    'T_sb'        : None,
+    'T_val'       : None,
 }
 
 # defaults for overlay viewing
 DOLAY = {
     'switch_cmap' : 'Reds_and_Blues_Inv',
-#    'I_sb'      : 0,
-#    'I_range'   : None,                 # will always have 2 vals if used
-#    'T_sb'      : None,
-#    'T_val'     : None,
-    'I_sb'        : 7,
-    'I_range'     : [-1, 1],                 # will always have 2 vals if used
-    'T_sb'        : 8,
-    'T_val'       : 3.313,
+    'I_sb'      : 0,
+    'I_range'   : None,                 # will always have 2 vals if used
+    'T_sb'      : -1,
+    'T_val'     : None,
+#    'I_sb'        : 7,
+#    'I_range'     : [-1, 1],                 # will always have 2 vals if used
+#    'T_sb'        : 8,
+#    'T_val'       : 3.313,
 }
 
 # for nicefying string commands later; just pick a subset that we know
@@ -768,31 +778,33 @@ class InOpts:
 
         self.valid_opts.add_opt('-surf_spec', -1, [],
                                 req=1, okdash=0,
-            helpstr='spec file(s) for underlaying; may or may not have path')
+            helpstr='(req) spec file(s) for underlaying; may or may not ' +
+                    'have path')
 
         self.valid_opts.add_opt('-surf_vol', 1, [], 
                                 req=1,
-            helpstr='anatomical file accompanying surfs; include path, if nec')
+            helpstr='(req) anatomical file accompanying surfs; include ' +
+                    'path, if nec')
 
         self.valid_opts.add_opt('-prefix', 1, [], 
                                 req=1,
-            helpstr='set the output prefix for final image (without ext)')
+            helpstr='(req) set the output prefix for final image (without ext)')
 
         # opt params (primary)
 
         self.valid_opts.add_opt('-subj', 1, [], 
-            helpstr='(opt) can input subject ID (otherwise it will be guessed)')
+            helpstr='can input subject ID (otherwise it will be guessed)')
 
         self.valid_opts.add_opt('-surf_spec_dir', 1, [], 
-            helpstr='(opt) way to specify dir holding surf_spec file(s)')
+            helpstr='way to specify dir holding surf_spec file(s)')
 
         self.valid_opts.add_opt('-dset_lh', -1, [], 
             helpstr='main dataset(s) to display/overlay on the ' +
-                    'left hemisphere.  For now, can be only one dset')
+                    'left hemisphere (now, only one)')
 
         self.valid_opts.add_opt('-dset_rh', -1, [], 
             helpstr='main dataset(s) to display/overlay on the ' +
-                    'right hemisphere.  For now, can be only one dset')
+                    'right hemisphere (now, only one)')
 
         # bkgd env: **have to add user opts for these eventually...
 
@@ -819,6 +831,69 @@ class InOpts:
 
         self.valid_opts.add_opt('-xvfb_off', 0, [], 
             helpstr='turn off running SUMA in bkgd; GUI will pop up')
+
+        # ulay var: 
+
+        self.valid_opts.add_opt('-ulay_i_sb', 1, [], 
+            helpstr='switch ulay intensity to ISBth column (sub-brick) ' +
+                    '(see DS: -I_sb) (def: ' +
+                    '{})'.format(DULAY['I_sb']))
+
+        # 1 or 2 vals
+        self.valid_opts.add_opt('-ulay_i_range', -1, [], 
+            helpstr='set ulay intensity range from IR0 to IR1; sym range ' +
+                    'if 1 val ' +
+                    '(see DS: -I_range) (def: ' +
+                    '{})'.format(DULAY['I_range']))
+
+        self.valid_opts.add_opt('-ulay_t_sb', 1, [], 
+            helpstr='Switch ulay threshold to TSBth column (sub-brick); '
+                    'set to -1 to turn off thr ' +
+                    '(see DS: -T_sb) (def: ' +
+                    '{})'.format(DULAY['T_sb']))
+
+        self.valid_opts.add_opt('-ulay_t_val', 1, [], 
+            helpstr='set threshold to THR; can append p or % for ' +
+                    'pvalue or percentile thr ' +
+                    '(see DS: -T_val) (def: ' +
+                    '{})'.format(DULAY['T_val']))
+
+        self.valid_opts.add_opt('-ulay_cmap', 1, [], 
+            helpstr='switch colormap to CMAP ' +
+                    '(see DS: -switch_cmap) (def: ' +
+                    '{})'.format(DULAY['switch_cmap']))
+
+        # olay var: 
+
+        self.valid_opts.add_opt('-olay_i_sb', 1, [], 
+            helpstr='switch olay intensity to ISBth column (sub-brick) ' +
+                    '(see DS: -I_sb) (def: ' +
+                    '{})'.format(DOLAY['I_sb']))
+
+        # 1 or 2 vals
+        self.valid_opts.add_opt('-olay_i_range', -1, [], 
+            helpstr='set olay intensity range from IR0 to IR1; sym range ' +
+                    'if 1 val ' +
+                    '(see DS: -I_range) (def: ' +
+                    '{})'.format(DOLAY['I_range']))
+
+        self.valid_opts.add_opt('-olay_t_sb', 1, [], 
+            helpstr='Switch olay threshold to TSBth column (sub-brick); '
+                    'set to -1 to turn off thr ' +
+                    '(see DS: -T_sb) (def: ' +
+                    '{})'.format(DOLAY['T_sb']))
+
+        self.valid_opts.add_opt('-olay_t_val', 1, [], 
+            helpstr='set threshold to THR; can append p or % for ' +
+                    'pvalue or percentile thr ' +
+                    '(see DS: -T_val) (def: ' +
+                    '{})'.format(DOLAY['T_val']))
+
+        self.valid_opts.add_opt('-olay_cmap', 1, [], 
+            helpstr='switch colormap to CMAP ' +
+                    '(see DS: -switch_cmap) (def: ' +
+                    '{})'.format(DOLAY['switch_cmap']))
+
 
         # short, terminal arguments
         self.valid_opts.add_opt('-help', 0, [],           \
@@ -953,6 +1028,61 @@ class InOpts:
             elif uopts.find_opt('-xvfb_off') :
                 self.all_bvar['use_xvfb'] = 0
 
+            # ulay opts
+
+            elif opt.name == '-ulay_i_sb':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_i_sb(val, 'ulay'): return -1
+
+            elif opt.name == '-ulay_i_range':
+                val, err = uopts.get_string_list('', opt=opt)
+                if val != None and err: return -1
+                if self.set_i_range(val, 'ulay'): return -1
+
+            elif opt.name == '-ulay_t_sb':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_t_sb(val, 'ulay'): return -1
+
+            elif opt.name == '-ulay_t_val':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_t_val(val, 'ulay'): return -1
+
+            elif opt.name == '-ulay_cmap':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_cmap(val, 'ulay'): return -1
+
+            # olay opts
+
+            elif opt.name == '-olay_i_sb':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_i_sb(val, 'olay'): return -1
+
+            elif opt.name == '-olay_i_range':
+                val, err = uopts.get_string_list('', opt=opt)
+                if val != None and err: return -1
+                if self.set_i_range(val, 'olay'): return -1
+
+            elif opt.name == '-olay_t_sb':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_t_sb(val, 'olay'): return -1
+
+            elif opt.name == '-olay_t_val':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_t_val(val, 'olay'): return -1
+
+            elif opt.name == '-olay_cmap':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val != None and err: return -1
+                if self.set_cmap(val, 'olay'): return -1
+
+
             # general options
 
             elif opt.name == '-verb':
@@ -975,6 +1105,118 @@ class InOpts:
         # tmp working dir
         if self.all_svar['wdir'] == None :
             self.all_svar['wdir'] = '${odir}/__tmp_suma_${tmpcode}'
+
+    def set_cmap(self, cmap, dset=None):
+        """Set cmap as the colormap, for either dset = 'ulay' or 'olay' (must
+        be given).
+
+        """
+
+        if dset == None :     
+            AB.EP1("Must specify 'ulay' or 'olay' to set i_sb index")
+        elif dset == 'ulay' :
+            self.all_ulay['switch_cmap'] = cmap
+        elif dset == 'olay' :
+            self.all_olay['switch_cmap'] = cmap
+        else:
+            AB.EP1("Unrecognized dset type for cmap:  '{}'".format(dset))
+ 
+        return 0
+
+
+    def set_t_val(self, thr, dset=None):
+        """Set thr as the threshold value, for either dset = 'ulay' or 'olay'
+        (must be given).
+
+        """
+
+        try:
+            thr = float(thr)
+        except:
+            AB.EP1("T_val value must be numeric, not '{}'".format(thr))
+
+        if dset == None :     
+            AB.EP1("Must specify 'ulay' or 'olay' to set i_sb index")
+        elif dset == 'ulay' :
+            self.all_ulay['T_val'] = thr
+        elif dset == 'olay' :
+            self.all_olay['T_val'] = thr
+        else:
+            AB.EP1("Unrecognized dset type for T_val:  '{}'".format(dset))
+ 
+        return 0
+
+    def set_i_sb(self, idx, dset=None):
+        """Set idx to be the col/sub-brick for intensity, for either
+        dset = 'ulay' or 'olay' (must be given)."""
+
+        try:
+            idx = int(idx)
+        except:
+            AB.EP1("i_sb index must be integer, not '{}'".format(idx))
+
+        if dset == None :     
+            AB.EP1("Must specify 'ulay' or 'olay' to set i_sb index")
+        elif dset == 'ulay' :
+            self.all_ulay['I_sb'] = idx
+        elif dset == 'olay' :
+            self.all_olay['I_sb'] = idx
+        else:
+            AB.EP1("Unrecognized dset type for I_sb:  '{}'".format(dset))
+ 
+        return 0
+
+    def set_i_range(self, list_vals, dset=None):
+        """Set list_vals values to be the range for intensity, for either dset
+        = 'ulay' or 'olay' (must be given).
+
+        If list_vals has one element A, then create range of symmetric
+        vals:  -|A| to |A|.
+
+        """
+
+        nval = len(list_vals)
+
+        if nval == 1 :
+            aval = abs(float(list_vals[0]))
+            vals = [-aval, aval]
+        elif nval == 2 :
+            aval = abs(float(list_vals[0]))
+            vals = [float(x) for x in list_vals]
+        else:
+            AB.EP1("need 2 list_vals for the range, not {}".format(nval))
+
+        if dset == None :     
+            AB.EP1("Must specify 'ulay' or 'olay' to set i_sb index")
+        elif dset == 'ulay' :
+            self.all_ulay['I_range'] = vals
+        elif dset == 'olay' :
+            self.all_olay['I_range'] = vals
+        else:
+            AB.EP1("Unrecognized dset type for I_range:  '{}'".format(dset))
+ 
+        return 0
+
+    def set_t_sb(self, idx, dset=None):
+        """Set idx to be the col/sub-brick for thresholding, for either
+        dset = 'ulay' or 'olay' (must be given)."""
+
+        try:
+            idx = int(idx)
+        except:
+            AB.EP1("t_sb index must be integer, not '{}'".format(idx))
+
+        if dset == None :     
+            AB.EP1("Must specify 'ulay' or 'olay' to set t_sb index")
+        elif dset == 'ulay' :
+            self.all_ulay['T_sb'] = idx
+        elif dset == 'olay' :
+            self.all_olay['T_sb'] = idx
+        else:
+            AB.EP1("Unrecognized dset type for T_sb:  '{}'".format(dset))
+ 
+        return 0
+
 
     def set_prefix(self, pref):
         """Set output prefix, which means setting odir and oname"""
