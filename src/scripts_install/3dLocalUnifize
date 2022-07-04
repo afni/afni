@@ -6,8 +6,11 @@
 # [PT]  creation of this script, which (at present) is a useful
 #       precursor for EPI-anatomical alignment.
 #
-set version   = "1.0";  set rev_dat   = "June 3, 2022"
+#set version   = "1.0";  set rev_dat   = "June 3, 2022"
 # [PT]  add help file
+#
+set version   = "1.1";  set rev_dat   = "July 4, 2022"
+# [PT]  change how masking is turned off
 #
 # ----------------------------------------------------------------
 
@@ -78,7 +81,10 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set local_mask = "$argv[$ac]"
-
+        # special case to turn off masking
+        if ( "${local_mask}" == "None" ) then
+            set local_mask = ""
+        endif
 
     else if ( "$argv[$ac]" == "-wdir_name" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -124,7 +130,6 @@ if ( "${opref}" == "" ) then
     echo "** ERROR: missing output prefix. Use '-prefix ..'"
     goto BAD_EXIT
 endif
-
 
 # ===================== output dir + wdir =======================
  
@@ -278,8 +283,8 @@ where the following options exist:
 
   -no_clean           :do not remove the working directory (def: remove it)
 
- ... and the following are 'tinkering' options, likely not needed by
-  most users:
+ ... and the following are 'tinkering' options, likely not needed in
+     most cases:
 
   -local_rad LR       :the spherical neighborhood's radius for the 
                        3dLocalStat step (def: ${local_rad})
@@ -288,10 +293,11 @@ where the following options exist:
                        generating the scaling volume 
                        (def: ${local_perc})
 
-  -local_mask LM      :the masking option used in the 3dLocalStat step,
-                       which should be enclosed in quotes for passing along
-                       to the internal program call.  To remove any masking,
-                       put a pair of empty quotes for LM
+  -local_mask LM      :provide the masking option to be used in the
+                       3dLocalStat step, which should be enclosed in
+                       quotes for passing along to the internal
+                       program call.  To remove any masking, put "None" as
+                       the option value.
                        (def: "${local_mask}")
 
   -filter_thr FT      :put a ceiling on values in the final, scaled dataset,
@@ -314,6 +320,11 @@ EXAMPLES ~1~
         -prefix  vr_base_LU                                          \\
         -input   vr_base_min_outlier+orig.HEAD
 
+  1. Same as above, without masking:
+     3dLocalUnifize                                                  \\
+        -prefix      vr_base_LU_FOV                                  \\
+        -input       vr_base_min_outlier+orig.HEAD                   \\
+        -local_mask  None
 
 EOF
 

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, July , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_OPT,
+   "Well, a new arg for '-local_mask ..' opt.",
+   "Use arg value 'None' to turn off the default automasking now.\n"
+},
+
 { 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
    "Fix how the AMASK_FOCUS_* keywords apply for '-box_focus_slices ..'.",
    "They didn't work before, but now do/should/might/perhaps/pleeeez.\n"
