@@ -234,6 +234,8 @@ def make_text_loop_hemi(pars, drive_ulay='', drive_olay='',
     set spec = "${all_spec[${ii}]}"
     set hemi = "${all_hemi[${ii}]}"
     set ldv  = "${all_ldv[${ii}]}"
+
+    echo "++ For this [${ii}]th loop, the portnum is: ${portnum}"
     """
 
     cmd = """
