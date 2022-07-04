@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, July , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new options under the hood for chauffeur_suma.py.",
+   "These indirectly help when we make a cbar for chauffeur_suma.py.\n"
+},
+
 { 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
    "Fix how the AMASK_FOCUS_* keywords apply for '-box_focus_slices ..'.",
    "They didn't work before, but now do/should/might/perhaps/pleeeez.\n"
