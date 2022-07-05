@@ -181,6 +181,25 @@ void TS_syntax(char * str)
    "  then this is equivalent to 'altplus' in the above example.\n"
    "  (nz = number of slices in the input dataset)\n"
    "\n"
+   "  Note that 1D format can be used with @filename.  For example, to shift\n"
+   "  a single voxel time series given TR=2.0, and adjusting the old toffset\n"
+   "  from 0.5 s to 0 s, consider:\n"
+   "\n"
+   "    3dTshift -prefix new.1D -TR 2 -tzero 0 -tpattern '@1D: 0.5' old.1D\\'\n"
+   "\n"
+   "  For a conceptual test of 3dTshift, consider a sequence of commands:\n"
+   "     1deval -num 25 -expr t+10 > t0.1D\n"
+   "     3dTshift -linear -no_detrend -TR 1 -tzero 0 -tpattern '@1D: 0.5' \\\n"
+   "              -prefix t.shift.1D t0.1D\\'\n"
+   "     1dplot -one t0.1D t.shift.1D\n"
+   "  Recall from your memorization of the -help that 3dTshift performs the\n"
+   "  shift on a detrended time series.  Hence the '--linear -no_detrend'\n"
+   "  options are included (otherwise, the line would be unaltered).\n"
+   "  Also, be aware that since we are asking to interpolate the data so that\n"
+   "  it is as if it were acquired 0.5 seconds earlier, that is moving the\n"
+   "  time window to the left, and therefore the plot seems to move to the\n"
+   "  right.\n"
+   "\n"
    "N.B.: if you are using -tpattern, make sure that the units supplied\n"
    "      match the units of TR in the dataset header, or provide a\n"
    "      new TR using the -TR option.\n"
@@ -483,11 +502,12 @@ int main( int argc , char *argv[] )
      if( tomin < 0.0 || tomax > TS_TR ){
        WARNING_message("some value in tpattern is outside range 0..TR=%g",TS_TR) ;
        TS_copy_input_to_output() ;
-     } else if( tomin >= tomax ){
-       WARNING_message("temporal pattern is already aligned in time!") ;
+     } else if( tomin == tomax ){
+       WARNING_message("input has only 1 time offset, %g", tomin) ;
+     } else if( tomin > tomax ){
+       WARNING_message("bad min/max toffset %g/%g, not shifting",tomin,tomax);
        TS_copy_input_to_output() ;
      }
-
 
      if( TS_slice >= 0 && TS_slice < nzz ){                   /* set common time point */
        TS_tzero = TS_tpat[TS_slice] ;

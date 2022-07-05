@@ -3515,7 +3515,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "           containing node coordinates and topology, respectively.\n"
 "       gii: GIFTI XML surface format.\n"
 "       obj: OBJ file format for triangular meshes only. The following\n"
-"            primitives are preserved: v (vertices), \f (faces, triangles\n"
+"            primitives are preserved: v (vertices), f (faces, triangles\n"
 "            only), and p (points)\n"
 " Note that if the surface filename has the proper extension, \n"
 " it is enough to use the -i option and let the programs guess\n"

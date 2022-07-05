@@ -56,7 +56,7 @@ set version   = "2.31";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_imit2w_from_t1w"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -212,15 +212,15 @@ set odirqc_wdir = "../QC" # loc from $wdir
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
-    set wdir = $odir/${wdir}_$opref
+    set wdir = "$odir/${wdir}_$opref"
 else
-    set wdir = $odir/$wdir
+    set wdir = "$odir/$wdir"
 endif
 
 # make the working directory
-if ( ! -e $wdir ) then
+if ( ! -e "$wdir" ) then
     echo "++ Making working directory: $wdir"
-    mkdir $wdir
+    mkdir "$wdir"
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      $wdir"
@@ -276,7 +276,7 @@ set fout = "${tpref}_${idx}_cp0.nii"
     -overwrite           \
     -a $fin              \
     -expr 'a'            \
-    -prefix $wdir/$fout
+    -prefix "$wdir/$fout"
 
 if ( "$imask" != "" ) then
 
@@ -285,7 +285,7 @@ if ( "$imask" != "" ) then
         -overwrite           \
         -a $imask            \
         -expr 'a'            \
-        -prefix $wdir/$foutm
+        -prefix "$wdir/$foutm"
 
     set imask = $foutm
 endif
@@ -293,7 +293,7 @@ endif
 @ idx += 1
 
 # move to wdir
-cd $wdir
+cd "$wdir"
 
 # ---------- continue proc in wdir ------------
 
@@ -458,9 +458,9 @@ endif
 # ------------------- clean + final message(s) -----------------------
 
 if ( "$DO_CLEAN" == "1" ) then
-    cd $here
+    cd "$here"
     echo "\n Removing temporary working directory ($wdir).\n"
-    \rm -rf $wdir
+    \rm -rf "$wdir"
 else
     echo "\n NOT Removing temporary working directory.\n"
 endif

@@ -205,7 +205,7 @@ tar:
 mention_cmake:
 	@echo ""
 	@echo "---------------------------------------------------------"
-	@echo "This packages has changed to rely more primarly on cmake,"
+	@echo "This packages has changed to rely more primarily on cmake,"
 	@echo "and the Makefile system needs a little love."
 	@echo ""
 	@echo "Consider the steps for cmake, if they would be helpful:"

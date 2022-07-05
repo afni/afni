@@ -21,11 +21,11 @@ ${NT} -make_im -prefix ${OUT_DATA}/new4.nii.gz
 ${NT} -make_im -prefix ${OUT_DATA}/new5.nia
 
 # test reading them
-${NT} -copy_im -prefix ${OUT_DATA}/ncopy1.nii -infiles ${OUT_DATA}/new1.hdr
-${NT} -copy_im -prefix ${OUT_DATA}/ncopy2.nii -infiles ${OUT_DATA}/new2.hdr.gz
-${NT} -copy_im -prefix ${OUT_DATA}/ncopy3.nii -infiles ${OUT_DATA}/new3.img.gz
-${NT} -copy_im -prefix ${OUT_DATA}/ncopy4.nii -infiles ${OUT_DATA}/new4.nii.gz
-${NT} -copy_im -prefix ${OUT_DATA}/ncopy5.nii -infiles ${OUT_DATA}/new5.nia
+${NT} -copy_image -prefix ${OUT_DATA}/ncopy1.nii -infiles ${OUT_DATA}/new1.hdr
+${NT} -copy_image -prefix ${OUT_DATA}/ncopy2.nii -infiles ${OUT_DATA}/new2.hdr.gz
+${NT} -copy_image -prefix ${OUT_DATA}/ncopy3.nii -infiles ${OUT_DATA}/new3.img.gz
+${NT} -copy_image -prefix ${OUT_DATA}/ncopy4.nii -infiles ${OUT_DATA}/new4.nii.gz
+${NT} -copy_image -prefix ${OUT_DATA}/ncopy5.nii -infiles ${OUT_DATA}/new5.nia
 
 # verify that they are all the same
 # note: MAKE_IM defaults to NIFTI-2, while .nia is NIFTI-1, 

@@ -1455,7 +1455,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          if haveinds:
             indItem = QtGui.QTableWidgetItem('%0*d' % (digits, indlist[ind]))
          else: indItem = QtGui.QTableWidgetItem('')
-         indItem.setTextAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignVCenter)
+         indItem.setTextAlignment(int(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignVCenter))
          table.insertRow(ind)           # insert at end
          table.setItem(ind, 0, indItem)
          table.setItem(ind, 1, nameItem)
@@ -1608,7 +1608,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
             indItem = QtGui.QTableWidgetItem('%0*d'%(digits, indlist[ind]))
          else:
             indItem = QtGui.QTableWidgetItem('')
-         indItem.setTextAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignVCenter)
+         indItem.setTextAlignment(int(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignVCenter))
 
          labItem = QtGui.QTableWidgetItem(lablist[ind])
          basisItem = QtGui.QTableWidgetItem(bases[ind])
@@ -1652,7 +1652,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif nrows < 18: show_rows = 6+0.5*(nrows-6)  # after 6, add half, per
       else:            show_rows = 12
 
-      return min(200, max(75, rheight*(show_rows+1.25)))
+      return min(200, max(75, int(rheight*(show_rows+1.25))))
 
    def CB_checkbox(self):
       """call-back for any check boxes"""

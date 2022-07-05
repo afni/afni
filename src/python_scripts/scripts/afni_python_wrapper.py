@@ -5,6 +5,12 @@
 # afni_python_wrapper.py : interface for calling python libs from the shell
 #                          (based on afni_util.py)
 
+# history (never bothered before...)
+#
+#    1.11  Feb 10, 2022 : try to import from afnipy first
+#                         (biowulf still has old afnipy/*.py files in abin)
+#
+
 import sys, os
 
 # ======================================================================
@@ -30,12 +36,14 @@ if __name__ == '__main__':
 
    # terminal option: module is set, see if user wants a listing
    # if -module_dir, import differently
+   # (give priority to any existing afnipy directory  [10 Feb 2022 rickr])
+
    if '-module_dir' in argv:
       try:
-         exec('import %s as MM' % module)
+         exec('import afnipy.%s as MM' % module)
       except:
          try:
-            exec('import afnipy.%s as MM' % module)
+            exec('import %s as MM' % module)
          except:
             print("** failed to import module '%s'" % module)
             sys.exit(1)
@@ -48,12 +56,12 @@ if __name__ == '__main__':
 
    if narg > 2:
       # import the module in question and proceed
-      # (if this fails, try to import from afnipy)
+      # (now try to import from afnipy first [10 Feb 2022 rickr])
       try:
-         exec('from %s import *' % module)
+         exec('from afnipy.%s import *' % module)
       except:
          try:
-            exec('from afnipy.%s import *' % module)
+            exec('from %s import *' % module)
          except:
             print("** failed to import module '%s'" % module)
             sys.exit(1)
@@ -148,6 +156,12 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
 
          The 'l' stands for 'line' (or 'list').  This is akin to -print,
          but prints a list with one element per line.
+
+         Examples for lprint:
+
+            # show alt+z slice timing for 20 slices and TR=2s
+            afni_python_wrapper.py \\
+                -lprint "slice_pattern_to_timing('alt+z', 20, 2)"
 
       -listfunc [SUB_OPTS] FUNC LIST ... : execute FUNC(LIST)
 

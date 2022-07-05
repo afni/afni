@@ -97,7 +97,7 @@ set version   = "3.21";   set rev_dat   = "Sep 27, 2021"
 
 set this_prog = "fat_proc_dwi_to_dt"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 

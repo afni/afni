@@ -1771,11 +1771,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SL_Warn("No plane to delete");
                   break;
                } else if (!Delete && iplane < 0) {
-                  /* add a new one */
+                  /* add a new one *//*
                   if (SUMAg_CF->N_ClipPlanes == SUMA_MAX_N_CLIP_PLANES) {
                      SUMA_SLP_Err("No more clipping planes available.");
                      break;
                   }
+                  */
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] =
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
                   snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes],

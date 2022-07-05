@@ -45,6 +45,7 @@ shinyServer(function(input,output,session) {
     set.range <- c(val.range[1]-range.diff,val.range[2]+range.diff)
     range.add <- (val.range[2]-val.range[1])*1.25
     max.range <- c(val.range[1]-range.add,val.range[2]+range.add)
+    
     updateSliderInput(session,"custom_range",min=max.range[1],max=max.range[2],
                       value=set.range)
   })   ## end update cluster list
@@ -142,7 +143,10 @@ shinyServer(function(input,output,session) {
                       pageLength=25)
   
   output$clust_plot_orig <- renderPlotly({clustPlot()})
-  output$clust_stat_orig <- reactivePrint(function(){clustStat()})
+  output$clust_stat_orig <- renderPrint({
+    mod.print <- clustStat()
+    print(mod.print)
+  })
   # output$clust_stat_desc <- renderDataTable({clustDesc()},options=DT.options)
   output$clust_stat_desc <- renderTable({clustDesc()})
   output$stat_info_table <- renderTable({t(SI.df)},rownames=TRUE,colnames=FALSE)

@@ -10,7 +10,7 @@
 # Like the other parts of this package, this code is placed into the public
 # domain.
 #
-# The 'devpak' target generates a DevPak suiteable for Dev-Cpp, see:
+# The 'devpak' target generates a DevPak suitable for Dev-Cpp, see:
 # http://www.bloodshed.net/devcpp.html
 #
 # Requirements:
@@ -79,7 +79,7 @@ install-devpak: build-devpak
 	cd $(build_dir) && make install DESTDIR=../
 
 devpak: install-devpak
-	# nifti_tool header is unecessary
+	# nifti_tool header is unnecessary
 	rm $(devpak_dir)/include/nifti/nifti_tool.h
 
 	# generate devpak info file

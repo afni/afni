@@ -20,7 +20,7 @@ set outprefix = "rmg"
 set keep_rm_files = ""
 set NN = "-1"
 
-set here = `pwd`
+set here = "$PWD"
 # ------------------------ process user options --------------------------
 
 if ( $#argv == 0 ) goto HELP

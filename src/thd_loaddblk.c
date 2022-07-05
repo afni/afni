@@ -692,7 +692,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
             if( id < DBLK_BRICK_BYTES(blk,ibr) ){
               fprintf(stderr,
-                      "\n*** Volume file %s only gave %lld out of %lld bytes needed!\n",
+                      "\n*** Volume file %s only gave"
+                      " %" PRId64 " out of %" PRId64 " bytes needed!\n",
                      fnam[ibr] , id , DBLK_BRICK_BYTES(blk,ibr) ) ;
               THD_purge_datablock( blk , blk->malloc_type ) ;
               for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
@@ -732,7 +733,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
             if( id < DBLK_BRICK_BYTES(blk,jbr) ){
               fprintf(stderr,
-                      "\n*** Volume file %s only gave %lld out of %lld bytes needed!\n",
+                      "\n*** Volume file %s only gave "
+                      "%" PRId64 " out of %" PRId64 " bytes needed!\n",
                      fnam[ibr] , id , DBLK_BRICK_BYTES(blk,jbr) ) ;
               THD_purge_datablock( blk , blk->malloc_type ) ;
               for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;

@@ -18,11 +18,9 @@ set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
 
 set this_prog = "p2dsetstat"
 set tpname    = "${this_prog:gas/fat_proc_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
-
-set here = $PWD
 
 set ibrick    = ""      # a single brick of a volume
 set ipval     = ""      # to be p-value

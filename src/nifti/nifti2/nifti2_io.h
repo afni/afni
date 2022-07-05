@@ -50,7 +50,7 @@ extern "C" {
 
       Mainly adding low-level IO and changing things to allow gzipped files
       to be read and written
-      Full backwards compatability should have been maintained
+      Full backwards compatibility should have been maintained
 
    ......................................................................
    Modified by: Rick Reynolds (SSCC/DIRP/NIMH, National Institutes of Health)
@@ -65,7 +65,7 @@ extern "C" {
 
       Converted to be based on nifti_2_header.
 
-      ** NOT BACKWARD COMPATABLE **
+      ** NOT BACKWARD COMPATIBLE **
 
       These routines will read/write both NIFTI-1 and NIFTI-2 image files,
       but modification to the _calling_ routies is necessary, since:
@@ -443,9 +443,13 @@ int64_t      nifti_read_collapsed_image( nifti_image * nim,
 int64_t      nifti_read_subregion_image(nifti_image *nim, const int64_t *start_index,
                                         const int64_t *region_size, void ** data);
 
-void         nifti_image_write   ( nifti_image * nim ) ;
+void         nifti_image_write( nifti_image * nim ) ;
+int          nifti_image_write_status( nifti_image *nim ) ;  /* 7 Jun 2022 */
+
 void         nifti_image_write_bricks(nifti_image * nim,
                                       const nifti_brick_list * NBL);
+int          nifti_image_write_bricks_status(nifti_image * nim,
+                                             const nifti_brick_list * NBL);
 void         nifti_image_infodump( const nifti_image * nim ) ;
 
 void         nifti_disp_lib_hist( int ver ) ;  /* to display library history */
@@ -491,7 +495,7 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim);
 znzFile nifti_image_write_hdr_img(nifti_image *nim, int write_data,
                                   const char* opts);
 znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
-               const char* opts, znzFile imgfile, const nifti_brick_list * NBL);
+            const char* opts, znzFile imgfile, const nifti_brick_list * NBL);
 int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
                          nifti_image *nim);
 int     nifti_write_all_data(znzFile fp, nifti_image * nim,
@@ -696,7 +700,7 @@ typedef struct {
     char const * const name;           /* text string to match #define */
 } nifti_type_ele;
 
-#undef  LNI_FERR /* local nifti file error, to be compact and repetative */
+#undef  LNI_FERR /* local nifti file error, to be compact and repetitive */
 #define LNI_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
 

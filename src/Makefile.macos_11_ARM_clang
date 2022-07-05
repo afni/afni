@@ -23,28 +23,31 @@
 #
 #  brew install
 #    libpng jpeg expat freetype fontconfig openmotif libomp
-#    libxt gsl glib pkg-config gcc (version 10 used here by default)
-#    autoconf
+#    libxt gsl glib pkg-config gcc autoconf mesa mesa-glu libxpm
+#  (gcc version 10 used here by default)
 
 # also brew install netpbm libiconv
 
 
-# brew install gsl
 # put this symbolic link for needed library
 #ln -s /usr/local/Cellar/gsl/2.6/lib/libgsl.25.dylib /usr/local/lib/libgsl.dylib 
 #ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.4.dylib /usr/local/lib/libXm.4.dylib
 # if XQuartz doesn't include libXm (as it used to), then use this
+
 #ln -s /usr/local/Cellar/openmotif/2.3.8_1/lib/libXm.a /usr/local/lib/libXm.a
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.a
 #ln -s /usr/local/Cellar/jpeg/9d/lib/libjpeg.a /usr/local/lib/libjpeg.9.a
 #ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h /usr/local/include/pgm.h
+
 # ***** for MAC ARM-M1 and 10.15 clang x86_64 builds    09 Mar 2021 [drg]
 #   once again have confusing problem with pgm.h missing from standard
 #   kinds of places, so libgts has errors
 #   solve with symbolic link to Cellar versions in homebrew
+
 #   ARM_M1 version
-#   sudo ln -s /opt/homebrew/Cellar/netpbm/10.86.18/include/netpbm/pgm.h  \
+#   sudo ln -s /opt/homebrew/Cellar/netpbm/10.86.30/include/netpbm/pgm.h  \
 #     /opt/homebrew/include/pgm.h
+
 #   x86_64 version as above
 #   sudo ln -s /usr/local/Cellar/netpbm/10.86.18/include/netpbm/pgm.h     \
 #     /usr/local/homebrew/include/pgm.h
@@ -74,7 +77,8 @@ XROOT   = /opt/X11
 XROOT_I = -I$(XROOT)/include
 XROOT_L = -L$(XROOT)/lib
 
-XLIBS = -lXm -ljpeg.9 -lXt
+# XLIBS = -lXm -ljpeg.9 -lXt
+XLIBS = -lXm -ljpeg -lXt
 
 # ----------------------------------------------------------------------
 
@@ -107,7 +111,7 @@ BREWL =  /opt/homebrew/lib
 
 OMPFLAG = -Xpreprocessor -fopenmp -lomp -I$(BREWI) -L$(BREWL) -DUSE_OMP
 
-SYSTEM_NAME = macos_11.3_ARM_M1_clang
+SYSTEM_NAME = macos_11_ARM_clang
 
 INSTALLDIR = $(SYSTEM_NAME)
 
@@ -148,7 +152,7 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            chmod u+w *.dylib ;                                \
                            if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
 
-IFLAGS = -I. $(XROOT_I) -I$(BREWINCDIR) -I/usr/include
+IFLAGS = -I. -I$(BREWINCDIR) $(XROOT_I) -I/usr/include
          
 LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
 
@@ -204,11 +208,11 @@ GLw_LIB = libGLws.a
 
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src  -I${usr_ROOT}/include/glib-2.0  -I${usr_ROOT}/lib/glib-2.0/include
+SUMA_INCLUDE_PATH = $(IFLAGS) $(GLw_IPATH) -I.. -I../niml -Igts/src  -I${usr_ROOT}/include/glib-2.0  -I${usr_ROOT}/lib/glib-2.0/include
 #SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
-SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+SUMA_LINK_PATH = $(LFLAGS) $(XROOT_L) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${usr_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER 

@@ -7,7 +7,7 @@
 # drg - 06 March 2021 bug fix pbar change in AFNI broke the display in script
 
 set olist = ()
-set dd = $PWD:t
+set dd = "$PWD:t"
 set uname = `whoami`
 set prs = "_ae."
 set PLUGOUT_OPTIONS = "-name @AddEdge -com QUIET_PLUGOUTS"
@@ -464,8 +464,8 @@ if ($do_rand == 1) then
    #Get name of epionlyvol, the one with _e3 in the name
    set epionlyvol = `echo $olist | sed 's;_ec+;_e3+;'`
    
-   echo "" >> ${uname}${dd}_randmap.txt   
-   echo "$PWD `date` $uname" >> ${uname}${dd}_randmap.txt   
+   echo "" >> "${uname}${dd}_randmap.txt" 
+   echo "$PWD `date` $uname" >> "${uname}${dd}_randmap.txt"
    set cnt = 1
    while ($cnt <= $#rli)
       set pair_ana_ind = `ccalc -form int "2*$rli[$cnt]"`
@@ -474,7 +474,7 @@ if ($do_rand == 1) then
       set vole = $qlist[$pair_epi_ind]
       set rvola = ${uname}_ana${cnt}${anaview}
       set rvole = ${uname}_epi${cnt}${epiview}
-      echo "$cnt <-- $rli[$cnt]" >> ${uname}${dd}_randmap.txt 
+      echo "$cnt <-- $rli[$cnt]" >> "${uname}${dd}_randmap.txt"
       if (`@CheckForAfniDset ${rvola}` == 0) then
          echo "Creating $rvola, patience..."
          3dcopy $vola $rvola
@@ -482,7 +482,7 @@ if ($do_rand == 1) then
       else 
          echo "Reusing $rvola ..."
          echo "$rvola <-- $vola " \
-               >> ${uname}${dd}_randmap.txt
+               >> "${uname}${dd}_randmap.txt"
       endif
       if (`@CheckForAfniDset ${rvole}` == 0) then
          echo "Copying $rvole, patience..."
@@ -491,7 +491,7 @@ if ($do_rand == 1) then
       else 
          echo "Reusing $rvole ..."
          echo "$rvole <-- $vole " \
-               >> ${uname}${dd}_randmap.txt      
+               >> "${uname}${dd}_randmap.txt"
       endif
       set olist = ($olist ${rvola}.HEAD ${rvole}.HEAD )
       @ cnt ++
@@ -634,7 +634,7 @@ while ($cnt < $#olist)
       if ("$nx" == 'r') then
          set stay = 1
          if ($do_rand == 1) then
-            set ojpg = ${uname}${dd}
+            set ojpg = "${uname}${dd}"
          else
             set ojpg = ${prs}
          endif
@@ -654,7 +654,7 @@ while ($cnt < $#olist)
       echo "auto_record $auto_record *****************************"
       echo ""
       if ($do_rand == 1) then
-         set ojpg = at${uname}${ilbl}${dd}
+         set ojpg = "at${uname}${ilbl}${dd}"
       else
          set ojpg = ${prs}
       endif
@@ -672,13 +672,14 @@ while ($cnt < $#olist)
          #auto_stitch
          2dcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
                -zero_wrap \
-               -prefix at${uname}${dd}axi${flr} \
-               at${uname}*${dd}axi*.jpg
+               -prefix "at${uname}${dd}axi${flr}" \
+               "at${uname}"*"${dd}"axi*.jpg
          2dcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
                -zero_wrap  \
-               -prefix at${uname}${dd}sag${flr} \
-               at${uname}*${dd}sag*.jpg
-         aiv -quiet at${uname}${dd}axi${flr}.ppm at${uname}${dd}sag${flr}.ppm &
+               -prefix "at${uname}${dd}sag${flr}" \
+               "at${uname}"*"${dd}"sag*.jpg
+         aiv -quiet "at${uname}${dd}axi${flr}.ppm" \
+                    "at${uname}${dd}sag${flr}.ppm" &
          goto SCORE
       endif
    endif
@@ -712,8 +713,8 @@ if ($do_score == 1) then
       end
       set scl = ($sc)
       echo "Scores are: $scl"
-      echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
-      echo $scl >> ${uname}${dd}_scores.1D    
+      echo "#Scores: $PWD `date` $uname :" >> "${uname}${dd}_scores.1D"
+      echo $scl >> "${uname}${dd}_scores.1D"
       goto RANK
    else
       set cnt = 1
@@ -728,8 +729,8 @@ if ($do_score == 1) then
             @ cnt ++
          else if ($nn > $#rli) then
             echo "Scores are: $scl"
-            echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
-            echo $scl >> ${uname}${dd}_scores.1D    
+            echo "#Scores: $PWD `date` $uname :" >> "${uname}${dd}_scores.1D"
+            echo $scl >> "${uname}${dd}_scores.1D"
             goto RANK
          else
             set cnt = $nn
@@ -754,8 +755,8 @@ if ($do_score == 1) then
       end
       set rnl = ($rn)
       echo "Ranks are: $rnl"
-      echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
-      echo $rnl >> ${uname}${dd}_rank.1D
+      echo "#Ranks: $PWD `date` $uname :" >> "${uname}${dd}_rank.1D"
+      echo $rnl >> "${uname}${dd}_rank.1D"
       goto STORE
    else
       set cnt = 1
@@ -770,8 +771,8 @@ if ($do_score == 1) then
             @ cnt ++
          else if ($nn > $#rli) then
             echo "Ranks are: $rnl"
-            echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
-            echo $rnl >> ${uname}${dd}_rank.1D
+            echo "#Ranks: $PWD `date` $uname :" >> "${uname}${dd}_rank.1D"
+            echo $rnl >> "${uname}${dd}_rank.1D"
             goto STORE
          else
             set cnt = $nn
@@ -793,12 +794,12 @@ if ($do_score == 1) then
       set dlist = ($dlist $qlist[$cnt2])
       @ cnt ++
    end
-   echo "#Ranks Untangled: $PWD `date` $uname :" > ${uname}${dd}_untrank.1D
-   echo "#dlist $dlist"  >> ${uname}${dd}_untrank.1D
-   echo $rnlunt >> ${uname}${dd}_untrank.1D
-   echo "#Scores Untangled: $PWD `date` $uname :" > ${uname}${dd}_untscores.1D
-   echo "#dlist $dlist"  >> ${uname}${dd}_untscores.1D
-   echo $sclunt >> ${uname}${dd}_untscores.1D
+   echo "#Ranks Untangled: $PWD `date` $uname :" > "${uname}${dd}_untrank.1D"
+   echo "#dlist $dlist"  >> "${uname}${dd}_untrank.1D"
+   echo $rnlunt >> "${uname}${dd}_untrank.1D"
+   echo "#Scores Untangled: $PWD `date` $uname :" > "${uname}${dd}_untscores.1D"
+   echo "#dlist $dlist"  >> "${uname}${dd}_untscores.1D"
+   echo $sclunt >> "${uname}${dd}_untscores.1D"
 endif
 
 goto END

@@ -410,7 +410,7 @@ int ax_show_names(FILE * fp, afni_xml_t * ax, int depth)
 }
 
 /*----------------------------------------------------------------------
- *! display data in hexidecimal, on one line
+ *! display data in hexadecimal, on one line
  *
  *  if mesg is set, print the message first
  *  if fp is not set, print to stdout

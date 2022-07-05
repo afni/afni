@@ -2,7 +2,7 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 set stat = 0
-set stdir = $PWD
+set stdir = "$PWD"
 
 goto PARSE
 RET_PARSE:
@@ -93,7 +93,7 @@ DOAC:
          set pp = ".`printf %02d $part`"
       endif
       2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
-            -prefix $odir/h.ALL.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
+            -prefix "$odir/h.ALL.${suff}${pp}.jpg" $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                `ParseName -out RelName $odir/h.ALL.${suff}${pp}.jpg`)
       @ istart += $mxstep
@@ -185,7 +185,8 @@ DOEC:
           set pp = ".`printf %02d $part`"
       endif
       2dcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
-            -prefix $odir/h.ALL_COND.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
+            -prefix "$odir/h.ALL_COND.${suff}${pp}.jpg" \
+            $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                   `ParseName -out RelName $odir/h.ALL_COND.${suff}${pp}.jpg`)
       @ istart += $mxstep
@@ -202,7 +203,7 @@ DOEC:
 
 
    set hist = "h.ALL_COND.${suff}.jpg and h.ALL.${suff}.jpg were produced from $PWD with: `basename $0` $argv[*]" 
-   echo $hist > $odir/README.command.$suff
+   echo $hist > "$odir/README.command.$suff"
    
    set pdir = `echo $odir | sed "s:^${idir}/::"`
    echo "Results now in $PWD/$pdir"
@@ -232,7 +233,7 @@ set featmask = ''
 set nx = -1
 set suff = 'nosuf'
 set fdir = './'
-set idir = $PWD
+set idir = "$PWD"
 if ("$1" == '') goto HELP
 while ($cnt <= $Narg)
    set donext = 1
@@ -375,13 +376,13 @@ end
 if ("$odir" == '') then
    set odir = "$fdir"
 endif
-if (! -d $odir) mkdir -p $odir
-if (! -d $odir) then
+if (! -d "$odir" ) mkdir -p "$odir"
+if (! -d "$odir" ) then
    echo "Failed to create $odir"
    goto END
 endif
-cd $odir
-set odir = $PWD
+cd "$odir"
+set odir = "$PWD"
 cd -
          
 

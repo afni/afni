@@ -6,39 +6,39 @@ set input = $1
 set afni_prefix = $2
 set neuro_ori = 0
 
-set strt_dir = $PWD
+set strt_dir = "$PWD"
 
 if ("$input:t" == "$input:h") then
    set fdir = ./
    set fname = "$input:t"
 else 
    if ( -d $input ) then
-      set fdir = $input
+      set fdir = "$input"
       set fname = ""
    else
-      set fdir = $input:h
-      set fname = $input:t
+      set fdir = "$input:h"
+      set fname = "$input:t"
    endif
 endif
-cd $fdir
-set fdir = $PWD
+cd "$fdir"
+set fdir = "$PWD"
 cd -
 
 if ("$afni_prefix:t" == "$afni_prefix:h") then
-   set out_dir = $PWD
+   set out_dir = "$PWD"
    set afni_prefix = "$afni_prefix:t"
 else 
    set out_dir = $afni_prefix:h
    set afni_prefix = $afni_prefix:t
 endif
 
-if ( ! -d $out_dir) mkdir -p $out_dir
-if ( ! -d $out_dir) then
+if ( ! -d "$out_dir") mkdir -p "$out_dir"
+if ( ! -d "$out_dir") then
    echo "No output directory $out_dir"
    goto END
 endif
-cd $out_dir
-set out_dir = $PWD
+cd "$out_dir"
+set out_dir = "$PWD"
 cd -
 
 
@@ -47,15 +47,15 @@ if ("$fname" == "") then
 endif
 
 if ("$fname:e" == "mgz") then
-   cd $fdir
+   cd "$fdir"
    source $FREESURFER_HOME/FreeSurferEnv.csh
-   mri_convert -ot cor $fname $out_dir
-   set fdir = $out_dir
-   cd $strt_dir
+   mri_convert -ot cor $fname "$out_dir"
+   set fdir = "$out_dir"
+   cd "$strt_dir"
 endif
 
 #COR to brik
-   cd $fdir
+   cd "$fdir"
    set cor_files = ( `echo COR-???` ) >& /dev/null 
     if ( $status ) then
 	set endstr = "failure: did not find COR files under '$fdir'"
@@ -96,9 +96,9 @@ endif
 	   to3d -prefix $afni_prefix -xSLAB $xSLAB0'R'-$xSLAB1'L' -ySLAB $ySLAB0'S'-$ySLAB1'I' -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
     endif
 
-    cd $strt_dir
+    cd "$strt_dir"
     if ("$fdir" != "$out_dir") then
-      mv $fdir/$afni_prefix* $out_dir
+      mv "$fdir"/$afni_prefix* "$out_dir"
     endif
     
     

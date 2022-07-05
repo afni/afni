@@ -168,6 +168,23 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
      }
      break ;
 
+     // Michelson contrast of extrema: |A-B|/(|A|+|B|), where A=max and B=min
+     case NSTAT_MCONEX:{
+       register int ii ;
+       register float A, B, denom;
+       A = far[0] ; B = far[0] ; 
+       for( ii=1 ; ii < npt ; ii++ ) {
+          if( far[ii] < A ) A = far[ii];
+          if( far[ii] > B ) B = far[ii];
+       }
+       denom = fabsf(A) + fabsf(B);
+       if( denom )
+          outval = fabsf(A-B)/denom;
+       else
+          outval = 0.0;
+     }
+     break ;
+
      case NSTAT_ABSMAX:{
        register int ii ; register float vv ;
        outval = fabsf(far[0]) ;

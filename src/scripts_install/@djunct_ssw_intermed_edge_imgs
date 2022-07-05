@@ -9,7 +9,7 @@
 
 set this_prog = "@djunct_edgy_align_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 
 # ----------------------- set defaults --------------------------

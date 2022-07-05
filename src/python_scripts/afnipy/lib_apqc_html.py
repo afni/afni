@@ -29,11 +29,16 @@
 #ver = '2.5' ; date = 'Feb 23, 2021' 
 # [PT] update helps, reorder
 #
-ver = '2.6' ; date = 'Jan 18, 2022' 
+#ver = '2.6' ; date = 'Jan 18, 2022' 
 # [PT] several changes
 # + add mecho QC block help
 # + tweak some text
 # + add embedded URLs, where appropriate
+#
+ver = '2.61' ; date = 'Mar 10, 2022' 
+# [PT] bug fix in m_tedana button creation
+# + fix oversight in wrap_button(), where different buttons pointed to
+#   only one tedana directory.  Thanks, Dan H for noting this!
 #
 #########################################################################
 
@@ -73,7 +78,7 @@ dir_img    = 'media'
 # it easier to see what is connected to what, even if they change.)
 
 qc_title           = coll.OrderedDict()
-qc_title["Top"]    = [ "Top of page for:&#10${subj}", 
+qc_title["Top"]    = [ "Top of page for:&#10  ${subj}", 
                        "afni_proc.py single subject report" ]
 
 qc_blocks          = coll.OrderedDict()
@@ -1816,19 +1821,21 @@ def wrap_button(x, vpad=0, button_type=""):
     for n in range(nbutton):
         text = list_buttons[n][0]
         link = list_buttons[n][1]
+
+        #print("DEBUG: {}, {} -- {}...{}".format(n, text, link, button_type))
         if button_type == 'mtedana' :
-            button_type = 'btn_' + button_type
+            button_name = 'btn_' + button_type
             onclick = '''onclick="doShowMtedana('{link}')"'''.format(link=link)
             title   = 'title="Click to open TEDANA HTML."'
-
+        # ... and can add in more button types, as they arise
         y+= vpad*'\n'
         y+= '''
         <td style="width: 1800px; white-space:nowrap;" id=asdf>
-            <center><button class="button-generic {button_type}" 
+            <center><button class="button-generic {button_name}" 
                     {title}
                     {onclick}>{text}</button></center>
         </td>'''.format( text=text, onclick=onclick, title=title,
-                         button_type=button_type )
+                         button_name=button_name )
         y+= vpad*'\n'
 
     return y

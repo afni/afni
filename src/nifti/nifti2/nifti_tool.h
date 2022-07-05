@@ -25,11 +25,15 @@ typedef struct{
 
    int      strip;               /* strip extras from dataset(s)  */
    int      cbl, cci;            /* -copy_XXX option flags        */
+   int      copy_image;          /* straight read (no cci)        */
    int      dts, dci, dci_lines; /* display collapsed img flags   */
    int      make_im;             /* create a new image on the fly */
    int64_t  ci_dims[8];          /* user dims list (last 7 valid) */
    int64_t  new_dim[8];          /* user dim list for new image   */
    int      new_datatype;        /* datatype for new image        */
+   int      convert2dtype;       /* convert data to new type      */
+   int      cnvt_verify;         /* do we verify the conversion   */
+   int      cnvt_fail_choice;    /* what if conversion fails      */
    int      debug, keep_hist;    /* debug level and history flag  */
    int      overwrite;           /* overwrite flag                */
    char *   prefix;              /* for output file               */
@@ -107,6 +111,44 @@ typedef struct {
            fldp++; } while (0)
 
 #define NT_MAKE_IM_NAME "MAKE_IM"
+
+/* ================================================================= */
+/* data conversionn operations                                       */
+
+/* -------------------------------------------- */
+/* copy from src to dest, chaning type enroute  */
+/* dtype, dptr : destination type and pointer   */
+/* stype, sptr : source type and pointer        */
+/* nvals       : number of values to copy       */
+#define NT_DCONVERT_NO_CHECKS(dptr, dtype, sptr, stype, nvals) \
+   do {                                         \
+      dtype   * pd = dptr;                      \
+      stype   * ps = sptr;                      \
+      int64_t   index;                          \
+      for(index=0; index<nvals; index++) {      \
+         *pd = (dtype)*ps;                      \
+         pd++; ps++;                            \
+      } } while(0)
+
+/* --------------------------------------------- */
+/* copy from src to dest, chaning type enroute   */
+/* (like NT_DCONVERT_NO_CHECKS, but WITH checks) */
+/* fail         : (returned) conversion failures */
+#define NT_DCONVERT_W_CHECKS(dptr, dtype, sptr, stype, nvals, failure) \
+   do {                                         \
+      dtype   * pd = dptr;                      \
+      stype   * ps = sptr;                      \
+      int64_t   index;                          \
+      /* init bounds with first */              \
+      failure = 0;                              \
+      for(index=0; index<nvals; index++) {      \
+         *pd = (dtype)*ps;                      \
+         /* fail when we cannot invert */       \
+         if( !failure && *ps != (stype)*pd )    \
+            failure = 1;                        \
+         pd++; ps++;                            \
+      } } while(0)
+
 
 /* ================================================================= */
 /* matrix operations                                                 */
@@ -191,6 +233,7 @@ typedef struct {
 int    act_add_exts   ( nt_opts * opts );
 int    act_cbl        ( nt_opts * opts );  /* copy brick list */
 int    act_cci        ( nt_opts * opts );  /* copy collapsed dimensions */
+int    act_copy       ( nt_opts * opts );  /* straight library copy */
 int    act_check_hdrs ( nt_opts * opts );  /* check for valid hdr or nim */
 int    act_diff_hdrs  ( nt_opts * opts );
 int    act_diff_hdr1s ( nt_opts * opts );
@@ -259,11 +302,24 @@ int write_hdr2_to_file(nifti_2_header * nhdr, const char * fname);
 
 /* wrappers for nifti reading functions (allow MAKE_IM) */
 nifti_image    * nt_image_read (nt_opts * opts, const char * fname,
-                                int doread, int make_ver);
+                                int read_data, int make_ver);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
                                 int64_t * list, nifti_brick_list * NBL);
 void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
                       int new_datatype, int64_t new_dim[8]);
+
+/* prototypes associated with data conversion */
+static int convert_datatype(nifti_image * nim, nifti_brick_list * NBL,
+                            int new_type, int verify, int fail_choice);
+static int convert_NBL_data(nifti_brick_list * NBL, int old_type, int new_type,
+                            int verify, int fail_choice);
+static int convert_raw_data(void ** retdata, void * olddata, int old_type,
+                               int new_type, int64_t nvox, int verify);
+static int is_lossless(int old_type, int new_type);
+static int is_valid_conversion_type(int dtype);
+static int int_size_of_type(int dtype);
+static int type_is_complex(int dtype);
+static int type_is_signed(int dtype);
 
 
 /* misc functions */

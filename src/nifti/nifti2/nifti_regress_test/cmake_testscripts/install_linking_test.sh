@@ -28,7 +28,7 @@ cd downstream_example
 cmake \
     -G 'Unix Makefiles' \
     -DCMAKE_MODULE_PATH=../installed/usr/local/share \
-     ../../real_easy/minimal_example_of_downstream_usage
+     ../../nifti_clib/real_easy/minimal_example_of_downstream_usage
 make
 
 echo Success

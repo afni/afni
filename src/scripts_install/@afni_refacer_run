@@ -39,9 +39,13 @@
 #set version   = "2.3"; set rev_dat   = "Aug 31, 2021"
 #   + [PT] change default cost to 'lpa' (was 'ls'?)
 #
-set version   = "2.31";   set rev_dat   = "Sep 27, 2021"
+#set version   = "2.31";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "2.4";   set rev_dat   = "Apr 23, 2022"
+#     + [PT] start optionizing template+shell to use
+#       - also introduce new shell with larger face/neck removal
 #
 # ============================================================================
 
@@ -58,6 +62,15 @@ set owrite     = ""
 set DO_ANON    = 0             # opt: anonymize the output dsets
 
 set cost_allin = "lpa"          # cost function used; this was orig def
+
+### these dsets are now selectable/alterable at command line
+# this is a newer shell than (now long ago) original: this one is
+# symmetric, without gaps in the skull, and more tightly bounded by -1s.
+set ref_shell = "afni_refacer_shell_sym_1.0.nii.gz"  
+set tset      = "MNI152_2009_template_SSW.nii.gz"
+
+set all_ok_shell = ( "afni_refacer_shell_sym_1.0.nii.gz" \
+                     "afni_refacer_shell_sym_2.0.nii.gz" )
 
 # ------------------------ read in + interpret cmd line opts -----------------
 
@@ -100,6 +113,21 @@ while ( $ac <= $#argv )
 
     # ------------------------------------------------------
     # opt
+
+    # [PT: 23 Apr 2022]
+    else if ( "$argv[$ac]" == "-shell" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ref_shell = "$argv[$ac]"
+
+        if ( ! ( "${ref_shell}" == "${all_ok_shell[1]}" || \
+                 "${ref_shell}" == "${all_ok_shell[2]}" ) ) then
+             echo "** ERROR: not an allowed shell.  Must be one of:"
+             foreach shell ( ${all_ok_shell} )
+                echo "   ${shell}"
+             end
+             goto BAD_EXIT
+         endif 
 
     else if ( "$argv[$ac]" == "-anonymize_output" ) then
         set DO_ANON = 1
@@ -155,7 +183,6 @@ else
 endif
 
 # find MNI template (target for 3dAllineate)
-set tset     = "MNI152_2009_template_SSW.nii.gz"
 set Basedset = `@FindAfniDsetPath -full_path -append_file "${tset}"`
 if ( "${Basedset}" == '' ) then
     echo "** ERROR: Failed to find template ${tset} -- exiting :(" 
@@ -165,7 +192,6 @@ endif
 # Find AFNI refacer shell (to replace subject face); this is a newer
 # shell than original: this one is symmetric, without gaps in the
 # skull, and more tightly bounded by -1s.
-set ref_shell = "afni_refacer_shell_sym_1.0.nii.gz"
 set mset      = `@FindAfniDsetPath -full_path -append_file "${ref_shell}"`
 if ( "${mset}" == '' ) then
     echo "** ERROR: Failed to find refacer shell ${ref_shell} -- exiting :("
@@ -174,7 +200,7 @@ endif
 
 # need prefix
 if ( "${impref}" == "" ) then
-    echo "** ERROR: user needs to enter prefix for output filename :("
+    echo "** ERROR: user needs to enter '-prefix ..' for output filename :("
     goto BAD_EXIT
 else
     ### get base of output prefix
@@ -195,7 +221,7 @@ endif
 # if we got to here:  good to continue.  Brag a bit first.
 echo ""
 echo "++ AFNI refacer, version      = ${version}"
-echo "++ AFNI MNI template dataset  = $Basedset"
+echo "++ AFNI template dataset      = $Basedset"
 echo "++ AFNI refacer shell dataset = $mset"
 echo "++ Mode for running           = $run_mode"
 echo ""
@@ -246,8 +272,8 @@ cat_matvec                      \
 # transform the refacer shell from MNI back to subject original space
 # and grid
 
-# [PT: Jan 23, 2020] Using NN interp would be better here-- less/no
-# gap outside shell than using linear
+# [PT: Jan 23, 2020] Using NN interp is good here-- less/no gap
+# outside shell than using linear
 3dAllineate                                    \
     -1Dmatrix_apply tmp.03.mat_t2a.1D          \
     -source $mset                              \
@@ -659,12 +685,19 @@ where:
 
  -cost CC     : (opt) can specify any cost function that is allowed by 
                 3dAllineate (def: ${cost_allin})
+ 
+ -shell SH    : (opt) can specify which shell to use.  At present, the 
+                available options for SH are:
+                  afni_refacer_shell_sym_1.0.nii.gz  (traditional)
+                  afni_refacer_shell_sym_2.0.nii.gz  (more face/neck removal)
+                (def: ${ref_shell})
 
  -no_clean    : (opt) don't delete temp working dir (def: remove working
                 dir)
 
  -no_images   : (opt) don't make pretty images to automatically view the 
                 results of re/defacing;  but why wouldn't you want those?
+                This disables use of Xvfb.
 
  -overwrite   : (opt) final two file outputs will overwrite any existing
                 files of the same name (def: don't do this).  NB: this 
@@ -704,9 +737,11 @@ Requisite data sets ~2~
 
 This script relies on having two datasets that should already be
 included with AFNI binaries:
-    MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template
-    afni_refacer_shell.nii.gz       = dataset to replace face region
-The latter dataset was made with the script @afni_refacer_make_master.
+    MNI152_2009_template_SSW.nii.gz  = MNI skull strip/warp template
+    afni_refacer_shell_sym_*.nii.gz  = dataset to replace face region
+The latter dataset(s) have been made by a combination of the
+@afni_refacer_make_master and @afni_refacer_make_master_addendum 
+scripts.
 
 If you are missing these datasets for some reason (e.g., you build
 your own AFNI binaries on your computer), you can download these from
@@ -745,6 +780,14 @@ EXAMPLES ~1~
     @afni_refacer_run                     \
         -input anat+orig.                 \
         -mode_all                         \
+        -prefix anat
+
+4) ... and using different shell for replacement:
+
+    @afni_refacer_run                             \
+        -input anat+orig.                         \
+        -mode_all                                 \
+        -shell afni_refacer_shell_sym_2.0.nii.gz  \
         -prefix anat
 
 EOF

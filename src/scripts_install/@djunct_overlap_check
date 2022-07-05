@@ -24,20 +24,24 @@
 #set version   = "0.43";   set rev_dat   = "Jan 25, 2022"
 # + [PT] add in -no_cor, -no_sag, -no_axi, for APQC
 #
-set version   = "0.44";   set rev_dat   = "Jan 26, 2022"
+#set version   = "0.44";   set rev_dat   = "Jan 26, 2022"
 # + [PT] fix how -box_focus_slices works if one of the AMASK* keywords is
 #   used
 #
-set version   = "0.45";   set rev_dat   = "Jan 26, 2022"
+#set version   = "0.45";   set rev_dat   = "Jan 26, 2022"
 # [PT] another fix when using -box_focus_slices, so @chauffeur_afni
 # will recognize that appropriately
 #
+set version   = "0.46";   set rev_dat   = "May 10, 2022"
+# [PT] add set echo
+#
 # ----------------------------------------------------------------
+
 setenv AFNI_COMPRESSOR NONE
 
 set this_prog = "@djunct_overlap_check"
 set tpname    = "${this_prog:gas/@djunct_//}"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------------- set defaults --------------------------
 
@@ -87,6 +91,8 @@ set no_cor         = "-pass"
 set no_axi         = "-pass"
 set no_sag         = "-pass"
 
+set more_echo      = ""
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -114,6 +120,10 @@ while ( $ac <= $#argv )
         set olay = "$argv[$ac]"
 
     #  ---------- opts ---------------
+
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+        set more_echo = "-echo"
 
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -378,7 +388,7 @@ if ( ${obl_ulay[1]} || ${obl_olay[1]} ) then
     echo "   We will make an image of them with '3dWarp -deobliqu ..'"
     echo "   applied to each"
 
-    @chauffeur_afni                             \
+    @chauffeur_afni ${more_echo}                \
         -obliquify  ALL                         \
         -ulay  "${uout}"                        \
         "${refbox_add[1]}"  "$refbox_add[2]"    \
@@ -449,7 +459,7 @@ else
     echo "\n+* NOT removing temporary files '${wdir}*'\n"
 endif
 
-cd ${here}
+cd "${here}"
 
 echo ""
 echo "++ DONE! Image output:"
@@ -482,6 +492,7 @@ COMMAND OPTIONS ~1~
 -hview
 -help
 -ver
+-echo
 -ulay              ULAY
 -olay              OLAY
 -prefix            PREFIX

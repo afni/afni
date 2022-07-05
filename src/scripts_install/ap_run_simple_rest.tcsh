@@ -118,6 +118,24 @@ while ( $ac <= $narg )
       endif
       set template = $argv[$ac]
 
+   else if ( "$argv[$ac]" == '-compressor' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -compressor requires 1 parameter"
+         exit 1
+      endif
+
+      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
+               "$argv[$ac]" == "GZIP"     || \
+               "$argv[$ac]" == "BZIP2"    || \
+               "$argv[$ac]" == "PIGZ" ) ) then
+         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
+         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
+         exit 1
+      endif
+
+      setenv AFNI_COMPRESSOR $argv[$ac]
+
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
       set verb = 3
@@ -374,8 +392,17 @@ optional perameters:
    -template TEMPLATE      : specify template for standard space
                              def: $template
 
+   -compressor COMP        : control automatic compression of *.BRIK files.
+                             'COMP' must be one of the allowed keywords for
+                             the AFNI_COMPRESSOR environment variable:
+                                GZIP  COMPRESS  BZIP2  PIGZ
+                             and you must have the associated program for
+                             compression installed (e.g., 'gzip')
+                             def: not set here
+
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb
+
    -echo                   : same as -verb 3
 
 ------------------------------------------------------------------------------

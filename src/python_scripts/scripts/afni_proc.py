@@ -18,6 +18,7 @@ from afnipy.db_mod import *
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
 from afnipy import lib_tedana_afni as TED
+from afnipy import lib_format_cmd_str as FCS
 
 # ----------------------------------------------------------------------
 # globals
@@ -695,7 +696,7 @@ g_history = """
     7.17 Jul 16, 2021: unindent EOF
     7.18 Oct 18, 2021: allow -mask_apply "type" to be a user-specified mask
     7.19 Nov  7, 2021: add -regress_opts_fwhmx
-    7.20 Nov  8, 2021: add -milestones
+    7.20 Nov  8, 2021: add -milestones (later changed to -hist_milestones)
     7.21 Nov 20, 2021:
        - update for current tedana with --convention orig
        - add -help_tedana_files for correspondence between file names
@@ -709,13 +710,38 @@ g_history = """
        - rename m_tedana_tedort to m_tedana_m_tedort
          (reserve m_tedana_tedort for AFNI tedort projection)
     7.25 Jan 24, 2022: pass copy_anat,combine_method to gen_ssrs for APQC
-    7.26 Jan 29, 2022: allow execution only we have made the main script
+    7.26 Jan 29, 2022: allow execution only if we have made the main script
+    7.27 Feb  7, 2022: write out.ap_uvars.txt,json, and use to init gssrs
+    7.28 Feb  8, 2022: add -html_review_opts
+    7.29 Feb 18, 2022: change -milestones to -hist_milestones
+    7.30 Mar  1, 2022:
+       - make pythonic the default html_review_style
+         (since PT will run with basic if pythonic is not possible)
+    7.31 Mar  1, 2022: fix space removal in -combine_opts_tedana
+    7.32 Mar  3, 2022: minor rename of blocks; corresponding help update
+    7.33 Mar  8, 2022: apply -polort in @radial_correlate
+    7.34 Mar 10, 2022: run 3dAllineate for -align_epi_ext_dset to volreg base
+    7.35 Mar 12, 2022: use align_epi_anat.py instead, in case of obliquity diff
+    7.36 Mar 22, 2022:
+       - fix help example: remove inappropriate -epi_strip from -align_opts_aea
+       - add ap_uvars: dir_suma_spec, suma_specs
+    7.37 Apr  6, 2022: allow REML errts on surface
+    7.38 Apr 22, 2022: in proc script, check for tedana in PATH, if needed
+    7.39 May 10, 2022: do not apply global line wrappers to QC block
+    7.40 May 24, 2022: add -command_comment_style
+    7.41 Jun  6, 2022:
+       - add -align_unifize_epi local method, -align_opts_eunif
+       - create final_epi_unif volume, in case of EPI uniformity correction
+    7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
 """
 
-g_version = "version 7.26, January 29, 2022"
+g_version = "version 7.42, June 13, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 Jun 2022",  "3dLocalUnifize" ],
+      [ " 7 Mar 2022",  "@radial_correlate -polort" ],
+      [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
       [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
       [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
@@ -802,14 +828,20 @@ More detailed changes, starting May, 2018.
 
    15 Jan 2020 : corr_* volumes are correlatinos with averages, rather than
       average correlations (maps are similar by have better scales)
+
+   10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
+      - apply an additional xform between anat2epi base and epi2epi one
+
 """
 
 g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES secion
   - ME:
      - handle MEICA tedana methods
-        - m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        x m_tedana, m_tedana_OC, m_tedana_OC_tedort
         * WAS done, but soon-to-come tedana JSON output must be handled by AP
+        - done again, but still might want OC_m_tedort
+          (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
@@ -957,7 +989,9 @@ class SubjProcSream:
         self.have_task_regs   = 0       # any proc.stims or proc.extra_stims?
 
         # general file tracking
-        self.uvars      = None          # general uvars, aking to for ss_review
+        self.uvars      = VO.VarsObject() # general uvars, for AP uvars
+        self.ap_uv_file = 'out.ap_uvars.json' # JSON file to put AP uvars in
+                                        # (ssr_uvars is for gen_ssrs)
         self.tlist      = None          # all files copied/tcat to results
                                         # list of [orig, result, descr]
         self.show_tfiles= ''            # files to show '', 'ALL', desc
@@ -993,8 +1027,8 @@ class SubjProcSream:
         self.vr_warp_mast = None        # local -volreg_warp_master dset
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
-        self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
-        self.epi_final  = None          # vr_base_dset or warped version of it
+        self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
+        self.epi_final    = None        # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
@@ -1073,7 +1107,8 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
-        self.html_rev_style = 'basic'   # html_review_style
+        self.html_rev_style = 'pythonic' # html_review_style
+        self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic'         # basic review script
         self.ssr_b_out    = 'out.ss_review.$subj.txt'  # text output from it
@@ -1163,6 +1198,9 @@ class SubjProcSream:
         self.surf_svi_ref  = ''         # iter var reference (e.g. ${hemi})
         self.surf_hemilist = ''         # e.g. ['lh', 'rh']
 
+        # external programs required for execution
+        self.required_progs = []        # e.g. 'tedana'
+
         # updated throughout processing...
         self.bindex     = 0             # current block index
         self.pblabel    = 'xxx'         # previous block label
@@ -1202,7 +1240,7 @@ class SubjProcSream:
                         helpstr="show tedana files: old vs orig names")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
-        self.valid_opts.add_opt('-milestones', 0, [],
+        self.valid_opts.add_opt('-hist_milestones', 0, [],
                         helpstr="show interesting milestones")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
                         helpstr='show which date is required of AFNI')
@@ -1245,6 +1283,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
                         helpstr='one run, many echoes of multi-echo data')
 
+        self.valid_opts.add_opt('-command_comment_style', 1, [],
+                        acplist=['none', 'compact', 'pretty'],
+                        helpstr='define trailing AP command comment style')
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
         self.valid_opts.add_opt('-scr_overwrite', 0, [],
@@ -1301,6 +1342,8 @@ class SubjProcSream:
                         helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
                         helpstr='generate a script to review orig EPI data')
+        self.valid_opts.add_opt('-html_review_opts', -1, [],
+                        helpstr='additional options for apqc_make_tcsh.py')
         self.valid_opts.add_opt('-html_review_style', 1, [],
                         acplist=g_html_review_styles,
                         helpstr='generate ss review HTML pages')
@@ -1398,11 +1441,13 @@ class SubjProcSream:
                         helpstr='external EPI volume for align_epi_anat.py')
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
                         helpstr='additional options for align_epi_anat.py')
+        self.valid_opts.add_opt('-align_opts_eunif', -1, [],
+                        helpstr='additional opts for epi unformity correction')
         self.valid_opts.add_opt('-align_epi_strip_method', 1, [],
                         acplist=['3dSkullStrip','3dAutomask','None'],
                         helpstr="specify method for 'skull stripping' the EPI")
         self.valid_opts.add_opt('-align_unifize_epi', 1, [],
-                        acplist=['yes','no'],
+                        acplist=['yes', 'no', 'unif', 'local'],
                         helpstr='3dUnifize EPI base before passing to aea.py')
 
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
@@ -1835,7 +1880,7 @@ class SubjProcSream:
             print(g_history)
             return 0  # gentle termination
         
-        if opt_list.find_opt('-milestones'):     # print the history
+        if opt_list.find_opt('-hist_milestones'):     # print the history
             print(g_milestones)
             return 0  # gentle termination
         
@@ -1955,6 +2000,9 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-html_review_style') # for apqc_make_tcsh.py
         if opt != None: self.html_rev_style = opt.parlist[0]
+
+        opt = opt_list.find_opt('-html_review_opts') # for apqc_make_tcsh.py
+        if opt != None: self.html_rev_opts = opt.parlist
 
         opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = 0
@@ -2568,7 +2616,9 @@ class SubjProcSream:
         if self.epi_review:
             cmd_str = db_cmd_gen_review(self)
             if cmd_str:
-                self.write_text(add_line_wrappers(cmd_str))
+                # no wrappers for QC block (out.ap_uvars.txt) [10 May 2022]
+                # self.write_text(add_line_wrappers(cmd_str))
+                self.write_text(cmd_str)
                 if self.verb > 1:
                     print("+d generated EPI review script %s" % self.epi_review)
             else:
@@ -2983,6 +3033,20 @@ class SubjProcSream:
           '    exit\n'                                                        \
           'endif\n\n' % (g_requires_afni[0][0], g_requires_afni[0][0]) )
 
+        # if we need to run external programs, make sure they are in the PATH
+        if len(self.required_progs) > 0:
+          tstr = "# will run external programs, so be sure they are in PATH\n"
+          for prog in self.required_progs:
+            tstr += "which %s\n"                                             \
+                    "if ( $status ) then\n"                                  \
+                    "   echo '** missing required external program: %s'\n"   \
+                    "   echo '   (perhaps a conda environment is needed)'\n" \
+                    "   exit 1\n"                                            \
+                    "endif\n"                                                \
+                    % (prog, prog)
+          tstr += "\n"
+          self.write_text(tstr)
+
         self.write_text('# the user may specify a single subject to run with\n'\
                       'if ( $#argv > 0 ) then\n'                             \
                       '    set subj = $argv[1]\n'                            \
@@ -3307,7 +3371,8 @@ class SubjProcSream:
         if self.epi_review:
            # maybe we will have an html sub-section
            htmlstr = ''
-           if self.html_rev_style in g_html_review_styles:
+           if self.html_rev_style in g_html_review_styles \
+                and self.html_rev_style != 'none':
               htmlstr = '\n' + self.run_html_review(istr='    ')
               # warn user if pythonic does not seem valid
               if self.html_rev_style == 'pythonic':
@@ -3364,9 +3429,12 @@ class SubjProcSream:
         self.write_text('echo "execution finished: `date`"\n\n')
 
         # and append execution command, for a record
+        # let user choose style: none, compact, pretty
+        style, rv = self.user_opts.get_string_opt('-command_comment_style',
+                                                  default='compact')
         opt = self.user_opts.find_opt('-no_proc_command')
-        if not opt:
-            tstr = UTIL.get_command_str(args=self.argv)
+        if not opt and style != 'none':
+            tstr = self.get_ap_command_str(style=style)
             self.write_text('\n\n' + tstr)
 
         if self.user_opts.find_opt('-ask_me'):
@@ -3377,6 +3445,26 @@ class SubjProcSream:
                 tstr += ' '.join(quotize_list(opt.parlist,''))
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
+
+    def get_ap_command_str(self, style='compact'):
+       """return a commented command string, depending on the desired form"""
+       if style == 'none':
+          return ''
+
+       if style not in ['compact', 'pretty']:
+          print("** AP.get_ap_command_str: invalid style %s" % style)
+       if style == 'pretty':
+          # get a straight command, and prettify it
+          tstr = UTIL.get_command_str(args=self.argv,
+                                      preamble=0, comment=0, wrap=0)
+          # and run PT's niceify on it
+          allopts = self.valid_opts.all_opt_names()
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+                                              list_cmd_args=allopts)
+       else:
+          tstr = UTIL.get_command_str(args=self.argv)
+
+       return tstr
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -3403,25 +3491,37 @@ class SubjProcSream:
         if len(missing) > 0:
            print("** will not run QC html program, apqc_make_tcsh.py\n" \
                  "   (missing: %s)\n" % ', '.join(missing))
-           return ''
+           return "%s# ** missing program '%s', skipping HTML QC\n\n" \
+                  % (istr, missing[0])
+
+        # possibly pass user options
+        user_opts = ' '.join(self.html_rev_opts)
+        if user_opts != '':
+           user_opts = '%s    %s \\\n' % (istr, user_opts)
 
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
               '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '%s'                                                            \
               '%s    -uvar_json %s\n'                                         \
               '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
                  istr, self.html_rev_style,
+                 user_opts,
                  istr, self.ssr_uvars,
                  istr, istr)
+
+        cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
            ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
         else:
            ocmd = 'afni_open -b QC_$subj/index.html'
 
-        cmd += '%secho "\\nconsider running: \\n\\n    %s\\n"\n' % (istr, ocmd)
+        cmd += '%secho "\\nconsider running: \\n"\n' \
+               '%secho "   %s"\n'                    \
+               '%secho ""\n' % (istr, istr, ocmd, istr)
 
         return cmd
 
@@ -3558,6 +3658,7 @@ class SubjProcSream:
         if warn:
            print("** dataset '%s' is used as non-linear warp," \
                  "   but does not appear to be one" % fname)
+           print("   (expecting @SSw name suffix _WARP.nii[.gz]")
         return 0
 
     def anat_follower(self, name='', aname=None, dgrid='epi', label='',
@@ -4374,6 +4475,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        return status and instance (if None, quit)
     """
+
     proc = SubjProcSream('subject regression')
     proc.init_opts()
 

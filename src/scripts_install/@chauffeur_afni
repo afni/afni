@@ -318,8 +318,18 @@
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level; just changing help examples here
 #
-set version   = "6.30";   set rev_dat   = "Oct 21, 2021"
+#set version   = "6.30";   set rev_dat   = "Oct 21, 2021"
 #     + [PT] max allowed bufac is actually 8, not 4.  
+#
+#set version   = "6.31";   set rev_dat   = "Feb 3, 2022"
+#     + [PT] add "-left_is_left .." and "-left_is_posterior .." options
+#
+#set version   = "6.4";   set rev_dat   = "June 3, 2022"
+#     + [PT] add '-ulay_range_am ..' and '-olay_range_am ..' opts
+#
+set version   = "6.41";   set rev_dat   = "June 6, 2022"
+#     + [PT] add '-ulay_min_fac ..' opt to allow refined control of ulay
+#       brightness/grayscale mapping.  Useful in APQC
 #
 # =====================================================================
 
@@ -428,8 +438,9 @@ set obl_resam_refbox  = wsinc5   # focus box: def resampling method for obl
 set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
 set EDGE_ENHANCE_FAC = ''         # for enhancing edges, by a factor, in ulay
 
-set umin = ''
-set umax = ''
+set umax     = ''
+set umin     = ''
+set umin_fac = ''
 
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
@@ -643,6 +654,14 @@ while ( $ac <= $#argv )
         set olay_nz = "-non-zero"  
         set USER_FRANGE = 2
 
+    # refers to olay; for automasking in 3dBrickStat call
+    else if ( "$argv[$ac]" == "-func_range_perc_am" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set frange_perc = "$argv[$ac]"
+        set olay_nz = "-automask"  
+        set USER_FRANGE = 2
+
     else if ( "$argv[$ac]" == "-pbar_posonly" ) then
         set pbar_sign = "+"
         
@@ -809,6 +828,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_AGIF_DELAY "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-left_is_left" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_LEFT_IS_LEFT "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-left_is_posterior" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_LEFT_IS_POSTERIOR "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-zerocolor" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -939,6 +968,23 @@ while ( $ac <= $#argv )
         set umax = "$argv[$ac]"
         set ulay_nz = "-non-zero"
         set USER_ULAY_RANGE = 1
+
+    # for automasking during 3dBrickStat call
+    else if ( "$argv[$ac]" == "-ulay_range_am" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set ulay_nz = "-automask"
+        set USER_ULAY_RANGE = 1
+
+    # supplement to push the lower boundary a bit; only works if user
+    # entered the range
+    else if ( "$argv[$ac]" == "-ulay_min_fac" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin_fac = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-edgy_ulay" ) then
         set DO_EDGEIFY_ULAY = 1
@@ -1710,7 +1756,26 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                     set umax = `echo " $amax[2] * $umax_scale " | bc`
                 endif
 
-                echo "++ Ulay to be visualized within user range:"
+                set umin_fac_text = ""
+                if ( "${umin_fac}" != "" ) then
+                    if ( `echo "${umin_fac} <= 0" | bc` || \
+                         `echo "${umin_fac} > 1" | bc` ) then
+                        echo "+* WARN: ignoring ulay_min_fac: ${umin_fac}"
+                        echo "   Supposed to be in interval (0, 1]"
+                    else
+                        echo "++ Use umin factor     : ${umin_fac}"
+                        echo "   Init. umin and umax : ${umin}, ${umax}"
+                        set umin_new = `echo "scale=5; ${umin} - ${umin_fac} * (${umax} -${umin})/1.0" | bc`
+                        if ( `echo "${umin_new} > 0" | bc` ) then
+                            set umin = "${umin_new}"
+                        else 
+                            set umin = 0
+                        endif
+                        set umin_fac_text = " (adjusted by umin_fac)"
+                    endif
+                endif
+
+                echo "++ Ulay to be visualized within user range${umin_fac_text}:"
                 echo "  [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
 
             else
@@ -2459,6 +2524,19 @@ COMMAND OPTIONS ~1~
                     DR: SET_ULAY_RANGE) "Special Ulay Range" and
                     "Combining %ile values..." in NOTES, below.
 
+-ulay_range_am UMIN UMAX 
+                   :same as the preceding opt, but over just *automasked* 
+                    voxels
+
+-ulay_min_fac UMF  :a finesse-full option for further adjusting ulay
+                    grayscale mapping, when applying '-ulay_range_am
+                    ..'.  UMF must be a numerical value in range (0,
+                    1].  This value is used to lower the lower end of
+                    the ulay range (UMIN) by this fraction of the difference
+                    between the upper and lower bounds. Thus, if A and B are
+                    the min and max, respectively, for the ulay, then 
+                    A -> max(0, A-UMF*(B-A)).
+
 -edgy_ulay         :turn the ulay volume into edges (via 3dedge3).  All 
                     other opt/values like the '-ulay_range*' will refer
                     to this edge-ified version, *except* for the 
@@ -2503,6 +2581,9 @@ COMMAND OPTIONS ~1~
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
                    non-zero values (def: 100).
+
+-func_range_perc_am FRP :same as above option, but this is a percentile
+                   among *automasked* voxel values.
 
 -obliquify  OBL    :the ulay and/or the olay may have been acquired
                     with oblique coordinate axes; by default, the
@@ -2834,6 +2915,16 @@ COMMAND OPTIONS ~1~
                     "centi-seconds" = 100ths of seconds (def: 30).
                     (see ENV: AFNI_AGIF_DELAY)
 
+-left_is_left LIL  :specify explicitly whether image left is dataset left
+                    (LIL -> YES) or image left is dataset right (LIL -> NO)
+                    (def: no value given).
+                    (see ENV: AFNI_LEFT_IS_LEFT)
+
+-left_is_posterior LIP  :specify explicitly whether image left is dataset 
+                    posterior (LIP -> YES) or image left is dataset anterior 
+                    (LIP -> NO) (def: no value given).
+                    (see ENV: AFNI_LEFT_IS_POSTERIOR)
+
 -crop_axi_x CAX1 CAX2,
 -crop_axi_y CAY1 CAY2 :crop axial image(s) to be between voxels CAX1 and
                     CAX2 along the x-axis (inclusive) and CAY1 and CAY2 
@@ -2975,6 +3066,32 @@ this:
 
 There are a couple examples of using this functionality, below, in
 EXAMPLES.
+
+# ========================================================================
+
+TROUBLESHOOTING ~1~
+
+1) Sometimes, people running this program (or others that use it)
+   might see an error involving "/tmp/.X11-unix", such as:
+
+     -- trying to start Xvfb :570
+     [1] 53344
+     _XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+     _XSERVTransSocketUNIXCreateListener: mkdir(/tmp/.X11-unix) failed, errno = 2
+     _XSERVTransMakeAllCOTSServerListeners: failed to create listener for local
+     (EE)
+     Fatal server error:
+     (EE) Cannot establish any listening sockets - Make sure an X server isn't already running(EE)
+
+   The following has appears to be a good solution (NB: it does
+   require having administrative or sudo privileges):
+
+     mkdir /tmp/.X11-unix
+     sudo chmod 1777 /tmp/.X11-unix
+     sudo chown root /tmp/.X11-unix/
+
+   This is described more here:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/auto_image/auto_%40chauffeur_afni.html#troubleshooting
 
 # ========================================================================
 

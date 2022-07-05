@@ -68,7 +68,7 @@ set version   = "3.1";   set rev_dat   = "Feb 12, 2019"
 ########################################################################
 
 set this_prog = "@GradFlipTest"
-set here      = $PWD
+set here      = "$PWD"
 
 # ----------------- find AFNI and set viewer ---------------------
 
