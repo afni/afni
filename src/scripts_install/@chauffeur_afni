@@ -485,6 +485,8 @@ set clust_cmd = ""               # [PT: Sep 22, 2021] clusterize with A/B
 
 set saveim_pbar_bot = ""         # [PT: July 4, 2022] see the opt for setting
 set saveim_pbar_top = ""         # these for more description
+set saveim_ulay_bot = ""         
+set saveim_ulay_top = ""         
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -1051,7 +1053,7 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-pass" ) then
         echo ""
 
-    # [PT: July 4, 2022] these are hidden opts right now,
+    # [PT: July 4, 2022] these -pbar_saveim_* are hidden opts right now,
     # basically/indirectly for the chauffeur_suma.py to save cbar
     # values properly.  Because of how SUMA doesn't output a cbar
     # easily, we have this roundabout way, at present (and SUMA can
@@ -1067,6 +1069,15 @@ while ( $ac <= $#argv )
         @ ac += 1
         set saveim_pbar_top = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-pbar_saveim_ulay_bot" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_ulay_bot = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-pbar_saveim_ulay_top" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_ulay_top = "$argv[$ac]"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -2106,6 +2117,18 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
             set pbar_top = "${saveim_pbar_top}"
         endif
 
+        if ( "${saveim_ulay_bot}" == "" ) then
+            set ulay_bot = "${umin}"
+        else
+            set ulay_bot = "${saveim_ulay_bot}"
+        endif
+
+        if ( "${saveim_ulay_top}" == "" ) then
+            set ulay_top = "${umax}"
+        else
+            set ulay_top = "${saveim_ulay_top}"
+        endif
+
 # [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
@@ -2117,8 +2140,8 @@ pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
 gen_comm     :: "${gen_comm}"
-ulay_bot     :: "${umin}"
-ulay_top     :: "${umax}"
+ulay_bot     :: "${ulay_bot}"
+ulay_top     :: "${ulay_top}"
 ulay_globran :: "${urange}"
 ulay_comm    :: "${ulay_comm}"
 ${pbar_for}
