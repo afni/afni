@@ -529,11 +529,13 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     #
     #           Ziad, Oct 30 96 / modified March 18 97
 
+    print('x = ', x)
     if type(x) != type(array):
         if type(x) != type(np.ndarray):
-            x = x.reshape(-1)
+            x = np.array(x).reshape(-1)
         else:
             x = array(x)
+    print('x = ', x)
     if upper_bound < lower_bound:
         print("Error z_scale: Upper bound < Lower bound")
         return
@@ -604,11 +606,10 @@ def phase_base(amp_type, phasee):
         hb_value = my_hist(gR, bins)    # Histogram input using bins
         if phasee["show_graphs"] == 1:  # Display histogram
             center = (bins[:-1] + bins[1:]) / 2
-            plt.bar(center, hb_value[: len(hb_value) - 1], label='Histogram of input values')  # , align='center')
-            # plt.xlabel("Input value")
-            # plt.ylabel("Count")
-            # plt.title("Histogram of input values")
-            plt.show()
+            plt.bar(center, hb_value[: len(hb_value) - 1])
+            plt.xlabel("Input value")
+            plt.ylabel("Count")
+            plt.title("Histogram of input values")
         # find the polarity of each time point in v
         i = 0
         itp = 0
@@ -660,9 +661,9 @@ def phase_base(amp_type, phasee):
             # clf
             x= phasee['t']
             plt.plot(x, gR, "b")          
-            # plt.xlabel("time (s) aka phasee['t']")
-            # plt.ylabel("Input scaled to [0,max(input)](gR)")
-            # plt.title("Input scaled per Grover (2000) versus time (s)")
+            plt.xlabel("time (s) aka phasee['t']")
+            plt.ylabel("Input scaled to [0,max(input)](gR)")
+            plt.title("Input scaled per Grover (2000) versus time (s)")
             
             # Inspiration
             ipositive = np.nonzero(phasee["phase_pol"] > 0)
@@ -683,9 +684,9 @@ def phase_base(amp_type, phasee):
             inegative_y = np.zeros(size(inegative_x))
             inegative_y.fill(0.45 * mxamp)
             plt.plot(inegative_x, inegative_y, "g.")
-            # plt.xlabel("time (s) aka phasee['t']")
-            # plt.ylabel("Input value (unscaled")
-            # plt.title("Inspiration (red) and expiration (green) versus time (s)")
+            plt.xlabel("time (s) aka phasee['t']")
+            plt.ylabel("Input value (unscaled")
+            plt.title("Inspiration (red) and expiration (green) versus time (s)")
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
@@ -772,76 +773,88 @@ def rvt_from_peakfinder(r):
                 "   Peak trace lengths differ by %d\n"
                 "   Clipping longer trace." % dd
             )
-            dm = min(len(r["p_trace"]), len(r["n_trace"]))
-            if len(r["p_trace"]) != dm:
-                r["p_trace"] = r["p_trace"][0:dm]
+            dm = min(len(r["p_trace"]), len(r["n_trace"])) # Minimum of # peaks and # troughs
+            if len(r["p_trace"]) != dm: # More peaks than troughs
+                r["p_trace"] = r["p_trace"][0:dm] # Reduce # peaks to # troughs
                 r["tp_trace"] = r["tp_trace"][0:dm]
             else:
-                r["n_trace"] = r["n_trace"][0:dm]
+                r["n_trace"] = r["n_trace"][0:dm] # Reduce # troughs to # peaks
 
-    r["rv"] = np.subtract(r["p_trace"], r["n_trace"])
+    r["rv"] = np.subtract(r["p_trace"], r["n_trace"]) # Differences between peaks and troughs
     
     # NEED TO consider which starts first and
     # whether to initialize first two values by means
     # and also, what to do when we are left with one
     # incomplete pair at the end
-    nptrc = len(r["tp_trace"])
-    r["rvt"] = r["rv"][0 : nptrc - 1] / r["prd"]
-    if r["p_trace_r"].any:
-        r["rvr"] = np.subtract(r["p_trace_r"], r["n_trace_r"])
-        r["rvtr"] = np.ndarray(np.shape(r["rvr"]))
-        np.divide(r["rvr"], r["prdR"], r["rvtr"])
+    nptrc = len(r["tp_trace"])  # Number of peaks
+    r["rvt"] = r["rv"][0 : nptrc - 1] / r["prd"] # Peak to trough differences over interpeak intervals
+    if r["p_trace_r"].any: # If interpoalted peaks
+        r["rvr"] = np.subtract(r["p_trace_r"], r["n_trace_r"]) # Differences betwen interpolated peaks
+                                                               #  and interpolated troughs
+        r["rvtr"] = np.ndarray(np.shape(r["rvr"]))  # Make array, the same length as r["rvr"])
+        np.divide(r["rvr"], r["prdR"], r["rvtr"])   # Elementwise divide r["rvr"] by r["prdR"]
+                                                    # and put results in r["rvtr"]
         # Smooth RVT so that we can resample it at volume_tr later
         fnyq = r["phys_fs"] / 2  # nyquist of physio signal
-        fcut = 2 / r["volume_tr"]  # cut below nyquist for volume_tr
         w = float(r["frequency_cutoff"]) / float(fnyq)  # cut off frequency normalized
+        
+        # Produce Hamming window of width r["fir_order"]
         b = firwin(numtaps=(r["fir_order"] + 1), cutoff=w, window="hamming")
-        v = r["rvtr"]
-        np.around(v, 6, v)
-        mv = np.mean(v)
-        # remove the mean
-        v = v - mv
+        
+        v = r["rvtr"]       # Quotient array determined above
+        np.around(v, 6, v)  # Evebnly round to 6 decimals
+        mv = np.mean(v)     # Determine mean
+        v = v - mv          # remove the mean
+        
         # filter both ways to cancel phase shift
-        v = lfilter(b, 1, v)
-        if r["legacy_transform"] == 0:
-            v = np.flipud(
+        v = lfilter(b, 1, v)    # Apply Hamming filter
+        if r["legacy_transform"] == 0:  # r["legacy_transform"] currently hardcoded to 0
+            v = np.flipud(  # Flip array
                 v
             )  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
-        v = lfilter(b, 1, v)
+        v = lfilter(b, 1, v)    # Reapply Hamming filter
         if r["legacy_transform"] == 0:
-            v = np.flipud(
+            v = np.flipud(  # Flip back
                 v
             )  # Turns out these don't do anything in the MATLAB version(Might be a major problem)
-        r["rvtrs"] = v + mv
+        r["rvtrs"] = v + mv             # Add mean back
 
     # create RVT regressors
-    r["rvtrs_slc"] = np.zeros((len(r["rvt_shifts"]), len(r["time_series_time"])))
-    for i in range(0, len(r["rvt_shifts"])):
-        shf = r["rvt_shifts"][i]
-        nsamp = int(round(shf * r["phys_fs"]))
-        sind = np.add(list(range(0, len(r["t"]))), nsamp)
-        sind[np.nonzero(sind < 0)] = 0
-        sind[np.nonzero(sind > (len(r["t"]) - 1))] = len(r["t"]) - 1
-        rvt_shf = interp1d(
+    r["rvtrs_slc"] = np.zeros((len(r["rvt_shifts"]), len(r["time_series_time"]))) # 2D array of zeros
+    for i in range(0, len(r["rvt_shifts"])):    # Process each row
+        shf = r["rvt_shifts"][i]                # i-th RVT 
+        nsamp = int(round(shf * r["phys_fs"]))  # i-th RVT times sample frequency
+        sind = np.add(list(range(0, len(r["t"]))), nsamp) # array of integers from nsamp
+                                                          # to nsamp times the number of samples
+        sind[np.nonzero(sind < 0)] = 0          # Rectify result
+        sind[np.nonzero(sind > (len(r["t"]) - 1))] = len(r["t"]) - 1 # Limit result to length of input
+        rvt_shf = interp1d(   # Build function that maps r["t"] to r["rvtrs"][sind]
             r["t"], r["rvtrs"][sind], r["interpolation_style"], bounds_error=True
         )
-        rvt_shf_y = rvt_shf(r["time_series_time"])
+        rvt_shf_y = rvt_shf(r["time_series_time"]) # Apply function to r["time_series_time"]
         if r["quiet"] == 0 and r["show_graphs"] == 1:
            # pacify matplotlib by passing a label (to get new instance)
-           subplot(111, label='plot #%d'%i)
+           subplot(111)
            plot(r["time_series_time"], rvt_shf_y)
+           plt.xlabel('Time (s)')
+           plt.ylabel("y-shifted RVT")
+           plt.title('plot #%d'%i)
         r["rvtrs_slc"][:][i] = rvt_shf_y
 
-    if r["quiet"] == 0 and r["show_graphs"] == 1:
+    if r["quiet"] == 0 and r["show_graphs"] == 1 and len(r["rvt"]) > 0:
         print("--> Calculated RVT \n--> Created RVT regressors")
         subplot(211)
-        plot(
-            r["t_mid_prd"], z_scale(r["rvt"], min(r["p_trace"]), max(r["p_trace"])), "k"
-        )
+        plot(r["t_mid_prd"], z_scale(r["rvt"], min(r["p_trace"]), max(r["p_trace"])), "b")
+        plt.xlabel('Time (s)')
+        plt.ylabel("RVT")
+        plt.title('Created RVT regressors')
         if any(r["p_trace_r"]):
             plot(
                 r["tR"], z_scale(r["rvtrs"], min(r["p_trace"]), max(r["p_trace"])), "m"
             )
+            plt.xlabel('Time (s)')
+            plt.ylabel("RVT")
+            plt.title('Created RVT regressors using interpolated peaks')
         show()
         if r["demo"]:
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
