@@ -231,7 +231,7 @@ else
 endif
 
 echo ""
-echo "++ DONE! View the finished, axialized product:"
+echo "++ DONE! View the finished, locally-unifized product:"
 echo "     ${whereout}/${opref}"
 echo ""
 
