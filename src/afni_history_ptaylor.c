@@ -69,9 +69,9 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 4, July , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
-   "Some new options under the hood for chauffeur_suma.py.",
-   "These indirectly help when we make a cbar for chauffeur_suma.py.\n"
+{ 4, July , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_OPT,
+   "Well, a new arg for '-local_mask ..' opt.",
+   "Use arg value 'None' to turn off the default automasking now.\n"
 },
 
 { 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,
@@ -102,11 +102,6 @@ afni_history_struct ptaylor_history[] = {
 { 11, May , 2022 , PT , "SurfLocalstat" , MINOR , TYPE_BUG_FIX,
    "The 'mean' stat was accumulating int, not float, values.",
    "This effective truncation/'digitizing' error should be fixed now.\n"
-},
-
-{ 11, May , 2022 , PT , "adjunct_surf_corr_node" , MINOR , TYPE_NEW_PROG,
-   "New script for calculating whole-surf corr from a node, with blur.",
-   "To be used as part of surf block APQC HTML.\n"
 },
 
 { 10, May , 2022 , PT , "@djunct_overlap_check" , MICRO , TYPE_NEW_OPT,
