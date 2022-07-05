@@ -130,6 +130,7 @@ OPTION LIST ~1~
 -echo
 
 -perc                  PERC  (req)
+-inset                 inA inB ...  (req)
 
 EXAMPLES ~1~
 
