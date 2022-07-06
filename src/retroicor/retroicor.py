@@ -1287,6 +1287,10 @@ def peak_finder(respcard_info, v_np):
         plot(r["t"], np.real(r["x"]), "g") #Lines connecting peaks and troughs
         plot(tp_trace, p_trace, "ro")   # Peak locations and values
         plot(tn_trace, n_trace, "bo")   # Trough locations and values
+        plt.xlabel("time (s)")
+        plt.ylabel("Re(Input Signal)")
+        plt.title("Peaks (red), troughs (blue), and lines (green) connecting them")
+        
         subplot(413)
         vn = np.real(r["x"]) / (abs(r["x"]) + np.spacing(1))
         plot(r["t"], vn, "g")
@@ -1298,6 +1302,7 @@ def peak_finder(respcard_info, v_np):
         ppp = ppp[0]
         for i in ppp:
             plot(tiz[i], vn[iz[i]], "bo")   # Trough locations with values set to -1
+        plt.xlabel("time (s)")
         if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
@@ -1372,6 +1377,9 @@ def peak_finder(respcard_info, v_np):
             plot(r["tp_trace"], r["p_trace"], "r+", r["tp_trace"], r["p_trace"], "r")
             # Troughs with actual values
             plot(r["tn_trace"], r["n_trace"], "b+", r["tn_trace"], r["n_trace"], "b")
+            plt.xlabel("time (s)")
+            plt.ylabel("Re(Input signal)")
+            plt.title("Peak envelope (red) and trough envelope (blue)")
             if var_vector["demo"]:
                 # need to add a pause here - JZ
                 # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
@@ -1397,8 +1405,14 @@ def peak_finder(respcard_info, v_np):
         print("--> Calculated the period (from beat to beat)\n")
         subplot(211)
         plot(r["t_mid_prd"], r["p_trace_mid_prd"], "kx")
+        fontSize = round(235.0/len(r["prd"]))
+        fontSize = min(max(fontSize,12), 5)
         for i in range(0, len(r["prd"])):
-            text(r["t_mid_prd"][i], r["p_trace_mid_prd"][i], ("%.2f" % r["prd"][i]))
+            text(r["t_mid_prd"][i], r["p_trace_mid_prd"][i], ("%.2f" % r["prd"][i]),\
+                 fontsize = fontSize, fontweight="light")
+        plt.xlabel("time (s)")
+        plt.ylabel("Midpoints between successive peaks (s)")
+        plt.title("Intervals between peaks")
         if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
