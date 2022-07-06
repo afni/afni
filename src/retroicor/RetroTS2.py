@@ -31,6 +31,9 @@ from retroicor import rvt_from_peakfinder
 from retroicor import peak_finder
 from retroicor import readRawInputData
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
+import os
+from datetime import datetime
+now = datetime.now() # current date and time
 
 def setup_exceptionhook():
     """
@@ -228,6 +231,7 @@ def retro_ts(
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
+    OutDir=now.strftime("%Y-%m-%d:%H:%M:%S"),
     prefix="Output_File_Name",
     slice_offset=0,
     slice_major=1,
@@ -249,6 +253,9 @@ def retro_ts(
     phys_json=None,
     retroicor_algorithm=False
 ):
+    # Make output directory
+    path = os.path.join(os.getcwd(), OutDir)
+    os.mkdir(path)
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
@@ -462,15 +469,15 @@ def retro_ts(
                         cardiac_phased[:, j, i]
                     )
                     label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s.slibase.1D" % prefix), "w")
+        fid = open(("%s/%s.slibase.1D"% (OutDir , prefix)), "w")
         
-        print('Output file ', ("%s.slibase.1D" % prefix))
+        print('Output file ', ("%s/%s.slibase.1D"% (OutDir , prefix)))
 
     # remove very last ';'
     label = label[1:-2]
 
     savetxt(
-        "%s.slibase.1D" % prefix,
+        "%s/%s.slibase.1D" % (OutDir , prefix),
         column_stack(reml_out),
         fmt="%.4f",
         delimiter=" ",
@@ -527,6 +534,8 @@ Input
     ---------
     :param -retroicor: Use the retroicor algorithm to estimate the cardiac and 
            respiratory phases
+    ============================================================================
+    :param -OutDir: Output directory
     ============================================================================
     :param -prefix: Prefix of output file
     ============================================================================
@@ -632,6 +641,7 @@ Output:
         "-freq": None,
         "-numSlices": None,
         "-volume_tr": None,
+        "-OutDir": now.strftime("%Y-%m-%d:%H:%M:%S"),
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
         "-slice_major": 1,
@@ -694,6 +704,7 @@ Output:
         phys_fs=opt_dict["-freq"],
         number_of_slices=int(opt_dict["-numSlices"]),
         volume_tr=float(opt_dict["-volume_tr"]),
+        OutDir=opt_dict["-OutDir"],
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],
         slice_major=opt_dict["-slice_major"],
