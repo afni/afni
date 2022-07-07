@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.10, June 29, 2022
+Version 2.0.11, July 6, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1032,7 +1032,7 @@ runLME <- function(inData, dataframe, ModelForm) {
       }
 
       if(!is.null(fm)) {      
-         Stat[1:lop$nF] <- anova(fm, type=lop$SStype)$F[lop$Fseq] # F-stat		
+         try(Stat[1:lop$nF] <- anova(fm, type=lop$SStype)$F[lop$Fseq], silent=TRUE) # F-stat		
          if(!is.na(lop$corStr[1])) { # basis functions
 	    Stat[lop$nF+2*0.5:lop$nBasis] <- unname(summary(fm)$tTable[, "Value"])
             # unname(fm$coefficients$fixed) only works for lme, not for gls!!!
