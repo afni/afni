@@ -30,6 +30,7 @@ from retroicor import phase_estimator
 from retroicor import rvt_from_peakfinder
 from retroicor import peak_finder
 from retroicor import readRawInputData
+# from retroicor import setOutputDirectory
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 import os
 from datetime import datetime
@@ -195,8 +196,6 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                 if respiration_out or rvt_out:
                    if not respiration_info["phys_fs"]:
                        respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   # respiration_peak, error = peak_finder(respiration_info,
-                   #                                       v=phys_dat[k])
                    respiration_file = None
                    phys_resp_dat = phys_dat[k]
             
@@ -206,7 +205,6 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                 if cardiac_out != 0:
                    if not respiration_info["phys_fs"]:
                        cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   # cardiac_peak, error = peak_finder(cardiac_info,v=phys_dat[k])
                    cardiac_file = None
                    phys_cardiac_dat = phys_dat[k]
             else:
@@ -214,11 +212,9 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                       "   RetroTS only handles cardiac or respiratory data" % k)
     else:   # Not a JSON file
         if respiration_info["respiration_file"]:
-            # respiration_peak, error = peak_finder(respiration_info, respiration_info["respiration_file"])
             respiration_file = respiration_info["respiration_file"]
             phys_resp_dat = None
         if cardiac_info["cardiac_file"]:
-            # cardiac_peak, error = peak_finder(cardiac_info, cardiac_info["cardiac_file"])
             cardiac_file = cardiac_info["cardiac_file"]
             phys_cardiac_dat = None
             
@@ -264,6 +260,9 @@ def retro_ts(
     fid.write(" ".join(args))
     fid.write("\n")
     fid.close()
+    
+    # Set output directory for retroicor
+    retroicor.setOutputDirectory(OutDir)
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
@@ -314,6 +313,7 @@ def retro_ts(
     v_np = readRawInputData(respiration_info, respiration_file, phys_resp_dat)
 
     # Find respiratory peaks
+    respiration_info['respcard'] = "Respiratory"
     respiration_peak, error = peak_finder(respiration_info, v_np)
     if error:
         print("Died in respiratory PeakFinder")
@@ -323,6 +323,7 @@ def retro_ts(
     v_np = readRawInputData(cardiac_info, cardiac_file, phys_cardiac_dat)
 
     # Find cardiac peaks
+    cardiac_info['respcard'] = "Cardiac"
     cardiac_peak, error = peak_finder(cardiac_info, v_np)
     if error:
         print("Died in cardiac PeakFinder")

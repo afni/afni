@@ -12,10 +12,13 @@ from scipy.signal import firwin, lfilter
 from scipy.interpolate import interp1d
 
 
-# Glocal constants
+# Global constants
 M = 3
 numSections = 1
 NUM_RVT = 5
+
+# Global variables
+OutDir = "."
 
 # for checking whether quotients are sufficiently close to integral
 g_epsilon = 0.00001
@@ -33,6 +36,10 @@ class retroicorClass:
             i += 2
             
         return parameters
+    
+def setOutputDirectory(directory):
+    global OutDir
+    OutDir = directory
 
 def readArray(parameters, key):
     # Read single column of numbers into list of lists
@@ -1289,7 +1296,8 @@ def peak_finder(respcard_info, v_np):
         plot(tn_trace, n_trace, "bo")   # Trough locations and values
         plt.xlabel("time (s)")
         plt.ylabel("Re(Input Signal)")
-        plt.title("Peaks (red), troughs (blue), and lines (green) connecting them")
+        plt.title("%s peaks (red), troughs (blue), and lines (green) connecting them"\
+                  % (respcard_info['respcard']), fontdict={'fontsize': 10})
         
         subplot(413)
         vn = np.real(r["x"]) / (abs(r["x"]) + np.spacing(1))
@@ -1303,6 +1311,16 @@ def peak_finder(respcard_info, v_np):
         for i in ppp:
             plot(tiz[i], vn[iz[i]], "bo")   # Trough locations with values set to -1
         plt.xlabel("time (s)")
+        
+        # Save plot to file
+        global OutDir
+        # PDF currently chosen over SVG because the files are much smaller with 
+        #   undetectable loss of quality
+        plt.savefig('%s/%s_peaks.pdf' % (OutDir, respcard_info['respcard'])) 
+        # plt.savefig('%s/peaks.svg' % (OutDir)) 
+        plt.show()  # If this is left out, output file is blank
+        
+        # Pause for demo
         if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
