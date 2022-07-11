@@ -1397,7 +1397,15 @@ def peak_finder(respcard_info, v_np):
             plot(r["tn_trace"], r["n_trace"], "b+", r["tn_trace"], r["n_trace"], "b")
             plt.xlabel("time (s)")
             plt.ylabel("Re(Input signal)")
-            plt.title("Peak envelope (red) and trough envelope (blue)")
+            plt.title("%s peak envelope (red) and trough envelope (blue)"\
+                      % (respcard_info['respcard']), fontdict={'fontsize': 11})
+        
+            # Save plot to file
+            # PDF currently chosen over SVG because the files are much smaller with 
+            #   undetectable loss of quality
+            plt.savefig('%s/%s_peakEnvelopes.pdf' % (OutDir, respcard_info['respcard'])) 
+            plt.show()  # If this is left out, output file is blank
+            
             if var_vector["demo"]:
                 # need to add a pause here - JZ
                 # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
