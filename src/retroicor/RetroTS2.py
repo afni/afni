@@ -251,11 +251,19 @@ def retro_ts(
     legacy_transform=0,
     phys_file=None,
     phys_json=None,
-    retroicor_algorithm=False
+    retroicor_algorithm=False,
+    args=None
 ):
+
     # Make output directory
     path = os.path.join(os.getcwd(), OutDir)
     os.mkdir(path)
+    
+    # Output args to file in new directory
+    fid = open(("%s/arguments.txt"% (OutDir)), "w")
+    fid.write(" ".join(args))
+    fid.write("\n")
+    fid.close()
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
@@ -724,5 +732,6 @@ Output:
         legacy_transform=opt_dict["-legacy_transform"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],
-        retroicor_algorithm=opt_dict["-retroicor"]
+        retroicor_algorithm=opt_dict["-retroicor"],
+        args = sys.argv[1:]
     )
