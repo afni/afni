@@ -1437,8 +1437,13 @@ def peak_finder(respcard_info, v_np):
             text(r["t_mid_prd"][i], r["p_trace_mid_prd"][i], ("%.2f" % r["prd"][i]),\
                  fontsize = fontSize, fontweight="light")
         plt.xlabel("time (s)")
-        plt.ylabel("Midpoints between successive peaks (s)")
-        plt.title("Intervals between peaks")
+        plt.ylabel("Midpoints between successive peaks")
+        plt.title("%s intervals between peaks" % (respcard_info['respcard']))
+        
+        # Save plot to file
+        plt.savefig('%s/%s_peakIntervals.pdf' % (OutDir, respcard_info['respcard'])) 
+        plt.show()  # If this is left out, output file is blank
+        
         if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
