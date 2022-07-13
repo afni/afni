@@ -22,6 +22,7 @@ __author__ = "Joshua Zosky" # Modified a bit by gianfranco
     along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
@@ -126,7 +127,7 @@ def getSliceOffsets(offsetDict):
             if len(slice_file_list) != offsetDict["number_of_slices"]:
                 print("Could not read enough slice offsets from file")
                 print("File should have as many offsets as number_of_slices")
-                quit()
+                sys.exit(1)
             slice_offsets = slice_file_list
     if (
         offsetDict["slice_order"][3] == "-" and slice_file_list == []
@@ -227,7 +228,7 @@ def retro_ts(
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
-    OutDir=now.strftime("%Y-%m-%d:%H:%M:%S"),
+    OutDir=now.strftime("retro_%Y-%m-%d-%H-%M-%S"),
     prefix="Output_File_Name",
     slice_offset=0,
     slice_major=1,
@@ -688,7 +689,7 @@ Output:
             if opt in opt_dict:
                 if opt == "-help":
                     print(opt_dict[opt])
-                    quit()
+                    sys.exit(0) 
                 elif opt == "-debug":
                     setup_exceptionhook()
 
@@ -698,7 +699,7 @@ Output:
                 print("No such command '%s', try:" % opt)
                 for key in list(opt_dict.keys()):
                     print("%s" % key)
-                quit()
+                sys.exit(1)
             temp_opt = opt
     if opt_dict["-freq"]:
         opt_dict["-freq"] = float(opt_dict["-freq"])

@@ -621,6 +621,7 @@ def phase_base(amp_type, phasee):
             # Save plot to file
             global OutDir
             plt.savefig('%s/%s_histogram.pdf' % (OutDir, phasee['respcard'])) 
+            # plt.ion()
             plt.show()  # If this is left out, output file is blank
             
         # find the polarity of each time point in v
@@ -704,6 +705,7 @@ def phase_base(amp_type, phasee):
         
             # Save plot to file
             plt.savefig('%s/%s_phaseInspExp.pdf' % (OutDir, phasee['respcard'])) 
+            # plt.ion()
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
@@ -1328,6 +1330,7 @@ def peak_finder(respcard_info, v_np):
         #   undetectable loss of quality
         plt.savefig('%s/%s_peaks.pdf' % (OutDir, respcard_info['respcard'])) 
         # plt.savefig('%s/peaks.svg' % (OutDir)) 
+        # plt.ion()
         plt.show()  # If this is left out, output file is blank
         
         # Pause for demo
@@ -1414,6 +1417,7 @@ def peak_finder(respcard_info, v_np):
             # PDF currently chosen over SVG because the files are much smaller with 
             #   undetectable loss of quality
             plt.savefig('%s/%s_peakEnvelopes.pdf' % (OutDir, respcard_info['respcard'])) 
+            # plt.ion()
             plt.show()  # If this is left out, output file is blank
             
             if var_vector["demo"]:
@@ -1452,6 +1456,7 @@ def peak_finder(respcard_info, v_np):
         
         # Save plot to file
         plt.savefig('%s/%s_peakIntervals.pdf' % (OutDir, respcard_info['respcard'])) 
+        # plt.ion()
         plt.show()  # If this is left out, output file is blank
         
         if var_vector["demo"]:
