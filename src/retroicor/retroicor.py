@@ -611,12 +611,18 @@ def phase_base(amp_type, phasee):
         gR = z_scale(phasee["v"], 0, mxamp)  # Scale, per Glover 2000's paper
         bins = np.arange(0.01, 1.01, 0.01) * mxamp # Hundred bins in 1% increments up to maximum peak
         hb_value = my_hist(gR, bins)    # Histogram input using bins
-        if phasee["show_graphs"] == 1:  # Display histogram
+        if phasee["quiet"] == 0:  # Display histogram
             center = (bins[:-1] + bins[1:]) / 2
             plt.bar(center, hb_value[: len(hb_value) - 1])
             plt.xlabel("Input value")
             plt.ylabel("Count")
-            plt.title("Histogram of input values")
+            plt.title("Histogram of input %s values" % (phasee['respcard']))
+        
+            # Save plot to file
+            global OutDir
+            plt.savefig('%s/%s_histogram.pdf' % (OutDir, phasee['respcard'])) 
+            plt.show()  # If this is left out, output file is blank
+            
         # find the polarity of each time point in v
         i = 0
         itp = 0
@@ -664,36 +670,40 @@ def phase_base(amp_type, phasee):
         phasee["tn_trace"] = np.delete(phasee["tn_trace"], -1) # Remove last trough
         
         # Plot graphs if required
-        if phasee["show_graphs"] == 1:
+        if phasee["quiet"] == 0:
             # clf
             x= phasee['t']
             plt.plot(x, gR, "b")          
             plt.xlabel("time (s) aka phasee['t']")
             plt.ylabel("Input scaled to [0,max(input)](gR)")
-            plt.title("Input scaled per Grover (2000) versus time (s)")
+            plt.title("%s input scaled per Grover (2000) versus time (s)"  % (phasee['respcard']))
             
             # Inspiration
-            ipositive = np.nonzero(phasee["phase_pol"] > 0)
-            ipositive = ipositive[0]
+            ipositive = np.positive(phasee["phase_pol"])
+            # ipositive = ipositive[0]
             ipositive_x = []
-            for i in ipositive:
+            for i in range(0,len(ipositive)):
                 ipositive_x.append(phasee["t"][i])
             ipositive_y = np.zeros(size(ipositive_x))
             ipositive_y.fill(0.55 * mxamp)
             plt.plot(ipositive_x, ipositive_y, "r.")
             
             # Exspiration
-            inegative = np.nonzero(phasee["phase_pol"] < 0)
-            inegative = inegative[0]
+            inegative = np.negative(phasee["phase_pol"])
+            # inegative = inegative[0]
             inegative_x = []
-            for i in inegative:
+            for i in range(0,len(inegative)):
                 inegative_x.append(phasee["t"][i])
             inegative_y = np.zeros(size(inegative_x))
             inegative_y.fill(0.45 * mxamp)
             plt.plot(inegative_x, inegative_y, "g.")
             plt.xlabel("time (s) aka phasee['t']")
             plt.ylabel("Input value (unscaled")
-            plt.title("Inspiration (red) and expiration (green) versus time (s)")
+            plt.title("%s inspiration (red) and expiration (green) versus time (s)"\
+                      % (phasee['respcard']))
+        
+            # Save plot to file
+            plt.savefig('%s/%s_phaseInspExp.pdf' % (OutDir, phasee['respcard'])) 
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
