@@ -34,8 +34,10 @@ from retroicor import readRawInputData
 # from retroicor import setOutputDirectory
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 import os
+
 from datetime import datetime
-now = datetime.now() # current date and time
+now     = datetime.now() # current date and time
+now_str = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 
 def setup_exceptionhook():
     """
@@ -228,7 +230,7 @@ def retro_ts(
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
-    OutDir=now.strftime("retro_%Y-%m-%d-%H-%M-%S"),
+    OutDir=now_str,
     prefix="Output_File_Name",
     slice_offset=0,
     slice_major=1,
@@ -651,7 +653,7 @@ Output:
         "-freq": None,
         "-numSlices": None,
         "-volume_tr": None,
-        "-OutDir": now.strftime("%Y-%m-%d:%H:%M:%S"),
+        "-OutDir": now_str,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
         "-slice_major": 1,
