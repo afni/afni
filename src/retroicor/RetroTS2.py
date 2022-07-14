@@ -26,13 +26,13 @@ import sys
 import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
-import retroicor
-from retroicor import phase_estimator
-from retroicor import rvt_from_peakfinder
-from retroicor import peak_finder
-from retroicor import readRawInputData
+import lib_retroicor
+from lib_retroicor import phase_estimator
+from lib_retroicor import rvt_from_peakfinder
+from lib_retroicor import peak_finder
+from lib_retroicor import readRawInputData
 # from retroicor import setOutputDirectory
-from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
+from lib_retroicor import show_rvt_peak
 import os
 
 from datetime import datetime
@@ -245,7 +245,7 @@ def retro_ts(
     cardiac_out=1,
     respiration_out=1,
     slice_order="alt+z",
-    show_graphs=0,
+    show_graphs=1,
     zero_phase_offset=0,
     legacy_transform=0,
     phys_file=None,
@@ -264,8 +264,8 @@ def retro_ts(
     fid.write("\n")
     fid.close()
     
-    # Set output directory for retroicor
-    retroicor.setOutputDirectory(OutDir)
+    # Set output directory for lib_retroicor
+    lib_retroicor.setOutputDirectory(OutDir)
 
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
@@ -361,7 +361,7 @@ def retro_ts(
         parameters['-Sr'] = phys_fs
         parameters['-abt'] = 0
         parameters['-aby'] = 0
-        fourierSeries = retroicor.getFourierSeries(parameters)
+        fourierSeries = lib_retroicor.getFourierSeries(parameters)
         fsDims = shape(fourierSeries)
         numTimePts = int(fsDims[0]/number_of_slices)
         numTimePts = min(numTimePts,220)
@@ -378,6 +378,8 @@ def retro_ts(
     if show_graphs:
         if respiration_info:
             print("Showing RVT Peaks for R\n")
+            respiration_info['v_name'] = 'Respiratory RVT'
+            respiration_info["time_series_time"] = respiration_info['t']
             show_rvt_peak(respiration_info, 1)
 
     # also generate files as 3dREMLfit likes them
@@ -669,12 +671,12 @@ Output:
         "-cardiac_out": 1,
         "-respiration_out": 1,
         "-slice_order": "alt+z",
-        "-show_graphs": 0,
+        "-show_graphs": 1,
         "-zero_phase_offset": 0,
         "-legacy_transform": 0,
         "-phys_file":None,
         "-phys_json":None,
-        "-retroicor": False
+        "-retroicor_algorithm": False
     }
 
     if len(sys.argv) < 2:
@@ -736,6 +738,6 @@ Output:
         legacy_transform=opt_dict["-legacy_transform"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],
-        retroicor_algorithm=opt_dict["-retroicor"],
+        retroicor_algorithm=opt_dict["-retroicor_algorithm"],
         args = sys.argv[1:]
     )
