@@ -340,14 +340,16 @@ def retro_ts(
     respiration_info["amp_phase"] = 1 # Amplitude-based phase for respiration
     if respiration_peak:
         print("Estimating phase for respiration_info")
-        respiration_phased, rvt = phase_estimator(
+        phasee, rvt = phase_estimator(
             respiration_info["amp_phase"], respiration_info
         )
+        respiration_phased = phasee["phase_slice_reg"]
     else:
         respiration_phased = {}    
     cardiac_info["amp_phase"] = 0   # Time-based phase for cardiac signal
     if cardiac_peak:
-        cardiac_phased, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
+        phasee, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
+        cardiac_phased = phasee["phase_slice_reg"]
     else:
         cardiac_phased = {}
 
@@ -379,7 +381,8 @@ def retro_ts(
         if respiration_info:
             print("Showing RVT Peaks for R\n")
             respiration_info['v_name'] = 'Respiratory RVT'
-            respiration_info["time_series_time"] = respiration_info['t']
+            respiration_info["time_series_time"] = phasee["time_series_time"]
+            respiration_info["phase_slice"] = phasee["phase_slice"]
             show_rvt_peak(respiration_info, 1)
 
     # also generate files as 3dREMLfit likes them
@@ -389,7 +392,7 @@ def retro_ts(
     n_e = 0
     if "time_series_time" in respiration_info:
         n_n = len(respiration_info["time_series_time"])
-        n_r_p = size(respiration_info["phase_slice_reg"], 1)
+        n_r_p = size(respiration_phased, 1)
         n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
     if "time_series_time" in cardiac_info:  # must have cardiac_info

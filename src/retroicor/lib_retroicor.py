@@ -767,7 +767,7 @@ def phase_base(amp_type, phasee):
     rvt = rvt_from_peakfinder(phasee)
     
     # Return regressors, for each slice, and RVT
-    return phasee["phase_slice_reg"], rvt
+    return phasee, rvt
 
 def rvt_from_peakfinder(r):
     if r["demo"]:
@@ -1587,10 +1587,13 @@ def show_rvt_peak(r, fg):
     plt.legend(["Scaled signal", "phase"])
     if "phase_slice" in r.keys():
         subplot(414)
+        spotSize=3
         plot(
-            r["time_series_time"], r["phase_slice"][:, 0], "ro"
+            r["time_series_time"], r["phase_slice"][:, 0], "ro", markersize=spotSize
         )  # This one isn't any different than the next plot line, check out why values are funky
-        plot(r["time_series_time"], r["phase_slice"][:, 1], "bo")
+        plot(
+            r["time_series_time"], r["phase_slice"][:, 1], "bo", markersize=spotSize
+        )
         plot(r["time_series_time"], r["phase_slice"][:, 1], "b-")
     plot(r["t"], r["phase"])
     plt.grid("on")
