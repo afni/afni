@@ -23,25 +23,32 @@ OutDir = "."
 # for checking whether quotients are sufficiently close to integral
 g_epsilon = 0.00001
 
-
-class retroicorClass:
-
-    def getParameters():
-        # Get parameters from inline arguments
-        parameters=dict()
-        num_parameters = len(sys.argv)
-        i=1
-        while i<num_parameters:
-            parameters[sys.argv[i]] = sys.argv[i+1]
-            i += 2
-            
-        return parameters
     
 def setOutputDirectory(directory):
+    """
+    NAME
+        setOutputDirectory - Set directory to which all files are written
+        
+    SYNOPSIS
+        setOutputDirectory(directory)
+        
+    ARGUMENTS
+        directory - string variable specifying the output directory
+    """
     global OutDir
     OutDir = directory
 
 def readArray(parameters, key):
+    """
+    NAME
+        readArray - Read an array from an input file specified by the key in the parameters field
+    SYNOPSIS
+        readArray(parameters, key)
+    ARGUMENTS
+        parameters - dictionary of input parameters
+        key        - key to array of interest
+    """
+
     # Read single column of numbers into list of lists
     with open(parameters[key]) as f:
         array = []

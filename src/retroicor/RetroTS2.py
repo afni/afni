@@ -28,10 +28,8 @@ import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 import lib_retroicor
 from lib_retroicor import phase_estimator
-from lib_retroicor import rvt_from_peakfinder
 from lib_retroicor import peak_finder
 from lib_retroicor import readRawInputData
-# from retroicor import setOutputDirectory
 from lib_retroicor import show_rvt_peak
 import os
 
@@ -393,7 +391,7 @@ def retro_ts(
     if "time_series_time" in respiration_info:
         n_n = len(respiration_info["time_series_time"])
         n_r_p = size(respiration_phased, 1)
-        n_r_v = size(respiration_info["rvtrs_slc"], 0)
+        n_r_v = size(phasee["rvtrs_slc"], 0)
 
     if "time_series_time" in cardiac_info:  # must have cardiac_info
         n_n = len(
@@ -434,10 +432,10 @@ def retro_ts(
     if slice_major == 0:  # old approach, not handy for 3dREMLfit
         # RVT
         if rvt_out != 0:
-            for j in range(0, size(respiration_info["rvtrs_slc"], 2)):
+            for j in range(0, size(phasee["rvtrs_slc"], 2)):
                 for i in range(0, number_of_slices):
                     cnt += 1
-                    reml_out[:, cnt] = respiration_info["rvtrs_slc"][
+                    reml_out[:, cnt] = phasee["rvtrs_slc"][
                         :, j
                     ]  # same for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
