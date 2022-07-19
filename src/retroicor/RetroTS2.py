@@ -527,7 +527,7 @@ Input
     Method 1:
     ---------
     :param -respFile: (respiration_file) Respiration data file
-    :param -c: (cardiac_file) Cardiac data file
+    :param -caesFile: (cardiac_file) Cardiac data file
     :param -freq: (phys_fs) Physiological signal sampling frequency in Hz.
     :param -numSlices: (number_of_slices) Number of slices
     :param -volume_tr: (volume_tr) Volume TR in seconds
