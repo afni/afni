@@ -1347,6 +1347,70 @@ R Reynolds    December 2008
 g_help_basis_string = """
 =============================================================================
 descriptions of various basis functions, as applied by 3dDeconvolve
+
+=============================================================================
+quick ~sorted listing (with grouping):
+
+    BLOCK(d)                    : d-second convolved BLOCK function (def=BLOCK4)
+    BLOCK(d,p)                  : d-second convolved BLOCK function, with peak=p
+    dmBLOCK                     : duration modulated BLOCK
+    dmUBLOCK                    : duration modulated BLOCK,
+                                  with convolved Unit height
+    BLOCK4(...)                 : explicitly use BLOCK4
+    BLOCK5(...)                 : explicitly use BLOCK5
+
+    CSPLIN(b,c,n)               : n-param cubic spline,
+                                  from time b to c sec after event
+    CSPLINzero(b,c,n)           : same, but without the first and last params
+                                  (i.e., an n-2 param cubic spline)
+
+    EXPR(b,c) exp1 ... expn     : n-parm arbitrary expressions,
+                                  from time b to c sec after event
+
+    GAM                         : same as GAM(8.6,0.547)
+    GAM(p,q)                    : 1 parameter gamma variate
+                                  (t/(p*q))^p * exp(p-t/q)
+    GAM(p,q,d)                  : GAM(p,q) with convolved duration d
+    GAMpw(K,W)                  : GAM, with shape parameters K and W
+                                  K = time to peak ; W = FWHM
+    TWOGAM(p1,q1,r,p2,q2)       : GAM(p1,q1) - r*GAM(p2,q2)
+    TWOGAMpw(K1,W1,r,K2,W2)     : GAMpw(K1,W1) - r*GAMpw(K2,W2)
+
+    MION(d)                     : d-second convolution of h(t) =
+                                      16.4486 * ( -0.184/ 1.5 * exp(-t/ 1.5)   
+                                                  +0.330/ 4.5 * exp(-t/ 4.5)   
+                                                  +0.670/13.5 * exp(-t/13.5) ) 
+    MIONN(d)                    : negative of MION(d) (to get positive betas)
+
+    POLY(b,c,n)                 : n-parameter Legendre polynomial expansion,
+                                  from time b to c after event time
+
+    SIN(b,c,n)                  : n-parameter sine series polynomial expansion,
+                                  from time b to c after event time
+
+    SPMG                        : same as SPMG2
+    SPMG1                       : 1-parameter SPM gamma variate function
+                                     exp(-t)*(A1*t^P1-A2*t^P2) where
+                                     A1 = 0.0083333333  P1 = 5  (main lobe) 
+                                     A2 = 1.274527e-13  P2 = 15 (undershoot)
+    SPMG2                       : 2-parameter SPM = SPMG1 + derivative
+    SPMG3                       : 3-parameter SPM : SPMG2 + dispersion 
+    SPMG1(d)                    : SPMG1 convolved for duration d
+    SPMG2(d)                    : SPMG2 convolved for duration d
+    SPMG3(d)                    : SPMG3 convolved for duration d
+
+    TENT(b,c,n)                 : n-parameter tent function,
+                                  from time b to c after event time
+    TENTzero(b,c,n)             : same, but without the first and last params
+                                  (i.e., an n-2 param tent on reduced interval)
+
+    WAV                         : same as WAV(0), the old waver -WAV function
+    WAV(d)                      : WAV convolved for duration d
+                                  equals WAV(d,2,4,6,0.2,2)
+    WAV(d,D,R,F,Uf,Ur)          : fully specified WAV function
+
+=============================================================================
+more details for select functions:
 -----------------------------------------------------------------------------
 
   GAM                   : same as GAM(p,q), where p=8.6, q=0.547
@@ -1361,14 +1425,19 @@ descriptions of various basis functions, as applied by 3dDeconvolve
 
   ---------------------------------------------------------------------------
 
-  BLOCK                 : INVALID
+  BLOCK                 : INVALID on its own
                         : BLOCK is an integrated gamma variate function
+                          g(t) = t^q * exp(-t) /(q^q*exp(-q))
+                          (where q = 4 or 5, used in BLOCK4() or BLOCK5())
 
   BLOCK(d)              : stimulus duration d (convolve with d-second boxcar)
                    peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.1
                duration : approx. 15+d seconds
   BLOCK(d,p)            : stimulus duration d, peak p
                    peak : peak = p, @t~=4+d/2
+  BLOCK4(...)           : default for BLOCK(...)
+                          g(t) = t^4 * exp(-t) /(4^4*exp(-4))
+  BLOCK5(...)           : g(t) = t^5 * exp(-t) /(5^5*exp(-5))
 
   ---------------------------------------------------------------------------
 
@@ -1404,6 +1473,10 @@ descriptions of various basis functions, as applied by 3dDeconvolve
 
   ---------------------------------------------------------------------------
 
+  CSPLIN(b,c,n)         : n-param cubic spline, from time b to c sec after event
+
+  ---------------------------------------------------------------------------
+
   SPMG1                 : 1-regressor SPM gamma variate
                duration : positive lobe: 0..12 sec, undershoot: 12..24 sec
                    peak : 0.175 @ t=5.0, -0.0156 @ t=15.7
@@ -1419,6 +1492,9 @@ descriptions of various basis functions, as applied by 3dDeconvolve
   WAV(d,D,R,F,Uf,Ur)    : includes D=delay time, R=rise time, F=fall time,
                           Uf=undershoot fraction, Ur=undershoot restore time
                         : defaults WAV(d,2,4,6,0.2,2)
+        piecewise sum of:
+             0.50212657 * ( tanh(tan(0.5*PI * (1.6*x-0.8))) + 0.99576486 )
+
                duration : stimulus duration d
                    peak : peak = 1, @t=d+6, or duration+delay+rise
              undershoot : fractional undershoot
@@ -1523,9 +1599,10 @@ g_history = """
    3.14 Jul 22, 2021 - added -multi_durations_from_offsets
    3.15 Aug 20, 2021 - added -write_tsv_cols_of_interest
    3.16 Dec 29, 2021 - added -write_simple_tsv (and process mod_* columns)
+   3.17 Jul 19, 2022 - added details to -help_basis
 """
 
-g_version = "timing_tool.py version 3.16, December 29, 2021"
+g_version = "timing_tool.py version 3.17, July 19, 2022"
 
 
 
