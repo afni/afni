@@ -3,23 +3,59 @@
 # python3 status: compatible
 
 # coding=utf-8
-__author__ = "Joshua Zosky" # Modified a bit by gianfranco 
+__author__ = "Joshua Zosky and Peter Lauren" # Modified a bit by gianfranco 
 
 """
     Copyright 2015 Joshua Zosky
+    Copyright 2022 Peter Lauren
     joshua.e.zosky@gmail.com
+    peterdlauren@gmail.com
 
-    This file is part of "RetroTS".
-    "RetroTS" is free software: you can redistribute it and/or modify
+    "RetroTS2" is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    "RetroTS" is distributed in the hope that it will be useful,
+    "RetroTS2" is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
     along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
+    
+    TODO:
+        - Add docstring to each function
+        - Make demo scripts
+        - Align names of variables
+        - Add plot font size as command line option
+        - quiet switch?
+        - Add to box:
+            - Samples (input files)
+            - Scripts that run samples with options we want
+            - Physio measure files
+        - Offset for every slice relative to TR
+        - alt-Z (alternating positive and megative z-direction)
+        - Multiband (multiple slices at same point)
+        - RVT without shifts
+        - Variance in linear model used to assess quality (Convolve RVT with some 
+            function using physiological regressors)
+        - Get percentage of variance accounted for by cardio
+        - Large smoothing to find peaks and troughs
+        - Small smoothing to remove outliers
+        - Histogram of model
+        - Remove large outliers in cardio
+        - Duplicate current code over all slices
+        - Per slice with cardio to deal with temporal offsets across slices
+        - Try weird examples from physio dB
+        - Options that might change do not have default
+        - Add options for Peter Lauren-written alternatives for
+            - Findging peaks
+            - Determining phase
+            - Determining final output
+        - Write alternative functions for
+            - Findging peaks
+            - Determining phase
+            - Determining final output
+        
 """
 
 import sys
