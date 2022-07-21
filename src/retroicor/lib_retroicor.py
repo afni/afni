@@ -52,14 +52,18 @@ g_epsilon = 0.00001
 def setOutputDirectory(directory):
     """
     NAME
-        setOutputDirectory - Set directory to which all files are written
+        setOutputDirectory
+            Set directory to which all files are written
+        
+    TYPE
+        void
         
     SYNOPSIS
         setOutputDirectory(directory)
         
     ARGUMENTS
-        directory - string variable specifying the output directory
-   AUTHOR
+        directory:   string variable specifying the output directory
+    AUTHOR
        Peter Lauren
     """
     global OutDir
@@ -68,14 +72,19 @@ def setOutputDirectory(directory):
 def readArray(parameters, key):
     """
     NAME
-        readArray - Read an array from an input file specified by the key in the parameters field
+        readArray
+            Read an array from an input file specified by the key in the parameters field
+            
     TYPE
         <class 'list'>
+        
     SYNOPSIS
         readArray(parameters, key)
+        
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
    AUTHOR
        Peter Lauren
     """
@@ -93,14 +102,17 @@ def readArray(parameters, key):
 def getCardiacPeaks(parameters):
    """
    NAME
-       getCardiacPeaks - Get peaks from cardiac time series supplied as an ASCII 
-       file with one time series entry per line
+       getCardiacPeaks
+           Get peaks from cardiac time series supplied as an ASCII 
+           file with one time series entry per line
+           
     TYPE
         <class 'numpy.ndarray'>, int
    SYNOPSIS
        getCardiacPeaks(parameters)
    ARGUMENTS
-       parameters - dictionary of input parameters which includes the following fields.
+       parameters:   dictionary of input parameters which includes the following fields.
+       
            -cardFile: Cardiac input file
    AUTHOR
        Peter Lauren
@@ -140,14 +152,16 @@ def getCardiacPeaks(parameters):
 def getRespiratoryPeaks(parameters):
    """
    NAME
-       getRespiratoryPeaks - Get peaks from repiratory time series supplied as an ASCII 
-       file with one time series entry per line
+       getRespiratoryPeaks
+           Get peaks from repiratory time series supplied as an ASCII 
+           file with one time series entry per line
     TYPE
         <class 'numpy.ndarray'>, int
    SYNOPSIS
        respFile(parameters)
    ARGUMENTS
-       parameters - dictionary of input parameters which includes the following fields.
+       parameters:   dictionary of input parameters which includes the following fields.
+       
            -respFile: repiratory input file
    AUTHOR
        Peter Lauren
@@ -178,15 +192,17 @@ def getRespiratoryPeaks(parameters):
 def getTroughs(parameters, key):
    """
    NAME
-       getTroughs - Get troughs from repiratory time series supplied as an ASCII 
-       file with one time series entry per line
+       getTroughs
+           Get troughs from repiratory time series supplied as an ASCII file 
+           with one time series entry per line
     TYPE
         <class 'numpy.ndarray'>
    SYNOPSIS
        getTroughs(parameters, key)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
    AUTHOR
        Peter Lauren
    """
@@ -200,15 +216,16 @@ def getTroughs(parameters, key):
 def determineCardiacPhases(peaks, fullLength):
     """
     NAME
-       determineCardiacPhases - Determine phases, in the cardiac cycle based on the 
-           Glover (2000) paper
+       determineCardiacPhases
+           Determine phases, in the cardiac cycle based on the Glover (2000) paper
     TYPE
         <class 'list'>
     SYNOPSIS
        determineCardiacPhases(peaks, fullLength)
     ARGUMENTS
-        peaks - Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
-        fullLength - Lenagth of cardiac time series
+        peaks:   Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
+        
+        fullLength:   Lenagth of cardiac time series
     AUTHOR
        Peter Lauren
     """
@@ -250,16 +267,18 @@ def determineCardiacPhases(peaks, fullLength):
 def getACoeffs(parameters, key, phases):
     """
     NAME
-       getACoeffs - Determine a coefficients from equation 4 of 
-           Glover (2000) paper (equation 4)
+       getACoeffs
+           Determine a coefficients from equation 4 of Glover (2000) paper (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
        getACoeffs(parameters, key, phases)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
-        phases     - <class 'list'> containing phases determined as described in Glover (2000) paper
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
+        
+        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -283,16 +302,18 @@ def getACoeffs(parameters, key, phases):
 def getBCoeffs(parameters, key, phases):
     """
     NAME
-       getBCoeffs - Determine b coefficients from equation 4 of 
-           Glover (2000) paper (equation 4)
+       getBCoeffs
+           Determine b coefficients from equation 4 of Glover (2000) paper (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
        getBCoeffs(parameters, key, phases)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
-        phases     - <class 'list'> containing phases determined as described in Glover (2000) paper
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
+        
+        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -317,16 +338,19 @@ def getBCoeffs(parameters, key, phases):
 def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs):
     """
     NAME
-        determineRespiratoryPhases - Determine respiratory phases as descibed in 
-           Glover (2000) paper (equation 3)
+        determineRespiratoryPhases
+            Determine respiratory phases as descibed in Glover (2000) paper (equation 3)
     TYPE
         <class 'list'>
     SYNOPSIS
        determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        respiratory_peaks       - peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
-        respiratory_troughs     - <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
+        
+        respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        
     AUTHOR
        Peter Lauren
     """
@@ -431,19 +455,25 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
 def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     """
     NAME
-        getNiml - 
+        getNiml 
             Apply Peter Lauren's implementation of the algorithm, descibed in Glover (2000) paper, and output the results in NIML format
     TYPE
         Integer (0 for success and 1 for failure)
     SYNOPSIS
        getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases)
     ARGUMENTS
-        data - <class 'list'> containing coefficients determined by equation 4 of Glover (2000)
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-        respiratory_phases - <class 'list'> containing the respiratory phases
-        cardiac_phases     - <class 'list'> containing the cardiac phases
+        data:   <class 'list'> containing coefficients determined by equation 4 of Glover (2000)
+        
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+        respiratory_phases:   <class 'list'> containing the respiratory phases
+        
+        cardiac_phases    :   <class 'list'> containing the cardiac phases
+        
     AUTHOR
        Peter Lauren
     """
@@ -533,9 +563,11 @@ def getFourierSeries(parameters):
     SYNOPSIS
        getFourierSeries(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
     AUTHOR
        Peter Lauren
     """
@@ -601,12 +633,17 @@ def getPhysiologicalNoiseComponents(parameters):
     SYNOPSIS
        getPhysiologicalNoiseComponents(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-            -aby      - whether  a and b coefficients as per Glover et al, Magnetic 
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+            -aby     :   whether  a and b coefficients as per Glover et al, Magnetic 
                                         Resonance in Medicine 44:162–167 (2000)
-            -niml     - whether output should be in niml format instead of CSV
+                                        
+            -niml    :   whether output should be in niml format instead of CSV
+            
     AUTHOR
        Peter Lauren
     """
@@ -692,43 +729,74 @@ def phase_estimator(amp_phase, phase_info):
     SYNOPSIS
        phase_estimator(amp_phase, phase_info)
     ARGUMENTS
-        amp_phase - Integer. Currently always 1 meaning amplitude-based phase for respiration 
-        phase_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - Peak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        amp_phase:   Integer. Currently always 1 meaning amplitude-based phase for respiration 
+        
+        phase_info:   Dictionary with the following fields.
+        
+            respiration_file:  Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   Peak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
-            v - Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
+            v:   Scale, per Glover 2000's paper 
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            amp_phase:   Currently always 1
+            
     AUTHOR
-       Joshua Zosky (modified by Peter Lauren)
+       Joshua Zosky (Documentation by Peter Lauren)
     """
         
     # Phase determination parameters
@@ -762,8 +830,10 @@ def my_hist(x, bin_centers):
     SYNOPSIS
        my_hist(x, bin_centers)
     ARGUMENTS
-        x - dataset
-        bin_centers - bin values in a list to be moved from edges to centers
+        x:   dataset
+        
+        bin_centers:   bin values in a list to be moved from edges to centers
+        
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
@@ -777,18 +847,22 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     NAME
         z_scale 
             Scales  X into Y such that its maximum value is UB and minimum value 
-                is LB. If perc is specified, then clipping is done at the percentile 
-                range specified (e.g. [2, 98]) before scaling.  If X is all 
-                constants, it gets scaled to UB;
+            is LB. If perc is specified, then clipping is done at the percentile 
+            range specified (e.g. [2, 98]) before scaling.  If X is all 
+            constants, it gets scaled to UB;
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
        z_scale(x, lower_bound, upper_bound, perc=[])
     ARGUMENTS
-       x - Dataset
-       lower_bound - Minimum peak value
-       upper_bound - Maximum peak value
-       perc - Lower and upper clipping bounds for input dataset.
+       x:   Dataset
+       
+       lower_bound:   Minimum peak value
+       
+       upper_bound:   Maximum peak value
+       
+       perc:   Lower and upper clipping bounds for input dataset.
+       
     AUTHOR
        Ziad (Documentation by Peter Lauren)
     """
@@ -823,67 +897,112 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
 def phase_base(amp_type, phasee):
     """
     NAME
-        phase_base 
+        phase_base         
             Called by phase_estimator to determine phases of respiratory and cardiac 
-                time series and RVT or respiratory time series
+            time series and RVT or respiratory time series
     TYPE
         <class 'dict'>, <class 'numpy.ndarray'> 
     SYNOPSIS
        phase_base(amp_type, phasee)
-    ARGUMENTS
-        amp_type - if 0, it is a time-based phase estimation
-                            if 1, it is an amplitude-based phase estimation
-        phasee - Dictionary with the following fields.
-            quiet - 0 if show graphs. 1 if do not show graphs
-            frequency_cutoff - Cutoff frequency for smoothing RVT
-            fir_order - Order of Finite Impulse Response (FIR) filter
-            demo - Whether running in demo mode.  (Show graphs and pause between graphs.)
-            phasee_list - Whether there is a phase list
-            show_graphs - Whether to show graphs
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+    ARGUMENTS    
+        amp_type:   if 0, it is a time-based phase estimation if 1, it is an 
+        amplitude-based phase estimation
+            
+        phasee:   Dictionary with the following fields.
+        
+            quiet:   0 if show graphs. 1 if do not show graphs
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+            
+            phasee_list:   Whether there is a phase list
+            
+            show_graphs:   Whether to show graphs
+            
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the            
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of             
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+                
+            amp_phase:   Currently always 1
+            
             
             The function adds the following fields.
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-            phase_slice_reg - Regressors for each slice - 
-            rvr - Differences betwen interpolated peaks
-            rvtr - Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
-            rvtrs - Demeaned and Hamming filtered version of phasee["rvtr"] with 
-                mean subsequently added back
-            rvtrs_slc - RVT from peak finder
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+            phase_slice_reg:   Regressors for each slice:   
+                
+            rvr:   Differences betwen interpolated peaks
+            
+            rvtr:   Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
+            
+            rvtrs:   Demeaned and Hamming filtered version of phasee["rvtr"] with 
+            mean subsequently added back
+                
+            rvtrs_slc:   RVT from peak finder
+            
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
@@ -1096,58 +1215,101 @@ def rvt_from_peakfinder(r):
     SYNOPSIS
        rvt_from_peakfinder(r)
     ARGUMENTS
-        r - Dictionary with the following fields.
-            quiet - 0 if show graphs. 1 if do not show graphs
-            frequency_cutoff - Cutoff frequency for smoothing RVT
-            fir_order - Order of Finite Impulse Response (FIR) filter
-            demo - Whether running in demo mode.  (Show graphs and pause between graphs.)
-            phasee_list - Whether there is a phase list
-            show_graphs - Whether to show graphs
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        r:   Dictionary with the following fields.
+        
+            quiet:   0 if show graphs. 1 if do not show graphs
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+            
+            phasee_list:   Whether there is a phase list
+            
+            show_graphs:   Whether to show graphs
+            
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-            phase_slice_reg - Regressors for each slice 
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            amp_phase:   Currently always 1
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+            phase_slice_reg:   Regressors for each slice 
             
             
             The function adds the following fields.
-            rvr - Differences betwen interpolated peaks
-            rvtr - Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
-            rvtrs - Demeaned and Hamming filtered version of phasee["rvtr"] with 
-                mean subsequently added back
-            rvtrs_slc - RVT from peak finder
+            
+            rvr:   Differences betwen interpolated peaks
+            
+            rvtr:   Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
+            
+            rvtrs:   Demeaned and Hamming filtered version of phasee["rvtr"] with 
+            mean subsequently added back
+            
+            rvtrs_slc:   RVT from peak finder
+            
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
@@ -1274,12 +1436,17 @@ def fftsegs(ww, po, nv):
     SYNOPSIS
       fftsegs(ww, po, nv)
     ARGUMENTS
-        ww - Segment width (in number of samples)
-        po - Percent segment overlap
-        nv - Total number of samples in original symbol
+    
+        ww:   Segment width (in number of samples)
+        
+        po:   Percent segment overlap
+        
+        nv:   Total number of samples in original symbol
+        
     EXAMPLES
-        return: (bli, ble, num): bli, ble: Two Nblck x 1 vectors defining the segments' starting and ending indices;
-                                    num: An nv x 1 vector containing the number of segments each sample belongs to
+        return: (bli, ble, num)
+            bli, ble: Two Nblck x 1 vectors defining the segments' starting and ending indices;
+            num: An nv x 1 vector containing the number of segments each sample belongs to
         return_tuple = (ww, po, nv)
         return return_tuple
     AUTHOR
@@ -1340,16 +1507,20 @@ def analytic_signal(vi, windwidth, percover, win):
     SYNOPSIS
           analytic_signal(vi, windwidth, percover, win)
     ARGUMENTS
-        vi - Demeaned input which has typically been Hamming filtered in both directions
-        windwidth - Window for adjusting peak location in seconds
-        percover - Percent segment overlap
-        win - Whether to apply Hamming window before doing FT? (1=Yes, 0 - No)
+        vi:   Demeaned input which has typically been Hamming filtered in both directions
+        
+        windwidth:   Window for adjusting peak location in seconds
+        
+        percover:   Percent segment overlap
+        
+        win:   Whether to apply Hamming window before doing FT? (1=Yes, 0 - No)
+        
     EXAMPLES
         r["x"] = analytic_signal(
-            v_np
-            var_vector["as_window_width"] * var_vector["phys_fs"],
-            var_vector["as_percover"],
-            var_vector["as_fftwin"],
+        v_np
+        var_vector["as_window_width"] * var_vector["phys_fs"],
+        var_vector["as_percover"],
+        var_vector["as_fftwin"],
         )
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
@@ -1394,12 +1565,18 @@ def remove_pn_duplicates(tp, vp, tn, vn, quiet):
     SYNOPSIS
           remove_pn_duplicates(tp, vp, tn, vn, quiet)
     ARGUMENTS
-        tp, vp, tn, vn - Four arrays to be filtered of adjacent duplicates.  Typically:
-        tp - Peak indices
-        vp - Peak values
-        tn - Trough locations
-        vn - Trough values
-        quiet - 0 if graphs are to be displayed. 1 if they are not
+        tp, vp, tn, vn:   Four arrays to be filtered of adjacent duplicates.  Typically
+        
+        tp:   Peak indices
+        
+        vp:   Peak values
+        
+        tn:   Trough locations
+        
+        vn:   Trough values
+        
+        quiet:   0 if graphs are to be displayed. 1 if they are not
+        
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
 """
@@ -1433,10 +1610,13 @@ def remove_duplicates(t, v, quiet):
     SYNOPSIS
           remove_duplicates(t, v, quiet)
     ARGUMENTS
-        t, v - Two arrays to be filtered of adjacent duplicates.  Typically:
-        t - Time (Seconds)
-        v - Scale, per Glover 2000's paper
-        quiet - 0 if graphs are to be displayed. 1 if they are not
+        t, v:   Two arrays to be filtered of adjacent duplicates.  Typically:
+            
+        t:   Time (Seconds)
+        
+        v:   Scale, per Glover 2000's paper
+        
+        quiet:   0 if graphs are to be displayed. 1 if they are not
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
        """
@@ -1458,27 +1638,38 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     NAME
         readRawInputData 
             Read in raw input data according to the user=supplied program arguments.
-                Outputs raw data.
+            Outputs raw data.
     TYPE
         <class 'numpy.ndarray'> 
     SYNOPSIS
        readRawInputData(respcard_info, filename=None, phys_dat=None)
     ARGUMENTS
-        respcard_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-        filename - String giving the local name of the input file
-        phys_dat - BIDS style physio file
+        respcard_info:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+        filename:   String giving the local name of the input file
+        
+        phys_dat:   BIDS style physio file
+        
     AUTHOR
        Joshua Zosky & Peter Lauren (Documentation by Peter Lauren)
     """
@@ -1586,48 +1777,77 @@ def peak_finder(respcard_info, v_np):
     NAME
         peak_finder 
             Find peaks in respiritory or cardiac raw data. Retirns updated dictionary 
-                and whether there is an error
+            and whether there is an error
     TYPE
         <class 'dict'>, <class 'bool'> 
     OUTPUT
         The output dictionary contains the following fields
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
-            t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+        
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
+            t_mid_prd: Array of mean values betweem successive peaks
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
     SYNOPSIS
         peak_finder(respcard_info, v_np)
     ARGUMENTS
-        respcard_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-        v_np - The raw input data
+        respcard_info:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+            
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+        v_np:   The raw input data
         
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
@@ -1978,7 +2198,7 @@ def clean_resamp(v):
     SYNOPSIS
       clean_resamp(v)
     ARGUMENTS
-        v - Array to be filtered
+        v:   Array to be filtered
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
        """
@@ -2008,13 +2228,19 @@ def runAnalysis(parameters):
     SYNOPSIS
        runAnalysis(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-            -aby      - whether  a and b coefficients as per Glover et al, Magnetic 
-                                        Resonance in Medicine 44:162–167 (2000)
-            -niml     - whether output should be in niml format instead of CSV
-            -outputFileName - Output filename
+    
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+            -aby: whether  a and b coefficients as per Glover et al, Magnetic  Resonance in Medicine 44:162–167 (2000)
+                                        
+            -niml: whether output should be in niml format instead of CSV
+            
+            -outputFileName:   Output filename
+            
     AUTHOR
        Peter Lauren
     """
@@ -2042,46 +2268,79 @@ def show_rvt_peak(r, fg):
     SYNOPSIS
        show_rvt_peak(r, fg)
     ARGUMENTS
-        r - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        r:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume TR in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+                
+            amp_phase:   Currently always 1
             
             The function adds the following fields.
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-        fg - unique identifier for the figure
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+        fg:   unique identifier for the figure
+        
     AUTHOR
        Joshua Zosky. Debugged by Peter Lauren (Documentation by Peter Lauren)
     """
