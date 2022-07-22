@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jul, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "add linux_fedora_28_shared; we now distribute linux_fedora_35_shared",
+   NULL
+ } ,
+
  { 24, Jun, 2022, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
    "apply mask_epi_anat in help examples, rather than full_mask",
    NULL
