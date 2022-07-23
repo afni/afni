@@ -131,13 +131,15 @@ int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
 /* Primary function to calculate rim per ROIs.  Will pass along any
    labeltable from the original
 
-  dset_rim : dset that gets file in with values here---basically, a subset
+  dset_rim : dset that gets filled in with values here---basically, a subset
              from the dset_roi at the boundary of each ROI
   dset_edt : the depthmap of each ROI, which is thresholded to determine 
              how deep the rim for each ROI is
   dset_roi : the map of ROIs that was input
   rim_thr  : float, the depth of the rim (can be in terms of mm or number of 
-             voxels, depending on what the distance units in dset_edt are)
+             voxels, depending on what the distance units in dset_edt are);
+             negative rim_thr inverts the selection: now keep parts with
+             dist >=RIM_THR
   copy_lt  : flag for whether to copy any labeltable that dset_roi has to 
              dset_rim
 */
@@ -147,14 +149,17 @@ int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt,
    int idx, nn;
    int nvox, nvals;
    int roi_datum;
-   
+   int sign = 1;                // control for when rim_thr<0
+
    byte  *btmp_arr = NULL;
    short *stmp_arr = NULL;
    float *ftmp_arr = NULL;
 
-
    nvox  = DSET_NVOX(dset_rim);
    nvals = DSET_NVALS(dset_rim); 
+
+   if( rim_thr < 0 )
+      sign = -1;
 
    roi_datum = DSET_BRICK_TYPE(dset_roi, 0) ;
 
@@ -170,7 +175,7 @@ int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt,
 
          // find places to put in nonzero values
          for( idx=0 ; idx<nvox ; idx++ ) {
-            if ( fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
                btmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
          }
          
@@ -188,7 +193,7 @@ int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt,
 
          // find places to put in nonzero values
          for( idx=0 ; idx<nvox ; idx++ ) {
-            if ( fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
                stmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
          }
          
@@ -206,7 +211,7 @@ int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt,
 
          // find places to put in nonzero values
          for( idx=0 ; idx<nvox ; idx++ ) {
-            if ( fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
                ftmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
          }
          
@@ -242,7 +247,6 @@ int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt,
 
    return 0;
 };
-
 
 // =========================================================================
 
@@ -551,6 +555,9 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
    return 0;
 }
 
+
+
+// =======================================================================
 
 int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,

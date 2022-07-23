@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
+   "Add functionality to '-rimify RIM' opt.",
+   "A negative RIM value now leads to creating an anti-rim (or core) ROI.\n"
+},
+
 { 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_NEW_OPT,
    "Add in the '-rimify RIM' opt, where RIM is a numerical value.",
    "Transform ROIs into boundaries up to depth RIM.\n"
