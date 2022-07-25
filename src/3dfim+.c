@@ -63,7 +63,7 @@ typedef struct FIM_options
   int num_idealts;         /* number of ideal time series */
   int q;                   /* number of parameters in the baseline model */
   int p;                   /* number of parameters in the baseline model 
-		              plus number of ideals */
+                              plus number of ideals */
 
   float fim_thr;           /* threshold for internal fim mask */
   float cdisp;             /* minimum correlation coefficient for display */ 
@@ -288,78 +288,78 @@ void get_options
 
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -input ");
-	  option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->input_filename);
-	  strcpy (option_data->input_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -input ");
+          option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->input_filename);
+          strcpy (option_data->input_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -mask filename   -----*/
       if (strcmp(argv[nopt], "-mask") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -mask ");
-	  option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->mask_filename);
-	  strcpy (option_data->mask_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -mask ");
+          option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->mask_filename);
+          strcpy (option_data->mask_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -input1D filename   -----*/
       if (strcmp(argv[nopt], "-input1D") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -input1D ");
-	  option_data->input1D_filename = 
-	    malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->input1D_filename);
-	  strcpy (option_data->input1D_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -input1D ");
+          option_data->input1D_filename = 
+            malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->input1D_filename);
+          strcpy (option_data->input1D_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -nfirst ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    FIM_error ("illegal argument after -nfirst ");
-	  option_data->NFirst = ival;
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -nfirst ");
+          sscanf (argv[nopt], "%d", &ival);
+          if (ival < 0)
+            FIM_error ("illegal argument after -nfirst ");
+          option_data->NFirst = ival;
+          nopt++;
+          continue;
+        }
 
 
       /*-----   -nlast num  -----*/
       if (strcmp(argv[nopt], "-nlast") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -nlast ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    FIM_error ("illegal argument after -nlast ");
-	  option_data->NLast = ival;
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -nlast ");
+          sscanf (argv[nopt], "%d", &ival);
+          if (ival < 0)
+            FIM_error ("illegal argument after -nlast ");
+          option_data->NLast = ival;
+          nopt++;
+          continue;
+        }
 
 
       /*-----   -polort num  -----*/
       if (strcmp(argv[nopt], "-polort") == 0)
-	{
+        {
      char *qpt ;
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -polort ");
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -polort ");
      ival = (int)strtod(argv[nopt],&qpt) ;
      if( *qpt != '\0' ) WARNING_message("Illegal non-numeric value after -polort") ;
 
@@ -371,7 +371,7 @@ void get_options
 #endif
 
      if ((ival < -1) || (ival > PMAX)) /* ZSS May 08, allowed -1 */
-	    FIM_error ("illegal argument after -polort ");
+            FIM_error ("illegal argument after -polort ");
 
 #ifdef USE_LEGENDRE
      if( 0 && ival > 2 ) /* ZSS June 2010,  No need for fear mongering */ 
@@ -379,127 +379,127 @@ void get_options
             "** WARNING: -polort > 2 is a new untested option: 29 Mar 2005\n") ;
 #endif
 
-	  option_data->polort = ival;
-	  nopt++;
-	  continue;
-	}
+          option_data->polort = ival;
+          nopt++;
+          continue;
+        }
 
       
       /*-----   -fim_thr r  -----*/
       if (strcmp(argv[nopt], "-fim_thr") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -fim_thr ");
-	  sscanf (argv[nopt], "%f", &fval); 
-	  if ((fval < 0.0) || (fval > 1.0))
-	    FIM_error ("illegal argument after -fim_thr ");
-	  option_data->fim_thr = fval;
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -fim_thr ");
+          sscanf (argv[nopt], "%f", &fval); 
+          if ((fval < 0.0) || (fval > 1.0))
+            FIM_error ("illegal argument after -fim_thr ");
+          option_data->fim_thr = fval;
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -cdisp cval   -----*/
       if (strcmp(argv[nopt], "-cdisp") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -cdisp ");
-	  sscanf (argv[nopt], "%f", &fval); 
-	  if ((fval < 0.0) || (fval > 1.0))
-	    FIM_error ("illegal argument after -cdisp ");
-	  option_data->cdisp = fval;
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -cdisp ");
+          sscanf (argv[nopt], "%f", &fval); 
+          if ((fval < 0.0) || (fval > 1.0))
+            FIM_error ("illegal argument after -cdisp ");
+          option_data->cdisp = fval;
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -ort_file sname   -----*/
       if (strcmp(argv[nopt], "-ort_file") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -ort_file");
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -ort_file");
 
-	  k = option_data->num_ort_files;
-	  if (k+1 > MAX_FILES)
-	    {
-	      sprintf (message, "Too many ( > %d ) ort time series files. ", 
-		       MAX_FILES);
-	      FIM_error (message);
-	    }
+          k = option_data->num_ort_files;
+          if (k+1 > MAX_FILES)
+            {
+              sprintf (message, "Too many ( > %d ) ort time series files. ", 
+                       MAX_FILES);
+              FIM_error (message);
+            }
 
-	  option_data->ort_filename[k] 
-	    = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->ort_filename[k]);
-	  strcpy (option_data->ort_filename[k], argv[nopt]);
-	  option_data->num_ort_files++;
-	  nopt++;
-	  continue;
-	}
+          option_data->ort_filename[k] 
+            = malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->ort_filename[k]);
+          strcpy (option_data->ort_filename[k], argv[nopt]);
+          option_data->num_ort_files++;
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -ideal_file rname   -----*/
       if (strcmp(argv[nopt], "-ideal_file") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -ideal_file");
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -ideal_file");
 
-	  k = option_data->num_ideal_files;
-	  if (k+1 > MAX_FILES)
-	    {
-	      sprintf (message, "Too many ( > %d ) ideal time series files. ", 
-		       MAX_FILES);
-	      FIM_error (message);
-	    }
+          k = option_data->num_ideal_files;
+          if (k+1 > MAX_FILES)
+            {
+              sprintf (message, "Too many ( > %d ) ideal time series files. ", 
+                       MAX_FILES);
+              FIM_error (message);
+            }
 
-	  option_data->ideal_filename[k] 
-	    = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->ideal_filename[k]);
-	  strcpy (option_data->ideal_filename[k], argv[nopt]);
-	  option_data->num_ideal_files++;
-	  nopt++;
-	  continue;
-	}
+          option_data->ideal_filename[k] 
+            = malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->ideal_filename[k]);
+          strcpy (option_data->ideal_filename[k], argv[nopt]);
+          option_data->num_ideal_files++;
+          nopt++;
+          continue;
+        }
       
 
       /*-----   -out option   -----*/
       if (strcmp(argv[nopt], "-out") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need argument after -out ");
-	  for (ival = 0;  ival < MAX_OUTPUT_TYPE;  ival++)
-	    if (strcmp(argv[nopt], OUTPUT_TYPE_name[ival]) == 0)  break;
-	  if (ival < MAX_OUTPUT_TYPE)
-	    {
-	      option_data->output_type[ival] = 1;
-	      nopt++;
-	      continue;
-	    }
-	  else if (strcmp(argv[nopt], "All") == 0)
-	    {
-	      for (ival = 0;  ival < MAX_OUTPUT_TYPE-2;  ival++)
-		option_data->output_type[ival] = 1;
-	      nopt++;
-	      continue;
-	    }
-	  else
-	    {
-	      sprintf(message,"Unrecognized output type: %s\n", argv[nopt]);
-	      FIM_error (message);
-	    }
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need argument after -out ");
+          for (ival = 0;  ival < MAX_OUTPUT_TYPE;  ival++)
+            if (strcmp(argv[nopt], OUTPUT_TYPE_name[ival]) == 0)  break;
+          if (ival < MAX_OUTPUT_TYPE)
+            {
+              option_data->output_type[ival] = 1;
+              nopt++;
+              continue;
+            }
+          else if (strcmp(argv[nopt], "All") == 0)
+            {
+              for (ival = 0;  ival < MAX_OUTPUT_TYPE-2;  ival++)
+                option_data->output_type[ival] = 1;
+              nopt++;
+              continue;
+            }
+          else
+            {
+              sprintf(message,"Unrecognized output type: %s\n", argv[nopt]);
+              FIM_error (message);
+            }
+        }
       
 
       /*-----   -bucket filename   -----*/
       if (strcmp(argv[nopt], "-bucket") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  FIM_error ("need file prefixname after -bucket ");
-	  option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->bucket_filename);
-	  strcpy (option_data->bucket_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        {
+          nopt++;
+          if (nopt >= argc)  FIM_error ("need file prefixname after -bucket ");
+          option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
+          MTEST (option_data->bucket_filename);
+          strcpy (option_data->bucket_filename, argv[nopt]);
+          nopt++;
+          continue;
+        }
       
 
       /*----- unknown command -----*/
@@ -528,7 +528,7 @@ float * read_one_time_series
   char * cpt;                    /* pointer to column suffix */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures 
-			      -- used to read 1D ASCII */
+                              -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
@@ -587,7 +587,7 @@ MRI_IMAGE * read_time_series
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures 
-			      -- used to read 1D ASCII */
+                              -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
@@ -641,7 +641,7 @@ void read_input_data
   int num_idealts;         /* number of ideal time series */
   int q;                   /* number of parameters in the baseline model */
   int p;                   /* number of parameters in the baseline model 
-			      plus number of ideals */
+                              plus number of ideals */
 
 
   /*----- Initialize local variables -----*/
@@ -655,13 +655,13 @@ void read_input_data
     {
       /*----- Read the input fMRI 1D time series -----*/
       *fmri_data = read_one_time_series (option_data->input1D_filename, 
-					 fmri_length);
+                                         fmri_length);
       if (*fmri_data == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read time series file: %s", 
-		   option_data->input1D_filename);
-	  FIM_error (message);
-	}  
+        { 
+          sprintf (message,  "Unable to read time series file: %s", 
+                   option_data->input1D_filename);
+          FIM_error (message);
+        }  
       *dset_time = NULL;
     }
 
@@ -670,25 +670,25 @@ void read_input_data
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_dataset (option_data->input_filename);   
       if (!ISVALID_3DIM_DATASET(*dset_time))  
-	{ 
-	  sprintf (message,  "Unable to open data file: %s", 
-		   option_data->input_filename);
-	  FIM_error (message);
-	}  
+        { 
+          sprintf (message,  "Unable to open data file: %s", 
+                   option_data->input_filename);
+          FIM_error (message);
+        }  
       DSET_load(*dset_time); CHECK_LOAD_ERROR(*dset_time);
 
       if (option_data->mask_filename != NULL)
-	{
-	  /*----- Read the input mask dataset -----*/
-	  *mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(*mask_dset))  
-	    { 
-	      sprintf (message,  "Unable to open mask file: %s", 
-		       option_data->mask_filename);
-	      FIM_error (message);
-	    }  
-	  DSET_load(*mask_dset); CHECK_LOAD_ERROR(*mask_dset);
-	}
+        {
+          /*----- Read the input mask dataset -----*/
+          *mask_dset = THD_open_dataset (option_data->mask_filename);
+          if (!ISVALID_3DIM_DATASET(*mask_dset))  
+            { 
+              sprintf (message,  "Unable to open mask file: %s", 
+                       option_data->mask_filename);
+              FIM_error (message);
+            }  
+          DSET_load(*mask_dset); CHECK_LOAD_ERROR(*mask_dset);
+        }
     }
   else
     FIM_error ("Must specify input measurement data");
@@ -698,14 +698,14 @@ void read_input_data
   for (is = 0;  is < num_ort_files;  is++)
     {
       ort_array[is] = read_time_series (option_data->ort_filename[is], 
-					&(ort_list[is]));
+                                        &(ort_list[is]));
 
       if (ort_array[is] == NULL)
-	{
-	  sprintf (message,  "Unable to read ort time series file: %s", 
-		   option_data->ort_filename[is]);
-	  FIM_error (message);
-	}
+        {
+          sprintf (message,  "Unable to read ort time series file: %s", 
+                   option_data->ort_filename[is]);
+          FIM_error (message);
+        }
     }
 
   
@@ -713,14 +713,14 @@ void read_input_data
   for (is = 0;  is < num_ideal_files;  is++)
     {
       ideal_array[is] = read_time_series (option_data->ideal_filename[is], 
-					  &(ideal_list[is]));
+                                          &(ideal_list[is]));
 
       if (ideal_array[is] == NULL)
-	{
-	  sprintf (message,  "Unable to read ideal time series file: %s", 
-		   option_data->ideal_filename[is]);
-	  FIM_error (message);
-	}
+        {
+          sprintf (message,  "Unable to read ideal time series file: %s", 
+                   option_data->ideal_filename[is]);
+          FIM_error (message);
+        }
     }
 
   
@@ -729,9 +729,9 @@ void read_input_data
   for (is = 0;  is < num_ort_files;  is++)
     {
       if (ort_list[is] == NULL)
-	num_ortts += ort_array[is]->ny;
+        num_ortts += ort_array[is]->ny;
       else
-	num_ortts += ort_list[is][0];
+        num_ortts += ort_list[is][0];
     }
   q = polort + 1 + num_ortts;
 
@@ -739,9 +739,9 @@ void read_input_data
   for (is = 0;  is < num_ideal_files;  is++)
     {
       if (ideal_list[is] == NULL)
-	num_idealts += ideal_array[is]->ny;
+        num_idealts += ideal_array[is]->ny;
       else
-	num_idealts += ideal_list[is][0];
+        num_idealts += ideal_list[is][0];
     }
   p = q + num_idealts;
 
@@ -775,27 +775,27 @@ void check_one_output_file
   
   
   ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
-                               			           GEN_FUNC_TYPE ,
-			    ADN_none ) ;
+                            ADN_prefix , filename ,
+                            ADN_label1 , filename ,
+                            ADN_self_name , filename ,
+                            ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+                                                           GEN_FUNC_TYPE ,
+                            ADN_none ) ;
   
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
-	       ierror);
+               "*** %d errors in attempting to create output dataset!\n", 
+               ierror);
       FIM_error (message);
     }
   
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
-	       "Output dataset file %s already exists "
-	       " -- cannot continue!\a\n",
-	       new_dset->dblk->diskptr->header_name);
+               "Output dataset file %s already exists "
+               " -- cannot continue!\a\n",
+               new_dset->dblk->diskptr->header_name);
       FIM_error (message);
     }
   
@@ -882,16 +882,16 @@ void check_for_valid_inputs
   if (mask_dset != NULL)
     {
       if ( (DSET_NX(dset_time) != DSET_NX(mask_dset))
-	   || (DSET_NY(dset_time) != DSET_NY(mask_dset))
-	   || (DSET_NZ(dset_time) != DSET_NZ(mask_dset)) )
-	{
-	  sprintf (message, "%s and %s have incompatible dimensions",
-		   option_data->input_filename, option_data->mask_filename);
-	  FIM_error (message);
-	}
+           || (DSET_NY(dset_time) != DSET_NY(mask_dset))
+           || (DSET_NZ(dset_time) != DSET_NZ(mask_dset)) )
+        {
+          sprintf (message, "%s and %s have incompatible dimensions",
+                   option_data->input_filename, option_data->mask_filename);
+          FIM_error (message);
+        }
 
       if (DSET_NVALS(mask_dset) != 1 )
-	FIM_error ("Must specify 1 sub-brick from mask dataset");
+        FIM_error ("Must specify 1 sub-brick from mask dataset");
     }
 
 
@@ -899,11 +899,11 @@ void check_for_valid_inputs
   for (is = 0;  is < num_ort_files;  is++)
     {
       if (ort_array[is]->nx < NLast+1)
-	{
-	  sprintf (message, "Input ort time series file %s is too short",
-		   option_data->ort_filename[is]);
-	  FIM_error (message);
-	}
+        {
+          sprintf (message, "Input ort time series file %s is too short",
+                   option_data->ort_filename[is]);
+          FIM_error (message);
+        }
     }
 
  
@@ -911,11 +911,11 @@ void check_for_valid_inputs
   for (is = 0;  is < num_ideal_files;  is++)
     {
       if (ideal_array[is]->nx < NLast+1)
-	{
-	  sprintf (message, "Input ideal time series file %s is too short",
-		   option_data->ideal_filename[is]);
-	  FIM_error (message);
-	}
+        {
+          sprintf (message, "Input ideal time series file %s is too short",
+                   option_data->ideal_filename[is]);
+          FIM_error (message);
+        }
     }
 
 
@@ -954,16 +954,16 @@ void allocate_memory
   for (ip = 0;  ip < MAX_OUTPUT_TYPE;  ip++)
     {
       if (option_data->output_type[ip])
-	{
-	  (*fim_params_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
-	  MTEST((*fim_params_vol)[ip]);    
-	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-	    {
-	      (*fim_params_vol)[ip][ixyz]  = 0.0;
-	    }
-	}
+        {
+          (*fim_params_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
+          MTEST((*fim_params_vol)[ip]);    
+          for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+            {
+              (*fim_params_vol)[ip][ixyz]  = 0.0;
+            }
+        }
       else
-	(*fim_params_vol)[ip] = NULL;
+        (*fim_params_vol)[ip] = NULL;
     }
 
 }
@@ -1003,12 +1003,12 @@ void initialize_program
 
   /*----- Read input data -----*/
   read_input_data (*option_data, dset_time, mask_dset, fmri_data, fmri_length,
-		   ort_array, ort_list, ideal_array, ideal_list);
+                   ort_array, ort_list, ideal_array, ideal_list);
 
 
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time, *mask_dset, 
-			  *fmri_length, ort_array, ideal_array);
+                          *fmri_length, ort_array, ideal_array);
   
 
   /*----- Allocate memory for output volumes -----*/
@@ -1080,7 +1080,7 @@ void save_voxel
   for (ip = 0;  ip < MAX_OUTPUT_TYPE;  ip++)
     {
       if (fim_params_vol[ip] != NULL)
-	fim_params_vol[ip][iv]  = fim_params[ip];
+        fim_params_vol[ip][iv]  = fim_params[ip];
     }
 
 }
@@ -1159,7 +1159,7 @@ void calculate_results
 
   int q;                      /* number of parameters in the baseline model */
   int p;                      /* number of parameters in the baseline model 
-			         plus number of ideals */
+                                 plus number of ideals */
   int m;                      /* parameter index */
   int n;                      /* data point index */
 
@@ -1257,9 +1257,9 @@ void calculate_results
 
   /*----- Initialize the independent variable matrix -----*/
   N = init_indep_var_matrix (q, p, NFirst, N, polort, 
-			     num_ort_files, num_ideal_files, 
-			     ort_array, ort_list, ideal_array, ideal_list, 
-			     x_bot, x_ave, x_top, good_list, &xdata);
+                             num_ort_files, num_ideal_files, 
+                             ort_array, ort_list, ideal_array, ideal_list, 
+                             x_bot, x_ave, x_top, good_list, &xdata);
   option_data->N = N;
 
 
@@ -1270,7 +1270,7 @@ void calculate_results
 
   /*----- Initialization for the regression analysis -----*/
   init_regression_analysis (q, p, N, num_idealts, xdata, &x_base, 
-			    &xtxinvxt_base, x_ideal, xtxinvxt_ideal, rarray);
+                            &xtxinvxt_base, x_ideal, xtxinvxt_ideal, rarray);
 
 
   vector_create (N, &y);
@@ -1281,49 +1281,49 @@ void calculate_results
     {
       /*----- Apply mask? -----*/
       if (mask != NULL)
-	{
-	  extract_ts_array (mask, ixyz, mask_val);
-	  if (mask_val[0] == 0.0)  continue; 
-	}
+        {
+          extract_ts_array (mask, ixyz, mask_val);
+          if (mask_val[0] == 0.0)  continue; 
+        }
       
       
       /*----- Extract Y-data for this voxel -----*/
       if (option_data->input1D_filename != NULL)
-	{
-	  for (i = 0;  i < N;  i++)
-	    y.elts[i] = fmri_data[good_list[i]+NFirst];
-	}
+        {
+          for (i = 0;  i < N;  i++)
+            y.elts[i] = fmri_data[good_list[i]+NFirst];
+        }
       else
-	{
-	  extract_ts_array (dset, ixyz, ts_array);
-	  if (fabs(ts_array[good_list[0]+NFirst]) < fthr)  
-	    continue;
-	  for (i = 0;  i < N;  i++)
-	    y.elts[i] = ts_array[good_list[i]+NFirst];
-	}
+        {
+          extract_ts_array (dset, ixyz, ts_array);
+          if (fabs(ts_array[good_list[0]+NFirst]) < fthr)  
+            continue;
+          for (i = 0;  i < N;  i++)
+            y.elts[i] = ts_array[good_list[i]+NFirst];
+        }
       
 
       /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, q, num_idealts,
-			   x_base, xtxinvxt_base, x_ideal, xtxinvxt_ideal, 
-			   y, x_bot, x_ave, x_top, rarray, 
-			   option_data->output_type, FimParams);
+                           x_base, xtxinvxt_base, x_ideal, xtxinvxt_ideal, 
+                           y, x_bot, x_ave, x_top, rarray, 
+                           option_data->output_type, FimParams);
 
 
       /*----- Save results for this voxel -----*/
       if (option_data->input1D_filename == NULL)
-	save_voxel (ixyz, FimParams, fim_params_vol);
+        save_voxel (ixyz, FimParams, fim_params_vol);
       
       
       /*----- Report results for this voxel -----*/
       if ( ((fabs(FimParams[FIM_Correlation]) > option_data->cdisp) 
-	    && (option_data->cdisp >= 0.0))
-	   || (option_data->input1D_filename != NULL) )
-	{
-	  printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	  report_results (option_data->output_type, FimParams, &label);
-	  printf ("%s \n", label);
-	}
+            && (option_data->cdisp >= 0.0))
+           || (option_data->input1D_filename != NULL) )
+        {
+          printf ("\n\nResults for Voxel #%d: \n", ixyz);
+          report_results (option_data->output_type, FimParams, &label);
+          printf ("%s \n", label);
+        }
       
     }  /*----- Loop over voxels -----*/
   
@@ -1384,7 +1384,7 @@ void attach_sub_brick
   MTEST (bar[ibrick]);
   if (do_scale) { 
      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-				         MRI_short, bar[ibrick]);
+                                         MRI_short, bar[ibrick]);
 
      if (factor < EPSILON)  factor = 0.0;
      else factor = 1.0 / factor;
@@ -1393,7 +1393,7 @@ void attach_sub_brick
                          nxyz , factor , bar[ibrick] , volume ) ;
    } else { /* ZSS Nov 2011 */
       EDIT_coerce_type(nxyz, MRI_float, volume,
-				         MRI_short, bar[ibrick]);
+                                         MRI_short, bar[ibrick]);
       factor = 0.0;
    }
   /*----- edit the sub-brick -----*/
@@ -1495,28 +1495,28 @@ void write_bucket_data
           just make empty sub-bricks, without any data attached. -----*/
   ierror = EDIT_dset_items (new_dset,
                             ADN_prefix,          output_prefix,
-			    ADN_directory_name,  output_session,
-			    ADN_type,            HEAD_FUNC_TYPE,
-			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,   
+                            ADN_directory_name,  output_session,
+                            ADN_type,            HEAD_FUNC_TYPE,
+                            ADN_func_type,       FUNC_BUCK_TYPE,
+                            ADN_datum_all,       MRI_short ,   
                             ADN_ntt,             0,               /* no time */
-			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
-			    ADN_none ) ;
+                            ADN_nvals,           nbricks,
+                            ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+                            ADN_none ) ;
   
   if( ierror > 0 )
     {
       fprintf(stderr, 
-	      "*** %d errors in attempting to create bucket dataset!\n", 
-	      ierror);
+              "*** %d errors in attempting to create bucket dataset!\n", 
+              ierror);
       exit(1);
     }
   
   if (!THD_ok_overwrite() && THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       fprintf(stderr,
-	      "*** Output dataset file %s already exists--cannot continue!\n",
-	      DSET_HEADNAME(new_dset));
+              "*** Output dataset file %s already exists--cannot continue!\n",
+              DSET_HEADNAME(new_dset));
       exit(1);
     }
   
@@ -1530,43 +1530,43 @@ void write_bucket_data
       strcpy (brick_label, OUTPUT_TYPE_name[ip]);
 
       if (ip == FIM_Correlation)
-	{
-	  brick_type = FUNC_COR_TYPE;
-	  nsam = N;  nort = q;
-	  if (num_idealts > 1)  nfit = 2;
-	  else                  nfit = 1;
-	}
+        {
+          brick_type = FUNC_COR_TYPE;
+          nsam = N;  nort = q;
+          if (num_idealts > 1)  nfit = 2;
+          else                  nfit = 1;
+        }
       else if (ip == FIM_SpearmanCC)
-	{
+        {
 #if 0
-	  brick_type = FUNC_THR_TYPE;
+          brick_type = FUNC_THR_TYPE;
 #else
-	  brick_type = FUNC_COR_TYPE;
+          brick_type = FUNC_COR_TYPE;
 #endif
-	  nsam = N;  nort = q;
-	  if (num_idealts > 1)  nfit = 2;
-	  else                  nfit = 1;
-	} 
+          nsam = N;  nort = q;
+          if (num_idealts > 1)  nfit = 2;
+          else                  nfit = 1;
+        } 
       else if (ip == FIM_QuadrantCC)
-	{
+        {
 #if 0
-	  brick_type = FUNC_THR_TYPE;
+          brick_type = FUNC_THR_TYPE;
 #else
-	  brick_type = FUNC_COR_TYPE;
+          brick_type = FUNC_COR_TYPE;
 #endif
-	  nsam = N;  nort = q;
-	  if (num_idealts > 1)  nfit = 2;
-	  else                  nfit = 1;
-	}
+          nsam = N;  nort = q;
+          if (num_idealts > 1)  nfit = 2;
+          else                  nfit = 1;
+        }
       else
-	{
-	  brick_type = FUNC_FIM_TYPE;
-	  nsam = 0;  nfit = 0;  nort = 0;
-	}
+        {
+          brick_type = FUNC_FIM_TYPE;
+          nsam = 0;  nfit = 0;  nort = 0;
+        }
 
-      volume = fim_params_vol[ip];		  
+      volume = fim_params_vol[ip];                
       attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, nsam, nfit, nort, bar,
+                        brick_type, brick_label, nsam, nfit, nort, bar,
          ip == FIM_BestIndex ? 0 : 1);  
 
       ibrick++;
@@ -1658,10 +1658,10 @@ void terminate_program
   if (*fim_params_vol != NULL)
     {
       for (ip = 0;  ip < MAX_OUTPUT_TYPE;  ip++)
-	{
-	  if ((*fim_params_vol)[ip] != NULL)
-	    { free ((*fim_params_vol)[ip]);   (*fim_params_vol)[ip] = NULL; }
-	}
+        {
+          if ((*fim_params_vol)[ip] != NULL)
+            { free ((*fim_params_vol)[ip]);   (*fim_params_vol)[ip] = NULL; }
+        }
 
       free (*fim_params_vol);   *fim_params_vol  = NULL; 
     }
@@ -1720,16 +1720,16 @@ WARNING_message("This program (3dfim+) is very old, may not be useful, and will 
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 
-		      &fmri_data, &fmri_length, 
-		      ort_array, ort_list, ideal_array, ideal_list, 
-		      &fim_params_vol);
+                      &fmri_data, &fmri_length, 
+                      ort_array, ort_list, ideal_array, ideal_list, 
+                      &fim_params_vol);
 
 
   /*----- Perform fim analysis -----*/
   calculate_results (option_data, dset_time, mask_dset, 
-		     fmri_data, fmri_length,
-		     ort_array, ort_list, ideal_array, ideal_list, 
-		     fim_params_vol);
+                     fmri_data, fmri_length,
+                     ort_array, ort_list, ideal_array, ideal_list, 
+                     fim_params_vol);
   
   /*----- Deallocate memory for input datasets -----*/   
   if (dset_time != NULL)  
@@ -1745,8 +1745,8 @@ WARNING_message("This program (3dfim+) is very old, may not be useful, and will 
 
   /*----- Terminate program -----*/
   terminate_program (&option_data, 
-		     ort_array, ort_list, ideal_array, ideal_list, 
-		     &fim_params_vol); 
+                     ort_array, ort_list, ideal_array, ideal_list, 
+                     &fim_params_vol); 
 
   exit(0);
 }
