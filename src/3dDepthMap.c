@@ -49,6 +49,12 @@ ver = 2.73;  date = Jan 24, 2022
     of their name, to distinguish them from _BIN ones (latter, only for
     binary input mask)
 
+ver = 2.8;  date = July 22, 2022
++ [PT] add option "-rimify": instead of outputting distance, output a 
+  rim around each input ROI, of thickness specified by the user.
+ver = 2.81;  date = July 23, 2022
++ [PT] update '-rimify' usage to allow for neg values, for an 'anti-rim'.
+
 */
 
 #include <stdio.h>
@@ -131,6 +137,30 @@ int usage_3dDepthMap()
 "                    values.  By using this option, the output values are\n"
 "                    distance**2.\n"
 "\n"
+" -ignore_voxdims   :this EDT algorithm works in terms of physical distance\n"
+"                    and uses the voxel dimension info in each direction, by\n"
+"                    default.  However, using this option will ignore voxel\n"
+"                    size, producing outputs as if each voxel dimension was\n"
+"                    unity.\n"
+"\n"
+"  -rimify RIM      :instead of outputting a depthmap for each ROI, output\n"
+"                    a map of each ROI's 'rim' voxels---that is, the boundary\n"
+"                    layer or periphery up to thickness RIM---if RIM>0.\n"
+"                    +  Note that RIM is applied to whatever kind of depth\n"
+"                    information you are calculating: if you use '-dist_sq'\n"
+"                    then the voxel's distance-squared value to the ROI edge\n"
+"                    is compared with RIM; if using '-ignore_voxdims', then\n"
+"                    the number-of-voxels to the edge is compared with RIM.\n"
+"                    The depthmap thresholding is applied as:\n"
+"                       abs(DEPTH)<=RIM.\n"
+"                    +  When using this opt, any labeltable/atlastable\n"
+"                    from the original should be passed along, as well.\n"
+"                    +  A negative RIM value inverts the check, and the\n"
+"                    output is kept if the depth info is:\n"
+"                       abs(DEPTH)>=abs(RIM).\n"
+"                    NB: with a negative RIM value, it is possible an ROI\n"
+"                    could disappear!\n"
+"\n"
 "  -zeros_are_zero  :by default, EDT values are output for the full FOV,\n"
 "                    even zero-valued regions.  If this option is used, EDT\n"
 "                    values are only reported within the nonzero locations\n"
@@ -152,12 +182,6 @@ int usage_3dDepthMap()
 "                    an open boundary).  Zero-valued ROIs (= background)\n"
 "                    are not affected by this option.\n"
 "\n"
-" -ignore_voxdims   :this EDT algorithm works in terms of physical distance\n"
-"                    and uses the voxel dimension info in each direction, by\n"
-"                    default.  However, using this option will ignore voxel\n"
-"                    size, producing outputs as if each voxel dimension was\n"
-"                    unity.\n"
-"\n"
 "  -only2D   SLI    :instead of running full 3D EDT, run just in 2D, per.\n"
 "                    plane.  Provide the slice plane you want to run along\n"
 "                    as the single argument SLI:\n"
@@ -176,6 +200,8 @@ int usage_3dDepthMap()
 "==========================================================================\n"
 "\n"
 "Notes ~1~\n"
+"\n"
+"Depth and the Euclidean Distance Transform ~2~\n"
 "\n"
 "The original EDT algorithm of FH2012 was developed for a simple binary\n"
 "mask input (and actually for homogeneous data grids of spacing=1). This\n"
@@ -237,6 +263,13 @@ int usage_3dDepthMap()
 "       -binary_only                                                \\\n"
 "       -input  roi_mask.nii.gz                                     \\\n"
 "       -prefix roi_mask_EDT.nii.gz                                 \n"
+"\n"
+"7) Instead of outputting ROI depth, output a map of the ROI rims, keeping:\n"
+"   the part of the ROI up to where depth is >=1.6mm\n"
+"   3dDepthMap                                                      \\\n"
+"       -input  roi_map.nii.gz                                      \\\n"
+"       -rimify 1.6                                                 \\\n"
+"       -prefix roi_map_rim.nii.gz                                  \n"
 "\n"
 "==========================================================================\n"
 "\n",
@@ -350,6 +383,14 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-rimify") == 0) {
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need float argument after '%s'", argv[iarg-1]);
+
+         InOpts.rimify = atof(argv[iarg]);
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-verb") == 0) {
          if( ++iarg >= argc ) 
             ERROR_exit("Need int>0 argument after '%s'", argv[iarg-1]);
@@ -403,7 +444,8 @@ int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
 	THD_3dim_dataset *dset_roi = NULL;          // input
    THD_3dim_dataset *dset_mask = NULL;         // mask
 	THD_3dim_dataset *dset_edt = NULL;          // output
-   
+   THD_3dim_dataset *dset_rc  = NULL;          // (potential) output rim/core
+
    ENTRY("run_EDT_3D");
 
    dset_roi = THD_open_dataset(opts.input_name);
@@ -443,6 +485,7 @@ int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
                    ADN_prefix, opts.prefix,
                    ADN_none );
 
+   // Call the main EDT/DepthMap calcs
    if( opts.binary_only ){
       for( nn=0 ; nn<nvals ; nn++ )
          i = calc_EDT_3D_BIN(dset_edt, opts, dset_roi, dset_mask, nn);
@@ -452,6 +495,29 @@ int run_EDT_3D( int comline, PARAMS_euclid_dist opts,
          i = calc_EDT_3D_GEN(dset_edt, opts, dset_roi, dset_mask, nn);
    }
    
+   /*
+     [PT: July 22, 2022] this new functionality is for outputting just
+     edges/rims of the input ROIs
+     [PT: July 23, 2022] tweak, to allow negative RIM values
+   */
+   if( opts.rimify ){
+      /* the "rim" dset overlaps the original at the rims, will just
+         be zeroed out elsewhere.  dset_rc will have same type as
+         dset_roi */
+      dset_rc = EDIT_empty_copy( dset_roi ); 
+      EDIT_dset_items(dset_rc,
+                   ADN_prefix, opts.prefix,
+                   ADN_none );
+
+      i = calc_EDT_rim(dset_rc, dset_edt, dset_roi, opts.rimify, 1);
+
+      // the rim info replaces the EDT output
+      DSET_delete(dset_edt);
+      dset_edt = dset_rc;
+      dset_rc = NULL;
+   }
+
+
    // free input dset
 	DSET_delete(dset_roi); 
   	free(dset_roi); 

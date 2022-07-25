@@ -69,9 +69,19 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 28, June , 2022 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
-   "Add more button saving to apqc_*.json files.",
-   "Have A+, Ax, A? and clr save to the apqc_*.json now.'\n"
+{ 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
+   "Add functionality to '-rimify RIM' opt.",
+   "A negative RIM value now leads to creating an anti-rim (or core) ROI.\n"
+},
+
+{ 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_NEW_OPT,
+   "Add in the '-rimify RIM' opt, where RIM is a numerical value.",
+   "Transform ROIs into boundaries up to depth RIM.\n"
+},
+
+{ 4, July , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_OPT,
+   "Well, a new arg for '-local_mask ..' opt.",
+   "Use arg value 'None' to turn off the default automasking now.\n"
 },
 
 { 7, June , 2022 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_BUG_FIX,

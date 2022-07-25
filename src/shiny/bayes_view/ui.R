@@ -62,10 +62,16 @@ sidebar <- dashboardSidebar(
                     min=400,max=2000,value=400)
       ),
       sliderInput('plotRes','Plot Resolution',min=5,max=2000,value=72),
+      
       ## display current dimensions
       h5(paste("Visible Plot Width x Height (pixels)"),
          style="margin-left: 12px;"),
       h4(textOutput("cur_plot_dim"),style="margin-left: 12px;"),
+      
+      ## output size
+      h5(paste("Output Plot Width x Height (inches)"),
+         style="margin-left: 12px;"),
+      h4(textOutput("out_plot_dim"),style="margin-left: 12px;"),
       
       checkboxInput('x_range_custom','Customize X Axis Range?'),
       conditionalPanel(
@@ -73,6 +79,10 @@ sidebar <- dashboardSidebar(
         sliderInput('plotRange','Range:',
                     min=-0.5,max=0.5,value=c(-0.05,0.05),step=0.01)
       ),
+      
+      ## reset to defaults
+      actionButton('resetDim','Reset Dimensions'),
+      
       br()
     ),   ## end dimensions
     
@@ -126,6 +136,9 @@ sidebar <- dashboardSidebar(
         sliderInput('P_label_size','P Label Size',min=3,max=50,value=10)
       ),
       
+      ## reset to defaults
+      hr(),
+      actionButton('resetDecor','Reset to Defaults'),
       br()
     ),   ## end decorations
     
@@ -141,10 +154,10 @@ sidebar <- dashboardSidebar(
                   min=400,max=2000,value=400,step=5),
       sliderInput('outputDPI','Output DPI',min=5,max=1200,value=72),
       
-      h5(paste("Output Plot Width x Height (inches)"),
-         style="margin-left: 12px;"),
-      h4(textOutput("out_plot_dim"),style="margin-left: 12px;"),
-      
+      # h5(paste("Output Plot Width x Height (inches)"),
+      #    style="margin-left: 12px;"),
+      # h4(textOutput("out_plot_dim"),style="margin-left: 12px;"),
+      # 
       downloadButton('downloadPlot','Download Plot',class='d_button'),
       tags$head(tags$style(".d_button#downloadPlot{margin-left: 12px;}
                                 .d_button#downloadPlot{color:black;}")),

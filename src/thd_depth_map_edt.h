@@ -34,6 +34,16 @@
                    just in voxel units (so, delta=1 everywhere), which 
                    using this option will give 'em.                   
 
+    rimify       : if 0.0 (def), the normal depthmap is output; if >0,
+                   the output is not depth values, but the original
+                   input values thresholded (depth<=THR_RIM) at a
+                   given value to create a "rim" only based on the
+                   user preference (can be in terms of voxel count or
+                   mm distance, whatever user was calculating for
+                   depth); if <0, then the depth is thresholded as 
+                   abs(depth) >= abs(THR_RIM)---but note that this
+                   might lead to a region disappearing.
+
     zero_region_sign :(-1 or +1) user can flip sign of distances in zero-valued
                    region (def: 1)
 
@@ -65,6 +75,7 @@ typedef struct {
    int bounds_are_zero;   
    int ignore_voxdims;
    int dist_sq;           
+   float rimify;
 
    float edims[3];        
    int   shape[3];        
@@ -87,6 +98,9 @@ int sort_vox_ord_desc(int N, float *Ledge, int *ord);
 
 int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
                            int *onoff_arr, int verb );
+
+int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt, 
+                 THD_3dim_dataset *dset_roi, float rim_thr, int copy_lt);
 
 /*
   Set of funcs for special case of user saying the input is a binary

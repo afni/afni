@@ -15,6 +15,7 @@ PARAMS_euclid_dist set_euclid_dist_defaults(void)
    defopt.bounds_are_zero  = 1;
    defopt.ignore_voxdims   = 0;
    defopt.dist_sq          = 0;
+   defopt.rimify           = 0.0;
 
    defopt.edims[0] = 0.0;       
    defopt.edims[1] = 0.0;
@@ -125,7 +126,129 @@ int choose_axes_for_plane( THD_3dim_dataset *dset, char *which_slice,
    return 0;
 };
 
+// ---------------------------------------
 
+/* Primary function to calculate rim per ROIs.  Will pass along any
+   labeltable from the original
+
+  dset_rim : dset that gets filled in with values here---basically, a subset
+             from the dset_roi at the boundary of each ROI
+  dset_edt : the depthmap of each ROI, which is thresholded to determine 
+             how deep the rim for each ROI is
+  dset_roi : the map of ROIs that was input
+  rim_thr  : float, the depth of the rim (can be in terms of mm or number of 
+             voxels, depending on what the distance units in dset_edt are);
+             negative rim_thr inverts the selection: now keep parts with
+             dist >=RIM_THR
+  copy_lt  : flag for whether to copy any labeltable that dset_roi has to 
+             dset_rim
+*/
+int calc_EDT_rim(THD_3dim_dataset *dset_rim, THD_3dim_dataset *dset_edt, 
+                 THD_3dim_dataset *dset_roi, float rim_thr, int copy_lt)
+{
+   int idx, nn;
+   int nvox, nvals;
+   int roi_datum;
+   int sign = 1;                // control for when rim_thr<0
+
+   byte  *btmp_arr = NULL;
+   short *stmp_arr = NULL;
+   float *ftmp_arr = NULL;
+
+   nvox  = DSET_NVOX(dset_rim);
+   nvals = DSET_NVALS(dset_rim); 
+
+   if( rim_thr < 0 )
+      sign = -1;
+
+   roi_datum = DSET_BRICK_TYPE(dset_roi, 0) ;
+
+   for( nn=0 ; nn<nvals ; nn++ ) {
+      // create tmp 'brick' array
+      switch( roi_datum ){
+      case MRI_byte:
+         btmp_arr = (byte *) calloc( nvox, sizeof(byte) );
+         if( btmp_arr == NULL ) {
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(12);
+         }
+
+         // find places to put in nonzero values
+         for( idx=0 ; idx<nvox ; idx++ ) {
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+               btmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
+         }
+         
+         // copy the brick array into the dset
+         EDIT_substitute_brick(dset_rim, nn, MRI_byte, btmp_arr); 
+         btmp_arr=NULL;
+
+         break;
+      case MRI_short:
+         stmp_arr = (short *) calloc( nvox, sizeof(short) );
+         if( stmp_arr == NULL ) {
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(12);
+         }
+
+         // find places to put in nonzero values
+         for( idx=0 ; idx<nvox ; idx++ ) {
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+               stmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
+         }
+         
+         // copy the brick array into the dset
+         EDIT_substitute_brick(dset_rim, nn, MRI_short, stmp_arr); 
+         stmp_arr=NULL;
+
+         break;
+      case MRI_float:
+         ftmp_arr = (float *) calloc( nvox, sizeof(float) );
+         if( ftmp_arr == NULL ) {
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(12);
+         }
+
+         // find places to put in nonzero values
+         for( idx=0 ; idx<nvox ; idx++ ) {
+            if ( sign*fabs(THD_get_voxel(dset_edt, idx, nn)) <= rim_thr  )
+               ftmp_arr[idx] = THD_get_voxel(dset_roi, idx, nn);
+         }
+         
+         // copy the brick array into the dset
+         EDIT_substitute_brick(dset_rim, nn, MRI_float, ftmp_arr); 
+         ftmp_arr=NULL;
+
+         break;
+      }
+   }
+
+   // copy over labeltable/atlas, if either exists
+   if( copy_lt ){
+      // does dset_roi have a labeltable/atlas?
+      char *str    = NULL;
+      int iaol_val = 0;
+      if ( is_Dset_Atlasy(dset_roi, NULL) ) {
+         iaol_val = 1;
+      }
+      else if ( (str = Dtable_to_nimlstring(DSET_Label_Dtable(dset_roi),
+                                            "VALUE_LABEL_DTABLE")) ) {
+         // 'else if' for speed
+         iaol_val = 1;
+         free(str);
+      }
+      
+      if( iaol_val ) 
+         INFO_message("Copy over label and/or atlas table");
+         if (!THD_copy_labeltable_atr( dset_rim->dblk , dset_roi->dblk )) {
+            WARNING_message("Failed to copy labletable attributes");
+         }
+   }
+
+   return 0;
+};
+
+// =========================================================================
 
 /*
   ***This function treats treats in the input "ROI map" as a binary mask***
@@ -432,6 +555,9 @@ int calc_EDT_3D_BIN( THD_3dim_dataset *dset_edt, PARAMS_euclid_dist opts,
    return 0;
 }
 
+
+
+// =======================================================================
 
 int calc_EDT_3D_BIN_dim2( float ***arr_dist, PARAMS_euclid_dist opts,
                           int nx, int ny, int nz, float delta,

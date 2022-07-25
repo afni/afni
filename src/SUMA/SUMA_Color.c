@@ -848,7 +848,12 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_PBARDEF_ADD("init_bigmaps_2");
    SUMA_PBARDEF_ADD("init_bigmaps_1");
    SUMA_PBARDEF_ADD("init_bigmaps_0");
-   SUMA_PBARDEF_ADD(R_AND_B_INV_256_CMD); // [PT: Aug 17, 2017]
+   SUMA_PBARDEF_ADD(R_AND_B_INV_256_CMD);     // [PT: Aug 17, 2017]
+   SUMA_PBARDEF_ADD(HEX_GoogleTurbo_256_CMD); // [PT: July 4, 2022]
+   SUMA_PBARDEF_ADD(HEX_Inferno_256_CMD);     // [PT: July 4, 2022]
+   SUMA_PBARDEF_ADD(HEX_Magma_256_CMD);       // [PT: July 4, 2022]
+   SUMA_PBARDEF_ADD(HEX_Plasma_256_CMD);      // [PT: July 4, 2022]
+   SUMA_PBARDEF_ADD(HEX_Viridis_256_CMD);     // [PT: July 4, 2022]
    SUMA_PBARDEF_ADD(CB_CS_35);
    SUMA_PBARDEF_ADD(CB_CS);
    SUMA_PBARDEF_ADD(CYTOARCH_ROI_256_CMD);

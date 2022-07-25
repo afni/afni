@@ -85,6 +85,7 @@ history for $prog :
   3.18 10 Jan 2022 : if no .tcshrc, create one to source .cshrc
   3.19 11 Jan 2022 : if not found, init .afnirc/.sumarc
   3.20  3 May 2022 : for anyos packages, test update with AFNI_version.txt
+  3.21 22 Jul 2022 : add linux_fedora_28_shared to obsolete_list
 
 -------------------------------------------------------------------------------
 EOF
@@ -93,18 +94,19 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.20, May 3, 2022"
+set aub_version = "3.21, July 22, 2022"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
 set obsolete_list = (                                           \
         linux_gcc32 linux_gcc33_64 linux_glibc22                \
         NIH.openSUSE.11.4_64                                    \
-        linux_fedora_21_64 linux_fedora_25_64                   \
-        solaris29_suncc solaris29_suncc_64                      \
-        macosx_10.5_Intel_64 macosx_10.6_Intel_64               \
-        macosx_10.7_Intel_64 macosx_10.7_local                  \
-        macosx_10.8_gcc macosx_10.8_icc                         \
+        linux_fedora_21_64         linux_fedora_25_64           \
+        linux_fedora_28_shared                                  \
+        solaris29_suncc            solaris29_suncc_64           \
+        macosx_10.5_Intel_64       macosx_10.6_Intel_64         \
+        macosx_10.7_Intel_64       macosx_10.7_local            \
+        macosx_10.8_gcc            macosx_10.8_icc              \
         )
 
 # ----------------------------------------------------------------------

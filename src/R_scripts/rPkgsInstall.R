@@ -40,7 +40,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, May 13, 2022
+Version 0.0.4, June 29, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -212,7 +212,7 @@ getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cloud.r-proj
    } else {
       pkgs_hit  <- PKGS[which(PKGS %in% installed.packages()[, 1])]
       if((length(pkgs_miss) > 0) & !remove) {
-         install.packages(pkgs_miss, dep=TRUE, repos=site)
+         install.packages(pkgs_miss, dep=NA, repos=site)
          note.AFNI(paste("\tThis package has been installed on the computer: ", pkgs_miss, "\n", sep=''))
      }
       if(update) {
