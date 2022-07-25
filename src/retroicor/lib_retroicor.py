@@ -739,7 +739,8 @@ def phase_estimator(amp_phase, phase_info):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
@@ -928,7 +929,8 @@ def phase_base(amp_type, phasee):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
@@ -1235,7 +1237,8 @@ def rvt_from_peakfinder(r):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
@@ -1652,7 +1655,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
@@ -1831,7 +1835,8 @@ def peak_finder(respcard_info, v_np):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
@@ -2276,7 +2281,8 @@ def show_rvt_peak(r, fg):
             
             number_of_slices:   Number of slices
             
-            volume_tr:   Volume TR in seconds
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             

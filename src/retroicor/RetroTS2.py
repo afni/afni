@@ -75,12 +75,42 @@ now_str = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 
 def setup_exceptionhook():
     """
-    Overloads default sys.excepthook with our exceptionhook handler.
-    If interactive, our exceptionhook handler will invoke pdb.post_mortem;
-    if not interactive, then invokes default handler.
-    """
-
+    NAME
+        setup_exceptionhook 
+            Overloads default sys.excepthook with our exceptionhook handler.
+            If interactive, our exceptionhook handler will invoke pdb.post_mortem;
+            if not interactive, then invokes default handler.
+            
+    TYPE
+        void
+    SYNOPSIS
+      setup_exceptionhook()
+    AUTHOR
+       Joshua Zosky (Documentation by Peter Lauren)
+       """
+       
     def _pdb_excepthook(type, value, tb):
+        """
+        NAME
+            _pdb_excepthook
+                Sets up exception hook (if in interactive mode)
+                
+        TYPE
+            void
+            
+        SYNOPSIS
+            _pdb_excepthook(type, value, tb)
+            
+        ARGUMENTS
+            type: Exception type being handled (a subclass of BaseException)
+            
+            value:   Exception instance
+            
+            tb:   Traceback object
+       AUTHOR
+           Joshua Zosky (Documentation by Peter Lauren)
+        """
+
         if sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
             import traceback
             import pdb
@@ -94,6 +124,32 @@ def setup_exceptionhook():
     sys.excepthook = _pdb_excepthook
     
 def getSliceOffsets(offsetDict):
+    """
+    NAME
+        getSliceOffsets 
+            Return phase offsets among slices
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       getSliceOffsets(offsetDict)
+    ARGUMENTS
+        offsetDict:   Dictionary with the following fields.
+        
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+        
+            slice_order:   Order of slices (alt+z, alt-z, etc).  Default is "alt+z".
+        
+            quiet:   0 if show graphs. 1 if do not show graphs
+            
+    AUTHOR
+       Joshua Zosky (Documentation by Peter Lauren)
+    """
+        
     slice_offset = offsetDict["slice_offset"]
     
     # Determining slice_offset based upon slice_order, volume_tr,
@@ -179,7 +235,92 @@ def getSliceOffsets(offsetDict):
 
 def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                         phys_json_arg, respiration_out, cardiac_out, rvt_out):
-    
+    """
+    NAME
+        getInputFileParameters 
+            Returns the local respiriation file name  (if JSON file absent, None otherwise), 
+            respiration file data (if JSON file present, None otherwise), the 
+            local cardiac file name  (if JSON file absent, None otherwise), 
+            cardiac file data (if JSON file present, None otherwise).
+    TYPE
+        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
+    SYNOPSIS
+       getInputFileParameters(respiration_info, cardiac_info, phys_file,
+       phys_json_arg, respiration_out, cardiac_out, rvt_out)
+    ARGUMENTS
+        respiration_info:   Dictionary with the following fields.
+        
+            respiration_file:  Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            zero_phase_offset:Phase offset added to the location of each peak.
+            Default is 0.0
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+        cardiac_info:   Dictionary with the following fields.
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+        
+            cardiac_file:  Name of ASCII file with cardiac time series
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            zero_phase_offset:Phase offset added to the location of each peak.
+            Default is 0.0
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+        phys_file: BIDS formatted physio file in tab separated format. May
+        be gzipped.
+                
+        phys_json_arg: File metadata in JSON format
+        
+        respiration_out:  Whether to have respiratory output
+        
+        cardiac_out:  Whether to have cardiac output
+        
+        rvt_out:  Whether to have RVT output
+            
+    AUTHOR
+       Joshua Zosky (Documentation by Peter Lauren)
+    """
+            
     # Handle file inputs
     # BIDS = Brain Imaging Data Structure
     if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
@@ -267,7 +408,6 @@ def retro_ts(
     OutDir=now_str,
     prefix="Output_File_Name",
     slice_offset=0,
-    slice_major=1,
     rvt_shifts=list(range(0, 21, 5)),
     respiration_cutoff_frequency=3,
     cardiac_cutoff_frequency=3,
@@ -287,6 +427,120 @@ def retro_ts(
     retroicor_algorithm=False,
     args=None
 ):
+    """
+    NAME
+        retro_ts
+            Main function for RetroTS2
+        
+    TYPE
+        <class 'int'>
+        
+    SYNOPSIS
+        retro_ts(
+            respiration_file=None,
+            cardiac_file=None,
+            phys_fs=None,
+            number_of_slices=None,
+            volume_tr=None,
+            OutDir=now_str,
+            prefix="Output_File_Name",
+            slice_offset=0,
+            rvt_shifts=list(range(0, 21, 5)),
+            respiration_cutoff_frequency=3,
+            cardiac_cutoff_frequency=3,
+            interpolation_style="linear",
+            fir_order=40,
+            quiet=1,
+            demo=0,
+            rvt_out=1,
+            cardiac_out=1,
+            respiration_out=1,
+            slice_order="alt+z",
+            show_graphs=1,
+            zero_phase_offset=0,
+            legacy_transform=0,
+            phys_file=None,
+            phys_json=None,
+            retroicor_algorithm=False,
+            args=None)
+        
+    ARGUMENTS
+        respiration_file:   String giving name of ASCII file with respiratory time series
+        
+        cardiac_file:   String giving name of ASCII file with cardiac time series
+        
+        phys_fs:   Physiological signal sampling frequency in Hz.
+        
+        number_of_slices:   Number of slices.
+        
+        volume_tr:   Volume repetition time (TR) which defines the length of time 
+        between the acquisition of consecutive frames/volumes; in seconds
+        
+        OutDir:   String giving name of directory to create for output files.
+        Default is "retro_" follwed by the current date and time.
+        
+        prefix:   Prefix for output filename.
+        
+        slice_offset:   Vector of slice acquisition time offsets in seconds.
+        
+        rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+        
+        respiration_cutoff_frequency: Cut off frequency in Hz for respiratory lowpass filter
+        
+        cardiac_cutoff_frequency: : Cut off frequency in Hz for cardiac lowpass 
+        filter (default 3 Hz)
+        
+        interpolation_style:   Resampling kernel. 
+        
+        fir_order:   Order of Finite Impulse Response (FIR) filter
+        
+        quiet:   0 if show graphs. 1 if do not show graphs
+        
+        demodemo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+        
+        rvt_out: Flag for writing RVT regressors (default is 1)
+        
+        cardiac_out: Flag for writing Cardiac regressors (default is 1)
+        
+        respiration_out: Flag for writing Respiratory regressors (default is 1)
+        
+        slice_order: Slice timing information in seconds. The default is
+        alt+z. See 3dTshift help for more info.
+            alt+z    = alternating in the plus direction
+            alt-z    = alternating in the minus direction
+            seq+z    = sequential in the plus direction
+            seq-z    = sequential in the minus direction
+            custom   = allows the program to use the values stored in the
+            -slice_offset list
+            filename = read temporal offsets from 'filename', including file
+            extension; e.g. slice_file.dat
+            (expecting a 1D / text file containing the times for
+            each slice in seconds)
+            
+        show_graphs:   Whether to show graphs
+        
+        zero_phase_offset:Phase offset added to the location of each peak.
+        Default is 0.0
+        
+        legacy_transform:   Important-this will specify whether you use the
+        original Matlab code's version (1) or the potentially bug-corrected
+        version (0) for the final phase correction in
+        lib_RetroTS/RVT_from_PeakFinder.py
+        (default is 0)
+        
+        phys_file: BIDS formatted physio file in tab separated format. May
+        be gzipped.
+                       
+        phys_json_arg: File metadata in JSON format
+        
+        retroicor_algorithm: Whether to use Peter Lauren's implementation of 
+        the Glover paper'
+        
+        args: Command line arguments supplied by user (String)
+
+    AUTHOR
+       Joshua Zosky and Peter Lauren
+    """
 
     # Make output directory
     path = os.path.join(os.getcwd(), OutDir)
@@ -341,6 +595,7 @@ def retro_ts(
     
     # Get input file parameters
     print('Get input file parameters')
+
     respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                             phys_json, respiration_out, cardiac_out, rvt_out)        
@@ -464,65 +719,36 @@ def retro_ts(
 
     label = head
 
+    # Make output vector
     reml_out = []
-    if slice_major == 0:  # old approach, not handy for 3dREMLfit
-        # RVT
+    for i in range(0, number_of_slices):
         if rvt_out != 0:
-            for j in range(0, size(phasee["rvtrs_slc"], 2)):
-                for i in range(0, number_of_slices):
-                    cnt += 1
-                    reml_out[:, cnt] = phasee["rvtrs_slc"][
-                        :, j
-                    ]  # same for each slice
-                    label = "%s s%d.RVT%d ;" % (label, i, j)
-        # Resp
+            # RVT
+            for j in range(0, shape(rvt)[0]):
+                cnt += 1
+                reml_out.append(
+                    rvt[j,:]
+                )  # same regressor for each slice
+                label = "%s s%d.RVT%d ;" % (label, i, j)
         if respiration_out != 0:
-            for j in range(0, size(respiration_info, 2)):
-                for i in range(0, number_of_slices):
-                    cnt += 1
-                    reml_out[:, cnt] = respiration_info[
-                        :, j, i
-                    ]
-                    label = "%s s%d.Resp%d ;" % (label, i, j)
-        # Card
+            # Resp
+            for j in range(0, shape(respiration_phased)[1]):
+                cnt += 1
+                reml_out.append(
+                    respiration_phased[:, j, i]
+                )
+                label = "%s s%d.Resp%d ;" % (label, i, j)
         if cardiac_out != 0:
-            for j in range(0, size(cardiac_info, 2)):
-                for i in range(0, number_of_slices):
-                    cnt += 1
-                    reml_out[:, cnt] = cardiac_info[
-                        :, j, i
-                    ]
-                    label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s.retrots.1D", prefix), "w")
-    else:
-        for i in range(0, number_of_slices):
-            if rvt_out != 0:
-                # RVT
-                for j in range(0, shape(rvt)[0]):
-                    cnt += 1
-                    reml_out.append(
-                        rvt[j,:]
-                    )  # same regressor for each slice
-                    label = "%s s%d.RVT%d ;" % (label, i, j)
-            if respiration_out != 0:
-                # Resp
-                for j in range(0, shape(respiration_phased)[1]):
-                    cnt += 1
-                    reml_out.append(
-                        respiration_phased[:, j, i]
-                    )
-                    label = "%s s%d.Resp%d ;" % (label, i, j)
-            if cardiac_out != 0:
-                # Card
-                for j in range(0, shape(cardiac_phased)[1]):
-                    cnt += 1
-                    reml_out.append(
-                        cardiac_phased[:, j, i]
-                    )
-                    label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s/%s.slibase.1D"% (OutDir , prefix)), "w")
-        
-        print('Output file ', ("%s/%s.slibase.1D"% (OutDir , prefix)))
+            # Card
+            for j in range(0, shape(cardiac_phased)[1]):
+                cnt += 1
+                reml_out.append(
+                    cardiac_phased[:, j, i]
+                )
+                label = "%s s%d.Card%d ;" % (label, i, j)
+    fid = open(("%s/%s.slibase.1D"% (OutDir , prefix)), "w")
+    
+    print('Output file ', ("%s/%s.slibase.1D"% (OutDir , prefix)))
 
     # remove very last ';'
     label = label[1:-2]
@@ -562,68 +788,68 @@ Input
 
     Method 1:
     ---------
-    :param -respFile: (respiration_file) Respiration data file
-    :param -caesFile: (cardiac_file) Cardiac data file
-    :param -freq: (phys_fs) Physiological signal sampling frequency in Hz.
-    :param -numSlices: (number_of_slices) Number of slices
-    :param -volume_tr: (volume_tr) Volume TR in seconds
+    respFile: (respiration_file) Respiration data file
+    caesFile: (cardiac_file) Cardiac data file
+    freq: (phys_fs) Physiological signal sampling frequency in Hz.
+    numSlices: (number_of_slices) Number of slices
+    volume_tr: (volume_tr) Volume repetition time (TR) which defines the length of time 
+    between the acquisition of consecutive frames/volumes; in seconds
     Note:   These parameters are the only single-letter parameters, as they are
             mandatory and frequently typed. The following optional parameters
             must be fully spelled out.
 
     Method 2:
     ---------
-    :param -phys_file: BIDS formatted physio file in tab separated format. May
+    phys_file: BIDS formatted physio file in tab separated format. May
             be gzipped.
-    :param -phys_json: BIDS formatted physio metadata json file. If not specified
+    phys_json: BIDS formatted physio metadata json file. If not specified
             the json corresponding to the phys_file will be loaded.
-    :param -numSlices: (number_of_slices) Number of slices
-    :param -v: (volume_tr) Volume TR in seconds
+    numSlices: (number_of_slices) Number of slices
+    v: (volume_tr) Volume TR in seconds
 
 
     Optional:
     ---------
-    :param -retroicor: Use the retroicor algorithm to estimate the cardiac and 
+    retroicor: Use the retroicor algorithm to estimate the cardiac and 
            respiratory phases
     ============================================================================
-    :param -OutDir: Output directory
+    OutDir: Output directory
     ============================================================================
-    :param -prefix: Prefix of output file
+    prefix: Prefix of output file
     ============================================================================
-    :param -rvt_shifts: Vector of shifts in seconds of RVT signal.
+    rvt_shifts: Vector of shifts in seconds of RVT signal.
             (default is [0:5:20])
-    :param -rvt_out: Flag for writing RVT regressors
+    rvt_out: Flag for writing RVT regressors
             (default is 1)
     ============================================================================
-    :param -respiration_cutoff_frequency: Cut off frequency in Hz for
+    respiration_cutoff_frequency: Cut off frequency in Hz for
             respiratory lowpass filter
             (default 3 Hz)
-    :param -cardiac_cutoff_frequency: Cut off frequency in Hz for
+    cardiac_cutoff_frequency: Cut off frequency in Hz for
             cardiac lowpass filter
             (default 3 Hz)
-    :param -cardiac_out: Flag for writing Cardiac regressors
+    cardiac_out: Flag for writing Cardiac regressors
             (default is 1)
-    :param -respiration_out: Flag for writing Respiratory regressors
+    respiration_out: Flag for writing Respiratory regressors
             (default is 1)
     ============================================================================
-    :param -interpolation_style: Resampling kernel.
+    interpolation_style: Resampling kernel.
             (default is 'linear', see help interp1 for more options)
-    :param -fir_order: Order of FIR filter.
+    fir_order: Order of FIR filter.
             (default is 40)
     ============================================================================
-    :param -quiet: Show talkative progress as the program runs
+    quiet: Show talkative progress as the program runs
             (default is 1)
-    :param -demo: Run demonstration of RetroTS
+    demo: Run demonstration of RetroTS
             (default is 0)
-    :param -show_graphs:
+    show_graphs:
             (default is unset; set with any parameter to view)
-    :param -debug Drop into pdb upon an exception
+    debug Drop into pdb upon an exception
             (default is False)
     ============================================================================
-    :param -slice_offset: Vector of slice acquisition time offsets in seconds.
+    slice_offset: Vector of slice acquisition time offsets in seconds.
             (default is equivalent of alt+z)
-    :param -slice_major: ? (default is 1)
-    :param -slice_order: Slice timing information in seconds. The default is
+    slice_order: Slice timing information in seconds. The default is
            alt+z. See 3dTshift help for more info.
                alt+z    = alternating in the plus direction
                alt-z    = alternating in the minus direction
@@ -663,9 +889,9 @@ Input
 
 
     ============================================================================
-    :param -zero_phase_offset:
+    zero_phase_offset:
     ============================================================================
-    :param legacy_transform: Important-this will specify whether you use the
+    legacy_transform: Important-this will specify whether you use the
            original Matlab code's version (1) or the potentially bug-corrected
            version (0) for the final phase correction in
            lib_RetroTS/RVT_from_PeakFinder.py
@@ -695,7 +921,6 @@ Output:
         "-OutDir": now_str,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
-        "-slice_major": 1,
         "-rvt_shifts": list(range(0, 21, 5)),
         "-respiration_cutoff_frequency": 3,
         "-cardiac_cutoff_frequency": 3,
@@ -758,7 +983,6 @@ Output:
         OutDir=opt_dict["-OutDir"],
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],
-        slice_major=opt_dict["-slice_major"],
         rvt_shifts=opt_dict["-rvt_shifts"],
         respiration_cutoff_frequency=opt_dict["-respiration_cutoff_frequency"],
         cardiac_cutoff_frequency=opt_dict["-cardiac_cutoff_frequency"],
