@@ -3003,7 +3003,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
                '            -prefix %s\n'                       \
                % (afobj.cname.shortinput(), cname.out_prefix())
        afobj.cname = cname
-   if not efirst: wstr += '\n# and apply any warp operations\n'
+   if not efirst: wstr += '\n# and apply any warp operations\n\n'
 
    # process all followers
    wlist = []
@@ -3033,20 +3033,34 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if xform == identity_warp and afobj.dgrid != 'epi':
          if proc.verb > 1:
             print('-- no need to warp anat follower %s' % afobj.aname.prefix)
-         # rcr - why is this here?
-         # proc.roi_dict[afobj.label] = afobj.cname
+         # even if not warped, make sure dset is in dict_key list
+         #    - see proc.add_roi_dict_key below
+         proc.roi_dict[afobj.label] = afobj.cname
          continue # no warp needed
 
-      wstr += '%s -source %s \\\n'           \
+      # make an updated afni_name for the result (will become afobj.cname)
+      anew = mname.new(new_pref=prefix)
+
+      wstr += '# warp follower dataset %s\n' \
+              '%s -source %s \\\n'           \
               '%s            -master %s\\\n' \
               '%s            %s %s %s\\\n'   \
-              '%s            -prefix %s\n'   \
-              % (prog, afobj.cname.shortinput(), sp, mname.shortinput(),
+              '%s            -prefix %s\n\n' \
+              % (afobj.cname.shortinput(),
+                 prog, afobj.cname.shortinput(), sp, mname.shortinput(),
                  sp, iopt, istr, warpstr,
-                 sp, prefix)
+                 sp, anew.prefix)
+
+      # if NN interp and atlas or labeltable, try to preserve
+      if afobj.is_alt and afobj.NN:
+         wstr += '# and copy its label table to the warped result\n' \
+                 '3drefit -copytables %s %s\n'   \
+                 '3drefit -cmap INT_CMAP %s\n\n' \
+                 % (afobj.cname.shortinput(), anew.shortinput(),
+                    anew.shortinput())
 
       # update current name based on master dataset and new prefix
-      afobj.cname = mname.new(new_pref=prefix)
+      afobj.cname = anew
       afobj.is_warped = 1
       wlist.append(afobj.aname.prefix)
 
@@ -3058,7 +3072,6 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       print('-- applying anat warps to %d dataset(s): %s' \
             % (len(wlist), ', '.join(wlist)))
 
-   wstr += '\n'
    return 0, wstr
 
 def should_warp_anat_followers(proc, block):

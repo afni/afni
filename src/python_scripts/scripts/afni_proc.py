@@ -733,9 +733,10 @@ g_history = """
        - add -align_unifize_epi local method, -align_opts_eunif
        - create final_epi_unif volume, in case of EPI uniformity correction
     7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
+    7.43 Jul 26, 2022: copy label tabels of anat followers
 """
 
-g_version = "version 7.42, June 13, 2022"
+g_version = "version 7.43, July 26, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -3708,6 +3709,15 @@ class SubjProcSream:
         vo.set_var('mave',   mave)
         vo.set_var('final_prefix', '')
         vo.set_var('is_warped', 0)      # has it been warped?
+
+        # anything that needs shell input
+
+        vo.set_var('exists', aname.exist()) # does the dataset exist?
+
+        # is it an atlas or label table?  (3dinfo -is_atlas_or_labeltable)
+        iopt = 'is_atlas_or_labeltable'
+        is_alt = UTIL.get_3dinfo_val(aname.nice_input(), iopt, int, verb=0)
+        vo.set_var('is_alt', is_alt)
 
         return vo
 

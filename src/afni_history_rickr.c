@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "when warping an anat follower, if appropriate, copy the label table",
+   "Done at the behest of the mighty P Taylor."
+ } ,
+
  { 22, Jul, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "add linux_fedora_28_shared; we now distribute linux_fedora_35_shared",
    NULL
