@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, July , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "In mecho block when using m_tedana on Mac OS: fix copying tedana QC HTML.",
+   "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.'\n"
+},
+
 { 27, July , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
    "Expand output precision and scale of calculability.",
    "Program used to run into trouble for large stat (bc of bc); now better.\n"

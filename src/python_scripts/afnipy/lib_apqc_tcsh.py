@@ -210,9 +210,12 @@ auth = 'PA Taylor'
 # [PT] ve2a: better %ile range for ulay: should have have better contrast
 # + ve2a: also introduce scaling/values for local-unifized EPI as ulay
 #
-ver = '4.01' ; date = 'June 6, 2022'
+#ver = '4.01' ; date = 'June 6, 2022'
 # [PT] ve2a: new scaling for ulay, extra control of grayscale with
 #   ulay_min_fac
+#
+ver = '4.02' ; date = 'July 27, 2022'
+# [PT] mecho: cp -> rsync, because of annoying Mac difference in cp
 #
 #########################################################################
 
@@ -1523,10 +1526,13 @@ def apqc_mecho_mtedana( obase, qcb, qci, comb_meth ):
     echo "++ Copy tedana QC figure dirs to: ${odir_mtedana}"
     '''
 
+    # [PT: July 27, 2022] Switch to using 'rsync -R ...' here, instead
+    # of 'cp --parents ...', because '--parents' doesn't exist on Mac
+    # version of cp.
     cmd1 = '''
     \\mkdir -p ${odir_mtedana}
-    \\cp -rp --parents tedana_r*/figures ${odir_mtedana}/.
-    \\cp -rp --parents tedana_r*/tedana*.html ${odir_mtedana}/.
+    \\rsync -avR tedana_r*/figures ${odir_mtedana}/
+    \\rsync -avR tedana_r*/tedana*.html ${odir_mtedana}/
     '''
 
     cmd2 = '''
