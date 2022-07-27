@@ -69,6 +69,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, July , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand output precision and scale of calculability.",
+   "Program used to run into trouble for large stat (bc of bc); now better.\n"
+},
 { 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
    "Add functionality to '-rimify RIM' opt.",
    "A negative RIM value now leads to creating an anti-rim (or core) ROI.\n"
