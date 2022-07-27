@@ -38,7 +38,7 @@ from scipy.interpolate import interp1d
 
 
 # Global constants
-M = 3
+GLOBAL_M = 3
 numSections = 1
 NUM_RVT = 5
 
@@ -213,7 +213,7 @@ def getTroughs(parameters, key):
     
    return troughs
 
-def determineCardiacPhases(peaks, fullLength):
+def determineCardiacPhases(peaks, fullLength, phys_fs):
     """
     NAME
        determineCardiacPhases
@@ -226,6 +226,8 @@ def determineCardiacPhases(peaks, fullLength):
         peaks:   Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
         
         fullLength:   Lenagth of cardiac time series
+        
+        phys_fs:   Physiological signal sampling frequency in Hz. 
     AUTHOR
        Peter Lauren
     """
@@ -261,6 +263,19 @@ def determineCardiacPhases(peaks, fullLength):
     for i in range(0,tailLength):
       phases.append(phases[iIndex]) 
       iIndex = iIndex + 1
+      
+    # PLot phases
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(peaks)))
+    for i in range(0,end): x.append(i/phys_fs)
+    plt.plot(x, phases[0:end], "b")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Cardiac Phase")
+    plt.title("Cardiac phase using new phase algorithm with old determination of peaks")
+        
+    # Save plot to file
+    plt.savefig('%s/NewCardiacPhase.pdf' % (OutDir)) 
+    plt.show()
             
     return phases
 
@@ -286,9 +301,9 @@ def getACoeffs(parameters, key, phases):
     data = readArray(parameters, key)
     mean = np.mean(data)
     N = len(data)
-    global M
+    global GLOBAL_M
     a = []
-    for m in range(1,M):
+    for m in range(1,GLOBAL_M):
         num = 0
         denom = 0
         for n in range(0,N):
@@ -345,7 +360,9 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     SYNOPSIS
        determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
     ARGUMENTS
-        parameters:   dictionary of input parameters which includes a 'key' field.
+        parameters:   dictionary of input parameters which includes the following fields.
+            -respFile;   Name of ASCII file with respiratory time series
+            phys_fs:     Physiological signal sampling frequency in Hz.
         
         respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
         
@@ -448,7 +465,19 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
             phases.append(phases[input])
             input = input - 1
 
-    # plt.plot(phases)
+      
+    # PLot phases
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+    for i in range(0,end): x.append(i/parameters["-phys_fs"])
+    plt.plot(x, phases[0:end], "b")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Respiratory Phase")
+    plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+        
+    # Save plot to file
+    plt.savefig('%s/NewRespiratoryPhase.pdf' % (OutDir)) 
+    plt.show()
         
     return phases
 
@@ -601,7 +630,7 @@ def getFourierSeries(parameters):
         cardiacBCoeffs.append(1.0)
         respiratoryBCoeffs.append(1.0)
     
-    global M
+    GLOBAL_M
     global numSections
         
     # Make data matrix
@@ -611,11 +640,11 @@ def getFourierSeries(parameters):
     for t in range(0,T):
         sum = 0
         addend = []
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
             addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
@@ -677,7 +706,7 @@ def getPhysiologicalNoiseComponents(parameters):
         cardiacBCoeffs.append(1.0)
         respiratoryBCoeffs.append(1.0)
     
-    global M
+    global GLOBAL_M
     global numSections
     
     # Initialize output table
@@ -701,11 +730,11 @@ def getPhysiologicalNoiseComponents(parameters):
     for t in range(0,T):
         sum = 0
         addend = []
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
             addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))

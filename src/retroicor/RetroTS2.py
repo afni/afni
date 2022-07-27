@@ -67,6 +67,7 @@ from lib_retroicor import phase_estimator
 from lib_retroicor import peak_finder
 from lib_retroicor import readRawInputData
 from lib_retroicor import show_rvt_peak
+from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases
 import os
 
 from datetime import datetime
@@ -624,6 +625,15 @@ def retro_ts(
     # Update respiratory and cardiac info with peak info
     respiration_info.update(respiration_peak)    
     cardiac_info.update(cardiac_peak)
+        
+    # R&D: Compare new algorithm for finding phases with old peaks
+    newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), len(v_np), phys_fs)
+    parameters = dict()
+    parameters["-respFile"] = respiration_info["respiration_file"]
+    parameters["-phys_fs"] = respiration_info["phys_fs"]
+    newRespiratoryPhases = determineRespiratoryPhases(parameters,\
+       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
+       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]])
        
     # Get the phase
     respiration_info["amp_phase"] = 1 # Amplitude-based phase for respiration
