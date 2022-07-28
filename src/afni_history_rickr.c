@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Jul, 2022, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "add -Wl,-headerpad_max_install_names to linker command",
+   "Make space for install_name_tool -change to use @executable_path.\n"
+   "Thannks to witherscp on MB for noting the problem."
+ } ,
+
  { 26, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "when warping an anat follower, if appropriate, copy the label table",
    "Done at the behest of the mighty P Taylor."
