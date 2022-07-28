@@ -74,7 +74,9 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
 
 IFLAGS = -I. $(XROOT_I) -I/sw/include
          
-LFLAGS = -L. $(XROOT_L) -L/sw/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+# -Wl,-headerpad_max_install_names : make space for install_name_tool -change
+#     (pointing to @executable_path/LIB, rather than /PATH/TO/LIB)
+LFLAGS = -L. $(XROOT_L) -L/sw/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load -Wl,-headerpad_max_install_names $(LPYTHON)
 
 CCSVD  = $(CCMIN) -m64 -O0
 
