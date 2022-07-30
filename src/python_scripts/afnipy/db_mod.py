@@ -4774,28 +4774,6 @@ def group_mask_command(proc, block):
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
 
-    if '/' not in proc.tlrc_base.initname:
-        cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
-        if proc.verb > 1: estr = 'echo'
-        else            : estr = ''
-        com = BASE.shell_com(cmd, estr, capture=1)
-        com.run()
-
-        if com.status or not com.so or len(com.so[0]) < 2:
-            # call this a non-fatal error for now
-            print("** failed to find tlrc_base '%s' for group mask" \
-                  % proc.tlrc_base.pv())
-            if proc.verb > 2:
-               print('   status = %s' % com.status)
-               print('   stdout = %s' % com.so)
-               print('   stderr = %s' % com.se)
-            return ''
-
-        proc.tlrc_base.path = com.so[0]
-        # nuke any newline character
-        newline = proc.tlrc_base.path.find('\n')
-        if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
-
     print("-- masking: group anat = '%s', exists = %d"   \
           % (proc.tlrc_base.pv(), proc.tlrc_base.exist()))
 
@@ -7884,9 +7862,16 @@ def db_mod_tlrc(block, proc, user_opts):
                   opt_anat.parlist[0])
             return
 
-    # add other options
+    # --------------------------------------------------
+    # handle the template dataset: verify existence, etc
 
     apply_uopt_to_block('-tlrc_base', user_opts, block)
+
+    prepare_tlrc_base(proc, block)
+
+    # --------------------------------------------------
+    # add other options
+
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
@@ -7943,6 +7928,32 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     return 0
 
+def prepare_tlrc_base(proc, block):
+    """if we have a tlrc block:
+           - assign proc.tlrc_base
+           - verify existence
+           - expect it to be copied into results directory (not done here)
+           - prepare to store as uvar
+    """
+    # first assign based on any option
+    
+    opt = block.opts.find_opt('-tlrc_base')
+    if opt: base = opt.parlist[0]
+    else:   base = 'TT_N27+tlrc'
+
+    proc.tlrc_base = BASE.afni_name(base)       # store for later
+
+    #--- first things first, see if we can locate the tlrc base
+    #    if the user didn't already tell us where it is
+
+    # locate() will search using input path, and if not found run
+    #   @FindAfniDsetPath without that original path
+    if not proc.tlrc_base.locate():
+       print("** failed to find tlrc_base '%s'" % proc.tlrc_base.initname)
+
+    print("-- template = '%s', exists = %d"   \
+          % (proc.tlrc_base.pv(), proc.tlrc_base.exist()))
+
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
     """warp proc.anat to standard space"""
@@ -7950,14 +7961,6 @@ def db_cmd_tlrc(proc, block):
     if not proc.anat.pv() :
         print("** missing dataset name for tlrc operation")
         return None
-
-    # no longer look to add +orig
-
-    opt = block.opts.find_opt('-tlrc_base')
-    if opt: base = opt.parlist[0]
-    else:   base = 'TT_N27+tlrc'
-
-    proc.tlrc_base = BASE.afni_name(base)       # store for later
 
     # if we are given NL-warped datasets, just apply them
     if block.opts.find_opt('-tlrc_NL_warped_dsets'):
@@ -7984,6 +7987,8 @@ def db_cmd_tlrc(proc, block):
     if proc.tlrc_nlw and rmode:
        print('** -tlrc_rmode is not valid in case of NL_warp')
        return None
+
+    base = proc.tlrc_base.shortinput()
 
     if proc.tlrc_nlw:
        return tlrc_cmd_nlwarp(proc, block, proc.anat, base, strip=strip,
@@ -8557,6 +8562,8 @@ def ap_uvars_table(proc):
     # (no longer def in TSNR)                                    22 Feb 2021
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
+    if proc.tlrc_base:
+       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
@@ -12514,6 +12521,17 @@ g_help_options = """
 
             Please see '@auto_tlrc -help' for more information.
             See also -tlrc_anat, -tlrc_no_ss.
+
+        -tlrc_copy_base yes/no  : copy base/template to results directory
+
+                e.g. -tlrc_copy_base no
+                default: -tlrc_copy_base yes
+
+            By default, the template dataset (-tlrc_base) will be copied
+            to the local results directory (for QC purposes).
+            Use this option to override the default behavior.
+
+            See also -tlrc_base.
 
         -tlrc_NL_warp           : use non-linear for template alignment
 
