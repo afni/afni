@@ -3147,6 +3147,20 @@ class SubjProcSream:
             self.tlrcanat.to_afni()
             self.anat_final = self.anat
 
+        # possibly copy template into results directory
+        # (todo: add option to NOT copy template)
+        if self.tlrc_base:
+            tmp_orig = self.tlrc_base.nice_input(head=1)
+            tmp_local = self.tlrc_base.shortinput(head=1)
+            tstr = '# copy template to results dir (for QC)\n' \
+                  '3dcopy %s %s/%s\n' % (tmp_orig, self.od_var, tmp_local)
+            self.write_text(add_line_wrappers(tstr))
+            self.write_text("%s\n" % stat_inc)
+
+            # note: making a local copy should not affect other processing
+            #       (e.g. still might count sub-bricks, so must exist now),
+            #       so do not update to self.tlrc_base to a local version
+
         # possibly copy over any volreg base
         if self.vr_ext_base != None:
             tstr = "# copy over the external volreg base\n"  \

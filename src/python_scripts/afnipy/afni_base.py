@@ -296,8 +296,9 @@ class afni_name(object):
       cmd = '@FindAfniDsetPath %s' % dname
       com=shell_com(cmd, oexec, capture=1)
       com.run()
+      path = com.so[0]
 
-      if com.status or not com.so or len(com.so[0]) < 2:
+      if com.status or not path or len(path) < 1:
         # call this a non-fatal error for now
         if verb: print("-- locate: @Find did not find dset %s" % dname)
         if 0:
@@ -307,12 +308,18 @@ class afni_name(object):
         return 0
 
       # found, so update with new path to dataset
-      self.path = com.so[0]
-      if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
 
-      # nuke any newline character
-      newline = self.path.find('\n')
-      if newline > 1: self.path = self.path[0:newline]
+      # remove any newline character
+      newline = path.find('\n')
+      if newline > 1: path = path[0:newline]
+
+      # require it to end in a '/'
+      if not path.endswith('/'): path += '/'
+
+      # and finally, assign
+      self.path = path
+
+      if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
 
       return 1
       
