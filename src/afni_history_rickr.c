@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jul, 2022, RCR, "afni_base.py", MINOR, TYPE_MODIFY,
+   "update locate() : return 1 if found, even via @Find",
+   NULL
+ } ,
+
  { 28, Jul, 2022, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
    "add -Wl,-headerpad_max_install_names to linker command",
    "Make space for install_name_tool -change to use @executable_path.\n"
