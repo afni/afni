@@ -1455,11 +1455,14 @@ class SubjProcSream:
                         helpstr='run @auto_tlrc on anat from -copy_anat')
         self.valid_opts.add_opt('-tlrc_base', 1, [],
                         helpstr='alternate @auto_tlrc base (not TT_N27, say)')
+        self.valid_opts.add_opt('-tlrc_copy_base', 1, [],
+                        acplist=['yes', 'no'],
+                        helpstr='make a local copy of the template')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
                         acplist=['yes','no'],
-                        helpstr='use non-linear warping to template')
+                        helpstr='remove work dir from auto_warp.py')
         self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
                         helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_NL_warped_dsets', 3, [],
@@ -3149,7 +3152,9 @@ class SubjProcSream:
 
         # possibly copy template into results directory
         # (todo: add option to NOT copy template)
-        if self.tlrc_base:
+        docopy, rv = self.user_opts.get_string_opt('-tlrc_copy_base',
+                                                   default='yes')
+        if self.tlrc_base and docopy == 'yes':
             tmp_orig = self.tlrc_base.nice_input(head=1)
             tmp_local = self.tlrc_base.shortinput(head=1)
             tstr = '# copy template to results dir (for QC)\n' \

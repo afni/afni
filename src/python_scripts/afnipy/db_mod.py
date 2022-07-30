@@ -12522,6 +12522,17 @@ g_help_options = """
             Please see '@auto_tlrc -help' for more information.
             See also -tlrc_anat, -tlrc_no_ss.
 
+        -tlrc_copy_base yes/no  : copy base/template to results directory
+
+                e.g. -tlrc_copy_base no
+                default: -tlrc_copy_base yes
+
+            By default, the template dataset (-tlrc_base) will be copied
+            to the local results directory (for QC purposes).
+            Use this option to override the default behavior.
+
+            See also -tlrc_base.
+
         -tlrc_NL_warp           : use non-linear for template alignment
 
                 e.g. -tlrc_NL_warp
