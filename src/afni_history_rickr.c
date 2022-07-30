@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "copy tlrc_base/template to results dir; add opt -tlrc_copy_base",
+   "Done for QC and visualization purposes; requested by P Taylor."
+ } ,
+
  { 29, Jul, 2022, RCR, "afni_base.py", MINOR, TYPE_MODIFY,
    "update locate() : return 1 if found, even via @Find",
    NULL
@@ -61,7 +66,7 @@ afni_history_struct rickr_history[] = {
  { 28, Jul, 2022, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
    "add -Wl,-headerpad_max_install_names to linker command",
    "Make space for install_name_tool -change to use @executable_path.\n"
-   "Thannks to witherscp on MB for noting the problem."
+   "Thanks to witherscp on MB for noting the problem."
  } ,
 
  { 26, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,

@@ -734,9 +734,12 @@ g_history = """
        - create final_epi_unif volume, in case of EPI uniformity correction
     7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
     7.43 Jul 26, 2022: copy label tabels of anat followers
+    7.44 Jul 30, 2022:
+       - copy tlrc_base/template to results directory
+       - add opt -tlrc_copy_base
 """
 
-g_version = "version 7.43, July 26, 2022"
+g_version = "version 7.44, July 30, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
