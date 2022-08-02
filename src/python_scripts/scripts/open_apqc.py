@@ -7,6 +7,14 @@ import glob
 import argparse
 import signal
 
+# 
+#
+# Example running, from above the results directory:
+#    run open_apqc.py -i FT.NL_NEW12.results/QC_FT.NL_NEW12/index.html 
+#
+# ========================================================================== 
+
+
 ### PT:  have to do something to capture ~ and interpret it
 def parse_qc_html_path(pstr):
     """Take in a string pstr that should be the path to an APQC index.html
