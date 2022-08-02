@@ -10,6 +10,11 @@ ver = '2.21' ; date = 'May 22, 2019'
 # + [PT] sectionize the CSS for putting in vars easier to parts
 # + [PT] warning level color specification
 #
+ver = '2.30' ; date = 'Aug 2, 2022' 
+# + [PT] Save -> Srvr button, for noting/checking whether server is on
+# + [PT] color for button based on serving
+# + [PT] 'SAVING' button reflects whether server is active or not
+#
 # --------------------------------------------------------------------
 
 
@@ -74,6 +79,9 @@ wlevel_str = ' '.join(list(wlevel_ranks.keys()))
 
 # The CSS!
 css_text = '''
+:root {
+  --SrvrButtonCol: #ff0000;
+}
 
 h1 {
     padding-top: 80px;
@@ -434,7 +442,7 @@ css_text+= '''
   border: none;
 }
 
-/* Applies to .btn2* (A+, Ax) and .btn3save (Save) */
+/* Applies to .btn2* (A+, Ax) and .btn3srvr (Server) */
 .button-RHS {
     border: solid 1px transparent;
     border-radius: 4px;
@@ -472,15 +480,28 @@ css_text+= '''
     padding: 0px 0px;
 }
 
-.btn3save, .btn3help {
+.btn3srvr, .btn3help {
     background-color: #F0F0F0;
     float: left;
-    color: #000;
     margin: 2;
     width: 86px;
     height: 28px;
     padding: 2px 2px;
 }
+
+/* Now, server button color is from a variable that can be re-set by 
+   whether the server is running or not
+*/
+
+.btn3srvr {
+    color: var(--SrvrButtonCol);
+}
+
+/* help button color just on its own */
+.btn3help {
+    color: #000;
+}
+
 
 button:hover:not(.active) {
     background-color: #333;

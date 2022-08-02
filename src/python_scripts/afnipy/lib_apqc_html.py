@@ -44,8 +44,12 @@
 # [Taylor Hanayik] add in updates for QC button functionality
 # + specifically, to accommodate local flask server (open_apqc.py)
 #
-ver = '3.01' ; date = 'June 28, 2022' 
+#ver = '3.01' ; date = 'June 28, 2022' 
 # [PT] have the A+, A-, A? and clr buttons *also* update apqc_*.json
+#
+ver = '3.02' ; date = 'Aug 2, 2022' 
+# [PT] 'SAVE' button to 'SAVING', now reflects whether server is active
+# + also updated the help file a lot
 #
 #########################################################################
 
@@ -276,10 +280,13 @@ for x in qcb_helps.keys():
 
 apqc_help = [ 
 ['HELP FILE FOR APQC', 
- '''      *** afni_proc.py's single subject QC report form ***
+ '''*** APQC HTML: afni_proc.py's QC report for single subject analysis***
 
-For questions about afni_proc.py (AP), please see the program or
-<urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">webpage help</a></urlin>.
+Some useful links:
++ The afni_proc.py (AP) program's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">online help file</a></urlin>
++ The APQC HTML's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">online tutorial</a></urlin>
+
+.
 '''], 
 ['OVERVIEW', 
 '''QC organization
@@ -305,17 +312,20 @@ Commenting
     was good or bad, or what question they have led them to rate it as
     'other'.
 
-Saving
-    Clicking SAVE will let the user save the QC ratings+comments on
-    their computer for later use, such as inclusion/exclusion criteria
-    for the subject in group analysis.  (NB: This action is treated
-    the same as downloading a file from online, and is subject to
-    standard limitations on simplicity due to browser security
-    settings.)
+Saving info
+    If you have a local server running, then as you click and type
+    the rating/QC buttons the information will be saved automatically
+    in the QC directory.  The 'SAVING' button in the upper-right corner
+    shows whether the server is running:  
+    + if the letters are green and visible, then the server is running
+      (and your QC info is being saved).
+    + if the letters are gray with a red line through them, then the
+      server is not running (and your QC info is not being saved).
+ 
+    It is useful to start the server and save QC/rating info for
+    sharing and/or later using inclusion/exclusion criteria for the
+    subject in group analysis.
 
-See also
-    There is an online <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">web tutorial</a></urlin>. It's more verbose and pictorial, 
-    if that's useful.
 '''
 ],
 ['''DEFINITIONS''', 
@@ -345,11 +355,8 @@ filler button
     |clr|-- double-clicking on this will empty all ratings+comments
     from the QC buttons.
 
-'SAVE'
-    Write the ratings+comments to disk.  This action is done through
-    the browser, and is subject to the browser settings; probably
-    users should not have the browser set to automatically download
-    all files to the same location, for example.
+'SAVING'
+    Denoting whether the local server is running or not.  ***add more**
 
 'HELP'
     Button : well, how did you get here??
@@ -392,12 +399,12 @@ Comments are independent of rating, but adding a comment to an empty
 button changes its rating to ''?'' (which can be altered further from
 there).
 '''],
-['''SAVE FORM''',
-'''Click on the 'SAVE' button.  
+['''SAVE INFO''',
+'''Have the local server running (check the 'SAVING' button in the 
+upper-right corner).  
 
-Unfortunately, the file will not be directly saved by this, due to
-security settings on most web-browsers, and the user will be prompted
-to save the file as if downloading from the Web.'''
+When the local server is running, the QC and rating information is saved
+every time a button is updated.'''
 ],
 ['''KEYBOARD NAVIGATION''',
 '''
@@ -463,8 +470,10 @@ Double-click (or ctrl+Enter) to clear *all* QC buttons.
 
 # ---------------------------------------------------------------------
 
-bsave_hover = '''Save ratings+comments.
-Click once (or Enter) to write QC form to disk.
+bsrvr_hover = '''Check if local server is running,
+which means QC/rating button info is saved+updated 
+automatically.
+Click once (or Enter) to doublecheck.
 '''
 
 bhelp_hover = '''Open help page.
@@ -904,7 +913,7 @@ def make_nav_table(llinks, max_wlevel=''):
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
     # NB: this is flexible width
-    bsave  = 'SAVE'
+    bsrvr  = 'SAVING'
     bhelp  = 'HELP'
     bgood  = 'A+'  ; bgood_ind  =  1 
     bbad   = 'Ax'  ; bbad_ind   =  2 
@@ -959,11 +968,11 @@ ondblclick="reallyAllYourBaseAreBelongToUs({2})">
 
     # ROW:  hyperlinks (anchors) within the page
     y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsave )
+    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsrvr )
 
-    y+= '''<button class="button-generic button-RHS btn3save" title="{}" '''.format( bsave_hover ) 
-    y+= '''onclick="doQuit()">'''
-    y+= '''{}</button>\n'''.format( bsave )
+    y+= '''<button class="button-generic button-RHS btn3srvr" title="{}" '''.format( bsrvr_hover ) 
+    y+= '''onclick="colorizeSrvrButton(is_served)">'''   # re-colorize if clicked
+    y+= '''{}</button>\n'''.format( bsrvr )
 
     y+= '''<button class="button-generic button-RHS btn3help" title="{}" '''.format( bhelp_hover ) 
     y+= '''onclick="doShowHelp()">'''
@@ -1013,6 +1022,31 @@ console.log('is_served', is_served)
 
 
 '''.format( subj )
+
+    y+= '''
+
+/* For using is_served to set srvr button color:
+    First, get the root element, which has color
+    defined
+*/
+var r = document.querySelector(':root');
+
+/* ... then, this function will help set colors
+*/
+function colorizeSrvrButton(val) {
+  if (val) {
+    r.style.setProperty('--SrvrButtonCol', 'green');
+  } else {
+    r.style.setProperty('--SrvrButtonCol', 'blue');
+  }
+}
+
+/* ... finally, use and colorize
+*/
+colorizeSrvrButton(is_served);
+
+'''
+
 
     # --------------- load/reload initialize -----------------
 
