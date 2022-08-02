@@ -47,13 +47,17 @@
 #ver = '3.01' ; date = 'June 28, 2022' 
 # [PT] have the A+, A-, A? and clr buttons *also* update apqc_*.json
 #
-ver = '3.02' ; date = 'Aug 2, 2022' 
+#ver = '3.02' ; date = 'Aug 2, 2022' 
 # [PT] 'SAVE' button to 'SAVING', now reflects whether server is active
 # + also updated the help file a lot
 #
-ver = '3.03' ; date = 'Aug 2, 2022' 
+#ver = '3.03' ; date = 'Aug 2, 2022' 
 # [PT] forgot some pieces in last update; adding now
 # + also rename 'srvr' to 'saving'
+#
+ver = '3.04' ; date = 'Aug 2, 2022' 
+# [PT] the QC rating information now gets saved whenever the text dialogue
+#      box gets closed.
 #
 #########################################################################
 
@@ -1496,6 +1500,7 @@ function keepFromCommentForm(cid, cfID) {
 
     thisButtonGetsAComment(bid, commtext);
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
 '''
 
@@ -1513,6 +1518,7 @@ function keepFromCommentFormViaBtn1(bid, cfID) {
 
     thisButtonGetsAComment(bid, commtext);
     closeCommentForm(cfID);
+    doSaveAllInfo();
 }
 '''
 
