@@ -15,6 +15,9 @@ ver = '2.30' ; date = 'Aug 2, 2022'
 # + [PT] color for button based on serving
 # + [PT] 'SAVING' button reflects whether server is active or not
 #
+ver = '2.31' ; date = 'Aug 2, 2022' 
+# + [PT] forgot some pieces from last update; adding now
+# + [PT] also rename 'srvr' to 'saving'
 # --------------------------------------------------------------------
 
 
@@ -80,7 +83,9 @@ wlevel_str = ' '.join(list(wlevel_ranks.keys()))
 # The CSS!
 css_text = '''
 :root {
-  --SrvrButtonCol: #ff0000;
+  --SavingTextCol:    #9f9f9f;
+  --SavingBkgdCol:    #F0F0F0;
+  --SavingTextDec:    line-through;
 }
 
 h1 {
@@ -442,7 +447,7 @@ css_text+= '''
   border: none;
 }
 
-/* Applies to .btn2* (A+, Ax) and .btn3srvr (Server) */
+/* Applies to .btn2* (A+, Ax) and .btn3saving (Server) */
 .button-RHS {
     border: solid 1px transparent;
     border-radius: 4px;
@@ -480,7 +485,7 @@ css_text+= '''
     padding: 0px 0px;
 }
 
-.btn3srvr, .btn3help {
+.btn3saving, .btn3help {
     background-color: #F0F0F0;
     float: left;
     margin: 2;
@@ -492,13 +497,17 @@ css_text+= '''
 /* Now, server button color is from a variable that can be re-set by 
    whether the server is running or not
 */
-
-.btn3srvr {
-    color: var(--SrvrButtonCol);
+.btn3saving {
+    color:            var(--SavingTextCol);
+    background-color: var(--SavingBkgdCol);
+    text-decoration:  var(--SavingTextDec);
+    text-decoration-thickness: 10%;
+    text-decoration-color: #d7191c;
 }
 
 /* help button color just on its own */
 .btn3help {
+    background-color: #F0F0F0;
     color: #000;
 }
 

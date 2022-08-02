@@ -51,6 +51,10 @@ ver = '3.02' ; date = 'Aug 2, 2022'
 # [PT] 'SAVE' button to 'SAVING', now reflects whether server is active
 # + also updated the help file a lot
 #
+ver = '3.03' ; date = 'Aug 2, 2022' 
+# [PT] forgot some pieces in last update; adding now
+# + also rename 'srvr' to 'saving'
+#
 #########################################################################
 
 
@@ -470,9 +474,11 @@ Double-click (or ctrl+Enter) to clear *all* QC buttons.
 
 # ---------------------------------------------------------------------
 
-bsrvr_hover = '''Check if local server is running,
-which means QC/rating button info is saved+updated 
-automatically.
+bsaving_hover = '''Check if QC/rating info is automatically saved.
+Done by checking if a local server is running:
++ Green text: saving is ON.
++ Gray text with red strikethrough: saving is OFF.
+
 Click once (or Enter) to doublecheck.
 '''
 
@@ -913,7 +919,7 @@ def make_nav_table(llinks, max_wlevel=''):
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
     # NB: this is flexible width
-    bsrvr  = 'SAVING'
+    bsaving  = 'SAVING'
     bhelp  = 'HELP'
     bgood  = 'A+'  ; bgood_ind  =  1 
     bbad   = 'Ax'  ; bbad_ind   =  2 
@@ -968,11 +974,11 @@ ondblclick="reallyAllYourBaseAreBelongToUs({2})">
 
     # ROW:  hyperlinks (anchors) within the page
     y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsrvr )
+    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsaving )
 
-    y+= '''<button class="button-generic button-RHS btn3srvr" title="{}" '''.format( bsrvr_hover ) 
-    y+= '''onclick="colorizeSrvrButton(is_served)">'''   # re-colorize if clicked
-    y+= '''{}</button>\n'''.format( bsrvr )
+    y+= '''<button class="button-generic button-RHS btn3saving" title="{}" '''.format( bsaving_hover ) 
+    y+= '''onclick="colorizeSavingButton(is_served)">'''   # re-colorize if clicked
+    y+= '''{}</button>\n'''.format( bsaving )
 
     y+= '''<button class="button-generic button-RHS btn3help" title="{}" '''.format( bhelp_hover ) 
     y+= '''onclick="doShowHelp()">'''
@@ -1025,7 +1031,7 @@ console.log('is_served', is_served)
 
     y+= '''
 
-/* For using is_served to set srvr button color:
+/* For using is_served to set saving button color:
     First, get the root element, which has color
     defined
 */
@@ -1033,17 +1039,21 @@ var r = document.querySelector(':root');
 
 /* ... then, this function will help set colors
 */
-function colorizeSrvrButton(val) {
+function colorizeSavingButton(val) {
   if (val) {
-    r.style.setProperty('--SrvrButtonCol', 'green');
+    r.style.setProperty('--SavingTextCol', '#009933');
+    r.style.setProperty('--SavingBkgdCol', '#fff');
+    r.style.setProperty('--SavingTextDec', 'none');
   } else {
-    r.style.setProperty('--SrvrButtonCol', 'blue');
+    r.style.setProperty('--SavingTextCol', '#9f9f9f');
+    r.style.setProperty('--SavingBkgdCol', '#fff');
+    r.style.setProperty('--SavingTextDec', 'line-through');
   }
 }
 
 /* ... finally, use and colorize
 */
-colorizeSrvrButton(is_served);
+colorizeSavingButton(is_served);
 
 '''
 
