@@ -25,8 +25,8 @@
 #define __FSLIO_H
 
 #include <stdio.h>
-#include <nifti1_io.h>
-#include <znzlib.h>
+#include "nifti1_io.h"
+#include "znzlib.h"
 #include "dbh.h"
 
 #ifdef __cplusplus
