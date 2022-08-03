@@ -58,6 +58,24 @@ __author__ = "Joshua Zosky and Peter Lauren" # Modified a bit by gianfranco
         
 """
 
+roadmap = """
+
+Major blocks of calculation:
+
+- calculate A, B
+  PL      getCoefA(),
+  JZ/ZSS  old_getCoefA()
+
+- estimate phase
+  PL      PhaseEstimator()
+  JZ/ZSS  get_phase_calc()
+
+- check time series lengths
+
+- find gaps
+
+"""
+
 import sys
 import gzip
 import json
@@ -67,7 +85,7 @@ from lib_retroicor import phase_estimator
 from lib_retroicor import peak_finder
 from lib_retroicor import readRawInputData
 from lib_retroicor import show_rvt_peak
-from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases
+from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
 import os
 
 from datetime import datetime
@@ -625,18 +643,10 @@ def retro_ts(
     # Update respiratory and cardiac info with peak info
     respiration_info.update(respiration_peak)    
     cardiac_info.update(cardiac_peak)
-        
-    # R&D: Compare new algorithm for finding phases with old peaks
-    newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), len(v_np), phys_fs)
-    parameters = dict()
-    parameters["-respFile"] = respiration_info["respiration_file"]
-    parameters["-phys_fs"] = respiration_info["phys_fs"]
-    newRespiratoryPhases = determineRespiratoryPhases(parameters,\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]])
        
     # Get the phase
     respiration_info["amp_phase"] = 1 # Amplitude-based phase for respiration
+    respiration_info["zero_phase_offset"] = zero_phase_offset
     if respiration_peak:
         print("Estimating phase for respiration_info")
         phasee, rvt = phase_estimator(
@@ -645,7 +655,8 @@ def retro_ts(
         respiration_phased = phasee["phase_slice_reg"]
     else:
         respiration_phased = {}    
-    cardiac_info["amp_phase"] = 0   # Time-based phase for cardiac signal
+    cardiac_info["amp_phase"] = 1   # Time-based phase for cardiac signal
+    cardiac_info["zero_phase_offset"] = zero_phase_offset
     if cardiac_peak:
         phasee, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
         cardiac_phased = phasee["phase_slice_reg"]
@@ -674,6 +685,18 @@ def retro_ts(
                     respiration_phased[t][i][s] = fourierSeries[inc][i]
                     cardiac_phased[t][i][s] = fourierSeries[inc][i+4]
                 inc += 1
+        
+    # R&D: Compare new algorithm for finding phases with old peaks
+    newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), len(v_np), phys_fs)
+    parameters = dict()
+    parameters["-respFile"] = respiration_info["respiration_file"]
+    parameters["-phys_fs"] = respiration_info["phys_fs"]
+    newRespiratoryPhases = determineRespiratoryPhases(parameters,\
+       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
+       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]])
+    sliceNumber = 0
+    compareLaurenAndZoskyPhases(cardiac_info, respiration_info, cardiac_phased, respiration_phased,\
+                                newCardiacPhases, newRespiratoryPhases, sliceNumber)
 
     # Show some results
     if show_graphs:
@@ -739,7 +762,7 @@ def retro_ts(
                 reml_out.append(
                     rvt[j,:]
                 )  # same regressor for each slice
-                label = "%s s%d.RVT%d ;" % (label, i, j)
+                label = "%s s%d.RVT%d \t" % (label, i, j)
         if respiration_out != 0:
             # Resp
             for j in range(0, shape(respiration_phased)[1]):
@@ -747,7 +770,7 @@ def retro_ts(
                 reml_out.append(
                     respiration_phased[:, j, i]
                 )
-                label = "%s s%d.Resp%d ;" % (label, i, j)
+                label = "%s s%d.Resp%d \t" % (label, i, j)
         if cardiac_out != 0:
             # Card
             for j in range(0, shape(cardiac_phased)[1]):
@@ -755,12 +778,12 @@ def retro_ts(
                 reml_out.append(
                     cardiac_phased[:, j, i]
                 )
-                label = "%s s%d.Card%d ;" % (label, i, j)
+                label = "%s s%d.Card%d \t" % (label, i, j)
     fid = open(("%s/%s.slibase.1D"% (OutDir , prefix)), "w")
     
     print('Output file ', ("%s/%s.slibase.1D"% (OutDir , prefix)))
 
-    # remove very last ';'
+    # remove very last '\t'
     label = label[1:-2]
 
     savetxt(

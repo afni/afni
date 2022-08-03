@@ -481,6 +481,51 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
     return phases
 
+def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases,\
+                oldRespiratoryPhases, newCardiacPhases, newRespiratoryPhases, sliceNumber):
+    
+    # Get old and new cardiac phases
+    old = []
+    new = []
+    Inc = sliceNumber*shape(oldCardiacPhases)[0]*shape(oldCardiacPhases)[1]
+    for i in range(0,shape(oldCardiacPhases)[1]):
+        for j in range(0,shape(oldCardiacPhases)[0]): 
+            old.append(oldCardiacPhases[j,i,sliceNumber])
+            new.append(newCardiacPhases[Inc])
+            Inc = Inc + 1
+    
+    # Plot cardiac phases together
+    x = []    
+    end = len(new)
+    for i in range(0,end): x.append(i/cardiac_info["phys_fs"])
+    plt.plot(x, new, "b")          
+    plt.plot(x, old, "r")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Respiratory Phase")
+    # plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+    
+    
+    # Get old and new cardiac phases
+    old = []
+    new = []
+    Inc = sliceNumber*shape(oldRespiratoryPhases)[0]*shape(oldRespiratoryPhases)[1]
+    for i in range(0,shape(oldRespiratoryPhases)[1]):
+        for j in range(0,shape(oldRespiratoryPhases)[0]): 
+            old.append(oldRespiratoryPhases[j,i,sliceNumber])
+            new.append(newRespiratoryPhases[Inc])
+            Inc = Inc + 1
+    
+    # Plot cardiac phases together
+    x = []    
+    end = len(new)
+    for i in range(0,end): x.append(i/cardiac_info["phys_fs"])
+    plt.plot(x, new, "b")          
+    plt.plot(x, old, "r")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Respiratory Phase")
+    
+    return 0
+
 def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     """
     NAME
@@ -983,7 +1028,7 @@ def phase_base(amp_type, phasee):
             
             p_trace:   Peak values
             
-            tp_trace:   eak locations
+            tp_trace:   Peak locations
             
             n_trace:   Trough values
             
@@ -1037,16 +1082,21 @@ def phase_base(amp_type, phasee):
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
+    
+    peakLocations_RawData = np.round(phasee["tp_trace"]*phasee["phys_fs"]).astype(int)
+    troughLocations_RawData = np.round(phasee["tn_trace"]*phasee["phys_fs"]).astype(int)
+    
 
-    if amp_type == 0:   # Phase not based on amplitude
+    if amp_type == 0:   # Phase not based on amplitude.  This is a buggy option 
+                        #   and was hardcoded out by JZ/ZSS
         # Calculate the phase of the trace, with the peak to be the start of the phase
-        nptrc = len(phasee["tp_trace"]) # Number of peaks
+        nptrc = len(peakLocations_RawData) # Number of peaks
         phasee["phase"] = -2 * np.ones(size(phasee["t"]))   # Array of -2s, the length of the input data
         i = 0   # i increments over the peak indices
         j = 0   # j increments over the time point indices
         while i <= (nptrc - 2): # For each peak
-            while phasee["t"][j] < phasee["tp_trace"][i + 1]: # Examine signal between this and next peak
-                if phasee["t"][j] >= phasee["tp_trace"][i]:   # Must be at least the index of the current peak
+            while phasee["t"][j] < peakLocations_RawData[i + 1]: # Examine signal between this and next peak
+                if phasee["t"][j] >= peakLocations_RawData[i]:   # Must be at least the index of the current peak
                     # Note: Using a constant 244 period for each interval
                     # causes slope discontinuity within a period.
                     # One should resample period[i] so that it is
@@ -1055,7 +1105,7 @@ def phase_base(amp_type, phasee):
                     if j == 10975:  # Don't do the following block for this temporal index
                         pass
                     phasee["phase"][j] = (
-                        phasee["t"][j] - phasee["tp_trace"][i]
+                        phasee["t"][j] - peakLocations_RawData[i]
                     ) / phasee["prd"][i] + phasee["zero_phase_offset"]
                     if phasee["phase"][j] < 0:
                         phasee["phase"][j] = -phasee["phase"][j]
@@ -1071,7 +1121,9 @@ def phase_base(amp_type, phasee):
         phasee["phase"][temp] = 0.0
         # Change phase to radians
         phasee["phase"] = phasee["phase"] * 2 * math.pi
-    else:  # phase based on amplitude
+    else:  # phase based on amplitude (default)
+    
+        # Step 1: Calculate the histogram of the input values
         # at first scale to the max
         mxamp = max(phasee["p_trace"])  # Maximum peak value
         phasee["phase_pol"] = []        # Only used for amplitude-based phase
@@ -1091,12 +1143,15 @@ def phase_base(amp_type, phasee):
             # plt.ion()
             plt.show()  # If this is left out, output file is blank
             
+        # Step 2. Assign polarities to every input timepoint.  Positive polarity 
+        #   is inspiration while negative polarity is expiration
+            
         # find the polarity of each time point in v
         i = 0
         itp = 0
         inp = 0
-        tp = phasee["tp_trace"][0]  # Location of first peak
-        tn = phasee["tn_trace"][0]  # Location of first trough
+        tp = peakLocations_RawData[0]  # Location of first peak
+        tn = troughLocations_RawData[0]  # Location of first trough
         
         # Find location of first peak or trough
         while (
@@ -1105,14 +1160,14 @@ def phase_base(amp_type, phasee):
             phasee["phase_pol"].append(0)
             i += 1
                     
-        if tp < tn: # If first peak precedes first trought
+        if tp > tn: # If first peak precedes first trought
             # Expiring phase (peak behind us)
             cpol = -1   # Polarity of -1 means expiration
-            itp = 1
+            # inp = 1
         else:       # First trough precedes first peak
             # Inspiring phase (bottom behind us)
             cpol = 1    # Polarity of 1 means inpiration
-            inp = 1
+            # itp = 1
             
         phasee["phase_pol"] = np.zeros(
             size(phasee["v"])
@@ -1120,22 +1175,25 @@ def phase_base(amp_type, phasee):
         # list that you created 10 lines prior to this
         
         # Add a fake point to tptrace and tntrace to avoid ugly if statements
-        phasee["tp_trace"] = np.append(phasee["tp_trace"], phasee["t"][-1])
-        phasee["tn_trace"] = np.append(phasee["tn_trace"], phasee["t"][-1])
+        peakLocations_RawData = np.append(peakLocations_RawData, phasee["t"][-1])
+        troughLocations_RawData = np.append(troughLocations_RawData, phasee["t"][-1])
         
         # Assign polarities to every input timepoint
+        i = 0
         while i < len(phasee["v"]): # Process every input time point
             phasee["phase_pol"][i] = cpol
-            if phasee["t"][i] == phasee["tp_trace"][itp]:
+            # if phasee["t"][i] == peakLocations_RawData[itp]:
+            if i == peakLocations_RawData[itp]:
                 cpol = -1   # Expiration polarity
-                itp = min((itp + 1), (len(phasee["tp_trace"]) - 1)) # Expiration minimum
-            elif phasee["t"][i] == phasee["tn_trace"][inp]:
+                itp = min((itp + 1), (len(peakLocations_RawData) - 1)) # Expiration minimum
+            # elif phasee["t"][i] == troughLocations_RawData[inp]:
+            elif i == troughLocations_RawData[inp]:
                 cpol = 1   # Inspiration polarity
-                inp = min((inp + 1), (len(phasee["tn_trace"]) - 1)) # Inspiration minimum
+                inp = min((inp + 1), (len(troughLocations_RawData) - 1)) # Inspiration minimum
             i += 1  # Next point
             
-        phasee["tp_trace"] = np.delete(phasee["tp_trace"], -1) # Remove last peak
-        phasee["tn_trace"] = np.delete(phasee["tn_trace"], -1) # Remove last trough
+        peakLocations_RawData = np.delete(peakLocations_RawData, -1) # Remove last peak
+        troughLocations_RawData = np.delete(troughLocations_RawData, -1) # Remove last trough
         
         # Plot graphs if required
         if phasee["quiet"] == 0:
@@ -1173,6 +1231,26 @@ def phase_base(amp_type, phasee):
             # Save plot to file
             plt.savefig('%s/%s_phaseInspExp.pdf' % (OutDir, phasee['respcard'])) 
             # plt.ion()
+            plt.show()
+            
+            # Plot time series with inspiration in red and expiration in green
+            Y = gR
+            x_filt = (np.where(phasee["phase_pol"]>0))[0]
+            subset = np.where(x_filt<2000)[0]
+            x_filt = x_filt[subset]
+            y_filt = Y[x_filt]
+            plt.plot(x_filt, y_filt, "r.")          
+            x2_filt = (np.where(phasee["phase_pol"]<0))[0]
+            subset = np.where(x2_filt<2000)[0]
+            x2_filt = x2_filt[subset]
+            y2_filt = Y[x2_filt]
+            plt.plot(x2_filt, y2_filt, "g.")          
+            plt.xlabel("Raw input data index")
+            plt.ylabel("Input scaled to [0,max(input)](gR)")
+            plt.title("Inspiration (red) and expiration (green) versus pt.index for the first 2000 timepoints of the input data")
+        
+            # Save plot to file
+            plt.savefig('%s/%s_TimePtInspExp.pdf' % (OutDir, phasee['respcard'])) 
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
