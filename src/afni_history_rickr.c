@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Aug, 2022, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "3dDeconvolve currently misbehaves when there are no events for IM",
+   "Have the program terminate with an error, until the problem is resolved.\n"
+   "Thanks for T Clarkson for pointing out the problem."
+ } ,
+
  { 30, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "copy tlrc_base/template to results dir; add opt -tlrc_copy_base",
    "Done for QC and visualization purposes; requested by P Taylor."

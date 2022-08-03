@@ -3148,6 +3148,13 @@ void get_options
           INFO_message("'%s %d %s' will have %d regressors",
                        sopt,ival,argv[nopt-1],basis_stim[k]->nparm) ;
 
+          /* IM with zero events is not handled reliably, including getting
+           * apparent full-volume inflated results.
+           * Could we cheat and change type to BASIS_SINGLE?    03 Aug 2022
+           */
+          if( basis_stim[k]->nparm == 0 )
+            ERROR_exit("IM currently requires more than zero events");
+
           if( vmod != 0 )
             ERROR_exit("'%s %d %s' has %d amplitude modulation parameters - not legal! [nopt=%d]",
                        sopt,ival,argv[nopt-1],vmod,nopt) ;
