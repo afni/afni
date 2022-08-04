@@ -3,12 +3,10 @@
 # python3 status: compatible
 
 # coding=utf-8
-__author__ = "Joshua Zosky and Peter Lauren" # Modified a bit by gianfranco 
+__author__ = "Peter Lauren" # Modified a bit by gianfranco 
 
 """
-    Copyright 2015 Joshua Zosky
     Copyright 2022 Peter Lauren
-    joshua.e.zosky@gmail.com
     peterdlauren@gmail.com
 
     "RetroTS2" is free software: you can redistribute it and/or modify
@@ -81,11 +79,12 @@ import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 import lib_retroicor
-from lib_retroicor import phase_estimator
-from lib_retroicor import peak_finder
-from lib_retroicor import readRawInputData
-from lib_retroicor import show_rvt_peak
-from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
+# from lib_retroicor import phase_estimator
+# from lib_retroicor import peak_finder
+# from lib_retroicor import readRawInputData
+# from lib_retroicor import show_rvt_peak
+# from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
+from lib_retroicor import getPhysiologicalNoiseComponents
 import os
 
 from datetime import datetime
@@ -337,7 +336,7 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
         rvt_out:  Whether to have RVT output
             
     AUTHOR
-       Joshua Zosky (Documentation by Peter Lauren)
+       JPeter Lauren
     """
             
     # Handle file inputs
@@ -443,7 +442,8 @@ def retro_ts(
     legacy_transform=0,
     phys_file=None,
     phys_json=None,
-    retroicor_algorithm=False,
+    abt=False,
+    aby=False,
     args=None
 ):
     """
@@ -558,7 +558,7 @@ def retro_ts(
         args: Command line arguments supplied by user (String)
 
     AUTHOR
-       Joshua Zosky and Peter Lauren
+       Peter Lauren
     """
 
     # Make output directory
@@ -617,184 +617,18 @@ def retro_ts(
 
     respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                            phys_json, respiration_out, cardiac_out, rvt_out)        
+                            phys_json, respiration_out, cardiac_out, rvt_out)  
         
-    # Read in raw data, and find peaks for respiration measurements
-    print('Read in raw data, and find peaks for respiration')
-    v_np = readRawInputData(respiration_info, respiration_file, phys_resp_dat)
-
-    # Find respiratory peaks
-    respiration_info['respcard'] = "Respiratory"
-    respiration_peak, error = peak_finder(respiration_info, v_np)
-    if error:
-        print("Died in respiratory PeakFinder")
-        return
-
-    # Read in raw data, and find peaks for cardiac measurements    
-    v_np = readRawInputData(cardiac_info, cardiac_file, phys_cardiac_dat)
-
-    # Find cardiac peaks
-    cardiac_info['respcard'] = "Cardiac"
-    cardiac_peak, error = peak_finder(cardiac_info, v_np)
-    if error:
-        print("Died in cardiac PeakFinder")
-        return
-
-    # Update respiratory and cardiac info with peak info
-    respiration_info.update(respiration_peak)    
-    cardiac_info.update(cardiac_peak)
-       
-    # Get the phase
-    respiration_info["amp_phase"] = 1 # Amplitude-based phase for respiration
-    respiration_info["zero_phase_offset"] = zero_phase_offset
-    if respiration_peak:
-        print("Estimating phase for respiration_info")
-        phasee, rvt = phase_estimator(
-            respiration_info["amp_phase"], respiration_info
-        )
-        respiration_phased = phasee["phase_slice_reg"]
-    else:
-        respiration_phased = {}    
-    cardiac_info["amp_phase"] = 1   # Time-based phase for cardiac signal
-    cardiac_info["zero_phase_offset"] = zero_phase_offset
-    if cardiac_peak:
-        phasee, tmp = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
-        cardiac_phased = phasee["phase_slice_reg"]
-    else:
-        cardiac_phased = {}
-
-    if retroicor_algorithm: # Peter Lauren's implementation from 2000 Glover paper
-        parameters=dict()
-        parameters['-cardFile'] = cardiac_file
-        parameters['-respFile'] = respiration_file
-        parameters['-numSlices'] = number_of_slices
-        parameters['-TR'] = volume_tr
-        parameters['-Nt'] = 220
-        parameters['-Sr'] = phys_fs
-        parameters['-abt'] = 0
-        parameters['-aby'] = 0
-        fourierSeries = lib_retroicor.getFourierSeries(parameters)
-        fsDims = shape(fourierSeries)
-        numTimePts = int(fsDims[0]/number_of_slices)
-        numTimePts = min(numTimePts,220)
-        print('***WARNING: Only ', numTimePts, ' timepoints.  Should be 220')
-        inc = 0
-        for t in range(0,numTimePts):
-            for s in range(0,number_of_slices):
-                for i in range(0,4):
-                    respiration_phased[t][i][s] = fourierSeries[inc][i]
-                    cardiac_phased[t][i][s] = fourierSeries[inc][i+4]
-                inc += 1
-        
-    # R&D: Compare new algorithm for finding phases with old peaks
-    newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), len(v_np), phys_fs)
     parameters = dict()
-    parameters["-respFile"] = respiration_info["respiration_file"]
-    parameters["-phys_fs"] = respiration_info["phys_fs"]
-    newRespiratoryPhases = determineRespiratoryPhases(parameters,\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]])
-    sliceNumber = 0
-    compareLaurenAndZoskyPhases(cardiac_info, respiration_info, cardiac_phased, respiration_phased,\
-                                newCardiacPhases, newRespiratoryPhases, sliceNumber)
-
-    # Show some results
-    if show_graphs:
-        if respiration_info:
-            print("Showing RVT Peaks for R\n")
-            respiration_info['v_name'] = 'Respiratory RVT'
-            respiration_info["time_series_time"] = phasee["time_series_time"]
-            respiration_info["phase_slice"] = phasee["phase_slice"]
-            show_rvt_peak(respiration_info, 1)
-
-    # also generate files as 3dREMLfit likes them
-    n_n = 0
-    n_r_v = 0
-    n_r_p = 0
-    n_e = 0
-    if "time_series_time" in respiration_info:
-        n_n = len(respiration_info["time_series_time"])
-        n_r_p = size(respiration_phased, 1)
-        n_r_v = size(phasee["rvtrs_slc"], 0)
-
-    if "time_series_time" in cardiac_info:  # must have cardiac_info
-        n_n = len(
-            cardiac_phased["time_series_time"]
-        )  # ok to overwrite len(respiration_info.tst), should be same.
-        n_e = size(cardiac_phased, 1)
-
-    if (
-        cardiac_out == 0
-        and respiration_out == 0
-        and rvt_out == 0
-    ):
-        print(
-            "Options cardiac_out, respiration_out, and RVT_out all 0.\nNo output required.\n"
-        )
-        return
-
-    temp_y_axis = number_of_slices * (
-        (rvt_out) * int(n_r_v)
-        + (respiration_out) * int(n_r_p)
-        + (cardiac_out) * int(n_e)
-    )
-    reml_out = zeros((n_n, temp_y_axis))
-    cnt = 0
-    head = (
-        "<RetroTSout\n"
-        'ni_type = "%d*double"\n'
-        'ni_dimen = "%d"\n'
-        'ColumnLabels = "'
-        % (size(reml_out, 1), size(reml_out, 0))
-    )
-    tail = '"\n>'
-    tailclose = "</RetroTSout>"
-
-    label = head
-
-    # Make output vector
-    reml_out = []
-    for i in range(0, number_of_slices):
-        if rvt_out != 0:
-            # RVT
-            for j in range(0, shape(rvt)[0]):
-                cnt += 1
-                reml_out.append(
-                    rvt[j,:]
-                )  # same regressor for each slice
-                label = " %s s%d.RVT%d " % (label, i, j)
-        if respiration_out != 0:
-            # Resp
-            for j in range(0, shape(respiration_phased)[1]):
-                cnt += 1
-                reml_out.append(
-                    respiration_phased[:, j, i]
-                )
-                label = " %s s%d.Resp%d " % (label, i, j)
-        if cardiac_out != 0:
-            # Card
-            for j in range(0, shape(cardiac_phased)[1]):
-                cnt += 1
-                reml_out.append(
-                    cardiac_phased[:, j, i]
-                )
-                label = " %s s%d.Card%d " % (label, i, j)
-    fid = open(("%s/%s.slibase.1D"% (OutDir , prefix)), "w")
-    
-    print('Output file ', ("%s/%s.slibase.1D"% (OutDir , prefix)))
-
-    # remove very last '\t'
-    label = label[1:-2]
-
-    savetxt(
-        "%s/%s.slibase.1D" % (OutDir , prefix),
-        column_stack(reml_out),
-        fmt="%.4f",
-        delimiter=" ",
-        newline="\n",
-        header=("%s%s" % (label, tail)),
-        footer=("%s" % tailclose),
-    )
+    parameters['-cardFile'] = cardiac_file
+    parameters['-respFile'] = respiration_file
+    parameters['-s'] = number_of_slices
+    parameters['-TR'] = volume_tr
+    parameters['-phys_fs'] = phys_fs
+    parameters['-abt'] = abt
+    parameters['-aby'] = aby
+    physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+        
     
     return 0
 
@@ -843,8 +677,8 @@ Input
 
     Optional:
     ---------
-    retroicor: Use the retroicor algorithm to estimate the cardiac and 
-           respiratory phases
+    abt 0|1                  : Output a and b coefficients to terminal (Default = false)
+    aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
     ============================================================================
     OutDir: Output directory
     ============================================================================
@@ -971,7 +805,8 @@ Output:
         "-legacy_transform": 0,
         "-phys_file":None,
         "-phys_json":None,
-        "-retroicor_algorithm": False
+        "-abt": False,
+        "-aby": False
     }
 
     if len(sys.argv) < 2:
@@ -1032,6 +867,7 @@ Output:
         legacy_transform=opt_dict["-legacy_transform"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],
-        retroicor_algorithm=opt_dict["-retroicor_algorithm"],
+        abt=opt_dict["-abt"],
+        aby=opt_dict["-aby"],
         args = sys.argv[1:]
     )

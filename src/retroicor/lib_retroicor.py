@@ -93,13 +93,13 @@ def readArray(parameters, key):
     with open(parameters[key]) as f:
         array = []
         for line in f: # read rest of lines
-            array.append([int(x) for x in line.split()])
+            array.append([float(x) for x in line.split()])
             
     # Transform list of lists into single list
     array = [n for one_dim in array for n in one_dim]
     return array
 
-def getCardiacPeaks(parameters):
+def getCardiacPeaks(parameters, array):
    """
    NAME
        getCardiacPeaks
@@ -117,8 +117,6 @@ def getCardiacPeaks(parameters):
    AUTHOR
        Peter Lauren
    """
-
-   array = readArray(parameters, '-cardFile')
 
    peaks, _ = find_peaks(np.array(array))
    
@@ -145,11 +143,28 @@ def getCardiacPeaks(parameters):
                sep = round(interpeak[p]/numberToAdd)               
            for i in range(1,numberToAdd):
                peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+               
+   # Graph cardiac peaks against cardiac time series
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+   figure(1)
+   subplot(211)
+   plot(array, "g") #Lines connecting peaks and troughs
+   plot(peaks, peakVals, "ro") # Peaks
+   plt.xlabel("Input data index")
+   plt.ylabel("Input data input value")
+   plt.title("Cardiac peaks (red) and raw input data (green)",\
+               fontdict={'fontsize': 12})
+        
+   # Save plot to file
+   global OutDir
+   plt.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
+   plt.show()  # If this is left out, output file is blank
     
    return peaks, len(array)
 
 
-def getRespiratoryPeaks(parameters):
+def getRespiratoryPeaks(parameters, rawData):
    """
    NAME
        getRespiratoryPeaks
@@ -186,6 +201,26 @@ def getRespiratoryPeaks(parameters):
    indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
    peaks = np.delete(peaks,indices2remove)
    troughs = np.delete(troughs,indices2remove)
+               
+   # Graph respiratory peaks and troughs against respiratory time series
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+   troughVals = []
+   for i in troughs: troughVals.append(array[i])
+   figure(1)
+   subplot(211)
+   plot(array, "g") #Lines connecting peaks and troughs
+   plot(peaks, peakVals, "ro") # Peaks
+   plot(troughs, troughVals, "bo") # Peaks
+   plt.xlabel("Input data index")
+   plt.ylabel("Input data input value")
+   plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
+               fontdict={'fontsize': 10})
+        
+   # Save plot to file
+   global OutDir
+   plt.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
+   plt.show()  # If this is left out, output file is blank
     
    return peaks, troughs, len(array)
 
@@ -213,7 +248,7 @@ def getTroughs(parameters, key):
     
    return troughs
 
-def determineCardiacPhases(peaks, fullLength, phys_fs):
+def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     """
     NAME
        determineCardiacPhases
@@ -264,17 +299,24 @@ def determineCardiacPhases(peaks, fullLength, phys_fs):
       phases.append(phases[iIndex]) 
       iIndex = iIndex + 1
       
+    # Move phase range from [0,2Pi] to [-Pi,Pi]
+    phases = [x - math.pi for x in phases]
+      
     # PLot phases
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(peaks)))
     for i in range(0,end): x.append(i/phys_fs)
-    plt.plot(x, phases[0:end], "b")          
+    fig, ax_left = plt.subplots()
     plt.xlabel("Time (s)")
-    plt.ylabel("Cardiac Phase")
-    plt.title("Cardiac phase using new phase algorithm with old determination of peaks")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData, color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Cardiac phase (red) and raw input data (green)")
         
     # Save plot to file
-    plt.savefig('%s/NewCardiacPhase.pdf' % (OutDir)) 
+    plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
     plt.show()
             
     return phases
@@ -350,7 +392,7 @@ def getBCoeffs(parameters, key, phases):
     return b
             
 
-def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs):
+def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, phys_fs, rawData):
     """
     NAME
         determineRespiratoryPhases
@@ -464,19 +506,22 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         for i in range(0,length):
             phases.append(phases[input])
             input = input - 1
-
       
     # PLot phases
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
-    for i in range(0,end): x.append(i/parameters["-phys_fs"])
-    plt.plot(x, phases[0:end], "b")          
+    for i in range(0,end): x.append(i/phys_fs)
+    fig, ax_left = plt.subplots()
     plt.xlabel("Time (s)")
-    plt.ylabel("Respiratory Phase")
-    plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData, color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Respiratory phase (red) and raw input data (green)")
         
     # Save plot to file
-    plt.savefig('%s/NewRespiratoryPhase.pdf' % (OutDir)) 
+    plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
     plt.show()
         
     return phases
@@ -497,15 +542,19 @@ def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases
     # Plot cardiac phases together
     x = []    
     end = len(new)
-    for i in range(0,end): x.append(i/cardiac_info["phys_fs"])
+    for i in range(0,end): x.append(i/respiration_info["phys_fs"])
     plt.plot(x, new, "b")          
     plt.plot(x, old, "r")          
     plt.xlabel("Time (s)")
     plt.ylabel("Respiratory Phase")
-    # plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+    plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+        
+    # Save plot to file
+    plt.savefig('%s/cardiacNewVOld.pdf' % (OutDir)) 
+    plt.show()
     
     
-    # Get old and new cardiac phases
+    # Get old and new respiratory phases
     old = []
     new = []
     Inc = sliceNumber*shape(oldRespiratoryPhases)[0]*shape(oldRespiratoryPhases)[1]
@@ -523,6 +572,11 @@ def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases
     plt.plot(x, old, "r")          
     plt.xlabel("Time (s)")
     plt.ylabel("Respiratory Phase")
+    plt.title("Old (red) and new(blue) respiratory Phase")
+        
+    # Save plot to file
+    plt.savefig('%s/respiratoryNewVOld.pdf' % (OutDir)) 
+    plt.show()
     
     return 0
 
@@ -721,75 +775,78 @@ def getPhysiologicalNoiseComponents(parameters):
     AUTHOR
        Peter Lauren
     """
+
+    rawData = readArray(parameters, '-cardFile')
     
-    cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
+    cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
     
-    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength)
+    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
+                                            parameters['-phys_fs'], rawData)
     
     respiratory_peaks, respiratory_troughs, fullLength = \
-        getRespiratoryPeaks(parameters) 
+        getRespiratoryPeaks(parameters, rawData) 
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
-            respiratory_peaks, respiratory_troughs)
+            respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
         
-    if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
-                                # Resonance in Medicine 44:162–167 (2000)
-        # Get a coefficients
-        cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
-        respiratoryACoeffs = getACoeffs(parameters, '-respFile', respiratory_phases)
+    # if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
+    #                             # Resonance in Medicine 44:162–167 (2000)
+    #     # Get a coefficients
+    #     cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
+    #     respiratoryACoeffs = getACoeffs(parameters, '-respFile', respiratory_phases)
         
-        # Get b coefficients
-        cardiacBCoeffs = getBCoeffs(parameters, '-cardFile', cardiac_phases)
-        respiratoryBCoeffs = getBCoeffs(parameters, '-respFile', respiratory_phases)
-    else:   # a and b coefficients set to 1.0
-        cardiacACoeffs = [1.0]
-        respiratoryACoeffs = [1.0]
-        cardiacBCoeffs = [1.0]
-        respiratoryBCoeffs = [1.0]
-        cardiacACoeffs.append(1.0)
-        respiratoryACoeffs.append(1.0)
-        cardiacBCoeffs.append(1.0)
-        respiratoryBCoeffs.append(1.0)
+    #     # Get b coefficients
+    #     cardiacBCoeffs = getBCoeffs(parameters, '-cardFile', cardiac_phases)
+    #     respiratoryBCoeffs = getBCoeffs(parameters, '-respFile', respiratory_phases)
+    # else:   # a and b coefficients set to 1.0
+    #     cardiacACoeffs = [1.0]
+    #     respiratoryACoeffs = [1.0]
+    #     cardiacBCoeffs = [1.0]
+    #     respiratoryBCoeffs = [1.0]
+    #     cardiacACoeffs.append(1.0)
+    #     respiratoryACoeffs.append(1.0)
+    #     cardiacBCoeffs.append(1.0)
+    #     respiratoryBCoeffs.append(1.0)
     
-    global GLOBAL_M
-    global numSections
+    # global GLOBAL_M
+    # global numSections
     
-    # Initialize output table
-    df = pd.DataFrame()
+    # # Initialize output table
+    # df = pd.DataFrame()
     
-    # Make output table columns names
-    columnNames = []
-    for s in range(0,numSections):
-        for r in range(0,4):
-            string = 's' + str(s) + '.Resp' + str(r)
-            columnNames.append(string)
-    for s in range(0,numSections):
-        for r in range(0,4):
-            string = 's' + str(s) + '.Card' + str(r)
-            columnNames.append(string)
+    # # Make output table columns names
+    # columnNames = []
+    # for s in range(0,numSections):
+    #     for r in range(0,4):
+    #         string = 's' + str(s) + '.Resp' + str(r)
+    #         columnNames.append(string)
+    # for s in range(0,numSections):
+    #     for r in range(0,4):
+    #         string = 's' + str(s) + '.Card' + str(r)
+    #         columnNames.append(string)
         
-    # Make output table data matrix
-    data = []
-    T = len(respiratory_phases)
-    print('T = ', T)
-    for t in range(0,T):
-        sum = 0
-        addend = []
-        for m in range(1,GLOBAL_M):
-            m0 = m - 1
-            addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
-            addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,GLOBAL_M):
-            m0 = m - 1
-            addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
-            addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
-        data.append(addend)
+    # # Make output table data matrix
+    # data = []
+    # T = len(respiratory_phases)
+    # print('T = ', T)
+    # for t in range(0,T):
+    #     sum = 0
+    #     addend = []
+    #     for m in range(1,GLOBAL_M):
+    #         m0 = m - 1
+    #         addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
+    #         addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+    #     for m in range(1,GLOBAL_M):
+    #         m0 = m - 1
+    #         addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
+    #         addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+    #     data.append(addend)
     
-    if (parameters['-niml']):
-        niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
-        return data
+    # if (parameters['-niml']):
+    #     niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
+    #     return data
     
-    df = pd.DataFrame(data,columns=columnNames)
+    # df = pd.DataFrame(data,columns=columnNames)
         
     return df   
 
