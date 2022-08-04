@@ -55,9 +55,12 @@
 # [PT] forgot some pieces in last update; adding now
 # + also rename 'srvr' to 'saving'
 #
-ver = '3.04' ; date = 'Aug 2, 2022' 
+#ver = '3.04' ; date = 'Aug 2, 2022' 
 # [PT] the QC rating information now gets saved whenever the text dialogue
 #      box gets closed.
+#
+ver = '3.05' ; date = 'Aug 4, 2022' 
+# [PT] add link to AFNI MB in APQC help file
 #
 #########################################################################
 
@@ -288,13 +291,12 @@ for x in qcb_helps.keys():
 
 apqc_help = [ 
 ['HELP FILE FOR APQC', 
- '''*** APQC HTML: afni_proc.py's QC report for single subject analysis***
+ '''*** APQC HTML: afni_proc.py's QC report for single subject analysis ***
 
 Some useful links:
-+ The afni_proc.py (AP) program's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">online help file</a></urlin>
 + The APQC HTML's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">online tutorial</a></urlin>
-
-.
++ The afni_proc.py (AP) program's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">online help file</a></urlin>
++ The AFNI Message Board <urlin><a href="https://afni.nimh.nih.gov/afni/community/board/list.php?1" target="_blank">homepage</a></urlin>
 '''], 
 ['OVERVIEW', 
 '''QC organization
