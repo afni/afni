@@ -444,6 +444,7 @@ def retro_ts(
     phys_json=None,
     abt=False,
     aby=False,
+    niml = False,
     args=None
 ):
     """
@@ -577,7 +578,7 @@ def retro_ts(
     if not slice_offset:
         slice_offset = zeros((1, number_of_slices))
      
-    # Update slice offsets.  Note that this is done before teh data is read
+    # Update slice offsets.  Note that this is done before the data is read
     print('Update slice offsets.  Note that this is done before teh data is read')
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
@@ -586,38 +587,6 @@ def retro_ts(
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
     slice_offset = getSliceOffsets(offsetDict)
-
-    # Create information dictionary for each type of signal
-    # Note that this is done by reading the relevant input parameters
-    print('Create information dictionary for each type of signal')
-    respiration_info = dict()
-    respiration_info["respiration_file"] = respiration_file
-    respiration_info["phys_fs"] = phys_fs
-    respiration_info["number_of_slices"] = number_of_slices
-    respiration_info["volume_tr"] = volume_tr
-    respiration_info["slice_offset"] = slice_offset
-    respiration_info["rvt_shifts"] = rvt_shifts
-    respiration_info["interpolation_style"] = interpolation_style
-    respiration_info["legacy_transform"] = legacy_transform
-    cardiac_info = dict()
-    cardiac_info["phys_fs"] = phys_fs
-    cardiac_info["cardiac_file"] = cardiac_file
-    cardiac_info["number_of_slices"] = number_of_slices
-    cardiac_info["volume_tr"] = volume_tr
-    cardiac_info["slice_offset"] = slice_offset
-    cardiac_info["rvt_shifts"] = rvt_shifts
-    cardiac_info["interpolation_style"] = interpolation_style
-    cardiac_info["frequency_cutoff"] = cardiac_cutoff_frequency
-    cardiac_info["fir_order"] = fir_order
-    cardiac_info["zero_phase_offset"] = zero_phase_offset
-    cardiac_info["legacy_transform"] = legacy_transform
-    
-    # Get input file parameters
-    print('Get input file parameters')
-
-    respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
-        getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                            phys_json, respiration_out, cardiac_out, rvt_out)  
         
     parameters = dict()
     parameters['-cardFile'] = cardiac_file
@@ -627,8 +596,20 @@ def retro_ts(
     parameters['-phys_fs'] = phys_fs
     parameters['-abt'] = abt
     parameters['-aby'] = aby
+    parameters['-niml'] = niml
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
-        
+    if parameters['-niml']:
+        return 0
+    
+    outputFileName = path + "/" + prefix + "FourierSeries.csv"
+    physiologicalNoiseComponents.to_csv(outputFileName)
+    
+    # PLot first 200 rows of dataframe
+    colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
+    physiologicalNoiseComponents.head(200).plot(color=colors)
+    
+    # Send output to terminal
+    if (parameters['-abt']): print(repr(physiologicalNoiseComponents))
     
     return 0
 
@@ -679,6 +660,7 @@ Input
     ---------
     abt 0|1                  : Output a and b coefficients to terminal (Default = false)
     aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
+    niml 0|1                 : Output in NIML format instead of CSV format (Default = false) 
     ============================================================================
     OutDir: Output directory
     ============================================================================
@@ -806,7 +788,8 @@ Output:
         "-phys_file":None,
         "-phys_json":None,
         "-abt": False,
-        "-aby": False
+        "-aby": False,
+        "-niml": False
     }
 
     if len(sys.argv) < 2:
@@ -869,5 +852,6 @@ Output:
         phys_json=opt_dict["-phys_json"],
         abt=opt_dict["-abt"],
         aby=opt_dict["-aby"],
+        niml=opt_dict["-niml"],
         args = sys.argv[1:]
     )

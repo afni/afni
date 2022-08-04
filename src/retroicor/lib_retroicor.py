@@ -789,64 +789,64 @@ def getPhysiologicalNoiseComponents(parameters):
     respiratory_phases = determineRespiratoryPhases(parameters, \
             respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
         
-    # if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
-    #                             # Resonance in Medicine 44:162–167 (2000)
-    #     # Get a coefficients
-    #     cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
-    #     respiratoryACoeffs = getACoeffs(parameters, '-respFile', respiratory_phases)
+    if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
+                                # Resonance in Medicine 44:162–167 (2000)
+        # Get a coefficients
+        cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
+        respiratoryACoeffs = getACoeffs(parameters, '-respFile', respiratory_phases)
         
-    #     # Get b coefficients
-    #     cardiacBCoeffs = getBCoeffs(parameters, '-cardFile', cardiac_phases)
-    #     respiratoryBCoeffs = getBCoeffs(parameters, '-respFile', respiratory_phases)
-    # else:   # a and b coefficients set to 1.0
-    #     cardiacACoeffs = [1.0]
-    #     respiratoryACoeffs = [1.0]
-    #     cardiacBCoeffs = [1.0]
-    #     respiratoryBCoeffs = [1.0]
-    #     cardiacACoeffs.append(1.0)
-    #     respiratoryACoeffs.append(1.0)
-    #     cardiacBCoeffs.append(1.0)
-    #     respiratoryBCoeffs.append(1.0)
+        # Get b coefficients
+        cardiacBCoeffs = getBCoeffs(parameters, '-cardFile', cardiac_phases)
+        respiratoryBCoeffs = getBCoeffs(parameters, '-respFile', respiratory_phases)
+    else:   # a and b coefficients set to 1.0
+        cardiacACoeffs = [1.0]
+        respiratoryACoeffs = [1.0]
+        cardiacBCoeffs = [1.0]
+        respiratoryBCoeffs = [1.0]
+        cardiacACoeffs.append(1.0)
+        respiratoryACoeffs.append(1.0)
+        cardiacBCoeffs.append(1.0)
+        respiratoryBCoeffs.append(1.0)
     
-    # global GLOBAL_M
-    # global numSections
+    global GLOBAL_M
+    global numSections
     
-    # # Initialize output table
-    # df = pd.DataFrame()
+    # Initialize output table
+    df = pd.DataFrame()
     
-    # # Make output table columns names
-    # columnNames = []
-    # for s in range(0,numSections):
-    #     for r in range(0,4):
-    #         string = 's' + str(s) + '.Resp' + str(r)
-    #         columnNames.append(string)
-    # for s in range(0,numSections):
-    #     for r in range(0,4):
-    #         string = 's' + str(s) + '.Card' + str(r)
-    #         columnNames.append(string)
+    # Make output table columns names
+    columnNames = []
+    for s in range(0,numSections):
+        for r in range(0,4):
+            string = 's' + str(s) + '.Resp' + str(r)
+            columnNames.append(string)
+    for s in range(0,numSections):
+        for r in range(0,4):
+            string = 's' + str(s) + '.Card' + str(r)
+            columnNames.append(string)
         
-    # # Make output table data matrix
-    # data = []
-    # T = len(respiratory_phases)
-    # print('T = ', T)
-    # for t in range(0,T):
-    #     sum = 0
-    #     addend = []
-    #     for m in range(1,GLOBAL_M):
-    #         m0 = m - 1
-    #         addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
-    #         addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-    #     for m in range(1,GLOBAL_M):
-    #         m0 = m - 1
-    #         addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
-    #         addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
-    #     data.append(addend)
+    # Make output table data matrix
+    data = []
+    T = len(respiratory_phases)
+    print('T = ', T)
+    for t in range(0,T):
+        sum = 0
+        addend = []
+        for m in range(1,GLOBAL_M):
+            m0 = m - 1
+            addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
+            addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+        for m in range(1,GLOBAL_M):
+            m0 = m - 1
+            addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
+            addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+        data.append(addend)
     
-    # if (parameters['-niml']):
-    #     niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
-    #     return data
+    if (parameters['-niml']):
+        niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
+        return niml
     
-    # df = pd.DataFrame(data,columns=columnNames)
+    df = pd.DataFrame(data,columns=columnNames)
         
     return df   
 
