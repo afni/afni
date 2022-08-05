@@ -809,13 +809,13 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratoryBCoeffs.append(1.0)
     
     global GLOBAL_M
-    global numSections
     
     # Initialize output table
     df = pd.DataFrame()
     
     # Make output table columns names
     columnNames = []
+    numSections = parameters["-s"]
     for s in range(0,numSections):
         for r in range(0,4):
             string = 's' + str(s) + '.Resp' + str(r)
@@ -841,6 +841,10 @@ def getPhysiologicalNoiseComponents(parameters):
             addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
         data.append(addend)
+        
+    # Reshape matrix according to number of slices
+    nrow = shape(data)[0]
+    data = np.reshape(data[0:nrow-(nrow%numSections)][:], (8*numSections, -1)).T
     
     if (parameters['-niml']):
         niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
