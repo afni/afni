@@ -413,6 +413,174 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     AUTHOR
        Peter Lauren
     """
+    
+    if respiratory_peaks[0] < respiratory_troughs[0]:
+        polarity = -1
+    else:
+        polarity = 1
+        
+    numFullSegments = len(respiratory_peaks) + len(respiratory_troughs) - 1
+    
+    phases = np.zeros(len(rawData))
+    
+    peakIndex = 0
+    troughIndex = 0
+    for segment in range(0,numFullSegments):
+        start = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        denom = finish - start
+        
+        sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+        counts, bins = np.histogram(sample, bins=100) 
+        
+        length = len(sample)
+        Rmax = max(sample)
+        for i in range(start,finish):
+            end = round(100.0*sample[i-start]/Rmax)
+            count = 0
+            for j in range(0,end):
+                count = count + counts[j]
+            phases[i] = (math.pi*count*polarity)/denom
+            
+        polarity = -polarity
+        if polarity > 0: peakIndex = peakIndex + 1
+        else: troughIndex = troughIndex + 1
+    
+      
+    # PLot phases
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+    for i in range(0,end): x.append(i/phys_fs)
+    fig, ax_left = plt.subplots()
+    plt.xlabel("Time (s)")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData, color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Respiratory phase (red) and raw input data (green)")
+        
+    # Save plot to file
+    plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+    plt.show()
+    
+    
+    
+    
+    denom = len(rawData)
+    offset = 0 - min(rawData)
+    for i in range(0,denom):
+        rawData[i] = rawData[i] + offset
+
+    # Determine sign array
+    # respiratory_peaks, _ = find_peaks(np.array(data))
+    # respiratory_troughs, _ = find_peaks(-np.array(data))
+    signs = []
+    nPeaks = len(respiratory_peaks)
+    nTroughs = len(respiratory_troughs)
+    
+    signs = []
+    sign = 1
+    for i in range(0,respiratory_troughs[0]):
+        signs.append(sign)
+    end = nTroughs - 1
+    for t in range(0,end):
+        sign = -sign
+        start = respiratory_troughs[t]
+        finish = respiratory_troughs[t+1]
+        for i in range(start,finish):
+            signs.append(sign)
+    sign = -sign
+    for i in range(respiratory_troughs[-1],denom):
+        signs.append(sign)
+        
+    # Rmax = respiratory_peaks[0] - respiratory_troughs[0]
+    phases = []
+    
+    if respiratory_peaks[0] < respiratory_troughs[0]:
+        # Assign -1 to phases of all time tpoints before the first peak
+        for i in range(0,respiratory_peaks[0]): phases.append(-1.0)
+    
+        for p in range(0,nTroughs):
+            Min = rawData[respiratory_troughs[p]]
+            Rmax = rawData[respiratory_peaks[p]]
+            for i in range(respiratory_peaks[p],respiratory_troughs[p]):
+                phase = math.pi*(rawData[i]-Min)*signs[i]/Rmax
+                phases.append(phase)
+            if p<nPeaks-1:
+                for i in range(respiratory_troughs[p],respiratory_peaks[p+1]):
+                    phase = math.pi*(rawData[i]-Min)*signs[i]/Rmax
+                    phases.append(phase)
+            
+        # Prepend phases before first peak
+        input = round(2*respiratory_peaks[0])
+        output = 0
+        while output < respiratory_peaks[0]:
+           phases[output] = phases[input] 
+           input = input - 1
+           output = output + 1
+    else:       # Begins with a trough
+        # Assign -1 to phases of all time tpoints before the first trough
+        for i in range(0,respiratory_troughs[0]): phases.append(-1.0)
+    
+        for p in range(0,nPeaks):
+            Min = rawData[respiratory_troughs[p]]
+            Rmax = rawData[respiratory_peaks[p]]
+            for i in range(respiratory_troughs[p],respiratory_peaks[p]):
+                phase = math.pi*(rawData[i]-Min)*signs[i]/Rmax
+                phases.append(phase)
+            if p<nTroughs-1:
+                for i in range(respiratory_peaks[p],respiratory_troughs[p+1]):
+                    phase = math.pi*(rawData[i]-Min)*signs[i]/Rmax
+                    phases.append(phase)
+            
+        # Prepend phases before first trough
+        input = round(2*respiratory_troughs[0])
+        output = 0
+        while output < respiratory_troughs[0]:
+           phases[output] = -phases[input] 
+           input = input - 1
+           output = output + 1
+            
+    # Append phases after last turning point.
+    if respiratory_troughs[-1] > respiratory_peaks[-1]:
+        # Append phases after last tough
+        input = respiratory_troughs[-1] - 1
+        length = denom - respiratory_troughs[-1]
+        for i in range(0,length):
+            phases.append(-phases[input])
+            input = input - 1
+    else:       
+        # Append phases after last peak
+        input = respiratory_peaks[-1] - 1
+        length = denom - respiratory_peaks[-1]
+        for i in range(0,length):
+            phases.append(phases[input])
+            input = input - 1
+        
+    return phases
+
+def determineRespiratoryPhasesOld(parameters, respiratory_peaks, respiratory_troughs, phys_fs, rawData):
+    """
+    NAME
+        determineRespiratoryPhases
+            Determine respiratory phases as descibed in Glover (2000) paper (equation 3)
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
+    ARGUMENTS
+        parameters:   dictionary of input parameters which includes the following fields.
+            -respFile;   Name of ASCII file with respiratory time series
+            phys_fs:     Physiological signal sampling frequency in Hz.
+        
+        respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
+        
+        respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        
+    AUTHOR
+       Peter Lauren
+    """
 
     data = readArray(parameters, '-respFile')
     
@@ -491,7 +659,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
            input = input - 1
            output = output + 1
             
-    # Append phases after last tunring point.
+    # Append phases after last turning point.
     if respiratory_troughs[-1] > respiratory_peaks[-1]:
         # Append phases after last tough
         input = respiratory_troughs[-1] - 1
@@ -785,6 +953,8 @@ def getPhysiologicalNoiseComponents(parameters):
     
     respiratory_peaks, respiratory_troughs, fullLength = \
         getRespiratoryPeaks(parameters, rawData) 
+
+    rawData = readArray(parameters, '-respFile')
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
             respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
