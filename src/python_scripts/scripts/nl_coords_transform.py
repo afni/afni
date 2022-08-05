@@ -12,6 +12,7 @@ if 1 :  # for testing, might add the current dir and ~/abin to the PATH
 # AFNI libraries
 from afnipy import option_list as OL
 from afnipy import afni_util as UTIL        # not actually used, but probably will be
+from afnipy import afni_base as BASE
 
 # ----------------------------------------------------------------------
 # globals
@@ -45,6 +46,11 @@ The output is decorated similarly to the input for the fcsv input.
                                   For example (using @animal_warper output type data), 
                          'composite_linear_to_template.1D template_shft_WARP.nii.gz'
 
+      -invwarp                  : invert warp
+
+      -slowinv                  : do slow inverse of warp (INV) instead of default
+                                  fast way with 3dNwarpApply's iwarp option 
+                                  (minutes vs seconds)     
       -xyzcol_start nn          : column in the input file for the xyz columns
                                   Assumed that x column, y column and z column are
                                   consecutive
@@ -79,7 +85,7 @@ The output is decorated similarly to the input for the fcsv input.
       -verb LEVEL               : set the verbosity level
 
 -----------------------------------------------------------------------------
-Daniel Glen    April 2022
+Daniel Glen    26 Jul 2022
 =============================================================================
 """
 
@@ -87,6 +93,7 @@ g_history = """
    nl_coords_transform.py history:
 
    0.0  Apr, 2022    - initial version (using eg_main_chrono.py and AFIDS coords.csh script)
+   0.01 26 Jul 2022  - working version
 """
 
 g_version = "nl_coords_transform.py version 0.0, April 22, 2022"
@@ -97,6 +104,7 @@ class coords_transform:
      
       This uses lib_1D.py as an example."""
    def __init__(self, verb=1):
+      """initialize variables for coordinate transformations"""
       # main variables
       self.status          = 0                       # exit value
       self.valid_opts      = None
@@ -105,7 +113,9 @@ class coords_transform:
       # main data variables, based on -infile, prefix and warp
       self.infile          = None
       self.outfile         = None
-      self.warpstring      = None
+      self.inwarp          = None
+      self.invwarp         = ""    # don't invert the warp by default
+      self.slowinv         = None
 
       # general variables
       self.verb            = verb
@@ -117,6 +127,10 @@ class coords_transform:
       self.inorient        = "LPI"
       self.fxyzname        = "tempxyzin.1D"
       self.xfxyzname       = "xformxyzout.1D"
+      self.xyzcol_start    = 0
+      self.xcol            = 0
+      self.ycol            = 1
+      self.zcol            = 2
 
       self.oexec           = ""
 
@@ -124,6 +138,7 @@ class coords_transform:
       self.init_options()
 
    def init_options(self):
+      """initialize option list"""
       self.valid_opts = OL.OptionList('valid opts')
 
       # short, terminal arguments
@@ -146,17 +161,43 @@ class coords_transform:
       self.valid_opts.add_opt('-prefix', 1, [],
                       helpstr='output name')
 
+      self.valid_opts.add_opt('-orient', 1, ["LPI", "RAI"],
+                      helpstr='coordinate orientation order')
+
       self.valid_opts.add_opt('-delim', 1, [],
                       helpstr='delimiter character - \",\" (comma) or \" \" (space)')
 
       self.valid_opts.add_opt('-xyzcol_start', 1, [],
                       helpstr='starting column of xyz input')
 
+      self.valid_opts.add_opt('-invwarp', 0, [],
+                      helpstr='flag to use inverse warp')
+
+      self.valid_opts.add_opt('-slowinv', 0, [],
+                      helpstr='flag to use slow inverse warp')
 
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
 
       return 0
+
+   def invert_warp(self, warp_string):
+      """given input of warp_string, return invert warp string
+         this could be multiple parts including affine and nonlinear
+         warp transformations
+         example: 'my_affxform.1D my_nlxform_WARP.nii.gz' as input
+         returns  'INV(my_nlxform_WARP.nii.gz) INV(my_affxform.1D)' """
+      # split warp string based on spaces
+      tsl = warp_string.split()
+      # put INV(...) around each part
+      for i in range(len(tsl)):
+         tsl[i] = "INV(%s)" % tsl[i]
+      # reverse list order
+      tsl.reverse()
+      # join back together as string
+      tsls = ' '.join(tsl)
+      # return reversed order string with inverted transformations
+      return tsls
 
    def process_options(self):
       """return  1 on valid and exit        (e.g. -help)
@@ -200,6 +241,8 @@ class coords_transform:
       val, err = uopts.get_type_opt(int, '-verb')
       if val != None and not err: self.verb = val
 
+      prefix = "coords_out.fcsv"
+
       # ------------------------------------------------------------
       # process options sequentially, to make them like a script
 
@@ -207,7 +250,7 @@ class coords_transform:
 
          # main options
          if opt.name == '-infile':
-            if self.main_data != None:
+            if self.infile != None:
                print('** only 1 -infile option allowed')
                return -1
             val, err = uopts.get_string_opt('', opt=opt)
@@ -217,13 +260,19 @@ class coords_transform:
          elif opt.name == '-inwarp':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return -1
-            inwarp = val
+            self.inwarp = val
 
 
          elif opt.name == '-prefix':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return -1
             prefix = val
+
+         elif opt.name == '-invwarp':
+            self.invwarp = "-iwarp"
+
+         elif opt.name == '-slowinv':
+            self.slowinv = 1
 
          elif opt.name == '-delim':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -234,7 +283,8 @@ class coords_transform:
          elif opt.name == '-xyzcol_start':
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return -1
-            self.xcol = int(xyzcol_start)
+            self.xyzcol_start = val
+            self.xcol = int(self.xyzcol_start)
             self.ycol = self.xcol+1
             self.zcol = self.ycol+1
 
@@ -261,9 +311,16 @@ class coords_transform:
       else:
          if(prefix.endswith(('.csv','.fcsv','.txt','.1D'))):
             self.outxyz = prefix
+            ff, ext = os.path.splitext(prefix)
+            self.prefix = ff
          else:
-            ff, ext = os.path.splitext(self.infile)
+            ff, ext =  os.path.splitext(os.path.basename(self.infile))
+            self.prefix = ff
             self.outxyz = prefix+ext
+         # make temporary names unique to match other output
+         # to allow parallel computation across multiple runs
+         self.fxyzname        = "tempxyzin_%s.1D" % self.prefix
+         self.xfxyzname       = "xformxyzout_%s.1D" % self.prefix
 
          # ll = len(self.infile)
          pp = self.infile.endswith(('.csv','.fcsv'))
@@ -282,15 +339,17 @@ class coords_transform:
       return 0
 
    def execute(self):
-
+      """do the reading, computation and writing
+         extract xyz coordinates from csv,fcsv or text data files
+         transform coordinates
+         write coordinates to csv,fcsv,1D or text file
+      """
       if not self.ready_for_action(): return 1
 
       if self.verb > 1:
          print('-- processing...')
 
-      # main things the program does go here
-      # mostly just going to do system calls for AFNI C programs
-      # fcsv files are formatted comma separated values
+      # fcsv files are formatted comma separated values (Slicer invention)
       # these contain information in a header and other fields in the same line
       # with the xyz information as in this excerpt from the AFIDS_macaca project:
       #
@@ -300,26 +359,38 @@ class coords_transform:
       # vtkMRMLMarkupsFiducialNode_1,-0.115733333333333,0.128533333333333,-0.1804,0,0,0,1,1,1,0,1,AC,vtkMRMLScalarVolumeNode1
       # vtkMRMLMarkupsFiducialNode_2,-0.0898666666666667,-13.5647333333333,1.014,0,0,0,1,1,1,0,2,PC,vtkMRMLScalarVolumeNode1
       # vtkMRMLMarkupsFiducialNode_3,-0.154949266666667,-20.8540666666667,-1.18409,0,0,0,1,1,1,0,3,infracollicular sulcus,vtkMRMLScalarVolumeNode1
+
+      infile = self.infile
+      fxyzname = self.fxyzname
+      xfxyzname = self.xfxyzname
+
+      print("infile is %s\n", infile)
+
       try:
          infileptr = open(infile,'r')
+         #print("Able to open infile %s" % infile)
          # templines = infileptr.readlines()
          fxyzptr = open(fxyzname,"w")
+         #print("Able to open output file %s" % fxyzname)
          for templine in infileptr :
-            templine = infileptr.readline()
+            #print("about to read line")
+            #templine = infileptr.readline()
             # check if line starts with '#' and put that into header line
             ind = templine.find('#')
             if (ind == 0 ) :
-               self.headerlines.append[templine]
+               self.headerlines += [templine]
             else : # split on spaces, commas or some specified delimiter
                tls = templine.split(self.delim)
-               self.nonheadlist.append(tls)
-               tlsx = tls[self.xcol]
-               tlsy = tls[self.ycol]
-               tlsz = tls[self.zcol]
+               self.nonheadlist += [templine]
+
+               tlsx = float( tls[self.xcol] )
+               tlsy = float( tls[self.ycol] )
+               tlsz = float( tls[self.zcol] )
                if (self.inorient == "LPI"):
                   tlsx = -tlsx
                   tlsy = -tlsy
-               fxyzptr.writeline("%s %s %s\n" % (tlsx, tlsy, tlsz))
+               # write xyz coordinates to temporary xyz file with space delimiter
+               fxyzptr.write("%f %f %f\n" % (tlsx, tlsy, tlsz))
 
          fxyzptr.close()
 
@@ -330,13 +401,33 @@ class coords_transform:
          return 1
 
       try:
-         com = shell_com(  \
+         # we can do this the slow way or the easy way
+         # slow is a few minutes, fast is seconds
+         # see 3dNwarpXYZ -help for details
+         if(self.invwarp):
+            # slow warping is slightly more accurate
+            if(self.slowinv) :
+               # invert warp string
+               self.inwarp = "'%s'" % self.invert_warp(self.inwarp)
+               # self.inwarp = "'INV(%s)'" % self.inwarp
+            # 3dNwarpXYZ will use fast way with iwarp option
+            # 3dNwarpApply and 3dNwarpXYZ also have iwarp options,
+            #  but they use the slow volume way
+            else :
+               self.inwarp = "'%s' -iwarp" % self.inwarp
+         else:
+            self.inwarp = "'%s'" % self.inwarp
+
+         com = BASE.shell_com(  \
             # apply warp to xyz (inverted warp per definition in 3dNwarpXYZ help)
             # this will be slightly different than inverting warp volume and applying
             # this warp is the combined warp in the intermediate directory from both
             # affine transformation and nonlinear warp
-            "3dNwarpXYZ -nwarp %s -iwarp %s > %s" % (inwarp, fxyzname, xfxyzname), \
+            "3dNwarpXYZ -nwarp %s %s > %s" %                       \
+            (self.inwarp, self.fxyzname, self.xfxyzname), \
                self.oexec)
+
+         print("Running %s" % com.com)
          # if this fails, notify the user
          if com.run():
             print("ERROR: 3dNwarpXYZ failed")
@@ -351,22 +442,28 @@ class coords_transform:
          # read in just converted RAI xyz coordinates
          infileptr = open(xfxyzname,'r')
          # templines = infileptr.readlines()
-         outxyzptr = open(outxyz,"w")
+         print("writing transformed coordinates to %s" % self.outxyz)
+         outxyzptr = open(self.outxyz,"w")
 
          # write the same header as the input
-         outxyzptr.writeline(self.headerlines)
+         outxyzptr.writelines(self.headerlines)
 
          # replace the xyz from original list and keep the rest of the line
          for coordline in self.nonheadlist:
             templine = infileptr.readline()
+       
             outxyz_coords = templine.split()
-            coordline[self.xcol] = outxyz_coords[0]
-            coordline[self.ycol] = outxyz_coords[1]
-            coordline[self.zcol] = outxyz_coords[2]
+            coordlinel = coordline.split(self.delim)
             if (self.inorient == "LPI"): # RAI -> original LPI, negate x,y
-               coordline[self.xcol] = -coord[self.xcol]
-               coordline[self.ycol] = -coord[self.ycol]
-            outxyzptr.writeline(coordline)
+              coordlinel[self.xcol] = "%f" % -float(outxyz_coords[0])
+              coordlinel[self.ycol] = "%f" % -float(outxyz_coords[1])
+              coordlinel[self.zcol] = outxyz_coords[2]
+            else :
+              coordlinel[self.xcol] = outxyz_coords[0]
+              coordlinel[self.ycol] = outxyz_coords[1]
+              coordlinel[self.zcol] = outxyz_coords[2]
+           
+            outxyzptr.write(self.delim.join(coordlinel))
 
       except:
          print("ERROR: could not write final transformed coordinates")
@@ -374,7 +471,7 @@ class coords_transform:
 
    def ready_for_action(self):
       """perform any final tests before execution"""
-      if self.iniwarp == "":
+      if self.inwarp == "":
           print("ERROR: Must provide warp string.")
           ready = 0
       else :
@@ -382,34 +479,11 @@ class coords_transform:
 
       return ready
 
-   def init_from_file(self, fname):
-      """load a 1D file, and init the main class elements"""
 
-      self.status = 1 # init to failure
-
-      print("--  process input coordinates from '%s'" % fname)
-      self.infile = fname  # set main data object from '-infile fname'
-
-      self.status = 0 # update to success
-
-      return 0
-
-   def test(self, verb=3):
-      """one might want to be able to run internal tests,
-         alternatively, test from the shell
-      """
-      print('------------------------ initial tests -----------------------')
-      self.verb = verb
-
-      print('------------------------ reset files -----------------------')
-
-      print('------------------------ should fail -----------------------')
-
-      print('------------------------ more tests ------------------------')
-
-      return None
-
+# main function
 def main():
+   """main function to compute coordinate transformations
+      with affine and nonlinear warps"""
    ct_me = coords_transform() # initialize class
    if not ct_me: return 1
 
@@ -428,5 +502,3 @@ def main():
 
 if __name__ == '__main__':
    sys.exit(main())
-
-
