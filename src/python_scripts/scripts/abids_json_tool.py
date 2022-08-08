@@ -253,7 +253,8 @@ if json2txt:
     max_char = max([len(i) for i in json_data.keys()])
 
     ## write out
-    with open(prefix,'wb') as csv_file:
+    ## [PT: Aug 8, 2022] don't open to write in binary mode: 'wb' -> 'w'
+    with open(prefix,'w') as csv_file:
         writer = csv.writer(csv_file,delimiter=":")
         for key, value in json_data.items():
             trailing = max_char - len(key) + 2  ## spacing
