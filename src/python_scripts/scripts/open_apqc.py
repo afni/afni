@@ -419,11 +419,36 @@ def save_json():
 
     return jsonify(jdata)
 
+''' 
+# A note on the steps that will be done with subprocesses (at
+# present) to be able to use the FINAL QC button info in colon-separated
+# file that is parsed by gen_ss_review_table.py for subject
+# inclusion/exclusion criteria.  The following 3 calls to abids_json_tool.py 
+# will be done, to edit the key="FINAL" and value=<the QC rating> pair into
+# the appropriate file:
 
-# abids_json_tool.py -input extra_info/out.ss_review.*.txt -txt2json -prefix TMP.json
-# abids_json_tool.py -input TMP.json -add_json "FINAL" TEST -force_add -prefix TMP2.json
-# abids_json_tool.py -input TMP2.json -prefix extra_info/out.ss_review.*.txt -json2txt -overwrite
+# convert existing colon-sep file to JSON
+abids_json_tool.py                            \
+    -overwrite                                \
+    -txt2json                                 \
+    -input     extra_info/out.ss_review.*.txt \
+    -prefix    TMP1.json
 
+# add/edit "FINAL" field in JSON
+abids_json_tool.py                            \
+    -overwrite                                \
+    -force_add                                \
+    -add_json  "FINAL" <the QC rating>        \
+    -input     TMP1.json                      \
+    -prefix    TMP2.json
+
+# convert JSON back to colon-sep file, overwrite orig
+abids_json_tool.py                            \
+    -overwrite                                \
+    -json2txt                                 \
+    -input     TMP2.json                      \
+    -prefix    extra_info/out.ss_review.*.txt
+'''
 
 #@app.route('/quit', methods=["POST", "GET"])
 #def quit():
