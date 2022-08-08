@@ -410,44 +410,60 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
         respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
         
+        phys_fs:     Physiological signal sampling frequency in Hz 
+        
+        rawData:     Raw respiratory data
+        
     AUTHOR
        Peter Lauren
     """
     
+    # Determine whether currently inspiration or expiration
     if respiratory_peaks[0] < respiratory_troughs[0]:
         polarity = -1
     else:
         polarity = 1
         
+    # Number of segments where each segment is either inspiration or expiration
     numFullSegments = len(respiratory_peaks) + len(respiratory_troughs) - 1
     
+    # Initialize array of output phases
     phases = np.zeros(len(rawData))
     
     peakIndex = 0
     troughIndex = 0
-    for segment in range(0,numFullSegments):
+    for segment in range(0,numFullSegments):    # Process each segment in turn
+    
+        # Determine segment from the peak and trough indices
         start = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
         finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
-        denom = finish - start
+        denom = finish - start  # Total length of segment
         
+        # Histogram values in segment
         sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
         counts, bins = np.histogram(sample, bins=100) 
         
-        length = len(sample)
-        Rmax = max(sample)
-        for i in range(start,finish):
-            end = round(100.0*sample[i-start]/Rmax)
+        # Determine phase based on equation 3 is Glover paper
+        Rmax = max(sample) # Maximum value in segment
+        for i in range(start,finish): # Move through segment
+            end = round(100.0*sample[i-start]/Rmax) # Summation limit
+            
+            # Count values, in segment that are not greater than the summation limit
             count = 0
             for j in range(0,end):
                 count = count + counts[j]
+                
+            # Use result to estimate phase at given time point
             phases[i] = (math.pi*count*polarity)/denom
-            
+        
+        # Switch polarity and increment peak indxe if new polarity inspiration
+        #   Otherwise increment trough index instead
         polarity = -polarity
         if polarity > 0: peakIndex = peakIndex + 1
         else: troughIndex = troughIndex + 1
     
       
-    # PLot phases
+    # PLot phases and raw data against time in seconds.
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
     for i in range(0,end): x.append(i/phys_fs)
