@@ -418,17 +418,50 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
        Peter Lauren
     """
     
+    NUM_BINS = 100
+    
     # Determine whether currently inspiration or expiration
     if respiratory_peaks[0] < respiratory_troughs[0]:
-        polarity = -1
-    else:
         polarity = 1
+    else:
+        polarity = -1
         
     # Number of segments where each segment is either inspiration or expiration
     numFullSegments = len(respiratory_peaks) + len(respiratory_troughs) - 1
     
     # Initialize array of output phases
     phases = np.zeros(len(rawData))
+    
+    # Assign values to time series before first full segment
+    peakIndex = 0
+    troughIndex = 0
+    start = 0
+    finish = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+    denom = finish  # Total length of segment
+    
+    # Histogram values in segment
+    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+    counts, bins = np.histogram(sample, bins=NUM_BINS) 
+    
+    # Determine phase based on equation 3 is Glover paper
+    if polarity > 0: Rmax = max(sample)
+    else: Rmax = rawData[respiratory_peaks[0]] # Maximum value in segment
+    for i in range(start,finish): # Move through segment
+        end = round(sample[i]*NUM_BINS/Rmax) # Summation limit
+        
+        # Count values, in segment that are not greater than the summation limit
+        count = 0
+        for j in range(0,end):
+            count = count + counts[j]
+            
+        # Use result to estimate phase at given time point
+        phases[i] = (math.pi*count*polarity)/denom
+    
+    # Switch polarity and increment peak indxe if new polarity inspiration
+    #   Otherwise increment trough index instead
+    polarity = -polarity
+    if polarity > 0: peakIndex = peakIndex + 1
+    else: troughIndex = troughIndex + 1
     
     peakIndex = 0
     troughIndex = 0
@@ -441,12 +474,12 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
         # Histogram values in segment
         sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
-        counts, bins = np.histogram(sample, bins=100) 
+        counts, bins = np.histogram(sample, bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
         Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
-            end = round(100.0*sample[i-start]/Rmax) # Summation limit
+            end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
             
             # Count values, in segment that are not greater than the summation limit
             count = 0
@@ -461,6 +494,29 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         polarity = -polarity
         if polarity > 0: peakIndex = peakIndex + 1
         else: troughIndex = troughIndex + 1
+    
+    # Assign values to time series after last full segment
+    start = finish
+    finish = len(rawData)
+    denom = finish - start  # Total length of segment
+    
+    # Histogram values in segment
+    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+    counts, bins = np.histogram(sample, bins=NUM_BINS) 
+    
+    # Determine phase based on equation 3 is Glover paper
+    if polarity < 0: Rmax = max(sample)
+    else: Rmax = rawData[respiratory_peaks[-1]] # Maximum value in segment
+    for i in range(start,finish): # Move through segment
+        end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
+        
+        # Count values, in segment that are not greater than the summation limit
+        count = 0
+        for j in range(0,end):
+            count = count + counts[j]
+            
+        # Use result to estimate phase at given time point
+        phases[i] = (math.pi*count*polarity)/denom
     
       
     # PLot phases and raw data against time in seconds.
