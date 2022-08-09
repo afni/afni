@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.14,  June 27, 2022
+Version 4.0.15,  Aug 9, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1433,9 +1433,9 @@ cat('***** Summary information of data structure *****\n')
 lop$nSubj <- nlevels(lop$dataStr$Subj)
 cat(lop$nSubj, 'subjects : ', levels(lop$dataStr$Subj), '\n')
 cat(length(lop$dataStr[[respVar]]), 'response values\n')
-for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
+for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii])[1] == 'factor')
    cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':',
-   levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix' | class(lop$dataStr[,ii]) == 'numeric')  # numeric may not work
+   levels(lop$dataStr[,ii]), '\n') else # since R 4.2.0 class(lop$dataStr[,ii]) returns as "matrix" "array" #if(class(lop$dataStr[,ii])[1] == 'matrix' | class(lop$dataStr[,ii]) == 'numeric')  # numeric may not work
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 cat(lop$num_glt, 'post hoc tests\n')
 
