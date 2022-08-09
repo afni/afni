@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Aug, 2022, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "modify how censor dset is applied in get_max_displacement",
+   NULL
+ } ,
+
  {  3, Aug, 2022, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "3dDeconvolve currently misbehaves when there are no events for IM",
    "Have the program terminate with an error, until the problem is resolved.\n"
