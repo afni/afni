@@ -75,16 +75,9 @@ Major blocks of calculation:
 """
 
 import sys
-import gzip
-import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 import lib_retroicor
-# from lib_retroicor import phase_estimator
-# from lib_retroicor import peak_finder
-# from lib_retroicor import readRawInputData
-# from lib_retroicor import show_rvt_peak
-# from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
-from lib_retroicor import getPhysiologicalNoiseComponents
+from lib_retroicor import getPhysiologicalNoiseComponents, getInputFileParameters
 import os
 
 from datetime import datetime
@@ -250,171 +243,6 @@ def getSliceOffsets(offsetDict):
         print("Slice timing: %s" % slice_offsets)
         
     return slice_offsets
-
-def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                        phys_json_arg, respiration_out, cardiac_out, rvt_out):
-    """
-    NAME
-        getInputFileParameters 
-            Returns the local respiriation file name  (if JSON file absent, None otherwise), 
-            respiration file data (if JSON file present, None otherwise), the 
-            local cardiac file name  (if JSON file absent, None otherwise), 
-            cardiac file data (if JSON file present, None otherwise).
-    TYPE
-        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
-    SYNOPSIS
-       getInputFileParameters(respiration_info, cardiac_info, phys_file,
-       phys_json_arg, respiration_out, cardiac_out, rvt_out)
-    ARGUMENTS
-        respiration_info:   Dictionary with the following fields.
-        
-            respiration_file:  Name of ASCII file with respiratory time series
-            
-            phys_fs:   Physiological signal sampling frequency in Hz.
-            
-            number_of_slices:   Number of slices
-            
-            volume_tr:   Volume repetition time (TR) which defines the length of time 
-            between the acquisition of consecutive frames/volumes; in seconds
-            
-            slice_offset:   Vector of slice acquisition time offsets in seconds.
-            
-            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-            
-            interpolation_style:   Resampling kernel.
-            
-            frequency_cutoff:   Cutoff frequency for smoothing RVT
-            
-            fir_order:   Order of Finite Impulse Response (FIR) filter
-            
-            zero_phase_offset:Phase offset added to the location of each peak.
-            Default is 0.0
-            
-            legacy_transform:   Important-this will specify whether you use the 
-            original Matlab code's version (1) or the potentially bug-corrected
-            version (0) for the final phase correction in
-            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
-            
-        cardiac_info:   Dictionary with the following fields.
-            
-            phys_fs:   Physiological signal sampling frequency in Hz.
-        
-            cardiac_file:  Name of ASCII file with cardiac time series
-            
-            number_of_slices:   Number of slices
-            
-            volume_tr:   Volume repetition time (TR) which defines the length of time 
-            between the acquisition of consecutive frames/volumes; in seconds
-            
-            slice_offset:   Vector of slice acquisition time offsets in seconds.
-            
-            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-            
-            interpolation_style:   Resampling kernel.
-            
-            frequency_cutoff:   Cutoff frequency for smoothing RVT
-            
-            fir_order:   Order of Finite Impulse Response (FIR) filter
-            
-            zero_phase_offset:Phase offset added to the location of each peak.
-            Default is 0.0
-            
-            legacy_transform:   Important-this will specify whether you use the 
-            original Matlab code's version (1) or the potentially bug-corrected
-            version (0) for the final phase correction in
-            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
-            
-        phys_file: BIDS formatted physio file in tab separated format. May
-        be gzipped.
-                
-        phys_json_arg: File metadata in JSON format
-        
-        respiration_out:  Whether to have respiratory output
-        
-        cardiac_out:  Whether to have cardiac output
-        
-        rvt_out:  Whether to have RVT output
-            
-    AUTHOR
-       JPeter Lauren
-    """
-            
-    # Handle file inputs
-    # BIDS = Brain Imaging Data Structure
-    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
-        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
-        raise ValueError('You should not pass a BIDS style phsyio file'
-                         ' and respiration or cardiac files.')
-    # Get the peaks for respiration_info and cardiac_info
-    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
-    if phys_file:
-        # Use json reader to read file data into phys_meta
-        with open(phys_json_arg, 'rt') as h:
-            phys_meta = json.load(h)
-        # phys_ending is last element following a period
-        phys_ending = phys_file.split(".")[-1]
-        
-        # Choose file opening function on the basis of whether file is gzippped
-        if phys_ending == 'gz':
-            opener = gzip.open 
-        else:
-            opener = open
-            
-        # Read Columns field of JSON file
-        phys_dat = {k:[] for k in phys_meta['Columns']}
-        
-        # Append tab delimited phys_file to phys_dat
-        with opener(phys_file, 'rt') as h:
-            for pl in h.readlines():
-                pls = pl.split("\t")
-                for k,v in zip(phys_meta['Columns'], pls):
-                    phys_dat[k].append(float(v))
-                    
-        # Process StartTime is in JSON file
-        if ('StartTime' in phys_meta and "StartTime" not in respiration_info):
-            startTime = float(phys_meta["StartTime"])
-            if (startTime > 0):
-                print('***** WARNING: JSON file gives positive start time which is not currently handled')
-                print('    Start time must be <= 0')
-            else:
-                respiration_info["StartTime"] = startTime            
-                cardiac_info["StartTime"] = startTime            
-                    
-        print('phys_meta = ', phys_meta)
-        # Read columns field from JSON data
-        print('Read columns field from JSON data')
-        for k in phys_meta['Columns']:
-            phys_dat[k] = array(phys_dat[k])
-            
-            # Read respiratory component
-            if k.lower() == 'respiratory' or k.lower() == 'respiration':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if respiration_out or rvt_out:
-                   if not respiration_info["phys_fs"]:
-                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   respiration_file = None
-                   phys_resp_dat = phys_dat[k]
-            
-            # Read cardiac component
-            elif k.lower() == 'cardiac':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if cardiac_out != 0:
-                   if not respiration_info["phys_fs"]:
-                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   cardiac_file = None
-                   phys_cardiac_dat = phys_dat[k]
-            else:
-                print("** warning phys data contains column '%s', but\n" \
-                      "   RetroTS only handles cardiac or respiratory data" % k)
-    else:   # Not a JSON file
-        if respiration_info["respiration_file"]:
-            respiration_file = respiration_info["respiration_file"]
-            phys_resp_dat = None
-        if cardiac_info["cardiac_file"]:
-            cardiac_file = cardiac_info["cardiac_file"]
-            phys_cardiac_dat = None
-            
-    return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
     
 
 def retro_ts(
@@ -587,6 +415,23 @@ def retro_ts(
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
     slice_offset = getSliceOffsets(offsetDict)
+
+    # Create information dictionary for each type of signal
+    # Note that this is done by reading the relevant input parameters
+    print('Create information dictionary for each type of signal')
+    respiration_info = dict()
+    respiration_info["respiration_file"] = respiration_file
+    respiration_info["phys_fs"] = phys_fs
+    cardiac_info = dict()
+    cardiac_info["phys_fs"] = phys_fs
+    cardiac_info["cardiac_file"] = cardiac_file
+       
+    # Get input file parameters
+    print('Get input file parameters')
+
+    respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
+        getInputFileParameters(respiration_info, cardiac_info, phys_file,\
+                            phys_json, respiration_out, cardiac_out, rvt_out)        
         
     parameters = dict()
     parameters['-cardFile'] = cardiac_file
@@ -597,16 +442,17 @@ def retro_ts(
     parameters['-abt'] = abt
     parameters['-aby'] = aby
     parameters['-niml'] = niml
+    parameters['phys_resp_dat'] = phys_resp_dat
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if parameters['-niml']:
         return 0
     
     outputFileName = path + "/" + prefix + "FourierSeries.csv"
     physiologicalNoiseComponents.to_csv(outputFileName)
-    
+
     # PLot first 200 rows of dataframe
-    colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
-    physiologicalNoiseComponents.head(200).plot(color=colors)
+    # colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
+    # physiologicalNoiseComponents.head(200).plot(color=colors)
     
     # Send output to terminal
     if (parameters['-abt']): print(repr(physiologicalNoiseComponents))

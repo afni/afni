@@ -35,6 +35,8 @@ from numpy import size, shape, column_stack, savetxt,real,spacing,pi
 from array import array
 from scipy.signal import firwin, lfilter 
 from scipy.interpolate import interp1d
+import gzip
+import json
 
 
 # Global constants
@@ -311,7 +313,7 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     plt.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
     ax_right.plot(x, phases[0:end], color='red')
-    ax_left.plot(x, rawData, color='green')
+    ax_left.plot(x, rawData[0:end], color='green')
     plt.ylabel('Phase (Radians)',color='r')
     plt.title("Cardiac phase (red) and raw input data (green)")
         
@@ -501,7 +503,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     denom = finish - start  # Total length of segment
     
     # Histogram values in segment
-    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+    sample = [x - rawData[respiratory_troughs[-1]] for x in rawData[start:finish]]  
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
@@ -528,7 +530,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     plt.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
     ax_right.plot(x, phases[0:end], color='red')
-    ax_left.plot(x, rawData, color='green')
+    ax_left.plot(x, rawData[0:end], color='green')
     plt.ylabel('Phase (Radians)',color='r')
     plt.title("Respiratory phase (red) and raw input data (green)")
         
@@ -923,17 +925,19 @@ def getPhysiologicalNoiseComponents(parameters):
        Peter Lauren
     """
 
-    rawData = readArray(parameters, '-cardFile')
+    # rawData = readArray(parameters, '-cardFile')
+    rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_resp_dat"])
     
     cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
     
     cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
                                             parameters['-phys_fs'], rawData)
+
+    # rawData = readArray(parameters, '-respFile')
+    rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
     
     respiratory_peaks, respiratory_troughs, fullLength = \
         getRespiratoryPeaks(parameters, rawData) 
-
-    rawData = readArray(parameters, '-respFile')
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
             respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
@@ -2018,9 +2022,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         var_vector["resample_fs"] = var_vector["phys_fs"]
     if var_vector["demo"]:
         var_vector["quiet"] = 0
-    else:
-        pause = False  # pause off
-    e = False  # default value for e
+
     r = {}
     # Some filtering
     nyquist_filter = var_vector["phys_fs"] / 2.0
@@ -2029,23 +2031,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
     )  # FIR filter of order 40
     b = np.array(b)
-    no_dups = 1  # Remove duplicates that might come up when improving peak location
-    """
-    if isinstance(var_vector, str):
-        L = glob(var_vector)  # NEED TO CONVERT ZGLOBB INTO LIST MAKER OF FILE OBJECTS; I.E. type(L) == list
-        nl = len(L)
-        #if isinstance(L, (int, long, float, complex)):
-            #print 'Error: File (%s) not found\n', var_vector
-            #e = True
-            #return e
-    else:
-        L = []
-        nl = len(var_vector)
-        if nl < 1:
-            print 'Error: No vectors\n', nl
-            e = True
-            return e
-    """
+
     nl = 1  # temporary, delete this line when above lines get fixed with glob
     # del(r) # "Must clear it. Or next line fails" -- Probably unnecessary in Python
     r_list = []
@@ -2728,4 +2714,145 @@ def show_rvt_peak(r, fg):
     plt.savefig('%s/RVT.pdf' % (OutDir)) 
     show()
 
+
+def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
+                        phys_json_arg, respiration_out, cardiac_out, rvt_out):
+    """
+    NAME
+        getInputFileParameters 
+            Returns the local respiriation file name  (if JSON file absent, None otherwise), 
+            respiration file data (if JSON file present, None otherwise), the 
+            local cardiac file name  (if JSON file absent, None otherwise), 
+            cardiac file data (if JSON file present, None otherwise).
+    TYPE
+        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
+    SYNOPSIS
+       getInputFileParameters(respiration_info, cardiac_info, phys_file,
+       phys_json_arg, respiration_out, cardiac_out, rvt_out)
+    ARGUMENTS
+        respiration_info:   Dictionary with the following fields.
+        
+            respiration_file:  Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            zero_phase_offset:Phase offset added to the location of each peak.
+            Default is 0.0
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+        cardiac_info:   Dictionary with the following fields.
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+        
+            cardiac_file:  Name of ASCII file with cardiac time series
+            
+        phys_file: BIDS formatted physio file in tab separated format. May
+        be gzipped.
+                
+        phys_json_arg: File metadata in JSON format
+        
+        respiration_out:  Whether to have respiratory output
+        
+        cardiac_out:  Whether to have cardiac output
+        
+        rvt_out:  Whether to have RVT output
+            
+    AUTHOR
+       JPeter Lauren
+    """
+            
+    # Handle file inputs
+    # BIDS = Brain Imaging Data Structure
+    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
+        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
+        raise ValueError('You should not pass a BIDS style phsyio file'
+                         ' and respiration or cardiac files.')
+    # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    if phys_file:
+        # Use json reader to read file data into phys_meta
+        with open(phys_json_arg, 'rt') as h:
+            phys_meta = json.load(h)
+        # phys_ending is last element following a period
+        phys_ending = phys_file.split(".")[-1]
+        
+        # Choose file opening function on the basis of whether file is gzippped
+        if phys_ending == 'gz':
+            opener = gzip.open 
+        else:
+            opener = open
+            
+        # Read Columns field of JSON file
+        phys_dat = {k:[] for k in phys_meta['Columns']}
+        
+        # Append tab delimited phys_file to phys_dat
+        with opener(phys_file, 'rt') as h:
+            # for pl in h.readlines():
+            for pl in h:
+                pls = pl.split("\t")
+                for k,v in zip(phys_meta['Columns'], pls):
+                    phys_dat[k].append(float(v))
+                    
+        # Process StartTime is in JSON file
+        if ('StartTime' in phys_meta and "StartTime" not in respiration_info):
+            startTime = float(phys_meta["StartTime"])
+            if (startTime > 0):
+                print('***** WARNING: JSON file gives positive start time which is not currently handled')
+                print('    Start time must be <= 0')
+            else:
+                respiration_info["StartTime"] = startTime            
+                cardiac_info["StartTime"] = startTime            
+                    
+        print('phys_meta = ', phys_meta)
+        # Read columns field from JSON data
+        print('Read columns field from JSON data')
+        for k in phys_meta['Columns']:
+            phys_dat[k] = np.array(phys_dat[k])
+            
+            # Read respiratory component
+            if k.lower() == 'respiratory' or k.lower() == 'respiration':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if respiration_out or rvt_out:
+                   if not respiration_info["phys_fs"]:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   respiration_file = None
+                   phys_resp_dat = phys_dat[k]
+            
+            # Read cardiac component
+            elif k.lower() == 'cardiac':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if cardiac_out != 0:
+                   if not respiration_info["phys_fs"]:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   cardiac_file = None
+                   phys_cardiac_dat = phys_dat[k]
+            else:
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or respiratory data" % k)
+    else:   # Not a JSON file
+        if respiration_info["respiration_file"]:
+            respiration_file = respiration_info["respiration_file"]
+            phys_resp_dat = None
+        if cardiac_info["cardiac_file"]:
+            cardiac_file = cardiac_info["cardiac_file"]
+            phys_cardiac_dat = None
+            
+    return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
 
