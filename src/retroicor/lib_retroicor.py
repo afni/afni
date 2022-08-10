@@ -119,32 +119,36 @@ def getCardiacPeaks(parameters, array):
    AUTHOR
        Peter Lauren
    """
-
-   peaks, _ = find_peaks(np.array(array))
    
-   # Peaks must be at least the threshold value
-   # Threshold is currently half the maximum
-   Max = max(array)
-   Threshold = Max/2
-   numPeaks = len(peaks)
-   for p in range(numPeaks-1,-1,-1):
-       if array[peaks[p]] < Threshold:
-           peaks = np.delete(peaks,p) 
+   oldArray = array
+   # # Debug
+   # array = oldArray[200000:400000]
+
+   peaks, _ = find_peaks(np.array(array), width=int(parameters["-phys_fs"]/8))
+   
+   # # Peaks must be at least the threshold value
+   # # Threshold is currently half the maximum
+   # Max = max(array)
+   # Threshold = Max/2
+   # numPeaks = len(peaks)
+   # for p in range(numPeaks-1,-1,-1):
+   #     if array[peaks[p]] < Threshold:
+   #         peaks = np.delete(peaks,p) 
            
-    # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
-   interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
-   minSep = min(interpeak)
-   Threshold = minSep * 2
-   numPeaks = len(peaks)
-   for p in range(numPeaks-2,-1,-1):
-       if interpeak[p] > Threshold:
-           numberToAdd = int(round(interpeak[p]/minSep))
-           sep = round(interpeak[p]/numberToAdd)
-           if sep < minSep:
-               numberToAdd = numberToAdd - 1
-               sep = round(interpeak[p]/numberToAdd)               
-           for i in range(1,numberToAdd):
-               peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+   #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
+   # interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
+   # minSep = min(interpeak)
+   # Threshold = minSep * 2
+   # numPeaks = len(peaks)
+   # for p in range(numPeaks-2,-1,-1):
+   #     if interpeak[p] > Threshold:
+   #         numberToAdd = int(round(interpeak[p]/minSep))
+   #         sep = round(interpeak[p]/numberToAdd)
+   #         if sep < minSep:
+   #             numberToAdd = numberToAdd - 1
+   #             sep = round(interpeak[p]/numberToAdd)               
+   #         for i in range(1,numberToAdd):
+   #             peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
                
    # Graph cardiac peaks against cardiac time series
    peakVals = []
