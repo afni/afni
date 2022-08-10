@@ -35,10 +35,12 @@ from numpy import size, shape, column_stack, savetxt,real,spacing,pi
 from array import array
 from scipy.signal import firwin, lfilter 
 from scipy.interpolate import interp1d
+import gzip
+import json
 
 
 # Global constants
-M = 3
+GLOBAL_M = 3
 numSections = 1
 NUM_RVT = 5
 
@@ -52,14 +54,18 @@ g_epsilon = 0.00001
 def setOutputDirectory(directory):
     """
     NAME
-        setOutputDirectory - Set directory to which all files are written
+        setOutputDirectory
+            Set directory to which all files are written
+        
+    TYPE
+        void
         
     SYNOPSIS
         setOutputDirectory(directory)
         
     ARGUMENTS
-        directory - string variable specifying the output directory
-   AUTHOR
+        directory:   string variable specifying the output directory
+    AUTHOR
        Peter Lauren
     """
     global OutDir
@@ -68,14 +74,19 @@ def setOutputDirectory(directory):
 def readArray(parameters, key):
     """
     NAME
-        readArray - Read an array from an input file specified by the key in the parameters field
+        readArray
+            Read an array from an input file specified by the key in the parameters field
+            
     TYPE
         <class 'list'>
+        
     SYNOPSIS
         readArray(parameters, key)
+        
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
    AUTHOR
        Peter Lauren
     """
@@ -84,70 +95,94 @@ def readArray(parameters, key):
     with open(parameters[key]) as f:
         array = []
         for line in f: # read rest of lines
-            array.append([int(x) for x in line.split()])
+            array.append([float(x) for x in line.split()])
             
     # Transform list of lists into single list
     array = [n for one_dim in array for n in one_dim]
     return array
 
-def getCardiacPeaks(parameters):
+def getCardiacPeaks(parameters, array):
    """
    NAME
-       getCardiacPeaks - Get peaks from cardiac time series supplied as an ASCII 
-       file with one time series entry per line
+       getCardiacPeaks
+           Get peaks from cardiac time series supplied as an ASCII 
+           file with one time series entry per line
+           
     TYPE
         <class 'numpy.ndarray'>, int
    SYNOPSIS
        getCardiacPeaks(parameters)
    ARGUMENTS
-       parameters - dictionary of input parameters which includes the following fields.
+       parameters:   dictionary of input parameters which includes the following fields.
+       
            -cardFile: Cardiac input file
    AUTHOR
        Peter Lauren
    """
-
-   array = readArray(parameters, '-cardFile')
-
-   peaks, _ = find_peaks(np.array(array))
    
-   # Peaks must be at least the threshold value
-   # Threshold is currently half the maximum
-   Max = max(array)
-   Threshold = Max/2
-   numPeaks = len(peaks)
-   for p in range(numPeaks-1,-1,-1):
-       if array[peaks[p]] < Threshold:
-           peaks = np.delete(peaks,p) 
+   oldArray = array
+   # # Debug
+   # array = oldArray[200000:400000]
+
+   peaks, _ = find_peaks(np.array(array), width=int(parameters["-phys_fs"]/8))
+   
+   # # Peaks must be at least the threshold value
+   # # Threshold is currently half the maximum
+   # Max = max(array)
+   # Threshold = Max/2
+   # numPeaks = len(peaks)
+   # for p in range(numPeaks-1,-1,-1):
+   #     if array[peaks[p]] < Threshold:
+   #         peaks = np.delete(peaks,p) 
            
-    # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
-   interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
-   minSep = min(interpeak)
-   Threshold = minSep * 2
-   numPeaks = len(peaks)
-   for p in range(numPeaks-2,-1,-1):
-       if interpeak[p] > Threshold:
-           numberToAdd = int(round(interpeak[p]/minSep))
-           sep = round(interpeak[p]/numberToAdd)
-           if sep < minSep:
-               numberToAdd = numberToAdd - 1
-               sep = round(interpeak[p]/numberToAdd)               
-           for i in range(1,numberToAdd):
-               peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+   #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
+   # interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
+   # minSep = min(interpeak)
+   # Threshold = minSep * 2
+   # numPeaks = len(peaks)
+   # for p in range(numPeaks-2,-1,-1):
+   #     if interpeak[p] > Threshold:
+   #         numberToAdd = int(round(interpeak[p]/minSep))
+   #         sep = round(interpeak[p]/numberToAdd)
+   #         if sep < minSep:
+   #             numberToAdd = numberToAdd - 1
+   #             sep = round(interpeak[p]/numberToAdd)               
+   #         for i in range(1,numberToAdd):
+   #             peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+               
+   # Graph cardiac peaks against cardiac time series
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+   figure(1)
+   subplot(211)
+   plot(array, "g") #Lines connecting peaks and troughs
+   plot(peaks, peakVals, "ro") # Peaks
+   plt.xlabel("Input data index")
+   plt.ylabel("Input data input value")
+   plt.title("Cardiac peaks (red) and raw input data (green)",\
+               fontdict={'fontsize': 12})
+        
+   # Save plot to file
+   global OutDir
+   plt.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
+   plt.show()  # If this is left out, output file is blank
     
    return peaks, len(array)
 
 
-def getRespiratoryPeaks(parameters):
+def getRespiratoryPeaks(parameters, rawData):
    """
    NAME
-       getRespiratoryPeaks - Get peaks from repiratory time series supplied as an ASCII 
-       file with one time series entry per line
+       getRespiratoryPeaks
+           Get peaks from repiratory time series supplied as an ASCII 
+           file with one time series entry per line
     TYPE
         <class 'numpy.ndarray'>, int
    SYNOPSIS
        respFile(parameters)
    ARGUMENTS
-       parameters - dictionary of input parameters which includes the following fields.
+       parameters:   dictionary of input parameters which includes the following fields.
+       
            -respFile: repiratory input file
    AUTHOR
        Peter Lauren
@@ -172,21 +207,43 @@ def getRespiratoryPeaks(parameters):
    indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
    peaks = np.delete(peaks,indices2remove)
    troughs = np.delete(troughs,indices2remove)
+               
+   # Graph respiratory peaks and troughs against respiratory time series
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+   troughVals = []
+   for i in troughs: troughVals.append(array[i])
+   figure(1)
+   subplot(211)
+   plot(array, "g") #Lines connecting peaks and troughs
+   plot(peaks, peakVals, "ro") # Peaks
+   plot(troughs, troughVals, "bo") # Peaks
+   plt.xlabel("Input data index")
+   plt.ylabel("Input data input value")
+   plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
+               fontdict={'fontsize': 10})
+        
+   # Save plot to file
+   global OutDir
+   plt.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
+   plt.show()  # If this is left out, output file is blank
     
    return peaks, troughs, len(array)
 
 def getTroughs(parameters, key):
    """
    NAME
-       getTroughs - Get troughs from repiratory time series supplied as an ASCII 
-       file with one time series entry per line
+       getTroughs
+           Get troughs from repiratory time series supplied as an ASCII file 
+           with one time series entry per line
     TYPE
         <class 'numpy.ndarray'>
    SYNOPSIS
        getTroughs(parameters, key)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
    AUTHOR
        Peter Lauren
    """
@@ -197,18 +254,21 @@ def getTroughs(parameters, key):
     
    return troughs
 
-def determineCardiacPhases(peaks, fullLength):
+def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     """
     NAME
-       determineCardiacPhases - Determine phases, in the cardiac cycle based on the 
-           Glover (2000) paper
+       determineCardiacPhases
+           Determine phases, in the cardiac cycle based on the Glover (2000) paper
     TYPE
         <class 'list'>
     SYNOPSIS
        determineCardiacPhases(peaks, fullLength)
     ARGUMENTS
-        peaks - Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
-        fullLength - Lenagth of cardiac time series
+        peaks:   Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
+        
+        fullLength:   Lenagth of cardiac time series
+        
+        phys_fs:   Physiological signal sampling frequency in Hz. 
     AUTHOR
        Peter Lauren
     """
@@ -244,22 +304,44 @@ def determineCardiacPhases(peaks, fullLength):
     for i in range(0,tailLength):
       phases.append(phases[iIndex]) 
       iIndex = iIndex + 1
+      
+    # Move phase range from [0,2Pi] to [-Pi,Pi]
+    phases = [x - math.pi for x in phases]
+      
+    # PLot phases
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(peaks)))
+    for i in range(0,end): x.append(i/phys_fs)
+    fig, ax_left = plt.subplots()
+    plt.xlabel("Time (s)")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData[0:end], color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Cardiac phase (red) and raw input data (green)")
+        
+    # Save plot to file
+    plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+    plt.show()
             
     return phases
 
 def getACoeffs(parameters, key, phases):
     """
     NAME
-       getACoeffs - Determine a coefficients from equation 4 of 
-           Glover (2000) paper (equation 4)
+       getACoeffs
+           Determine a coefficients from equation 4 of Glover (2000) paper (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
        getACoeffs(parameters, key, phases)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
-        phases     - <class 'list'> containing phases determined as described in Glover (2000) paper
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
+        
+        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -267,9 +349,9 @@ def getACoeffs(parameters, key, phases):
     data = readArray(parameters, key)
     mean = np.mean(data)
     N = len(data)
-    global M
+    global GLOBAL_M
     a = []
-    for m in range(1,M):
+    for m in range(1,GLOBAL_M):
         num = 0
         denom = 0
         for n in range(0,N):
@@ -283,16 +365,18 @@ def getACoeffs(parameters, key, phases):
 def getBCoeffs(parameters, key, phases):
     """
     NAME
-       getBCoeffs - Determine b coefficients from equation 4 of 
-           Glover (2000) paper (equation 4)
+       getBCoeffs
+           Determine b coefficients from equation 4 of Glover (2000) paper (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
        getBCoeffs(parameters, key, phases)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        key        - key to file of interest
-        phases     - <class 'list'> containing phases determined as described in Glover (2000) paper
+        parameters:   dictionary of input parameters which includes a 'key' field.
+        
+        key       :   key to file of interest
+        
+        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -314,19 +398,171 @@ def getBCoeffs(parameters, key, phases):
     return b
             
 
-def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs):
+def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, phys_fs, rawData):
     """
     NAME
-        determineRespiratoryPhases - Determine respiratory phases as descibed in 
-           Glover (2000) paper (equation 3)
+        determineRespiratoryPhases
+            Determine respiratory phases as descibed in Glover (2000) paper (equation 3)
     TYPE
         <class 'list'>
     SYNOPSIS
        determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
     ARGUMENTS
-        parameters - dictionary of input parameters which includes a 'key' field.
-        respiratory_peaks       - peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
-        respiratory_troughs     - <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        parameters:   dictionary of input parameters which includes the following fields.
+            -respFile;   Name of ASCII file with respiratory time series
+            phys_fs:     Physiological signal sampling frequency in Hz.
+        
+        respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
+        
+        respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        
+        phys_fs:     Physiological signal sampling frequency in Hz 
+        
+        rawData:     Raw respiratory data
+        
+    AUTHOR
+       Peter Lauren
+    """
+    
+    NUM_BINS = 100
+    
+    # Determine whether currently inspiration or expiration
+    if respiratory_peaks[0] < respiratory_troughs[0]:
+        polarity = 1
+    else:
+        polarity = -1
+        
+    # Number of segments where each segment is either inspiration or expiration
+    numFullSegments = len(respiratory_peaks) + len(respiratory_troughs) - 1
+    
+    # Initialize array of output phases
+    phases = np.zeros(len(rawData))
+    
+    # Assign values to time series before first full segment
+    peakIndex = 0
+    troughIndex = 0
+    start = 0
+    finish = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+    denom = finish  # Total length of segment
+    
+    # Histogram values in segment
+    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+    counts, bins = np.histogram(sample, bins=NUM_BINS) 
+    
+    # Determine phase based on equation 3 is Glover paper
+    if polarity > 0: Rmax = max(sample)
+    else: Rmax = rawData[respiratory_peaks[0]] # Maximum value in segment
+    for i in range(start,finish): # Move through segment
+        end = round(sample[i]*NUM_BINS/Rmax) # Summation limit
+        
+        # Count values, in segment that are not greater than the summation limit
+        count = 0
+        for j in range(0,end):
+            count = count + counts[j]
+            
+        # Use result to estimate phase at given time point
+        phases[i] = (math.pi*count*polarity)/denom
+    
+    # Switch polarity and increment peak indxe if new polarity inspiration
+    #   Otherwise increment trough index instead
+    polarity = -polarity
+    if polarity > 0: peakIndex = peakIndex + 1
+    else: troughIndex = troughIndex + 1
+    
+    peakIndex = 0
+    troughIndex = 0
+    for segment in range(0,numFullSegments):    # Process each segment in turn
+    
+        # Determine segment from the peak and trough indices
+        start = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        denom = finish - start  # Total length of segment
+        
+        # Histogram values in segment
+        sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+        counts, bins = np.histogram(sample, bins=NUM_BINS) 
+        
+        # Determine phase based on equation 3 is Glover paper
+        Rmax = max(sample) # Maximum value in segment
+        for i in range(start,finish): # Move through segment
+            end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
+            
+            # Count values, in segment that are not greater than the summation limit
+            count = 0
+            for j in range(0,end):
+                count = count + counts[j]
+                
+            # Use result to estimate phase at given time point
+            phases[i] = (math.pi*count*polarity)/denom
+        
+        # Switch polarity and increment peak indxe if new polarity inspiration
+        #   Otherwise increment trough index instead
+        polarity = -polarity
+        if polarity > 0: peakIndex = peakIndex + 1
+        else: troughIndex = troughIndex + 1
+    
+    # Assign values to time series after last full segment
+    start = finish
+    finish = len(rawData)
+    denom = finish - start  # Total length of segment
+    
+    # Histogram values in segment
+    sample = [x - rawData[respiratory_troughs[-1]] for x in rawData[start:finish]]  
+    counts, bins = np.histogram(sample, bins=NUM_BINS) 
+    
+    # Determine phase based on equation 3 is Glover paper
+    if polarity < 0: Rmax = max(sample)
+    else: Rmax = rawData[respiratory_peaks[-1]] # Maximum value in segment
+    for i in range(start,finish): # Move through segment
+        end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
+        
+        # Count values, in segment that are not greater than the summation limit
+        count = 0
+        for j in range(0,end):
+            count = count + counts[j]
+            
+        # Use result to estimate phase at given time point
+        phases[i] = (math.pi*count*polarity)/denom
+    
+      
+    # PLot phases and raw data against time in seconds.
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+    for i in range(0,end): x.append(i/phys_fs)
+    fig, ax_left = plt.subplots()
+    plt.xlabel("Time (s)")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData[0:end], color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Respiratory phase (red) and raw input data (green)")
+        
+    # Save plot to file
+    plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+    plt.show()
+    
+        
+    return phases
+
+def determineRespiratoryPhasesOld(parameters, respiratory_peaks, respiratory_troughs, phys_fs, rawData):
+    """
+    NAME
+        determineRespiratoryPhases
+            Determine respiratory phases as descibed in Glover (2000) paper (equation 3)
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
+    ARGUMENTS
+        parameters:   dictionary of input parameters which includes the following fields.
+            -respFile;   Name of ASCII file with respiratory time series
+            phys_fs:     Physiological signal sampling frequency in Hz.
+        
+        respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
+        
+        respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        
     AUTHOR
        Peter Lauren
     """
@@ -408,7 +644,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
            input = input - 1
            output = output + 1
             
-    # Append phases after last tunring point.
+    # Append phases after last turning point.
     if respiratory_troughs[-1] > respiratory_peaks[-1]:
         # Append phases after last tough
         input = respiratory_troughs[-1] - 1
@@ -423,27 +659,102 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         for i in range(0,length):
             phases.append(phases[input])
             input = input - 1
-
-    # plt.plot(phases)
+      
+    # PLot phases
+    x = []    
+    end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+    for i in range(0,end): x.append(i/phys_fs)
+    fig, ax_left = plt.subplots()
+    plt.xlabel("Time (s)")
+    plt.ylabel('Input data input value',color='g')
+    ax_right = ax_left.twinx()
+    ax_right.plot(x, phases[0:end], color='red')
+    ax_left.plot(x, rawData, color='green')
+    plt.ylabel('Phase (Radians)',color='r')
+    plt.title("Respiratory phase (red) and raw input data (green)")
+        
+    # Save plot to file
+    plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+    plt.show()
         
     return phases
+
+def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases,\
+                oldRespiratoryPhases, newCardiacPhases, newRespiratoryPhases, sliceNumber):
+    
+    # Get old and new cardiac phases
+    old = []
+    new = []
+    Inc = sliceNumber*shape(oldCardiacPhases)[0]*shape(oldCardiacPhases)[1]
+    for i in range(0,shape(oldCardiacPhases)[1]):
+        for j in range(0,shape(oldCardiacPhases)[0]): 
+            old.append(oldCardiacPhases[j,i,sliceNumber])
+            new.append(newCardiacPhases[Inc])
+            Inc = Inc + 1
+    
+    # Plot cardiac phases together
+    x = []    
+    end = len(new)
+    for i in range(0,end): x.append(i/respiration_info["phys_fs"])
+    plt.plot(x, new, "b")          
+    plt.plot(x, old, "r")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Respiratory Phase")
+    plt.title("Respiratory phase using new phase algorithm with old determination of peaks")
+        
+    # Save plot to file
+    plt.savefig('%s/cardiacNewVOld.pdf' % (OutDir)) 
+    plt.show()
+    
+    
+    # Get old and new respiratory phases
+    old = []
+    new = []
+    Inc = sliceNumber*shape(oldRespiratoryPhases)[0]*shape(oldRespiratoryPhases)[1]
+    for i in range(0,shape(oldRespiratoryPhases)[1]):
+        for j in range(0,shape(oldRespiratoryPhases)[0]): 
+            old.append(oldRespiratoryPhases[j,i,sliceNumber])
+            new.append(newRespiratoryPhases[Inc])
+            Inc = Inc + 1
+    
+    # Plot cardiac phases together
+    x = []    
+    end = len(new)
+    for i in range(0,end): x.append(i/cardiac_info["phys_fs"])
+    plt.plot(x, new, "b")          
+    plt.plot(x, old, "r")          
+    plt.xlabel("Time (s)")
+    plt.ylabel("Respiratory Phase")
+    plt.title("Old (red) and new(blue) respiratory Phase")
+        
+    # Save plot to file
+    plt.savefig('%s/respiratoryNewVOld.pdf' % (OutDir)) 
+    plt.show()
+    
+    return 0
 
 def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     """
     NAME
-        getNiml - 
+        getNiml 
             Apply Peter Lauren's implementation of the algorithm, descibed in Glover (2000) paper, and output the results in NIML format
     TYPE
         Integer (0 for success and 1 for failure)
     SYNOPSIS
        getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases)
     ARGUMENTS
-        data - <class 'list'> containing coefficients determined by equation 4 of Glover (2000)
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-        respiratory_phases - <class 'list'> containing the respiratory phases
-        cardiac_phases     - <class 'list'> containing the cardiac phases
+        data:   <class 'list'> containing coefficients determined by equation 4 of Glover (2000)
+        
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+        respiratory_phases:   <class 'list'> containing the respiratory phases
+        
+        cardiac_phases    :   <class 'list'> containing the cardiac phases
+        
     AUTHOR
        Peter Lauren
     """
@@ -533,9 +844,11 @@ def getFourierSeries(parameters):
     SYNOPSIS
        getFourierSeries(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
     AUTHOR
        Peter Lauren
     """
@@ -569,7 +882,7 @@ def getFourierSeries(parameters):
         cardiacBCoeffs.append(1.0)
         respiratoryBCoeffs.append(1.0)
     
-    global M
+    GLOBAL_M
     global numSections
         
     # Make data matrix
@@ -579,11 +892,11 @@ def getFourierSeries(parameters):
     for t in range(0,T):
         sum = 0
         addend = []
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
             addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
@@ -601,25 +914,37 @@ def getPhysiologicalNoiseComponents(parameters):
     SYNOPSIS
        getPhysiologicalNoiseComponents(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-            -aby      - whether  a and b coefficients as per Glover et al, Magnetic 
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+            -aby     :   whether  a and b coefficients as per Glover et al, Magnetic 
                                         Resonance in Medicine 44:162–167 (2000)
-            -niml     - whether output should be in niml format instead of CSV
+                                        
+            -niml    :   whether output should be in niml format instead of CSV
+            
     AUTHOR
        Peter Lauren
     """
+
+    # rawData = readArray(parameters, '-cardFile')
+    rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_resp_dat"])
     
-    cardiac_peaks, fullLength = getCardiacPeaks(parameters) 
+    cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
     
-    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength)
+    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
+                                            parameters['-phys_fs'], rawData)
+
+    # rawData = readArray(parameters, '-respFile')
+    rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
     
     respiratory_peaks, respiratory_troughs, fullLength = \
-        getRespiratoryPeaks(parameters) 
+        getRespiratoryPeaks(parameters, rawData) 
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
-            respiratory_peaks, respiratory_troughs)
+            respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -640,14 +965,14 @@ def getPhysiologicalNoiseComponents(parameters):
         cardiacBCoeffs.append(1.0)
         respiratoryBCoeffs.append(1.0)
     
-    global M
-    global numSections
+    global GLOBAL_M
     
     # Initialize output table
     df = pd.DataFrame()
     
     # Make output table columns names
     columnNames = []
+    numSections = parameters["-s"]
     for s in range(0,numSections):
         for r in range(0,4):
             string = 's' + str(s) + '.Resp' + str(r)
@@ -664,19 +989,23 @@ def getPhysiologicalNoiseComponents(parameters):
     for t in range(0,T):
         sum = 0
         addend = []
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
             addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,M):
+        for m in range(1,GLOBAL_M):
             m0 = m - 1
             addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
             addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
         data.append(addend)
+        
+    # Reshape matrix according to number of slices
+    nrow = shape(data)[0]
+    data = np.reshape(data[0:nrow-(nrow%numSections)][:], (8*numSections, -1)).T
     
     if (parameters['-niml']):
         niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
-        return data
+        return niml
     
     df = pd.DataFrame(data,columns=columnNames)
         
@@ -692,43 +1021,75 @@ def phase_estimator(amp_phase, phase_info):
     SYNOPSIS
        phase_estimator(amp_phase, phase_info)
     ARGUMENTS
-        amp_phase - Integer. Currently always 1 meaning amplitude-based phase for respiration 
-        phase_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - Peak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        amp_phase:   Integer. Currently always 1 meaning amplitude-based phase for respiration 
+        
+        phase_info:   Dictionary with the following fields.
+        
+            respiration_file:  Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   Peak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
-            v - Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
+            v:   Scale, per Glover 2000's paper 
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            amp_phase:   Currently always 1
+            
     AUTHOR
-       Joshua Zosky (modified by Peter Lauren)
+       Joshua Zosky (Documentation by Peter Lauren)
     """
         
     # Phase determination parameters
@@ -762,8 +1123,10 @@ def my_hist(x, bin_centers):
     SYNOPSIS
        my_hist(x, bin_centers)
     ARGUMENTS
-        x - dataset
-        bin_centers - bin values in a list to be moved from edges to centers
+        x:   dataset
+        
+        bin_centers:   bin values in a list to be moved from edges to centers
+        
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
@@ -777,18 +1140,22 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     NAME
         z_scale 
             Scales  X into Y such that its maximum value is UB and minimum value 
-                is LB. If perc is specified, then clipping is done at the percentile 
-                range specified (e.g. [2, 98]) before scaling.  If X is all 
-                constants, it gets scaled to UB;
+            is LB. If perc is specified, then clipping is done at the percentile 
+            range specified (e.g. [2, 98]) before scaling.  If X is all 
+            constants, it gets scaled to UB;
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
        z_scale(x, lower_bound, upper_bound, perc=[])
     ARGUMENTS
-       x - Dataset
-       lower_bound - Minimum peak value
-       upper_bound - Maximum peak value
-       perc - Lower and upper clipping bounds for input dataset.
+       x:   Dataset
+       
+       lower_bound:   Minimum peak value
+       
+       upper_bound:   Maximum peak value
+       
+       perc:   Lower and upper clipping bounds for input dataset.
+       
     AUTHOR
        Ziad (Documentation by Peter Lauren)
     """
@@ -823,80 +1190,131 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
 def phase_base(amp_type, phasee):
     """
     NAME
-        phase_base 
+        phase_base         
             Called by phase_estimator to determine phases of respiratory and cardiac 
-                time series and RVT or respiratory time series
+            time series and RVT or respiratory time series
     TYPE
         <class 'dict'>, <class 'numpy.ndarray'> 
     SYNOPSIS
        phase_base(amp_type, phasee)
-    ARGUMENTS
-        amp_type - if 0, it is a time-based phase estimation
-                            if 1, it is an amplitude-based phase estimation
-        phasee - Dictionary with the following fields.
-            quiet - 0 if show graphs. 1 if do not show graphs
-            frequency_cutoff - Cutoff frequency for smoothing RVT
-            fir_order - Order of Finite Impulse Response (FIR) filter
-            demo - Whether running in demo mode.  (Show graphs and pause between graphs.)
-            phasee_list - Whether there is a phase list
-            show_graphs - Whether to show graphs
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+    ARGUMENTS    
+        amp_type:   if 0, it is a time-based phase estimation if 1, it is an 
+        amplitude-based phase estimation
+            
+        phasee:   Dictionary with the following fields.
+        
+            quiet:   0 if show graphs. 1 if do not show graphs
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+            
+            phasee_list:   Whether there is a phase list
+            
+            show_graphs:   Whether to show graphs
+            
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the            
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   Peak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of             
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+                
+            amp_phase:   Currently always 1
+            
             
             The function adds the following fields.
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-            phase_slice_reg - Regressors for each slice - 
-            rvr - Differences betwen interpolated peaks
-            rvtr - Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
-            rvtrs - Demeaned and Hamming filtered version of phasee["rvtr"] with 
-                mean subsequently added back
-            rvtrs_slc - RVT from peak finder
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+            phase_slice_reg:   Regressors for each slice:   
+                
+            rvr:   Differences betwen interpolated peaks
+            
+            rvtr:   Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
+            
+            rvtrs:   Demeaned and Hamming filtered version of phasee["rvtr"] with 
+            mean subsequently added back
+                
+            rvtrs_slc:   RVT from peak finder
+            
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
+    
+    peakLocations_RawData = np.round(phasee["tp_trace"]*phasee["phys_fs"]).astype(int)
+    troughLocations_RawData = np.round(phasee["tn_trace"]*phasee["phys_fs"]).astype(int)
+    
 
-    if amp_type == 0:   # Phase not based on amplitude
+    if amp_type == 0:   # Phase not based on amplitude.  This is a buggy option 
+                        #   and was hardcoded out by JZ/ZSS
         # Calculate the phase of the trace, with the peak to be the start of the phase
-        nptrc = len(phasee["tp_trace"]) # Number of peaks
+        nptrc = len(peakLocations_RawData) # Number of peaks
         phasee["phase"] = -2 * np.ones(size(phasee["t"]))   # Array of -2s, the length of the input data
         i = 0   # i increments over the peak indices
         j = 0   # j increments over the time point indices
         while i <= (nptrc - 2): # For each peak
-            while phasee["t"][j] < phasee["tp_trace"][i + 1]: # Examine signal between this and next peak
-                if phasee["t"][j] >= phasee["tp_trace"][i]:   # Must be at least the index of the current peak
+            while phasee["t"][j] < peakLocations_RawData[i + 1]: # Examine signal between this and next peak
+                if phasee["t"][j] >= peakLocations_RawData[i]:   # Must be at least the index of the current peak
                     # Note: Using a constant 244 period for each interval
                     # causes slope discontinuity within a period.
                     # One should resample period[i] so that it is
@@ -905,7 +1323,7 @@ def phase_base(amp_type, phasee):
                     if j == 10975:  # Don't do the following block for this temporal index
                         pass
                     phasee["phase"][j] = (
-                        phasee["t"][j] - phasee["tp_trace"][i]
+                        phasee["t"][j] - peakLocations_RawData[i]
                     ) / phasee["prd"][i] + phasee["zero_phase_offset"]
                     if phasee["phase"][j] < 0:
                         phasee["phase"][j] = -phasee["phase"][j]
@@ -921,7 +1339,9 @@ def phase_base(amp_type, phasee):
         phasee["phase"][temp] = 0.0
         # Change phase to radians
         phasee["phase"] = phasee["phase"] * 2 * math.pi
-    else:  # phase based on amplitude
+    else:  # phase based on amplitude (default)
+    
+        # Step 1: Calculate the histogram of the input values
         # at first scale to the max
         mxamp = max(phasee["p_trace"])  # Maximum peak value
         phasee["phase_pol"] = []        # Only used for amplitude-based phase
@@ -941,12 +1361,15 @@ def phase_base(amp_type, phasee):
             # plt.ion()
             plt.show()  # If this is left out, output file is blank
             
+        # Step 2. Assign polarities to every input timepoint.  Positive polarity 
+        #   is inspiration while negative polarity is expiration
+            
         # find the polarity of each time point in v
         i = 0
         itp = 0
         inp = 0
-        tp = phasee["tp_trace"][0]  # Location of first peak
-        tn = phasee["tn_trace"][0]  # Location of first trough
+        tp = peakLocations_RawData[0]  # Location of first peak
+        tn = troughLocations_RawData[0]  # Location of first trough
         
         # Find location of first peak or trough
         while (
@@ -955,14 +1378,14 @@ def phase_base(amp_type, phasee):
             phasee["phase_pol"].append(0)
             i += 1
                     
-        if tp < tn: # If first peak precedes first trought
+        if tp > tn: # If first peak precedes first trought
             # Expiring phase (peak behind us)
             cpol = -1   # Polarity of -1 means expiration
-            itp = 1
+            # inp = 1
         else:       # First trough precedes first peak
             # Inspiring phase (bottom behind us)
             cpol = 1    # Polarity of 1 means inpiration
-            inp = 1
+            # itp = 1
             
         phasee["phase_pol"] = np.zeros(
             size(phasee["v"])
@@ -970,22 +1393,25 @@ def phase_base(amp_type, phasee):
         # list that you created 10 lines prior to this
         
         # Add a fake point to tptrace and tntrace to avoid ugly if statements
-        phasee["tp_trace"] = np.append(phasee["tp_trace"], phasee["t"][-1])
-        phasee["tn_trace"] = np.append(phasee["tn_trace"], phasee["t"][-1])
+        peakLocations_RawData = np.append(peakLocations_RawData, phasee["t"][-1])
+        troughLocations_RawData = np.append(troughLocations_RawData, phasee["t"][-1])
         
         # Assign polarities to every input timepoint
+        i = 0
         while i < len(phasee["v"]): # Process every input time point
             phasee["phase_pol"][i] = cpol
-            if phasee["t"][i] == phasee["tp_trace"][itp]:
+            # if phasee["t"][i] == peakLocations_RawData[itp]:
+            if i == peakLocations_RawData[itp]:
                 cpol = -1   # Expiration polarity
-                itp = min((itp + 1), (len(phasee["tp_trace"]) - 1)) # Expiration minimum
-            elif phasee["t"][i] == phasee["tn_trace"][inp]:
+                itp = min((itp + 1), (len(peakLocations_RawData) - 1)) # Expiration minimum
+            # elif phasee["t"][i] == troughLocations_RawData[inp]:
+            elif i == troughLocations_RawData[inp]:
                 cpol = 1   # Inspiration polarity
-                inp = min((inp + 1), (len(phasee["tn_trace"]) - 1)) # Inspiration minimum
+                inp = min((inp + 1), (len(troughLocations_RawData) - 1)) # Inspiration minimum
             i += 1  # Next point
             
-        phasee["tp_trace"] = np.delete(phasee["tp_trace"], -1) # Remove last peak
-        phasee["tn_trace"] = np.delete(phasee["tn_trace"], -1) # Remove last trough
+        peakLocations_RawData = np.delete(peakLocations_RawData, -1) # Remove last peak
+        troughLocations_RawData = np.delete(troughLocations_RawData, -1) # Remove last trough
         
         # Plot graphs if required
         if phasee["quiet"] == 0:
@@ -1023,6 +1449,26 @@ def phase_base(amp_type, phasee):
             # Save plot to file
             plt.savefig('%s/%s_phaseInspExp.pdf' % (OutDir, phasee['respcard'])) 
             # plt.ion()
+            plt.show()
+            
+            # Plot time series with inspiration in red and expiration in green
+            Y = gR
+            x_filt = (np.where(phasee["phase_pol"]>0))[0]
+            subset = np.where(x_filt<2000)[0]
+            x_filt = x_filt[subset]
+            y_filt = Y[x_filt]
+            plt.plot(x_filt, y_filt, "r.")          
+            x2_filt = (np.where(phasee["phase_pol"]<0))[0]
+            subset = np.where(x2_filt<2000)[0]
+            x2_filt = x2_filt[subset]
+            y2_filt = Y[x2_filt]
+            plt.plot(x2_filt, y2_filt, "g.")          
+            plt.xlabel("Raw input data index")
+            plt.ylabel("Input scaled to [0,max(input)](gR)")
+            plt.title("Inspiration (red) and expiration (green) versus pt.index for the first 2000 timepoints of the input data")
+        
+            # Save plot to file
+            plt.savefig('%s/%s_TimePtInspExp.pdf' % (OutDir, phasee['respcard'])) 
             plt.show()
             
         # Now that we have the polarity, without computing sign(dR/dt)
@@ -1096,58 +1542,102 @@ def rvt_from_peakfinder(r):
     SYNOPSIS
        rvt_from_peakfinder(r)
     ARGUMENTS
-        r - Dictionary with the following fields.
-            quiet - 0 if show graphs. 1 if do not show graphs
-            frequency_cutoff - Cutoff frequency for smoothing RVT
-            fir_order - Order of Finite Impulse Response (FIR) filter
-            demo - Whether running in demo mode.  (Show graphs and pause between graphs.)
-            phasee_list - Whether there is a phase list
-            show_graphs - Whether to show graphs
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        r:   Dictionary with the following fields.
+        
+            quiet:   0 if show graphs. 1 if do not show graphs
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            fir_order:   Order of Finite Impulse Response (FIR) filter
+            
+            demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+            
+            phasee_list:   Whether there is a phase list
+            
+            show_graphs:   Whether to show graphs
+            
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-            phase_slice_reg - Regressors for each slice 
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            amp_phase:   Currently always 1
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+            phase_slice_reg:   Regressors for each slice 
             
             
             The function adds the following fields.
-            rvr - Differences betwen interpolated peaks
-            rvtr - Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
-            rvtrs - Demeaned and Hamming filtered version of phasee["rvtr"] with 
-                mean subsequently added back
-            rvtrs_slc - RVT from peak finder
+            
+            rvr:   Differences betwen interpolated peaks
+            
+            rvtr:   Elementw-se quotient of phasee["rvr"] over phasee["prdR"]
+            
+            rvtrs:   Demeaned and Hamming filtered version of phasee["rvtr"] with 
+            mean subsequently added back
+            
+            rvtrs_slc:   RVT from peak finder
+            
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
     """
@@ -1274,12 +1764,17 @@ def fftsegs(ww, po, nv):
     SYNOPSIS
       fftsegs(ww, po, nv)
     ARGUMENTS
-        ww - Segment width (in number of samples)
-        po - Percent segment overlap
-        nv - Total number of samples in original symbol
+    
+        ww:   Segment width (in number of samples)
+        
+        po:   Percent segment overlap
+        
+        nv:   Total number of samples in original symbol
+        
     EXAMPLES
-        return: (bli, ble, num): bli, ble: Two Nblck x 1 vectors defining the segments' starting and ending indices;
-                                    num: An nv x 1 vector containing the number of segments each sample belongs to
+        return: (bli, ble, num)
+            bli, ble: Two Nblck x 1 vectors defining the segments' starting and ending indices;
+            num: An nv x 1 vector containing the number of segments each sample belongs to
         return_tuple = (ww, po, nv)
         return return_tuple
     AUTHOR
@@ -1340,16 +1835,20 @@ def analytic_signal(vi, windwidth, percover, win):
     SYNOPSIS
           analytic_signal(vi, windwidth, percover, win)
     ARGUMENTS
-        vi - Demeaned input which has typically been Hamming filtered in both directions
-        windwidth - Window for adjusting peak location in seconds
-        percover - Percent segment overlap
-        win - Whether to apply Hamming window before doing FT? (1=Yes, 0 - No)
+        vi:   Demeaned input which has typically been Hamming filtered in both directions
+        
+        windwidth:   Window for adjusting peak location in seconds
+        
+        percover:   Percent segment overlap
+        
+        win:   Whether to apply Hamming window before doing FT? (1=Yes, 0 - No)
+        
     EXAMPLES
         r["x"] = analytic_signal(
-            v_np
-            var_vector["as_window_width"] * var_vector["phys_fs"],
-            var_vector["as_percover"],
-            var_vector["as_fftwin"],
+        v_np
+        var_vector["as_window_width"] * var_vector["phys_fs"],
+        var_vector["as_percover"],
+        var_vector["as_fftwin"],
         )
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
@@ -1394,12 +1893,18 @@ def remove_pn_duplicates(tp, vp, tn, vn, quiet):
     SYNOPSIS
           remove_pn_duplicates(tp, vp, tn, vn, quiet)
     ARGUMENTS
-        tp, vp, tn, vn - Four arrays to be filtered of adjacent duplicates.  Typically:
-        tp - Peak indices
-        vp - Peak values
-        tn - Trough locations
-        vn - Trough values
-        quiet - 0 if graphs are to be displayed. 1 if they are not
+        tp, vp, tn, vn:   Four arrays to be filtered of adjacent duplicates.  Typically
+        
+        tp:   Peak indices
+        
+        vp:   Peak values
+        
+        tn:   Trough locations
+        
+        vn:   Trough values
+        
+        quiet:   0 if graphs are to be displayed. 1 if they are not
+        
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
 """
@@ -1433,10 +1938,13 @@ def remove_duplicates(t, v, quiet):
     SYNOPSIS
           remove_duplicates(t, v, quiet)
     ARGUMENTS
-        t, v - Two arrays to be filtered of adjacent duplicates.  Typically:
-        t - Time (Seconds)
-        v - Scale, per Glover 2000's paper
-        quiet - 0 if graphs are to be displayed. 1 if they are not
+        t, v:   Two arrays to be filtered of adjacent duplicates.  Typically:
+            
+        t:   Time (Seconds)
+        
+        v:   Scale, per Glover 2000's paper
+        
+        quiet:   0 if graphs are to be displayed. 1 if they are not
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
        """
@@ -1458,27 +1966,39 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     NAME
         readRawInputData 
             Read in raw input data according to the user=supplied program arguments.
-                Outputs raw data.
+            Outputs raw data.
     TYPE
         <class 'numpy.ndarray'> 
     SYNOPSIS
        readRawInputData(respcard_info, filename=None, phys_dat=None)
     ARGUMENTS
-        respcard_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-        filename - String giving the local name of the input file
-        phys_dat - BIDS style physio file
+        respcard_info:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+        filename:   String giving the local name of the input file
+        
+        phys_dat:   BIDS style physio file
+        
     AUTHOR
        Joshua Zosky & Peter Lauren (Documentation by Peter Lauren)
     """
@@ -1506,9 +2026,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         var_vector["resample_fs"] = var_vector["phys_fs"]
     if var_vector["demo"]:
         var_vector["quiet"] = 0
-    else:
-        pause = False  # pause off
-    e = False  # default value for e
+
     r = {}
     # Some filtering
     nyquist_filter = var_vector["phys_fs"] / 2.0
@@ -1517,23 +2035,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
     )  # FIR filter of order 40
     b = np.array(b)
-    no_dups = 1  # Remove duplicates that might come up when improving peak location
-    """
-    if isinstance(var_vector, str):
-        L = glob(var_vector)  # NEED TO CONVERT ZGLOBB INTO LIST MAKER OF FILE OBJECTS; I.E. type(L) == list
-        nl = len(L)
-        #if isinstance(L, (int, long, float, complex)):
-            #print 'Error: File (%s) not found\n', var_vector
-            #e = True
-            #return e
-    else:
-        L = []
-        nl = len(var_vector)
-        if nl < 1:
-            print 'Error: No vectors\n', nl
-            e = True
-            return e
-    """
+
     nl = 1  # temporary, delete this line when above lines get fixed with glob
     # del(r) # "Must clear it. Or next line fails" -- Probably unnecessary in Python
     r_list = []
@@ -1586,48 +2088,78 @@ def peak_finder(respcard_info, v_np):
     NAME
         peak_finder 
             Find peaks in respiritory or cardiac raw data. Retirns updated dictionary 
-                and whether there is an error
+            and whether there is an error
     TYPE
         <class 'dict'>, <class 'bool'> 
     OUTPUT
         The output dictionary contains the following fields
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
-            t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+        
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
+            t_mid_prd: Array of mean values betweem successive peaks
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+            
     SYNOPSIS
         peak_finder(respcard_info, v_np)
     ARGUMENTS
-        respcard_info - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-        v_np - The raw input data
+        respcard_info:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+            
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+        v_np:   The raw input data
         
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
@@ -1978,7 +2510,7 @@ def clean_resamp(v):
     SYNOPSIS
       clean_resamp(v)
     ARGUMENTS
-        v - Array to be filtered
+        v:   Array to be filtered
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
        """
@@ -2008,13 +2540,19 @@ def runAnalysis(parameters):
     SYNOPSIS
        runAnalysis(parameters)
     ARGUMENTS
-        parameters - Dictionary with the following fields.
-            -respFile - file containing respiratory time series
-            -cardFile - file containing cardiac time series
-            -aby      - whether  a and b coefficients as per Glover et al, Magnetic 
-                                        Resonance in Medicine 44:162–167 (2000)
-            -niml     - whether output should be in niml format instead of CSV
-            -outputFileName - Output filename
+    
+        parameters:   Dictionary with the following fields.
+        
+            -respFile:   file containing respiratory time series
+            
+            -cardFile:   file containing cardiac time series
+            
+            -aby: whether  a and b coefficients as per Glover et al, Magnetic  Resonance in Medicine 44:162–167 (2000)
+                                        
+            -niml: whether output should be in niml format instead of CSV
+            
+            -outputFileName:   Output filename
+            
     AUTHOR
        Peter Lauren
     """
@@ -2042,46 +2580,80 @@ def show_rvt_peak(r, fg):
     SYNOPSIS
        show_rvt_peak(r, fg)
     ARGUMENTS
-        r - Dictionary with the following fields.
-            respiration_file - Name of ASCII file with respiratory time series
-            phys_fs - Physiological signal sampling frequency in Hz.
-            number_of_slices - Number of slices
-            volume_tr - Volume TR in seconds
-            slice_offset - Vector of slice acquisition time offsets in seconds.
-            rvt_shifts - Vector of shifts (in seconds) of RVT signal.
-            interpolation_style - Resampling kernel.
-            legacy_transform - Important-this will specify whether you use the
-                   original Matlab code's version (1) or the potentially bug-corrected
-                   version (0) for the final phase correction in
-                   lib_RetroTS/RVT_from_PeakFinder.py
-                   (default is 0)
-            respcard - Whether the respirator or cardiac tmie series is being processed
-            t - Time (Seconds)
-            x - Analytic signal
-            iz - Peak and trough locations
-            p_trace - Peak values
-            tp_trace - eak locations
-            n_trace - Trough values
-            tn_trace - Trough locations
-            prd - Array of intervals between peaks
+        r:   Dictionary with the following fields.
+        
+            respiration_file:   Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            legacy_transform:   Important-this will specify whether you use the
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py
+            (default is 0)
+                   
+            respcard:   Whether the respirator or cardiac tmie series is being processed
+            
+            t:   Time (Seconds)
+            
+            x:   Analytic signal
+            
+            iz:   Peak and trough locations
+            
+            p_trace:   Peak values
+            
+            tp_trace:   eak locations
+            
+            n_trace:   Trough values
+            
+            tn_trace:   Trough locations
+            
+            prd:   Array of intervals between peaks
+            
             t_mid_prd -Array of mean values betweem successive peaks
-            p_trace_mid_prd - Array of midpoints betweem successive peaks
-            phase - Array of phase values
-            rv - Peak to trough differences over interpeak intervals
-            rvt - Peak to trough differences over interpeak intervals
+            
+            p_trace_mid_prd:   Array of midpoints betweem successive peaks
+            
+            phase:   Array of phase values
+            
+            rv:   Peak to trough differences over interpeak intervals
+            
+            rvt:   Peak to trough differences over interpeak intervals
+            
             v -Scale, per Glover 2000's paper 
-            tR - Progressive array of step intervals (Straight line)
-            p_trace_r - Interpoalted peaks
-            n_trace_r - Interpolated troughs
-            prdR - Interval between peaks interpolated to temporal range of 
-                phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
-            amp_phase - Currently always 1
+            
+            tR:   Progressive array of step intervals (Straight line)
+            
+            p_trace_r:   Interpoalted peaks
+            
+            n_trace_r:   Interpolated troughs
+            
+            prdR:   Interval between peaks interpolated to temporal range of 
+            phase_info["v_np"] but with time warping specified by phase_info["tn_trace"]
+                
+            amp_phase:   Currently always 1
             
             The function adds the following fields.
-            phase_pol - Positive if inspiration.  Negative if expiration
-            time_series_time - Time series time vector
-            phase_slice - Phase sampled at slice acquisition time
-        fg - unique identifier for the figure
+            
+            phase_pol:   Positive if inspiration.  Negative if expiration
+            
+            time_series_time:   Time series time vector
+            
+            phase_slice:   Phase sampled at slice acquisition time
+            
+        fg:   unique identifier for the figure
+        
     AUTHOR
        Joshua Zosky. Debugged by Peter Lauren (Documentation by Peter Lauren)
     """
@@ -2146,4 +2718,145 @@ def show_rvt_peak(r, fg):
     plt.savefig('%s/RVT.pdf' % (OutDir)) 
     show()
 
+
+def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
+                        phys_json_arg, respiration_out, cardiac_out, rvt_out):
+    """
+    NAME
+        getInputFileParameters 
+            Returns the local respiriation file name  (if JSON file absent, None otherwise), 
+            respiration file data (if JSON file present, None otherwise), the 
+            local cardiac file name  (if JSON file absent, None otherwise), 
+            cardiac file data (if JSON file present, None otherwise).
+    TYPE
+        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
+    SYNOPSIS
+       getInputFileParameters(respiration_info, cardiac_info, phys_file,
+       phys_json_arg, respiration_out, cardiac_out, rvt_out)
+    ARGUMENTS
+        respiration_info:   Dictionary with the following fields.
+        
+            respiration_file:  Name of ASCII file with respiratory time series
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+            
+            number_of_slices:   Number of slices
+            
+            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            between the acquisition of consecutive frames/volumes; in seconds
+            
+            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            
+            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
+            
+            interpolation_style:   Resampling kernel.
+            
+            frequency_cutoff:   Cutoff frequency for smoothing RVT
+            
+            zero_phase_offset:Phase offset added to the location of each peak.
+            Default is 0.0
+            
+            legacy_transform:   Important-this will specify whether you use the 
+            original Matlab code's version (1) or the potentially bug-corrected
+            version (0) for the final phase correction in
+            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
+            
+        cardiac_info:   Dictionary with the following fields.
+            
+            phys_fs:   Physiological signal sampling frequency in Hz.
+        
+            cardiac_file:  Name of ASCII file with cardiac time series
+            
+        phys_file: BIDS formatted physio file in tab separated format. May
+        be gzipped.
+                
+        phys_json_arg: File metadata in JSON format
+        
+        respiration_out:  Whether to have respiratory output
+        
+        cardiac_out:  Whether to have cardiac output
+        
+        rvt_out:  Whether to have RVT output
+            
+    AUTHOR
+       JPeter Lauren
+    """
+            
+    # Handle file inputs
+    # BIDS = Brain Imaging Data Structure
+    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
+        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
+        raise ValueError('You should not pass a BIDS style phsyio file'
+                         ' and respiration or cardiac files.')
+    # Get the peaks for respiration_info and cardiac_info
+    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    if phys_file:
+        # Use json reader to read file data into phys_meta
+        with open(phys_json_arg, 'rt') as h:
+            phys_meta = json.load(h)
+        # phys_ending is last element following a period
+        phys_ending = phys_file.split(".")[-1]
+        
+        # Choose file opening function on the basis of whether file is gzippped
+        if phys_ending == 'gz':
+            opener = gzip.open 
+        else:
+            opener = open
+            
+        # Read Columns field of JSON file
+        phys_dat = {k:[] for k in phys_meta['Columns']}
+        
+        # Append tab delimited phys_file to phys_dat
+        with opener(phys_file, 'rt') as h:
+            # for pl in h.readlines():
+            for pl in h:
+                pls = pl.split("\t")
+                for k,v in zip(phys_meta['Columns'], pls):
+                    phys_dat[k].append(float(v))
+                    
+        # Process StartTime is in JSON file
+        if ('StartTime' in phys_meta and "StartTime" not in respiration_info):
+            startTime = float(phys_meta["StartTime"])
+            if (startTime > 0):
+                print('***** WARNING: JSON file gives positive start time which is not currently handled')
+                print('    Start time must be <= 0')
+            else:
+                respiration_info["StartTime"] = startTime            
+                cardiac_info["StartTime"] = startTime            
+                    
+        print('phys_meta = ', phys_meta)
+        # Read columns field from JSON data
+        print('Read columns field from JSON data')
+        for k in phys_meta['Columns']:
+            phys_dat[k] = np.array(phys_dat[k])
+            
+            # Read respiratory component
+            if k.lower() == 'respiratory' or k.lower() == 'respiration':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if respiration_out or rvt_out:
+                   if not respiration_info["phys_fs"]:
+                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   respiration_file = None
+                   phys_resp_dat = phys_dat[k]
+            
+            # Read cardiac component
+            elif k.lower() == 'cardiac':
+                # create peaks only if asked for    25 May 2021 [rickr]
+                if cardiac_out != 0:
+                   if not respiration_info["phys_fs"]:
+                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   cardiac_file = None
+                   phys_cardiac_dat = phys_dat[k]
+            else:
+                print("** warning phys data contains column '%s', but\n" \
+                      "   RetroTS only handles cardiac or respiratory data" % k)
+    else:   # Not a JSON file
+        if respiration_info["respiration_file"]:
+            respiration_file = respiration_info["respiration_file"]
+            phys_resp_dat = None
+        if cardiac_info["cardiac_file"]:
+            cardiac_file = cardiac_info["cardiac_file"]
+            phys_cardiac_dat = None
+            
+    return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
 
