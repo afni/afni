@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Aug , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-button_press ..', for Norm/Colr/Swap buttons.",
+   "Adds in functionality from driving AFNI GUI.\n"
+},
+
 { 27, July , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
    "In mecho block when using m_tedana on Mac OS: fix copying tedana QC HTML.",
    "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.'\n"

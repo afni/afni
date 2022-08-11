@@ -330,6 +330,9 @@
 set version   = "6.41";   set rev_dat   = "June 6, 2022"
 #     + [PT] add '-ulay_min_fac ..' opt to allow refined control of ulay
 #       brightness/grayscale mapping.  Useful in APQC
+set version   = "6.42";   set rev_dat   = "Aug 11, 2022"
+#    + [PT] add 'button_press .." opt, for the Colr/Swap/Norm "butpress"
+#      driving functionality
 #
 # =====================================================================
 
@@ -380,6 +383,9 @@ set thrflag = "*"                # threshold flags
 set crossh = "OFF"               # crosshairs OFF by default
 set xh_gap = -1                  # default crosshair gap
 set opac   =  6                  # opacity of overlay
+
+set butpress = ""                # DR: button pres for Colr, Swap, Norm 
+set all_butpress = ( Norm Colr Swap )  # allowed values
 
 set mx     =  3                  # 'x' dim of montage
 set my     =  3                  # 'y' dim of montage
@@ -555,6 +561,26 @@ while ( $ac <= $#argv )
         @ ac += 1
         set bufac = "$argv[$ac]"
         
+    else if ( "$argv[$ac]" == "-button_pres" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        # convert to array immediately, because the argv[] here can be
+        # a space-separated string of button presses (Norm Swap Colr)
+        # that will be put together
+        set in_press = ( $argv[$ac] )
+        foreach ii ( `seq 1 1 ${#in_press}` )
+            set bbb = ${in_press[$ii]}
+            if ( "${bbb}" == "${all_butpress[1]}" || \
+                 "${bbb}" == "${all_butpress[2]}" || \
+                 "${bbb}" == "${all_butpress[3]}" ) then 
+                set butpress = "${butpress} butpress=${bbb}"
+            else
+                echo "** ERROR: invalid button press keyword: ${bbb}"
+                echo "   Must be one of the following: ${all_butpress}"
+                goto BAD_EXIT
+            endif
+        end
+
     else if ( "$argv[$ac]" == "-set_xhairs" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -1050,7 +1076,7 @@ while ( $ac <= $#argv )
 
     endif
     @ ac += 1
-end
+end    ### end of main option loop
 
 # -------------------------------------------------------------------
 
@@ -2174,6 +2200,7 @@ echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set butpress     = "\""${butpress}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
 echo "set my           = "\""${my}"\"""  >> $oechocmd
 echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
@@ -2200,7 +2227,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
-     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
+     -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}        \\\
             mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
             crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
@@ -2230,7 +2257,7 @@ endif
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
-             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
+             -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}      \
                     mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
                     crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
@@ -2294,6 +2321,7 @@ echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set butpress     = "\""${butpress}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
 echo "set my           = "\""${my}"\"""  >> $oechocmd
 echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
@@ -2338,13 +2366,13 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
-    -com "$OW sagittalimage opacity=${opac}                          \\\
+    -com "$OW sagittalimage opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
            crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
-    -com "$OW coronalimage  opacity=${opac}                          \\\
+    -com "$OW coronalimage  opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
            crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
-    -com "$OW axialimage    opacity=${opac}                          \\\
+    -com "$OW axialimage    opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
@@ -2372,9 +2400,9 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
-    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
     -com "$com_pbar_str"                                             \
     -com "SET_SUBBRICKS   ${subbb}"                                  \
@@ -2878,6 +2906,15 @@ COMMAND OPTIONS ~1~
                     the present option (def: 'black').  (See DR:
                     "mont=PxQ:R" additional option ":G:C"; basically,
                     MC is the 'C' value).
+
+-button_press BP   :simulate a button press for one of the following
+                    buttons in an image viewer window:
+                       ${all_butpress}
+                    You can enter more than one of these button presses here
+                    *if* you put all of them within a single pair of quotes, 
+                    such as:  -button_press "Colr Swap".  Note that the order
+                    of the button presses matters.
+                    (See DR: "butpress=name")
 
 -no_cor            :no coronal slice views output (def: this view is shown)
 -no_axi            :no axial slice views output (def: this view is shown)
