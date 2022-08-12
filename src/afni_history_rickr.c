@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Aug, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_ubuntu_22_ARM_clang, as written by C Rorden",
+   "Thanks to C Rorden for submitting the file."
+ } ,
+
  { 12, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "replace obsolete two-suffix rule with (.h) prerequisites",
    "A target like .c.o or .c.$(SO) should not have extra prerequisites.\n"
