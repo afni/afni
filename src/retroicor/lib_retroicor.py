@@ -126,20 +126,21 @@ def getCardiacPeaks(parameters, array):
    
    # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
    peaks, _ = find_peaks(np.array(array), width=int(parameters["-phys_fs"]/8))
-   
-   # Remove peaks that are less than the 10th percentile of the input signal
-   threshold = np.percentile(array, 10)
-   numPeaks = len(peaks)
-   for p in range(numPeaks-1,-1,-1):
-        if array[peaks[p]] < threshold:
-            peaks = np.delete(peaks,p) 
-
-   # Estimate the overall typical period            
-   period = len(array)/(1+np.argmax((abs(fft(array))[1:-1])))
 
    # Get peak values
    peakVals = []
    for i in peaks: peakVals.append(array[i])
+   
+   # Remove peaks that are less than the 10th percentile of the input signal
+   threshold = np.percentile(array, 10)
+   peaks = peaks[peakVals >= threshold]
+   # numPeaks = len(peaks)
+   # for p in range(numPeaks-1,-1,-1):
+   #       if array[peaks[p]] < threshold:
+   #           peaks = np.delete(peaks,p) 
+
+   # Estimate the overall typical period            
+   period = len(array)/(1+np.argmax((abs(fft(array))[1:-1])))
 
    # Merge peaks that are closer than one quater of the overall typical period
    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
@@ -152,8 +153,11 @@ def getCardiacPeaks(parameters, array):
    # for i in oldPeaks: peakArray[i] = array[i]
    # corrections = [np.argmax(peakArray[i+1:j-1]) for i, j in zip(peaks[:-1], peaks[2:])]
    # peaks = [i+j for i,j, in zip (peaks[1:-1],corrections[:])]
+
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
            
-   
    # Remove peaks that are less than 10% of the way from the local minimum to the adjacent peaks
    valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
    fromLocalMin = [j-min(array[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
