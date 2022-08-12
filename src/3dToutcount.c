@@ -14,7 +14,7 @@ int main( int argc , char *argv[] )
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
 
    int polort=0 , nref , nbad=0 , nfsc=0 ;      /* 07 Aug 2002 */
-   int do_frac=0, use_legendre;                 /* 21 Jun 2010 [rickr] */
+   int do_frac=0, use_legendre=0;               /* 21 Jun 2010 [rickr] */
    float **ref ;
    float  *fit ;
 

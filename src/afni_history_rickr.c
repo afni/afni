@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "replace obsolete two-suffix rule with (.h) prerequisites",
+   "A target like .c.o or .c.$(SO) should not have extra prerequisites.\n"
+   "Use the more expanded form of '%.o : %.c ...' instead.\n"
+   "Also, fix an apparent unit var."
+ } ,
+
  {  9, Aug, 2022, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
    "modify how censor dset is applied in get_max_displacement",
    NULL
