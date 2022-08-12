@@ -134,18 +134,14 @@ def getCardiacPeaks(parameters, array):
    # Remove peaks that are less than the 10th percentile of the input signal
    threshold = np.percentile(array, 10)
    peaks = peaks[peakVals >= threshold]
-   # numPeaks = len(peaks)
-   # for p in range(numPeaks-1,-1,-1):
-   #       if array[peaks[p]] < threshold:
-   #           peaks = np.delete(peaks,p) 
 
-   # Estimate the overall typical period            
-   period = len(array)/(1+np.argmax((abs(fft(array))[1:-1])))
+   # Estimate the overall typical period       
+   limit = len(array)/2
+   period = len(array)/(1+np.argmax((abs(fft(array))[1:limit])))
 
    # Merge peaks that are closer than one quater of the overall typical period
    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
    intervals.insert(0,round(period))
-   oldPeaks = peaks
    peaks = peaks[intervals>=threshold]
    
    # Make sure local maxima have not been displaced
@@ -166,11 +162,17 @@ def getCardiacPeaks(parameters, array):
    ratios.append(0)
    threshold = np.float64(-1.0)
    peaks = peaks[ratios>threshold]
-   # markForDeletion = []
-   # for p in range(1,numPeaks-3):
-   #      if fromLocalMin[p]/(-0.01-valleys[p]) < threshold:
-   #          markForDeletion.append(p)
-            # peaks = np.delete(peaks,p) 
+
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+   
+   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # This is tomove false peaks on the upstroke
+   shiftArray = array[round(period/4):]
+   diff = [array[x] - shiftArray[x] for x in peaks]
+   peaks = peaks[diff >= np.float64(0)]
+   # TODO: Add code to deal with false peaks on the downstroke
    
            
    #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
