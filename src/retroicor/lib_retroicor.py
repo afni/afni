@@ -122,18 +122,52 @@ def getCardiacPeaks(parameters, array):
    
    oldArray = array
    # # Debug
-   # array = oldArray[200000:400000]
-
+   array = oldArray[0:200000]
+   
+   # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
    peaks, _ = find_peaks(np.array(array), width=int(parameters["-phys_fs"]/8))
    
-   # # Peaks must be at least the threshold value
-   # # Threshold is currently half the maximum
-   # Max = max(array)
-   # Threshold = Max/2
-   # numPeaks = len(peaks)
-   # for p in range(numPeaks-1,-1,-1):
-   #     if array[peaks[p]] < Threshold:
-   #         peaks = np.delete(peaks,p) 
+   # Remove peaks that are less than the 10th percentile of the input signal
+   threshold = np.percentile(array, 10)
+   numPeaks = len(peaks)
+   for p in range(numPeaks-1,-1,-1):
+        if array[peaks[p]] < threshold:
+            peaks = np.delete(peaks,p) 
+
+   # Estimate the overall typical period            
+   period = len(array)/(1+np.argmax((abs(fft(array))[1:-1])))
+
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(array[i])
+
+   # Merge peaks that are closer than one quater of the overall typical period
+   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+   intervals.insert(0,round(period))
+   oldPeaks = peaks
+   peaks = peaks[intervals>=threshold]
+   
+   # Make sure local maxima have not been displaced
+   # peakArray = np.zeros(len(array))
+   # for i in oldPeaks: peakArray[i] = array[i]
+   # corrections = [np.argmax(peakArray[i+1:j-1]) for i, j in zip(peaks[:-1], peaks[2:])]
+   # peaks = [i+j for i,j, in zip (peaks[1:-1],corrections[:])]
+           
+   
+   # Remove peaks that are less than 10% of the way from the local minimum to the adjacent peaks
+   valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
+   fromLocalMin = [j-min(array[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
+   ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
+   ratios.insert(0,0)
+   ratios.append(0)
+   threshold = np.float64(-1.0)
+   peaks = peaks[ratios>threshold]
+   # markForDeletion = []
+   # for p in range(1,numPeaks-3):
+   #      if fromLocalMin[p]/(-0.01-valleys[p]) < threshold:
+   #          markForDeletion.append(p)
+            # peaks = np.delete(peaks,p) 
+   
            
    #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
    # interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
