@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.15, Dec 19, 2021
+Version 0.0.16, Aug 13, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -264,25 +264,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the MSS context the simplest model is \"1+(1|Subj1)+(1|Subj2)\" in",
-   "         which the random effect from each of the two subjects in a pair is",
-   "         symmetrically incorporated in the model. Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
-   "         effects of interest and confounding variables (quantitative or",
-   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
-             ) ),
-
-      '-fixEff' = apl(n = 1, d = 1, h = paste(
-   "-fixEff FORMULA: Specify the fixed effect components of the model. The",
-   "         expression FORMULA with more than one variable has to be surrounded",
-   "         within (single or double) quotes. Variable names in the formula",
-   "         should be consistent with the ones used in the header of -dataTable.",
-   "         In the MSS context the simplest model is \"1+(1|Subj1)+(1|Subj2)\" in",
-   "         which the random effect from each of the two subjects in a pair is",
-   "         symmetrically incorporated in the model. Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
-   "         effects of interest and confounding variables (quantitative or",
-   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
+   "         See examples in the help for details.\n", sep = '\n'
              ) ),
 
       '-ranEff' = apl(n = 1, d = 1, h = paste(
@@ -292,10 +274,8 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         should be consistent with the ones used in the header of -dataTable.",
    "         In the MSS context the simplest model is \"list(Subj=~1)\" in which the",
    "         varying or random effect from each subject is incorporated in the model.",
-   "         Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
-   "         effects of interest and confounding variables (quantitative or",
-   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
+   "         Each random-effects factor is specified within paratheses per formula",
+   "         convention in R.\n", sep = '\n'
              ) ),
 
       '-mrr' = apl(n = 1, d = 1, h = paste(
@@ -626,19 +606,21 @@ runMSS <- function(myData, DM, tag) {
             try(tmp <- predict(fm, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(!is.null(tmp)) { # prediction successful
             if(is.null(lop$vt)) {
-               #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
-               Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+               #Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
             } else
-            #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
-            Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+            Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+            #Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq, c(rbind(tmp$fit[1:lop$nr],
                       tmp$se.fit[1:lop$nr])))
-         } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq)
-         #Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
+         } else #Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm)$r.sq)
+         Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm)$r.sq)
       }
    }
    return(Stat)
 }
 # runMSS(inData[30,30,30,], lop$dataStr, 0)
+# lop$dataStr$yy <- inData[25, 45, 31, ]
+# m1 <- gam(lop$mmr, data=lop$dataStr, method='REML'))
 
 # modeling through mixed-effects approach with gamm()
 runLME <- function(myData, DM, tag) {
@@ -653,7 +635,10 @@ runLME <- function(myData, DM, tag) {
       if(!is.null(fm)) {
          tmp <- NULL;
 	 ll <- c(t(summary(fm$gam)$p.table[,c('Estimate', 't value')]))
-	 if(!is.null(summary(fm$gam)$s.table)) pp <- summary(fm$gam)$s.table[,'p-value']
+	 if(!is.null(summary(fm$gam)$s.table)) {
+            pp <- summary(fm$gam)$s.table[,'p-value'] # smooths
+            pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq
+	 }
          if(is.null(lop$vt)) try(tmp <- predict(fm$gam, lop$Pred, se.fit = T), silent=TRUE) else
             try(tmp <- predict(fm$gam, lop$Pred, se.fit = T, exclude=lop$vt[2]), silent=TRUE)
          if(is.null(summary(fm$gam)$s.table)) { # having no smooth terms
@@ -663,23 +648,25 @@ runLME <- function(myData, DM, tag) {
             } else Stat[1:length(ll)] <- c(ll, summary(fm$gam)$r.sq)
          } else { # having smooth terms
             pp <- summary(fm$gam)$s.table[,'p-value']
+	    pp <- replace(pp, pp<1e-16, 1e-16) # prevent 0 p-value in the output, causing NANs in chi-sq
             if(!is.null(tmp)) { # prediction successful
                if(is.null(lop$vt)) {
-                  #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
-                  Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+                  Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
+                  #Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit, tmp$se.fit)))
                } else
-               Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
-                      tmp$se.fit[1:lop$nr])))
-               #Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr], tmp$se.fit[1:lop$nr])))
-            } else Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq)
-            #Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
+               #Stat <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr],
+               #       tmp$se.fit[1:lop$nr])))
+               Stat <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq, c(rbind(tmp$fit[1:lop$nr], tmp$se.fit[1:lop$nr])))
+            } else #Stat[1:(length(ll)+length(pp))] <- c(ll, qnorm(pp/2, lower.tail = F), summary(fm$gam)$r.sq)
+            Stat[1:(length(ll)+length(pp))] <- c(ll, qchisq(pp, 2, lower.tail = F), summary(fm$gam)$r.sq)
          } # if(is.null(summary(fm$gam)$s.table))
       } # if(!is.null(fm))
    } # if(!all(myData == 0))
    return(Stat)
 }
 # runLME(inData[30,30,30,], lop$dataStr, 0)
-
+# lop$dataStr$yy <- inData[25, 45, 31, ]
+# m1 <- gam(lop$lme, data=lop$dataStr, method='REML'))
 
 #################################################################################
 ########################## Begin MSS main ######################################
@@ -997,16 +984,16 @@ if(!is.null(lop$mrr)) {
    for(n in 1:nrow(summary(fm)$p.table))
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
    for(n in 1:nrow(summary(fm)$s.table))
-      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fizt")))
-      #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fict", par=2)))
+      #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fizt")))
+      statsym <- c(statsym, list(list(sb=2*nrow(summary(fm)$p.table)+n-1, typ="fict", par=2)))
 }
 if(!is.null(lop$lme)) {
    for(n in 1:nrow(summary(fm$gam)$p.table))
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt")))
    if(!is.null(summary(fm$gam)$s.table)) { # having no smooth terms
       for(n in 1:nrow(summary(fm$gam)$s.table))
-         statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fizt")))
-         #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$s.table)+n-1, typ="fict", par=2)))
+         #statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$p.table)+n-1, typ="fizt")))
+         statsym <- c(statsym, list(list(sb=2*nrow(summary(fm$gam)$p.table)+n-1, typ="fict", par=2)))
    }
 }
 
