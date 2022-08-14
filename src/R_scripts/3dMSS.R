@@ -183,7 +183,7 @@ Introduction
   within subject, 
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 'grp+s(age)+s(age,by=grp)'             \\
+          -mrr 's(age)+s(age,by=grp)'             \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -194,7 +194,7 @@ Introduction
   varies within subject,
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 'grp+s(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
+          -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
           -vt  Subj 's(Subj)'                \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -205,7 +205,7 @@ Introduction
   or an LME version:
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -lme 'grp+s(age)+s(age,by=grp)'             \\
+          -lme 's(age)+s(age,by=grp)'             \\
           -ranEff 'list(Subj=~1)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -620,7 +620,7 @@ runMSS <- function(myData, DM, tag) {
 }
 # runMSS(inData[30,30,30,], lop$dataStr, 0)
 # lop$dataStr$yy <- inData[25, 45, 31, ]
-# m1 <- gam(lop$mmr, data=lop$dataStr, method='REML'))
+# m1 <- gam(lop$mmr, data=lop$dataStr, method='REML')
 
 # modeling through mixed-effects approach with gamm()
 runLME <- function(myData, DM, tag) {
@@ -666,7 +666,7 @@ runLME <- function(myData, DM, tag) {
 }
 # runLME(inData[30,30,30,], lop$dataStr, 0)
 # lop$dataStr$yy <- inData[25, 45, 31, ]
-# m1 <- gam(lop$lme, data=lop$dataStr, method='REML'))
+# m1 <- gamm(lop$lme, random=lop$ranEff, data=lop$dataStr, method='REML')
 
 #################################################################################
 ########################## Begin MSS main ######################################
