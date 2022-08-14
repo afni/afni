@@ -183,7 +183,7 @@ Introduction
   within subject, 
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)'             \\
+          -mrr 'grp+s(age)+s(age,by=grp)'             \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -194,7 +194,7 @@ Introduction
   varies within subject,
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
+          -mrr 'grp+s(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
           -vt  Subj 's(Subj)'                \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -205,7 +205,7 @@ Introduction
   or an LME version:
 
   3dMSS -prefix MSS -jobs 16                     \\
-          -lme 's(age)+s(age,by=grp)'             \\
+          -lme 'grp+s(age)+s(age,by=grp)'             \\
           -ranEff 'list(Subj=~1)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
