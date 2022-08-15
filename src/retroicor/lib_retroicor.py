@@ -136,12 +136,13 @@ def getCardiacPeaks(parameters, array):
    peaks = peaks[peakVals >= threshold]
 
    # Estimate the overall typical period       
-   limit = len(array)/2
+   limit = round(len(array)/2)
    period = len(array)/(1+np.argmax((abs(fft(array))[1:limit])))
 
    # Merge peaks that are closer than one quater of the overall typical period
    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
    intervals.insert(0,round(period))
+   threshold = period/4
    peaks = peaks[intervals>=threshold]
    
    # Make sure local maxima have not been displaced
@@ -172,7 +173,12 @@ def getCardiacPeaks(parameters, array):
    shiftArray = array[round(period/4):]
    diff = [array[x] - shiftArray[x] for x in peaks]
    peaks = peaks[diff >= np.float64(0)]
-   # TODO: Add code to deal with false peaks on the downstroke
+   
+   # Remove false peaks on the downstroke
+   shiftArray = np.insert(array,np.zeros(round(period/4)).astype(int),0)
+   diff = [array[x] - shiftArray[x] for x in peaks]
+   peaks = peaks[diff >= np.float64(0)]
+   
    
            
    #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
