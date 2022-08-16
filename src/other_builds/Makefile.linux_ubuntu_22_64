@@ -1,4 +1,8 @@
 # modern linux
+#   - works on Ubuntu 18.04 through 22.04
+#     (might also work under Fedora, needs verification)
+#   - works with either gcc or clang
+#   - works with x86-64 or ARM aarch64
 
 SYSTEM_NAME = linux_universal
 SYSTEM_TYPE = Linux
