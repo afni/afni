@@ -39,15 +39,13 @@ CCOLD  = $(CC)
 # However, I found that it actually makes things worse in some test code.
 # Your mileage may vary.
 
-# CCFAST = /usr/bin/clang -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -
-DLINUX2 $(CEXTRA)
+# CCFAST = /usr/bin/clang -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
 
 OMPFLAG = -fopenmp -DUSE_OMP  # for OpenMP
 CCMIN  = /usr/bin/clang -m64 -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include $(I_USE_ACML)
-#-I/usr/src/linux-headers-3.0.0-17/include/linux -I/usr/src/linux-headers-3.0.0-
-17/include $(I_USE_ACML)
+#-I/usr/src/linux-headers-3.0.0-17/include/linux -I/usr/src/linux-headers-3.0.0-17/include $(I_USE_ACML)
 LFLAGS = -L. -L/usr/X11R6/lib64 $(L_USE_ACML)
 
 # maybe 
@@ -92,8 +90,7 @@ EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm
-  -ldl -lc
+# LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -ldl -lc
 
 # for static linking to Motif, dynamic to all else
 
@@ -102,8 +99,7 @@ LLIBS  = -lmri -lf2c $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 LLIBS_X11 = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 \
             $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
-#LLIBS  = -lmri -lf2c /usr/X11R6/lib64/libXm.a -lXpm -lXext -lXmu -lXt -lSM -lIC
-E -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+#LLIBS  = -lmri -lf2c /usr/X11R6/lib64/libXm.a -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -122,16 +118,13 @@ E -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/
-include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib/include -I/usr/lib64/
-glib-2.0/include -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib/include -I/usr/lib64/glib-2.0/include -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
 SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
 #
 SUMA_LINK_LIB = -lGLw -lGLU -lGL $(LLIBS_X11)
-#SUMA_LINK_LIB = /usr/X11R6/lib64/libXm.a -lGLw -lGLU -lGL -lXmu -lXt -lXext -lX
-11 $(LZLIB) $(LGIFTI) -lm 
+#SUMA_LINK_LIB = /usr/X11R6/lib64/libXm.a -lGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 SUMA_MDEFS = 
