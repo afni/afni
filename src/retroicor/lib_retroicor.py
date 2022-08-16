@@ -122,7 +122,7 @@ def getCardiacPeaks(parameters, array):
    
    oldArray = array
    # # Debug
-   array = oldArray[0:200000]
+   # array = oldArray[0:200000]
    
    # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
    peaks, _ = find_peaks(np.array(array), width=int(parameters["-phys_fs"]/8))
@@ -145,26 +145,23 @@ def getCardiacPeaks(parameters, array):
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
-   shiftArray = array[round(period/4):]
-   diff = [array[x] - shiftArray[x] for x in peaks]
+   # searchLength = round(parameters["-phys_fs"]/16)
+   searchLength = round(period/4)
+   shiftArray = array[searchLength:]
+   diff = [array[x] - max(array[x-searchLength:x+searchLength]) for x in peaks]
    peaks = peaks[diff >= np.float64(0)]
    
    # Remove false peaks on the downstroke
-   shiftArray = np.insert(array,np.zeros(round(period/4)).astype(int),0)
+   shiftArray = np.insert(array,np.zeros(searchLength).astype(int),0)
    diff = [array[x] - shiftArray[x] for x in peaks]
    peaks = peaks[diff >= np.float64(0)]
-
-   # Merge peaks that are closer than one quarter of the overall typical period
-   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-   intervals.insert(0,round(period))
-   threshold = period/4
-   peaks = peaks[intervals>=threshold]
    
    # Make sure local maxima have not been displaced
    # peakArray = np.zeros(len(array))
    # for i in oldPeaks: peakArray[i] = array[i]
    # corrections = [np.argmax(peakArray[i+1:j-1]) for i, j in zip(peaks[:-1], peaks[2:])]
    # peaks = [i+j for i,j, in zip (peaks[1:-1],corrections[:])]
+
 
    # Get peak values
    peakVals = []
@@ -178,6 +175,12 @@ def getCardiacPeaks(parameters, array):
    ratios.append(0)
    threshold = np.float64(-4.0)
    peaks = peaks[ratios>threshold]
+
+   # Merge peaks that are closer than one quarter of the overall typical period
+   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+   intervals.insert(0,round(period))
+   threshold = period/4
+   peaks = peaks[intervals>=threshold]
    
    
            
