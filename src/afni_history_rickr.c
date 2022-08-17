@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
+   "use of -anat is now optional, only -epi is needed",
+   NULL
+ } ,
+
  { 17, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "allow rebuild of cjpeg/djpeg/libjpeg.a when any is missing",
    NULL
