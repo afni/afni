@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "allow rebuild of cjpeg/djpeg/libjpeg.a when any is missing",
+   NULL
+ } ,
+
  { 12, Aug, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
    "add Makefile.linux_ubuntu_22_ARM_clang, as written by C Rorden",
    "Thanks to C Rorden for submitting the file."
