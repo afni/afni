@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if tlrc block and -regress_ROI*, require -volreg_tlrc_warp",
+   "Thanks to Mingbo on MB."
+ } ,
+
  { 17, Aug, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
    "use of -anat is now optional, only -epi is needed",
    NULL

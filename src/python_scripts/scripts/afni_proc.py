@@ -737,9 +737,10 @@ g_history = """
     7.44 Jul 30, 2022:
        - copy tlrc_base/template to results directory
        - add opt -tlrc_copy_base
+    7.45 Aug 17, 2022: if 'tlrc' block and -regress_ROI*, req -volreg_tlrc_warp
 """
 
-g_version = "version 7.44, July 30, 2022"
+g_version = "version 7.45, August 17, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

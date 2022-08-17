@@ -5789,6 +5789,16 @@ def db_cmd_regress(proc, block):
         if err: return
         if newcmd: cmd = cmd + newcmd
 
+    # if -regress_ROI*, a 'tlrc' block must come with -volreg_tlrc_warp
+    do_roi = block.opts.find_opt('-regress_ROI') \
+             or block.opts.find_opt('-regress_ROI_PC')
+    anat_only_warp = \
+       proc.find_block('tlrc') and not (proc.warp_epi & WARP_EPI_TLRC_WARP)
+    if do_roi and anat_only_warp:
+       print("** have -regress_ROI*, but anat/EPI not in same space")
+       print("   either omit 'tlrc' block, or add -volreg_tlrc_warp")
+       return
+    
     # ----------------------------------------
     # gmean?  change to generic -regress_RONI
     if block.opts.find_opt('-regress_ROI'):
