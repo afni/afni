@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_ENHANCE,
+   "In warns block check for 3dDeconvolve.err text file for warns.",
+   "If exists, most warns go to 'undecided' at the moment. Thanks, RCR!\n"
+},
+
 { 11, Aug , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-button_press ..', for Norm/Colr/Swap buttons.",
    "Adds in functionality from driving AFNI GUI.\n"
@@ -76,7 +81,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 27, July , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
    "In mecho block when using m_tedana on Mac OS: fix copying tedana QC HTML.",
-   "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.'\n"
+   "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.\n"
 },
 
 { 27, July , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
@@ -105,7 +110,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add new ve2a QC, via new uvar final_epi_unif_dset.",
-   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"
+   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.\n"
 },
 
 { 6, June , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,

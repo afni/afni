@@ -214,8 +214,11 @@ auth = 'PA Taylor'
 # [PT] ve2a: new scaling for ulay, extra control of grayscale with
 #   ulay_min_fac
 #
-ver = '4.02' ; date = 'July 27, 2022'
+#ver = '4.02' ; date = 'July 27, 2022'
 # [PT] mecho: cp -> rsync, because of annoying Mac difference in cp
+#
+ver = '4.03' ; date = 'Aug 18, 2022'
+# [PT] add warns: 3dDeconvolve *.err text file
 #
 #########################################################################
 
@@ -3611,6 +3614,74 @@ def apqc_warns_xmat( obase, qcb, qci,
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
     lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+# ----------------------------------------------------------------------
+
+# Text warning, 3dDeconvolve issues
+# ['decon_err_dset']
+def apqc_warns_decon( obase, qcb, qci,
+                      fname = '' ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''review: check for 3dDeconvolve warnings'''
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname :  
+        txt = lah.read_dat(fname)
+        if txt.strip() == '' :
+            warn_level = "none"
+        ### could add more conditions here, as the need arises
+        #elif txt.__contains__("WARNING:") :
+        #    warn_level = "medium"
+
+    pre = '''
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    cmd = '''
+    if ( -f ${decon_err_dset} && ! -z ${decon_err_dset} ) then
+    ~~~~cat ${decon_err_dset} > ${odir_img}/${opref}.dat
+    else
+    ~~~~printf ""  > ${odir_img}/${opref}.dat
+    endif
+    '''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "3dDeconvolve warnings"
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------

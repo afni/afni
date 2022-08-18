@@ -215,10 +215,13 @@ auth = 'PA Taylor'
 # [PT] new ve2a entry, if EPI is unifized (via uvar=final_epi_unif_dset)
 #    + also better control of brightness scaling for edgy EPI/anat images
 #
-ver = '4.02' ; date = 'June 10, 2022' 
+#ver = '4.02' ; date = 'June 10, 2022' 
 # [PT] ... and just like that, no longer make second ve2a image anymore,
 #      that would be based on final_epi_unif_dset. Was extraneous/unnec.
 #      An ex-parrot.
+#
+ver = '4.03' ; date = 'Aug 18, 2022'
+# [PT] add warns: 3dDeconvolve *.err text file
 #
 #########################################################################
 
@@ -1112,6 +1115,23 @@ if __name__ == "__main__":
         cmd      = lat.apqc_warns_cen_stim( obase, "warns", "cen_stim",
                                             rev_dict=rev_dict,
                                             label_list=all_labels)
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : 3dDeconvolve warnings
+
+    ldep = ['decon_err_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('3dDeconvolve warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        txtfile  = ap_ssdict['decon_err_dset']
+        cmd      = lat.apqc_warns_decon( obase, "warns", "decon",
+                                         fname = txtfile)
 
         str_FULL+= ban
         str_FULL+= cmd
