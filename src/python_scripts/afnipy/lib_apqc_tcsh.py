@@ -217,8 +217,17 @@ auth = 'PA Taylor'
 #ver = '4.02' ; date = 'July 27, 2022'
 # [PT] mecho: cp -> rsync, because of annoying Mac difference in cp
 #
-ver = '4.03' ; date = 'Aug 18, 2022'
+#ver = '4.03' ; date = 'Aug 18, 2022'
 # [PT] add warns: 3dDeconvolve *.err text file
+#
+#ver = '4.04' ; date = 'Aug 18, 2022'
+# [PT] add mask_dset images: overlays final dset, whether in 
+#      va2t, ve2a or vorig QC block
+#
+ver = '4.05' ; date = 'Aug 18, 2022'
+# [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
+#      ---> but just as quickly have removed it; might distract from the
+#           important sulcal/gyral overlap
 #
 #########################################################################
 
@@ -2057,7 +2066,8 @@ def apqc_vorig_olap( obase, qcb, qci ):
 
 # ['final_anat', 'final_epi_dset'],
 # ['final_anat', 'final_epi_unif_dset']
-def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
+def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox, dice_file ):
+    
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -2134,6 +2144,15 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     -prefix ${ojson}
     '''
 
+    ### [PT: Aug 18, 2022] ignore this for now---the patterns are more
+    ### important
+    # Dice coef info
+    #if dice_file :
+    #    dice = lah.read_dat(dice_file)
+    #else:
+    #    dice = 'unknown'
+    #osubtext2 = "Dice coefficient (EPI-anatomical masks): {}".format(dice)
+
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2169,7 +2188,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 # ----------------------------------------------------------------------
 
 # ['final_anat', 'template']
-def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
+def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, dice_file ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -2217,6 +2236,15 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     -prefix ${ojson}
     '''
 
+    ### [PT: Aug 18, 2022] ignore this for now---the patterns are more
+    ### important
+    ## Dice coef info
+    #if dice_file :
+    #    dice = lah.read_dat(dice_file)
+    #else:
+    #    dice = 'unknown'
+    #osubtext2 = "Dice coefficient (anatomical-template masks): {}".format(dice)
+
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2225,7 +2253,7 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     EOF
-    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1])
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2261,6 +2289,115 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     return '\n\n'.join(lout)
 
 #-------------------------------------------------------------------------
+
+# ['mask_dset', 'template']
+def apqc_gen_mask2final( obase, qcb, qci, ulay, focusbox ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''See how the EPI mask dset overlays the template'''
+
+    pre = '''
+    set opref = {}
+    set focus_box = {}
+    set ulay_dset = {}
+    set ulay_name = `3dinfo -prefix ${{main_dset}}`
+    set olay_name = `3dinfo -prefix ${{mask_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    '''.format( opref, focusbox, ulay )
+
+    if qcb == 'va2t' :
+        ulay_desc = 'template dset'
+    elif qcb == 've2a' :
+        ulay_desc = 'final anatomical dset'
+    elif qcb == 'vorig' :
+        ulay_desc = 'volreg base dset'
+    else:
+        ulay_desc = '-'
+
+    ttext = '''"ulay: ${{ulay_name}} ({})" ,, '''.format(ulay_desc)
+    ttext+= '''"olay: ${olay_name} (final EPI mask coverage)"'''
+
+    cmd = '''
+    @chauffeur_afni    
+    -ulay  ${{ulay_dset}}
+    -box_focus_slices ${{focus_box}}
+    -olay  ${{mask_dset}}  
+    -cbar {cbar}
+    -ulay_range 0% 120%  
+    -func_range 1
+    -olay_alpha No
+    -olay_boxed No
+    -set_subbricks 0 0 0
+    -opacity 4  
+    -prefix        "${{odir_img}}/${{opref}}"
+    -save_ftype JPEG
+    -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 4  
+    -no_cor
+    -do_clean
+    '''.format( cbar='Reds_and_Blues_Inv' )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
 
 # complicated/tiered depedencies...
 def apqc_regr_corr_errts( obase, qcb, qci, 

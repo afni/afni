@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_ENHANCE,
+   "Display final EPI coverage mask on final space dset.",
+   "Could be on template, final anatomical or vr_base.\n"
+},
+
 { 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_ENHANCE,
    "In warns block check for 3dDeconvolve.err text file for warns.",
    "If exists, most warns go to 'undecided' at the moment. Thanks, RCR!\n"
