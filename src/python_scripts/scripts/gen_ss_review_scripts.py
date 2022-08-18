@@ -722,14 +722,6 @@ endif
 
 echo ""
 
-# ------------------------------------------------------------'
-# if there happen to be pre-steady state warnings, show them
-set pre_ss_warn = 'out.pre_ss_warn.txt'
-if ( -f $pre_ss_warn ) then
-    cat $pre_ss_warn
-    echo ""
-endif
-
 """
 
 g_drive_init_str = """#!/bin/tcsh
@@ -929,9 +921,10 @@ g_history = """
    1.21 Jan 24, 2022: added combine_method field, just to pass to json
    1.22 Feb  3, 2022: added -init_uvars_json
    1.23 May 18, 2022: allow for tlrc as initial view
+   1.24 Aug 18, 2022: do not cat any pre_ss_warn dset, as output is now a dict
 """
 
-g_version = "gen_ss_review_scripts.py version 1.23, May 18, 2022"
+g_version = "gen_ss_review_scripts.py version 1.24, Aug 18, 2022"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?

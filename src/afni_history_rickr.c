@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Aug, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "in basic script, do not cat any pre_ss_warn file, as output is now a dict",
+   "Thanks to PT for noting this."
+ } ,
+
  { 17, Aug, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "if tlrc block and -regress_ROI*, require -volreg_tlrc_warp",
    "Thanks to Mingbo on MB."
