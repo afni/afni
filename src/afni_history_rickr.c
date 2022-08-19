@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "clean up some warnings in suma_utils.c (and retab and strip whitespace)",
-   "Thanks to markjens@github for nothing them."
+   "Thanks to markjens@github for noting them."
  } ,
 
  { 18, Aug, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
@@ -5297,7 +5297,7 @@ afni_history_struct rickr_history[] = {
 
  { 22, Oct, 2014, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
    "if padding for dilate/erode steps, preserve ijk_to_dicom_real",
-   "Thanks to A Kurani for nothing the problem."
+   "Thanks to A Kurani for noting the problem."
  } ,
 
  { 20, Oct, 2014, RCR, "imcat", MINOR, TYPE_BUG_FIX,
@@ -5870,7 +5870,7 @@ afni_history_struct rickr_history[] = {
 
  { 16,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "fixed use of num_trs in the case of censoring",
-   "Thanks to K Kerr for nothing the problem."
+   "Thanks to K Kerr for noting the problem."
  } ,
 
  { 16,  Dec, 2013, RCR, "auto_warp.py", MINOR, TYPE_NEW_OPT,
