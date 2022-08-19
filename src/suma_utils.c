@@ -308,7 +308,8 @@ void SUMA_ShowMxVec (SUMA_MX_VEC *mxv, int detail, FILE *out, char *title)
    
    fprintf(out,"%s\n", si);
    
-   if (si) SUMA_free(si); si = NULL;
+   /* {} not really needed, but... */
+   if (si){ SUMA_free(si); si = NULL; }
    
    SUMA_RETURNe;
    
@@ -477,7 +478,7 @@ void SUMA_process_environ(void)
    } else {
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: No sumarc file found.\n", FuncName);
-         no_suma_rc_found = 1;
+      no_suma_rc_found = 1;
    }
 
    if (!homeenv) sprintf(sumarc, ".afnirc");
@@ -491,7 +492,8 @@ void SUMA_process_environ(void)
          fprintf (SUMA_STDERR,"%s: No afnirc file found.\n", FuncName);
    }   
 
-   if (sumarc) free(sumarc); sumarc = NULL; /* allocated before CommonFields */
+   /* again, adding unneeded {} to quite warnings */
+   if (sumarc){ free(sumarc); sumarc = NULL; } /* allocated before CommonFields */
    
    AFNI_mark_environ_done(); /* flag environment rc files as read */
    
@@ -988,12 +990,23 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
 char *SUMA_getcwd(void) 
 {
    static char FuncName[]={"SUMA_getcwd"};
-   char *cwd = NULL;
+   char *cwd = NULL, *rv;
    
    SUMA_ENTRY;
    
    cwd = (char *)SUMA_malloc(sizeof(char)*(SUMA_MAX_DIR_LENGTH+1));
-   getcwd(cwd, SUMA_MAX_DIR_LENGTH);
+   /* In theory, we might have to loop over this until success
+    * (if cwd would end up being long).
+    * For now, failure returns garbage.    [19 Aug 2022 rickr]
+    * Thanks to markjens@github for noting the concern.
+    */
+   rv = getcwd(cwd, SUMA_MAX_DIR_LENGTH);
+
+   /* this field is used, so on failure, return garbage */
+   if( !rv ) {
+      fprintf(stderr,"** getcwd failure, is our working dir soooo long?\n");
+      strcpy(cwd, "failed.getcwd.data");
+   }
    
    SUMA_RETURN(cwd);
 }
@@ -1477,7 +1490,7 @@ char *SUMA_FnameGet(char *Fname, char *sel, char *cccwd)
     
    if (!Fname) {
       /* cleanup */
-      if (ParsedFname) SUMA_Free_Parsed_Name(ParsedFname); ParsedFname = NULL;
+      if (ParsedFname){ SUMA_Free_Parsed_Name(ParsedFname); ParsedFname = NULL; }
       SUMA_RETURN(str[istr]);
    }
    if (!sel) {
@@ -2180,7 +2193,7 @@ int SUMA_isNumString (char *s, void *p)
    
    sc = SUMA_copy_string(s);
    ans = SUMA_CleanNumString(sc,p);
-   if(sc) SUMA_free(sc); sc = NULL;
+   if(sc) { SUMA_free(sc); sc = NULL; }
    SUMA_RETURN(ans);
 }
 
@@ -3045,11 +3058,11 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
       }
       if (LocalHead) {
          SUMA_LH("Calling vsnprintf");
-         if (vararg_ptr) {
-            SUMA_LH("Non NULL vararg_ptr");
-         } else {
-            SUMA_LH("NULL vararg_ptr");
-         }
+         /* It seems that sometimes va_list is a pointer, sometimes not.
+          * Thanks to marjens for pointing this out. [19 Aug 2022 rickr] */
+         /* if (vararg_ptr) SUMA_LH("Non NULL vararg_ptr");
+          * else SUMA_LH("NULL vararg_ptr");
+          */
       }
       nout = vsnprintf (sbuf, MAX_APPEND * sizeof(char), newstring, vararg_ptr); 
       if (LocalHead) 

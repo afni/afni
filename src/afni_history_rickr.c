@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "clean up some warnings in suma_utils.c",
+   "Thanks to markjens@github for nothing them."
+ } ,
+
  { 18, Aug, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "in basic script, do not cat any pre_ss_warn file, as output is now a dict",
    "Thanks to PT for noting this."
