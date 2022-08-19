@@ -54,7 +54,7 @@
 afni_history_struct rickr_history[] = {
 
  { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
-   "clean up some warnings in suma_utils.c",
+   "clean up some warnings in suma_utils.c (and retab and strip whitespace)",
    "Thanks to markjens@github for nothing them."
  } ,
 
