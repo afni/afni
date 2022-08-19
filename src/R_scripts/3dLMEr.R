@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, June 29, 2021
+Version 0.1.7, Aug 19, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -780,11 +780,11 @@ runLME <- function(myData, DM, tag) {
 	 #qnorm(anova(fm)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
-            if(is.na(lop$gltList[[ii]])) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
+            if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
             tt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
-            if(!is.null(tt)) {
+            if(!is.null(tt)[1]) {
                Stat[lop$nF[1]+2*ii-1] <- tt[1,'Value']
 	       Stat[lop$nF[1]+2*ii]   <- sign(tt[1,'Value'])*qnorm(tt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
             }
@@ -797,7 +797,7 @@ runLME <- function(myData, DM, tag) {
 	    ff <- tryCatch(testFactors(fm, levels=lop$glfList[[ii]],
 	       slope=lop$slpListF[[ii]], covariates=lop$covValListF[[ii]],
 	       adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL)
-            if(!is.null(ff)) {
+            if(!is.null(ff)[1]) {
                Stat[lop$nF[1]+2*lop$num_glt+ii] <- qchisq(ff[2,'Pr(>Chisq)'], 2, lower.tail = F) # glf[2,2]  # convert chisq to Z
             }
          }
@@ -1056,7 +1056,7 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+         if(is.na(lop$gltList[[n]])[1]) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
