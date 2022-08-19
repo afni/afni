@@ -25,6 +25,7 @@ import sys, copy
 #                        an opt (even though it starts with -1.
 #                        Also, remove trailing whitespace in final line
 #                        of cmd.
+# 2022-08-19, ver 1.6 :  isnumeric() -> isdigit(), for Py2.7 compatability.
 #
 # -------------------------------------------------------------------------
 
@@ -265,7 +266,7 @@ def make_big_list_auto(arg_list):
                 big_list.append(mini_list)
             mini_list = [iarg]
         elif iarg[0:2] == '--' or \
-             ( iarg[0] == '-' and not(iarg[1:].isnumeric()) ) :
+             ( iarg[0] == '-' and not(iarg[1:].isdigit()) ) :
             # looks like new opt: store any existing (non-empty)
             # mini_list, and start new one with this str
             if mini_list : 
