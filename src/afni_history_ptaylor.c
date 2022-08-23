@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Aug , 2022 , PT , "p2dsetstat" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
+{ 23, Aug , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
 { 23, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
    "Set correct dims being used from input dset in option_data struct.",
    "Fixes report, and some internal instances (like micro/no change?).\n"
