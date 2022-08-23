@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Set correct dims being used from input dset in option_data struct.",
+   "Fixes report, and some internal instances (like micro/no change?).\n"
+},
+
 { 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_ENHANCE,
    "Display final EPI coverage mask on final space dset.",
    "Could be on template, final anatomical or vr_base.\n"

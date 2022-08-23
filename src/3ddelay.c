@@ -935,6 +935,13 @@ void read_input_data
          }
       DSET_load(*dset_time); CHECK_LOAD_ERROR(*dset_time);
 
+      /* [PT: Aug 23, 2022] set correct matrix dims in option_data
+         struct */
+      option_data->nxx = DSET_NX(*dset_time);
+      option_data->nyy = DSET_NY(*dset_time);
+      option_data->nzz = DSET_NZ(*dset_time);
+
+
       if (option_data->mask_filename != NULL) {
          /*----- Read the input mask dataset -----*/
          *mask_dset = THD_open_dataset (option_data->mask_filename);
