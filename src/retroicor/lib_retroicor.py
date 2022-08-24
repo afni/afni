@@ -237,36 +237,86 @@ def getRespiratoryPeaks(parameters, rawData):
        Peter Lauren
    """
 
-   array = readArray(parameters, '-respFile')
+   # array = readArray(parameters, '-respFile')
     
     # Debug: Make even number of peaks followed by troughs
    # array = [ -x for x in array ]
+   
+   oldArray = rawData
 
-   peaks, _ = find_peaks(np.array(array))
+   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["-phys_fs"]/8))
     
-   troughs, _ = find_peaks(-np.array(array))
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(rawData[i])
+   
+   # Remove peaks that are less than the 10th percentile of the input signal
+   threshold = np.percentile(rawData, 10)
+   peaks = peaks[peakVals >= threshold]
+
+   # Estimate the overall typical period       
+   limit = round(len(rawData)/2)
+   period = len(rawData)/(1+np.argmax((abs(fft(rawData))[1:limit])))
+
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(rawData[i])
+   
+   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # This is tomove false peaks on the upstroke
+   # searchLength = round(parameters["-phys_fs"]/16)
+   searchLength = round(period/4)
+   shiftArray = rawData[searchLength:]
+   diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
+   peaks = peaks[diff >= np.float64(0)]
+   
+   # Remove false peaks on the downstroke
+   shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
+   diff = [rawData[x] - shiftArray[x] for x in peaks]
+   peaks = peaks[diff >= np.float64(0)]
+   
+   # Get peak values
+   peakVals = []
+   for i in peaks: peakVals.append(rawData[i])
+           
+   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+   valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
+   fromLocalMin = [j-min(rawData[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
+   ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
+   ratios.insert(0,0)
+   ratios.append(0)
+   threshold = np.float64(-4.0)
+   peaks = peaks[ratios>threshold]
+
+   # Merge peaks that are closer than one quarter of the overall typical period
+   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+   intervals.insert(0,round(period))
+   threshold = period/4
+   peaks = peaks[intervals>=threshold]
+
+   troughs, _ = find_peaks(-np.array(rawData))
    
    # Filter peaks and troughs.  Reject peak/trough pairs where
    #    difference is less than one tenth of the total range
-   nPeaks = len(peaks)
-   nTroughs = len(troughs)
-   minNum = min(nPeaks,nTroughs)
-   ptPairs = [array[peaks[x]]-array[troughs[x]] for x in range(0,minNum)]
-   threshold = (max(array)-min(array))/10
-   indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
-   peaks = np.delete(peaks,indices2remove)
-   troughs = np.delete(troughs,indices2remove)
+   # nPeaks = len(peaks)
+   # nTroughs = len(troughs)
+   # minNum = min(nPeaks,nTroughs)
+   # ptPairs = [rawData[peaks[x]]-rawData[troughs[x]] for x in range(0,minNum)]
+   # threshold = (max(rawData)-min(rawData))/10
+   # indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
+   # peaks = np.delete(peaks,indices2remove)
+   # troughs = np.delete(troughs,indices2remove)
                
    # Graph respiratory peaks and troughs against respiratory time series
    peakVals = []
-   for i in peaks: peakVals.append(array[i])
-   troughVals = []
-   for i in troughs: troughVals.append(array[i])
+   for i in peaks: peakVals.append(rawData[i])
+   # troughVals = []
+   # for i in troughs: troughVals.append(rawData[i])
    figure(1)
    subplot(211)
-   plot(array, "g") #Lines connecting peaks and troughs
+   plot(rawData, "g") #Lines connecting peaks and troughs
    plot(peaks, peakVals, "ro") # Peaks
-   plot(troughs, troughVals, "bo") # Peaks
+   # plot(troughs, troughVals, "bo") # Peaks
    plt.xlabel("Input data index")
    plt.ylabel("Input data input value")
    plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
@@ -277,7 +327,7 @@ def getRespiratoryPeaks(parameters, rawData):
    plt.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
    plt.show()  # If this is left out, output file is blank
     
-   return peaks, troughs, len(array)
+   return peaks, troughs, len(rawData)
 
 def getTroughs(parameters, key):
    """
@@ -979,7 +1029,7 @@ def getPhysiologicalNoiseComponents(parameters):
     """
 
     # rawData = readArray(parameters, '-cardFile')
-    rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_resp_dat"])
+    rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_cardiac_dat"])
     
     cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
     

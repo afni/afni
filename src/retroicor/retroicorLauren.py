@@ -443,6 +443,7 @@ def retro_ts(
     parameters['-aby'] = aby
     parameters['-niml'] = niml
     parameters['phys_resp_dat'] = phys_resp_dat
+    parameters['phys_cardiac_dat'] = phys_cardiac_dat
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if parameters['-niml']:
         return 0
