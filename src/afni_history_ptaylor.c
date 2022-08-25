@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Make a tweak so that certain pathological cases don't scupper all others.",
+   "Thanks, D. Schwartz for pointing out this behavior.\n"
+},
+
 { 23, Aug , 2022 , PT , "p2dsetstat" , MICRO , TYPE_GENERAL,
    "Expand stataux code range to 6.",
    "Includes chi-square now.\n"

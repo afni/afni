@@ -1278,7 +1278,14 @@ static int hilbertdelay_V2 (float *x,
       a=0.0,var_y=0.0,varu_y=0.0,stdv_y=0.0,
       stdvu_y=0.0,var_x=0.0,varu_x=0.0,stdv_x=0.0,stdvu_x=0.0;
       
-      return (0);                  
+      /* [PT: Aug 25, 2022] *don't* return here, but keep going to try
+         the calc; 0 should still be returned in other bad cases if a
+         solution can't be found.  If this *does* return here, then
+         it starts a stream of all-zeros being returned in some cases of 
+         hitting one 'problem' voxel.
+         -> goes along with setting 'opt=0' in main 3ddelay.c file.
+      */
+      //return (0);
    }
 
    

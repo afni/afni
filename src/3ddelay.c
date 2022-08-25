@@ -6,6 +6,15 @@
   uses Doug Ward's 3dfim+'s skeleton to read and write the bricks.
 */
 
+/* [PT: Aug 25, 2022] Tweak the program so that some marginal/problem
+   cases don't lead to a failure to output anything. This happened for
+   a user when -nodtrnd was being used, specifically, which might not
+   generally be recommended, but still I think the two changes here
+   (to the value of 'opt' in this file and within an opt-testing IF
+   condition in plug_dleay_V2.h stabilize things more generally.
+   
+*/
+
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3ddelay"                        /* name of this program */
@@ -1645,9 +1654,14 @@ void calculate_results
 #endif
 
 
+      /* [PT: Aug 25, 2022] Set this 'opt' param to 0, so zeros can be
+         output in places of poor fitting by hilbertdelay_V2, rather
+         than scuttling all calcs
+      */
    
-      opt = 1; /* set to 0 for cleanup */
-   
+      //opt = 1; /* set to 0 for cleanup */
+      opt = 0; 
+
       /*** scale? ***/
 
 #ifdef ZDBG
