@@ -949,10 +949,10 @@ head <- inData
 inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    errex.AFNI(c("Dimension mismatch!\n",
-   "Check each file in the InputFile column exists and has\n",
-   " (1) A single timepoint/value per voxel\n",
+   "Check files in the InputFile column all have\n",
+   " (1) a single timepoint/value per voxel\n",
    "     Use sub-brick selectors if \"3dinfo -nt\" is >1 volume",
-   " (2) All input files the same dimensions.\n",
+   " (2) the same number of voxels along X, Y, and Z axes\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
