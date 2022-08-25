@@ -948,9 +948,11 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions:\n",
-   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
-   "or     (2) some input files have more than one value per voxel.\n",
+   errex.AFNI(c("Dimension mismatch!\n",
+   "Check each file in the InputFile column exists and has\n",
+   " (1) A single timepoint/value per voxel\n",
+   "     Use sub-brick selectors if \"3dinfo -nt\" is >1 volume",
+   " (2) All input files the same dimensions.\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
@@ -1018,6 +1020,13 @@ cat('is likely inappropriate.\n\n')
 # pick up a test voxel
 if(!is.na(lop$maskFN)) {
   idx <- which(lop$maskData == 1, arr.ind = T)
+
+  # make sure there was something in the mask
+  if(length(idx)==0L) errex.AFNI(
+   c("Input mask has no voxels == 1!\n",
+     "If your mask has many non-zero values (e.g an atlas),\n",
+     "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
+
   idx <- idx[floor(dim(idx)[1]/2),1:3]
   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
   ii <- xinit; jj <- yinit; kk <- zinit
