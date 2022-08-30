@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
+   "Add -literal_keys flag, to turn off auto-replacement of spaces and [()].",
+   "Also try to keep ints looking like ints.\n"
+},
+
 { 25, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
    "Make a tweak so that certain pathological cases don't scupper all others.",
    "Thanks, D. Schwartz for pointing out this behavior.\n"

@@ -158,6 +158,9 @@ parser.add_argument('-delimiter_minor',type=str,metavar='DELIM_MIN',
                            'NB: pairs of quotes take priority to define '+
                            'a single item. The default delimiter '+
                            '(outside of quotes) is whitespace.'))
+parser.add_argument('-literal_keys',action="store_true",default=False,
+                    help=('Do not replace spaces with \'_\', nor '+
+                          'parentheses and brackets with \'\'.'))
 
 ## if nothing, show help
 if len(sys.argv) == 1:
@@ -175,6 +178,7 @@ del_entry = args.del_json
 prefix = args.prefix
 overwrite = args.overwrite
 force = args.force_add
+literal_keys = args.literal_keys  # [PT: Aug 30, 2022]
 # [PT: Nov. 21, 2018] For '-txt2json': options on what separates what
 # keys and values (DELIM_MAJ) and different values (DELIM_MIN).
 DELIM_MAJ = args.delimiter_major
@@ -215,8 +219,11 @@ if txt2json:
             if len(field) == 1: continue
 
             ## make dictionary key and clean up
-            key = field[0].rstrip().replace(" ","_")    ## get rid of spaces
-            key = re.sub("[()]","",key)                 ## get rid of ()
+            if literal_keys :
+                key = field[0].rstrip()
+            else:
+                key = field[0].rstrip().replace(" ","_")    ## get rid of spaces
+                key = re.sub("[()]","",key)                 ## get rid of ()
 
             ## make value list or entry and convert to float if number
             # [PT: Nov 21, 2018] allow strings to be a single value
@@ -226,10 +233,15 @@ if txt2json:
 
             value = []
             for v in value_list:
+                # [PT: Aug 30, 2022] try to keep types as close as
+                # possible to the original
                 try:
-                    value.append(float(v))
+                    value.append(int(v))
                 except ValueError:
-                    value.append(str(v))
+                    try:
+                        value.append(float(v))
+                    except ValueError:
+                        value.append(str(v))
 
             ## if only one, make not a list and add to dictionary
             if len(value) == 1: value = value[0]
