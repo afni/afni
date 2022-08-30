@@ -38,6 +38,9 @@ from scipy.interpolate import interp1d
 import gzip
 import json
 
+# Local libraries
+import libPeakFilters as lpf
+
 
 # Global constants
 GLOBAL_M = 3
@@ -101,7 +104,7 @@ def readArray(parameters, key):
     array = [n for one_dim in array for n in one_dim]
     return array
 
-def getCardiacPeaks(parameters, rawData):
+def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    """
    NAME
        getCardiacPeaks
@@ -115,7 +118,9 @@ def getCardiacPeaks(parameters, rawData):
    ARGUMENTS
        parameters:   dictionary of input parameters which includes the following fields.
        
-           -cardFile: Cardiac input file
+       rawData: Raw cardiac data
+       
+       filterPercentile: Minimum percentile of raw data for a peak value to imply a valid peak
    AUTHOR
        Peter Lauren
    """
@@ -125,57 +130,52 @@ def getCardiacPeaks(parameters, rawData):
    # array = oldArray[0:200000]
    
    # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
-   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["-phys_fs"]/8))
+   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
     
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
-   
-   # Remove peaks that are less than the 20th percentile of the input signal
-   threshold = np.percentile(rawData, 20)
-   peaks = peaks[peakVals >= threshold]
+   # Remove peaks that are less than the required percentile of the input signal
+   peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
 
    # Estimate the overall typical period       
-   limit = round(len(rawData)/2)
-   period = len(rawData)/(1+np.argmax((abs(fft(rawData))[1:limit])))
+   # limit = round(len(rawData)/2)
+   # period = len(rawData)/(1+np.argmax((abs(fft(rawData))[1:limit])))
 
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
+   # # Get peak values
+   # peakVals = []
+   # for i in peaks: peakVals.append(rawData[i])
    
-   # Remove "peaks" that are less than the raw input a quarter of a period on right side
-   # This is tomove false peaks on the upstroke
-   # searchLength = round(parameters["-phys_fs"]/16)
-   searchLength = round(period/4)
-   searchLength = min(searchLength, peaks[0] - 1)
-   searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
-   diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
-   if len(diff) > 0: peaks = peaks[diff >= np.float64(0)]
+   # # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # # This is tomove false peaks on the upstroke
+   # # searchLength = round(parameters["-phys_fs"]/16)
+   # searchLength = round(period/4)
+   # searchLength = min(searchLength, peaks[0] - 1)
+   # searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
+   # diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
+   # if len(diff) > 0: peaks = peaks[diff >= np.float64(0)]
    
-   # Remove false peaks on the downstroke
-   shiftArray = rawData[searchLength:]
-   shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
-   diff = [rawData[x] - shiftArray[x] for x in peaks]
-   peaks = peaks[diff >= np.float64(0)]
+   # # Remove false peaks on the downstroke
+   # shiftArray = rawData[searchLength:]
+   # shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
+   # diff = [rawData[x] - shiftArray[x] for x in peaks]
+   # peaks = peaks[diff >= np.float64(0)]
    
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
+   # # Get peak values
+   # peakVals = []
+   # for i in peaks: peakVals.append(rawData[i])
            
-   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
-   fromLocalMin = [j-min(rawData[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
-   ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
-   ratios.insert(0,0)
-   ratios.append(0)
-   threshold = np.float64(-4.0)
-   peaks = peaks[ratios>threshold]
+   # # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+   # valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
+   # fromLocalMin = [j-min(rawData[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
+   # ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
+   # ratios.insert(0,0)
+   # ratios.append(0)
+   # threshold = np.float64(-4.0)
+   # peaks = peaks[ratios>threshold]
 
-   # Merge peaks that are closer than one quarter of the overall typical period
-   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-   intervals.insert(0,round(period))
-   threshold = period/4
-   peaks = peaks[intervals>=threshold]
+   # # Merge peaks that are closer than one quarter of the overall typical period
+   # intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+   # intervals.insert(0,round(period))
+   # threshold = period/4
+   # peaks = peaks[intervals>=threshold]
    
    
            
@@ -1077,7 +1077,7 @@ def getPhysiologicalNoiseComponents(parameters):
     cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
     
     cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
-                                            parameters['-phys_fs'], rawData)
+                                            parameters['phys_fs'], rawData)
 
     # rawData = readArray(parameters, '-respFile')
     rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
@@ -1086,7 +1086,7 @@ def getPhysiologicalNoiseComponents(parameters):
         getRespiratoryPeaks(parameters, rawData) 
     
     respiratory_phases = determineRespiratoryPhases(parameters, \
-            respiratory_peaks, respiratory_troughs, parameters['-phys_fs'], rawData)
+            respiratory_peaks, respiratory_troughs, parameters['phys_fs'], rawData)
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -2923,6 +2923,12 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     AUTHOR
        JPeter Lauren
     """
+    
+    # Initialize outputs
+    respiration_file = None
+    phys_resp_dat = None
+    cardiac_file = None
+    phys_cardiac_dat = None
             
     # Handle file inputs
     # BIDS = Brain Imaging Data Structure
@@ -2985,7 +2991,7 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
             elif k.lower() == 'cardiac':
                 # create peaks only if asked for    25 May 2021 [rickr]
                 if cardiac_out != 0:
-                   if not respiration_info["phys_fs"]:
+                   if not cardiac_info["phys_fs"]:
                        cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
                    cardiac_file = None
                    phys_cardiac_dat = phys_dat[k]
