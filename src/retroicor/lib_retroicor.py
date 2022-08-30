@@ -1070,23 +1070,32 @@ def getPhysiologicalNoiseComponents(parameters):
     AUTHOR
        Peter Lauren
     """
+    
+    # Initializations
+    respiratory_phases = None
+    cardiac_phases = None
 
-    # rawData = readArray(parameters, '-cardFile')
-    rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_cardiac_dat"])
-    
-    cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
-    
-    cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
-                                            parameters['phys_fs'], rawData)
+    # Process cardiac data if any
+    if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:
+        # rawData = readArray(parameters, '-cardFile')
+        rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_cardiac_dat"])
+        
+        cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
+        
+        cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
+                                                parameters['phys_fs'], rawData)
+        
+    # Process respiratory data if any
+    if parameters["-respFile"] or len(parameters["phys_resp_dat"]) > 0:
 
-    # rawData = readArray(parameters, '-respFile')
-    rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
-    
-    respiratory_peaks, respiratory_troughs, fullLength = \
-        getRespiratoryPeaks(parameters, rawData) 
-    
-    respiratory_phases = determineRespiratoryPhases(parameters, \
-            respiratory_peaks, respiratory_troughs, parameters['phys_fs'], rawData)
+        # rawData = readArray(parameters, '-respFile')
+        rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
+        
+        respiratory_peaks, respiratory_troughs, fullLength = \
+            getRespiratoryPeaks(parameters, rawData) 
+        
+        respiratory_phases = determineRespiratoryPhases(parameters, \
+                respiratory_peaks, respiratory_troughs, parameters['phys_fs'], rawData)
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -1126,19 +1135,24 @@ def getPhysiologicalNoiseComponents(parameters):
         
     # Make output table data matrix
     data = []
-    T = len(respiratory_phases)
+    if respiratory_phases:
+        T = len(respiratory_phases)
+    elif cardiac_phases:
+        T = len(cardiac_phases)
     print('T = ', T)
     for t in range(0,T):
-        sum = 0
+        # sum = 0
         addend = []
-        for m in range(1,GLOBAL_M):
-            m0 = m - 1
-            addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
-            addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        for m in range(1,GLOBAL_M):
-            m0 = m - 1
-            addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
-            addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+        if respiratory_phases:
+            for m in range(1,GLOBAL_M):
+                m0 = m - 1
+                addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
+                addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+        if cardiac_phases:
+            for m in range(1,GLOBAL_M):
+                m0 = m - 1
+                addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
+                addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
         data.append(addend)
         
     # Reshape matrix according to number of slices
@@ -2926,9 +2940,9 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     
     # Initialize outputs
     respiration_file = None
-    phys_resp_dat = None
+    phys_resp_dat = []
     cardiac_file = None
-    phys_cardiac_dat = None
+    phys_cardiac_dat = []
             
     # Handle file inputs
     # BIDS = Brain Imaging Data Structure
@@ -3001,10 +3015,10 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     else:   # Not a JSON file
         if respiration_info["respiration_file"]:
             respiration_file = respiration_info["respiration_file"]
-            phys_resp_dat = None
+            phys_resp_dat = []
         if cardiac_info["cardiac_file"]:
             cardiac_file = cardiac_info["cardiac_file"]
-            phys_cardiac_dat = None
+            phys_cardiac_dat = []
             
     return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
 
