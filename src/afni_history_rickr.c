@@ -55,7 +55,8 @@ afni_history_struct rickr_history[] = {
 
  { 30, Aug, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "make -show_example allow unique substring matching",
-   "This allows one to run simply 'afni_proc.py -show_example 6b', say."
+   "This allows one to run simply 'afni_proc.py -show_example 6b', say.\n"
+   "Also, pass final_epi_dset as a uvar when there is no warped version."
  } ,
 
  { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,

@@ -738,7 +738,9 @@ g_history = """
        - copy tlrc_base/template to results directory
        - add opt -tlrc_copy_base
     7.45 Aug 17, 2022: if 'tlrc' block and -regress_ROI*, req -volreg_tlrc_warp
-    7.46 Aug 30, 2022: make -show_example allow unique substring matching
+    7.46 Aug 30, 2022:
+       - make -show_example allow unique substring matching
+       - pass final_epi_dset as a uvar if there is no warped version
 """
 
 g_version = "version 7.46, August 30, 2022"

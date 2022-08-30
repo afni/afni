@@ -2172,9 +2172,13 @@ def db_cmd_volreg(proc, block):
               '   aligning EPI to end the runs, this looks fishy...')
 
     # volreg base should now either be external or locally created
+    basevol = None
+    basehead = None
     if proc.vr_ext_base != None or proc.vr_int_name != '':
        proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
        basevol = proc.vr_base_dset.nice_input()
+       # save this in case we add a uvar
+       basehead = proc.vr_base_dset.nice_input(head=1)
     else:
        print("** warning: basevol should always be set now")
        return
@@ -2757,6 +2761,9 @@ def db_cmd_volreg(proc, block):
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
+    elif basehead:
+        # we are not creating a final_epi, so pass use the base for a uvar
+        proc.uvars.set_var('final_epi_dset', [basehead])
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
