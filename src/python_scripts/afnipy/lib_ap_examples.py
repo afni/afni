@@ -1728,11 +1728,64 @@ def find_eg(name):
    global ap_examples
    populate_examples()
 
-   for eg in ap_examples:
-      if eg.name.lower() == name.lower():
-         return eg
+   if len(name) < 1: return None
 
+   # use lower case for searching names
+   nlist = [eg.name.lower() for eg in ap_examples]
+   lname = name.lower()
+
+   # if lanme is in nlist, return the respective example
+   if lname in nlist:
+      return ap_examples[nlist.index(lname)]
+
+   # otherwise, try harder
+
+   # If number (possibly with trailing a,b,c,...) search for it as a trailer.
+   # Prepend ' ' to not confuse 1a with 11a, for example.
+   if lname[0].isdigit():
+      ind = unique_substr_name_index(' '+lname, nlist, endswith=1)
+      if ind >= 0:
+         return ap_examples[ind]
+
+   # otherwise, just see if there is a unique substring match
+   ind = unique_substr_name_index(lname, nlist)
+   if ind >= 0:
+      return ap_examples[ind]
+  
    return None
+
+def unique_substr_name_index(nsub, nlist, endswith=0):
+   """search for nsub in nlist, where nsub can be a substring
+      if endswith, use name.endswith(), rather than name.find()
+      return : index >= 0 on success
+             : -1, if no match is found
+             : -2, if the match is not uniq
+   """
+   findex = -1
+   for ind, name in enumerate(nlist):
+      # first, check to see if nsub matches name
+      found = 0
+      if endswith:
+         if name.endswith(nsub):
+            found = 1
+      elif name.find(nsub) >= 0:
+         found = 1
+
+      # if not, just move along
+      if not found:
+         continue
+
+      # if so, fail on non-unique
+      if findex >= 0:
+         # not unique
+         return -2
+
+      # we have a match, keep looking for non-uniqueness
+      findex = ind
+
+   # we have either failed to find a match, or have a unique one
+   # - either way, return findex
+   return findex
 
 def show_enames(verb=1):
    """list all ap_example names

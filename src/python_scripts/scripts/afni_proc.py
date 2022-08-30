@@ -738,9 +738,10 @@ g_history = """
        - copy tlrc_base/template to results directory
        - add opt -tlrc_copy_base
     7.45 Aug 17, 2022: if 'tlrc' block and -regress_ROI*, req -volreg_tlrc_warp
+    7.46 Aug 30, 2022: make -show_example allow unique substring matching
 """
 
-g_version = "version 7.45, August 17, 2022"
+g_version = "version 7.46, August 30, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -3963,6 +3964,10 @@ class SubjProcSream:
     def show_example(self, ename, verb=1):
         EGS = self.egs()
         eg = EGS.find_eg(ename)
+        if not eg:
+           print("** no (unique?) example found for name '%s'" % ename)
+           print("   consider: afni_proc.py -show_example_names")
+           return
         eg.display(verb=verb, sphinx=0)
         
     def show_example_names(self, verb=2):
