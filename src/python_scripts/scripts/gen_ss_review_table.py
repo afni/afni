@@ -352,7 +352,6 @@ class MyInterface:
 
       # misc
       self.found_empty_tval= 0  # did we find an empty test val (see ev_outlier)
-      ###self.subjcounts      = {} # number of infiles having each label
 
       # initialize valid_opts
       self.valid_opts = self.get_valid_opts()
@@ -598,9 +597,7 @@ class MyInterface:
       for ifile in self.infiles:
          if self.verb > 2: print('++ processing %s ...' % ifile)
 
-         # proc JSON input based on that of existing TXT input (see
-         # the 'else' branch to this if); all the same 'result variables'
-         # attributes should be populated now
+         # read JSON input
          if ifile.endswith('.json') :
             try: 
                with open(ifile, 'r') as fff:
@@ -609,48 +606,15 @@ class MyInterface:
                print("** failed to open input file %s" % ifile)
                return 1
 
-            if not(len(ldict)) :
-               print('** empty dictionary from file %s' % ifile)
-               return 1
-
             # to match text input, every value should be a list of str
-            # also initialize max_counts and subjcounts
             for lkey in ldict.keys() :
                lvalue = ldict[lkey]
                if type(lvalue) == list :
                   ldict[lkey] = [str(x) for x in lvalue]
                else:
                   ldict[lkey] = [str(lvalue)]
-               # ... and if key/label has not been read in previously,
-               # initialize/update these attributes
-               if not(lkey in self.labels) :
-                  self.subjcounts[lkey] = 0
-                  nvals = len(ldict[lkey])
-                  self.update_max_counts(lkey, nvals)
 
-            # to match text input, make labels and parents
-            # -> copied from 'else' branch
-            if len(self.labels) == 0:
-               self.labels  = list(ldict.keys())
-               self.parents = [self.find_parent_label(lab) \
-                               for lab in self.labels]
-               if not(len(self.labels)) or not(len(self.parents)) :
-                  print('** empty labels from file %s' % ifile)
-                  return 1
-
-            # ... and check back about new/individual labels
-            # -> copied from make_dict() method
-            for lind, label in enumerate(ldict.keys()):
-               # if new label, try parent, else add
-               if label not in self.labels:
-                  parent = self.find_parent_label(label)
-                  if parent in self.parents:
-                     ll = self.labels[self.parents.index(parent)]
-                     if self.verb > 3:
-                        print('-- converting label %s to %s' % (label, ll))
-                     label = ll
-                  else: self.insert_new_label(label, lind, nvals)
-
+         # else text format
          else:
             # open, read, close
             if ifile in ['-', 'stdin']: fp = sys.stdin
@@ -662,52 +626,20 @@ class MyInterface:
             ilines = fp.readlines()
             if ifile != sys.stdin: fp.close()
 
-            # empty should be a terminal failure
-            if len(ilines) < 1:
-               print('** empty input for file %s' % ifile)
-               return 1
+            # convert to dict format
+            rv, ldict = self.lines2dict(ilines)
 
-            if len(self.labels) == 0:
-               rv, self.labels = self.make_labels(ilines)
-               self.parents = [self.find_parent_label(lab) \
-                               for lab in self.labels]
-               if rv: return 1
+         # we have an input dict, now apply it
+         if not(len(ldict)) :
+            print('** empty dictionary from file %s' % ifile)
+            return 1
 
-            rv, ldict = self.make_dict(ilines)
-            if rv: return 1
+         rv, ldict = self.apply_dict_entry(ldict)
+         if rv: return 1
 
          self.ldict.append(ldict)
 
       return 0
-
-   def make_labels(self, ilines):
-      """parse a list of the form
-                LABEL   : VALUES ...
-         and return a LABEL list (with no trailing separator (':'))
-         initialize maxcounts, subjcounts here
-      """
-
-      llist = []
-      for lind, lstr in enumerate(ilines):
-         # get label and value list
-         rv, label, vals = self.get_label_vals(lstr)
-         if rv < 1: continue
-
-         nvals = len(vals)
-
-         # label = self.find_parent_label(label)
-
-         if self.verb > 2: print('++ label: %s, %d val(s)' % (label, nvals))
-
-         llist.append(label)
-         self.maxcounts[label] = nvals
-         self.subjcounts[label] = 0
-
-      if not UTIL.vals_are_unique(llist):
-         print('** warning: labels are not unique, will use only last values')
-         llist = UTIL.get_unique_sublist(llist)
-
-      return 0, llist
 
    def find_parent_label(self, label):
       # try to replace any old fields with new ones
@@ -728,13 +660,10 @@ class MyInterface:
 
       return label
 
-   def make_dict(self, ilines):
+   def lines2dict(self, ilines):
       """parse a list of the form
                 LABEL   : VALUES ...
          and return a dictionary of dd[LABEL] = [values]
-
-         monitor maxcounts
-         accumulate subjcounts
       """
 
       ldict = {}
@@ -743,9 +672,29 @@ class MyInterface:
          rv, label, vals = self.get_label_vals(lstr)
          if rv < 1: continue
 
-         nvals = len(vals)
+         if self.verb > 2: print('++ label: %s, %d val(s)' % (label, len(vals)))
 
-         # label = self.find_parent_label(label)
+         if label in ldict.keys():
+            print('** warning: duplicate label %s, ignoring previous entry' \
+                  % label)
+
+         ldict[label] = vals
+
+      return 0, ldict
+
+   def apply_dict_entry(self, indict):
+      """return a dictionary of dd[LABEL] = [values]
+
+         apply any parent labels
+         monitor maxcounts
+         accumulate subjcounts
+      """
+
+      ldict = {}
+      for label in indict.keys():
+         # get label and value list
+         vals = indict[label]
+         nvals = len(vals)
 
          if self.verb > 3: print('++ dict[%s] = %s' % (label, vals))
 
@@ -757,7 +706,12 @@ class MyInterface:
                if self.verb > 3:
                   print('-- converting label %s to %s' % (label, ll))
                label = ll
-            else: self.insert_new_label(label, lind, nvals)
+
+            if label not in self.labels:
+               self.labels.append(label)
+               self.parents.append(self.find_parent_label(label))
+               self.maxcounts[label] = nvals
+               self.subjcounts[label] = 0
 
          ldict[label] = vals
          self.update_max_counts(label, nvals)
@@ -803,18 +757,10 @@ class MyInterface:
             print('** found new label key: %s' % label)
          self.maxcounts[label] = nvals
 
-      else: # rcr - safe as one line?  will it be parsed?
+      else:
          if nvals > self.maxcounts[label]: self.maxcounts[label] = nvals
 
       self.subjcounts[label] += 1
-
-   def insert_new_label(self, label, index, nvals):
-      """insert the new label into the labels list and init maxcounts"""
-      if label in self.labels: return
-      self.labels.append(label)
-      self.parents.append(self.find_parent_label(label))
-      self.maxcounts[label] = nvals
-      self.subjcounts[label] = 0
 
    def parse_infile_names(self, suf='.txt'):
       """try to get subject and possibly group names from infiles
