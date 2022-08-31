@@ -4,6 +4,7 @@
 
 # system libraries
 import sys, os, glob
+import json
 
 if 1 :  # for testing, might add the current dir and ~/abin to the PATH
    try:    sys.path.extend(['.', '%s/abin' % os.getenv('HOME')])
@@ -295,6 +296,7 @@ g_history = """
           with opt: eval blank test vals as outliers
           (previously, any non-float was viewed as an outlier)
    1.5  Feb 15, 2022    - added -show_keepers and display SHOW_KEEP
+   1.6  Aug 31, 2022    - [pt] added -infiles_json and JSON-reading support
 """
 
 g_version = "gen_ss_review_table.py version 1.5, February 15, 2022"
@@ -350,7 +352,7 @@ class MyInterface:
 
       # misc
       self.found_empty_tval= 0  # did we find an empty test val (see ev_outlier)
-      self.subjcounts      = {} # number of infiles having each label
+      ###self.subjcounts      = {} # number of infiles having each label
 
       # initialize valid_opts
       self.valid_opts = self.get_valid_opts()
@@ -366,6 +368,8 @@ class MyInterface:
       # general options
       vopts.add_opt('-infiles', -1, [],
                     helpstr='input text files (from @ss_review_basic)')
+      vopts.add_opt('-infiles_json', -1, [],
+                    helpstr='input JSON files (likely in APQC directory)')
       vopts.add_opt('-overwrite', 0, [],
                     helpstr='allow overwrite for output table file')
       vopts.add_opt('-empty_is_outlier', 0, [],
@@ -459,6 +463,14 @@ class MyInterface:
                errs +=1
 
             self.parse_infile_names()
+
+         elif opt.name == '-infiles_json':
+            self.infiles, err = uopts.get_string_list('', opt=opt)
+            if self.infiles == None or err:
+               print('** failed to read -infiles_json list')
+               errs +=1
+
+            self.parse_infile_names(suf='.json')
 
          elif opt.name == '-overwrite':
             self.overwrite = 1
@@ -563,7 +575,7 @@ class MyInterface:
 
    def parse_infiles(self):
       """make a list of field names and dictionaries
-         (fill self.labels, self.ldict)
+         (fill self.labels, self.parents, self.ldict)
 
          for field name list, sorting is hard if fields are not consistent
             - for a new field (after file 0), try inserting after or before
@@ -586,28 +598,83 @@ class MyInterface:
       for ifile in self.infiles:
          if self.verb > 2: print('++ processing %s ...' % ifile)
 
-         # open, read, close
-         if ifile in ['-', 'stdin']: fp = sys.stdin
-         else:
-            try: fp = open(ifile)
+         # proc JSON input based on that of existing TXT input (see
+         # the 'else' branch to this if); all the same 'result variables'
+         # attributes should be populated now
+         if ifile.endswith('.json') :
+            try: 
+               with open(ifile, 'r') as fff:
+                  ldict = json.load(fff)    
             except:
                print("** failed to open input file %s" % ifile)
                return 1
-         ilines = fp.readlines()
-         if ifile != sys.stdin: fp.close()
 
-         # empty should be a terminal failure
-         if len(ilines) < 1:
-            print('** empty input for file %s' % ifile)
-            return 1
+            if not(len(ldict)) :
+               print('** empty dictionary from file %s' % ifile)
+               return 1
 
-         if len(self.labels) == 0:
-            rv, self.labels = self.make_labels(ilines)
-            self.parents = [self.find_parent_label(lab) for lab in self.labels]
+            # to match text input, every value should be a list of str
+            # also initialize max_counts and subjcounts
+            for lkey in ldict.keys() :
+               lvalue = ldict[lkey]
+               if type(lvalue) == list :
+                  ldict[lkey] = [str(x) for x in lvalue]
+               else:
+                  ldict[lkey] = [str(lvalue)]
+               # ... and if key/label has not been read in previously,
+               # initialize/update these attributes
+               if not(lkey in self.labels) :
+                  self.subjcounts[lkey] = 0
+                  nvals = len(ldict[lkey])
+                  self.update_max_counts(lkey, nvals)
+
+            # to match text input, make labels and parents
+            # -> copied from 'else' branch
+            if len(self.labels) == 0:
+               self.labels  = list(ldict.keys())
+               self.parents = [self.find_parent_label(lab) \
+                               for lab in self.labels]
+               if not(len(self.labels)) or not(len(self.parents)) :
+                  print('** empty labels from file %s' % ifile)
+                  return 1
+
+            # ... and check back about new/individual labels
+            # -> copied from make_dict() method
+            for lind, label in enumerate(ldict.keys()):
+               # if new label, try parent, else add
+               if label not in self.labels:
+                  parent = self.find_parent_label(label)
+                  if parent in self.parents:
+                     ll = self.labels[self.parents.index(parent)]
+                     if self.verb > 3:
+                        print('-- converting label %s to %s' % (label, ll))
+                     label = ll
+                  else: self.insert_new_label(label, lind, nvals)
+
+         else:
+            # open, read, close
+            if ifile in ['-', 'stdin']: fp = sys.stdin
+            else:
+               try: fp = open(ifile)
+               except:
+                  print("** failed to open input file %s" % ifile)
+                  return 1
+            ilines = fp.readlines()
+            if ifile != sys.stdin: fp.close()
+
+            # empty should be a terminal failure
+            if len(ilines) < 1:
+               print('** empty input for file %s' % ifile)
+               return 1
+
+            if len(self.labels) == 0:
+               rv, self.labels = self.make_labels(ilines)
+               self.parents = [self.find_parent_label(lab) \
+                               for lab in self.labels]
+               if rv: return 1
+
+            rv, ldict = self.make_dict(ilines)
             if rv: return 1
-
-         rv, ldict = self.make_dict(ilines)
-         if rv: return 1
 
          self.ldict.append(ldict)
 
@@ -749,7 +816,7 @@ class MyInterface:
       self.maxcounts[label] = nvals
       self.subjcounts[label] = 0
 
-   def parse_infile_names(self):
+   def parse_infile_names(self, suf='.txt'):
       """try to get subject and possibly group names from infiles
 
          fill self.snames and self.gnames, if possible
@@ -761,7 +828,7 @@ class MyInterface:
             - replace SID in infile names and for varying group name
       """
 
-      rv, slist = UTIL.list_minus_pref_suf(self.infiles,'out.ss_review.','.txt')
+      rv, slist = UTIL.list_minus_pref_suf(self.infiles,'out.ss_review.',suf)
       if rv < 0: return
       if rv > 0:
          if self.verb > 1: print('++ trying to get SID from glob form')
