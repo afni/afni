@@ -224,10 +224,14 @@ auth = 'PA Taylor'
 # [PT] add mask_dset images: overlays final dset, whether in 
 #      va2t, ve2a or vorig QC block
 #
-ver = '4.05' ; date = 'Aug 18, 2022'
+#ver = '4.05' ; date = 'Aug 18, 2022'
 # [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
 #      ---> but just as quickly have removed it; might distract from the
 #           important sulcal/gyral overlap
+#
+ver = '4.06' ; date = 'Aug 31, 2022'
+# [PT] make a JSON version of ss_rev_basic TXT file in QC*/extra_info
+#      -> will use this for 'saving' mode of APQC HTML interaction
 #
 #########################################################################
 
@@ -4429,17 +4433,39 @@ def apqc_DO_cp_subj_jsons( all_json ):
 # ['ss_review_dset']
 def apqc_DO_cp_subj_rev_basic( ):
 
-    comm  = '''preserve subj review_basic text file'''
+    comm  = '''preserve subj review_basic text file info, and have an editable
+    JSON version'''
 
-    cmd = '''
+
+    pre = '''
+    set obase = ${ss_review_dset:r}
+    set ojson = ${odir_info}/${obase}.json
+    '''
+
+    # the TXT copy
+    cmd0 = '''
     \cp ${ss_review_dset} ${odir_info}/.
     '''
 
-    comm = commentize( comm )
-    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
-                       padpost=2 )
+    # the JSON version
+    cmd1 = '''
+    abids_json_tool.py 
+    -overwrite 
+    -txt2json 
+    -literal_keys 
+    -values_stay_str
+    -input  ${ss_review_dset}
+    -prefix ${ojson}
+    '''
 
-    lout = [comm, cmd]
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0 = commandize( cmd0, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
+    cmd1 = commandize( cmd1 )
+
+    lout = [comm, pre, cmd0, cmd1]
     return '\n\n'.join(lout)
 
 # ========================== term echo ==============================
