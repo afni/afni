@@ -1,0 +1,149 @@
+# modern linux
+#   - works on Ubuntu 18.04 through 22.04
+#     (might also work under Fedora, needs verification)
+#   - works with either gcc or clang
+#   - works with x86-64 or ARM aarch64
+
+SYSTEM_NAME = linux_universal
+SYSTEM_TYPE = Linux
+
+# CPROF = -pg -g
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat  #/usr/lib64/libexpat.
+
+# -----------------------------------
+#  # use shared libriaries (libmri.so)?
+MRI_SHARED = $(SYSTEM_TYPE)
+
+# use linux-style R_io.so building
+R_IO_MODIFY_LINUX = yes
+
+# -----------------------------------
+# default to having these off
+# D_USE_ACML = -DUSE_ACML
+# I_USE_ACML = -I/opt/acml3.1.0/gnu64/include
+# L_USE_ACML = /opt/acml3.1.0/gnu64/lib/libacml.a
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -D_GNU_SOURCE \
+         -DREPLACE_XT $(CPROF)
+
+#use gcc by default unless user demands clang or gcc not found
+CEXE = /usr/bin/gcc
+CLANGEXE = /usr/bin/clang
+#run "useClang=1 make all" to give clang precedence over gcc
+ifeq "$(useClang)" "1"
+CEXE=$(CLANGEXE)
+endif
+#use clang if gcc does not exist
+ifeq (,$(wildcard $(CEXE)))
+CEXE=$(CLANGEXE)
+endif
+
+CC     = $(CEXE) -O2 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCVOL  = $(CEXE)  -O2 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCFAST = $(CEXE)  -O2 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCOLD  = $(CC)
+
+
+# The following line includes compiling for the SSE operations.
+# However, I found that it actually makes things worse in some test code.
+# Your mileage may vary.
+
+# CCFAST = $(CEXE) -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
+
+OMPFLAG = -fopenmp -DUSE_OMP  # for OpenMP
+CCMIN  = $(CEXE) -fPIC $(CPROF)
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/X11R6/include $(I_USE_ACML)
+#-I/usr/src/linux-headers-3.0.0-17/include/linux -I/usr/src/linux-headers-3.0.0-17/include $(I_USE_ACML)
+LFLAGS = -L. -L/usr/X11R6/lib64 $(L_USE_ACML)
+
+# maybe 
+
+CCSVD  = $(CEXE) -O0 -fPIC
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -fPIC
+PLUGIN_CC     = $(CC)
+# PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
+PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
+
+# possibly modify from above
+ifdef MRI_SHARED
+LFLAGS  = -L. -L/usr/lib64 $(L_USE_ACML) -Wl,-rpath='$$ORIGIN'
+PLFLAGS = -rdynamic $(LFLAGS)
+endif
+
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /bin/gzip
+LD     = $(CEXE) $(CPROF)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./$(SYSTEM_NAME)
+LIBDIR = $(INSTALLDIR)
+
+# INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
+# uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
+ GSLPROGS = balloon
+EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
+
+# for dynamic linking
+
+# LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+# for static linking to Motif, dynamic to all else
+
+# separate X11 libs from non-X11 ones
+LLIBS  = -lmri -lf2c $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS_X11 = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 \
+            $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+#LLIBS  = -lmri -lf2c /usr/X11R6/lib64/libXm.a -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+# for static linking, as far as possible
+
+# LLIBS = -lmri -lf2c -ldl               \
+#         /usr/X11R6/lib/libXm.a   \
+#        /usr/X11R6/lib/libXpm.a  \
+#        /usr/X11R6/lib/libXext.a \
+#        /usr/X11R6/lib/libXmu.a  \
+#        /usr/X11R6/lib/libXt.a   \
+#        /usr/X11R6/lib/libSM.a   \
+#        /usr/X11R6/lib/libICE.a  \
+#        /usr/X11R6/lib/libX11.a  \
+#        /usr/lib/libm.a          \
+#        /usr/lib/libc.a
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib/include -I/usr/lib64/ glib-2.0/include -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
+SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+#
+SUMA_LINK_LIB = -lGLw -lGLU -lGL $(LLIBS_X11)
+#SUMA_LINK_LIB = /usr/X11R6/lib64/libXm.a -lGLw -lGLU -lGL -lXmu -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+SUMA_MDEFS = 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE

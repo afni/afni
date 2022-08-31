@@ -2172,9 +2172,13 @@ def db_cmd_volreg(proc, block):
               '   aligning EPI to end the runs, this looks fishy...')
 
     # volreg base should now either be external or locally created
+    basevol = None
+    basehead = None
     if proc.vr_ext_base != None or proc.vr_int_name != '':
        proc.vr_base_dset = BASE.afni_name("%s%s" % (proc.vr_ext_pre,proc.view))
        basevol = proc.vr_base_dset.nice_input()
+       # save this in case we add a uvar
+       basehead = proc.vr_base_dset.nice_input(head=1)
     else:
        print("** warning: basevol should always be set now")
        return
@@ -2757,6 +2761,9 @@ def db_cmd_volreg(proc, block):
         if st: return
         cmd += wtmp + '\n'
         get_allcostX += 1
+    elif basehead:
+        # we are not creating a final_epi, so pass use the base for a uvar
+        proc.uvars.set_var('final_epi_dset', [basehead])
 
     # ---------------
     # make a copy of the "final" anatomy, called "anat_final.$subj"
@@ -3003,7 +3010,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
                '            -prefix %s\n'                       \
                % (afobj.cname.shortinput(), cname.out_prefix())
        afobj.cname = cname
-   if not efirst: wstr += '\n# and apply any warp operations\n'
+   if not efirst: wstr += '\n# and apply any warp operations\n\n'
 
    # process all followers
    wlist = []
@@ -3033,20 +3040,34 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if xform == identity_warp and afobj.dgrid != 'epi':
          if proc.verb > 1:
             print('-- no need to warp anat follower %s' % afobj.aname.prefix)
-         # rcr - why is this here?
-         # proc.roi_dict[afobj.label] = afobj.cname
+         # even if not warped, make sure dset is in dict_key list
+         #    - see proc.add_roi_dict_key below
+         proc.roi_dict[afobj.label] = afobj.cname
          continue # no warp needed
 
-      wstr += '%s -source %s \\\n'           \
+      # make an updated afni_name for the result (will become afobj.cname)
+      anew = mname.new(new_pref=prefix)
+
+      wstr += '# warp follower dataset %s\n' \
+              '%s -source %s \\\n'           \
               '%s            -master %s\\\n' \
               '%s            %s %s %s\\\n'   \
-              '%s            -prefix %s\n'   \
-              % (prog, afobj.cname.shortinput(), sp, mname.shortinput(),
+              '%s            -prefix %s\n\n' \
+              % (afobj.cname.shortinput(),
+                 prog, afobj.cname.shortinput(), sp, mname.shortinput(),
                  sp, iopt, istr, warpstr,
-                 sp, prefix)
+                 sp, anew.prefix)
+
+      # if NN interp and atlas or labeltable, try to preserve
+      if afobj.is_alt and afobj.NN:
+         wstr += '# and copy its label table to the warped result\n' \
+                 '3drefit -copytables %s %s\n'   \
+                 '3drefit -cmap INT_CMAP %s\n\n' \
+                 % (afobj.cname.shortinput(), anew.shortinput(),
+                    anew.shortinput())
 
       # update current name based on master dataset and new prefix
-      afobj.cname = mname.new(new_pref=prefix)
+      afobj.cname = anew
       afobj.is_warped = 1
       wlist.append(afobj.aname.prefix)
 
@@ -3058,7 +3079,6 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       print('-- applying anat warps to %d dataset(s): %s' \
             % (len(wlist), ', '.join(wlist)))
 
-   wstr += '\n'
    return 0, wstr
 
 def should_warp_anat_followers(proc, block):
@@ -4761,28 +4781,6 @@ def group_mask_command(proc, block):
     #--- first things first, see if we can locate the tlrc base
     #    if the user didn't already tell us where it is
 
-    if '/' not in proc.tlrc_base.initname:
-        cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
-        if proc.verb > 1: estr = 'echo'
-        else            : estr = ''
-        com = BASE.shell_com(cmd, estr, capture=1)
-        com.run()
-
-        if com.status or not com.so or len(com.so[0]) < 2:
-            # call this a non-fatal error for now
-            print("** failed to find tlrc_base '%s' for group mask" \
-                  % proc.tlrc_base.pv())
-            if proc.verb > 2:
-               print('   status = %s' % com.status)
-               print('   stdout = %s' % com.so)
-               print('   stderr = %s' % com.se)
-            return ''
-
-        proc.tlrc_base.path = com.so[0]
-        # nuke any newline character
-        newline = proc.tlrc_base.path.find('\n')
-        if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
-
     print("-- masking: group anat = '%s', exists = %d"   \
           % (proc.tlrc_base.pv(), proc.tlrc_base.exist()))
 
@@ -5798,6 +5796,16 @@ def db_cmd_regress(proc, block):
         if err: return
         if newcmd: cmd = cmd + newcmd
 
+    # if -regress_ROI*, a 'tlrc' block must come with -volreg_tlrc_warp
+    do_roi = block.opts.find_opt('-regress_ROI') \
+             or block.opts.find_opt('-regress_ROI_PC')
+    anat_only_warp = \
+       proc.find_block('tlrc') and not (proc.warp_epi & WARP_EPI_TLRC_WARP)
+    if do_roi and anat_only_warp:
+       print("** have -regress_ROI*, but anat/EPI not in same space")
+       print("   either omit 'tlrc' block, or add -volreg_tlrc_warp")
+       return
+    
     # ----------------------------------------
     # gmean?  change to generic -regress_RONI
     if block.opts.find_opt('-regress_ROI'):
@@ -7871,9 +7879,16 @@ def db_mod_tlrc(block, proc, user_opts):
                   opt_anat.parlist[0])
             return
 
-    # add other options
+    # --------------------------------------------------
+    # handle the template dataset: verify existence, etc
 
     apply_uopt_to_block('-tlrc_base', user_opts, block)
+
+    prepare_tlrc_base(proc, block)
+
+    # --------------------------------------------------
+    # add other options
+
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
@@ -7930,6 +7945,32 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
 
     return 0
 
+def prepare_tlrc_base(proc, block):
+    """if we have a tlrc block:
+           - assign proc.tlrc_base
+           - verify existence
+           - expect it to be copied into results directory (not done here)
+           - prepare to store as uvar
+    """
+    # first assign based on any option
+    
+    opt = block.opts.find_opt('-tlrc_base')
+    if opt: base = opt.parlist[0]
+    else:   base = 'TT_N27+tlrc'
+
+    proc.tlrc_base = BASE.afni_name(base)       # store for later
+
+    #--- first things first, see if we can locate the tlrc base
+    #    if the user didn't already tell us where it is
+
+    # locate() will search using input path, and if not found run
+    #   @FindAfniDsetPath without that original path
+    if not proc.tlrc_base.locate():
+       print("** failed to find tlrc_base '%s'" % proc.tlrc_base.initname)
+
+    print("-- template = '%s', exists = %d"   \
+          % (proc.tlrc_base.pv(), proc.tlrc_base.exist()))
+
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(proc, block):
     """warp proc.anat to standard space"""
@@ -7937,14 +7978,6 @@ def db_cmd_tlrc(proc, block):
     if not proc.anat.pv() :
         print("** missing dataset name for tlrc operation")
         return None
-
-    # no longer look to add +orig
-
-    opt = block.opts.find_opt('-tlrc_base')
-    if opt: base = opt.parlist[0]
-    else:   base = 'TT_N27+tlrc'
-
-    proc.tlrc_base = BASE.afni_name(base)       # store for later
 
     # if we are given NL-warped datasets, just apply them
     if block.opts.find_opt('-tlrc_NL_warped_dsets'):
@@ -7971,6 +8004,8 @@ def db_cmd_tlrc(proc, block):
     if proc.tlrc_nlw and rmode:
        print('** -tlrc_rmode is not valid in case of NL_warp')
        return None
+
+    base = proc.tlrc_base.shortinput()
 
     if proc.tlrc_nlw:
        return tlrc_cmd_nlwarp(proc, block, proc.anat, base, strip=strip,
@@ -8544,6 +8579,8 @@ def ap_uvars_table(proc):
     # (no longer def in TSNR)                                    22 Feb 2021
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
+    if proc.tlrc_base:
+       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
@@ -12501,6 +12538,17 @@ g_help_options = """
 
             Please see '@auto_tlrc -help' for more information.
             See also -tlrc_anat, -tlrc_no_ss.
+
+        -tlrc_copy_base yes/no  : copy base/template to results directory
+
+                e.g. -tlrc_copy_base no
+                default: -tlrc_copy_base yes
+
+            By default, the template dataset (-tlrc_base) will be copied
+            to the local results directory (for QC purposes).
+            Use this option to override the default behavior.
+
+            See also -tlrc_base.
 
         -tlrc_NL_warp           : use non-linear for template alignment
 

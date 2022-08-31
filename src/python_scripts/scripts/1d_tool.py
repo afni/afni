@@ -1304,9 +1304,10 @@ g_history = """
    2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
    2.13 Dec 19, 2021 - added -show_distmat
    2.14 Jan 27, 2022 - added -write_sep, -write_style
+   2.15 Aug  9, 2022 - minor update for get_max_displacement (no effect)
 """
 
-g_version = "1d_tool.py version 2.14, January 27, 2022"
+g_version = "1d_tool.py version 2.15, August 9, 2022"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']

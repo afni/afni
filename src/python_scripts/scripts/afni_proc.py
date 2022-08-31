@@ -733,9 +733,17 @@ g_history = """
        - add -align_unifize_epi local method, -align_opts_eunif
        - create final_epi_unif volume, in case of EPI uniformity correction
     7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
+    7.43 Jul 26, 2022: copy label tabels of anat followers
+    7.44 Jul 30, 2022:
+       - copy tlrc_base/template to results directory
+       - add opt -tlrc_copy_base
+    7.45 Aug 17, 2022: if 'tlrc' block and -regress_ROI*, req -volreg_tlrc_warp
+    7.46 Aug 30, 2022:
+       - make -show_example allow unique substring matching
+       - pass final_epi_dset as a uvar if there is no warped version
 """
 
-g_version = "version 7.42, June 13, 2022"
+g_version = "version 7.46, August 30, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1454,11 +1462,14 @@ class SubjProcSream:
                         helpstr='run @auto_tlrc on anat from -copy_anat')
         self.valid_opts.add_opt('-tlrc_base', 1, [],
                         helpstr='alternate @auto_tlrc base (not TT_N27, say)')
+        self.valid_opts.add_opt('-tlrc_copy_base', 1, [],
+                        acplist=['yes', 'no'],
+                        helpstr='make a local copy of the template')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
                         acplist=['yes','no'],
-                        helpstr='use non-linear warping to template')
+                        helpstr='remove work dir from auto_warp.py')
         self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
                         helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_NL_warped_dsets', 3, [],
@@ -3146,6 +3157,22 @@ class SubjProcSream:
             self.tlrcanat.to_afni()
             self.anat_final = self.anat
 
+        # possibly copy template into results directory
+        # (todo: add option to NOT copy template)
+        docopy, rv = self.user_opts.get_string_opt('-tlrc_copy_base',
+                                                   default='yes')
+        if self.tlrc_base and docopy == 'yes':
+            tmp_orig = self.tlrc_base.nice_input(head=1)
+            tmp_local = self.tlrc_base.shortinput(head=1)
+            tstr = '# copy template to results dir (for QC)\n' \
+                  '3dcopy %s %s/%s\n' % (tmp_orig, self.od_var, tmp_local)
+            self.write_text(add_line_wrappers(tstr))
+            self.write_text("%s\n" % stat_inc)
+
+            # note: making a local copy should not affect other processing
+            #       (e.g. still might count sub-bricks, so must exist now),
+            #       so do not update to self.tlrc_base to a local version
+
         # possibly copy over any volreg base
         if self.vr_ext_base != None:
             tstr = "# copy over the external volreg base\n"  \
@@ -3709,6 +3736,15 @@ class SubjProcSream:
         vo.set_var('final_prefix', '')
         vo.set_var('is_warped', 0)      # has it been warped?
 
+        # anything that needs shell input
+
+        vo.set_var('exists', aname.exist()) # does the dataset exist?
+
+        # is it an atlas or label table?  (3dinfo -is_atlas_or_labeltable)
+        iopt = 'is_atlas_or_labeltable'
+        is_alt = UTIL.get_3dinfo_val(aname.nice_input(), iopt, int, verb=0)
+        vo.set_var('is_alt', is_alt)
+
         return vo
 
     # ======================================================================
@@ -3930,6 +3966,10 @@ class SubjProcSream:
     def show_example(self, ename, verb=1):
         EGS = self.egs()
         eg = EGS.find_eg(ename)
+        if not eg:
+           print("** no (unique?) example found for name '%s'" % ename)
+           print("   consider: afni_proc.py -show_example_names")
+           return
         eg.display(verb=verb, sphinx=0)
         
     def show_example_names(self, verb=2):

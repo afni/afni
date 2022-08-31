@@ -215,10 +215,22 @@ auth = 'PA Taylor'
 # [PT] new ve2a entry, if EPI is unifized (via uvar=final_epi_unif_dset)
 #    + also better control of brightness scaling for edgy EPI/anat images
 #
-ver = '4.02' ; date = 'June 10, 2022' 
+#ver = '4.02' ; date = 'June 10, 2022' 
 # [PT] ... and just like that, no longer make second ve2a image anymore,
 #      that would be based on final_epi_unif_dset. Was extraneous/unnec.
 #      An ex-parrot.
+#
+#ver = '4.03' ; date = 'Aug 18, 2022'
+# [PT] add warns: 3dDeconvolve *.err text file
+#
+#ver = '4.04' ; date = 'Aug 18, 2022'
+# [PT] add mask_dset images: overlays final dset, whether in 
+#      va2t, ve2a or vorig QC block
+#
+ver = '4.05' ; date = 'Aug 18, 2022'
+# [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
+#      ---> but just as quickly have removed it; might distract from the
+#           important sulcal/gyral overlap
 #
 #########################################################################
 
@@ -525,6 +537,28 @@ if __name__ == "__main__":
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (template, anat_final, *vr_base*)
+
+    ldep       = ['mask_dset', 'vr_base_dset']
+    ldep_anti1 = ['template']    # check this does NOT exist
+    ldep_anti2 = ['final_anat']  # check this does NOT exist
+    if lat.check_dep(ap_ssdict, ldep)              and \
+       not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
+       not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on vr_base')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "vorig", "mask2final", 
+                                            ulay, focusbox )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
 
     # --------------------------------------------------------------------
 
@@ -533,11 +567,36 @@ if __name__ == "__main__":
 
     ldep  = ['final_anat', 'final_epi_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
+        focusbox  = '${main_dset}'
+        dice_file = None
+        if lat.check_dep(ap_ssdict, ['mask_corr_dset']) :
+            dice_file = ap_ssdict['mask_corr_dset']
 
         ban      = lat.bannerize('EPI and anatomical alignment')
         obase    = 'qc_{:02d}'.format(idx) # will get appended to
-        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox )
+        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox,
+                                           dice_file )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "ve2a" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (template, *anat_final*, vr_base)
+
+    ldep      = ['mask_dset', 'final_anat']
+    ldep_anti = ['template']  # check this does NOT exist
+    if lat.check_dep(ap_ssdict, ldep) and \
+       not( lat.check_dep(ap_ssdict, ldep_anti) ) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on final anat')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "ve2a", "mask2final", 
+                                            ulay, focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -550,12 +609,34 @@ if __name__ == "__main__":
 
     ldep = ['final_anat', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
+        focusbox  = '${main_dset}'
+        dice_file = None
+        if lat.check_dep(ap_ssdict, ['mask_anat_templ_corr_dset']):
+            dice_file = ap_ssdict['mask_anat_templ_corr_dset']
 
         ban      = lat.bannerize('anatomical and template alignment')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
-                                            focusbox )
+                                            focusbox, dice_file )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "va2t" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (*template*, anat_final, vr_base)
+
+    ldep = ['mask_dset', 'template']
+    if lat.check_dep(ap_ssdict, ldep) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on template')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "va2t", "mask2final", 
+                                            ulay, focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -1112,6 +1193,23 @@ if __name__ == "__main__":
         cmd      = lat.apqc_warns_cen_stim( obase, "warns", "cen_stim",
                                             rev_dict=rev_dict,
                                             label_list=all_labels)
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : 3dDeconvolve warnings
+
+    ldep = ['decon_err_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('3dDeconvolve warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        txtfile  = ap_ssdict['decon_err_dset']
+        cmd      = lat.apqc_warns_decon( obase, "warns", "decon",
+                                         fname = txtfile)
 
         str_FULL+= ban
         str_FULL+= cmd

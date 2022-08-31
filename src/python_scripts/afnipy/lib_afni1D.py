@@ -2699,68 +2699,99 @@ class Afni1D:
       """compute the maximum pairwise displacement among the
          N-dimensional coordinates (e.g. motion params)
 
-         dtype = 1: enorm
+         dtype = 1: enorm (L2 norm)
 
             - so compute max(dist(x,y)) over all x, y coordinate pairs
 
-         dtype = 0: max abs
+         dtype = 0: L1 norm (was some probably useless max diff)
 
-            compute max absolue pairwise displacement among the N dimensions
-
-            - so compute max(abs(v_i,j - v_i,k)) over all all dimensions i
-              and j,k index pairs
-            - or compute as max(max(v_i)-min(v_i)) over dimensions i
-
+            compute max pairwise displacement among the coordinate pairs
+               using L1 norm (sum of abs(diffs))
+            
           cset is an optional censor dataset (1=keep, 0=censor)
       """
 
       maxdiff = 0
 
-      mat = self.get_censored_mat(cset)
-      if mat == None: mat = self.mat
+      # convenience
+      mat = self.mat
+      nt = self.nt
+      nv = self.nvec
 
-      if self.nvec > 0: nt = len(mat[0])
-      else:             nt = 0
+      if nt == 0: return 0
 
+      # do not apply censoring, but store in sorting matrix
+      censor = 0
+      if cset is not None:
+         if cset.nvec > 0 and cset.nt == nt:
+            censor = 1
+         else:
+            print("** cset nt/nvec mismatch, skipping censor set")
+
+      if censor:
+         clist = cset.mat[0]
+      else:
+         clist = [1] * nt
+      
+      # create displacement list, of length NT*(NT-1)/2
+      # store per pair list of displacement, row1, row2, censor product
       if dtype == 0:    # max vector displacement
-         maxdiff = max([max(vec)-min(vec) for vec in mat])
+         fn = UTIL.loc_sum
+         # sum abs vals
+         dlist = [[fn([abs(mat[i][r1]-mat[i][r2]) for i in range(nv)]),
+                   r1, r2, clist[r1]*clist[r2]] \
+                   for r1 in range(nt) for r2 in range(r1)]
+      else:
+         fn = UTIL.euclidean_norm
+         # store Euclidean norm, row1, row2, censor product, per pair
+         dlist = [[fn([mat[i][r1]-mat[i][r2] for i in range(nv)]),
+                   r1, r2, clist[r1]*clist[r2]] \
+                   for r1 in range(nt) for r2 in range(r1)]
 
-      else:             # max euclidean distance
+      # and grab the biggest non-censored value
+      dlist.sort()
+      maxind = len(dlist)-1
+      # while the big ones are censored, decrement
+      while maxind > 0 and not dlist[maxind][3]:
+         maxind -= 1
 
-         # get all distances, a 2D list of the form [[DIST, i, j]]
-         # (so length is NT choose 2 = (NT*(NT-1)/2), which is possibly long)
+      # if list is fully censored, just return
+      if maxind == 0 and not dlist[maxind][3]:
+         if self.verb:
+            print("== no max to compute from fully censored list")
+         return 0
 
-         en = UTIL.euclidean_norm
-         dlist = [[en([mat[i][r1]-mat[i][r2] for i in range(self.nvec)]),
-                     r1, r2] for r1 in range(nt) for r2 in range(r1)]
-
-         # and grab the biggest
-         dlist.sort()
-         maxdiff = dlist[-1][0]
+      # else we have an actual maximum difference, and index locations
+      maxdiff = dlist[maxind][0]
          
-         if self.verb > 1:
-            i = dlist[-1][1]
-            j = dlist[-1][2]
-            print('++ max edisp %.10f between indices %d and %d' \
-                  % (maxdiff, i, j))
+      if self.verb > 1:
+         i = dlist[maxind][1]
+         j = dlist[maxind][2]
+         print('++ max edisp %.10f between indices %d and %d' \
+               % (maxdiff, i, j))
+         if self.verb > 2:
+            print('  mat : %d x %d, dtype %d'% (nv, self.nt, dtype))
+            print('  mat[%d] = %s' % (i, [mat[r][i] for r in range(nv)]))
+            print('  mat[%d] = %s' % (j, [mat[r][j] for r in range(nv)]))
 
-         del(dlist)
+      del(dlist)
 
       return maxdiff
 
-   def get_max_displacement_str(self, mesg='', enorm=2, verb=1):
+   def get_max_displacement_str(self, mesg='', enorm=2, cset=None, verb=1):
       """display the maximum displacement based on enorm
             enorm = 1   : absolute displacement over dims only
             enorm = 2   : enorm only
             enorm = 3   : both
+            cset        : censor set
       """
 
       rstr = ''         # return string
 
       if enorm == 1 or enorm == 3:
-         maxabval = self.get_max_displacement(0)
+         maxabval = self.get_max_displacement(0, cset=cset)
       if enorm:
-         maxenorm = self.get_max_displacement(1)
+         maxenorm = self.get_max_displacement(1, cset=cset)
 
       if verb > 0:
          if enorm == 1:   rstr = 'max_param_diff = %g' % maxabval

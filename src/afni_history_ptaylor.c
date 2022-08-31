@@ -69,6 +69,60 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
+   "Add -values_stay_str flag, so num/str items stay as str type.",
+   "Otherwise, by default they attempt to be int, then float, then str.\n"
+},
+
+{ 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
+   "Add -literal_keys flag, to turn off auto-replacement of spaces and [()].",
+   "Also try to keep ints looking like ints.\n"
+},
+
+{ 25, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Make a tweak so that certain pathological cases don't scupper all others.",
+   "Thanks, D. Schwartz for pointing out this behavior.\n"
+},
+
+{ 23, Aug , 2022 , PT , "p2dsetstat" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
+{ 23, Aug , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
+{ 23, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Set correct dims being used from input dset in option_data struct.",
+   "Fixes report, and some internal instances (like micro/no change?).\n"
+},
+
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_ENHANCE,
+   "Display final EPI coverage mask on final space dset.",
+   "Could be on template, final anatomical or vr_base.\n"
+},
+
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_ENHANCE,
+   "In warns block check for 3dDeconvolve.err text file for warns.",
+   "If exists, most warns go to 'undecided' at the moment. Thanks, RCR!\n"
+},
+
+{ 11, Aug , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-button_press ..', for Norm/Colr/Swap buttons.",
+   "Adds in functionality from driving AFNI GUI.\n"
+},
+
+{ 27, July , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "In mecho block when using m_tedana on Mac OS: fix copying tedana QC HTML.",
+   "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.\n"
+},
+
+{ 27, July , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand output precision and scale of calculability.",
+   "Program used to run into trouble for large stat (bc of bc); now better.\n"
+},
 { 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
    "Add functionality to '-rimify RIM' opt.",
    "A negative RIM value now leads to creating an anti-rim (or core) ROI.\n"
@@ -91,7 +145,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add new ve2a QC, via new uvar final_epi_unif_dset.",
-   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"
+   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.\n"
 },
 
 { 6, June , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,

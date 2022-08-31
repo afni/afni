@@ -53,6 +53,81 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Aug, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "make -show_example allow unique substring matching",
+   "This allows one to run simply 'afni_proc.py -show_example 6b', say.\n"
+   "Also, pass final_epi_dset as a uvar when there is no warped version."
+ } ,
+
+ { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "clean up some warnings in suma_utils.c (and retab and strip whitespace)",
+   "Thanks to markjens@github for noting them."
+ } ,
+
+ { 18, Aug, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "in basic script, do not cat any pre_ss_warn file, as output is now a dict",
+   "Thanks to PT for noting this."
+ } ,
+
+ { 17, Aug, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if tlrc block and -regress_ROI*, require -volreg_tlrc_warp",
+   "Thanks to Mingbo on MB."
+ } ,
+
+ { 17, Aug, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
+   "use of -anat is now optional, only -epi is needed",
+   NULL
+ } ,
+
+ { 17, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "allow rebuild of cjpeg/djpeg/libjpeg.a when any is missing",
+   NULL
+ } ,
+
+ { 12, Aug, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_ubuntu_22_ARM_clang, as written by C Rorden",
+   "Thanks to C Rorden for submitting the file."
+ } ,
+
+ { 12, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "replace obsolete two-suffix rule with (.h) prerequisites",
+   "A target like .c.o or .c.$(SO) should not have extra prerequisites.\n"
+   "Use the more expanded form of '%.o : %.c ...' instead.\n"
+   "Also, fix an apparent unit var."
+ } ,
+
+ {  9, Aug, 2022, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "modify how censor dset is applied in get_max_displacement",
+   NULL
+ } ,
+
+ {  3, Aug, 2022, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "3dDeconvolve currently misbehaves when there are no events for IM",
+   "Have the program terminate with an error, until the problem is resolved.\n"
+   "Thanks for T Clarkson for pointing out the problem."
+ } ,
+
+ { 30, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "copy tlrc_base/template to results dir; add opt -tlrc_copy_base",
+   "Done for QC and visualization purposes; requested by P Taylor."
+ } ,
+
+ { 29, Jul, 2022, RCR, "afni_base.py", MINOR, TYPE_MODIFY,
+   "update locate() : return 1 if found, even via @Find",
+   NULL
+ } ,
+
+ { 28, Jul, 2022, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "add -Wl,-headerpad_max_install_names to linker command",
+   "Make space for install_name_tool -change to use @executable_path.\n"
+   "Thanks to witherscp on MB for noting the problem."
+ } ,
+
+ { 26, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "when warping an anat follower, if appropriate, copy the label table",
+   "Done at the behest of the mighty P Taylor."
+ } ,
+
  { 22, Jul, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "add linux_fedora_28_shared; we now distribute linux_fedora_35_shared",
    NULL
@@ -5228,7 +5303,7 @@ afni_history_struct rickr_history[] = {
 
  { 22, Oct, 2014, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
    "if padding for dilate/erode steps, preserve ijk_to_dicom_real",
-   "Thanks to A Kurani for nothing the problem."
+   "Thanks to A Kurani for noting the problem."
  } ,
 
  { 20, Oct, 2014, RCR, "imcat", MINOR, TYPE_BUG_FIX,
@@ -5801,7 +5876,7 @@ afni_history_struct rickr_history[] = {
 
  { 16,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "fixed use of num_trs in the case of censoring",
-   "Thanks to K Kerr for nothing the problem."
+   "Thanks to K Kerr for noting the problem."
  } ,
 
  { 16,  Dec, 2013, RCR, "auto_warp.py", MINOR, TYPE_NEW_OPT,

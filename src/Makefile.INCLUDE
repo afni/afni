@@ -2936,7 +2936,22 @@ install_plugins: $(INSTALLDIR)
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately
 
-.c.$(SO):afni_plugin.h afni.h 3ddata.h
+# ---------------------------------------------------------------------------
+# The old short-cut syntax (.A.B) of a double-suffix make rule does not
+# allow extra prerequisites.  It leads to a warning like:
+#   Makefile.INCLUDE:2942: 
+#         warning: ignoring prerequisites on suffix rule definition
+#
+# Use the more expanded pattern rule instead.
+# So change
+#    .c.$(SO):afni_plugin.h afni.h 3ddata.h
+# to
+#    %.$(SO) : %.c.afni_plugin.h afni.h 3ddata.h
+# so that the .h files are clear as prerequisites.
+#
+# See also application to the .fixed suffix.         [12 Aug 2022 rickr]
+
+%.$(SO) : %.c afni_plugin.h afni.h 3ddata.h
 	$(RM) $@
 	$(PLUGIN_CC) -c $*.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o $*.$(SO) $*.o
@@ -3007,7 +3022,8 @@ plugin_fixed:$(PLUGIN_FIXED)
 
 .SUFFIXES:.fixed
 
-.c.fixed:afni_plugin.h afni.h 3ddata.h
+# .c.fixed:afni_plugin.h afni.h 3ddata.h
+%.fixed: %.c afni_plugin.h afni.h 3ddata.h
 	$(RM) $@
 	$(PLUGIN_CC) -c $*.c $(INFLAGS) -DPLUGIN_init=PLUGIN_init_$*
 	$(MV) $*.o $*.fixed
@@ -3317,11 +3333,11 @@ mpegtoppm:
 #######
 # 11 Sep 2002 - for fun
 
-djpeg:libjpeg.a
-
-cjpeg:libjpeg.a
-
-libjpeg.a:
+# handle existence of libjpeg.a and not cjpeg  [17 Aug 2022 rickr]
+# djpeg:libjpeg.a
+# cjpeg:libjpeg.a
+JPEG_TARGETS = ( libjpeg.a cjpeg djpeg )
+$(JPEG_TARGETS):
 	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;               \
           chmod ugo+x ./configure ; ./configure 'CC=$(CCMIN)' 'LDFLAGS=$(LDFLAGS)' ; \
           $(MAKE) ; $(MV) cjpeg djpeg libjpeg.a .. ;            \

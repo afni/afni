@@ -21,7 +21,11 @@ import sys, copy
 #                        rows now---will be useful for AP)
 # 2022-03-21, ver 1.4 :  recognize (and ignore) escaped quotes, when 
 #                        calculating where quoted blocks occur
-#
+# 2022-08-09, ver 1.5 :  tweak opt proc: recognize -1Dmatrix_apply as
+#                        an opt (even though it starts with -1.
+#                        Also, remove trailing whitespace in final line
+#                        of cmd.
+# 2022-08-19, ver 1.6 :  isnumeric() -> isdigit(), for Py2.7 compatability.
 #
 # -------------------------------------------------------------------------
 
@@ -71,6 +75,9 @@ always be a list.
 
     # find the first index where one of the quote_pair_list items appears;
     # don't use str.find() bc we want to avoid escaped quotes
+    # NB: at the moment, each quote pair list item is assumed to be a single 
+    # char.  Could generalize, but don't see the need at commandline at 
+    # present; maybe the for the '[[' in bash scripts someday?
     while qind < N :
         if sss[qind] in quote_pair_list:
             # ensure quote is not escaped (which cannot happen on [0]th char)
@@ -259,7 +266,7 @@ def make_big_list_auto(arg_list):
                 big_list.append(mini_list)
             mini_list = [iarg]
         elif iarg[0:2] == '--' or \
-             ( iarg[0] == '-' and not iarg[1].isdigit() ) :
+             ( iarg[0] == '-' and not(iarg[1:].isdigit()) ) :
             # looks like new opt: store any existing (non-empty)
             # mini_list, and start new one with this str
             if mini_list : 
@@ -457,6 +464,9 @@ characters, uniform vertical spacing, etc.
     if comment_start :
         ostr = comment_start + ostr.replace('\n', '\n' + comment_start)
 
+    # remove any trailing whitespace
+    ostr = ostr.rstrip()
+
     return ostr
 
 # -------------------------------------------------------------------------
@@ -537,7 +547,10 @@ def afni_niceify_cmd_str( sss,
                        line if desired; e.g., for Python would probably use
                        '# ' here 
     quote_pair_list  : (list of str/char) list of characters to search for
-                       in pairs, within which we don't split text, like quotes
+                       in pairs, within which we don't split text, like 
+                       quotes. 
+                       NB: at present, each 'quote' is assumed to be a single
+                       char
     maxcount         : (int) guard against infinite loops;
                        probably don't need to change
     verb             : (int) verbosity level

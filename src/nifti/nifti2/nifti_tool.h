@@ -294,7 +294,7 @@ int modify_field     (void * basep, field_s * field, const char * data);
 int process_opts     (int argc, char * argv[], nt_opts * opts);
 int remove_ext_list  (nifti_image * nim, const char ** elist, int len);
 int usage            (char * prog, int level);
-int use_full         ();
+int use_full         (void);
 int verify_opts      (nt_opts * opts, char * prog);
 int write_hdr_to_file (nifti_1_header * nhdr, const char * fname);
 int write_hdr2_to_file(nifti_2_header * nhdr, const char * fname);

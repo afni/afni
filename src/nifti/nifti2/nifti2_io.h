@@ -20,7 +20,7 @@
 #include "nifti1.h"                  /*** NIFTI-1 header specification ***/
 #include "nifti2.h"                  /*** NIFTI-2 header specification ***/
 
-#include <znzlib.h>
+#include "znzlib.h"
 
 /*=================*/
 #ifdef  __cplusplus
@@ -74,6 +74,11 @@ extern "C" {
         b. some image field types have been altered (to have larger size)
         c. some routines have been changed to apply to multiple NIFTI types
 */
+
+/********************** file identification magic ****************************/
+
+extern char nifti1_magic[4];
+extern char nifti2_magic[8];
 
 /********************** Some sample data structures **************************/
 
