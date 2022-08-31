@@ -231,28 +231,17 @@ def getRespiratoryPeaks(parameters, rawData):
    AUTHOR
        Peter Lauren
    """
-
-   # array = readArray(parameters, '-respFile')
-    
-    # Debug: Make even number of peaks followed by troughs
-   # array = [ -x for x in array ]
    
    oldArray = rawData
 
    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["-phys_fs"]/8))
-    
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
+   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
    
    # Remove peaks that are less than the 10th percentile of the input signal
-   threshold = np.percentile(rawData, 10)
-   peaks = peaks[peakVals >= threshold]
+   peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
 
-   # Estimate the overall typical period       
-   limit = round(len(rawData)/2)
-   period = len(rawData)/(1+np.argmax((abs(fft(rawData))[1:limit])))
+   # Estimate the overall typical period 
+   period = lpf.getTimeSeriesPeriod(rawData)      
 
    # Get peak values
    peakVals = []
@@ -260,7 +249,6 @@ def getRespiratoryPeaks(parameters, rawData):
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
-   # searchLength = round(parameters["-phys_fs"]/16)
    searchLength = round(period/4)
    searchLength = min(searchLength, peaks[0] - 1)
    searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
@@ -292,7 +280,7 @@ def getRespiratoryPeaks(parameters, rawData):
    threshold = period/4
    peaks = peaks[intervals>=threshold]
 
-   troughs, _ = find_peaks(-np.array(rawData), width=int(parameters["-phys_fs"]/8))
+   troughs, _ = find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
    # Get trough values
    troughVals = []
@@ -354,12 +342,12 @@ def getRespiratoryPeaks(parameters, rawData):
    peakVals = []
    for i in peaks: peakVals.append(rawData[i])
    troughVals = []
-   for i in troughs: troughVals.append(rawData[i])
+   # for i in troughs: troughVals.append(rawData[i])
    figure(1)
    subplot(211)
    plot(rawData, "g") #Lines connecting peaks and troughs
    plot(peaks, peakVals, "ro") # Peaks
-   plot(troughs, troughVals, "bo") # Peaks
+   # plot(troughs, troughVals, "bo") # Peaks
    plt.xlabel("Input data index")
    plt.ylabel("Input data input value")
    plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
