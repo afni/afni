@@ -161,6 +161,9 @@ parser.add_argument('-delimiter_minor',type=str,metavar='DELIM_MIN',
 parser.add_argument('-literal_keys',action="store_true",default=False,
                     help=('Do not replace spaces with \'_\', nor '+
                           'parentheses and brackets with \'\'.'))
+parser.add_argument('-values_stay_str',action="store_true",default=False,
+                    help=('Each numeric or str item gets saved as a str; '+
+                          'otherwise, guess at int and float.'))
 
 ## if nothing, show help
 if len(sys.argv) == 1:
@@ -179,6 +182,7 @@ prefix = args.prefix
 overwrite = args.overwrite
 force = args.force_add
 literal_keys = args.literal_keys  # [PT: Aug 30, 2022]
+values_stay_str = args.values_stay_str  # [PT: Aug 30, 2022]
 # [PT: Nov. 21, 2018] For '-txt2json': options on what separates what
 # keys and values (DELIM_MAJ) and different values (DELIM_MIN).
 DELIM_MAJ = args.delimiter_major
@@ -233,15 +237,18 @@ if txt2json:
 
             value = []
             for v in value_list:
-                # [PT: Aug 30, 2022] try to keep types as close as
-                # possible to the original
-                try:
-                    value.append(int(v))
-                except ValueError:
+                if values_stay_str :
+                    value.append(str(v))
+                else:
+                    # [PT: Aug 30, 2022] try to keep types as close as
+                    # possible to the original
                     try:
-                        value.append(float(v))
+                        value.append(int(v))
                     except ValueError:
-                        value.append(str(v))
+                        try:
+                            value.append(float(v))
+                        except ValueError:
+                            value.append(str(v))
 
             ## if only one, make not a list and add to dictionary
             if len(value) == 1: value = value[0]
