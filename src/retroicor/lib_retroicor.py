@@ -242,38 +242,17 @@ def getRespiratoryPeaks(parameters, rawData):
 
    # Estimate the overall typical period 
    period = lpf.getTimeSeriesPeriod(rawData)      
-
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
-   searchLength = round(period/4)
-   searchLength = min(searchLength, peaks[0] - 1)
-   searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
-   diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
-   if len(diff) > 0: peaks = peaks[diff >= np.float64(0)]
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
    
    # Remove false peaks on the downstroke
-   shiftArray = rawData[searchLength:]
-   shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
-   diff = [rawData[x] - shiftArray[x] for x in peaks]
-   peaks = peaks[diff >= np.float64(0)]
-   
-   # Get peak values
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
            
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
-   fromLocalMin = [j-min(rawData[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
-   ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
-   ratios.insert(0,0)
-   ratios.append(0)
-   threshold = np.float64(-4.0)
-   peaks = peaks[ratios>threshold]
-
+   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
+   
    # Merge peaks that are closer than one quarter of the overall typical period
    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
    intervals.insert(0,round(period))
