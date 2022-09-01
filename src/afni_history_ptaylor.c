@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Sep , 2022 , PT , "3dBrickStat" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: when using '-min' with '-positive' (or sim) and no mask.",
+   "Tended to return 0 (now fixed).  Thanks for mentioning, Xiaowei!\n"
+},
+
 { 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
    "Add -values_stay_str flag, so num/str items stay as str type.",
    "Otherwise, by default they attempt to be int, then float, then str.\n"
