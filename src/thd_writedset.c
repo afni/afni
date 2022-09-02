@@ -235,8 +235,9 @@ ENTRY("THD_write_3dim_dataset") ;
      }
 
      free((void *)options.infile_name) ;
-     if( ii==0 ) error_count++ ;
-     RETURN( (RwcBoolean)ii ) ;
+     if( ii ) error_count++ ;
+     /* THD_write_nifti now returns 0 on success  [2 Sep 2022 rickr] */
+     RETURN( (RwcBoolean)(ii==0) ) ;
    }
 
    /*------ 21 Mar 2003: use the .3D format? -----*/
