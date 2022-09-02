@@ -92,14 +92,16 @@ def save_json():
     #pprint.pprint(pjson_data)
 
     try:
+        # should be a match from within the initial input list
         index = rem_json_list.index(pjson_fname)
-        with open(rem_json_list[index], 'w', encoding='utf-8') as fff:
+        # open using full path; means this prog can be run from anywhere
+        json_to_open = common_abs_path + '/' + rem_json_list[index]
+        with open(json_to_open, 'w', encoding='utf-8') as fff:
             json.dump( pjson_data, fff, 
                        ensure_ascii=False, indent=4 )
     except:
-        print(f'could not find index for path {pjson_fname}')
+        print(f'** ERROR: could not find index for path {pjson_fname}')
 
-    
     ''' TO ADD:  for FINAL info
     < get name of extra_info/out.ss_review.*.txt from apqc_json text str>
 
