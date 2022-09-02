@@ -43,9 +43,6 @@ if not(is_valid) :
     print("** ERROR: invalid input paths, cannot proceed")
     sys.exit(1)
 
-# ***question: should we verify that each path in all_inpath is
-# ***unique? probably, since we are opening+writing
-
 # parse the input list of N paths.  Get an appropriate common path and
 # a list of N 'remainder' paths for each index.html
 common_abs_path, rem_html_list = \
