@@ -59,8 +59,12 @@
 # [PT] the QC rating information now gets saved whenever the text dialogue
 #      box gets closed.
 #
-ver = '3.05' ; date = 'Aug 4, 2022' 
+#ver = '3.05' ; date = 'Aug 4, 2022' 
 # [PT] add link to AFNI MB in APQC help file
+#
+ver = '3.06' ; date = 'Sep 2, 2022' 
+# [TH, PT] update what is posted, so the saving happens better across
+# multiple open APQC pages
 #
 #########################################################################
 
@@ -1649,7 +1653,21 @@ function doSaveAllInfo() {
     //var text     = JSON.stringify(qcjson);
     //var filename = "apqc.json";
     //saveDownloadJsonfile(text, jsonfile);
-    postJSON(qcjson);
+
+    // prepare to output all info needed for server
+    pathParts = window.location.pathname.split('/')
+    qcPath = pathParts.slice(1,-1)
+    // rem is 'remainder', because this is the (full) remainder
+    // of the path to the APQC JSON file from the end of the 
+    // common abs path used to start the server
+    remJsonFilename = qcPath.join('/') + '/' + jsonfile
+    dataToPost = {
+        'remJsonFilename': remJsonFilename,
+        'JsonFileContents': qcjson,
+    }
+    // console.log("FULLJSON", remJsonFilename)
+    // console.log("QCJSON", qcjson) 
+    postJSON(dataToPost);
 } 
 '''
 
@@ -1661,7 +1679,9 @@ function doQuit() {
     //var text     = JSON.stringify(qcjson);
     //var filename = "apqc.json";
     //saveDownloadJsonfile(text, jsonfile);
-    postJSON(qcjson, true);
+
+    // NOT sure about turning this off---will test and revisit
+    //postJSON(qcjson, true);
 }
 
 '''

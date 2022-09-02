@@ -1,6 +1,7 @@
 from flask      import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS # to circumvent 'no access issues from UI'
 import json
+import pprint
 import sys
 import os
 import glob
@@ -145,7 +146,7 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
 
     """
     
-    RETURN_IF_BAD = "", [], []
+    RETURN_IF_BAD = "", []
 
     if type(inp_path_list) != list :
         print("**ERROR: need to input a list of paths")
@@ -378,11 +379,11 @@ rem_json_list = \
 # ------- right now, using the first element in the input list of
 # ------- args (hence the [0] selectors), but later will loop over all
 
-apqc_json = rem_json_list[0]
+#apqc_json = rem_json_list[]
 
 print("++ common_abs_path : {}".format(common_abs_path))
-print("++ rem index.html  : {}".format(rem_html_list[0]))
-print("++ rem apqc_json   : {}".format(rem_json_list[0]))
+print("++ rem index.html  : {}".format(rem_html_list))
+print("++ rem apqc_json   : {}".format(rem_json_list))
 
 # ========================== flask/decorator stuff ==========================
 
@@ -406,9 +407,25 @@ def save_json():
     Function to save the QC button/rating info to the apqc*.json file.
     """
 
-    jdata = request.get_json()
-    with open(apqc_json, 'w', encoding='utf-8') as f:
-        json.dump(jdata, f, ensure_ascii=False, indent=4)
+    # [TH] javascript needs to send the url parts, so that we can
+    # parse them here and know which subject json to update
+    posted_dict = request.get_json()
+    pjson_fname = posted_dict['remJsonFilename']
+    pjson_data  = posted_dict['JsonFileContents']
+
+    #print('++ json fname is: ')
+    #pprint.pprint(pjson_fname)
+    #print('++ json data are: ')
+    #pprint.pprint(pjson_data)
+
+    try:
+        index = rem_json_list.index(pjson_fname)
+        with open(rem_json_list[index], 'w', encoding='utf-8') as fff:
+            json.dump( pjson_data, fff, 
+                       ensure_ascii=False, indent=4 )
+    except:
+        print(f'could not find index for path {pjson_fname}')
+
     
     ''' TO ADD:  for FINAL info
     < get name of extra_info/out.ss_review.*.txt from apqc_json text str>
@@ -417,38 +434,8 @@ def save_json():
         < call function with subprocess calls to set abids >
     '''
 
-    return jsonify(jdata)
+    return jsonify(pjson_data)
 
-''' 
-# A note on the steps that will be done with subprocesses (at
-# present) to be able to use the FINAL QC button info in colon-separated
-# file that is parsed by gen_ss_review_table.py for subject
-# inclusion/exclusion criteria.  The following 3 calls to abids_json_tool.py 
-# will be done, to edit the key="FINAL" and value=<the QC rating> pair into
-# the appropriate file:
-
-# convert existing colon-sep file to JSON
-abids_json_tool.py                            \
-    -overwrite                                \
-    -txt2json                                 \
-    -input     extra_info/out.ss_review.*.txt \
-    -prefix    TMP1.json
-
-# add/edit "FINAL" field in JSON
-abids_json_tool.py                            \
-    -overwrite                                \
-    -force_add                                \
-    -add_json  "FINAL" <the QC rating>        \
-    -input     TMP1.json                      \
-    -prefix    TMP2.json
-
-# convert JSON back to colon-sep file, overwrite orig
-abids_json_tool.py                            \
-    -overwrite                                \
-    -json2txt                                 \
-    -input     TMP2.json                      \
-    -prefix    extra_info/out.ss_review.*.txt
-'''
 
 #@app.route('/quit', methods=["POST", "GET"])
 #def quit():
