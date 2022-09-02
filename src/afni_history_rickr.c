@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Sep, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "trap NIFTI write errors (via new nifti_image_write_bricks_status())",
+   "Have 3dcopy and 3dreit return non-zero status on failure.\n"
+   "Thanks to J Teves for reminding us of this shortcoming."
+ } ,
+
  { 30, Aug, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "make -show_example allow unique substring matching",
    "This allows one to run simply 'afni_proc.py -show_example 6b', say.\n"

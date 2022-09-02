@@ -541,6 +541,7 @@ int main( int argc , char *argv[] )
    int geom_change = 0;              /* 04 Nov 2011 [drg] */
    int do_checkaxes = 0 ;            /* 27 Jun 2014 [RWCox] */
    int obl_recenter = 0 ;            /* 17 Mar 2020 [rickr] */
+   int retval = 0;                   /*  2 Sep 2022 [rickr] */
 
 #define VINFO(x) do{ if(verb)ININFO_message(x) ; } while(0)
 
@@ -2415,8 +2416,9 @@ fprintf(stderr,"\n") ; }
         }
         THD_force_ok_overwrite(1);             /* 24 Sep 2007 */
         THD_set_quiet_overwrite(1);
-        THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL ,
-                                dset , write_output ) ;
+        if( ! THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL ,
+                                      dset , write_output ) )
+           retval = 1;  /* note failure for exit status */
       }
       THD_delete_3dim_dataset( dset , False ) ;
 
@@ -2427,7 +2429,7 @@ fprintf(stderr,"\n") ; }
    /*--- DONE ---*/
 
    INFO_message("3drefit processed %d datasets",ndone) ;
-   exit(0) ;
+   exit(retval) ;
 }
 
 /* read float values from string or file into float attribute */
