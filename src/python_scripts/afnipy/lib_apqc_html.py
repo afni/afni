@@ -1144,17 +1144,31 @@ async function postJSON(data = {}, quit=false) {
     let url = 'http://localhost:5000/'+route
     // Default options are marked with *
       const response = await fetch(url, {
-        method: quit ? 'GET' : 'POST', // *GET, POST, PUT, DELETE, etc.
-        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+        
+        /* from: *GET, POST, PUT, DELETE, etc. */
+        method: quit ? 'GET' : 'POST',
+
+        /* from: *default, no-cache, reload, force-cache,
+        only-if-cached */
+        cache: 'no-cache', 
+
         headers: {
           'Content-Type': 'application/json'
         },
-      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: quit ? null : JSON.stringify(data) // body data type must match "Content-Type" header
+
+      /* from: no-referrer, *no-referrer-when-downgrade, origin,
+      origin-when-cross-origin, same-origin, strict-origin,
+      strict-origin-when-cross-origin, unsafe-url */
+      referrerPolicy: 'no-referrer', 
+
+      /* body data type must match "Content-Type" header */
+      body: quit ? null : JSON.stringify(data) 
     });
+
+    // parses JSON response into native JavaScript objects
     qcjson = await response.json()
     console.log(qcjson)
-    return qcjson; // parses JSON response into native JavaScript objects
+    return qcjson; 
 }
 
 
@@ -1228,7 +1242,8 @@ function sendCommentToButtonAndForm(comm, bid) {
     thisButtonGetsAComment(bid, comm);
 
     var bname = new String(bid); // basename
-    var cid   = 'comm_' + bname.slice(5);  // skip the 'btn1_' part of button ID
+    // skip the 'btn1_' part of button ID
+    var cid   = 'comm_' + bname.slice(5);
 
     // because of how "null" is read in; this just matters in form
     if ( comm == "null" ) {
@@ -1316,14 +1331,14 @@ function btn1ClickedWithCtrl(event, button) {
     ## https://stackoverflow.com/questions/46553405/css-hover-not-working-after-javascript-dom
     y+= '''
 function changeColor(button) {
-  newidx = Number(button.dataset.idx || 0);    // idx=0 on first click
-  newidx = (newidx + 1) % bkgds.length;        // calc new idx, mod Ncol
+  newidx = Number(button.dataset.idx || 0);     // idx=0 on first click
+  newidx = (newidx + 1) % bkgds.length;         // calc new idx, mod Ncol
   button.dataset.idx       = newidx;            // store new idx in ele
   button.style.color       = tcols[newidx];     // set color
   button.style.background  = bkgds[newidx];     // set bkgd
   button.style.borderColor = bkgds[newidx];     // set bkgd
   button.textContent       = valeurs[newidx];
-  checkIfButtonCommented( button );            // set text
+  checkIfButtonCommented( button );             // set text
   doSaveAllInfo();
 }
 '''
@@ -1365,11 +1380,11 @@ function setThisButtonRating(bid, idx) {{
     
     }} else {{
     // the reset, for "null" JSON
-      document.getElementById(bid).textContent      = "{}";
-      document.getElementById(bid).style.background = ''; // reset to CSS
-      document.getElementById(bid).style.borderColor = ''; // reset to CSS
-      document.getElementById(bid).style.color      = ''; // reset to CSS
-      document.getElementById(bid).dataset.idx      = 0; //null;
+      document.getElementById(bid).textContent       = "{}";
+      document.getElementById(bid).style.background  = '';  // reset to CSS
+      document.getElementById(bid).style.borderColor = '';  // reset to CSS
+      document.getElementById(bid).style.color       = '';  // reset to CSS
+      document.getElementById(bid).dataset.idx       = 0;   //null;
     }}
 }}
 '''.format ( NULL_BTN1 )
@@ -1419,6 +1434,7 @@ function allYourBaseAreBelongToUs(ii) {{
        setThisButtonRating(bid, ii); 
      }}
    }} 
+   doSaveAllInfo() 
 }}
 '''.format( NULL_BTN1 )
 
@@ -1474,7 +1490,8 @@ function clearCommentForm(cid, cfID) {
 
     // get the btn1 ID from comm ID
     var bname = new String(cid); // basename
-    var bid   = "btn1_" + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
 
     thisButtonGetsAComment(bid, null);
 
@@ -1502,7 +1519,8 @@ function keepFromCommentForm(cid, cfID) {
 
     // get the btn1 ID from comm ID
     var bname = new String(cid); // basename
-    var bid   = "btn1_" + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var bid   = "btn1_" + bname.slice(5);
 
     thisButtonGetsAComment(bid, commtext);
     closeCommentForm(cfID);
@@ -1517,7 +1535,8 @@ function keepFromCommentFormViaBtn1(bid, cfID) {
 
     // get the btn1 ID from comm ID
     var bname = new String(bid); // basename
-    var cid   = 'comm_' + bname.slice(5);  // skip the 'comm_' part of button ID
+    // skip the 'comm_' part of button ID
+    var cid   = 'comm_' + bname.slice(5);
 
     // user's text
     var commtext = document.getElementById(cid).value;
@@ -1680,7 +1699,8 @@ function doQuit() {
     //var filename = "apqc.json";
     //saveDownloadJsonfile(text, jsonfile);
 
-    // NOT sure about turning this off---will test and revisit
+    /* NOT sure about turning this off---will test and revisit
+       ... but indeed, seems unnecessary */
     //postJSON(qcjson, true);
 }
 
