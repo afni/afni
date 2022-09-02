@@ -15,7 +15,7 @@
 from flask      import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS # to circumvent 'no access issues from UI'
 import json
-import pprint
+import pprint as pp
 import sys
 import os
 import argparse
@@ -23,16 +23,19 @@ import argparse
 
 from afnipy import lib_apqc_open as lao
 
+dent = '\n' + 5*' '
+
 # ========================================================================== 
 # ============================== input stuff ===============================
-
-start_dir = os.getcwd()
 
 # get args
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', nargs='+') # relative path to index.html
 args       = parser.parse_args()
 all_inpath = args.i
+
+
+# ======================== determine path pieces ===========================
 
 # check that the user input a set of valid paths to index.html
 is_valid = lao.verify_all_paths_to_html(all_inpath)
@@ -48,14 +51,17 @@ if not(is_valid) :
 common_abs_path, rem_html_list = \
     lao.find_common_and_remainder_paths(all_inpath, min_rem_len=2)
 
+npath = len(rem_html_list)
+
 # ... and then get accompanying 'remainder' list of apqc_*.json files
 rem_json_list = \
     lao.find_apqc_json_for_each_index_html(common_abs_path, rem_html_list)
 
 # debugging display at present
-print("++ common_abs_path : {}".format(common_abs_path))
-print("++ rem index.html  : {}".format(rem_html_list))
-print("++ rem apqc_json   : {}".format(rem_json_list))
+print("++ Number of paths:", npath)
+print("++ common_abs_path:" + dent + common_abs_path)
+print("++ rem index.html:" + dent + dent.join(rem_html_list))
+print("++ rem apqc_json:" + dent + dent.join(rem_json_list))
 
 # ===========================================================================
 # ========================== flask/decorator stuff ==========================
@@ -87,9 +93,9 @@ def save_json():
     pjson_data  = posted_dict['JsonFileContents']
 
     #print('++ json fname is: ')
-    #pprint.pprint(pjson_fname)
+    #pp.pprint(pjson_fname)
     #print('++ json data are: ')
-    #pprint.pprint(pjson_data)
+    #pp.pprint(pjson_data)
 
     try:
         # should be a match from within the initial input list

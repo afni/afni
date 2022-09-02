@@ -111,7 +111,7 @@ def calc_nstep_path(pstr):
     return nstep
 
 def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
-                                     verb = 0 ):
+                                     remove_dup = True, verb = 0 ):
     """Input a list of N paths (relative or absolute).  This program
     converts each to an absolute path and outputs two things:
       + the 'greatest common' absolute path among that list (which might 
@@ -120,8 +120,10 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
       + an N-length list of the 'remainder' paths for each index.html.
 
     One also can control the minimal length of remainder paths (for
-    specific APQC utility).  For example, open_apqc.py calls might use
-    min_rem_len=2.
+    specific APQC utility).  For example, open_apqc.py calls *will be
+    assumed* to use min_rem_len=2.
+
+    By default, duplicate paths are removed.
 
     Parameters
     ----------
@@ -130,6 +132,9 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
     min_rem_len : int
              minimum path length of the remainder files.  This places a
              constraint on the common path
+    remove_dup : bool
+             remove instances of duplicated remainder paths.  Will remove
+             later occurences in the list
     verb : int
              verbosity level
 
@@ -243,6 +248,21 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
                     print("** ERROR: final remainder path '{}' is nonexistent?"
                           "".format(path))
                     return RETURN_IF_BAD
+
+    if remove_dup :
+        rem_path_set = set(rem_path_list)
+        nset  = len(rem_path_set)
+        nlist = len(rem_path_list)
+        if nset != nlist :
+            diff = nlist - nset
+            # this should create new list of unique items, preserving
+            # order (higher index duplicates are removed)
+            rem_path_list = list(dict.fromkeys(rem_path_list).keys())
+            nnew = len(rem_path_list)
+            print("+* WARNING: removing duplicates in list".format(diff))
+            print("++ length pre-dup removal : {}".format(nlist))
+            print("++ number of duplicates   : {}".format(diff))
+            print("++ length post-dup removal: {}".format(nnew))
 
     return common_abs_path, rem_path_list
 
