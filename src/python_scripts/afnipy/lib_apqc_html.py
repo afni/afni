@@ -62,9 +62,13 @@
 #ver = '3.05' ; date = 'Aug 4, 2022' 
 # [PT] add link to AFNI MB in APQC help file
 #
-ver = '3.06' ; date = 'Sep 2, 2022' 
+#ver = '3.06' ; date = 'Sep 2, 2022' 
 # [TH, PT] update what is posted, so the saving happens better across
 # multiple open APQC pages
+#
+ver = '3.07' ; date = 'Sep 2, 2022' 
+# [PT] update allYourBaseAreBelongToUs() to save with single click when
+#      serving
 #
 #########################################################################
 
