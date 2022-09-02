@@ -871,7 +871,9 @@ def make_nav_table(llinks, max_wlevel=''):
         <tr>
           <td class="td1" id=td1_{0}>
             <button class="button-generic button-LHS btn5" id="btn5_{0}" 
-            onmousedown="moveToDiv(hr_{0})" title="{1}" {2} 
+            onmousedown="moveToDiv(hr_{0})" 
+            title="{1}" 
+            {2} 
             onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
             {0}</button>
           </td>
@@ -949,36 +951,58 @@ def make_nav_table(llinks, max_wlevel=''):
     y+= '''<td style="width: 180px; white-space:nowrap;">\n'''
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
+<button class="button-generic button-RHS button-RHS-little btn2{0}" 
+title="{1}" 
 onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
+onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+  if (event.ctrlKey) {{
+    reallyAllYourBaseAreBelongToUs({2}); 
+  }} else {{ 
+    allYourBaseAreBelongToUs({2}); 
+  }}
+}} " 
 ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
 {3}</button>
     '''.format( 'good', bgood_hover, bgood_ind, bgood )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
+<button class="button-generic button-RHS button-RHS-little btn2{0}" 
+title="{1}" 
 onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
+onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+  if (event.ctrlKey) {{ 
+    reallyAllYourBaseAreBelongToUs({2});
+  }} else {{
+    allYourBaseAreBelongToUs({2});
+  }}
+}} " 
 ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
 {3}</button>
     '''.format( 'bad', bbad_hover, bbad_ind, bbad )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
+<button class="button-generic button-RHS button-RHS-little btn2{0}" 
+title="{1}" 
 onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} else {{ allYourBaseAreBelongToUs({2}); }} }} " 
+onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+  if (event.ctrlKey) {{ 
+    reallyAllYourBaseAreBelongToUs({2});
+  }} else {{ 
+    allYourBaseAreBelongToUs({2}); 
+  }}
+}} " 
 ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
 {3}</button>
     '''.format( 'other', bother_hover, bother_ind, bother )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" title="{1}" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ if (event.ctrlKey) {{ 
-reallyAllYourBaseAreBelongToUs({2}); }} }} " 
+<button class="button-generic button-RHS button-RHS-little btn2{0}" 
+title="{1}" 
+onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+  if (event.ctrlKey) {{ 
+    reallyAllYourBaseAreBelongToUs({2}); 
+  }} 
+}} " 
 ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
 {3}</button>
     '''.format( 'clear', bclear_hover, bclear_ind, bclear )
@@ -988,13 +1012,15 @@ ondblclick="reallyAllYourBaseAreBelongToUs({2})">
 
     # ROW:  hyperlinks (anchors) within the page
     y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>'''.format( bsaving )
+    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>\n'''.format( bsaving )
 
-    y+= '''<button class="button-generic button-RHS btn3saving" title="{}" '''.format( bsaving_hover ) 
+    y+= '''<button class="button-generic button-RHS btn3saving"\n'''
+    y+= '''        title="{}" '''.format( bsaving_hover ) 
     y+= '''onclick="colorizeSavingButton(is_served)">'''   # re-colorize if clicked
     y+= '''{}</button>\n'''.format( bsaving )
 
-    y+= '''<button class="button-generic button-RHS btn3help" title="{}" '''.format( bhelp_hover ) 
+    y+= '''<button class="button-generic button-RHS btn3help"\n'''.format( bhelp_hover ) 
+    y+= '''        title="{}" '''.format( bhelp_hover ) 
     y+= '''onclick="doShowHelp()">'''
 #    y+= '''href="help.html" target="_blank">'''
 #    y+= '''onclick="location.href='help.html';">'''
@@ -1896,9 +1922,12 @@ def wrap_img(x, wid=500, vpad=0, addclass=""):
     y+= vpad*'\n'
 
     y+= '''<div style="text-align: center">
-    <a href="{0}"><img src="{0}" alt="{0}" {1} 
-    style="display: inline-block; text-align: center;"></a> 
-    </div>'''.format( x, addclass)
+    <a href="{0}">
+    <img src="{0}" 
+         alt="{0}" {1} 
+         style="display: inline-block; text-align: center;">
+    </a> 
+</div>'''.format( x, addclass)
     y+= vpad*'\n'
 
     return y
