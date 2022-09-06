@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Sep, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove specific commits from cmake/afni_project_dependencies.cmake",
+   "Build off of the current master."
+ } ,
+
  {  2, Sep, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "trap NIFTI write errors (via new nifti_image_write_bricks_status())",
    "Have 3dcopy and 3dreit return non-zero status on failure.\n"
