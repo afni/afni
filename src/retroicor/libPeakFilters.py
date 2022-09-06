@@ -127,6 +127,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
     AUTHOR
         Peter Lauren
     """
+
     # Get peak values
     peakVals = []
     for i in peaks: peakVals.append(rawData[i])
@@ -140,6 +141,86 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
     threshold = np.float64(-denominator)
     return peaks[ratios>threshold]
 
+def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
+    """
+    NAME
+        estimateSamplingFrequencyFromRawData
+            Estimate sampling frequency (Hz) from raw data based on expected cycles per minute            
+     TYPE
+         <class 'numpy.float64'>
+    SYNOPSIS
+        estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute)
+    ARGUMENTS
+        peaks:   Array of peak locations in raw data indices.
+        
+        expectedCyclesPerMinute: Expected number of cycles (heart beats, breaths)
+            per minute based on input data type
+    AUTHOR
+        Peter Lauren
+    """
+    
+    return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
-  
+def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
+    """
+    NAME
+        removeExtraInterveningPeaksAndTroughs
+            Ensure there is only one peak between each pair of troughs and only 
+            one trough between each pair of peaks
+     TYPE
+         <class 'numpy.float64'>, <class 'numpy.float64'>
+    SYNOPSIS
+        removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+    ARGUMENTS
+        peaks:   Array of peak locations in raw data indices.
+        
+        troughs:   Array of trough locations in raw data indices.
+        
+        rawData: Raw input data
+    RETURNS
+        filtered peaks, filtered troughs
+    AUTHOR
+        Peter Lauren
+    """
+    
+    # Get interpeak intervals
+    peakRanges = [range(x,y) for x,y in zip(peaks[0:], peaks[1:])]
+    
+    # Count troughs in interpeak intervals
+    interpeakTroughs = []
+    for Range in peakRanges:
+        interpeakTroughs.append(len([i for i in range(len(troughs)) if troughs[i] in Range]))
+        
+    # Identify interpeak intervals with more than one trough
+    crowdedIntervals = list(np.where(np.array(interpeakTroughs)>1)[0])
+    crowdedIntervals.insert(0,-1)   # Prepend dummy value so indices can run backwards an include 0
+    
+    # Keep only the deepest trough in interpeak intervals
+    for interval in crowdedIntervals[-1:0:-1]:
+        troughGroup = [i for i in range(0,len(troughs)) if troughs[i] in peakRanges[interval]]
+        keep = np.argmin([rawData[i] for i in troughGroup])
+        troughGroup.remove(troughGroup[keep])
+        troughs = np.delete(troughs,troughGroup)
+    
+    # Get intertrough intervals
+    troughRanges = [range(x,y) for x,y in zip(troughs[0:], troughs[1:])]
+    
+    # Count peaks in intertrough intervals
+    intertroughPeaks = []
+    for Range in troughRanges:
+        intertroughPeaks.append(len([i for i in range(len(peaks)) if peaks[i] in Range]))
+        
+    # Identify intertrough intervals with more than one peak
+    crowdedIntervals = list(np.where(np.array(intertroughPeaks)>1)[0])
+    crowdedIntervals.insert(0,-1)   # Prepend dummy value so indices can run backwards an include 0
+    
+    # Keep only the hioghest peak in interpeak intervals
+    for interval in crowdedIntervals[-1:0:-1]:
+        peakGroup = [i for i in range(0,len(peaks)) if peaks[i] in troughRanges[interval]]
+        keep = np.argmax([rawData[i] for i in peakGroup])
+        peakGroup.remove(peakGroup[keep])
+        peaks = np.delete(peaks,peakGroup)
+        
+    return peaks, troughs
+
     

@@ -306,6 +306,9 @@ def getRespiratoryPeaks(parameters, rawData):
    threshold = period/4
    troughs = troughs[intervals>=threshold]
    
+   # Remove extra peaks bewteen troughs and troughs between peaks
+   peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+   
    # Filter peaks and troughs.  Reject peak/trough pairs where
    #    difference is less than one tenth of the total range
    # nPeaks = len(peaks)
@@ -321,12 +324,12 @@ def getRespiratoryPeaks(parameters, rawData):
    peakVals = []
    for i in peaks: peakVals.append(rawData[i])
    troughVals = []
-   # for i in troughs: troughVals.append(rawData[i])
+   for i in troughs: troughVals.append(rawData[i])
    figure(1)
    subplot(211)
    plot(rawData, "g") #Lines connecting peaks and troughs
    plot(peaks, peakVals, "ro") # Peaks
-   # plot(troughs, troughVals, "bo") # Peaks
+   plot(troughs, troughVals, "bo") # Peaks
    plt.xlabel("Input data index")
    plt.ylabel("Input data input value")
    plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
@@ -566,6 +569,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
         # Count values, in segment that are not greater than the summation limit
         count = 0
+        end = min(end,len(counts)-1)
         for j in range(0,end):
             count = count + counts[j]
             
@@ -609,6 +613,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         polarity = -polarity
         if polarity > 0: peakIndex = peakIndex + 1
         else: troughIndex = troughIndex + 1
+        if peakIndex>=len(respiratory_peaks) or troughIndex>=len(respiratory_troughs): break
     
     # Assign values to time series after last full segment
     start = finish
@@ -1041,12 +1046,17 @@ def getPhysiologicalNoiseComponents(parameters):
     # Initializations
     respiratory_phases = None
     cardiac_phases = None
+    
+    # Is sampling frequency not supplied, estimate it from the period
 
     # Process cardiac data if any
-    if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:
+    if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
         # rawData = readArray(parameters, '-cardFile')
         rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_cardiac_dat"])
         
+        if not parameters['phys_fs']: # Sampling frequency not supplied
+            parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
+                
         cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
         
         cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
@@ -1102,20 +1112,22 @@ def getPhysiologicalNoiseComponents(parameters):
         
     # Make output table data matrix
     data = []
-    if respiratory_phases:
+    if 'respiratory_phases' in dir() and 'cardiac_phases' in dir():
+        T = min(len(respiratory_phases), len(cardiac_phases))
+    elif 'respiratory_phases' in dir():
         T = len(respiratory_phases)
-    elif cardiac_phases:
+    elif 'cardiac_phases' in dir():
         T = len(cardiac_phases)
     print('T = ', T)
     for t in range(0,T):
         # sum = 0
         addend = []
-        if respiratory_phases:
+        if 'respiratory_phases' in dir():
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
                 addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        if cardiac_phases:
+        if 'cardiac_phases' in dir():
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
@@ -2152,7 +2164,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
 
     r = {}
     # Some filtering
-    nyquist_filter = var_vector["phys_fs"] / 2.0
+    # nyquist_filter = var_vector["phys_fs"] / 2.0
+    nyquist_filter = 1000.0 / 2.0
     w = var_vector["frequency_cutoff"] / nyquist_filter
     b = firwin(
         numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
@@ -2185,10 +2198,12 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         if L and not os.path.isdir(L):
             r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])"""
     
-    if phys_dat is None: # No BIDS style physio file
+    if phys_dat is None or len(phys_dat) == 0: # No BIDS style physio file
         # Read repiration/cardiac file into phys_dat
         phys_dat = []
         with open(r["v_name"], "rb") as h:
+            for entry in h:
+                phys_dat.append(float(entry))
             for line in h:
                 phys_dat.append(float(line.strip()))
                 

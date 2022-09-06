@@ -21,8 +21,8 @@ __author__ = "Peter Lauren" # Modified a bit by gianfranco
     along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Add docstring to each function
         - Make demo scripts
+        - Simplify reading function
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
