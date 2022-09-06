@@ -4923,7 +4923,8 @@ extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
-extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
+/* THD_load_nifti: void -> int [2 Sep 2022 rickr] */
+extern int     THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
