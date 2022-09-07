@@ -266,8 +266,7 @@ def getRespiratoryPeaks(parameters, rawData):
    for i in troughs: troughVals.append(rawData[i])
    
    # Remove troughs that are more than the 90th percentile of the input signal
-   threshold = np.percentile(rawData, 90)
-   troughs = troughs[troughVals <= threshold]
+   troughs = lpf.percentileFilter(troughs, rawData, 90, upperThreshold=True)
 
    # Get trough values
    troughVals = []
@@ -593,7 +592,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
         # Histogram values in segment
         sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
-        counts, bins = np.histogram(sample, bins=NUM_BINS) 
+        counts, bins = np.histogram([x for x in sample if math.isnan(x) == False], bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
         Rmax = max(sample) # Maximum value in segment
@@ -602,8 +601,9 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
             
             # Count values, in segment that are not greater than the summation limit
             count = 0
-            for j in range(0,end):
-                count = count + counts[j]
+            if end > 0:
+                for j in range(0,end):
+                    count = count + counts[j]
                 
             # Use result to estimate phase at given time point
             phases[i] = (math.pi*count*polarity)/denom
@@ -1072,7 +1072,8 @@ def getPhysiologicalNoiseComponents(parameters):
             getRespiratoryPeaks(parameters, rawData) 
         
         respiratory_phases = determineRespiratoryPhases(parameters, \
-                respiratory_peaks, respiratory_troughs, parameters['phys_fs'], rawData)
+                respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
+                    [x for x in rawData if math.isnan(x) == False])
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
