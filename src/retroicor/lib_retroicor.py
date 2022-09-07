@@ -1044,8 +1044,8 @@ def getPhysiologicalNoiseComponents(parameters):
     """
     
     # Initializations
-    respiratory_phases = None
-    cardiac_phases = None
+    respiratory_phases = np.array([]) #None
+    cardiac_phases     = []           #None
     
     # Is sampling frequency not supplied, estimate it from the period
 
@@ -1112,32 +1112,45 @@ def getPhysiologicalNoiseComponents(parameters):
         
     # Make output table data matrix
     data = []
-    if respiratory_phases != None and cardiac_phases != None:
-        T = min(len(respiratory_phases), len(cardiac_phases))
-    elif respiratory_phases != None:
-        T = len(respiratory_phases)
-    elif cardiac_phases != None:
-        T = len(cardiac_phases)
+    len_resp = len(respiratory_phases)
+    len_card = len(cardiac_phases)
+
+    if len_resp and len_card :
+        T = min(len_resp, len_card)
+    elif len_resp :
+        T = len_resp
+    elif len_card :
+        T = len_card
     print('T = ', T)
+
+    nreg = 0              # number of regressors we make
     for t in range(0,T):
         # sum = 0
         addend = []
-        if respiratory_phases != None:
+        if len_resp :
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
                 addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        if cardiac_phases != None:
+                if not(t):
+                    nreg+= 2
+        if len_card:
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
                 addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+                if not(t):
+                    nreg+= 2
         data.append(addend)
-        
+
     # Reshape matrix according to number of slices
     nrow = shape(data)[0]
-    data = np.reshape(data[0:nrow-(nrow%numSections)][:], (8*numSections, -1)).T
-    
+    print("DEBUG: nrow =", nrow)
+    print("DEBUG: shape BEFORE =", np.shape(data))
+    print("DEBUG: nsections =", numSections)
+    data = np.reshape(data[0:nrow-(nrow%numSections)][:], (nreg*numSections, -1)).T
+    print("DEBUG: shape AFTER =", np.shape(data))
+
     if (parameters['-niml']):
         niml = getNiml(data,columnNames,parameters, respiratory_phases, cardiac_phases)
         return niml
