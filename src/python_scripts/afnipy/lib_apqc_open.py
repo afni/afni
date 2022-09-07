@@ -12,6 +12,127 @@
 import sys
 import os
 import glob
+import socket
+
+# ==========================================================================
+
+# default parameter settings
+DEF = {
+    'infiles' : [],             # list of */index.html files to open
+    'portnum' : 5000,           # port number to start trying
+    'nsearch' : 500,            # number of ports to search for an open one
+    'host'    : '127.0.0.1',    # hostname
+    'jump_to' : None,           # hash to jump to in APQC page
+    'do_open' : True,           # T/F: open in browser?
+}
+
+# ==========================================================================
+# port-related functions
+
+def find_open_port( portnum = DEF['portnum'], 
+                    host    = DEF['host'],
+                    nsearch = DEF['nsearch'],
+                    verb    = 0 ):
+    '''Find an open port for a given host.  Can check a provided number
+    (and move upward through a specified interval on integers, if
+    necessary) or just start from a default.
+
+    Parameters
+    ----------
+    portnum : int
+              first port number to check for availability
+    host    : str
+              hostname 
+    nsearch : int
+              number of ports to search through
+    verb    : int
+              verbosity level (0, 1, 2)
+
+    Return
+    ------
+    portnum : int
+              the first port number that appears to be open
+
+    '''
+
+    RETURN_BAD = -1, host
+
+    if type(portnum) != int or portnum<=0 :
+        print("** ERROR: need portnum to be an int that is >0")
+        sys.exit(1)
+    if type(nsearch) != int or nsearch<1 :
+        print("** ERROR: need nsearch to be an int that is >1")
+        sys.exit(1)
+
+    max_port = portnum+nsearch
+
+    if verb :
+        print("++ Search for open port on host: '{}'".format(host))
+        print("   Use interval: [{}, {})".format(portnum, max_port))
+
+    while portnum < max_port :
+        if verb > 1 :
+            print("++ check port:", portnum)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if sock.connect_ex((host, portnum)):
+            sock.close()
+            break
+        else:
+            portnum += 1
+
+    if portnum >= max_port :
+        print("** ERROR: could not find open port")
+        sys.exit(1)
+    
+    if verb :
+        print("++ Found open port on host '{}': {}"
+              "".format(host, portnum))
+
+    return portnum
+
+def construct_url( host, portnum, rem_path, 
+                   jump_to=None ):
+    '''Take the input hostname/number, port number and 'remainder' path
+    from where the server started running, and construct a string for
+    the local web address to open in the browser.
+
+    The output URL will be formed as:
+    
+      http://host:portnum/rem_path
+      http://host:portnum/rem_path#jump_to
+
+    Parameters
+    ----------
+    host     : str
+               hostname 
+    portnum  : int
+               first port number to check for availability
+    rem_path : str
+               the final part of the pathname (after the port number)
+    jump_to  : str
+               name of a location/hash to jump to in APQC HTML page
+
+    Return
+    ------
+    url      : str
+               a string describing the local path to open up for the
+               given inputs
+
+    '''
+
+    dpieces = {
+        'host'     : host,
+        'portnum'  : portnum,
+        'rem_path' : rem_path,
+    }
+
+    url = f'''http://{host}:{portnum}/{rem_path}'''.format( **dpieces )
+
+    # add a hash/location?
+    if jump_to :
+        url+= '''#{}'''.format(jump_to)
+
+    return url
 
 # ==========================================================================
 

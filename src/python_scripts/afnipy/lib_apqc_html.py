@@ -66,9 +66,16 @@
 # [TH, PT] update what is posted, so the saving happens better across
 # multiple open APQC pages
 #
-ver = '3.07' ; date = 'Sep 2, 2022' 
+#ver = '3.07' ; date = 'Sep 2, 2022' 
 # [PT] update allYourBaseAreBelongToUs() to save with single click when
 #      serving
+#
+#ver = '3.08' ; date = 'Sep 4, 2022' 
+# [PT] create+use subj ID info now
+#
+ver = '3.09' ; date = 'Sep 6, 2022' 
+# [PT] make URL more flexible by reading in origin---don't assume it is 
+# just 5000
 #
 #########################################################################
 
@@ -353,7 +360,7 @@ Saving info
     ve2a, etc.)-- click on the label to jump to that block. Click on
     the button below the label to provide a rating for that block.
 
-QC button
+QC buttons
     Below each QC block label in the navigation bar is a button
     (initially empty after running afni_proc.py). The user can click
     on it to toggle its state to one of three ratings (good, +; bad,
@@ -365,8 +372,8 @@ QC button
     evaluation of the subject's data and processing. (Clicking on this
     label does nothing.)
 
-filler button 
-    |A+|, |Ax|, |A?|-- located in the upper right corner of the
+filler buttons
+    |A+|, |Ax|, |A?|: these are located in the upper right corner of the
     navigation menu.  These can be used to provide uniform ratings
     across the QC buttons (click to fill empty buttons, double-click
     to fill *all* buttons, regardless of state).  
@@ -374,7 +381,11 @@ filler button
     from the QC buttons.
 
 'SAVING'
-    Denoting whether the local server is running or not.  ***add more**
+    Denoting whether the local server is running or not.  Python's Flask
+    module is used to start a local server, so QC ratings and comments 
+    can be saved as they are made.  
+    This mode is ON when the SAVING button text is green and unobscured, 
+    and it is OFF when the text is gray and covered by a red line.
 
 'HELP'
     Button : well, how did you get here??
@@ -1052,6 +1063,7 @@ def make_javascript_btn_func(subj ):
 // global vars
 var allBtn1, allTd1, allhr_sec;  // selection/location IDs
 var topi, previ;                 // keeps our current/last location
+//var subj_id  = "{0}";            // subject's ID
 var jsonfile = "apqc_{0}.json";  // json file: apqc_SUBJ.json
 var qcjson = {{}};                 // I/O json of QC button responses
 var nb_offset = 66-1;            // navbar height: needed for scroll/jump
@@ -1062,10 +1074,12 @@ const valeurs = [ "?"    , "+"      , "X"        ];
 const tcols   = [ "#777" , "#FFF"   , "#000"     ];
 
 // check where server is running (to alert users before filling in buttons)
-let url = window.location.href
+let url       = window.location.href
+let origin    = window.location.origin
 let is_served = url.startsWith('file:') ? false : true
-console.log('is_served', is_served)
 
+console.log('URL', url)
+console.log('is_served', is_served)
 
 '''.format( subj )
 
@@ -1171,34 +1185,35 @@ async function postJSON(data = {}, quit=false) {
     } else {
       route = 'save'
     }
-    let url = 'http://localhost:5000/'+route
+    let url = origin + '/' + route
+
     // Default options are marked with *
-      const response = await fetch(url, {
+    const response = await fetch(url, {
         
-        /* from: *GET, POST, PUT, DELETE, etc. */
-        method: quit ? 'GET' : 'POST',
+    /* from: *GET, POST, PUT, DELETE, etc. */
+    method: quit ? 'GET' : 'POST',
 
-        /* from: *default, no-cache, reload, force-cache,
-        only-if-cached */
-        cache: 'no-cache', 
+    /* from: *default, no-cache, reload, force-cache,
+    only-if-cached */
+    cache: 'no-cache', 
 
-        headers: {
-          'Content-Type': 'application/json'
-        },
+    headers: {
+      'Content-Type': 'application/json'
+    },
 
-      /* from: no-referrer, *no-referrer-when-downgrade, origin,
-      origin-when-cross-origin, same-origin, strict-origin,
-      strict-origin-when-cross-origin, unsafe-url */
-      referrerPolicy: 'no-referrer', 
+    /* from: no-referrer, *no-referrer-when-downgrade, origin,
+    origin-when-cross-origin, same-origin, strict-origin,
+    strict-origin-when-cross-origin, unsafe-url */
+    referrerPolicy: 'no-referrer', 
 
-      /* body data type must match "Content-Type" header */
-      body: quit ? null : JSON.stringify(data) 
-    });
+    /* body data type must match "Content-Type" header */
+    body: quit ? null : JSON.stringify(data) 
+  });
 
-    // parses JSON response into native JavaScript objects
-    qcjson = await response.json()
-    console.log(qcjson)
-    return qcjson; 
+  // parses JSON response into native JavaScript objects
+  qcjson = await response.json()
+  console.log(qcjson)
+  return qcjson; 
 }
 
 
@@ -1711,6 +1726,7 @@ function doSaveAllInfo() {
     // common abs path used to start the server
     remJsonFilename = qcPath.join('/') + '/' + jsonfile
     dataToPost = {
+        //'subj_id': subj_id,
         'remJsonFilename': remJsonFilename,
         'JsonFileContents': qcjson,
     }
