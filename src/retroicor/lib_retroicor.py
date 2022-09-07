@@ -1112,22 +1112,22 @@ def getPhysiologicalNoiseComponents(parameters):
         
     # Make output table data matrix
     data = []
-    if 'respiratory_phases' in dir() and 'cardiac_phases' in dir():
+    if respiratory_phases != None and cardiac_phases != None:
         T = min(len(respiratory_phases), len(cardiac_phases))
-    elif 'respiratory_phases' in dir():
+    elif respiratory_phases != None:
         T = len(respiratory_phases)
-    elif 'cardiac_phases' in dir():
+    elif cardiac_phases != None:
         T = len(cardiac_phases)
     print('T = ', T)
     for t in range(0,T):
         # sum = 0
         addend = []
-        if 'respiratory_phases' in dir():
+        if respiratory_phases != None:
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
                 addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
-        if 'cardiac_phases' in dir():
+        if cardiac_phases != None:
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
                 addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
@@ -2207,9 +2207,6 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
             for line in h:
                 phys_dat.append(float(line.strip()))
                 
-    print('r["v_name"] = ', r["v_name"])
-    print('phys_dat = ', phys_dat)
-    
     v_np = np.asarray(phys_dat)
     
     # Trim leading datapoints if they precede start time
