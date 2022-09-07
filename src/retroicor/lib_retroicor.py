@@ -25,13 +25,11 @@ __authors__ = "Joshua Zosky and Peter Lauren"
 
 import sys
 import numpy as np
-from numpy.fft import fft, ifft
 from matplotlib import pyplot as plt 
 from pylab import plot, subplot, show, figure, text
 import math
 from scipy.signal import find_peaks
 import pandas as pd
-from numpy import size, shape, column_stack, savetxt,real,spacing,pi
 from array import array
 from scipy.signal import firwin, lfilter 
 from scipy.interpolate import interp1d
@@ -137,7 +135,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
 
    # Estimate the overall typical period       
    # limit = round(len(rawData)/2)
-   # period = len(rawData)/(1+np.argmax((abs(fft(rawData))[1:limit])))
+   # period = len(rawData)/(1+np.argmax((abs(np.fft.fft(rawData))[1:limit])))
 
    # # Get peak values
    # peakVals = []
@@ -799,9 +797,9 @@ def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases
     # Get old and new cardiac phases
     old = []
     new = []
-    Inc = sliceNumber*shape(oldCardiacPhases)[0]*shape(oldCardiacPhases)[1]
-    for i in range(0,shape(oldCardiacPhases)[1]):
-        for j in range(0,shape(oldCardiacPhases)[0]): 
+    Inc = sliceNumber*np.shape(oldCardiacPhases)[0]*np.shape(oldCardiacPhases)[1]
+    for i in range(0,np.shape(oldCardiacPhases)[1]):
+        for j in range(0,np.shape(oldCardiacPhases)[0]): 
             old.append(oldCardiacPhases[j,i,sliceNumber])
             new.append(newCardiacPhases[Inc])
             Inc = Inc + 1
@@ -824,9 +822,9 @@ def compareLaurenAndZoskyPhases(cardiac_info, respiration_info, oldCardiacPhases
     # Get old and new respiratory phases
     old = []
     new = []
-    Inc = sliceNumber*shape(oldRespiratoryPhases)[0]*shape(oldRespiratoryPhases)[1]
-    for i in range(0,shape(oldRespiratoryPhases)[1]):
-        for j in range(0,shape(oldRespiratoryPhases)[0]): 
+    Inc = sliceNumber*np.shape(oldRespiratoryPhases)[0]*np.shape(oldRespiratoryPhases)[1]
+    for i in range(0,np.shape(oldRespiratoryPhases)[1]):
+        for j in range(0,np.shape(oldRespiratoryPhases)[0]): 
             old.append(oldRespiratoryPhases[j,i,sliceNumber])
             new.append(newRespiratoryPhases[Inc])
             Inc = Inc + 1
@@ -900,7 +898,7 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
         'ni_type = "%d*double"\n'
         'ni_dimen = "%d"\n'
         'ColumnLabels = '
-        % ((shape(respiration_info["rvtrs_slc"])[0]+8)*numSlices, int(parameters['-Nt']))
+        % ((np.shape(respiration_info["rvtrs_slc"])[0]+8)*numSlices, int(parameters['-Nt']))
     )
     
     label = head
@@ -909,7 +907,7 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     offset = 0
     for i in range(0, numSlices):
         # RVT
-        for j in range(0, shape(respiration_info["rvtrs_slc"])[0]):
+        for j in range(0, np.shape(respiration_info["rvtrs_slc"])[0]):
             reml_out.append(
                 respiration_info["rvtrs_slc"][j][0:8]
             )  # same regressor for each slice
@@ -933,9 +931,9 @@ def getNiml(data,columnNames,parameters,respiratory_phases,cardiac_phases):
     tailclose = "</RetroTSout>"
     
     fid = open(("%s.slibase.1D" % '/home/peterlauren/retroicor/out'), "w")
-    savetxt(
+    np.savetxt(
         "%s.slibase.1D" % '/home/peterlauren/retroicor/out',
-        column_stack(reml_out),
+        np.column_stack(reml_out),
         fmt="%.4f",
         delimiter=" ",
         newline="\n",
@@ -1145,7 +1143,7 @@ def getPhysiologicalNoiseComponents(parameters):
         data.append(addend)
 
     # Reshape matrix according to number of slices
-    nrow = shape(data)[0]
+    nrow = np.shape(data)[0]
     print("DEBUG: nrow =", nrow)
     print("DEBUG: shape BEFORE =", np.shape(data))
     print("DEBUG: nsections =", numSections)
@@ -1329,7 +1327,7 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
 
     if xmin == xmax:
         # If x is all constants, then scale up to upper_bound value
-        y = array(size(x))
+        y = array(np.size(x))
         y.fill(upper_bound)
     else:
         # If x is not all constants, then scale to bounds
@@ -1458,7 +1456,7 @@ def phase_base(amp_type, phasee):
                         #   and was hardcoded out by JZ/ZSS
         # Calculate the phase of the trace, with the peak to be the start of the phase
         nptrc = len(peakLocations_RawData) # Number of peaks
-        phasee["phase"] = -2 * np.ones(size(phasee["t"]))   # Array of -2s, the length of the input data
+        phasee["phase"] = -2 * np.ones(np.size(phasee["t"]))   # Array of -2s, the length of the input data
         i = 0   # i increments over the peak indices
         j = 0   # j increments over the time point indices
         while i <= (nptrc - 2): # For each peak
@@ -1537,7 +1535,7 @@ def phase_base(amp_type, phasee):
             # itp = 1
             
         phasee["phase_pol"] = np.zeros(
-            size(phasee["v"])
+            np.size(phasee["v"])
         )  # Not sure why you would replace the
         # list that you created 10 lines prior to this
         
@@ -1577,7 +1575,7 @@ def phase_base(amp_type, phasee):
             ipositive_x = []
             for i in range(0,len(ipositive)):
                 ipositive_x.append(phasee["t"][i])
-            ipositive_y = np.zeros(size(ipositive_x))
+            ipositive_y = np.zeros(np.size(ipositive_x))
             ipositive_y.fill(0.55 * mxamp)
             plt.plot(ipositive_x, ipositive_y, "r.")
             
@@ -1587,7 +1585,7 @@ def phase_base(amp_type, phasee):
             inegative_x = []
             for i in range(0,len(inegative)):
                 inegative_x.append(phasee["t"][i])
-            inegative_y = np.zeros(size(inegative_x))
+            inegative_y = np.zeros(np.size(inegative_x))
             inegative_y.fill(0.45 * mxamp)
             plt.plot(inegative_x, inegative_y, "g.")
             plt.xlabel("time (s) aka phasee['t']")
@@ -2014,9 +2012,9 @@ def analytic_signal(vi, windwidth, percover, win):
         v = vi[bli[ii] : ble[ii] + 1]   # Segment ii
         nv = len(v)                     # Length of segment ii
         if win == 1:                    # Apply Hamming window before doing FT?
-            fv = fft(v * np.hamming(nv))
+            fv = np.fft.fft(v * np.hamming(nv))
         else:
-            fv = fft(v)
+            fv = np.fft.fft(v)
         wind = np.zeros(v.size)         # Initialize output window to all zeros
         # zero negative frequencies, double positive frequencies
         if nv % 2 == 0: # Length of segemnet is even
@@ -2027,7 +2025,7 @@ def analytic_signal(vi, windwidth, percover, win):
         else:           # Length of segment odd
             wind[0] = 1  # keep DC component
             wind[list(range(1, (nv + 1) // 2))] = 2
-        h = ifft(fv * wind) # Get inverse FT
+        h = np.fft.ifft(fv * wind) # Get inverse FT
     for i in range(len(h)):
         h[i] /= np.complex(num[i])  # Return array are complex numbers with imagimary components set to zero
     return h
@@ -2811,7 +2809,7 @@ def show_rvt_peak(r, fg):
     rvt_peak_plot.clf()
     # set(fg, 'KeyPressFcn', @afni_fig_interface)  # Appears to be unnecessary to retain from MATLAB code
     subplot(211)
-    plot(r["t"], real(r["x"]), "g")
+    plot(r["t"], np.real(r["x"]), "g")
 
     if r["rvt"]:
         subplot(211)
@@ -2837,11 +2835,11 @@ def show_rvt_peak(r, fg):
     plt.xlabel("time (sec)")
     plt.title(r["v_name"])  # , 'Interpreter', 'None')
     subplot(414)
-    vn = real(r["x"]) / (abs(r["x"]) + spacing(1))
+    vn = np.real(r["x"]) / (abs(r["x"]) + np.spacing(1))
     plot(r["t"], vn, "g")
-    plot(r["t"], list(element / 2 / pi for element in r["phase"]), "m")
+    plot(r["t"], list(element / 2. / math.pi for element in r["phase"]), "m")
     if "phase_r" in r:
-        plot(r["tR"], list(element / 2 / pi for element in r["phase_r"]), "m-.")
+        plot(r["tR"], list(element / 2. / math.pi for element in r["phase_r"]), "m-.")
     plt.xlabel("time (sec)")
     plt.title("Scaled by magnitude of analytical signal")  # , 'Interpreter', 'None')
     plt.legend(["Scaled signal", "phase"])
