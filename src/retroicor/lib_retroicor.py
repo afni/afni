@@ -599,6 +599,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
             
             # Count values, in segment that are not greater than the summation limit
             count = 0
+            end = min(end, len(counts))
             if end > 0:
                 for j in range(0,end):
                     count = count + counts[j]
@@ -1100,14 +1101,18 @@ def getPhysiologicalNoiseComponents(parameters):
     # Make output table columns names
     columnNames = []
     numSections = parameters["-s"]
-    for s in range(0,numSections):
-        for r in range(0,4):
-            string = 's' + str(s) + '.Resp' + str(r)
-            columnNames.append(string)
-    for s in range(0,numSections):
-        for r in range(0,4):
-            string = 's' + str(s) + '.Card' + str(r)
-            columnNames.append(string)
+    len_resp = len(respiratory_phases)
+    len_card = len(cardiac_phases)
+    if len_resp:
+        for s in range(0,numSections):
+            for r in range(0,4):
+                string = 's' + str(s) + '.Resp' + str(r)
+                columnNames.append(string)
+    if len_card:
+        for s in range(0,numSections):
+            for r in range(0,4):
+                string = 's' + str(s) + '.Card' + str(r)
+                columnNames.append(string)
         
     # Make output table data matrix
     data = []
