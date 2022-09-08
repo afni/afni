@@ -1044,12 +1044,17 @@ def getPhysiologicalNoiseComponents(parameters):
     
     # Initializations
     respiratory_phases = np.array([]) #None
-    cardiac_phases     = []           #None
+    cardiac_phases     = []           #
+    
+    # Parameters to read in raw data
+    rawDataParams = dict()
+    if 'StartTime' in parameters: rawDataParams['StartTime'] = parameters['StartTime']
+    rawDataParams["phys_fs"] = parameters["phys_fs"]
     
     # Process cardiac data if any
     if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
         # rawData = readArray(parameters, '-cardFile')
-        rawData = readRawInputData(parameters, parameters["-cardFile"], parameters["phys_cardiac_dat"])
+        rawData = readRawInputData(rawDataParams, parameters["-cardFile"], parameters["phys_cardiac_dat"])
         
         if not parameters['phys_fs']: # Sampling frequency not supplied
             parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
@@ -1063,7 +1068,7 @@ def getPhysiologicalNoiseComponents(parameters):
     if parameters["-respFile"] or len(parameters["phys_resp_dat"]) > 0:
 
         # rawData = readArray(parameters, '-respFile')
-        rawData = readRawInputData(parameters, parameters["-respFile"], parameters["phys_resp_dat"])
+        rawData = readRawInputData(rawDataParams, parameters["-respFile"], parameters["phys_resp_dat"])
         
         respiratory_peaks, respiratory_troughs, fullLength = \
             getRespiratoryPeaks(parameters, rawData) 
@@ -2124,26 +2129,9 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     ARGUMENTS
         respcard_info:   Dictionary with the following fields.
         
-            respiration_file:   Name of ASCII file with respiratory time series
+            StartTime:   (Optional)  Time at which the signal of interest starts
             
             phys_fs:   Physiological signal sampling frequency in Hz.
-            
-            number_of_slices:   Number of slices
-            
-            volume_tr:   Volume repetition time (TR) which defines the length of time 
-            between the acquisition of consecutive frames/volumes; in seconds
-            
-            slice_offset:   Vector of slice acquisition time offsets in seconds.
-            
-            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-            
-            interpolation_style:   Resampling kernel.
-            
-            legacy_transform:   Important-this will specify whether you use the
-            original Matlab code's version (1) or the potentially bug-corrected
-            version (0) for the final phase correction in
-            lib_RetroTS/RVT_from_PeakFinder.py
-            (default is 0)
                    
         filename:   String giving the local name of the input file
         
