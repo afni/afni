@@ -23,7 +23,9 @@ DEF = {
     'nsearch' : 500,            # number of ports to search for an open one
     'host'    : '127.0.0.1',    # hostname
     'jump_to' : None,           # hash to jump to in APQC page
-    'do_open' : True,           # T/F: open in browser?
+    'open_pages'    : True,     # T/F: open pages in browser?
+    'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
+    'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
 }
 
 # ==========================================================================

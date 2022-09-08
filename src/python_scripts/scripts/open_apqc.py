@@ -115,9 +115,21 @@ parser.add_argument('-jump_to', nargs=1,
                     'QC block or sub-block name (e.g., "ve2a", "qsumm", etc.)')
 
 parser.add_argument('-open_pages_off', action="store_false", 
-                    default=[lao.DEF['do_open']],
+                    default=lao.DEF['open_pages'],
                     help='turn off default behavior to open pages in a '
                     'browswer (def: open in new window[+tabs])')
+
+parser.add_argument('-new_tabs_only', action="store_true", 
+                    default=lao.DEF['new_tabs_only'],
+                    help='open each page in new tab '
+                    '(def: open first page in a new window, then any more '
+                    'in new tabs)')
+
+parser.add_argument('-new_windows_only', action="store_true", 
+                    default=lao.DEF['new_wins_only'],
+                    help='open each page in a new window '
+                    '(def: open first page in a new window, then any more '
+                    'in new tabs)')
 
 parser.add_argument('-ver', action="store_true", 
                     default=False,
@@ -127,15 +139,17 @@ parser.add_argument('-help', '-h', action="store_true",
                     default=False,
                     help='display help') 
 
-args         = parser.parse_args()
-all_inpath   = args.infiles
-portnum      = int(args.portnum[0])
-port_nsearch = int(args.port_nsearch[0])
-host         = args.host[0]
-jump_to      = args.jump_to[0]
-do_open      = bool(args.open_pages_off)
-do_ver       = args.ver
-do_help      = args.help
+args             = parser.parse_args()
+all_inpath       = args.infiles
+portnum          = int(args.portnum[0])
+port_nsearch     = int(args.port_nsearch[0])
+host             = args.host[0]
+jump_to          = args.jump_to[0]
+do_open_pages    = args.open_pages_off
+do_ver           = args.ver
+do_help          = args.help
+do_new_tabs_only = args.new_tabs_only
+do_new_wins_only = args.new_windows_only
 
 # display program version
 if len(sys.argv) == 1 or do_help :
@@ -146,6 +160,22 @@ if len(sys.argv) == 1 or do_help :
 if do_ver :
     print(version)
     sys.exit(0)
+
+# ---------------------------------
+# process opts slightly
+
+print("do_new_tabs_only:", do_new_tabs_only)
+print("do_new_wins_only:", do_new_wins_only)
+
+# how to open first page in browser
+if do_new_tabs_only:   first_page_code = 2         # in new tab
+else:                  first_page_code = 1         # in new window
+
+if do_new_wins_only:   other_page_code = 1         # in new tab
+else:                  other_page_code = 2         # in new window
+
+print("do_new_tabs_only:", first_page_code)
+print("do_new_wins_only:", other_page_code)
 
 # ======================== determine path pieces ===========================
 
@@ -250,13 +280,13 @@ if __name__ == "__main__":
     # construct the web address for each page to be opened, and if
     # asked for open the browser (first page in new window and others
     # in new tab)
-    be_new = 1
+    page_code = first_page_code
     for rem_html in rem_html_list:
         url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
         print('''++ URL for browser: '{}' '''.format( url ))
-        if do_open :
-            webbrowser.open(url, new = be_new)
-            be_new = 2
+        if do_open_pages :
+            webbrowser.open(url, new = page_code)
+            page_code = other_page_code
 
     # start the flask application---have to refresh above pages?
     app.run(host=host, port=portnum) #, debug=True)
