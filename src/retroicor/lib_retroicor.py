@@ -1046,8 +1046,6 @@ def getPhysiologicalNoiseComponents(parameters):
     respiratory_phases = np.array([]) #None
     cardiac_phases     = []           #None
     
-    # Is sampling frequency not supplied, estimate it from the period
-
     # Process cardiac data if any
     if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
         # rawData = readArray(parameters, '-cardFile')
@@ -2154,71 +2152,11 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     AUTHOR
        Joshua Zosky & Peter Lauren (Documentation by Peter Lauren)
     """
-    # #clear all but var_vector (useful if I run this function as as script)
-    # keep('var_vector', 'opt')
-    var_vector = dict(
-        phys_fs=(1 / 0.025),
-        zero_phase_offset=0.5,
-        quiet=0,
-        resample_fs=(1 / 0.025),
-        frequency_cutoff=10,
-        fir_order=80,
-        interpolation_style="linear",
-        demo=0,
-        as_window_width=0,
-        as_percover=0,
-        as_fftwin=0,
-        sep_dups=0,
-    )
-    var_vector.update(respcard_info)
-    default_div = 1 / 0.025
-    if (var_vector["phys_fs"] != default_div) and (
-        var_vector["resample_fs"] == default_div
-    ):
-        var_vector["resample_fs"] = var_vector["phys_fs"]
-    if var_vector["demo"]:
-        var_vector["quiet"] = 0
 
-    r = {}
-    # Some filtering
-    # nyquist_filter = var_vector["phys_fs"] / 2.0
-    nyquist_filter = 1000.0 / 2.0
-    w = var_vector["frequency_cutoff"] / nyquist_filter
-    b = firwin(
-        numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
-    )  # FIR filter of order 40
-    b = np.array(b)
-
-    nl = 1  # temporary, delete this line when above lines get fixed with glob
-    # del(r) # "Must clear it. Or next line fails" -- Probably unnecessary in Python
-    r_list = []
-    for i in range(nl):
-        r = {
-            "v_name": filename,
-            "t": [],
-            "x": [],
-            "iz": [],  # zero crossing (peak) locations
-            "p_trace": [],
-            "tp_trace": [],
-            "n_trace": [],
-            "tn_trace": [],
-            "prd": [],
-            "t_mid_prd": [],
-            "p_trace_mid_prd": [],
-            "phase": [],
-            "rv": [],
-            "rvt": [],
-        }
-        r_list.append(r)
-    """
-    for i_column in range(nl):
-        if L and not os.path.isdir(L):
-            r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])"""
-    
     if phys_dat is None or len(phys_dat) == 0: # No BIDS style physio file
         # Read repiration/cardiac file into phys_dat
         phys_dat = []
-        with open(r["v_name"], "rb") as h:
+        with open(filename, "rb") as h:
             for entry in h:
                 phys_dat.append(float(entry))
             for line in h:
@@ -2931,7 +2869,7 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
         rvt_out:  Whether to have RVT output
             
     AUTHOR
-       JPeter Lauren
+       Josh Zosky and Peter Lauren
     """
     
     # Initialize outputs
@@ -2940,12 +2878,13 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     cardiac_file = None
     phys_cardiac_dat = []
             
-    # Handle file inputs
+    # Ensure there are no conflicting input file types
     # BIDS = Brain Imaging Data Structure
     if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
         or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
+        
     # Get the peaks for respiration_info and cardiac_info
     # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
     if phys_file:
