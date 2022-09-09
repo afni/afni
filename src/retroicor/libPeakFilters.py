@@ -7,7 +7,6 @@ Created on Thu Aug 25 14:46:15 2022
 """
 
 import numpy as np
-from numpy.fft import fft, ifft
 import math
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
@@ -62,7 +61,7 @@ def getTimeSeriesPeriod(rawData):
     
      # Note that nan values are removed from the input raw values
      limit = round(len(rawData)/2)
-     return len(rawData)/(1+np.argmax((abs(fft([x for x in rawData if math.isnan(x) == False]))[1:limit])))
+     return len(rawData)/(1+np.argmax((abs(np.fft.fft([x for x in rawData if math.isnan(x) == False]))[1:limit])))
  
 def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
                                            portion=0.25, period=None):

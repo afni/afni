@@ -1,9 +1,7 @@
 __authors__ = "Joshua Zosky and Peter Lauren"
 
 """
-    Copyright 2015 Joshua Zosky
     Copyright 2022 Peter Lauren
-    joshua.e.zosky@gmail.com
     peterdlauren@gmail.com
 
     This file contains all the library functions for "RetroTS2".
@@ -19,15 +17,13 @@ __authors__ = "Joshua Zosky and Peter Lauren"
     along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
     
         TODO:
-        - Modify formatting of docstrings
         - Align names of variables
 """
 
 import numpy as np
 import matplotlib as mpl
-from matplotlib import pyplot as plt 
 import math
-from scipy.signal import find_peaks
+import scipy
 import pandas as pd
 import gzip
 import json
@@ -124,7 +120,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # array = oldArray[0:200000]
    
    # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
-   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+   peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
     
    # Remove peaks that are less than the required percentile of the input signal
    peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
@@ -195,15 +191,15 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    mpl.pyplot.subplot(211)
    mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
    mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
-   plt.xlabel("Input data index")
-   plt.ylabel("Input data input value")
-   plt.title("Cardiac peaks (red) and raw input data (green)",\
+   mpl.pyplot.xlabel("Input data index")
+   mpl.pyplot.ylabel("Input data input value")
+   mpl.pyplot.title("Cardiac peaks (red) and raw input data (green)",\
                fontdict={'fontsize': 12})
         
    # Save plot to file
    global OutDir
-   plt.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
-   plt.show()  # If this is left out, output file is blank
+   mpl.pyplot.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
+   mpl.pyplot.show()  # If this is left out, output file is blank
     
    return peaks, len(rawData)
 
@@ -229,7 +225,7 @@ def getRespiratoryPeaks(parameters, rawData):
    oldArray = rawData
 
    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-   peaks, _ = find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+   peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
    
    # Remove peaks that are less than the 10th percentile of the input signal
    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
@@ -253,7 +249,7 @@ def getRespiratoryPeaks(parameters, rawData):
    threshold = period/4
    peaks = peaks[intervals>=threshold]
 
-   troughs, _ = find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+   troughs, _ = scipy.signal.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
    # Get trough values
    troughVals = []
@@ -323,15 +319,15 @@ def getRespiratoryPeaks(parameters, rawData):
    mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
    mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
    mpl.pyplot.plot(troughs, troughVals, "bo") # Peaks
-   plt.xlabel("Input data index")
-   plt.ylabel("Input data input value")
-   plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
+   mpl.pyplot.xlabel("Input data index")
+   mpl.pyplot.ylabel("Input data input value")
+   mpl.pyplot.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
                fontdict={'fontsize': 10})
         
    # Save plot to file
    global OutDir
-   plt.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
-   plt.show()  # If this is left out, output file is blank
+   mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
+   mpl.pyplot.show()  # If this is left out, output file is blank
     
    return peaks, troughs, len(rawData)
 
@@ -393,18 +389,18 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(peaks)))
     for i in range(0,end): x.append(i/phys_fs)
-    fig, ax_left = plt.subplots()
-    plt.xlabel("Time (s)")
-    plt.ylabel('Input data input value',color='g')
+    fig, ax_left = mpl.pyplot.subplots()
+    mpl.pyplot.xlabel("Time (s)")
+    mpl.pyplot.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
     ax_right.plot(x, phases[0:end], color='red')
     ax_left.plot(x, rawData[0:end], color='green')
-    plt.ylabel('Phase (Radians)',color='r')
-    plt.title("Cardiac phase (red) and raw input data (green)")
+    mpl.pyplot.ylabel('Phase (Radians)',color='r')
+    mpl.pyplot.title("Cardiac phase (red) and raw input data (green)")
         
     # Save plot to file
-    plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-    plt.show()
+    mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+    mpl.pyplot.show()
             
     return phases
 
@@ -614,18 +610,18 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
     for i in range(0,end): x.append(i/phys_fs)
-    fig, ax_left = plt.subplots()
-    plt.xlabel("Time (s)")
-    plt.ylabel('Input data input value',color='g')
+    fig, ax_left = mpl.pyplot.subplots()
+    mpl.pyplot.xlabel("Time (s)")
+    mpl.pyplot.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
     ax_right.plot(x, phases[0:end], color='red')
     ax_left.plot(x, rawData[0:end], color='green')
-    plt.ylabel('Phase (Radians)',color='r')
-    plt.title("Respiratory phase (red) and raw input data (green)")
+    mpl.pyplot.ylabel('Phase (Radians)',color='r')
+    mpl.pyplot.title("Respiratory phase (red) and raw input data (green)")
         
     # Save plot to file
-    plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-    plt.show()
+    mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+    mpl.pyplot.show()
     
         
     return phases

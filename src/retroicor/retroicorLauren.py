@@ -9,27 +9,27 @@ __author__ = "Peter Lauren" # Modified a bit by gianfranco
     Copyright 2022 Peter Lauren
     peterdlauren@gmail.com
 
-    "RetroTS2" is free software: you can redistribute it and/or modify
+    "retroicorLauren" is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    "RetroTS2" is distributed in the hope that it will be useful,
+    "retroicorLauren2" is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
-    along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
+    along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
         - Make demo scripts
-        - Simplify reading function
-        - Align names of variables
-        - Add plot font size as command line option
-        - quiet switch?
         - Add to box:
             - Samples (input files)
             - Scripts that run samples with options we want
             - Physio measure files
+        - Simplify reading function
+        - Align names of variables
+        - Add plot font size as command line option
+        - quiet switch?
         - Offset for every slice relative to TR
         - alt-Z (alternating positive and megative z-direction)
         - Multiband (multiple slices at same point)
@@ -75,7 +75,7 @@ Major blocks of calculation:
 """
 
 import sys
-from numpy import zeros, size, savetxt, column_stack, shape, array
+import numpy as np
 import lib_retroicor
 from lib_retroicor import getPhysiologicalNoiseComponents, getInputFileParameters
 import os
@@ -278,7 +278,7 @@ def retro_ts(
     """
     NAME
         retro_ts
-            Main function for RetroTS2
+            Main function for retroicorLauren2
         
     TYPE
         <class 'int'>
@@ -373,7 +373,7 @@ def retro_ts(
         legacy_transform:   Important-this will specify whether you use the
         original Matlab code's version (1) or the potentially bug-corrected
         version (0) for the final phase correction in
-        lib_RetroTS/RVT_from_PeakFinder.py
+        lib_retroicor/RVT_from_PeakFinder.py
         (default is 0)
         
         phys_file: BIDS formatted physio file in tab separated format. May
@@ -404,7 +404,7 @@ def retro_ts(
     lib_retroicor.setOutputDirectory(OutDir)
 
     if not slice_offset:
-        slice_offset = zeros((1, number_of_slices))
+        slice_offset = np.zeros((1, number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
     print('Update slice offsets.  Note that this is done before teh data is read')
@@ -473,14 +473,14 @@ This function creates slice-based regressors for regressing out components of
     heart rate, respiration and respiration volume per time.
 
 Windows Example:
-C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Mac/Linux Example:
-/usr/afni/python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+/usr/afni/python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Input
 ================================================================================
-    RetroTS.py can be run with independent respiration and cardiac data files
+    retroicorLauren.py can be run with independent respiration and cardiac data files
     (Method 1), or with a BIDS formatted physio file and json (Method 2).
 
     Method 1:
@@ -538,7 +538,7 @@ Input
     ============================================================================
     quiet: Show talkative progress as the program runs
             (default is 1)
-    demo: Run demonstration of RetroTS
+    demo: Run demonstration of retroicorLauren
             (default is 0)
     show_graphs:
             (default is unset; set with any parameter to view)
@@ -563,25 +563,25 @@ Input
             For example, the following 4 commands would produce identical
             output, based on 10 slices using a (non-default) alt-z slice order:
 
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order alt-z
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order slice_offsets.txt
 
@@ -592,7 +592,7 @@ Input
     legacy_transform: Important-this will specify whether you use the
            original Matlab code's version (1) or the potentially bug-corrected
            version (0) for the final phase correction in
-           lib_RetroTS/RVT_from_PeakFinder.py
+           lib_retroicorLauren/RVT_from_PeakFinder.py
            (default is 0)
 
 Output:
@@ -603,7 +603,7 @@ Output:
     option "-prefix".
 
     Example:
-    C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
+    C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
         -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
 
         Output:
@@ -645,7 +645,7 @@ Output:
         print(
             "You need to provide parameters. If you need help, rerun the"
             'program using the "-help" argument:'
-            '\n"python RetroTS.py -help"'
+            '\n"python retroicorLauren.py -help"'
         )
         sys.exit() 
     else:
