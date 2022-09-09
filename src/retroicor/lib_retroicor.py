@@ -24,8 +24,8 @@ __authors__ = "Joshua Zosky and Peter Lauren"
 """
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt 
-from pylab import plot, subplot, show, figure, text
 import math
 from scipy.signal import find_peaks
 import pandas as pd
@@ -191,10 +191,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Graph cardiac peaks against cardiac time series
    peakVals = []
    for i in peaks: peakVals.append(rawData[i])
-   figure(1)
-   subplot(211)
-   plot(rawData, "g") #Lines connecting peaks and troughs
-   plot(peaks, peakVals, "ro") # Peaks
+   mpl.figure.Figure(figsize =(7,7))
+   mpl.pyplot.subplot(211)
+   mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
+   mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
    plt.xlabel("Input data index")
    plt.ylabel("Input data input value")
    plt.title("Cardiac peaks (red) and raw input data (green)",\
@@ -318,11 +318,11 @@ def getRespiratoryPeaks(parameters, rawData):
    for i in peaks: peakVals.append(rawData[i])
    troughVals = []
    for i in troughs: troughVals.append(rawData[i])
-   figure(1)
-   subplot(211)
-   plot(rawData, "g") #Lines connecting peaks and troughs
-   plot(peaks, peakVals, "ro") # Peaks
-   plot(troughs, troughVals, "bo") # Peaks
+   mpl.figure.Figure(figsize =(7,7))
+   mpl.pyplot.subplot(211)
+   mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
+   mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
+   mpl.pyplot.plot(troughs, troughVals, "bo") # Peaks
    plt.xlabel("Input data index")
    plt.ylabel("Input data input value")
    plt.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
