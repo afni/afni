@@ -883,19 +883,8 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
             
             slice_offset:   Vector of slice acquisition time offsets in seconds.
             
-            rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-            
-            interpolation_style:   Resampling kernel.
-            
-            frequency_cutoff:   Cutoff frequency for smoothing RVT
-            
             zero_phase_offset:Phase offset added to the location of each peak.
             Default is 0.0
-            
-            legacy_transform:   Important-this will specify whether you use the 
-            original Matlab code's version (1) or the potentially bug-corrected
-            version (0) for the final phase correction in
-            lib_RetroTS/RVT_from_PeakFinder.py  (default is 0)
             
         cardiac_info:   Dictionary with the following fields.
             

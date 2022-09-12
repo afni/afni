@@ -254,20 +254,15 @@ def retro_ts(
     OutDir=now_str,
     prefix="Output_File_Name",
     slice_offset=0,
-    rvt_shifts=list(range(0, 21, 5)),
-    respiration_cutoff_frequency=3,
-    cardiac_cutoff_frequency=3,
-    interpolation_style="linear",
     fir_order=40,
     quiet=1,
     demo=0,
-    rvt_out=1,
+    rvt_out=0,
     cardiac_out=1,
     respiration_out=1,
     slice_order="alt+z",
     show_graphs=1,
     zero_phase_offset=0,
-    legacy_transform=0,
     phys_file=None,
     phys_json=None,
     abt=False,
@@ -293,20 +288,15 @@ def retro_ts(
             OutDir=now_str,
             prefix="Output_File_Name",
             slice_offset=0,
-            rvt_shifts=list(range(0, 21, 5)),
-            respiration_cutoff_frequency=3,
-            cardiac_cutoff_frequency=3,
-            interpolation_style="linear",
             fir_order=40,
             quiet=1,
             demo=0,
-            rvt_out=1,
+            rvt_out=0,
             cardiac_out=1,
             respiration_out=1,
             slice_order="alt+z",
             show_graphs=1,
             zero_phase_offset=0,
-            legacy_transform=0,
             phys_file=None,
             phys_json=None,
             retroicor_algorithm=False,
@@ -331,22 +321,13 @@ def retro_ts(
         
         slice_offset:   Vector of slice acquisition time offsets in seconds.
         
-        rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-        
-        respiration_cutoff_frequency: Cut off frequency in Hz for respiratory lowpass filter
-        
-        cardiac_cutoff_frequency: : Cut off frequency in Hz for cardiac lowpass 
-        filter (default 3 Hz)
-        
-        interpolation_style:   Resampling kernel. 
-        
         fir_order:   Order of Finite Impulse Response (FIR) filter
         
         quiet:   0 if show graphs. 1 if do not show graphs
         
         demodemo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
         
-        rvt_out: Flag for writing RVT regressors (default is 1)
+        rvt_out: Flag for writing RVT regressors (default is 0)
         
         cardiac_out: Flag for writing Cardiac regressors (default is 1)
         
@@ -369,12 +350,6 @@ def retro_ts(
         
         zero_phase_offset:Phase offset added to the location of each peak.
         Default is 0.0
-        
-        legacy_transform:   Important-this will specify whether you use the
-        original Matlab code's version (1) or the potentially bug-corrected
-        version (0) for the final phase correction in
-        lib_retroicor/RVT_from_PeakFinder.py
-        (default is 0)
         
         phys_file: BIDS formatted physio file in tab separated format. May
         be gzipped.
@@ -491,9 +466,6 @@ Input
     numSlices: (number_of_slices) Number of slices
     volume_tr: (volume_tr) Volume repetition time (TR) which defines the length of time 
     between the acquisition of consecutive frames/volumes; in seconds
-    Note:   These parameters are the only single-letter parameters, as they are
-            mandatory and frequently typed. The following optional parameters
-            must be fully spelled out.
 
     Method 2:
     ---------
@@ -502,8 +474,7 @@ Input
     phys_json: BIDS formatted physio metadata json file. If not specified
             the json corresponding to the phys_file will be loaded.
     numSlices: (number_of_slices) Number of slices
-    v: (volume_tr) Volume TR in seconds
-
+    volume_tr: Volume TR in seconds
 
     Optional:
     ---------
@@ -515,26 +486,12 @@ Input
     ============================================================================
     prefix: Prefix of output file
     ============================================================================
-    rvt_shifts: Vector of shifts in seconds of RVT signal.
-            (default is [0:5:20])
-    rvt_out: Flag for writing RVT regressors
-            (default is 1)
-    ============================================================================
-    respiration_cutoff_frequency: Cut off frequency in Hz for
-            respiratory lowpass filter
-            (default 3 Hz)
-    cardiac_cutoff_frequency: Cut off frequency in Hz for
-            cardiac lowpass filter
-            (default 3 Hz)
     cardiac_out: Flag for writing Cardiac regressors
             (default is 1)
     respiration_out: Flag for writing Respiratory regressors
             (default is 1)
-    ============================================================================
-    interpolation_style: Resampling kernel.
-            (default is 'linear', see help interp1 for more options)
-    fir_order: Order of FIR filter.
-            (default is 40)
+    rvt_out: Flag for writing RVT regressors
+            (default is 0)
     ============================================================================
     quiet: Show talkative progress as the program runs
             (default is 1)
@@ -588,18 +545,11 @@ Input
 
     ============================================================================
     zero_phase_offset:
-    ============================================================================
-    legacy_transform: Important-this will specify whether you use the
-           original Matlab code's version (1) or the potentially bug-corrected
-           version (0) for the final phase correction in
-           lib_retroicorLauren/RVT_from_PeakFinder.py
-           (default is 0)
 
 Output:
 ================================================================================
-    Files saved to same folder based on selection for "-respiration_out" and
-    "-cardiac_out". If these options are enabled, than the data will be written
-    to a single output file based on the filename assigned to the
+    The output data will be written
+    to a single output file based on the file root-name assigned to the
     option "-prefix".
 
     Example:
@@ -619,21 +569,16 @@ Output:
         "-OutDir": now_str,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
-        "-rvt_shifts": list(range(0, 21, 5)),
-        "-respiration_cutoff_frequency": 3,
-        "-cardiac_cutoff_frequency": 3,
-        "-interpolation_style": "linear",
         "-fir_order": 40,
         "-quiet": 1,
         "-demo": 0,
         "-debug": False,
-        "-rvt_out": 1,
+        "-rvt_out": 0,
         "-cardiac_out": 1,
         "-respiration_out": 1,
         "-slice_order": "alt+z",
         "-show_graphs": 1,
         "-zero_phase_offset": 0,
-        "-legacy_transform": 0,
         "-phys_file":None,
         "-phys_json":None,
         "-abt": False,
@@ -683,10 +628,6 @@ Output:
         OutDir=opt_dict["-OutDir"],
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],
-        rvt_shifts=opt_dict["-rvt_shifts"],
-        respiration_cutoff_frequency=opt_dict["-respiration_cutoff_frequency"],
-        cardiac_cutoff_frequency=opt_dict["-cardiac_cutoff_frequency"],
-        interpolation_style=opt_dict["-interpolation_style"],
         fir_order=opt_dict["-fir_order"],
         quiet=opt_dict["-quiet"],
         demo=opt_dict["-demo"],
@@ -696,7 +637,6 @@ Output:
         slice_order=opt_dict["-slice_order"],
         show_graphs=opt_dict["-show_graphs"],
         zero_phase_offset=opt_dict["-zero_phase_offset"],
-        legacy_transform=opt_dict["-legacy_transform"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],
         abt=opt_dict["-abt"],
