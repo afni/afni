@@ -205,131 +205,101 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
 
 
 def getRespiratoryPeaks(parameters, rawData):
-   """
-   NAME
-       getRespiratoryPeaks
-           Get peaks from repiratory time series supplied as an ASCII 
-           file with one time series entry per line
+    """
+    NAME
+    getRespiratoryPeaks
+    Get peaks from repiratory time series supplied as an ASCII 
+    file with one time series entry per line
     TYPE
-        <class 'numpy.ndarray'>, int
-   SYNOPSIS
-       respFile(parameters)
-   ARGUMENTS
-       parameters:   dictionary of input parameters which includes the following fields.
-       
-           -respFile: repiratory input file
-   AUTHOR
-       Peter Lauren
-   """
-   
-   oldArray = rawData
-
-   # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-   peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
-   
-   # Remove peaks that are less than the 10th percentile of the input signal
-   peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
-
-   # Estimate the overall typical period 
-   period = lpf.getTimeSeriesPeriod(rawData)      
-   
-   # Remove "peaks" that are less than the raw input a quarter of a period on right side
-   # This is tomove false peaks on the upstroke
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
-   
-   # Remove false peaks on the downstroke
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
-           
-   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
-   
-   # Merge peaks that are closer than one quarter of the overall typical period
-   intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-   intervals.insert(0,round(period))
-   threshold = period/4
-   peaks = peaks[intervals>=threshold]
-
-   troughs, _ = scipy.signal.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+    <class 'numpy.ndarray'>, int
+    SYNOPSIS
+    respFile(parameters)
+    ARGUMENTS
+    parameters:   dictionary of input parameters which includes the following fields.
     
-   # Get trough values
-   troughVals = []
-   for i in troughs: troughVals.append(rawData[i])
+    -respFile: repiratory input file
+    AUTHOR
+    Peter Lauren
+    """
    
-   # Remove troughs that are more than the 90th percentile of the input signal
-   troughs = lpf.percentileFilter(troughs, rawData, 90, upperThreshold=True)
-
-   # Get trough values
-   troughVals = []
-   for i in troughs: troughVals.append(rawData[i])
-   
-   # Remove "troughs" that are greater than the raw input a quarter of a period on right side
-   # This is to remove false troughs on the upstroke
-   searchLength = round(period/4)
-   searchLength = min(searchLength, troughs[0] - 1)
-   searchLength = min(searchLength, len(rawData) - troughs[-1] - 1)
-   diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in troughs]
-   if len(diff) > 0: troughs = troughs[diff <= np.float64(0)]
-   
-   # Remove false troughs on the downstroke
-   shiftArray = rawData[searchLength:]
-   shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
-   diff = [rawData[x] - shiftArray[x] for x in troughs]
-   troughs = troughs[diff <= np.float64(0)]
-   
-   # Get trough values
-   troughVals = []
-   for i in troughs: troughVals.append(rawData[i])
-           
-   # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
-   watersheds = [((j-i)+(j-k))/2 for i, j, k in zip(troughVals[:-1], troughVals[1:], troughVals[2:])]
-   fromLocalMax = [j-max(rawData[i:k]) for i, j, k in zip(troughs[:-1], troughVals[1:], troughs[2:])]
-   ratios = [i/j for i,j in zip(watersheds,fromLocalMax)]
-   ratios.insert(0,0)
-   ratios.append(0)
-   threshold = np.float64(4.0)
-   troughs = troughs[ratios<threshold]
-
-   # Merge troughs that are closer than one quarter of the overall typical period
-   intervals = [j-i for i, j in zip(troughs[:-1], troughs[1:])]
-   intervals.insert(0,round(period))
-   threshold = period/4
-   troughs = troughs[intervals>=threshold]
-   
-   # Remove extra peaks bewteen troughs and troughs between peaks
-   peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
-   
-   # Filter peaks and troughs.  Reject peak/trough pairs where
-   #    difference is less than one tenth of the total range
-   # nPeaks = len(peaks)
-   # nTroughs = len(troughs)
-   # minNum = min(nPeaks,nTroughs)
-   # ptPairs = [rawData[peaks[x]]-rawData[troughs[x]] for x in range(0,minNum)]
-   # threshold = (max(rawData)-min(rawData))/10
-   # indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
-   # peaks = np.delete(peaks,indices2remove)
-   # troughs = np.delete(troughs,indices2remove)
-               
-   # Graph respiratory peaks and troughs against respiratory time series
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
-   troughVals = []
-   for i in troughs: troughVals.append(rawData[i])
-   mpl.figure.Figure(figsize =(7,7))
-   mpl.pyplot.subplot(211)
-   mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
-   mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
-   mpl.pyplot.plot(troughs, troughVals, "bo") # Peaks
-   mpl.pyplot.xlabel("Input data index")
-   mpl.pyplot.ylabel("Input data input value")
-   mpl.pyplot.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
-               fontdict={'fontsize': 10})
-        
-   # Save plot to file
-   global OutDir
-   mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
-   mpl.pyplot.show()  # If this is left out, output file is blank
+    oldArray = rawData
     
-   return peaks, troughs, len(rawData)
+    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
+    peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+    
+    # Remove peaks that are less than the 10th percentile of the input signal
+    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
+    
+    # Estimate the overall typical period 
+    period = lpf.getTimeSeriesPeriod(rawData)      
+    
+    # Remove "peaks" that are less than the raw input a quarter of a period on right side
+    # This is tomove false peaks on the upstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
+    
+    # Remove false peaks on the downstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
+    
+    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
+    
+    # Merge peaks that are closer than one quarter of the overall typical period
+    peaks = lpf.removeClosePeaks(peaks, period)
+    
+    troughs, _ = scipy.signal.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+    
+    # Remove troughs that are more than the 90th percentile of the input signal
+    troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True)
+    
+    # Remove "troughs" that are greater than the raw input a quarter of a period on right side
+    # This is to remove false troughs on the upstroke
+    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, period=period)
+    
+    # Remove false troughs on the downstroke
+    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData,\
+            period=period, direction = 'left')
+    
+    # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
+    troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData)
+    
+    # Merge troughs that are closer than one quarter of the overall typical period
+    troughs = lpf.removeClosePeaks(troughs, period)
+    
+    # Remove extra peaks bewteen troughs and troughs between peaks
+    peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+    
+    # Filter peaks and troughs.  Reject peak/trough pairs where
+    #    difference is less than one tenth of the total range
+    # nPeaks = len(peaks)
+    # nTroughs = len(troughs)
+    # minNum = min(nPeaks,nTroughs)
+    # ptPairs = [rawData[peaks[x]]-rawData[troughs[x]] for x in range(0,minNum)]
+    # threshold = (max(rawData)-min(rawData))/10
+    # indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
+    # peaks = np.delete(peaks,indices2remove)
+    # troughs = np.delete(troughs,indices2remove)
+    
+    # Graph respiratory peaks and troughs against respiratory time series
+    peakVals = []
+    for i in peaks: peakVals.append(rawData[i])
+    troughVals = []
+    for i in troughs: troughVals.append(rawData[i])
+    mpl.figure.Figure(figsize =(7,7))
+    mpl.pyplot.subplot(211)
+    mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
+    mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
+    mpl.pyplot.plot(troughs, troughVals, "bo") # Peaks
+    mpl.pyplot.xlabel("Input data index")
+    mpl.pyplot.ylabel("Input data input value")
+    mpl.pyplot.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
+    fontdict={'fontsize': 10})
+         
+    # Save plot to file
+    global OutDir
+    mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
+    mpl.pyplot.show()  # If this is left out, output file is blank
+     
+    return peaks, troughs, len(rawData)
 
 def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     """

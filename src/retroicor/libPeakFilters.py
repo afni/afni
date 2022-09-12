@@ -47,7 +47,7 @@ def getTimeSeriesPeriod(rawData):
      """
      NAME
          getTimeSeriesPeriod
-             Get overall typical period of time series in time series index units 
+             Get overall typical period of raw data in time series index units 
          
       TYPE
           <class 'numpy.float64'>
@@ -104,6 +104,47 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     
     return peaks
 
+def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', 
+                                           portion=0.25, period=None):
+    """
+    NAME
+        removeTroughsCloseToLowerPointInRawData
+            Remove troughs with values greater than the minimum raw input data in a 
+            specified portion of the overall period of the input data, from the 
+            peak, in the specified direction            
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', portion=0.25, period=None)
+    ARGUMENTS
+        troughs:   Array of trough locations in raw data indices.
+        
+        rawData: Raw input data
+        
+        direction: Direction to look for lower point in raw data.  Options are
+            'right' or 'left'.  Default = 'right'.  That is, it aims to remove 
+            minor troughs on the falling side of a deeper trough
+                            
+        portion: Portion of period that defines the offset from the peak.  Default
+            is 0.25.  That is a quarter of the period
+            
+        period: Overall period of the raw data if known.  The default is that this
+            is not supplied and is estimated by the function
+    AUTHOR
+        Peter Lauren
+    """
+    
+    if not period:
+        period = getTimeSeriesPeriod(rawData)
+        
+    searchLength = round(period/4)
+    searchLength = min(searchLength, troughs[0] - 1)
+    searchLength = min(searchLength, len(rawData) - troughs[-1] - 1)
+    diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in troughs]
+    if len(diff) > 0: troughs = troughs[diff <= np.float64(0)]
+    
+    return troughs
+
 def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=4.0):
     """
     NAME
@@ -115,7 +156,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
          <class 'numpy.ndarray'>
     SYNOPSIS
         removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
-        portion=0.25, period=None)
+        portion=0.25)
     ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         
@@ -139,6 +180,41 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
     ratios.append(0)
     threshold = np.float64(-denominator)
     return peaks[ratios>threshold]
+
+def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denominator=4.0):
+    """
+    NAME
+        removeTroughsCloserToLocalMaxsThanToAdjacentTroughs
+            Remove troughs with values greater than the minimum raw input data in a 
+            specified portion of the overall period of the input data, from the 
+            trough, in the specified direction            
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denominator=4.0)
+    ARGUMENTS
+        peaks:   Array of trough locations in raw data indices.
+        
+        rawData: Raw input data
+        
+        denominator: Number by which to divide the current amplitude to determine 
+        the upper threshold of the accepitable trough value
+    AUTHOR
+        Peter Lauren
+    """
+
+    # Get trough values
+    troughVals = []
+    for i in troughs: troughVals.append(rawData[i])
+           
+    # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
+    watersheds = [((j-i)+(j-k))/2 for i, j, k in zip(troughVals[:-1], troughVals[1:], troughVals[2:])]
+    fromLocalMax = [j-max(rawData[i:k]) for i, j, k in zip(troughs[:-1], troughVals[1:], troughs[2:])]
+    ratios = [i/j for i,j in zip(watersheds,fromLocalMax)]
+    ratios.insert(0,0)
+    ratios.append(0)
+    threshold = np.float64(4.0)
+    return troughs[ratios<threshold]
 
 def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     """
@@ -221,5 +297,34 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
         peaks = np.delete(peaks,peakGroup)
         
     return peaks, troughs
+
+def removeClosePeaks(peaks, period, denominator=4):
+    """
+    NAME
+        removeClosePeaks
+            Remove peaks (or troughs) that are closer than period/demonominator
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        removeClosePeaks(peaks, period, denominator=4)
+    ARGUMENTS
+        peaks:   Array of peak locations in raw data indices.
+        
+        period:   Overall typical period of raw data in time series index units.
+        
+        denominator: Number by which to divide the period in order to determine
+        the minimum acceptable separation
+    RETURNS
+        filtered peaks (or troughs)
+    AUTHOR
+        Peter Lauren
+    """
+    
+    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+    intervals.insert(0,round(period))
+    threshold = period/4
+    return peaks[intervals>=threshold]
+
+    
 
     
