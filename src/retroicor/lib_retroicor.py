@@ -22,8 +22,11 @@ __authors__ = "Joshua Zosky and Peter Lauren"
 
 import numpy as np
 import matplotlib as mpl
+from matplotlib import figure as mplf
+import matplotlib.pyplot as plt
 import math
 import scipy
+from scipy import signal as sps
 import pandas as pd
 import gzip
 import json
@@ -119,8 +122,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
-   # Get initial peaks using window that is an eighth of a second  (HR <+ 480 BPM)
-   peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+   # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
+   peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
     
    # Remove peaks that are less than the required percentile of the input signal
    peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
@@ -187,7 +190,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Graph cardiac peaks against cardiac time series
    peakVals = []
    for i in peaks: peakVals.append(rawData[i])
-   mpl.figure.Figure(figsize =(7,7))
+   mplf.Figure(figsize =(7,7))
    mpl.pyplot.subplot(211)
    mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
    mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
@@ -225,7 +228,7 @@ def getRespiratoryPeaks(parameters, rawData):
     oldArray = rawData
     
     # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-    peaks, _ = scipy.signal.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+    peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
     
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
@@ -246,7 +249,7 @@ def getRespiratoryPeaks(parameters, rawData):
     # Merge peaks that are closer than one quarter of the overall typical period
     peaks = lpf.removeClosePeaks(peaks, period)
     
-    troughs, _ = scipy.signal.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+    troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
     # Remove troughs that are more than the 90th percentile of the input signal
     troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True)
@@ -284,7 +287,7 @@ def getRespiratoryPeaks(parameters, rawData):
     for i in peaks: peakVals.append(rawData[i])
     troughVals = []
     for i in troughs: troughVals.append(rawData[i])
-    mpl.figure.Figure(figsize =(7,7))
+    mplf.Figure(figsize =(7,7))
     mpl.pyplot.subplot(211)
     mpl.pyplot.plot(rawData, "g") #Lines connecting peaks and troughs
     mpl.pyplot.plot(peaks, peakVals, "ro") # Peaks
