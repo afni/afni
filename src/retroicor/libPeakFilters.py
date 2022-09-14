@@ -18,7 +18,7 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        getCardiacPeaks(parameters)
+        getCardiacPeaks(peaks, rawData, percentile, upperThreshold=False)
     ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         
@@ -42,6 +42,60 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
     threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
     if upperThreshold: return peaks[peakVals <= threshold]
     return peaks[peakVals >= threshold]
+
+def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False):
+    """
+    NAME
+        localPercentileFilter
+            Filter peaks based on local percentile of raw data
+            
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        getCardiacPeaks(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False)
+    ARGUMENTS
+        peaks:   Array of peak locations in raw data indices.
+        
+        rawData: Raw input data
+        
+        percentile: Minimum (or maximum) percentile of raw data for a peak 
+                            value to imply a valid peak (or trough)
+                            
+        period: Overall typical period of raw data in time series index units.
+                Default is none, meaning the period is determined from the raw data.
+        
+        numPeriods: Number of periods defining the local neighborhood over which
+                            the percentile is determined.  Default is 4.
+                            
+        upperThreshold: Whether the threshold is the maximum acceptable value.  
+                        Default is False meaning it is the minimum acceptable value
+    AUTHOR
+        Peter Lauren
+    """
+    
+    if not period:
+        period = getTimeSeriesPeriod(rawData)
+  
+    # Get peak values
+    peakVals = []
+    for i in peaks: peakVals.append(rawData[i])
+    
+    halfWindowWidth = round(period * numPeriods/2)
+    upperLimit = len(rawData) - 1
+    thresholds = []
+    for peak in peaks:
+        Min = max(0,peak - halfWindowWidth)
+        Max = min(upperLimit,peak + halfWindowWidth)
+        thresholds.append(np.percentile([x for x in rawData[Min:Max] if math.isnan(x) == False], percentile))
+
+    if upperThreshold: return peaks[np.array(peakVals) <= np.array(thresholds)]
+    return peaks[np.array(peakVals) >= np.array(thresholds)]
+    
+    # Remove peaks that are less than the the required percentile of the input signal
+    # Note that any nan values are first filtered out of the input signal
+    # threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
+    # if upperThreshold: return peaks[peakVals <= threshold]
+    # return peaks[peakVals >= threshold]
 
 def getTimeSeriesPeriod(rawData):
      """

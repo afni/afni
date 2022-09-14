@@ -126,7 +126,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
     
    # Remove peaks that are less than the required percentile of the input signal
-   peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
+   # peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile)
 
    # Estimate the overall typical period       
    # limit = round(len(rawData)/2)
