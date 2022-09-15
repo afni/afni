@@ -129,7 +129,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/10))
-   # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
+   peaks2, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
+   
+   # Adjust peaks from uniform spacing
+   peaks = lpf.refinePeakLocations(peaks, rawData, period = None)
     
    # Remove peaks that are less than the required percentile of the local input signal
    peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3)

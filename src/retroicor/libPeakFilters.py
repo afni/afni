@@ -442,6 +442,49 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True,
         mpl.pyplot.show()
         
     return filteredRawData
+
+def refinePeakLocations(peaks, rawData, period = None):
+    """
+    NAME
+        refinePeakLocations
+            Adjust peaks to correspond to local maxima.  This is usually necessary if the 
+            peaks were.Determined from a band-pass filtered version of the inut raw data where
+            the peaks are uniformly spaced based on the overall typical period of raw data
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        refinePeakLocations(peaks, rawData, period = None) 
+    ARGUMENTS
+        peaks: Array of peaks to be refined
+        
+        rawData: Raw input data
+        
+        period: Overall typical period of raw data in time series index units.
+                Default is none, meaning the period is determined from the raw data.
+    AUTHOR
+        Peter Lauren
+    """
+    
+    # Find period if not supplied
+    if not period:
+        period = getTimeSeriesPeriod(rawData)
+
+    # Determine half window width
+    helfWWindowWidth = round(period/4)
+    
+    # Determine offsets
+    offsets = []
+    for peak in peaks:
+        start = peak-helfWWindowWidth
+        finish = peak+helfWWindowWidth
+        offsets.append(np.argmax(rawData[start:finish])-helfWWindowWidth)
+            
+    # Apply offsets
+    peaks = peaks + offsets
+    
+    return peaks
+
+        
         
 
     
