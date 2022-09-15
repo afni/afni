@@ -381,6 +381,27 @@ def removeClosePeaks(peaks, period, denominator=4):
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, 
         prefix = 'BPFilteredCardiacInput', OutDir = '.') :
+    """
+    NAME
+        bandPassFilterRawDataAroundDominantFrequency
+            Band pass filter raw data based on overall typical period of raw data 
+            in time series index units.            
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, 
+                prefix = 'BPFilteredCardiacInput', OutDir = '.') 
+    ARGUMENTS
+        rawData: Raw input data
+        
+        graph: Whether to graph the results and save the graphs to a file
+        
+        prefix: prefix of output file if graph set to True
+                            
+        OutDir: Output directory for graphs if graph set to True
+    AUTHOR
+        Peter Lauren
+    """
     
     rawDataLength = len(rawData)
     
