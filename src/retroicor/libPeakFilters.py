@@ -8,6 +8,9 @@ Created on Thu Aug 25 14:46:15 2022
 
 import numpy as np
 import math
+import matplotlib as mpl
+from matplotlib import figure as mplf
+import matplotlib.pyplot as plt
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
     """
@@ -73,6 +76,7 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         Peter Lauren
     """
     
+    # Estimate period from raw data if not supplied
     if not period:
         period = getTimeSeriesPeriod(rawData)
   
@@ -80,6 +84,7 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     peakVals = []
     for i in peaks: peakVals.append(rawData[i])
     
+    # Determine local percentil-based threshold around each peak
     halfWindowWidth = round(period * numPeriods/2)
     upperLimit = len(rawData) - 1
     thresholds = []
@@ -88,14 +93,9 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         Max = min(upperLimit,peak + halfWindowWidth)
         thresholds.append(np.percentile([x for x in rawData[Min:Max] if math.isnan(x) == False], percentile))
 
+    # Apply local percentile filter
     if upperThreshold: return peaks[np.array(peakVals) <= np.array(thresholds)]
     return peaks[np.array(peakVals) >= np.array(thresholds)]
-    
-    # Remove peaks that are less than the the required percentile of the input signal
-    # Note that any nan values are first filtered out of the input signal
-    # threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
-    # if upperThreshold: return peaks[peakVals <= threshold]
-    # return peaks[peakVals >= threshold]
 
 def getTimeSeriesPeriod(rawData):
      """
@@ -378,6 +378,50 @@ def removeClosePeaks(peaks, period, denominator=4):
     intervals.insert(0,round(period))
     threshold = period/4
     return peaks[intervals>=threshold]
+
+def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, 
+        prefix = 'BPFilteredCardiacInput', OutDir = '.') :
+    
+    rawDataLength = len(rawData)
+    
+    # Get Fourier transform
+    FourierTRansform = np.fft.fft(rawData)
+    
+    # Determine frequency peak
+    frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[0:round(rawDataLength/2)])
+    
+    # Determine band limits
+    lowerMin = round(frequencyPeak/2)
+    lowerMax = round(1.5*frequencyPeak)
+    upperMin = rawDataLength - lowerMax
+    upperMax = rawDataLength - lowerMin
+    
+    # Zero part of FT outside limits
+    filterArray = np.zeros(len(rawData))
+    filterArray[lowerMin:lowerMax] = 1
+    filterArray[upperMin:upperMax] = 1
+    filteredFT = FourierTRansform * filterArray
+    
+    # Get IFT
+    filteredRawData = np.fft.ifft(filteredFT)
+    
+    # Plot result agains raw data
+    if graph:
+        fig, ax_left = mpl.pyplot.subplots()
+        mpl.pyplot.xlabel("Time Points")
+        mpl.pyplot.ylabel('Input data input value',color='g')
+        ax_right = ax_left.twinx()
+        ax_right.plot(filteredRawData, color='red')
+        ax_left.plot(rawData, color='green')
+        mpl.pyplot.ylabel('Filtered Data Value',color='r')
+        mpl.pyplot.title("BP Filtered (red) and raw input data (green)")
+            
+        # Save plot to file
+        mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+        mpl.pyplot.show()
+        
+    return filteredRawData
+        
 
     
 

@@ -122,12 +122,17 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
+   global OutDir
+
+   # Band pass filter raw data
+   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, OutDir=OutDir)
+   
    # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
-   peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
+   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/10))
+   # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
     
-   # Remove peaks that are less than the required percentile of the input signal
-   # peaks = lpf.percentileFilter(peaks, rawData, filterPercentile)
-   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile)
+   # Remove peaks that are less than the required percentile of the local input signal
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3)
 
    # Estimate the overall typical period       
    # limit = round(len(rawData)/2)
@@ -173,20 +178,20 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    
            
-   #  # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
+     # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
    # interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
    # minSep = min(interpeak)
    # Threshold = minSep * 2
    # numPeaks = len(peaks)
    # for p in range(numPeaks-2,-1,-1):
-   #     if interpeak[p] > Threshold:
-   #         numberToAdd = int(round(interpeak[p]/minSep))
-   #         sep = round(interpeak[p]/numberToAdd)
-   #         if sep < minSep:
-   #             numberToAdd = numberToAdd - 1
-   #             sep = round(interpeak[p]/numberToAdd)               
-   #         for i in range(1,numberToAdd):
-   #             peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+   #      if interpeak[p] > Threshold:
+   #          numberToAdd = int(round(interpeak[p]/minSep))
+   #          sep = round(interpeak[p]/numberToAdd)
+   #          if sep < minSep:
+   #              numberToAdd = numberToAdd - 1
+   #              sep = round(interpeak[p]/numberToAdd)               
+   #          for i in range(1,numberToAdd):
+   #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
                
    # Graph cardiac peaks against cardiac time series
    peakVals = []
@@ -201,7 +206,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
                fontdict={'fontsize': 12})
         
    # Save plot to file
-   global OutDir
    mpl.pyplot.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
    mpl.pyplot.show()  # If this is left out, output file is blank
     
