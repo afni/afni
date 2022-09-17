@@ -326,7 +326,7 @@ def prepare_afni_output(dset, suffix, view=None, basepath=None):
     return o
 
 
-def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
+def run_check_afni_cmd(cmd_str, ps, in_dict, message="", capture=0):
     """
     run afni command and check if afni output dataset exists
     return the same output dataset if it exists, otherwise return None
@@ -373,7 +373,7 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
 
     else:
         # generate the shell_com object that executes the command:
-        shell_obj = ShellComFuture(cmd_str, eo=ps.oexec)
+        shell_obj = ShellComFuture(cmd_str, eo=ps.oexec,capture=capture)
         need_stdout = False
 
     # Set the criteria for "executing" the command:
@@ -412,7 +412,7 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
             ]
             raise RuntimeError(
                 "%s \n After running the above command the following "
-                "expected files were not found: \n %s"
+                "expected files were not found: \n%s"
                 % (cmd_str, "\n".join(missing_files))
             )
     # Command was run and outputs exist. All is good.
@@ -522,6 +522,9 @@ class PipelineConfig:
         self.valid_opts.add_opt(
             "-resize_base", 1, [], helpstr="Name of resizing dataset"
         )
+
+        self.valid_opts.add_opt('-data_format', 1, ["NIFTI"],["NIFTI","AFNI","BRIK"],
+                                helpstr="Output data format")
 
         self.valid_opts.add_opt(
             "-keep_rm_files",
@@ -1024,6 +1027,13 @@ class PipelineConfig:
         if opt != None:
             self.ok_to_exist = 1
 
+        # select output format to be NIFTI or AFNI
+        opt = self.user_opts.find_opt('-data_format')
+        if opt != None:
+            self.data_format = opt.parlist[0]
+            if((opt == "") or (opt == " ")):
+                self.error_msg("Must provide NIFTI,AFNI/BRIK for data_format type")
+
         # center alignment is on by default
         opt = self.user_opts.find_opt("-no_center")
         if opt != None:
@@ -1234,6 +1244,7 @@ class TemplateConfig(PipelineConfig):
         # software version (update for changes)
         self.make_template_version = "0.05"
         self.daskmode = "None"  # which kind of Dask parallelization, none by default
+        self.data_format = "NIFTI" # output in NIFTI format
 
         self.do_skullstrip = 1  # steps to do
         self.do_unifize = 1
