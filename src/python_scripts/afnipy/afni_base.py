@@ -3,6 +3,8 @@
 # python3 status: started
 
 import os, sys, glob, operator, string, re
+from pprint import pformat
+from pathlib import Path
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
@@ -11,12 +13,62 @@ valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
 
+
+
+
+
+def check_for_strict_name(initname):
+    """
+    Check that the dset conforms to more stringent constraints.
+    These constraints represent a subset of AFNI's command line functionality
+    but prove useful for chaining together tools into pipelines when work with
+    Python. An error is raised if
+    + the dset object is not of type NIFTI or BRIK, as defined by afni_name.
+    + no file format extension is provided with the filename
+    + if the type is BRIK and the .HEAD extension is used or if the view
+      is not specified.
+    + if the type is NIFTI and the view is specified.
+
+    Parameters
+    ----------
+    dset : output of afni_python.afni_base.afni_name
+    """
+
+    # path must be relative
+    #if Path(initname).is_absolute():
+    #    raise ValueError("For strict dataset objects the name of the object at"
+    #    " initialization must be relative, not absolute.")
+
+
+    res = parse_afni_name(initname)
+    if res['extension'] == '':
+        raise ValueError(
+            "File extensions must be defined for datasets "
+            "in pipelines. No extension was found for "
+            "%s"% initname)
+    if res['type'] == 'BRIK':
+        if res['view'] == '':
+            raise ValueError(
+                "Invalid dataset object for pipelines. The dataset is of "
+                "type BRIK, and the view is not set.")
+        if res['extension'] == '.HEAD':
+            raise ValueError( "Pipelines must use an extension to refer to "
+                "AFNI datasets. This allows format to be propagated This was "
+                "violated for %s."% initname)
+    
+    if res['type'] == 'NIFTI':
+        if any(v in res['prefix'] for v in valid_afni_views):
+            raise ValueError(
+                "Pipelines must use NIFTI files that do not have a view "
+                "extension. This was violated for %s."% initname)
+
 class afni_name(object):
-   def __init__(self, name="", do_sel=1, view=None):
+   def __init__(self, name="", do_sel=1, view=None,strict=False):
       """do_sel : apply selectors (col, row, range)"""
-      self.initname = name
+      self._initname = str(name)
       self.do_sel = do_sel
       res = parse_afni_name(name, do_sel=self.do_sel)
+      self._initpath = str(Path.cwd()) # is absolute
       self.path = res['path']
       self.prefix = res['prefix']
       self.view = res['view']
@@ -28,9 +80,23 @@ class afni_name(object):
       self.rangesel = res['range']
       self.selquote = '"'       # selector quote
       if view in valid_new_views: self.new_view(view)
+      if not self.path :
+         self.path = os.path.abspath('./') # use full path if none exists
+      # Set some read only attributes for strict datasets
+      if strict:
+         check_for_strict_name(name)
+         self._bn = res['prefix']
+         self._fn = res['prefix'] + res['view'] + res['extension']
+         self._ffn = str(Path(self.initpath) / self.initname)
+         self._is_strict = True
+      else:
+         self._is_strict = False
+         self._bn = NotImplementedError
+         self._fn = NotImplementedError
+         self._ffn = NotImplementedError
       return
 
-   def p(self):   #Full path 
+   def p(self):   #Full path
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
       fn = pp.find(self.path)      #is path at end of abspath?
@@ -272,56 +338,30 @@ class afni_name(object):
             return 1
          else: return 0
    
-   def locate(self, oexec="", verb=0):
-      """attempt to locate the file
-
-         First search using the input path.  If not found, drop that path
-         and search using @FindAfniDsetPath.  If then found, update the
-         path using the new information.
-
-         return 1 if found (exist() or via @Find)
-         (previously, this returned 0 even if @Find succeeded)
-      """
-      # drop the path for comments and searching
-      dname = self.pv()
-
+   def locate(self, oexec=""):
+      """Attempt to locate the file and if found, update its info"""
       if (self.exist()):
-         if verb: print("-- locate: dset %s exists" % dname)
          return 1
+      else:
+         #could it be in abin, etc.
+         cmd = '@FindAfniDsetPath %s' % self.pv()
+         com=shell_com(cmd,oexec, capture=1)
+         com.run()
 
-      if verb: print("-- locate: dset %s does not exist" % dname)
+         if com.status or not com.so or len(com.so[0]) < 2:
+           # call this a non-fatal error for now
+           if 0:
+              print('   status = %s' % com.status)
+              print('   stdout = %s' % com.so)
+              print('   stderr = %s' % com.se)
+           return 0
 
-      # not found with input path, so drop path and search in abin, etc.
-      # (might be nicer with afni_util, but that would be new dep)
-      cmd = '@FindAfniDsetPath %s' % dname
-      com=shell_com(cmd, oexec, capture=1)
-      com.run()
-      path = com.so[0]
-
-      if com.status or not path or len(path) < 1:
-        # call this a non-fatal error for now
-        if verb: print("-- locate: @Find did not find dset %s" % dname)
-        if 0:
-           print('   status = %s' % com.status)
-           print('   stdout = %s' % com.so)
-           print('   stderr = %s' % com.se)
-        return 0
-
-      # found, so update with new path to dataset
-
-      # remove any newline character
-      newline = path.find('\n')
-      if newline > 1: path = path[0:newline]
-
-      # require it to end in a '/'
-      if not path.endswith('/'): path += '/'
-
-      # and finally, assign
-      self.path = path
-
-      if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
-
-      return 1
+         # self.path = com.so[0].decode()
+         self.path = com.so[0]
+         # nuke any newline character
+         newline = self.path.find('\n')
+         if newline > 1: self.path = self.path[0:newline]
+      return 0
       
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""
@@ -428,27 +468,41 @@ class afni_name(object):
       print("   Node Sel: %s" % self.nodesel)
       print("   RangeSel: %s" % self.rangesel)
       
-   def new(self, new_pref='', new_view='', parse_pref=0):  
+   def new(self, new_pref='', new_view='', parse_pref=0,strict=None):  
       """return a copy with optional new_prefix and new_view
          if parse_pref, parse prefix as afni_name
       """
-      an = afni_name()
-      an.path = self.path
-      if len(new_pref):
-         # maybe parse prefix as afni_name
-         if parse_pref:
-            ant = parse_afni_name(new_pref, do_sel=self.do_sel)
-            an.prefix = ant['prefix']
-         else: an.prefix = new_pref
+      #if not strict:
+      #  strict = self.is_strict
+      if strict:
+         strict_error = "New 'strict' datasets must have view and extension in prefix."
+         if len(new_view):
+            raise ValueError(strict_error)
+         
+         check_for_strict_name(new_pref)
+         cwd = os.getcwd()
+         os.chdir(self.initpath)
+         new = afni_name(new_pref,strict=True)
+         os.chdir(cwd)
+         return new 
       else:
-         an.prefix = self.prefix
-      if len(new_view):
-         an.view = new_view
-      else:
-         an.view = self.view
-      an.extension = self.extension
-      an.type = self.type
-      return an
+         an = afni_name()
+         an.path = self.path
+         if len(new_pref):
+            # maybe parse prefix as afni_name
+            if parse_pref:
+               ant = parse_afni_name(new_pref, do_sel=self.do_sel)
+               an.prefix = ant['prefix']
+            else: an.prefix = new_pref
+         else:
+            an.prefix = self.prefix
+         if len(new_view):
+            an.view = new_view
+         else:
+            an.view = self.view
+         an.extension = self.extension
+         an.type = self.type
+         return an
 
    def initial_view(self):
       """return any initial view (e.g. +tlrc) from self.initial"""
@@ -469,7 +523,83 @@ class afni_name(object):
       self.type = 'BRIK'
       self.extension = ''  # clear 
       return
-               
+
+   @property
+   def bn(self):
+      "Returns 'basename' regardless of file format: no view or extension." 
+      return self._bn
+
+   @property
+   def fn(self):
+      "Returns 'filename' regardless of file format: includes  view and extension"
+      " but no directory."
+      return self._fn
+
+   @property
+   def ffn(self):
+      """Returns the full 'filename' regardless of file format:
+      includes view and extension and full path. """
+      return self._ffn
+
+   @property
+   def rbn(self):
+      """Uneditable attribute that returns relative basename for an object
+      
+      Returns
+      -------
+      TYPE
+          Description
+      """
+      if self.is_strict:
+         rp = Path(self.initname).parent
+         rbn = rp / self.bn
+      else:
+         raise NotImplementedError
+         # return Path(self.pp()).relative_to(self.initpath)
+      return str(rbn)
+
+   @property
+   def is_strict(self):
+      return self._is_strict
+
+   @property
+   def initname(self):
+       return self._initname
+
+   @initname.setter
+   def initname(self, initname):
+      if self._is_strict:
+         raise ValueError("Cannot modify initname on strict afni_name objects.")
+      else:
+         self._initname = initname
+
+   @property
+   def initpath(self):
+      "Returns path at time of class instantiation." 
+      return self._initpath
+
+
+   def __repr__(self):
+      return '<%s %s name=%r, strict=%r>' % (
+         self.__class__.__name__, hex(id(self)), self.initname,self.is_strict)
+
+   def __str__(self):
+      dict_out = self.__dict__.copy()
+      dict_out.update({
+        'exist': self.exist(),
+        })
+      if self.is_strict:
+         dict_out = {k:v for k,v in dict_out.items() if not k.startswith('_')}
+         dict_out.update({
+          'bn':self.bn,
+          'fn':self.fn,
+          'ffn':self.ffn,
+          'initpath':self.initpath,
+          'initname':self.initname,
+          })
+      return pformat(dict_out)
+
+
 class comopt(object):
    def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
       self.name = name
@@ -605,7 +735,7 @@ class shell_com(object):
 
       return
 
-   def run(self):
+   def run(self,chdir=""):
       self.echo()
       if(self.exc==1):
          return 0
@@ -613,7 +743,12 @@ class shell_com(object):
          self.status = 0
          self.exc = 1
          return 0
-      self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
+      # added ability to force change directory in same command (for Dask parallelization)
+      if chdir != "" :
+         self.trimcom = ("cd %s; %s" % (chdir, self.trimcom))
+         self.com = ("cd %s; %s" % (chdir, self.com))
+         print("command to be executed is %s\n  " % self.com)
+      self.status, self.so, self.se = shell_exec2(self.com, self.capture) 
       self.exc = 1
       return self.status
       
@@ -681,6 +816,14 @@ class shell_com(object):
       else:
          # return self.so[i].decode()
          return self.so[i]
+
+   def __repr__(self):
+      return '<%s %s name=%r, eo=%r>' % (
+         self.__class__.__name__, hex(id(self)),self.com, self.eo)
+
+   def __str__(self):
+      return pformat(self.__dict__)
+ 
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
@@ -1405,15 +1548,6 @@ def EP( S, indent=True, end_exit=True):
 
     if end_exit :
        sys.exit(1)
-
-def EP1( S, indent=True):
-    '''Error print string S, and return 1.
-
-    Basically, compact form of EP(...)
-    '''
-    APRINT(S, ptype='ERROR', indent=indent)
-
-    return 1
 
 def APRINT( S, ptype=None, indent=True):
     '''Print Error/Warn/Info for string S
