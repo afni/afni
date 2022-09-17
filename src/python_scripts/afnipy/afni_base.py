@@ -524,6 +524,17 @@ class afni_name(object):
       self.extension = ''  # clear 
       return
 
+   def to_NIFTI(self, ext='.nii.gz'):  
+      """modify to be NIFTI type, possibly with gz compression"""
+
+      # already NIFTI
+      if self.type == 'NIFTI': return
+
+      self.type = 'NIFTI'
+      self.view = ''
+      self.extension = ext
+      return
+
    @property
    def bn(self):
       "Returns 'basename' regardless of file format: no view or extension." 
@@ -689,12 +700,12 @@ class shell_com(object):
       # behavior is not performed.
       false_vals = ['no','n','f','false',"0"]
       mod_request = os.environ.get("NO_CMD_MOD")
-      no_cmd_modiifcation_requested = bool(
+      no_cmd_modification_requested = bool(
          mod_request and mod_request.lower() not in false_vals
       )
       #If command line is long, trim it, if possible
       l1 = len(self.com)
-      if no_cmd_modiifcation_requested:
+      if no_cmd_modification_requested:
          # does not modify command to help provide more predictable output
          self.trimcom = self.com
       elif (l1 > 80):
@@ -1224,6 +1235,7 @@ def shell_exec2(s, capture=0):
          so = []
          se = []
       else:
+         print("Probably here before sending shell command")
          pipe = SP.Popen(s,shell=True, stdout=SP.PIPE, stderr=SP.PIPE, close_fds=True)
          o,e = pipe.communicate()   #This won't return until command is over
          status = pipe.returncode   #NOw get returncode

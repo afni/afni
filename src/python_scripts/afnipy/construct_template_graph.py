@@ -33,14 +33,15 @@ def copy_base(ps, dset=None):
 
     if dset.type == "NIFTI":
         # copy original to a temporary file
-        print("base dataset input name is %s" % dset.input())
         ao = ab.strip_extension(dset.input(), [".nii", "nii.gz"])
-        print("new AFNI name is %s" % ao[0])
         aao = ab.afni_name("%s" % (ao[0]))
         aao.to_afni(new_view="+tlrc")
         # absolute path for base from current directory
         o = ab.afni_name("%s/%s%s" % (Path('.').absolute(),aao.out_prefix(), aao.view))
-
+        if(ps.data_format == "NIFTI"):
+           o.to_NIFTI()
+        else:
+           o.to_afni()
         cmd_str = "3dcopy %s %s" % (
             dset.input(), o.ppv()        )
         print("executing:\n %s" % cmd_str)
@@ -58,7 +59,6 @@ def align_centers(ps, dset=None, basedset=None, suffix="_ac"):
     align the center of a dataset to the center of another
     dataset like a template
     """
-    print("dset is %s" % dset.out_prefix)
     o = pu.prepare_afni_output(dset, suffix, basepath=dset.bn)
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
@@ -135,7 +135,7 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     if ps.do_rigid == 0:
         return dset
     if base.view == "":
-        o = pu.prepare_afni_output(dset, suffix, view="+orig")
+        o = pu.prepare_afni_output(dset, suffix, view="+tlrc")
     else:
         o = pu.prepare_afni_output(dset, suffix, view=base.view)
 
@@ -150,6 +150,7 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     # remove temp
     outaff_glob = "{f}.HEAD {f}.BRIK* {f}.nii*"
     outaff_glob = outaff_glob.format(f=o.bn + o.view)
+    outdset_prefix = o.ppve()
     out_prefix = o.bn
     # compute registration alignment to the base template
     # but apply only the rigid component and put into
@@ -160,7 +161,7 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     && \
     rm {outaff_glob}; \
     3dAllineate -1Dmatrix_apply {out_prefix}.Xat.rigid.1D \
-    -master {base_in} -prefix {out_prefix}  \
+    -master {base_in} -prefix {outdset_prefix}  \
     -input {input_name}
     """
     cmd_str = cmd_str.format(**locals())
@@ -182,7 +183,6 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     #    -master {base_in} -prefix {out_prefix}  \
     #    -input {input_name} {rewrite}
     #    """
-    print("chdir is %s\nRigid output is %s" % (chdir,o.bn))
     out_dict = pu.run_check_afni_cmd(cmd_str, ps, {"dset_1": o, "chdir": chdir})
     return out_dict["dset_1"]
 
@@ -196,13 +196,13 @@ def affine_align(dset, base, suffix="_aff", aff_type="affine", ps=None):
     #     raise ValueError(err)
 
     if base.view == "":
-        o = pu.prepare_afni_output(dset, suffix, view="+orig")
+        o = pu.prepare_afni_output(dset, suffix, view="+tlrc")
     else:
         o = pu.prepare_afni_output(dset, suffix, view=base.view)
 
     chdir = str(Path(o.ppve()).parent)
     input_name = dset.fn
-    out_prefix = o.bn
+    out_prefix = o.out_prefix()
     mat_exists = os.path.exists("%s_mat.aff12.1D" % out_prefix)
     base_in = base.ppve()
     # won't use affine output if rigid only is requested
@@ -264,22 +264,14 @@ def aniso_smooth(ps, dset=None, suffix="_as", iters="1"):
     """
     anisotropically smooth data
     """
-    print("anisosmooth %s" % dset.out_prefix())
     if ps.do_anisosmooth == 0:
         return dset
-    if dset.type == "NIFTI":
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), [".nii", "nii.gz"])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
+
+    o = pu.prepare_afni_output(dset, suffix, view=dset.view)
+
     cmd_str = "3danisosmooth -3D -iters %s -noneg -prefix %s -mask %s %s" % (
         iters,
-        o.out_prefix(),
+        o.ppve(),
         dset.input(),
         dset.input(),
     )
@@ -299,19 +291,9 @@ def upsample_dset(ps, dset=None, suffix="_rs"):
     resample data 2x (1/2 the voxel size)
     """
 
-    print("upsample %s" % dset.out_prefix())
     if not (ps.upsample_level):
         return dset
-    if dset.type == "NIFTI":
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), [".nii", "nii.gz"])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
+    o = pu.prepare_afni_output(dset, suffix, view=dset.view)
 
     chdir = str(Path(o.ppve()).parent)
 
@@ -322,7 +304,7 @@ def upsample_dset(ps, dset=None, suffix="_rs"):
         min_d,
         min_d,
         min_d,
-        o.out_prefix(),
+        o.ppve(),
         dset.input(),
     )
 
@@ -339,26 +321,15 @@ def resample_dset(ps, dset, base, suffix="_rs"):
     """
     resample a dataset to grid of another dataset
     """
-    print("resample %s" % dset.out_prefix())
     #try:
     #    os.chdir(dset.path)
     #except:
     #    os.chdir(os.path.abspath(os.path.dirname(dset)))
-    assert dset is not None
-    if dset.type == "NIFTI":
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), [".nii", "nii.gz"])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
+    o = pu.prepare_afni_output(dset, suffix, view=dset.view)
 
     chdir = str(Path(o.ppve()).parent)
     base_in = base.input()
-    out_prefix = o.out_prefix()
+    out_prefix = o.ppve()
     input_name = dset.input()
 
     cmd_str = (
@@ -420,25 +391,17 @@ def rescale_affx_brain(ps, dset, suffix="_rescld", preprefix=""):
         -prefix {}    \
         {}
     """.format(
-        omask.out_prefix(), dset.input()
+        omask.ppve(), dset.input()
     )
 
-    if ps.ok_to_exist and omask.exist():
-        print("Output already exists. That's okay")
-    elif not omask.exist() or ps.rewrite or ps.dry_run():
-        omask.delete(ps.oexec)
-        com = ab.shell_com(cmd_str, ps.oexec)
-        com.run(chdir="%s" % omask.path)
-        if not omask.exist() and not ps.dry_run():
-            assert False
-            print("** ERROR: Could not compute mean using %s" % cmd_str)
-            return None
-    else:
-        ps.exists_msg(omask.input())
+    out_dict = pu.run_check_afni_cmd(
+        cmd_str, ps, {"dset_1": omask, "chdir": chdir}, "** ERROR: Could not compute mean using"
+    )
+    omask = out_dict["dset_1"]
 
     # 2) get brickstat info-- the volume of the new mask
     com = ab.shell_com(
-        "3dBrickStat -volume -non-zero {}+tlrc.HEAD".format(omask.out_prefix()),
+        "3dBrickStat -volume -non-zero {}".format(omask.ppve()),
         ps.oexec,
         capture=1,
     )
@@ -490,21 +453,13 @@ def rescale_affx_brain(ps, dset, suffix="_rescld", preprefix=""):
     -prefix         {} \
     -final wsinc5
     """.format(
-        mat_file, dset.input(), dset.input(), o.out_prefix()
+        mat_file, dset.input(), dset.input(), o.ppve()
     )
 
-    if ps.ok_to_exist and o.exist():
-        print("Output already exists. That's okay")
-    elif not o.exist() or ps.rewrite or ps.dry_run():
-        o.delete(ps.oexec)
-        com = ab.shell_com(cmd_str, ps.oexec)
-        com.run(chdir="%s" % o.path)
-        if not o.exist() and not ps.dry_run():
-            assert False
-            print("** ERROR: Could not compute mean using %s" % cmd_str)
-            return None
-    else:
-        ps.exists_msg(o.input())
+    out_dict = pu.run_check_afni_cmd(
+        cmd_str, ps, {"dset_1": o, "chdir": chdir}, "** ERROR: Could not resize mean using"
+    )
+    o = out_dict["dset_1"]
 
     return o
 
@@ -523,7 +478,6 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     else:
         view_str = dset_list[0].view
     file_ending = view_str + dset_list[0].extension
-
     os.chdir(ps.odir)
     mean_out = dset_list[0].new(
         "%smean%s%s" % (preprefix, suffix, file_ending), strict=True
@@ -532,6 +486,13 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
         "%sstdev%s%s" % (preprefix, suffix, file_ending), strict=True
     )
 
+    if(ps.data_format == "NIFTI"):
+       mean_out.to_NIFTI()
+       std_out.to_NIFTI()
+    else:
+       mean_out.to_afni()
+       std_out.to_afni()
+
     # add in *here* to do the "final space" update on first average
     # dset, because then it should propagate everywhere
     if ps.final_space and suffix == "_rigid":
@@ -539,22 +500,25 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     else:
         new_space = ""
 
+    mean_out_prefix = mean_out.out_prefix()
+    std_out_prefix = std_out.out_prefix()
+
     cmd_str = """
-    3dMean -prefix {mean_out.initname}  {dset_glob}; 
-    3dMean -stdev -prefix {std_out.initname} {dset_glob};
+    3dMean -prefix {mean_out_prefix}  {dset_glob}; 
+    3dMean -stdev -prefix {std_out_prefix} {dset_glob};
     3drefit -denote {new_space} {mean_out.initname}; 
     3drefit -denote {new_space} {std_out.initname}
     """
     cmd_str = " ".join(cmd_str.format(**locals()).split())
-
+    print("%s" % cmd_str)
     out_dict = pu.run_check_afni_cmd(
         cmd_str,
         ps,
-        {"dset_mean": mean_out, "dset_stdev": std_out},
+        {"dset_1": mean_out, "dset_2": std_out, "chdir": ps.odir},
         "** ERROR: Could not compute mean using",
     )
 
-    return out_dict["dset_mean"]
+    return out_dict["dset_1"]
 
 
 def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
@@ -578,7 +542,7 @@ def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
     o = ab.afni_name("%ssubject%s" % (preprefix, suffix))
     o.path = ps.odir
     o.view = typ_brain.view
-    output_prefix = o.ppv()
+    output_prefix = o.ppve()
 
     # add in *here* to do the "final space" update on first average
     # dset, because then it should propagate everywhere
@@ -631,7 +595,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         # object we will be informed of its status.
         aligned_brains.append(af_aligned)
 
-    glob_pattern = delayed(get_glob_pattern)(aligned_brains[0], rigid_suffix)
+    glob_pattern = delayed(get_glob_pattern)(aligned_brains[0], rigid_suffix, data_format=ps.data_format)
     rigid_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
@@ -661,10 +625,15 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
         aligned_brains.append(af_aligned)
 
     file_ending = dsetlist[0].view + dsetlist[0].extension
+    if(ps.data_format=="NIFTI"):
+        affx_glob= "*/*_affx.nii.gz"
+    else:
+        affx_glob = "*/*_affx+*HEAD"
+
     affine_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
-        dset_glob="*/*_affx" + file_ending,
+        dset_glob=affx_glob ,
         suffix="_affx",
         preprefix="tp1_",
     )
@@ -679,7 +648,7 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
             ps, affine_mean_brain, suffix="_rescld"
         )
 
-    print("Configured first processing loop")
+    print("Configured second processing loop")
     # return the rigid mean brain template and the rigidly aligned_brains
     # Dask can't return two separate objects, so combine into a single tuple
     return (affine_mean_brain, aligned_brains)
@@ -705,6 +674,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     iniwarplevel = kwargs.get("iniwarplevel", [])
     upsample = kwargs["upsample"]
     qw_opts = kwargs["qw_opts"]
+    iniwarp = None
 
     # does the OMP_NUM_THREAD variable propagate to workers?s
     # show current setting for OpenMP
@@ -741,18 +711,19 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     iwset = None
     ilev_opt = None
     # see if there are any intermediate warps saved on the disk
-    file_ending = o.view + o.extension
-    wlg = glob.glob("%s_Lev*.*_WARPsave" % o.pp() + file_ending)
+    # file_ending = o.view + o.extension
+    wlg = glob.glob("%s_Lev*.*_WARPsave*" % o.pp() )
     # search for highest Level number warp
     for wl in wlg:
         print("Found warp named %s" % wl)
         for iwl in wll:
             if iwl in wl:
                 print("%s matches file %s" % (iwl, wl))
+                iniwarp = "-iniwarp %s" % wl
                 iwset = pu.prepare_afni_output(dset, suffix, view=base.view)
-                iwset.prefix = str.split(
-                    os.path.splitext(os.path.basename(wl))[0], "+tlrc"
-                )[0]
+#                iwset.prefix = str.split(
+#                    os.path.splitext(os.path.basename(wl))[0], "+tlrc"
+#                )[0]
                 inilev = int(iwl) + 1
                 break
         if iwset:  # found one, so stop looking and use this warp
@@ -766,7 +737,8 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
 
     # if warp dataset provided here (either passed through or from previous intermediate save), use it
     if iniwarpset:
-        iniwarp = "-iniwarp %s" % iniwarpset.input()
+           if iniwarp == None:
+              iniwarp = "-iniwarp %s" % iniwarpset.input()
     else:
         # if just a level is provided for the initial warp, compose the name here
         if iniwarplevel:
@@ -784,7 +756,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     3dQwarp -base {base_in} -source {input_name} \
     -prefix {out_prefix} {ilev_opt} {qw_opts} -saveall \
     {iniwarp}; \
-    \\rm -f {out_prefix}*_WARPsave+tlrc.*
+    \\rm -f {out_prefix}*_WARPsave*
     """
 
     cmd_str = cmd_str.format(**locals())
@@ -816,7 +788,8 @@ def resize_warp(ps, warp, rsz_brain, suffix="_rsz"):
     # create output dataset structure
     rsz_warp = pu.prepare_afni_output(warp, suffix)
 
-    aff_matrix = "%s.Xaff12.1D" % rsz_brain.rbn
+#    aff_matrix = "%s.Xaff12.1D" % rsz_brain.rbn
+    aff_matrix = "%s.Xaff12.1D" % rsz_brain.out_prefix()
 
     input_name = warp.initname
     out_file = rsz_warp.initname
@@ -1151,7 +1124,7 @@ def get_typical_brain(costs_brains, ps, suffix="_nl", preprefix="typical_"):
     # nifti_tool's usage later!
     o = ab.afni_name("%ssubject%s.nii" % (preprefix, suffix))
     o.path = ps.odir
-    oname = o.ppv()
+    oname = o.ppve()
 
     otmp1 = o.path + "/__tmp1_mask.nii"
     otmp2 = o.path + "/__tmp2_mask_round.nii"
@@ -1178,6 +1151,13 @@ def get_typical_brain(costs_brains, ps, suffix="_nl", preprefix="typical_"):
 
     cmd_str = cmd_str.format(**locals())
     print("executing:\n %s" % cmd_str)
+
+    out_dict = pu.run_check_afni_cmd(
+        cmd_str, ps, {"dset_1": o, "chdir": chdir}, "** ERROR: Could not copy typical subject to mean template directory using"
+    )
+    o = out_dict["dset_1"]
+
+    return o
 
     if ps.ok_to_exist and o.exist():
         print("Output already exists. That's okay")
@@ -1422,7 +1402,7 @@ def find_typical_subject(ps, delayed, aa_brains, warpsetlist, **kwargs):
     return typ_brain
 
 
-def get_glob_pattern(dset, suffix, dirs_pattern=""):
+def get_glob_pattern(dset, suffix, dirs_pattern="", data_format="NIFTI"):
     """Returns a glob pattern of the form */*/*{suffix}{file_ending} where the
     number of levels of directories is provided or computed base on the dsets
     name used for initialization
@@ -1440,12 +1420,19 @@ def get_glob_pattern(dset, suffix, dirs_pattern=""):
     Returns: str: A glob pattern for matching scans when called from
         dset.initpath
     """
-    file_ending = dset.view + dset.extension
+    file_ending = "+tlrc.HEAD" # using wildcard instead of dset.view + dset.extension
+    nii_ending  = ".nii*"
     if not dirs_pattern:
         dir_hierarchy = Path(dset.initname).parent
         dirs_pattern = ["*" for p in dir_hierarchy.parts if p != "."]
     basename = "*%s" % suffix
-    return Path(*dirs_pattern) / (basename + file_ending)
+    # might be compressed
+    if(data_format == "NIFTI"):
+        globstring = "%s" % (Path(*dirs_pattern) / (basename + nii_ending))
+    else :
+        globstring = "%s" % (Path(*dirs_pattern) / (basename + file_ending))
+
+    return globstring
 
 
 def get_nl_leveln(
@@ -1468,7 +1455,7 @@ def get_nl_leveln(
         aa_brains_out.append(brain_and_warp["aa_brain"])
         warpsetlist_out.append(brain_and_warp["warp"])
 
-    glob_pattern = delayed(get_glob_pattern)(aa_brains[0], kwargs["suffix"])
+    glob_pattern = delayed(get_glob_pattern)(aa_brains[0], kwargs["suffix"], data_format=ps.data_format)
     nl_mean_brain = delayed(get_mean_brain)(
         aa_brains_out,
         ps,
@@ -1757,6 +1744,7 @@ def get_indata(ps, dsetlist, outdir, delayed):
 
     # Change current work directory to the output directory
     outdir = Path(outdir).absolute()
+    ps.odir = str(outdir)
     if not outdir.exists():
         outdir.mkdir()
     os.chdir(outdir)
@@ -1777,17 +1765,22 @@ def get_indata(ps, dsetlist, outdir, delayed):
         if (dpathstr.endswith(("+tlrc", "+orig"))):
            dpathstr = dpathstr[:-5]
 
-        # print("Making afni name with %s/%s" % (dpathstr, str(d.name)))
         adset = ab.afni_name("%s/%s" % (dpathstr, str(d.name)), strict=True)
+        if(ps.data_format == "NIFTI"):
+           adset.to_NIFTI()
+        else:
+           adset.to_afni()
+
         dsets.append(adset)
 
         try:
            dpath = Path(dpathstr)
            if not dpath.exists():
               dpath.mkdir()
-           cmd_str = "3dcopy %s %s" % (str(d), adset.initname)
+           cmd_str = "3dcopy %s %s" % (str(d), adset.out_prefix())
 
-           out_dict = pu.run_check_afni_cmd(cmd_str, ps, {"dset_1": adset})
+           out_dict = pu.run_check_afni_cmd(cmd_str, ps, {"dset_1": adset,
+                      "chdir": dpath })
 
 #           shutil.copy(str(d), dpath)
         except PermissionError as e:
@@ -1863,5 +1856,5 @@ def get_task_graph(ps, delayed):
     # our python session. Whenever we query the affine object
     # we will be informed of its status.
 
-    print("Configured first processing loop")
+    print("Configured last (3rd) processing loop")
     return task_graph_dict

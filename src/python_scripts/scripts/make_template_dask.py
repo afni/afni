@@ -65,6 +65,7 @@ g_help_string = """
     -ok_to_exist: skip over preexisting results to continue as quickly
                   as possibly with a restart
     -max_workers MW: maximum number of workers for process
+    -data_format : choose NIFTI or AFNI for output type
     -aff_vol_rsz VOL: Rescale the affine step's mean to this value (>0)
     -findtypical_final: find the single-subj vol most-well aligned to ave temp
     -final_space FINSP: give a 'space' name to the final output
@@ -78,6 +79,8 @@ ps.version()
 rv = ps.get_user_opts(g_help_string)
 ps.process_input()
 if rv is not None: ps.ciao(1)
+
+print("Output format is %s" % ps.data_format)
 
 # show current setting for OpenMP
 ps.report_omp()
