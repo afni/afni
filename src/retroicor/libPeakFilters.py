@@ -379,7 +379,7 @@ def removeClosePeaks(peaks, period, denominator=4):
     threshold = period/4
     return peaks[intervals>=threshold]
 
-def bandPassFilterRawDataAroundDominantFrequency(rawData, medianTimeDomainFrequency = None,
+def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency, 
         graph = True, phys_fs = None, prefix = 'BPFilteredCardiacInput', OutDir = '.') :
     """
     NAME
@@ -418,15 +418,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, medianTimeDomainFreque
     FourierTransform = np.fft.fft(rawData)
     
     # Determine frequency peak
-    if medianTimeDomainFrequency:
-        # medianTimeDomainFrequency = medianTimeDomainFrequency/2 # Because only half the FFT is used
-        start = max(0, round(medianTimeDomainFrequency*0.67))
-        finish = min(round(medianTimeDomainFrequency*1.5), rawDataLength/2-1)
-        localOffset = medianTimeDomainFrequency - start
-        frequencyPeak = np.argmax(abs(np.fft.fft(rawData)[start:finish])) + start
-    else:
-        frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[1:round(rawDataLength/2)])
-    
+    frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[minFrequency:round(rawDataLength/2)])+minFrequency
+        
     # Determine band limits
     lowerMin = round(frequencyPeak/2)
     lowerMax = round(1.5*frequencyPeak)

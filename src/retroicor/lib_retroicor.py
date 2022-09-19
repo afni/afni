@@ -123,6 +123,11 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
+   MIN_HEART_RATE = 30  # Minimum HR in BPM
+    
+   # Determine lower bound based based on minimum HR
+   minFrequency = round(MIN_HEART_RATE*parameters["phys_fs"]/60)
+   
    # Remove NaNs from raw data
    rawData = [x for x in rawData if math.isnan(x) == False]
     
@@ -131,12 +136,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Find peaks in time domain
    timeDomainPeaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
    
-   # Estimate frequency of time domain points
-   intervals = [j-i for i, j in zip(timeDomainPeaks[:-1], timeDomainPeaks[1:])]
-   medianTimeDomainFrequency = len(rawData)/statistics.median(intervals)
-
    # Band pass filter raw data
-   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
+   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
         graph = True,\
         phys_fs = parameters["phys_fs"], OutDir=OutDir)
    if len(filterData) == 0:
@@ -667,8 +668,8 @@ def getPhysiologicalNoiseComponents(parameters):
         # rawData = readArray(parameters, '-cardFile')
         rawData = readRawInputData(rawDataParams, parameters["-cardFile"], parameters["phys_cardiac_dat"])
         
-        if not parameters['phys_fs']: # Sampling frequency not supplied
-            parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
+        # if not parameters['phys_fs']: # Sampling frequency not supplied
+        #     parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
                 
         cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
         
