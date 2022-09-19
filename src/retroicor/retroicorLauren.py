@@ -364,6 +364,10 @@ def retro_ts(
     AUTHOR
        Peter Lauren
     """
+    
+    if not phys_fs:
+        print('Error: Sampling frequency in Hz (phys_fs) required')
+        return 1
 
     # Make output directory
     path = os.path.join(os.getcwd(), OutDir)
@@ -607,7 +611,7 @@ Output:
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
             else:
-                print("No such command '%s', try:" % opt)
+                print("No such option key: '%s', try:" % opt)
                 for key in list(opt_dict.keys()):
                     print("%s" % key)
                 sys.exit(1)

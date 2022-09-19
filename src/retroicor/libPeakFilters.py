@@ -379,8 +379,8 @@ def removeClosePeaks(peaks, period, denominator=4):
     threshold = period/4
     return peaks[intervals>=threshold]
 
-def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, 
-        prefix = 'BPFilteredCardiacInput', OutDir = '.') :
+def bandPassFilterRawDataAroundDominantFrequency(rawData, medianTimeDomainFrequency = None,
+        graph = True, phys_fs = None, prefix = 'BPFilteredCardiacInput', OutDir = '.') :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -396,6 +396,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True,
         
         graph: Whether to graph the results and save the graphs to a file
         
+        phys_fs: Sampling frequency in Hz.  Required if graph True
+        
         prefix: prefix of output file if graph set to True
                             
         OutDir: Output directory for graphs if graph set to True
@@ -403,13 +405,27 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True,
         Peter Lauren
     """
     
+    if graph and not phys_fs:
+        print('Sampling frequency must be suppplied for graphing')
+        return []
+    
+    # Remove NaNs from raw data
+    rawData = [x for x in rawData if math.isnan(x) == False]
+    
     rawDataLength = len(rawData)
     
     # Get Fourier transform
-    FourierTRansform = np.fft.fft(rawData)
+    FourierTransform = np.fft.fft(rawData)
     
     # Determine frequency peak
-    frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[0:round(rawDataLength/2)])
+    if medianTimeDomainFrequency:
+        # medianTimeDomainFrequency = medianTimeDomainFrequency/2 # Because only half the FFT is used
+        start = max(0, round(medianTimeDomainFrequency*0.67))
+        finish = min(round(medianTimeDomainFrequency*1.5), rawDataLength/2-1)
+        localOffset = medianTimeDomainFrequency - start
+        frequencyPeak = np.argmax(abs(np.fft.fft(rawData)[start:finish])) + start
+    else:
+        frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[1:round(rawDataLength/2)])
     
     # Determine band limits
     lowerMin = round(frequencyPeak/2)
@@ -421,19 +437,22 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True,
     filterArray = np.zeros(len(rawData))
     filterArray[lowerMin:lowerMax] = 1
     filterArray[upperMin:upperMax] = 1
-    filteredFT = FourierTRansform * filterArray
+    filteredFT = FourierTransform * filterArray
     
     # Get IFT
     filteredRawData = np.fft.ifft(filteredFT)
     
     # Plot result agains raw data
     if graph:
+        x = []    
+        end = len(filteredRawData)
+        for i in range(0,end): x.append(i/phys_fs)
         fig, ax_left = mpl.pyplot.subplots()
-        mpl.pyplot.xlabel("Time Points")
-        mpl.pyplot.ylabel('Input data input value',color='g')
+        mpl.pyplot.xlabel("Time (s)")
+        mpl.pyplot.ylabel('Raw iput data value',color='g')
         ax_right = ax_left.twinx()
-        ax_right.plot(filteredRawData, color='red')
-        ax_left.plot(rawData, color='green')
+        ax_right.plot(x, filteredRawData, color='red')
+        ax_left.plot(x,rawData, color='green')
         mpl.pyplot.ylabel('Filtered Data Value',color='r')
         mpl.pyplot.title("BP Filtered (red) and raw input data (green)")
             
@@ -470,14 +489,16 @@ def refinePeakLocations(peaks, rawData, period = None):
         period = getTimeSeriesPeriod(rawData)
 
     # Determine half window width
-    helfWWindowWidth = round(period/4)
+    halfWindowWidth = round(period/4)
     
     # Determine offsets
+    arrayLength = len(rawData)
     offsets = []
     for peak in peaks:
-        start = peak-helfWWindowWidth
-        finish = peak+helfWWindowWidth
-        offsets.append(np.argmax(rawData[start:finish])-helfWWindowWidth)
+        start = max(0, peak-halfWindowWidth)
+        finish = min(peak+halfWindowWidth, arrayLength-1)
+        localOffset = peak - start
+        offsets.append(np.argmax(rawData[start:finish])-localOffset)
             
     # Apply offsets
     peaks = peaks + offsets

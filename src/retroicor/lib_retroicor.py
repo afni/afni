@@ -30,6 +30,7 @@ from scipy import signal as sps
 import pandas as pd
 import gzip
 import json
+import statistics
 
 # Local libraries
 import libPeakFilters as lpf
@@ -122,14 +123,28 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
+   # Remove NaNs from raw data
+   rawData = [x for x in rawData if math.isnan(x) == False]
+    
    global OutDir
 
+   # Find peaks in time domain
+   timeDomainPeaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
+   
+   # Estimate frequency of time domain points
+   intervals = [j-i for i, j in zip(timeDomainPeaks[:-1], timeDomainPeaks[1:])]
+   medianTimeDomainFrequency = len(rawData)/statistics.median(intervals)
+
    # Band pass filter raw data
-   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, OutDir=OutDir)
+   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
+        graph = True,\
+        phys_fs = parameters["phys_fs"], OutDir=OutDir)
+   if len(filterData) == 0:
+       print('Failed to band-pass filter cardiac data')   
+       return []
    
    # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
-   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/10))
-   peaks2, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
+   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/20))
    
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, period = None)
@@ -651,7 +666,8 @@ def getPhysiologicalNoiseComponents(parameters):
                 
         cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
         
-        cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
+        if len(cardiac_peaks) > 0:
+            cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
                                                 parameters['phys_fs'], rawData)
         
     # Process respiratory data if any
