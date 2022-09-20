@@ -132,9 +132,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    rawData = [x for x in rawData if math.isnan(x) == False]
     
    global OutDir
-
-   # Find peaks in time domain
-   timeDomainPeaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/10))
    
    # Band pass filter raw data
    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
@@ -145,7 +142,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        return []
    
    # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
-   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/20))
+   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/40))
    
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, period = None)
@@ -153,28 +150,24 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Remove peaks that are less than the required percentile of the local input signal
    peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3)
 
-   # Estimate the overall typical period       
-   # limit = round(len(rawData)/2)
-   # period = len(rawData)/(1+np.argmax((abs(np.fft.fft(rawData))[1:limit])))
-
-   # # Get peak values
-   # peakVals = []
-   # for i in peaks: peakVals.append(rawData[i])
+   # Estimate the overall typical period using filtered cardiac time series
+   period = lpf.getTimeSeriesPeriod(filterData)      
    
-   # # Remove "peaks" that are less than the raw input a quarter of a period on right side
-   # # This is tomove false peaks on the upstroke
-   # # searchLength = round(parameters["-phys_fs"]/16)
-   # searchLength = round(period/4)
-   # searchLength = min(searchLength, peaks[0] - 1)
-   # searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
-   # diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
-   # if len(diff) > 0: peaks = peaks[diff >= np.float64(0)]
-   
-   # # Remove false peaks on the downstroke
-   # shiftArray = rawData[searchLength:]
-   # shiftArray = np.insert(rawData,np.zeros(searchLength).astype(int),0)
-   # diff = [rawData[x] - shiftArray[x] for x in peaks]
-   # peaks = peaks[diff >= np.float64(0)]
+   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # This is tomove false peaks on the upstroke
+   # searchLength = round(parameters["-phys_fs"]/16)
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
+    
+   # Remove false peaks on the downstroke
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
+    
+   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
+    
+   # Merge peaks that are closer than one quarter of the overall typical period
+   peaks = lpf.removeClosePeaks(peaks, period)
+           
+   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
    
    # # Get peak values
    # peakVals = []
