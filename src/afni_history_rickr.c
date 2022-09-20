@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Sep, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "make -timing_to_1D overlap error more clear",
+   "Thanks to the suffering of Y Takarae."
+ } ,
+
  {  6, Sep, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "remove specific commits from cmake/afni_project_dependencies.cmake",
    "Build off of the current master."

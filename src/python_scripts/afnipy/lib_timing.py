@@ -656,12 +656,15 @@ class AfniTiming(LD.AfniData):
             data[tind][1] = round(data[tind][1]/float(tr),3)
 
             if tind > 0 and data[tind][0] < data[tind-1][1]:
+               estr = '(event times %g and %g)' \
+                      % (tr*data[tind-1][0], tr*data[tind][0])
+               emesg = '** run %d, index %d %s, stimulus overlap' \
+                         % (rind+1, tind, estr)
                if allow_warns:
-                  print('** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind))
+                  print(emesg)
+                       
                else:
-                  return '** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind), [], []
+                  return emesg, [], []
 
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
