@@ -779,7 +779,11 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         phys_dat = []
         with open(filename, "rb") as h:
             for entry in h:
-                phys_dat.append(float(entry))
+                try:
+                    float(entry)
+                    phys_dat.append(float(entry))
+                except:
+                    print('WARNING: invalid, non-numeric data entry: ', entry)
             for line in h:
                 phys_dat.append(float(line.strip()))
                 

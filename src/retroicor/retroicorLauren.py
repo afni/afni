@@ -386,7 +386,7 @@ def retro_ts(
         slice_offset = np.zeros((1, number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
-    print('Update slice offsets.  Note that this is done before teh data is read')
+    print('Update slice offsets.  Note that this is done before the data is read')
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
     offsetDict["volume_tr"] = volume_tr
