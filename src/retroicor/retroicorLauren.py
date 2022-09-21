@@ -365,7 +365,7 @@ def retro_ts(
        Peter Lauren
     """
     
-    if not phys_fs:
+    if not phys_fs and not phys_json:
         print('Error: Sampling frequency in Hz (phys_fs) required')
         return 1
 
