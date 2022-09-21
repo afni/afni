@@ -161,33 +161,14 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
     
-   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
-    
    # Merge peaks that are closer than one quarter of the overall typical period
    peaks = lpf.removeClosePeaks(peaks, period)
-           
+    
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   
-   # # Get peak values
-   # peakVals = []
-   # for i in peaks: peakVals.append(rawData[i])
-           
-   # # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   # valleys = [((j-i)+(j-k))/2 for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
-   # fromLocalMin = [j-min(rawData[i:k]) for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
-   # ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
-   # ratios.insert(0,0)
-   # ratios.append(0)
-   # threshold = np.float64(-4.0)
-   # peaks = peaks[ratios>threshold]
+   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
 
-   # # Merge peaks that are closer than one quarter of the overall typical period
-   # intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-   # intervals.insert(0,round(period))
-   # threshold = period/4
-   # peaks = peaks[intervals>=threshold]
-   
+   # Add missing peaks
+   peaks = lpf.addMissingPeaks(peaks, rawData, period=period)   
    
            
      # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
