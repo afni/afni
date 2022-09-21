@@ -771,7 +771,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         phys_dat:   BIDS style physio file
         
     AUTHOR
-       Joshua Zosky & Peter Lauren (Documentation by Peter Lauren)
+       Peter Lauren
     """
 
     if phys_dat is None or len(phys_dat) == 0: # No BIDS style physio file
@@ -781,9 +781,10 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
             for entry in h:
                 try:
                     float(entry)
-                    phys_dat.append(float(entry))
+                    if float(entry) != 5000.0: # Some files have artifactual entries of 5000.0
+                        phys_dat.append(float(entry))
                 except:
-                    print('WARNING: invalid, non-numeric data entry: ', entry)
+                    print('*** WARNING: invalid, non-numeric data entry: ', entry)
             for line in h:
                 phys_dat.append(float(line.strip()))
                 
