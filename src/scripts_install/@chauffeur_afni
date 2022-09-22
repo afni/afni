@@ -337,8 +337,11 @@ set echo
 #set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
 #    + [PT] fix spelling of button_press.  Sigh
 #
-set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
+#set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
 #    + [PT] new opt: clusterize_wami
+#
+set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] cleaner clust output, sep cmd
 #
 # =====================================================================
 
@@ -1595,7 +1598,18 @@ if ( "${clust_cmd}" != "" ) then
         goto BAD_EXIT
     endif
 
-    3dClusterize -echo_edu                        \
+# store the command (don't indent)
+cat <<EOF > ${odir}/${impref}_clust_cmd.txt
+3dClusterize                                  \
+    ${clust_cmd}                              \
+    -idat ${subbb[2]}                         \
+    -ithr ${subbb[3]}                         \
+    ${clust_thr_args}                         \
+    -pref_map ${read_dir}/olay_clust.nii      \
+    -inset  ${olay}
+EOF
+
+    3dClusterize                                  \
         ${clust_cmd}                              \
         -idat ${subbb[2]}                         \
         -ithr ${subbb[3]}                         \
