@@ -1,5 +1,5 @@
 #!/bin/tcsh
-
+set echo
 # for olay, default will be "show all"-- update fatcats to call for
 # 98%iles of non-zeros
 
@@ -334,8 +334,11 @@
 #    + [PT] add 'button_press .." opt, for the Colr/Swap/Norm "butpress"
 #      driving functionality
 #
-set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
+#set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
 #    + [PT] fix spelling of button_press.  Sigh
+#
+set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] new opt: clusterize_wami
 #
 # =====================================================================
 
@@ -486,7 +489,8 @@ set DO_AXI    = 1                # [PT: Sep 21, 2021] can control output slices
 set DO_SAG    = 1
 set DO_COR    = 1
 
-set clust_cmd = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_cmd  = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_wami = ""               # [PT: Sep 22, 2022] whereami on clusts
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -613,6 +617,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set clust_cmd = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-clusterize_wami" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set clust_wami = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1598,6 +1607,21 @@ if ( "${clust_cmd}" != "" ) then
     if ( $status ) then
         echo "** ERROR: 3dClusterize failed for some reason (see above)."
         goto BAD_EXIT
+    endif
+
+    # [PT: Sept 22, 2022] use basic reporting on clusters
+    if ( "${clust_wami}" != "" ) then
+        echo "++ Run whereami on the cluster output, for atlas: ${clust_wami}"
+        whereami                                                             \
+            -omask       ${read_dir}/olay_clust.nii                          \
+            -atlas       "${clust_wami}"                                     \
+            > ${odir}/${impref}_clust_whereami.txt
+
+        if ( $status ) then
+            echo "** WARNING: bad whereami; check atlas: ${clust_wami}"
+            echo "** WARNING: bad whereami; check atlas: ${clust_wami}" \
+                >> ${odir}/${impref}_clust_whereami.txt
+        endif
     endif
 
     # this value is 99% of actual threshold value
@@ -2885,6 +2909,13 @@ COMMAND OPTIONS ~1~
                     what options go where when clusterizing.  Examples
                     are also included below.
 
+-clust_wami CW     :if using '-clusterize ..', then this option can be used
+                    to run AFNI's whereami program on the results.  The user
+                    provides the name of an allowed atlas for reference
+                    (see the top of whereami's help), and a text file
+                    reporting the relative overlap of each ROI will be 
+                    produced in the outputs.  
+
 -montx  MX         :in creating a montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
                     total number of panels per axis is: MX*MY (see
@@ -3103,6 +3134,11 @@ this:
     + The Clusterize report is output in the same place as the final
       images, as PREFIX_clust_rep.txt.
 
+The ability to run 'whereami' on the output clusters is also now
+included, via the '-clusterize_wami ..' option.  This leads to a
+report of the overlap of each cluster in the cluster map with the
+specified atlas.  The output text file of information is then:
+PREFIX_clust_whereami.txt.
 
 There are a couple examples of using this functionality, below, in
 EXAMPLES.
@@ -3232,7 +3268,7 @@ EXAMPLES ~1~
         -no_clean
 
   F) Included Clusterizing, with Alpha+Boxed on, similar to above, but
-     1sided example.
+     1sided example, and using 'whereami' functionality:
 
     @chauffeur_afni                                                 \
         -pbar_posonly                                               \
@@ -3240,6 +3276,7 @@ EXAMPLES ~1~
         -olay               stats.nii.gz                            \
         -cbar               "Spectrum:yellow_to_red"                \
         -clusterize         "-NN 1 -clust_nvox 157"                 \
+        -clusterize_wami    "MNI_Glasser_HCP_v1.0"                  \
         -func_range 3                                               \
         -set_subbricks      -1 1 2                                  \
         -thr_olay           3.314300                                \

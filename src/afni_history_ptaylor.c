@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Sep , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-clusterize_wami ..', for Clustering functionality.",
+   "Adds a 'whereami' table to the output dir.\n"
+},
+
 { 1, Sep , 2022 , PT , "3dBrickStat" , MICRO , TYPE_BUG_FIX,
    "Fix bug: when using '-min' with '-positive' (or sim) and no mask.",
    "Tended to return 0 (now fixed).  Thanks for mentioning, Xiaowei!\n"
