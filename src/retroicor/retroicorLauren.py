@@ -412,6 +412,7 @@ def retro_ts(
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                             phys_json, respiration_out, cardiac_out, rvt_out)        
         
+    # Set paremeters
     parameters = dict()
     parameters['-cardFile'] = cardiac_file
     parameters['-respFile'] = respiration_file
@@ -424,7 +425,11 @@ def retro_ts(
     parameters['phys_resp_dat'] = phys_resp_dat
     parameters['phys_cardiac_dat'] = phys_cardiac_dat
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
-    else: parameters['phys_fs'] = respiration_info['phys_fs']
+    else: parameters['phys_fs'] = respiration_info['phys_fs']    
+    if not parameters['phys_fs']:
+        print('Error: Sampling frequency in Hz (phys_fs) required')
+        return 1
+
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if parameters['-niml']:
         return 0

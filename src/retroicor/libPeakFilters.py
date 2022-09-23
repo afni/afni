@@ -97,25 +97,27 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     if upperThreshold: return peaks[np.array(peakVals) <= np.array(thresholds)]
     return peaks[np.array(peakVals) >= np.array(thresholds)]
 
-def getTimeSeriesPeriod(rawData):
+def getTimeSeriesPeriod(rawData, minFrequency=1):
      """
      NAME
          getTimeSeriesPeriod
-             Get overall typical period of raw data in time series index units 
-         
+             Get overall typical period of raw data in time series index units          
       TYPE
           <class 'numpy.float64'>
      SYNOPSIS
          getTimeSeriesPeriod(rawData)
      ARGUMENTS
          rawData: Raw cardiac data
+         
+         minFrequency: Minimum frequency to be considered.  Default = 1
      AUTHOR
          Peter Lauren
      """
     
      # Note that nan values are removed from the input raw values
      limit = round(len(rawData)/2)
-     return len(rawData)/(1+np.argmax((abs(np.fft.fft([x for x in rawData if math.isnan(x) == False]))[1:limit])))
+     return len(rawData)/(minFrequency+np.argmax((abs(np.fft.fft([x for x in rawData\
+                    if math.isnan(x) == False]))[minFrequency:limit])))
  
 def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
                                            portion=0.25, period=None):
@@ -352,7 +354,7 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
         
     return peaks, troughs
 
-def removeClosePeaks(peaks, period, denominator=4):
+def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4):
     """
     NAME
         removeClosePeaks
@@ -366,6 +368,8 @@ def removeClosePeaks(peaks, period, denominator=4):
         
         period:   Overall typical period of raw data in time series index units.
         
+        Troughs:  Whether processing troughs instead of peaks
+        
         denominator: Number by which to divide the period in order to determine
         the minimum acceptable separation
     RETURNS
@@ -374,10 +378,28 @@ def removeClosePeaks(peaks, period, denominator=4):
         Peter Lauren
     """
     
+    # Make and filter inter-peak itervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    intervals.insert(0,round(period))
     threshold = period/4
-    return peaks[intervals>=threshold]
+    last = len(intervals) - 1
+    for i in range(last,0,-1):
+        if (intervals[i] < threshold):
+            intervals[i-1] = intervals[i-1] + intervals[i]
+            del intervals[i]
+            
+    # Make peaks from intervals
+    offset = 0
+    peaks = []
+    if Troughs: # Processing troughs instead of peaks
+        for interval in intervals:
+            peaks.append(offset + np.argmin(rawData[offset:offset+interval]))
+            offset = offset + interval
+    else:   # Processing peaks
+        for interval in intervals:
+            peaks.append(offset + np.argmax(rawData[offset:offset+interval]))
+            offset = offset + interval
+    
+    return np.array(peaks)
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency, 
         graph = True, phys_fs = None, prefix = 'BPFilteredCardiacInput', OutDir = '.') :

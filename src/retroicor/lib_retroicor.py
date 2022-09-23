@@ -162,7 +162,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
     
    # Merge peaks that are closer than one quarter of the overall typical period
-   peaks = lpf.removeClosePeaks(peaks, period)
+   peaks = lpf.removeClosePeaks(peaks, period, rawData)
     
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
@@ -234,8 +234,12 @@ def getRespiratoryPeaks(parameters, rawData):
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
     
+    # Set minimum breathing frequency based on a maximum breathing period of 10 seconds
+    MAX_BREATHING_PERIOD_IN_SECONDS = 10
+    minFrequency = round(len(rawData)/(parameters["phys_fs"]*MAX_BREATHING_PERIOD_IN_SECONDS))
+    
     # Estimate the overall typical period 
-    period = lpf.getTimeSeriesPeriod(rawData)      
+    period = lpf.getTimeSeriesPeriod(rawData, minFrequency = minFrequency)      
     
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
@@ -248,7 +252,7 @@ def getRespiratoryPeaks(parameters, rawData):
     peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
     
     # Merge peaks that are closer than one quarter of the overall typical period
-    peaks = lpf.removeClosePeaks(peaks, period)
+    peaks = lpf.removeClosePeaks(peaks, period, rawData)
     
     troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
@@ -267,7 +271,7 @@ def getRespiratoryPeaks(parameters, rawData):
     troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData)
     
     # Merge troughs that are closer than one quarter of the overall typical period
-    troughs = lpf.removeClosePeaks(troughs, period)
+    troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
