@@ -388,16 +388,31 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4):
             del intervals[i]
             
     # Make peaks from intervals
-    offset = 0
+    offset = 0 
+    initialPeak = peaks[0]
     peaks = []
+    peaks.append(initialPeak)
+    threshold = round(threshold)
     if Troughs: # Processing troughs instead of peaks
         for interval in intervals:
             peaks.append(offset + np.argmin(rawData[offset:offset+interval]))
             offset = offset + interval
+        peaks.append(offset + np.argmin(rawData[offset:]))
+   
+        # Adjust troughs from uniform spacing
+        peaks = np.array(peaks)
+        for i in range(0,2):
+            peaks = refinePeakLocations(peaks, rawData, period = period, Troughs = True)
     else:   # Processing peaks
         for interval in intervals:
-            peaks.append(offset + np.argmax(rawData[offset:offset+interval]))
+            # peaks.append(offset + np.argmax(rawData[offset:offset+interval]))
+            peaks.append(offset+interval)
             offset = offset + interval
+   
+        # Adjust peaks from uniform spacing
+        peaks = np.array(peaks)
+        for i in range(0,2):
+            peaks = refinePeakLocations(peaks, rawData, period = period)
     
     return np.array(peaks)
 
@@ -477,7 +492,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,
         
     return filteredRawData
 
-def refinePeakLocations(peaks, rawData, period = None):
+def refinePeakLocations(peaks, rawData, period = None, Troughs = False):
     """
     NAME
         refinePeakLocations
@@ -509,11 +524,18 @@ def refinePeakLocations(peaks, rawData, period = None):
     # Determine offsets
     arrayLength = len(rawData)
     offsets = []
-    for peak in peaks:
-        start = max(0, peak-halfWindowWidth)
-        finish = min(peak+halfWindowWidth, arrayLength-1)
-        localOffset = peak - start
-        offsets.append(np.argmax(rawData[start:finish])-localOffset)
+    if Troughs:
+        for peak in peaks:
+            start = max(0, peak-halfWindowWidth)
+            finish = min(peak+halfWindowWidth, arrayLength-1)
+            localOffset = peak - start
+            offsets.append(np.argmin(rawData[start:finish])-localOffset)
+    else:
+        for peak in peaks:
+            start = max(0, peak-halfWindowWidth)
+            finish = min(peak+halfWindowWidth, arrayLength-1)
+            localOffset = peak - start
+            offsets.append(np.argmax(rawData[start:finish])-localOffset)
             
     # Apply offsets
     return peaks + offsets

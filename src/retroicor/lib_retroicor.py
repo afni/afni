@@ -228,18 +228,36 @@ def getRespiratoryPeaks(parameters, rawData):
    
     oldArray = rawData
     
-    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-    peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
-    
-    # Remove peaks that are less than the 10th percentile of the input signal
-    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
-    
+    global OutDir
+   
     # Set minimum breathing frequency based on a maximum breathing period of 10 seconds
     MAX_BREATHING_PERIOD_IN_SECONDS = 10
     minFrequency = round(len(rawData)/(parameters["phys_fs"]*MAX_BREATHING_PERIOD_IN_SECONDS))
+   
+    # Band pass filter raw data
+    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
+        graph = True,\
+        phys_fs = parameters["phys_fs"], OutDir=OutDir)
+    if len(filterData) == 0:
+       print('Failed to band-pass filter cardiac data')   
+       return []
     
+    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
+    # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
+    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/8))
+    
+    # Get period from filtered input data 
+    period = lpf.getTimeSeriesPeriod(filterData)
+   
+    # Adjust peaks from uniform spacing
+    for i in range(0,2):
+        peaks = lpf.refinePeakLocations(peaks, rawData, period = period)
+    
+    # Remove peaks that are less than the 10th percentile of the input signal
+    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
+       
     # Estimate the overall typical period 
-    period = lpf.getTimeSeriesPeriod(rawData, minFrequency = minFrequency)      
+    # period = lpf.getTimeSeriesPeriod(rawData, minFrequency = minFrequency)      
     
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
@@ -299,14 +317,13 @@ def getRespiratoryPeaks(parameters, rawData):
     mpl.pyplot.subplot(211)
     mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
     mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
-    mpl.pyplot.plot(troughs/parameters["phys_fs"], troughVals, "bo") # Peaks
+    mpl.pyplot.plot(troughs/parameters["phys_fs"], troughVals, "bo") # troughs
     mpl.pyplot.xlabel("Time (s)")
     mpl.pyplot.ylabel("Input data input value")
     mpl.pyplot.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
     fontdict={'fontsize': 10})
          
     # Save plot to file
-    global OutDir
     mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
     mpl.pyplot.show()  # If this is left out, output file is blank
      
