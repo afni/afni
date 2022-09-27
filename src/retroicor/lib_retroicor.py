@@ -676,7 +676,7 @@ def getPhysiologicalNoiseComponents(parameters):
         cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
         if len(cardiac_peaks) == 0:
             print('ERROR in getPhysiologicalNoiseComponents: No cardiac peaks')
-            return None
+            return []
         
         if len(cardiac_peaks) > 0:
             cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
@@ -857,7 +857,7 @@ def runAnalysis(parameters):
     """
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
-    if not physiologicalNoiseComponents:
+    if len(physiologicalNoiseComponents) == 0:
         print('Error in runAnalysis. Failure to get physionlogical noise components')
         return 1
     if parameters['-niml']:
