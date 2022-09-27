@@ -156,7 +156,7 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     if not period:
         period = getTimeSeriesPeriod(rawData)
         
-    threshold = (max(rawData) - min(rawData)) * 0.1
+    threshold = -(max(rawData) - min(rawData)) * 0.1
         
     searchLength = round(period * portion)
     searchLength = min(searchLength, peaks[0] - 1)
@@ -394,9 +394,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4):
             
     # Make peaks from intervals
     offset = 0 
-    initialPeak = peaks[0]
     peaks = []
-    peaks.append(initialPeak)
     threshold = round(threshold)
     if Troughs: # Processing troughs instead of peaks
         for interval in intervals:
