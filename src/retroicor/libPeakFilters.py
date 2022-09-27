@@ -149,14 +149,20 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
         Peter Lauren
     """
     
+    if len(peaks) == 0:
+        print('*** Error in removePeaksCloseToHigherPointInRawData: Peaks array empty')
+        return peaks
+    
     if not period:
         period = getTimeSeriesPeriod(rawData)
+        
+    threshold = (max(rawData) - min(rawData)) * 0.1
         
     searchLength = round(period * portion)
     searchLength = min(searchLength, peaks[0] - 1)
     searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
     diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
-    if len(diff) > 0: peaks = peaks[diff >= np.float64(0)]
+    if len(diff) > 0: peaks = peaks[diff >= np.float64(threshold)]
     
     return peaks
 
@@ -211,8 +217,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
-        portion=0.25)
+        removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=4.0)
     ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         

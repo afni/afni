@@ -431,6 +431,9 @@ def retro_ts(
         return 1
 
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    if not physiologicalNoiseComponents:
+        print('*** Error in retro_ts.  Failure to get physiological noise components')
+        return 1
     if parameters['-niml']:
         return 0
     

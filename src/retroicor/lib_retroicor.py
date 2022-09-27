@@ -157,6 +157,9 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["-phys_fs"]/16)
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
+   if len(peaks) == 0:
+       print('ERROR in getCardiacPeaks: Peaks array empty')
+       return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
@@ -243,15 +246,16 @@ def getRespiratoryPeaks(parameters, rawData):
        return []
     
     # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-    # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/8))
-    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/8))
+    peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/4))
+    # peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/64))
+    # peaks, _ = sps.find_peaks(np.array(filterData))
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
    
-    # Adjust peaks from uniform spacing
-    for i in range(0,2):
-        peaks = lpf.refinePeakLocations(peaks, rawData, period = period)
+    # # Adjust peaks from uniform spacing
+    # for i in range(0,2):
+    #     peaks = lpf.refinePeakLocations(peaks, rawData, period = period)
     
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
@@ -271,6 +275,9 @@ def getRespiratoryPeaks(parameters, rawData):
     
     # Merge peaks that are closer than one quarter of the overall typical period
     peaks = lpf.removeClosePeaks(peaks, period, rawData)
+
+    # Add missing peaks
+    peaks = lpf.addMissingPeaks(peaks, rawData, period=period)   
     
     troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
@@ -667,6 +674,9 @@ def getPhysiologicalNoiseComponents(parameters):
         #     parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
                 
         cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
+        if len(cardiac_peaks) == 0:
+            print('ERROR in getPhysiologicalNoiseComponents: No cardiac peaks')
+            return None
         
         if len(cardiac_peaks) > 0:
             cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
@@ -847,6 +857,9 @@ def runAnalysis(parameters):
     """
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    if not physiologicalNoiseComponents:
+        print('Error in runAnalysis. Failure to get physionlogical noise components')
+        return 1
     if parameters['-niml']:
         return 0
     
