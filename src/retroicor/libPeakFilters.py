@@ -297,6 +297,33 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     
     return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
+def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData):
+    
+    numPeaks = len(peaks)
+    lastPeak = numPeaks - 1
+    numTroughs = len(troughs)
+    lastTrough = numTroughs - 1
+    
+    peaksToDelete = []
+    troughsToDelete = []
+    for peakIndex in range(0,numPeaks):
+        if peaks[peakIndex] in troughs:
+            troughIndex = np.argwhere(troughs == peaks[peakIndex])[0]
+            if (peakIndex > 0 and troughIndex > 0) or peakIndex == lastPeak or\
+                    troughIndex == lastTrough: 
+                if peaks[peakIndex - 1] > troughs[troughIndex - 1]:
+                    peaksToDelete.append(peakIndex)
+                else: troughsToDelete.append(troughIndex)
+            else: 
+                if peaks[peakIndex + 1] < troughs[troughIndex + 1]:
+                    peaksToDelete.append(peakIndex)
+                else: troughsToDelete.append(troughIndex)
+                
+    peaks = np.delete(peaks,peaksToDelete)
+    troughs = np.delete(troughs,troughsToDelete)
+                
+    return peaks, troughs
+
 def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
     """
     NAME
@@ -420,7 +447,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4):
     return np.array(peaks)
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency, 
-        graph = True, phys_fs = None, prefix = 'BPFilteredCardiacInput', OutDir = '.') :
+        phys_fs, graph = True, prefix = 'BPFilteredCardiacInput', OutDir = '.') :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -445,10 +472,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,
         Peter Lauren
     """
     
-    if graph and not phys_fs:
-        print('Sampling frequency must be suppplied for graphing')
-        return []
-    
+    F0 = phys_fs/len(rawData)
+
     # Remove NaNs from raw data
     rawData = [x for x in rawData if math.isnan(x) == False]
     
@@ -459,6 +484,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,
     
     # Determine frequency peak
     frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[minFrequency:round(rawDataLength/2)])+minFrequency
+    print('Frequency peak: ' + str(F0 * frequencyPeak) + ' Hz')
         
     # Determine band limits
     lowerMin = round(frequencyPeak/2)
@@ -484,10 +510,13 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,
         mpl.pyplot.xlabel("Time (s)")
         mpl.pyplot.ylabel('Raw iput data value',color='g')
         ax_right = ax_left.twinx()
-        ax_right.plot(x, filteredRawData, color='red')
-        ax_left.plot(x,rawData, color='green')
+        ax_right.plot(x[2000:4000], filteredRawData[2000:4000], color='red')
+        ax_left.plot(x[2000:4000],rawData[2000:4000], color='green')
+        # ax_right.plot(x, filteredRawData, color='red')
+        # ax_left.plot(x,rawData, color='green')
         mpl.pyplot.ylabel('Filtered Data Value',color='r')
-        mpl.pyplot.title("BP Filtered (red) and raw input data (green)")
+        mpl.pyplot.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
+            str(round(F0*lowerMax)) + "] (red) and raw input data (green)")
             
         # Save plot to file
         mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 

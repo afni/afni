@@ -119,6 +119,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        Peter Lauren
    """
    
+   #DEBUG
    oldArray = rawData
    # # Debug
    # array = oldArray[0:200000]
@@ -135,8 +136,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Band pass filter raw data
    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
-        graph = True,\
-        phys_fs = parameters["phys_fs"], OutDir=OutDir)
+        parameters["phys_fs"], graph = True,\
+        OutDir=OutDir)
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -152,6 +153,9 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
 
    # Estimate the overall typical period using filtered cardiac time series
    period = lpf.getTimeSeriesPeriod(filterData)      
+    
+   # Merge peaks that are closer than one quarter of the overall typical period
+   peaks = lpf.removeClosePeaks(peaks, period, rawData)
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
@@ -163,9 +167,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
-    
-   # Merge peaks that are closer than one quarter of the overall typical period
-   peaks = lpf.removeClosePeaks(peaks, period, rawData)
     
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
@@ -239,8 +240,8 @@ def getRespiratoryPeaks(parameters, rawData):
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
-        graph = True,\
-        phys_fs = parameters["phys_fs"], OutDir=OutDir)
+        parameters["phys_fs"], graph = True,\
+        OutDir=OutDir)
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -297,6 +298,9 @@ def getRespiratoryPeaks(parameters, rawData):
     
     # Merge troughs that are closer than one quarter of the overall typical period
     troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True)
+    
+    # Remove peaks/troughs that are also troughs/peaks
+    peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
@@ -525,6 +529,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     troughIndex = 0
     start = 0
     finish = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+    if finish == 0:
+        finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
     denom = finish  # Total length of segment
     
     # Histogram values in segment
@@ -566,6 +572,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         counts, bins = np.histogram([x for x in sample if math.isnan(x) == False], bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
+        if len(sample) == 0:
+            continue
         Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
             end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
