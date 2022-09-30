@@ -298,7 +298,27 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
 def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData):
-    
+    """
+    NAME
+        removeOverlappingPeaksAndTroughs
+            Identify peaks that are also troughs and decide what each one should be
+            (one or the other).
+     TYPE
+         <class 'numpy.float64'>, <class 'numpy.float64'>
+    SYNOPSIS
+        removeOverlappingPeaksAndTroughs(peaks, troughs, rawData)
+    ARGUMENTS
+        peaks:   Array of peak locations in raw data indices.
+        
+        troughs:   Array of trough locations in raw data indices.
+        
+        rawData: Raw input data
+    RETURNS
+        filtered peaks, filtered troughs
+    AUTHOR
+        Peter Lauren
+    """
+        
     numPeaks = len(peaks)
     lastPeak = numPeaks - 1
     numTroughs = len(troughs)
@@ -443,6 +463,9 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4):
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period)
+            
+    # Convert peaks back to numpy array and remove duplicates that may result from refining the locations
+    peaks = np.unique(np.array(peaks))
     
     return np.array(peaks)
 

@@ -526,7 +526,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     
     # Assign values to time series before first full segment
     peakIndex = 0
-    troughIndex = 0
+    troughIndex = np.argmin(respiratory_troughs)
     start = 0
     finish = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
     if finish == 0:
@@ -534,7 +534,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     denom = finish  # Total length of segment
     
     # Histogram values in segment
-    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]] 
+    sample = sample - min(sample)
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
@@ -568,12 +569,11 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         denom = finish - start  # Total length of segment
         
         # Histogram values in segment
-        sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]]  
+        sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]] 
+        sample = sample - min(sample)
         counts, bins = np.histogram([x for x in sample if math.isnan(x) == False], bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
-        if len(sample) == 0:
-            continue
         Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
             end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
@@ -587,6 +587,15 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
                 
             # Use result to estimate phase at given time point
             phases[i] = (math.pi*count*polarity)/denom
+            
+            # if polarity < 0:
+            #     print('phases[i] = ', phases[i])
+            #     print('count = ', count)
+            #     print('denom = ', denom)
+            #     print('end = ', end)
+            #     print('len(counts) = ', len(counts))
+            #     print('round(sample[i-start]*NUM_BINS/Rmax) = ', round(sample[i-start]*NUM_BINS/Rmax))
+            #     print('sample[i-start] = ', sample[i-start])
         
         # Switch polarity and increment peak indxe if new polarity inspiration
         #   Otherwise increment trough index instead
@@ -627,6 +636,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     mpl.pyplot.xlabel("Time (s)")
     mpl.pyplot.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
+    # ax_right.plot(x[2500:3500], phases[2500:3500], color='red')
+    # ax_left.plot(x[2500:3500], rawData[2500:3500], color='green')
     ax_right.plot(x, phases[0:end], color='red')
     ax_left.plot(x, rawData[0:end], color='green')
     mpl.pyplot.ylabel('Phase (Radians)',color='r')
