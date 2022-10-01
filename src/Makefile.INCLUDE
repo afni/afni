@@ -3658,9 +3658,10 @@ nifti2_io.o:nifti/nifti2/nifti2_io.c nifti/nifti2/nifti2_io.h
 	$(RM) $@
 	$(CC) -c nifti/nifti2/nifti2_io.c -Inifti/nifti2 $(INFLAGS)
 
+# test build with -DZNZREAD_RETRY
 znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
-	$(CC) -c nifti/znzlib/znzlib.c $(INFLAGS)
+	$(CC) -DZNZREAD_RETRY -c nifti/znzlib/znzlib.c $(INFLAGS)
 
 nifti_stats.o:nifti/nifticdf/nifti_stats.c
 	$(RM) $@
