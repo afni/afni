@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.8, Sept 1, 2022
+Version 0.1.9, Oct 1, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -48,10 +48,10 @@ Introduction
  http://afni.nimh.nih.gov/sscc/staff/gangc/pub/lmerNotations.pdf
  (adopted from https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html)
 
- Similar to 3dLME, all the main effects and interactions are automatically available
+ Like 3dLME, all main effects and interactions are automatically available
  in the output while simple effects that tease apart those main effects and
  interactions would have to be requested through options -gltCode or -glfCode. Also,
- the 3dLMEr interface is largely similar to 3dLME except
+ the 3dLMEr interface is largely like 3dLME except
 
  1) the random-effects components are incorporated as part of the model
  specification, and thus the user is fully responsible in properly formulating the
@@ -78,11 +78,10 @@ Introduction
  Cite the following if test-retest analysis is performed using the trial-level
  effect estimates as input with 3dLEMr through the option -TRR:
  
- Chen G, et al., Beyond the intraclass correlation: A hierarchical modeling
- approach to test-retest assessment.
- https://www.biorxiv.org/content/10.1101/2021.01.04.425305v1
-
- To be added soon---
+ Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D., 
+ Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. Beyond 
+ linearity in neuroimaging: Capturing nonlinear relationships with application 
+ to longitudinal studies. NeuroImage 233, 117891. 
 
  Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain
  the output int the same format of the input, append a proper suffix to the
@@ -98,7 +97,7 @@ Introduction
 
  Whenever a quantitative variable is involved, it is required to explicitly
  declare the variable through option -qVars. In addition, be mindful about the
- centering issue of each quantitive quantitative variable: you have to decide
+ centering issue of each quantitative variable: you have to decide
  which makes more sense in the research context - global centering or within-
  condition (or within-group) centering? Here is some background and discussion
  about the issue:
@@ -106,7 +105,7 @@ Introduction
 
  The following exemplifying scripts are good demonstrations. More examples will
  be added in the future if I could crowdsource more scenarios from the users
- (including you the reader). In case you find one example similar to your data
+ (including you the reader). In case you find one example like your data
  structure, use the example(s) as a template and then build up your own script.
 
  In addition to R installation, the following R packages need to be installed
@@ -115,7 +114,7 @@ Introduction
 
  rPkgsInstall -pkgs "lmerTest,phia,snow"
 
- Alternatively you may install them in R:
+ Alternatively, you may install them in R:
 
  install.packages("lmerTest")
  install.packages("phia")
@@ -143,7 +142,7 @@ Introduction
 "Example 1 --- Simplest case: LME analysis for one group of subjects each of
   which has three effects associated with three emotions (pos, neg and neu),
   and the effects of interest are the comparisons among the three emotions
-  at the populaton level (missing data allowed). This data structure is usually
+  at the population level (missing data allowed). This data structure is usually
   considered as one-way repeated-measures (or within-subject) ANOVA if no
   missing data occurred. The LME model is typically formulated with a random
   intercept in this case. With the option -bounds, values beyond [-2, 2] will
@@ -221,8 +220,8 @@ Introduction
    ex3 <-
 "Example 3 --- LME analysis for one group of subjects each of which has three
   effects associated with three emotions (pos, neg and neu), and the effects
-  of interest are the comparisons among the three emotions  at the populaton
-  level. As the data were acquired across 12 scanning sites,  we set up an LME
+  of interest are the comparisons among the three emotions at the population
+  level. As the data were acquired across 12 scanning sites, we set up an LME
   model with a crossed random-effects structure, one for cross-subjects and one
   for cross-sites variability.
 
@@ -447,7 +446,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-glfCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-glfCode label CODING: Specify a general linear F-style (GLF) formulation",
    "         with the weights among factor levels in which two or more null",
-   "         relationships (e.g., A-B=0 and B-C=0) are innvolved. The symbolic",
+   "         relationships (e.g., A-B=0 and B-C=0) are involved. The symbolic",
    "         coding has to be within (single or double) quotes. For example, the",
    "         coding '-glfCode AvBvc 'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos''",
    "         examines the main effect of Condition at the positive Emotion with",
@@ -514,7 +513,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         file, e.g., calling it table.txt, and then in the script specify the data",
    "         with '-dataTable @table.txt'. However, when the table is provided as a",
    "         separate file, do NOT put any quotes around the square brackets for each",
-   "         sub-brick,otherwise the program would not properly read the files, unlike the",
+   "         sub-brick, otherwise the program would not properly read the files, unlike the",
    "         situation when quotes are required if the table is included as part of the",
    "         script. Backslash is also not needed at the end of each line, but it would",
    "         not cause any problem if present. This option of separating the table from",
@@ -529,7 +528,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "-show_allowed_options: list of allowed options\n" ),
 
        '-cio' = apl(n=0, h = paste(
-   "-cio: Use AFNI's C io functions, which is the default. Alternatively -Rio",
+   "-cio: Use AFNI's C io functions, which is the default. Alternatively, -Rio",
    "         can be used.\n", sep='\n')),
        '-Rio' = apl(n=0, h = "-Rio: Use R's io functions. The alternative is -cio.\n")
 

@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.15,  Aug 9, 2022
+Version 4.1.0,  Oct 1, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -43,19 +43,19 @@ Usage: ~1~
  3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
  style computations. In addition, it can run multivariate modeling in the sense
  of multiple simultaneous response variables. For univariate analysis, no bound
- is imposed on the  numbers of explanatory variables, and these variables can be
+ is imposed on the numbers of explanatory variables, and these variables can be
  either categorical (factor) or numerical/quantitative (covariate). F-statistics
  for all main effects and interactions are automatically included in the output.
  In addition, general linear tests (GLTs) can be requested via symbolic coding.
 
  Input files for 3dMVM can be in AFNI, NIfTI, or surface (niml.dset) format.
  Note that unequal number of subjects across groups are allowed, but scenarios
- with missing data for a within-subject factor are better modeled with 3dLME.
- Cases with quantitative variables (covariates) that vary across the levels of
- a within-subject variable are also better handled with 3dLME. Computational
- cost with 3dMVM is very high compared to 3dttest++ or 3dANOVAx, but it has the
- capability to correct for sphericity violations when within-subject variables
- with more than two levels are involved.
+ with missing data for a within-subject factor are better modeled with 3dLME or 
+ 3dLMEr. Cases with quantitative variables (covariates) that vary across the 
+ levels of a within-subject variable are also better handled with 3dLME or 3dLMEr. 
+ Computational cost with 3dMVM is higher relative to 3dttest++ or 3dANOVAx, but
+ it has the capability to correct for sphericity violations when within-subject 
+ factors with more than two levels are involved.
 
  Please cite: ~1~
  If you want to cite the analysis approach for AN(C)OVA, use the following:~2~
@@ -81,7 +81,7 @@ Usage: ~1~
 
  rPkgsInstall -pkgs ALL
 
- Alternatively you may install them in R:
+ Alternatively, you may install them in R:
 
  install.packages("afex")
  install.packages("phia")
@@ -94,7 +94,7 @@ Usage: ~1~
  Once the 3dMVM command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the
  script as a text file, for example, called MVM.txt, and execute it with the
- following  (assuming on tc shell),
+ following (assuming on tcsh shell),
 
  tcsh -x MVM.txt &
 
@@ -152,7 +152,7 @@ Example 1 --- 3 between-subjects and 2 within-subject variables: ~2~
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
           3) The three GLFs show the user how to specify sub-interactions.
-          4) Option '-SS_type 2' specifies the hierarchial type for the sums of squares in the
+          4) Option '-SS_type 2' specifies the hierarchical type for the sums of squares in the
           omnibus F-statistics in the output. See more details in the help.\n"
 
    ex2 <-
@@ -189,8 +189,8 @@ Example 2 --- 2 between-subjects, 1 within-subject, 2 quantitative variables: ~2
           1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
           between the emotions at the age of 30 (5 above the center). On the other hand,
           all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
-          value, 25 year old.
-          2) The 4rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
+          value, 25 years old.
+          2) The 4th GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
           3) Similarly, the 5th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
@@ -331,20 +331,20 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
 
       '-wsVars' = apl(n=c(1,100), d=NA, h = paste(
    "-wsVars FORMULA: Within-subject factors, if present, have to be listed",
-   "         here; otherwise the program will choke. If no within-subject ",
+   "         here, otherwise the program will choke. If no within-subject ",
    "         exists, don't include this option in the script. Coding for",
    "         additive effects and interactions is the same as in -bsVars. The",
    "         FORMULA with more than one variable has to be surrounded ",
    "         within (single or double) quotes. Note that the within-subject",
    "         variables are assumed to interact with those between-subjects",
    "         variables specified under -bsVars. The hemodynamic response",
-   "         time course are better modeled as simultaneous outcomes through",
+   "         time courses are better modeled as simultaneous outcomes through",
    "         option -mVar, and not as the levels of a within-subject factor.",
-   "         The varialbes under -wsVars and -mVar are exclusive from each",
+   "         The variables under -wsVars and -mVar are exclusive from each",
    "         other.\n", sep = '\n') ),
 
        '-wsMVT' = apl(n=0, h = paste(
-   "-wsMVT: By default 3dMVM provides an F-stat through univariate testing (UVT)",
+   "-wsMVT: By default, 3dMVM provides an F-stat through univariate testing (UVT)",
    "         for each effect that involves a within-subject factor. If at least",
    "         one within-subject factor is involved in the model, option -wsMVT",
    "         provides within-subject multivariate testing for any effect",
@@ -355,7 +355,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         Univariate General Linear Model. NeuroImage 99, 571-588. If",
    "         all the within-subject factors have two levels, the multivariate",
    "         testing would render the same results as the univariate version.",
-   "         So use the option only if at least one within-subject factor has",
+   "         So, use the option only if at least one within-subject factor has",
    "         more than two levels. The F-statistics from the multivariate",
    "         testing are labeled with -wsMVT- in the sub-brick names. Note that",
    "         the conventional univariate F-statistics are automatically included",
@@ -366,7 +366,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         omnibus F-test associated with a within-subject factor is assessed",
    "         with both univariate and within-subject multivariate tests. Use",
    "         the option only if at least one within-subject factor has more",
-   "         than two levels. By default 3dMVM provides an F-stat through the",
+   "         than two levels. By default, 3dMVM provides an F-stat through the",
    "         univariate testing (UVT) method for each effect that involves a",
    "         within-subject factor. With option -wsE2 UVT is combined with the",
    "         within-subject multivariate approach, and the merged result remains",
@@ -451,7 +451,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         However EXTREME caution should be taken when the groups",
    "         differ significantly in the average value of the covariate.",
    "         3) Within-subject covariates vary across the levels of a",
-   "         within-subject factor, and can be analyzed with 3dLME,",
+   "         within-subject factor, and can be analyzed with 3dLME or 3dLMEr,",
    "         but not 3dMVM.\n",
              sep = '\n'
              ) ),
@@ -464,7 +464,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
   # "         separated with comma (,) without any other characters such as",
   # "         spaces and should be surrounded within (single or double) quotes.",
   # "         For example, -qVars \"Var1,Var2\".
-   "         By default mean centering is performed voxel-wise across all",
+   "         By default, mean centering is performed voxel-wise across all",
    "         subjects. Alternatively centering can be specified through a",
    "         global value under -vVarsCenters. If the voxel-wise covariates",
    "         have already been centered, set the centers at 0 with -vVarsCenters.\n",
@@ -550,7 +550,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         4) The absence of a categorical variable in a coding means the",
    "         levels of that factor are averaged (or collapsed) for the GLT.\n",
    "         5) The appearance of a categorical variable has to be followed",
-   "         by the linear combination of its levels. Only a quantitative",
+   "         by the linear combination of its levels. Only a quantitative variable",
    "         is allowed to have a dangling coding as seen in 'Age :'.\n",
    "         6) Some special interaction effects can be tested under -gltCode",
    "         when the numerical DF is 1. For example, 'Group : 1*Old -1*Young",
@@ -566,7 +566,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos' tests the main",
-   "         effect of Condition at the positive Emotion. Similarly the coding",
+   "         effect of Condition at the positive Emotion. Similarly, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
    "         the interaction between the three levels of Condition and the two",
    "         levels of Emotion.\n",
@@ -596,8 +596,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         one character. Input files can be in AFNI, NIfTI or surface format.",
    "         AFNI files can be specified with sub-brick selector (square brackets",
    "         [] within quotes) specified with a number or label. Unequal number of",
-   "         subjects across groups is allowed, but situations with missing data",
-   "         for a within-subject factor are better handled with 3dLME.\n",
+   "         subjects across groups are allowed, but situations with missing data",
+   "         for a within-subject factor are better handled with 3dLME or 3dLMEr.\n",
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",

@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.1, Sept 17, 2022 
+Version 1.1.2, Oct 1, 2022 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -52,13 +52,22 @@ Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E, 2019. Handling Multiplic
 in Neuroimaging through Bayesian Lenses with Multilevel Modeling. Neuroinformatics.
 https://rdcu.be/bhhJp
 
+Chen, G., Taylor, P.A., Cox, R.W., Pessoa, L., 2020. Fighting or embracing 
+multiplicity in neuroimaging? neighborhood leverage versus global calibration. 
+NeuroImage 206, 116320. https://doi.org/10.1016/j.neuroimage.2019.116320
+
+Chen, G., Taylor, P.A., Stoddard, J., Cox, R.W., Bandettini, P.A., Pessoa, L., 
+2022. Sources of Information Waste in Neuroimaging: Mishandling Structures, 
+Thinking Dichotomously, and Over-Reducing Data. Aperture Neuro 2021, 46. 
+https://doi.org/10.52294/2e179dbf-5e37-4338-a639-9ceb92b055ea
+
 =============================== 
-Read the following carefully!!!
+Read the following carefully!
 ===============================
 A data table in pure text format is needed as input for an RBA script. The
 data table should contain at least 3 columns that specify the information
 about subjects, regions and the response variable values with the following
-fixed header. The header lables are case-sensitive, and their order does not
+fixed header. The header labels are case-sensitive, and their order does not
 matter.
 
 Subj   ROI        Y      Age
@@ -114,7 +123,7 @@ artificial threshold. Instead, we encourage full results reporting:
 highlight some results with strong evidence and literature support (if
 available) without hiding the rest.
 
-7) WARNING: If the results are pretty homogenized across regions, it is an
+7) WARNING: If the results are unexpectedly homogenized across regions, it is an
 indication that presumably partial pooling becomes full pooling. Most
 likely the cross-region variability is so negligible that the model
 renders the overall average as individual effects for all regions. When
@@ -125,12 +134,12 @@ the subtle effects.
 
 Installation requirements: ~1~
 In addition to R installation, the R package "brms" is required for RBA. Make
-sure you have the most recent version of R. To install "brms", run the following
+sure that you have the most recent version of R. To install "brms", run the following
 command at the terminal:
 
 rPkgsInstall -pkgs "brms" -site http://cran.us.r-project.org"
 
-Alternatively you may install them in R:
+Alternatively, you may install them in R:
 
 install.packages("brms")
 
@@ -216,7 +225,7 @@ S04   DMNPCC     0.568
 If t-statistic (or standard error) values corresponding to the response variable
 Y are available, add the t-statistic (or standard error) values as a column in the input
 data table so that they can be incorporated into the BML model using the option -tstat
-or -se with the following script (assuming the tstat column is named as 'tvalue),
+or -se with the following script (assuming the tstat column is named as 'tvalue'),
 
 RBA -prefix myResult -chains 4 -WCP 6 \\
 -iterations 1000 -model 1 -EOI 'Intercept' -distY 'student' -tstat tvalue \\
@@ -241,7 +250,7 @@ RBA -prefix output -Subj subject -ROI region -Y zscore -ridgePlot 10 8 \\
 
 If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
 ...), a speedup feature can be adopted through within-chain parallelization
-with the option -WCP. For example, For example, consider adding 
+with the option -WCP. For example, consider adding 
 '-WCP 6' on a computer with 24 CPUs.
 
 The input file 'myData.txt' is formatted as below:
@@ -273,8 +282,8 @@ RBA -prefix result -ridgePlot 8 6 -Subj Subj -ROI region -Y value \\
 
 If a computer is equipped with as many CPUs as a factor 4 (e.g., 8, 16, 24,
 ...), a speedup feature can be adopted through within-chain parallelization
-with the option -WCP. For example, For example, consider 
-adding '-WCP 6' on a computer with 24 CPUs.
+with the option -WCP. For example, consider adding '-WCP 6' to the script
+on a computer with 24 CPUs.
 
 The input file 'myData.txt' is formatted as below:
 
@@ -316,7 +325,7 @@ S2    DMNLHC    0.265
 
 Notice
 
-1) The -mean option specifies the formulation for the mean of the likelihood (Gausian
+1) The -mean option specifies the formulation for the mean of the likelihood (Gaussian
    in this case).
 2) The -sigma option specifies the formulation for the standard deviation of likelihood
    (Gaussian in this case).
@@ -350,7 +359,7 @@ params <- list (
 "        a text with prefix appended with .txt and stores inference information ",
 "        for effects of interest in a tabulated format depending on selected ",
 "        options. The prefix will also be used for other output files such as ",
-"        visualization plots, and saved R data in binary format. The .RData can",
+"        visualization plots and for saved R data in binary format. The .RData can",
 "        be used for post hoc processing such as customized processing and plotting.",
 "        Remove the .RData file to save disk space once you deem such a file is no",
 "        longer useful.\n", sep = '\n'
@@ -369,16 +378,16 @@ params <- list (
 "         for simple models (e.g., one or no explanatory variables). If convergence",
 "         problem occurs as indicated by Rhat being great than 1.1, increase the number of",
 "         iterations (e.g., 2000) for complex models, which will lengthen the runtime.",
-"         Unfortunately there is no way to predict the optimum iterations ahead of time.\n", sep = '\n'
+"         Unfortunately, there is no way to predict the optimum iterations ahead of time.\n", sep = '\n'
 	     ) ),
 
 '-verb' = apl(n = 1, d = 1, h = paste(
-"-verb VERB: Speicify verbose level.\n", sep = '\n'
+"-verb VERB: Specify verbose level.\n", sep = '\n'
 	     ) ),
 
 '-model' = apl(n = 1, d = 1, h = paste(
 "-model FORMULA: This option specifies the effects associated with explanatory",
-"         variables. By default (without user input) the model is specified as",
+"         variables. By default, (without user input) the model is specified as",
 "         1 (Intercept). Currently only between-subjects factors (e.g., sex, ",
 "         patients vs. controls) and quantitative variables (e.g., age) are",
 "         allowed. When no between-subject factors are present, simply put 1",
@@ -392,13 +401,13 @@ params <- list (
      ) ),
 
 '-mean' = apl(n = 1, d = 1, h = paste(
-"-mean FORMULA: Speicify the formulation for the mean of the likelihood (sampling",
+"-mean FORMULA: Specify the formulation for the mean of the likelihood (sampling",
 "          distribution).\n", sep = '\n') ),
 
 '-sigma' = apl(n = 1, d = 1, h = paste(
-"-sigma FORMULA: Speicify the formulation for the standard deviation (sigma) of the",
+"-sigma FORMULA: Specify the formulation for the standard deviation (sigma) of the",
 "          likelihood (sampling distribution). When this option is absent in the",
-"          scrpt, it is assumed to be 1, meaning a single parameter for the variance",
+"          script, it is assumed to be 1, meaning a single parameter for the variance",
 "          (homogeneity).\n", sep = '\n') ),
 
 '-dbgArgs' = apl(n=0, h = paste(
@@ -441,7 +450,7 @@ params <- list (
 "         it is recommended that all quantitative variables be standardized",
 "         except for the response variable and indicator variables that code for",
 "         factors. For example, -stdz \"Age,IQ\". If the mean of a quantitative",
-"         variables varies substantially between groups, it may make sense to",
+"         variable varies substantially between groups, it may make sense to",
 "         standardize the variable within each group before plugging the values",
 "         into the data table. Currently RBA does not offer the option to perform",
 "         within-group standardization.\n",
@@ -452,13 +461,13 @@ params <- list (
 "-scale d: Specify a multiplier for the Y values. When the values for response",
 "         are too small or large, it may create a convergence problem for MCMC. To",
 "         avoid the problem, set a scaling factor so that the range of value is",
-"         around 1-10. The results will be adjusted back to the orignal scale.\n", sep = '\n'
+"         around 1-10. The results will be adjusted back to the original scale.\n", sep = '\n'
 	     ) ),
 
 '-EOI' = apl(n=c(1,100), d=NA, h = paste(
 "-EOI variable_list: Identify effects of interest in the output by specifying the",
 "         variable names separated with comma (,). For example, -EOI \"sex,age\".",
-"         By default the Intercept is considered to be an effect of interest.",
+"         By default, the Intercept is considered to be an effect of interest.",
 "         Currently only variables, not their interactions, can be directly",
 "         requested for output. However, most interaction effects can be obtained by",
 "         either properly coding the variables (see example 3) or post processing.\n",
@@ -489,7 +498,7 @@ params <- list (
 "-tstat var_name: var_name is used to specify the column name that lists",
 "        the t-statistic values, if available, for the response variable 'Y'.", 
 "        In the case where standard errors are available for the effect", 
-"        estiamtes of 'Y', use the option -se.\n", sep = '\n'
+"        estimates of 'Y', use the option -se.\n", sep = '\n'
 	     ) ),
 
 '-se'  = apl(n = 1, d = 0, h = paste(
@@ -497,7 +506,7 @@ params <- list (
 "         available as input, and a column is designated for the standard error",
 "         in the data table. If effect estimates and their t-statistics are the",
 "         output from preceding analysis, standard errors can be obtained by",
-"         dividing the effect estimatrs ('betas') by their t-statistics. The",
+"         dividing the effect estimates ('betas') by their t-statistics. The",
 "         default assumes that standard error is not part of the input.\n", sep='\n')),
 
 '-distY' = apl(n = 1, d = NA,  h = paste(
@@ -538,7 +547,7 @@ params <- list (
 "-WCP k: This option will invoke within-chain parallelization to speed up runtime.",
 "         To take advantage of this feature, you need the following: 1) at least 8",
 "         or more CPUs; 2) install 'cmdstan'; 3) install 'cmdstanr'. The value 'k'",
-"         is the number of thread per chain that is requested. For example, with 4",
+"         is the number of threads per chain that is requested. For example, with 4",
 "         chains on a computer with 24 CPUs, you can set 'k' to 6 so that each",
 "         chain will be assigned with 6 threads.\n", sep='\n')),
 
@@ -556,13 +565,13 @@ params <- list (
 "-PDP nr nc: Specify the layout of posterior distribution plot (PDP) with nr rows",
 "         and nc columns among the number of plots. For example, with 16 regions,",
 "         you can set nr = 4 and nc = 4. The region names will be shown in each plot.",
-"         So label the regions concisely.\n", sep = '\n'
+"         So, label the regions concisely.\n", sep = '\n'
 	     ) ),
 
 '-ridgePlot' = apl(n=2, d = NA,  h = paste(
 "-ridgePlot width height: This option will plot the posterior distributions stacked",
 "         together in a sequential order, likely preferable to the one generated",
-"         with option -PDP. The size of the figure windown is specified through the",
+"         with option -PDP. The size of the figure window is specified through the",
 "         two parameters of width and height in inches. You can fine-tune the plot",
 "         yourself by loading up the *.RData file if you know the tricks.\n", sep='\n')),
 
@@ -577,7 +586,7 @@ params <- list (
 "         that are associated with each value under the column Y. More columns can",
 "         be added in the table for explanatory variables (e.g., groups, age, site)",
 "         if applicable. Only subject-level (or between-subjects) explanatory variables",
-"         are allowed at the moment. The labels for the columns of 'Subj' and 'ROI'",
+"         are allowed now. The labels for the columns of 'Subj' and 'ROI'",
 "         can be any identifiable characters including numbers.",
 "         2) Each row is associated with one and only one 'Y' value, which is the",
 "         response variable in the table of long format (cf. wide format) as",

@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.11, July 6, 2022
+Version 2.1.0, Oct 1, 2022
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -38,7 +38,7 @@ Usage:
  is that each subject has to have two or more measurements at each spatial 
  location (except for a small portion of subjects with missing data). In other
  words, at least one within-subject (or repeated-measures) factor serves as
- explanatory variable.
+ explanatory variable. For complex random-effects structures, use 3dLMEr.
  
  F-statistics for main effects and interactions are automatically included in 
  the output for all variables. In addition, Student t-tests for quantitative 
@@ -60,7 +60,7 @@ Usage:
 
  rPkgsInstall -pkgs ALL
 
- Alternatively you may install them in R:
+ Alternatively, you may install them in R:
  
  install.packages("nlme")
  install.packages("lme4")
@@ -73,7 +73,7 @@ Usage:
  Once the 3dLME command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
  script as a text file, for example, called LME.txt, and execute it with the 
- following (assuming on tc shell),
+ following (assuming on tcsh shell),
  
  tcsh -x LME.txt &
  
@@ -194,7 +194,7 @@ a random intercept is considered.
    ex4 <-   
 "Example 4 --- Computing ICC values for two within-subject factor (Cond:
 positive, negative, and neutral; Scanner: one, and two) plus subjects (factor
-Subj).
+Subj). 
 -------------------------------------------------------------------------
    3dLME -prefix Example4 -jobs 12                                      \\
          -mask myMask+tlrc                                              \\
@@ -288,7 +288,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
       '-ranEff' = apl(n=c(1,100), d=NA, h = paste(
    "-ranEff FORMULA: Specify the random effects. The simplest and most common",
-   "         one is random intercept, \"~1\", meaning each subject deviates some",
+   "         one is random intercept, \"~1\", meaning that each subject deviates some",
    "         amount (called random effect) from the group average. \"~RT\" or \"~1+RT\"",
    "         means that each subject has a unique intercept as well as a slope,",
    "         and the correlation between the two random effects are estimated, not",
@@ -392,7 +392,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-ICC' = apl(n=0, d=3, h = paste(
    "-ICC: This option allows 3dLME to compute voxel-wise intra-class correlation",
    "         for the variables specified through option -ranEff. See Example 4 in",
-   "         in the help. Consider using a more flexible program 3dICC.\n ",
+   "         in the help. Consider using a more flexible program 3dICC. If trial-",
+   "         level data are available, a more accurate approach is to use the",
+   "         program TRR at the region level or use the program 3dLMEr at the",
+   "         level. Refer to the following paper for more detail:",
+   "         Chen, G., Pine, D.S., Brotman, M.A., Smith, A.R., Cox, R.W., Haller,",
+   "         S.P., 2021. Trial and error: A hierarchical modeling approach to ",
+   "         test-retest reliability. NeuroImage 245, 118647. \n ",
              sep = '\n'
                      ) ),
 
@@ -492,7 +498,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos' tests the main",
-   "         effect of Condition at the positive Emotion. Similarly the coding",
+   "         effect of Condition at the positive Emotion. Similarly, the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
    "         the interaction between the three levels of Condition and the two.",
    "         levels of Emotion.\n",
