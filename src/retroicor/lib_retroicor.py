@@ -303,7 +303,13 @@ def getRespiratoryPeaks(parameters, rawData):
     peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
-    peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+    # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+    
+    # Add missing peaks and troughs
+    peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None)
+    
+    # Remove extra peaks bewteen troughs and troughs between peaks
+    # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     
     # Filter peaks and troughs.  Reject peak/trough pairs where
     #    difference is less than one tenth of the total range
@@ -510,6 +516,15 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
        Peter Lauren
     """
     
+    # DEBUG
+    # rawData = rawData[3000:4000]
+    # respiratory_peaks = np.array([n for n in respiratory_peaks if n > 3000 and n<4000]) - 3000
+    # respiratory_troughs = np.array([n for n in respiratory_troughs if n > 3000 and n<4000]) - 3000
+    # respiratory_peaks - 3000
+    # respiratory_troughs - 3000
+    
+    rawData = rawData - min(rawData)
+    
     NUM_BINS = 100
     
     # Determine whether currently inspiration or expiration
@@ -535,7 +550,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     
     # Histogram values in segment
     sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]] 
-    sample = sample - min(sample)
+    # sample = sample - min(sample)
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
@@ -588,15 +603,6 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
             # Use result to estimate phase at given time point
             phases[i] = (math.pi*count*polarity)/denom
             
-            # if polarity < 0:
-            #     print('phases[i] = ', phases[i])
-            #     print('count = ', count)
-            #     print('denom = ', denom)
-            #     print('end = ', end)
-            #     print('len(counts) = ', len(counts))
-            #     print('round(sample[i-start]*NUM_BINS/Rmax) = ', round(sample[i-start]*NUM_BINS/Rmax))
-            #     print('sample[i-start] = ', sample[i-start])
-        
         # Switch polarity and increment peak indxe if new polarity inspiration
         #   Otherwise increment trough index instead
         polarity = -polarity
@@ -619,6 +625,9 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     for i in range(start,finish): # Move through segment
         end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
         
+        if end >= len(counts):
+            end = len(counts) - 1
+        
         # Count values, in segment that are not greater than the summation limit
         count = 0
         for j in range(0,end):
@@ -629,6 +638,10 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     
       
     # PLot phases and raw data against time in seconds.
+    peakVals = []
+    for i in respiratory_peaks: peakVals.append(rawData[i])
+    troughVals = []
+    for i in respiratory_troughs: troughVals.append(rawData[i])
     x = []    
     end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
     for i in range(0,end): x.append(i/phys_fs)
@@ -636,10 +649,12 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     mpl.pyplot.xlabel("Time (s)")
     mpl.pyplot.ylabel('Input data input value',color='g')
     ax_right = ax_left.twinx()
-    # ax_right.plot(x[2500:3500], phases[2500:3500], color='red')
-    # ax_left.plot(x[2500:3500], rawData[2500:3500], color='green')
+    # ax_right.plot(x[3000:4000], phases[3000:4000], color='red')
+    # ax_left.plot(x[3000:4000], rawData[3000:4000], color='green')
     ax_right.plot(x, phases[0:end], color='red')
     ax_left.plot(x, rawData[0:end], color='green')
+    # ax_left.plot(respiratory_peaks/parameters["phys_fs"], peakVals, "mo") # Peaks
+    # ax_left.plot(respiratory_troughs/parameters["phys_fs"], troughVals, "bo") # troughs
     mpl.pyplot.ylabel('Phase (Radians)',color='r')
     mpl.pyplot.title("Respiratory phase (red) and raw input data (green)")
         

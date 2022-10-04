@@ -637,4 +637,64 @@ def addMissingPeaks(peaks, rawData, period=None):
     return peaks
 
 
+def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None):
+    """
+    NAME
+        addMissingPeaksAndTroughs
+            Find and fill gaps in period series of peaks and troughs
+     TYPE
+         <class 'numpy.ndarray'>
+    SYNOPSIS
+        addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None) 
+    ARGUMENTS
+        peaks: Array of peaks to be refined
+        
+        troughs: Array of troughs to be refined
+        
+        rawData: Raw input data
+        
+        period: Overall typical period of raw data in time series index units.
+                Default is none, meaning the period is determined from the raw data.
+    AUTHOR
+        Peter Lauren
+    """
+    
+    # Find period if not supplied
+    if not period:
+        period = getTimeSeriesPeriod(rawData)
+        
+    # Find interpeak intervals
+    intervals = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
+    factor = np.median(intervals)*0.9
+    peaksToAdd = [round(intervals[i]/factor)-1 for i in range(0,len(intervals))]
+    for i in range(len(intervals)-1,-1,-1):
+        if (peaksToAdd[i]>0):
+            additionPlus1 = peaksToAdd[i] + 1
+            start = peaks[i]
+            end = peaks[i+1]
+            increment = (end-start)/additionPlus1
+            peaks = np.insert(peaks, i+1, [start+increment*j for j in range(1,additionPlus1)])
+        
+    # Find intertrough intervals
+    intervals = [x - troughs[i - 1] for i, x in enumerate(troughs)][1:]
+    factor = np.median(intervals)*0.9
+    troughsToAdd = [round(intervals[i]/factor)-1 for i in range(0,len(intervals))]
+    for i in range(len(intervals)-1,-1,-1):
+        if (troughsToAdd[i]>0):
+            additionPlus1 = troughsToAdd[i] + 1
+            start = troughs[i]
+            end = troughs[i+1]
+            increment = (end-start)/additionPlus1
+            troughs = np.insert(troughs, i+1, [start+increment*j for j in range(1,additionPlus1)])
+   
+    # Adjust peaks from uniform spacing
+    peaks = refinePeakLocations(peaks, rawData, period = period/2)
+    troughs = refinePeakLocations(troughs, rawData, period = period/2, Troughs = True)
+    
+    # Remove extra peaks bewteen troughs and troughs between peaks
+    peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
+    
+    return peaks, troughs
+
+
         
