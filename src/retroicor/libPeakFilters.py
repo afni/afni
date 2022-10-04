@@ -696,5 +696,63 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None):
     
     return peaks, troughs
 
+def graphPeaksAgainstRawInput(rawData, peaks, parameters, peakType, troughs = [], 
+                              OutDir = None, display = True):
+    '''
+    NAME
+        graphPeaksAgainstRawInput
+        Graph graph raw input data along with peaks and optionally troughs
+     TYPE
+         <void>
+    SYNOPSIS
+        graphPeaksAgainstRawInput(rawData, peaks, parameters, peakType, troughs = [], 
+                                      OutDir = None, display = True) 
+    ARGUMENTS
+        rawData: Raw input data
+        
+        peaks: Array of peaks to be refined
+        
+        parameters: Dictionary that includes the following field
+            - phys_fs: Sampling frequency in Hz
+                
+        peakType: String that defines the type of data.  May be "Cardiac" or "Respiratory"
+        
+        troughs: Array of troughs to be refined. Not used if plotting troughs not required
+        
+        OutDir: String defining the directory to which the  graph is written.  
+            Not used if it is not required to save the graph to disk.
+        
+        display: Whether to display the graph while the program is running.  Default is True
+    AUTHOR
+        Peter Lauren
+    '''
+    
+    # Graph respiratory peaks and troughs against respiratory time series
+    x = []    
+    end = len(rawData)
+    for i in range(0,end): x.append(i/parameters["phys_fs"])
+    peakVals = []
+    for i in peaks: peakVals.append(rawData[i])
+    mplf.Figure(figsize =(7,7))
+    mpl.pyplot.subplot(211)
+    mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
+    mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
+    if len(troughs) > 0:
+        troughVals = []
+        for i in troughs: troughVals.append(rawData[i])
+        mpl.pyplot.plot(troughs/parameters["phys_fs"], troughVals, "bo") # troughs
+        title = peakType + " peaks (red), troughs (blue) and raw input data (green)"
+    else:
+        title = peakType + " peaks (red) and raw input data (green)"
+    mpl.pyplot.xlabel("Time (s)")
+    mpl.pyplot.ylabel("Input data value")
+    mpl.pyplot.title(title, fontdict={'fontsize': 10})
+         
+    # Save plot to file
+    if OutDir:
+        mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
+        mpl.pyplot.show()  # If this is left out, output file is blank
+
+
 
         

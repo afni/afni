@@ -189,25 +189,28 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    #              sep = round(interpeak[p]/numberToAdd)               
    #          for i in range(1,numberToAdd):
    #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
+    
+   # Graph respiratory peaks and troughs against respiratory time series
+   lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters, "Cardiac")
                
-   # Graph cardiac peaks against cardiac time series
-   x = []    
-   end = len(rawData)
-   for i in range(0,end): x.append(i/parameters["phys_fs"])
-   peakVals = []
-   for i in peaks: peakVals.append(rawData[i])
-   mplf.Figure(figsize =(7,7))
-   mpl.pyplot.subplot(211)
-   mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
-   mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
-   mpl.pyplot.xlabel("time(s)")
-   mpl.pyplot.ylabel("Input data input value")
-   mpl.pyplot.title("Cardiac peaks (red) and raw input data (green)",\
-               fontdict={'fontsize': 12})
+   # # Graph cardiac peaks against cardiac time series
+   # x = []    
+   # end = len(rawData)
+   # for i in range(0,end): x.append(i/parameters["phys_fs"])
+   # peakVals = []
+   # for i in peaks: peakVals.append(rawData[i])
+   # mplf.Figure(figsize =(7,7))
+   # mpl.pyplot.subplot(211)
+   # mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
+   # mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
+   # mpl.pyplot.xlabel("time(s)")
+   # mpl.pyplot.ylabel("Input data input value")
+   # mpl.pyplot.title("Cardiac peaks (red) and raw input data (green)",\
+   #             fontdict={'fontsize': 12})
         
-   # Save plot to file
-   mpl.pyplot.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
-   mpl.pyplot.show()  # If this is left out, output file is blank
+   # # Save plot to file
+   # mpl.pyplot.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
+   # mpl.pyplot.show()  # If this is left out, output file is blank
     
    return peaks, len(rawData)
 
@@ -323,26 +326,7 @@ def getRespiratoryPeaks(parameters, rawData):
     # troughs = np.delete(troughs,indices2remove)
     
     # Graph respiratory peaks and troughs against respiratory time series
-    x = []    
-    end = len(rawData)
-    for i in range(0,end): x.append(i/parameters["phys_fs"])
-    peakVals = []
-    for i in peaks: peakVals.append(rawData[i])
-    troughVals = []
-    for i in troughs: troughVals.append(rawData[i])
-    mplf.Figure(figsize =(7,7))
-    mpl.pyplot.subplot(211)
-    mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
-    mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
-    mpl.pyplot.plot(troughs/parameters["phys_fs"], troughVals, "bo") # troughs
-    mpl.pyplot.xlabel("Time (s)")
-    mpl.pyplot.ylabel("Input data input value")
-    mpl.pyplot.title("Respiratory peaks (red), troughs (blue) and raw input data (green)",\
-    fontdict={'fontsize': 10})
-         
-    # Save plot to file
-    mpl.pyplot.savefig('%s/RespiratoryPeaks.pdf' % (OutDir)) 
-    mpl.pyplot.show()  # If this is left out, output file is blank
+    lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters, "Respiratory", troughs = troughs)
      
     return peaks, troughs, len(rawData)
 
