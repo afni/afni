@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Oct , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_ENHANCE,
+   "Output a run_instacorr_errts.tcsh script in the results directory.",
+   "Very useful for data QC. Use it.  Quick now, here, now, always...\n"
+},
+
 { 22, Sep , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-clusterize_wami ..', for Clustering functionality.",
    "Adds a 'whereami' table to the output dir.\n"

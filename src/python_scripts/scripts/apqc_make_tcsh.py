@@ -227,10 +227,13 @@ auth = 'PA Taylor'
 # [PT] add mask_dset images: overlays final dset, whether in 
 #      va2t, ve2a or vorig QC block
 #
-ver = '4.05' ; date = 'Aug 18, 2022'
+#ver = '4.05' ; date = 'Aug 18, 2022'
 # [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
 #      ---> but just as quickly have removed it; might distract from the
 #           important sulcal/gyral overlap
+#
+ver = '4.1' ; date = 'Oct 5, 2022'
+# [PT] add in run_instacorr_errts.tcsh script
 #
 #########################################################################
 
@@ -248,6 +251,7 @@ from afnipy import lib_apqc_tcsh       as lat
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
+from afnipy import lib_apqc_instacorr  as laic
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -293,6 +297,41 @@ if __name__ == "__main__":
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
+
+    # ----------------------- InstaCorr script ----------------------
+
+    # [PT: Oct 5, 2022] make an instacorr run script in the main
+    # results directory
+
+    ldep     = ['errts_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+
+            # make the full text
+            script_text_insta = laic.make_apqc_ic_script(ap_ssdict)
+
+            # write the text file in the results directory
+            otcsh_insta  = iopts.subjdir + '/' + laic.scriptname
+            fff = open(otcsh_insta, 'w')
+            fff.write(script_text_insta)
+            fff.close()
+
+            # make executable, a la rcr
+            try: code = eval('0o755')
+            except: code = eval('0755')
+            try:
+                os.chmod(otcsh_insta, code)
+            except:
+                omsg = "failed: chmod {} {}".format(code, otcsh_insta)
+                print(omsg)
+
+            msg = '''
+            ++ Done making (executable) InstaCorr script:
+            {}
+            '''.format(otcsh_insta)
+            msg = lat.commandize(msg, ALLEOL=False)
+            print( msg )
+
     
     # ----------------- initialize some params/switches ----------------
 
