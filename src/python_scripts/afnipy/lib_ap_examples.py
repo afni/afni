@@ -1077,6 +1077,7 @@ def populate_examples():
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              prefer: see Example 11)
+              (         ***        : use censoring and 3dLombScargle)
 
             This is for band passing and computation of ALFF, etc.
 
