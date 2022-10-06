@@ -9572,42 +9572,42 @@ g_help_examples = """
                  reasonable to stick with epits.  They will likely be almost
                  identical.
 
-                afni_proc.py -subj_id FT.11.rest                             \\
-                  -blocks despike tshift align tlrc volreg blur mask         \\
-                          scale regress                                      \\
-                  -copy_anat anatSS.FT.nii                                   \\
-                  -anat_has_skull no                                         \\
-                  -anat_follower anat_w_skull anat anatU.FT.nii              \\
-                  -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
-                  -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz         \\
-                  -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                \\
-                  -anat_follower_erode FSvent FSWe                           \\
-                  -dsets FT_epi_r?+orig.HEAD                                 \\
-                  -tcat_remove_first_trs 2                                   \\
-                  -align_opts_aea -cost lpc+ZZ -giant_move -check_flip       \\
-                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
-                  -tlrc_NL_warp                                              \\
-                  -tlrc_NL_warped_dsets anatQQ.FT.nii                        \\
-                                        anatQQ.FT.aff12.1D                   \\
-                                        anatQQ.FT_WARP.nii                   \\
-                  -volreg_align_to MIN_OUTLIER                               \\
-                  -volreg_align_e2a                                          \\
-                  -volreg_tlrc_warp                                          \\
-                  -blur_size 4                                               \\
-                  -mask_epi_anat yes                                         \\
-                  -regress_motion_per_run                                    \\
-                  -regress_ROI_PC FSvent 3                                   \\
-                  -regress_ROI_PC_per_run FSvent                             \\
-                  -regress_make_corr_vols aeseg FSvent                       \\
-                  -regress_anaticor_fast                                     \\
-                  -regress_anaticor_label FSWe                               \\
-                  -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.05                              \\
-                  -regress_apply_mot_types demean deriv                      \\
-                  -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts                                    \\
-                  -html_review_style pythonic
+            afni_proc.py -subj_id FT.11.rest                                 \\
+              -blocks despike tshift align tlrc volreg blur mask             \\
+                      scale regress                                          \\
+              -copy_anat anatSS.FT.nii                                       \\
+              -anat_has_skull no                                             \\
+              -anat_follower anat_w_skull anat anatU.FT.nii                  \\
+              -anat_follower_ROI aaseg anat aparc.a2009s+aseg_REN_all.nii.gz \\
+              -anat_follower_ROI aeseg epi  aparc.a2009s+aseg_REN_all.nii.gz \\
+              -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz             \\
+              -anat_follower_ROI FSWe epi fs_ap_wm.nii.gz                    \\
+              -anat_follower_erode FSvent FSWe                               \\
+              -dsets FT_epi_r?+orig.HEAD                                     \\
+              -tcat_remove_first_trs 2                                       \\
+              -align_opts_aea -cost lpc+ZZ -giant_move -check_flip           \\
+              -tlrc_base MNI152_2009_template_SSW.nii.gz                     \\
+              -tlrc_NL_warp                                                  \\
+              -tlrc_NL_warped_dsets anatQQ.FT.nii                            \\
+                                    anatQQ.FT.aff12.1D                       \\
+                                    anatQQ.FT_WARP.nii                       \\
+              -volreg_align_to MIN_OUTLIER                                   \\
+              -volreg_align_e2a                                              \\
+              -volreg_tlrc_warp                                              \\
+              -blur_size 4                                                   \\
+              -mask_epi_anat yes                                             \\
+              -regress_motion_per_run                                        \\
+              -regress_ROI_PC FSvent 3                                       \\
+              -regress_ROI_PC_per_run FSvent                                 \\
+              -regress_make_corr_vols aeseg FSvent                           \\
+              -regress_anaticor_fast                                         \\
+              -regress_anaticor_label FSWe                                   \\
+              -regress_censor_motion 0.2                                     \\
+              -regress_censor_outliers 0.05                                  \\
+              -regress_apply_mot_types demean deriv                          \\
+              -regress_est_blur_epits                                        \\
+              -regress_est_blur_errts                                        \\
+              -html_review_style pythonic
 
         Example 11b. Similar to 11, but without FreeSurfer. ~2~
 
@@ -10645,8 +10645,8 @@ g_help_notes = """
             SUMA/fs_ap_wm.nii.gz
     
     Then FT_anat.nii (or FT_anat+orig), fs_ap_latvent.nii.gz and
-    fs_ap_wm.nii.gz (along with the basically unused aparc.a2009s+aseg.nii)
-    are passed to afni_proc.py.
+    fs_ap_wm.nii.gz (along with the basically unused
+    aparc.a2009s+aseg_REN_all.nii.gz) are passed to afni_proc.py.
 
     --------------------------------------------------
     TIMING FILE NOTE: ~2~
@@ -11489,8 +11489,8 @@ g_help_options = """
 
         -anat_follower_ROI LABEL GRID DSET : specify anat follower ROI dataset
 
-                e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii
-                e.g. -anat_follower_ROI FSvent epi FreeSurfer_ventricles.nii
+            e.g. -anat_follower_ROI aaseg anat aparc.a2009s+aseg_REN_all.nii.gz
+            e.g. -anat_follower_ROI FSvent epi fs_ap_latvent.nii.gz
 
             Use this option to pass any anatomical follower dataset.  Such a
             dataset is warped by any transformations that take the original

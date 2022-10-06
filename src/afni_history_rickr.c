@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Oct, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "replace aparc.a2009s+aseg.nii with aparc.a2009s+aseg_REN_all.nii.gz",
+   NULL
+ } ,
+
  { 20, Sep, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
    "make -timing_to_1D overlap error more clear",
    "Thanks to the suffering of Y Takarae."
