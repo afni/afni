@@ -565,7 +565,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, gra
     return peaks
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
-        phys_fs, graph = True, prefix = 'BPFilteredCardiacInput', OutDir = '.') :
+        phys_fs, graph = False, dataType = "Cardiac", saveGraph = False, OutDir = None) :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -583,11 +583,13 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         
         phys_fs: Sampling frequency in Hz.  Required if graph True
         
-        graph: Whether to graph the results and save the graphs to a file
+        graph:   Whether to graph the results
         
-        prefix: prefix of output file if graph set to True
-                            
-        OutDir: Output directory for graphs if graph set to True
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -634,12 +636,18 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         for i in range(0,end): x.append(i*F0)
         fig, ax_left = mpl.pyplot.subplots()
         mpl.pyplot.xlabel("Frequency (Hz)")
-        mpl.pyplot.ylabel('Raw input data value',color='g')
+        mpl.pyplot.ylabel('Fourier Spectral Value',color='g')
         ax_right = ax_left.twinx()
         ax_right.plot(x[3:end//20], filteredrawData1[3:end//20], color='red')
         ax_left.plot(x[3:end//20],rawData1[3:end//20], color='green')
-        mpl.pyplot.ylabel('Filtered Data Value',color='r')
+        mpl.pyplot.ylabel('Filter',color='r')
         mpl.pyplot.title("Selected part of the Fourier Sprctrum")
+        
+        # Save plot to file
+        if saveGraph:
+            prefix = dataType + 'SelectedFourierTransformPart'
+            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            mpl.pyplot.show()
     
         # Plot filtered signal agains raw data
         x = []    
@@ -658,8 +666,10 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
             str(round(F0*lowerMax)) + "] (red) and raw input data (green)")
             
         # Save plot to file
-        mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-        mpl.pyplot.show()
+        if saveGraph:
+            prefix = dataType + 'BPF_VRawInput'
+            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            mpl.pyplot.show()
         
     return filteredRawData
 
