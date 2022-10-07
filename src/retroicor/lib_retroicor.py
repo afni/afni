@@ -112,6 +112,12 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    ARGUMENTS
        parameters:   dictionary of input parameters which includes the following fields.
        
+           phys_fs: Sampling frequency in Hz
+           
+           verbose: Whether running in verbose mode.  (Save graphs, of intermediate steps, to disk.)
+           
+           dev:     Whether running in development mode.  (Show graphs and pause between graphs.)
+       
        rawData: Raw cardiac data
        
        filterPercentile: Minimum percentile of raw data for a peak value to imply a valid peak
@@ -124,10 +130,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
-   MIN_HEART_RATE = 30  # Minimum HR in BPM
+   MIN_HEART_RATE = 15  # Minimum HR in BPM
     
    # Determine lower bound based based on minimum HR
-   minFrequency = round(MIN_HEART_RATE*parameters["phys_fs"]/60)
+   minBeatsPerSecond = MIN_HEART_RATE/60
    
    # Remove NaNs from raw data
    rawData = [x for x in rawData if math.isnan(x) == False]
@@ -135,7 +141,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    global OutDir
    
    # Band pass filter raw data
-   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
+   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,\
         parameters["phys_fs"], graph = True,\
         OutDir=OutDir)
    if len(filterData) == 0:
@@ -145,31 +151,49 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/40))
    
+   # Graph initial peaks and save graph to disk
+   if parameters['verbose']:
+       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Cardiac", 
+            OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
+            caption = 'Cardiac peaks from band-pass filtered input.')
+   
    # Adjust peaks from uniform spacing
-   peaks = lpf.refinePeakLocations(peaks, rawData, period = None)
+   peaks = lpf.refinePeakLocations(peaks, rawData, graph = parameters['verbose'],
+             dataType = "Cardiac",  phys_fs = parameters["phys_fs"], 
+            saveGraph = parameters['verbose'], OutDir = OutDir)
     
    # Remove peaks that are less than the required percentile of the local input signal
-   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3)
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3, 
+            graph = parameters['verbose'], dataType = "Cardiac",  
+            phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
 
    # Estimate the overall typical period using filtered cardiac time series
    period = lpf.getTimeSeriesPeriod(filterData)      
     
    # Merge peaks that are closer than one quarter of the overall typical period
-   peaks = lpf.removeClosePeaks(peaks, period, rawData)
+   peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["-phys_fs"]/16)
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
+   peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
 
    # Add missing peaks
    peaks = lpf.addMissingPeaks(peaks, rawData, period=period)   
@@ -191,7 +215,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
     
    # Graph respiratory peaks and troughs against respiratory time series
-   lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters, "Cardiac")
+   if parameters['dev']:
+       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Cardiac",
+            OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
+            caption = 'Cardiac peaks after all filtering.')
                
    # # Graph cardiac peaks against cardiac time series
    # x = []    
@@ -248,7 +275,7 @@ def getRespiratoryPeaks(parameters, rawData):
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
-    
+   
     # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
     peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/4))
     # peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/64))
@@ -326,7 +353,9 @@ def getRespiratoryPeaks(parameters, rawData):
     # troughs = np.delete(troughs,indices2remove)
     
     # Graph respiratory peaks and troughs against respiratory time series
-    lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters, "Respiratory", troughs = troughs)
+    if parameters['dev']:
+        lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory",\
+                                  troughs = troughs)
      
     return peaks, troughs, len(rawData)
 

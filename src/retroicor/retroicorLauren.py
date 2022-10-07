@@ -26,7 +26,6 @@ __author__ = "Peter Lauren" # Modified a bit by gianfranco
             - Samples (input files)
             - Scripts that run samples with options we want
             - Physio measure files
-        - Simplify reading function
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
@@ -257,6 +256,8 @@ def retro_ts(
     fir_order=40,
     quiet=1,
     demo=0,
+    dev=1,
+    verbose=1,
     rvt_out=0,
     cardiac_out=1,
     respiration_out=1,
@@ -291,6 +292,8 @@ def retro_ts(
             fir_order=40,
             quiet=1,
             demo=0,
+            dev=1,
+            verbose=1,
             rvt_out=0,
             cardiac_out=1,
             respiration_out=1,
@@ -325,7 +328,11 @@ def retro_ts(
         
         quiet:   0 if show graphs. 1 if do not show graphs
         
-        demodemo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+        demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+        
+        dev:    Whether running in dev(elopment) mode.   (Show graphs and pause between graphs.)
+        
+        verbose: Whether runnung in verbose mode.  Save graphs, of each filtering step, to disk.
         
         rvt_out: Flag for writing RVT regressors (default is 0)
         
@@ -393,6 +400,8 @@ def retro_ts(
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
+    offsetDict["dev"] = dev
+    offsetDict["verbose"] = verbose
     slice_offset = getSliceOffsets(offsetDict)
 
     # Create information dictionary for each type of signal
@@ -424,6 +433,8 @@ def retro_ts(
     parameters['-niml'] = niml
     parameters['phys_resp_dat'] = phys_resp_dat
     parameters['phys_cardiac_dat'] = phys_cardiac_dat
+    parameters['dev'] = dev
+    parameters['verbose'] = verbose
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
     else: parameters['phys_fs'] = respiration_info['phys_fs']    
     if not parameters['phys_fs']:
@@ -509,6 +520,10 @@ Input
             (default is 1)
     demo: Run demonstration of retroicorLauren
             (default is 0)
+    dev: Run development mode for retroicorLauren
+            (default is 1)
+    verbose: Run verbose mode for retroicorLauren
+            (default is 1)
     show_graphs:
             (default is unset; set with any parameter to view)
     debug Drop into pdb upon an exception
@@ -584,6 +599,8 @@ Output:
         "-fir_order": 40,
         "-quiet": 1,
         "-demo": 0,
+        "-dev": 1,
+        "-verbose": 1,
         "-debug": False,
         "-rvt_out": 0,
         "-cardiac_out": 1,
@@ -643,6 +660,8 @@ Output:
         fir_order=opt_dict["-fir_order"],
         quiet=opt_dict["-quiet"],
         demo=opt_dict["-demo"],
+        dev=opt_dict["-dev"],
+        verbose=opt_dict["-verbose"],
         rvt_out= (int(opt_dict["-rvt_out"]) ),
         cardiac_out= (int(opt_dict["-cardiac_out"])),
         respiration_out= (int(opt_dict["-respiration_out"])),
