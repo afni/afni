@@ -9,27 +9,26 @@ __author__ = "Peter Lauren" # Modified a bit by gianfranco
     Copyright 2022 Peter Lauren
     peterdlauren@gmail.com
 
-    "RetroTS2" is free software: you can redistribute it and/or modify
+    "retroicorLauren" is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    "RetroTS2" is distributed in the hope that it will be useful,
+    "retroicorLauren2" is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
-    along with "RetroTS".  If not, see <http://www.gnu.org/licenses/>.
+    along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Add docstring to each function
         - Make demo scripts
-        - Align names of variables
-        - Add plot font size as command line option
-        - quiet switch?
         - Add to box:
             - Samples (input files)
             - Scripts that run samples with options we want
             - Physio measure files
+        - Align names of variables
+        - Add plot font size as command line option
+        - quiet switch?
         - Offset for every slice relative to TR
         - alt-Z (alternating positive and megative z-direction)
         - Multiband (multiple slices at same point)
@@ -75,7 +74,7 @@ Major blocks of calculation:
 """
 
 import sys
-from numpy import zeros, size, savetxt, column_stack, shape, array
+import numpy as np
 import lib_retroicor
 from lib_retroicor import getPhysiologicalNoiseComponents, getInputFileParameters
 import os
@@ -254,20 +253,17 @@ def retro_ts(
     OutDir=now_str,
     prefix="Output_File_Name",
     slice_offset=0,
-    rvt_shifts=list(range(0, 21, 5)),
-    respiration_cutoff_frequency=3,
-    cardiac_cutoff_frequency=3,
-    interpolation_style="linear",
     fir_order=40,
     quiet=1,
     demo=0,
-    rvt_out=1,
+    dev=1,
+    verbose=1,
+    rvt_out=0,
     cardiac_out=1,
     respiration_out=1,
     slice_order="alt+z",
     show_graphs=1,
     zero_phase_offset=0,
-    legacy_transform=0,
     phys_file=None,
     phys_json=None,
     abt=False,
@@ -278,7 +274,7 @@ def retro_ts(
     """
     NAME
         retro_ts
-            Main function for RetroTS2
+            Main function for retroicorLauren2
         
     TYPE
         <class 'int'>
@@ -293,20 +289,17 @@ def retro_ts(
             OutDir=now_str,
             prefix="Output_File_Name",
             slice_offset=0,
-            rvt_shifts=list(range(0, 21, 5)),
-            respiration_cutoff_frequency=3,
-            cardiac_cutoff_frequency=3,
-            interpolation_style="linear",
             fir_order=40,
             quiet=1,
             demo=0,
-            rvt_out=1,
+            dev=1,
+            verbose=1,
+            rvt_out=0,
             cardiac_out=1,
             respiration_out=1,
             slice_order="alt+z",
             show_graphs=1,
             zero_phase_offset=0,
-            legacy_transform=0,
             phys_file=None,
             phys_json=None,
             retroicor_algorithm=False,
@@ -331,22 +324,17 @@ def retro_ts(
         
         slice_offset:   Vector of slice acquisition time offsets in seconds.
         
-        rvt_shifts:   Vector of shifts (in seconds) of RVT signal.
-        
-        respiration_cutoff_frequency: Cut off frequency in Hz for respiratory lowpass filter
-        
-        cardiac_cutoff_frequency: : Cut off frequency in Hz for cardiac lowpass 
-        filter (default 3 Hz)
-        
-        interpolation_style:   Resampling kernel. 
-        
         fir_order:   Order of Finite Impulse Response (FIR) filter
         
         quiet:   0 if show graphs. 1 if do not show graphs
         
-        demodemo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+        demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
         
-        rvt_out: Flag for writing RVT regressors (default is 1)
+        dev:    Whether running in dev(elopment) mode.   (Show graphs and pause between graphs.)
+        
+        verbose: Whether runnung in verbose mode.  Save graphs, of each filtering step, to disk.
+        
+        rvt_out: Flag for writing RVT regressors (default is 0)
         
         cardiac_out: Flag for writing Cardiac regressors (default is 1)
         
@@ -370,12 +358,6 @@ def retro_ts(
         zero_phase_offset:Phase offset added to the location of each peak.
         Default is 0.0
         
-        legacy_transform:   Important-this will specify whether you use the
-        original Matlab code's version (1) or the potentially bug-corrected
-        version (0) for the final phase correction in
-        lib_RetroTS/RVT_from_PeakFinder.py
-        (default is 0)
-        
         phys_file: BIDS formatted physio file in tab separated format. May
         be gzipped.
                        
@@ -389,6 +371,10 @@ def retro_ts(
     AUTHOR
        Peter Lauren
     """
+    
+    if not phys_fs and not phys_json:
+        print('Error: Sampling frequency in Hz (phys_fs) required')
+        return 1
 
     # Make output directory
     path = os.path.join(os.getcwd(), OutDir)
@@ -404,16 +390,18 @@ def retro_ts(
     lib_retroicor.setOutputDirectory(OutDir)
 
     if not slice_offset:
-        slice_offset = zeros((1, number_of_slices))
+        slice_offset = np.zeros((1, number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
-    print('Update slice offsets.  Note that this is done before teh data is read')
+    print('Update slice offsets.  Note that this is done before the data is read')
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
     offsetDict["volume_tr"] = volume_tr
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
+    offsetDict["dev"] = dev
+    offsetDict["verbose"] = verbose
     slice_offset = getSliceOffsets(offsetDict)
 
     # Create information dictionary for each type of signal
@@ -433,6 +421,7 @@ def retro_ts(
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                             phys_json, respiration_out, cardiac_out, rvt_out)        
         
+    # Set paremeters
     parameters = dict()
     parameters['-cardFile'] = cardiac_file
     parameters['-respFile'] = respiration_file
@@ -443,7 +432,19 @@ def retro_ts(
     parameters['-aby'] = aby
     parameters['-niml'] = niml
     parameters['phys_resp_dat'] = phys_resp_dat
+    parameters['phys_cardiac_dat'] = phys_cardiac_dat
+    parameters['dev'] = dev
+    parameters['verbose'] = verbose
+    if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
+    else: parameters['phys_fs'] = respiration_info['phys_fs']    
+    if not parameters['phys_fs']:
+        print('Error: Sampling frequency in Hz (phys_fs) required')
+        return 1
+
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    if len(physiologicalNoiseComponents) == 0:
+        print('*** Error in retro_ts.  Failure to get physiological noise components')
+        return 1
     if parameters['-niml']:
         return 0
     
@@ -470,14 +471,14 @@ This function creates slice-based regressors for regressing out components of
     heart rate, respiration and respiration volume per time.
 
 Windows Example:
-C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Mac/Linux Example:
-/usr/afni/python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+/usr/afni/python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
 
 Input
 ================================================================================
-    RetroTS.py can be run with independent respiration and cardiac data files
+    retroicorLauren.py can be run with independent respiration and cardiac data files
     (Method 1), or with a BIDS formatted physio file and json (Method 2).
 
     Method 1:
@@ -488,9 +489,6 @@ Input
     numSlices: (number_of_slices) Number of slices
     volume_tr: (volume_tr) Volume repetition time (TR) which defines the length of time 
     between the acquisition of consecutive frames/volumes; in seconds
-    Note:   These parameters are the only single-letter parameters, as they are
-            mandatory and frequently typed. The following optional parameters
-            must be fully spelled out.
 
     Method 2:
     ---------
@@ -499,8 +497,7 @@ Input
     phys_json: BIDS formatted physio metadata json file. If not specified
             the json corresponding to the phys_file will be loaded.
     numSlices: (number_of_slices) Number of slices
-    v: (volume_tr) Volume TR in seconds
-
+    volume_tr: Volume TR in seconds
 
     Optional:
     ---------
@@ -512,31 +509,21 @@ Input
     ============================================================================
     prefix: Prefix of output file
     ============================================================================
-    rvt_shifts: Vector of shifts in seconds of RVT signal.
-            (default is [0:5:20])
-    rvt_out: Flag for writing RVT regressors
-            (default is 1)
-    ============================================================================
-    respiration_cutoff_frequency: Cut off frequency in Hz for
-            respiratory lowpass filter
-            (default 3 Hz)
-    cardiac_cutoff_frequency: Cut off frequency in Hz for
-            cardiac lowpass filter
-            (default 3 Hz)
     cardiac_out: Flag for writing Cardiac regressors
             (default is 1)
     respiration_out: Flag for writing Respiratory regressors
             (default is 1)
-    ============================================================================
-    interpolation_style: Resampling kernel.
-            (default is 'linear', see help interp1 for more options)
-    fir_order: Order of FIR filter.
-            (default is 40)
+    rvt_out: Flag for writing RVT regressors
+            (default is 0)
     ============================================================================
     quiet: Show talkative progress as the program runs
             (default is 1)
-    demo: Run demonstration of RetroTS
+    demo: Run demonstration of retroicorLauren
             (default is 0)
+    dev: Run development mode for retroicorLauren
+            (default is 1)
+    verbose: Run verbose mode for retroicorLauren
+            (default is 1)
     show_graphs:
             (default is unset; set with any parameter to view)
     debug Drop into pdb upon an exception
@@ -560,47 +547,40 @@ Input
             For example, the following 4 commands would produce identical
             output, based on 10 slices using a (non-default) alt-z slice order:
 
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order alt-z
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
                           -slice_offset "$offlist"
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
-               RetroTS.py -cardFile ECG.1D -respFile Resp.1D             \\
+               retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order slice_offsets.txt
 
 
     ============================================================================
     zero_phase_offset:
-    ============================================================================
-    legacy_transform: Important-this will specify whether you use the
-           original Matlab code's version (1) or the potentially bug-corrected
-           version (0) for the final phase correction in
-           lib_RetroTS/RVT_from_PeakFinder.py
-           (default is 0)
 
 Output:
 ================================================================================
-    Files saved to same folder based on selection for "-respiration_out" and
-    "-cardiac_out". If these options are enabled, than the data will be written
-    to a single output file based on the filename assigned to the
+    The output data will be written
+    to a single output file based on the file root-name assigned to the
     option "-prefix".
 
     Example:
-    C:\\afni\\python RetroTS.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
+    C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
         -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
 
         Output:
@@ -616,21 +596,18 @@ Output:
         "-OutDir": now_str,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
-        "-rvt_shifts": list(range(0, 21, 5)),
-        "-respiration_cutoff_frequency": 3,
-        "-cardiac_cutoff_frequency": 3,
-        "-interpolation_style": "linear",
         "-fir_order": 40,
         "-quiet": 1,
         "-demo": 0,
+        "-dev": 1,
+        "-verbose": 1,
         "-debug": False,
-        "-rvt_out": 1,
+        "-rvt_out": 0,
         "-cardiac_out": 1,
         "-respiration_out": 1,
         "-slice_order": "alt+z",
         "-show_graphs": 1,
         "-zero_phase_offset": 0,
-        "-legacy_transform": 0,
         "-phys_file":None,
         "-phys_json":None,
         "-abt": False,
@@ -642,7 +619,7 @@ Output:
         print(
             "You need to provide parameters. If you need help, rerun the"
             'program using the "-help" argument:'
-            '\n"python RetroTS.py -help"'
+            '\n"python retroicorLauren.py -help"'
         )
         sys.exit() 
     else:
@@ -659,7 +636,7 @@ Output:
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
             else:
-                print("No such command '%s', try:" % opt)
+                print("No such option key: '%s', try:" % opt)
                 for key in list(opt_dict.keys()):
                     print("%s" % key)
                 sys.exit(1)
@@ -680,20 +657,17 @@ Output:
         OutDir=opt_dict["-OutDir"],
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],
-        rvt_shifts=opt_dict["-rvt_shifts"],
-        respiration_cutoff_frequency=opt_dict["-respiration_cutoff_frequency"],
-        cardiac_cutoff_frequency=opt_dict["-cardiac_cutoff_frequency"],
-        interpolation_style=opt_dict["-interpolation_style"],
         fir_order=opt_dict["-fir_order"],
         quiet=opt_dict["-quiet"],
         demo=opt_dict["-demo"],
+        dev=opt_dict["-dev"],
+        verbose=opt_dict["-verbose"],
         rvt_out= (int(opt_dict["-rvt_out"]) ),
         cardiac_out= (int(opt_dict["-cardiac_out"])),
         respiration_out= (int(opt_dict["-respiration_out"])),
         slice_order=opt_dict["-slice_order"],
         show_graphs=opt_dict["-show_graphs"],
         zero_phase_offset=opt_dict["-zero_phase_offset"],
-        legacy_transform=opt_dict["-legacy_transform"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],
         abt=opt_dict["-abt"],
