@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from afnipy import afni_util as UTIL
+from afnipy import afni_util          as UTIL
+from afnipy import lib_format_cmd_str as lfcs
 import copy
 
 # ----------------------------------------------------------------------
@@ -259,7 +260,25 @@ class APExample:
             if wrap: - return indented command
                      - indent by windent
       """
-     
+      
+      # minor format conversion to a list of lists per line
+      newolist = [['afni_proc.py']] + [([o[0]] + o[1]) for o in self.olist]
+
+      # set default left-padding and line length
+      if wrap:  
+         leftstr = ' '*8  # ' '*14
+         linewid = 78
+      else:
+         leftstr = ''
+         linewid = 78
+
+      is_diff, str_nice = lfcs.afni_niceify_cmd_str( '', 
+                                                     comment_start=leftstr,
+                                                     max_lw=linewid,
+                                                     big_list=newolist)
+      return str_nice
+
+      """
       clist = ['%s %s' % (e[0], ' '.join(e[1])) for e in self.olist]
       if wrap:
          return UTIL.list_to_wrapped_command('afni_proc.py', clist,
@@ -267,6 +286,7 @@ class APExample:
       else:
          clist.insert(0, 'afni_proc.py')
          return ' '.join(clist)
+      """
 
    def display(self, verb=0, sphinx=1):
       """display a single example - use a copy for quoting

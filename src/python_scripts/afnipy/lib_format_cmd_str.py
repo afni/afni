@@ -509,7 +509,7 @@ non-whitespace 'islands', l1 and l2, respectively
 
 # The main primary command to take a not-fancily-formatted str command
 # and go through the couple steps to turn it into one
-def afni_niceify_cmd_str( sss, 
+def afni_niceify_cmd_str( sss, big_list=None,
                           nindent=AD['nindent'], max_lw=AD['max_lw'],
                           list_cmd_args=AD['list_cmd_args'],
                           max_harg1=AD['max_harg1'],
@@ -529,8 +529,14 @@ def afni_niceify_cmd_str( sss,
 
     Parameters 
     ----------
-    sss              : (sss) a string, namely a command that would likely
+    sss              : (str) a string, namely a command that would likely
                        be easier to read in multi-lined format
+    big_list         : (list of lists) a pre-build list of lists, so that 
+                       sss does not need to be parsed; this mainly exists
+                       if another function has done the hard work of 
+                       separating a command call into options and args
+                       (e.g., in afni_proc.py). *At present*, sss will be 
+                       ignored, and no checking will occur.
     nindent          : (int) number of spaces to indent each row (after the
                        [0]th
     max_lw           : (int) max line width to aim for (some text chunks may
@@ -569,14 +575,24 @@ def afni_niceify_cmd_str( sss,
 
     '''
 
-    if type(sss) != str:
-        print("** ERROR: need sss to be a string")
-        return 1, ''
+    do_check = False
 
-    big_list = listify_argv_str( sss, 
-                                 list_cmd_args=list_cmd_args,
-                                 quote_pair_list=quote_pair_list,
-                                 maxcount=maxcount )
+    if big_list == None :
+        if type(sss) != str:
+            print("** ERROR: need sss to be a string")
+            return 1, ''
+
+        big_list = listify_argv_str( sss, 
+                                     list_cmd_args=list_cmd_args,
+                                     quote_pair_list=quote_pair_list,
+                                     maxcount=maxcount )
+        do_check = True
+        print('-'*80)
+        print(big_list)
+        print('-'*80)
+    else:
+        if verb :
+            print("++ A parsed list of options has already been created.")
 
     str_nice = pad_argv_list_elements( big_list,
                                        nindent=nindent, 
@@ -584,9 +600,11 @@ def afni_niceify_cmd_str( sss,
                                        max_harg1=max_harg1,
                                        comment_start=comment_start )
 
-
-    # a quick check, as advertised
-    is_diff  = quick_check_argnum(str_nice, sss, verb=verb)
+    if do_check :
+        # a quick check, as advertised
+        is_diff = quick_check_argnum(str_nice, sss, verb=verb)
+    else:
+        is_diff = 0
 
     return is_diff, str_nice
     
