@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "w/PT, reformat help examples and remove extra indentation",
+   NULL
+ } ,
+
  {  6, Oct, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "replace aparc.a2009s+aseg.nii with aparc.a2009s+aseg_REN_all.nii.gz",
    NULL
