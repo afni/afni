@@ -256,8 +256,8 @@ def retro_ts(
     fir_order=40,
     quiet=1,
     demo=0,
-    dev=1,
-    verbose=1,
+    dev=False,
+    verbose=False,
     rvt_out=0,
     cardiac_out=1,
     respiration_out=1,
@@ -291,9 +291,9 @@ def retro_ts(
             slice_offset=0,
             fir_order=40,
             quiet=1,
-            demo=0,
-            dev=1,
-            verbose=1,
+            demo=False,
+            dev=0,
+            verbose=False,
             rvt_out=0,
             cardiac_out=1,
             respiration_out=1,
@@ -599,8 +599,8 @@ Output:
         "-fir_order": 40,
         "-quiet": 1,
         "-demo": 0,
-        "-dev": 1,
-        "-verbose": 1,
+        "-dev": False,
+        "-verbose": False,
         "-debug": False,
         "-rvt_out": 0,
         "-cardiac_out": 1,
@@ -632,6 +632,10 @@ Output:
                     sys.exit(0) 
                 elif opt == "-debug":
                     setup_exceptionhook()
+                elif opt == "-verbose":
+                    opt_dict["-verbose"] = True
+                elif opt == "-dev":
+                    opt_dict["-dev"] = True
 
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt

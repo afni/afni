@@ -21,7 +21,7 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        getCardiacPeaks(peaks, rawData, percentile, upperThreshold=False)
+        percentileFilter(peaks, rawData, percentile, upperThreshold=False)
     ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         
@@ -56,8 +56,9 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        getCardiacPeaks(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False)
-    ARGUMENTS
+        localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False, 
+                    graph = False, phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None)
+        ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         
         rawData: Raw input data
@@ -669,7 +670,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         if saveGraph:
             prefix = dataType + 'BPF_VRawInput'
             mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            mpl.pyplot.show()
+            
+        mpl.pyplot.show()
         
     return filteredRawData
 

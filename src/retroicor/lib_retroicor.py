@@ -130,7 +130,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
-   MIN_HEART_RATE = 15  # Minimum HR in BPM
+   MIN_HEART_RATE = 25  # Minimum HR in BPM
     
    # Determine lower bound based based on minimum HR
    minBeatsPerSecond = MIN_HEART_RATE/60
@@ -142,7 +142,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Band pass filter raw data
    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,\
-        parameters["phys_fs"], graph = True,\
+        parameters["phys_fs"], graph = True, saveGraph = parameters["verbose"],\
         OutDir=OutDir)
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
@@ -267,19 +267,32 @@ def getRespiratoryPeaks(parameters, rawData):
     # Set minimum breathing frequency based on a maximum breathing period of 10 seconds
     MAX_BREATHING_PERIOD_IN_SECONDS = 10
     minFrequency = round(len(rawData)/(parameters["phys_fs"]*MAX_BREATHING_PERIOD_IN_SECONDS))
+    
+    # Determine lower bound based based on minimum HR
+    minBreathsPerSecond = MAX_BREATHING_PERIOD_IN_SECONDS/60
    
     # Band pass filter raw data
-    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minFrequency,\
-        parameters["phys_fs"], graph = True,\
+    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBreathsPerSecond,\
+        parameters["phys_fs"], graph = True, saveGraph = parameters["verbose"],\
         OutDir=OutDir)
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
    
     # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-    peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/4))
-    # peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/64))
-    # peaks, _ = sps.find_peaks(np.array(filterData))
+    # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/4))
+    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/4))
+   
+    # Graph initial peaks and save graph to disk
+    if parameters['verbose']:
+       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory", 
+            OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
+            caption = 'Respiratory peaks from band-pass filtered input.')
+   
+    # Adjust peaks from uniform spacing
+    peaks = lpf.refinePeakLocations(peaks, rawData, graph = parameters['verbose'],
+             dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
+            saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
@@ -355,7 +368,7 @@ def getRespiratoryPeaks(parameters, rawData):
     # Graph respiratory peaks and troughs against respiratory time series
     if parameters['dev']:
         lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory",\
-                                  troughs = troughs)
+                    troughs = troughs, caption = 'Respiratory peaks after all filtering.')
      
     return peaks, troughs, len(rawData)
 
