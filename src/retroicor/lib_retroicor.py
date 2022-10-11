@@ -327,7 +327,14 @@ def getRespiratoryPeaks(parameters, rawData):
              graph = parameters['verbose'], dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)   
     
-    troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+    # troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
+    troughs, _ = sps.find_peaks(-np.array(filterData), width=int(parameters["phys_fs"]/8))
+   
+    # Graph initial peaks and save graph to disk
+    if parameters['verbose']:
+       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory", 
+            troughs = troughs, OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
+            caption = 'Respiratory troughs from band-pass filtered input.')
     
     # Remove troughs that are more than the 90th percentile of the input signal
     troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True)
