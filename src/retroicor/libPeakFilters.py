@@ -12,7 +12,8 @@ import matplotlib as mpl
 from matplotlib import figure as mplf
 import matplotlib.pyplot as plt
 
-def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
+def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = False, 
+            phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         percentileFilter
@@ -21,7 +22,8 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        percentileFilter(peaks, rawData, percentile, upperThreshold=False)
+        percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = False, 
+                    phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None)
     ARGUMENTS
         peaks:   Array of peak locations in raw data indices.
         
@@ -32,9 +34,23 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
                             
         upperThreshold: Whether the threshold is the maximum acceptable value.  
                         Default is False meaning it is the minimum acceptable value
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
+        return peaks
   
     # Get peak values
     peakVals = []
@@ -44,7 +60,16 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False):
     # Note that any nan values are first filtered out of the input signal
     threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
     if upperThreshold: return peaks[peakVals <= threshold]
-    return peaks[peakVals >= threshold]
+    
+    peaks = peaks[peakVals >= threshold]
+            
+    # Graph (and save) results as required
+    if graph and phys_fs:
+       graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
+            OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
+            caption = 'Filter peaks based on local percentile of raw data.')
+
+    return peaks
 
 def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False, 
             graph = False, phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
@@ -749,7 +774,8 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False, graph = 
     # Apply offsets
     return peaks
 
-def addMissingPeaks(peaks, rawData, period=None):
+def addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None, 
+                    dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         addMissingPeaks
@@ -757,7 +783,8 @@ def addMissingPeaks(peaks, rawData, period=None):
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        addMissingPeaks(peaks, rawData, period=None) 
+        addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None, 
+                            dataType = "Cardiac", saveGraph = False, OutDir = None) 
     ARGUMENTS
         peaks: Array of peaks to be refined
         
@@ -765,9 +792,23 @@ def addMissingPeaks(peaks, rawData, period=None):
         
         period: Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
+        return peaks
     
     # Find period if not supplied
     if not period:
@@ -787,6 +828,12 @@ def addMissingPeaks(peaks, rawData, period=None):
    
     # Adjust peaks from uniform spacing
     peaks = refinePeakLocations(peaks, rawData, period = period)
+            
+    # Graph (and save) results as required
+    if graph and phys_fs:
+       graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
+            OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
+            caption = 'Filter peaks based on local percentile of raw data.')
     
     return peaks
 

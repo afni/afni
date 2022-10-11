@@ -264,12 +264,11 @@ def getRespiratoryPeaks(parameters, rawData):
     
     global OutDir
    
-    # Set minimum breathing frequency based on a maximum breathing period of 10 seconds
+    # Set maximum breathing period of 10 seconds
     MAX_BREATHING_PERIOD_IN_SECONDS = 10
-    minFrequency = round(len(rawData)/(parameters["phys_fs"]*MAX_BREATHING_PERIOD_IN_SECONDS))
     
     # Determine lower bound based based on minimum HR
-    minBreathsPerSecond = MAX_BREATHING_PERIOD_IN_SECONDS/60
+    minBreathsPerSecond = 1.0/MAX_BREATHING_PERIOD_IN_SECONDS
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBreathsPerSecond,\
@@ -296,32 +295,37 @@ def getRespiratoryPeaks(parameters, rawData):
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
-   
-    # # Adjust peaks from uniform spacing
-    # for i in range(0,2):
-    #     peaks = lpf.refinePeakLocations(peaks, rawData, period = period)
     
     # Remove peaks that are less than the 10th percentile of the input signal
-    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0)
-       
-    # Estimate the overall typical period 
-    # period = lpf.getTimeSeriesPeriod(rawData, minFrequency = minFrequency)      
+    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period)
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove false peaks on the downstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period)
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
-    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData)
+    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Merge peaks that are closer than one quarter of the overall typical period
-    peaks = lpf.removeClosePeaks(peaks, period, rawData)
+    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
 
     # Add missing peaks
-    peaks = lpf.addMissingPeaks(peaks, rawData, period=period)   
+    peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)   
     
     troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     
