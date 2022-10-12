@@ -50,7 +50,6 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
     
     if graph and not phys_fs:
         print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
-        return peaks
   
     # Get peak values
     peakVals = []
@@ -59,15 +58,19 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
     # Remove peaks that are less than the the required percentile of the input signal
     # Note that any nan values are first filtered out of the input signal
     threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
-    if upperThreshold: return peaks[peakVals <= threshold]
-    
-    peaks = peaks[peakVals >= threshold]
+    if upperThreshold: peaks = peaks[peakVals <= threshold]    
+    else: peaks = peaks[peakVals >= threshold]
             
     # Graph (and save) results as required
     if graph and phys_fs:
-       graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
-            OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Filter peaks based on local percentile of raw data.')
+        if upperThreshold:
+           graphPeaksAgainstRawInput(rawData, [], phys_fs, dataType, troughs = peaks,
+                OutDir = OutDir, prefix = dataType + 'AdjustTroughsAfterPctlFilt', 
+                caption = 'Filter troughs based on local percentile of raw data.')
+        else:
+           graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
+                OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterPctlFilt', 
+                caption = 'Filter peaks based on percentile of raw data.')
 
     return peaks
 
@@ -240,7 +243,8 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     return peaks
 
 def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', 
-                                           portion=0.25, period=None):
+        portion=0.25, period=None, graph = False, 
+        phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         removeTroughsCloseToLowerPointInRawData
@@ -265,9 +269,22 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
             
         period: Overall period of the raw data if known.  The default is that this
             is not supplied and is estimated by the function
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
     
     if not period:
         period = getTimeSeriesPeriod(rawData)
@@ -277,6 +294,17 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     searchLength = min(searchLength, len(rawData) - troughs[-1] - 1)
     diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in troughs]
     if len(diff) > 0: troughs = troughs[diff <= np.float64(0)]
+            
+    # Graph (and save) results as required
+    if graph and phys_fs:
+        if direction=='right':
+            caption = 'Remove downstroke false troughs.'
+            prefix = dataType + 'RemoveDpwnstrokeFalseTroughsFilt'
+        else: 
+            caption = 'Remove upstroke false troughs.'
+            prefix = dataType + 'RemoveUpstrokeFalseTroughsFilt'
+        graphPeaksAgainstRawInput(rawData, [], phys_fs, dataType, troughs = troughs,
+             OutDir = OutDir, prefix = prefix, caption = caption)
     
     return troughs
 
@@ -339,7 +367,8 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
     
     return peaks
 
-def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denominator=4.0):
+def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denominator=4.0, 
+        graph = False, phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         removeTroughsCloserToLocalMaxsThanToAdjacentTroughs
@@ -357,9 +386,22 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denomi
         
         denominator: Number by which to divide the current amplitude to determine 
         the upper threshold of the accepitable trough value
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
 
     # Get trough values
     troughVals = []
@@ -372,7 +414,15 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denomi
     ratios.insert(0,0)
     ratios.append(0)
     threshold = np.float64(4.0)
-    return troughs[ratios<threshold]
+    troughs = troughs[ratios<threshold]
+            
+    # Graph (and save) results as required
+    if graph and phys_fs:
+           graphPeaksAgainstRawInput(rawData, [], phys_fs, dataType, troughs = troughs,
+                OutDir = OutDir, prefix = dataType + 'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
+                caption = 'Remove troughs closer to local max than to adjacent troughs.')
+    
+    return troughs
 
 def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     """
@@ -394,7 +444,8 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     
     return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
-def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData):
+def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, graph = False, 
+            phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         removeOverlappingPeaksAndTroughs
@@ -410,11 +461,24 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData):
         troughs:   Array of trough locations in raw data indices.
         
         rawData: Raw input data
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     RETURNS
         filtered peaks, filtered troughs
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
         
     numPeaks = len(peaks)
     lastPeak = numPeaks - 1
@@ -438,6 +502,11 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData):
                 
     peaks = np.delete(peaks,peaksToDelete)
     troughs = np.delete(troughs,troughsToDelete)
+    
+    if graph and phys_fs:
+        graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, troughs = troughs,
+             OutDir = OutDir, prefix = dataType + 'removeOverlappingPeaksAndTroughs', 
+             caption = 'Remove overlapping peaks and troughs.')
                 
     return peaks, troughs
 
@@ -584,9 +653,14 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, gra
             
     # Graph (and save) results as required
     if graph and phys_fs:
-       graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
-            OutDir = OutDir, prefix = dataType + 'MergeClosePeaks', 
-            caption = 'Merge peaks that are closer than one quarter of the overall typical period.')
+        if Troughs:
+           graphPeaksAgainstRawInput(rawData, [], phys_fs, dataType, troughs = peaks,
+                OutDir = OutDir, prefix = dataType + 'MergeCloseTroughs', 
+                caption = 'Merge troughs that are closer than one quarter of the overall typical period.')
+        else:
+           graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
+                OutDir = OutDir, prefix = dataType + 'MergeClosePeaks', 
+                caption = 'Merge peaks that are closer than one quarter of the overall typical period.')
     
     return peaks
 
@@ -838,7 +912,8 @@ def addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None,
     return peaks
 
 
-def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None):
+def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = False, 
+            phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
     """
     NAME
         addMissingPeaksAndTroughs
@@ -856,9 +931,22 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None):
         
         period: Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
+        
+        graph:   Whether to graph the results
+        
+        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        
+        dataType: Type of data being processed
+        
+        saveGraph: Whether to save graoh to disk
+        
+        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
+    
+    if graph and not phys_fs:
+        print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
     
     # Find period if not supplied
     if not period:
@@ -895,6 +983,11 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None):
     # Remove extra peaks bewteen troughs and troughs between peaks
     peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     
+    if graph and phys_fs:
+        graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, troughs = troughs,
+             OutDir = OutDir, prefix = dataType + 'addMissingPeaksAndTroughs', 
+             caption = 'Add missing peaks and troughs.')
+    
     return peaks, troughs
 
 def graphPeaksAgainstRawInput(rawData, peaks, phys_fs, peakType, troughs = [], 
@@ -929,16 +1022,20 @@ def graphPeaksAgainstRawInput(rawData, peaks, phys_fs, peakType, troughs = [],
     x = []    
     end = len(rawData)
     for i in range(0,end): x.append(i/phys_fs)
-    peakVals = []
-    for i in peaks: peakVals.append(rawData[i])
     mpl.pyplot.subplot(211)
     mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
-    mpl.pyplot.plot(peaks/phys_fs, peakVals, "ro") # Peaks
+    if len(peaks) > 0:
+        peakVals = []
+        for i in peaks: peakVals.append(rawData[i])
+        mpl.pyplot.plot(peaks/phys_fs, peakVals, "ro") # Peaks
     if len(troughs) > 0:
         troughVals = []
         for i in troughs: troughVals.append(rawData[i])
         mpl.pyplot.plot(troughs/phys_fs, troughVals, "bo") # troughs
-        title = peakType + " peaks (red), troughs (blue) and raw input data (green)"
+        if len(peaks) > 0:
+            title = peakType + " peaks (red), troughs (blue) and raw input data (green)"
+        else:
+            title = peakType + " troughs (blue) and raw input data (green)"
     else:
         title = peakType + " peaks (red) and raw input data (green)"
     title += '\n' + caption

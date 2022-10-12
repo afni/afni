@@ -337,30 +337,44 @@ def getRespiratoryPeaks(parameters, rawData):
             caption = 'Respiratory troughs from band-pass filtered input.')
     
     # Remove troughs that are more than the 90th percentile of the input signal
-    troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True)
+    troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove "troughs" that are greater than the raw input a quarter of a period on right side
-    # This is to remove false troughs on the upstroke
-    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, period=period)
+    # This is to remove false troughs on the downstroke
+    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
-    # Remove false troughs on the downstroke
+    # Remove false troughs on the uptroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData,\
-            period=period, direction = 'left')
+            period=period, direction = 'left', 
+            graph = parameters['verbose'], dataType = "Respiratory",  
+            phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
-    troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData)
+    troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
+        graph = parameters['verbose'], dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Merge troughs that are closer than one quarter of the overall typical period
-    troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True)
+    troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True, 
+        graph = parameters['verbose'], dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove peaks/troughs that are also troughs/peaks
-    peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData)
+    peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
+        graph = parameters['verbose'], dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     
     # Add missing peaks and troughs
-    peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None)
+    peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
+        graph = parameters['verbose'], dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
