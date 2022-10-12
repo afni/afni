@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add basic output of 'final DF fraction'",
+   NULL
+ } ,
+
  {  8, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "w/PT, reformat help examples and remove extra indentation",
    NULL
