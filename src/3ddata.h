@@ -4519,7 +4519,7 @@ extern int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2);
 
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
-extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
+extern char * THD_dataset_info( THD_3dim_dataset * , int , int ) ;
 extern char * THD_dset_subbrick_info( THD_3dim_dataset * , int );
 
 extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl,
