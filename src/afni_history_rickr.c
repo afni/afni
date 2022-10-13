@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 22, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+ { 13, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "okay, fix 'final DF fraction' to be wrt uncensored TRs",
+   NULL
+ } ,
+
+ { 12, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add basic output of 'final DF fraction'",
    NULL
  } ,
