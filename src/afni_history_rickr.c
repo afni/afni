@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 13, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+ { 13, Oct, 2022, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -no_hist to 3dinfo, to omit the HISTORY text",
+   NULL
+ } ,
+
+ { 13, Oct, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "okay, fix 'final DF fraction' to be wrt uncensored TRs",
    NULL
  } ,
