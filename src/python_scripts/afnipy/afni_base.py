@@ -296,7 +296,12 @@ class afni_name(object):
       cmd = '@FindAfniDsetPath %s' % dname
       com=shell_com(cmd, oexec, capture=1)
       com.run()
-      path = com.so[0]
+
+      # this fails on no output (thanks, Rasmus)
+      if len(com.so) > 0:
+          path = com.so[0]
+      else:
+          path = ''
 
       if com.status or not path or len(path) < 1:
         # call this a non-fatal error for now

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix crash (in afni_base.py) if missing tamplate",
+   "Thanks to R Birn for noting the problem."
+ } ,
+
  { 13, Oct, 2022, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "add -no_hist to 3dinfo, to omit the HISTORY text",
    NULL
