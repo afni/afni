@@ -154,7 +154,7 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
      """
      NAME
          getTimeSeriesPeriod
-             Get overall typical period of raw data in time series index units          
+             Get overall typical period (s) of raw data in time series index units          
       TYPE
           <class 'numpy.float64'>
      SYNOPSIS
@@ -162,15 +162,20 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
      ARGUMENTS
          rawData: (array dType = float64) Raw cardiac data
          
-         minFrequency: (dType = int) Minimum frequency to be considered.  Default = 1
+         minFrequency: (dType = int) Minimum frequency (Hz) to be considered.  Default = 1
      AUTHOR
          Peter Lauren
      """
     
      # Note that nan values are removed from the input raw values
-     limit = round(len(rawData)/2)
-     return len(rawData)/(minFrequency+np.argmax((abs(np.fft.fft([x for x in rawData\
-                    if math.isnan(x) == False]))[minFrequency:limit])))
+     limit = round(len(rawData)/2) # Frequency limit is Nyquist frequency
+     validRawData = [x for x in rawData if math.isnan(x) == False] # Raw data with nan's removed
+     FourierSpectrum = abs(np.fft.fft(validRawData))
+     selectedFourerSpectrum = FourierSpectrum[minFrequency:limit]
+     F0 = len(rawData)  # Length of Fourier spectrum
+     frequencyModeIndex = minFrequency+np.argmax(selectedFourerSpectrum)
+     return  F0/frequencyModeIndex
+
  
 def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
         portion=0.25, period=None, graph = False, 
@@ -725,7 +730,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     filteredFT = FourierTransform * filterArray
     
     # Get IFT
-    filteredRawData = np.fft.ifft(filteredFT)
+    filteredRawData = np.real(np.fft.ifft(filteredFT))
     
     if graph:
         # Show selected part of Fourier transform

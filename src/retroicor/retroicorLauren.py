@@ -3,7 +3,7 @@
 # python3 status: compatible
 
 # coding=utf-8
-__author__ = "Peter Lauren" # Modified a bit by gianfranco 
+__author__ = "Peter Lauren" 
 
 """
     Copyright 2022 Peter Lauren
