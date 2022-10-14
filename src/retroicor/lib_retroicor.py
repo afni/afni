@@ -83,7 +83,7 @@ def readArray(parameters, key):
     ARGUMENTS
         parameters:   dictionary of input parameters which includes a 'key' field.
         
-        key       :   key to file of interest
+        key       :   (dType = str) key to file of interest
    AUTHOR
        Peter Lauren
     """
@@ -112,15 +112,18 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    ARGUMENTS
        parameters:   dictionary of input parameters which includes the following fields.
        
-           phys_fs: Sampling frequency in Hz
+           phys_fs: (dType = float) Sampling frequency in Hz
            
-           verbose: Whether running in verbose mode.  (Save graphs, of intermediate steps, to disk.)
+           verbose: (dtype = bool) Whether running in verbose mode.  (Save graphs, 
+                    of intermediate steps, to disk.)
            
-           dev:     Whether running in development mode.  (Show graphs and pause between graphs.)
+           dev:     (dType = bool) Whether running in development mode.  (Show 
+                                            graphs and pause between graphs.)
        
-       rawData: Raw cardiac data
+       rawData: (dType = float, array) Raw cardiac data
        
-       filterPercentile: Minimum percentile of raw data for a peak value to imply a valid peak
+       filterPercentile: (dType = float) Minimum percentile of raw data for a 
+                           peak value to imply a valid peak
    AUTHOR
        Peter Lauren
    """
@@ -253,9 +256,9 @@ def getRespiratoryPeaks(parameters, rawData):
     SYNOPSIS
     respFile(parameters)
     ARGUMENTS
-    parameters:   dictionary of input parameters which includes the following fields.
+        parameters:   dictionary of input parameters which includes the following fields.
     
-    -respFile: repiratory input file
+        rawData: (dType = float, array) Raw cardiac data
     AUTHOR
     Peter Lauren
     """
@@ -407,11 +410,13 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     SYNOPSIS
        determineCardiacPhases(peaks, fullLength)
     ARGUMENTS
-        peaks:   Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
+        peaks:   (dType int64 array) Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
         
-        fullLength:   Lenagth of cardiac time series
+        fullLength:   (dType = int) Lenagth of cardiac time series
         
-        phys_fs:   Physiological signal sampling frequency in Hz. 
+        phys_fs:   (dType = float) Physiological signal sampling frequency in Hz. 
+        
+        rawData: (dType = float, array) Raw cardiac data
     AUTHOR
        Peter Lauren
     """
@@ -880,7 +885,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         
             StartTime:   (Optional)  Time at which the signal of interest starts
             
-            phys_fs:   Physiological signal sampling frequency in Hz.
+            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
                    
         filename:   String giving the local name of the input file
         
@@ -974,36 +979,26 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     ARGUMENTS
         respiration_info:   Dictionary with the following fields.
         
-            respiration_file:  Name of ASCII file with respiratory time series
+            respiration_file:  (dType = str) Name of ASCII file with respiratory time series
             
-            phys_fs:   Physiological signal sampling frequency in Hz.
-            
-            number_of_slices:   Number of slices
-            
-            volume_tr:   Volume repetition time (TR) which defines the length of time 
-            between the acquisition of consecutive frames/volumes; in seconds
-            
-            slice_offset:   Vector of slice acquisition time offsets in seconds.
-            
-            zero_phase_offset:Phase offset added to the location of each peak.
-            Default is 0.0
+            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
             
         cardiac_info:   Dictionary with the following fields.
             
-            phys_fs:   Physiological signal sampling frequency in Hz.
+            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
         
-            cardiac_file:  Name of ASCII file with cardiac time series
+            cardiac_file:  (dType = str) Name of ASCII file with cardiac time series
             
-        phys_file: BIDS formatted physio file in tab separated format. May
-        be gzipped.
+        phys_file: (dType = NoneType) BIDS formatted physio file in tab separated format. May
+                    be gzipped.
                 
-        phys_json_arg: File metadata in JSON format
+        phys_json_arg: (dType = NoneType) File metadata in JSON format
         
-        respiration_out:  Whether to have respiratory output
+        respiration_out: (dType = int) Whether to have respiratory output
         
-        cardiac_out:  Whether to have cardiac output
+        cardiac_out:  (dType = int) Whether to have cardiac output
         
-        rvt_out:  Whether to have RVT output
+        rvt_out:  (dType = int) Whether to have RVT output
             
     AUTHOR
        Josh Zosky and Peter Lauren

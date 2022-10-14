@@ -112,11 +112,11 @@ def setup_exceptionhook():
             _pdb_excepthook(type, value, tb)
             
         ARGUMENTS
-            type: Exception type being handled (a subclass of BaseException)
+            type: (dType = sys.exc_type) Exception type being handled (a subclass of BaseException)
             
-            value:   Exception instance
+            value: (dType = sys.exc_value) Exception instance
             
-            tb:   Traceback object
+            tb: (dType = sys.exc_traceback) Traceback object
        AUTHOR
            Joshua Zosky (Documentation by Peter Lauren)
         """
@@ -145,19 +145,21 @@ def getSliceOffsets(offsetDict):
     ARGUMENTS
         offsetDict:   Dictionary with the following fields.
         
-            number_of_slices:   Number of slices
+            number_of_slices:   (dType = int) Number of slices
             
-            volume_tr:   Volume repetition time (TR) which defines the length of time 
+            volume_tr:   (dType = float) Volume repetition time (TR) which defines the length of time 
             between the acquisition of consecutive frames/volumes; in seconds
             
-            slice_offset:   Vector of slice acquisition time offsets in seconds.
+            slice_offset:   (2D array dType = numpy.float64) Vector of slice 
+                            acquisition time offsets in seconds.
         
-            slice_order:   Order of slices (alt+z, alt-z, etc).  Default is "alt+z".
+            slice_order:   (dType = str) Order of slices 
+                           (alt+z, alt-z, etc).  Default is "alt+z".
         
-            quiet:   0 if show graphs. 1 if do not show graphs
+            quiet:   (dType = int) 0 if show graphs. 1 if do not show graphs
             
     AUTHOR
-       Joshua Zosky (Documentation by Peter Lauren)
+       Joshua Zosky (Documentation and comments by Peter Lauren)
     """
         
     slice_offset = offsetDict["slice_offset"]
@@ -302,45 +304,44 @@ def retro_ts(
             zero_phase_offset=0,
             phys_file=None,
             phys_json=None,
-            retroicor_algorithm=False,
             args=None)
         
     ARGUMENTS
-        respiration_file:   String giving name of ASCII file with respiratory time series
+        respiration_file: (dType = str) String giving name of ASCII file with respiratory time series
         
-        cardiac_file:   String giving name of ASCII file with cardiac time series
+        cardiac_file: (dType = str) String giving name of ASCII file with cardiac time series
         
-        phys_fs:   Physiological signal sampling frequency in Hz.
+        phys_fs: (dType = float) Physiological signal sampling frequency in Hz.
         
-        number_of_slices:   Number of slices.
+        number_of_slices: (dType = int) Number of slices.
         
-        volume_tr:   Volume repetition time (TR) which defines the length of time 
+        volume_tr: (dType = float) Volume repetition time (TR) which defines the length of time 
         between the acquisition of consecutive frames/volumes; in seconds
         
-        OutDir:   String giving name of directory to create for output files.
+        OutDir: (dType = str) String giving name of directory to create for output files.
         Default is "retro_" follwed by the current date and time.
         
-        prefix:   Prefix for output filename.
+        prefix: (dType = str) Prefix for output filename.
         
-        slice_offset:   Vector of slice acquisition time offsets in seconds.
+        slice_offset: (dType = int) Vector of slice acquisition time offsets in seconds.
         
-        fir_order:   Order of Finite Impulse Response (FIR) filter
+        fir_order: (dType = int) Order of Finite Impulse Response (FIR) filter
         
-        quiet:   0 if show graphs. 1 if do not show graphs
+        quiet: (dType = int) 0 if show graphs. 1 if do not show graphs
         
-        demo:   Whether running in demo mode.  (Show graphs and pause between graphs.)
+        demo: (dType = int) Whether running in demo mode.  (Show graphs and pause between graphs.)
         
-        dev:    Whether running in dev(elopment) mode.   (Show graphs and pause between graphs.)
+        dev: (dType = bool) Whether running in dev(elopment) mode.   (Show graphs and pause between graphs.)
         
-        verbose: Whether runnung in verbose mode.  Save graphs, of each filtering step, to disk.
+        verbose: (dType = bool) Whether runnung in verbose mode.  Save graphs, of each filtering step, to disk.
         
-        rvt_out: Flag for writing RVT regressors (default is 0)
+        rvt_out: (dType = int) Flag for writing RVT regressors (default is 0)
         
-        cardiac_out: Flag for writing Cardiac regressors (default is 1)
+        cardiac_out: (dType = int) Flag for writing Cardiac regressors (default is 1)
         
-        respiration_out: Flag for writing Respiratory regressors (default is 1)
+        respiration_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
         
-        slice_order: Slice timing information in seconds. The default is
+        slice_order: (dType = str) Slice timing information in seconds. The default is
         alt+z. See 3dTshift help for more info.
             alt+z    = alternating in the plus direction
             alt-z    = alternating in the minus direction
@@ -353,20 +354,17 @@ def retro_ts(
             (expecting a 1D / text file containing the times for
             each slice in seconds)
             
-        show_graphs:   Whether to show graphs
+        show_graphs: (dType = int) Whether to show graphs
         
-        zero_phase_offset:Phase offset added to the location of each peak.
+        zero_phase_offset: (dType = int) Phase offset added to the location of each peak.
         Default is 0.0
         
-        phys_file: BIDS formatted physio file in tab separated format. May
+        phys_file: (dType = NoneType) BIDS formatted physio file in tab separated format. May
         be gzipped.
                        
-        phys_json_arg: File metadata in JSON format
+        phys_json: (dType = NoneType) File metadata in JSON format
         
-        retroicor_algorithm: Whether to use Peter Lauren's implementation of 
-        the Glover paper'
-        
-        args: Command line arguments supplied by user (String)
+        args: (dType = list) Command line arguments supplied by user (String)
 
     AUTHOR
        Peter Lauren

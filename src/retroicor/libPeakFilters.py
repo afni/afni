@@ -25,25 +25,25 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
         percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = False, 
                     phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        percentile: Minimum (or maximum) percentile of raw data for a peak 
+        percentile: (dType = float) Minimum (or maximum) percentile of raw data for a peak 
                             value to imply a valid peak (or trough)
                             
-        upperThreshold: Whether the threshold is the maximum acceptable value.  
+        upperThreshold: (dType = bool) Whether the threshold is the maximum acceptable value.  
                         Default is False meaning it is the minimum acceptable value
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -87,31 +87,31 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, upperThreshold=False, 
                     graph = False, phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None)
         ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        percentile: Minimum (or maximum) percentile of raw data for a peak 
+        percentile: (dType = float) Minimum (or maximum) percentile of raw data for a peak 
                             value to imply a valid peak (or trough)
                             
-        period: Overall typical period of raw data in time series index units.
+        period: (dType = NoneType) Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
         
-        numPeriods: Number of periods defining the local neighborhood over which
+        numPeriods: (dType = int) Number of periods defining the local neighborhood over which
                             the percentile is determined.  Default is 4.
                             
-        upperThreshold: Whether the threshold is the maximum acceptable value.  
+        upperThreshold: (dType = bool) Whether the threshold is the maximum acceptable value.  
                         Default is False meaning it is the minimum acceptable value
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -160,9 +160,9 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
      SYNOPSIS
          getTimeSeriesPeriod(rawData)
      ARGUMENTS
-         rawData: Raw cardiac data
+         rawData: (array dType = float64) Raw cardiac data
          
-         minFrequency: Minimum frequency to be considered.  Default = 1
+         minFrequency: (dType = int) Minimum frequency to be considered.  Default = 1
      AUTHOR
          Peter Lauren
      """
@@ -186,29 +186,29 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     SYNOPSIS
         removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', portion=0.25, period=None)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        direction: Direction to look for higher point in raw data.  Options are
+        direction: (dType = str) Direction to look for higher point in raw data.  Options are
             'right' or 'left'.  Default = 'right'.  That is, it aims to remove 
             minor peaks on the rising side of a larger peak
                             
-        portion: Portion of period that defines the offset from the peak.  Default
+        portion: (dType = float) Portion of period that defines the offset from the peak.  Default
             is 0.25.  That is a quarter of the period
             
-        period: Overall period of the raw data if known.  The default is that this
-            is not supplied and is estimated by the function
+        period: (dType = numpy.float64) Overall period, in seconds,  of the raw data if known.  
+            The default is that this is not supplied and is estimated by the function
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -256,29 +256,29 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     SYNOPSIS
         removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', portion=0.25, period=None)
     ARGUMENTS
-        troughs:   Array of trough locations in raw data indices.
+        troughs:   (array dType = numpy.int64) Array of trough locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        direction: Direction to look for lower point in raw data.  Options are
+        direction: (dType = str) Direction to look for lower point in raw data.  Options are
             'right' or 'left'.  Default = 'right'.  That is, it aims to remove 
             minor troughs on the falling side of a deeper trough
                             
-        portion: Portion of period that defines the offset from the peak.  Default
+        portion: (dType = float) Portion of period that defines the offset from the peak.  Default
             is 0.25.  That is a quarter of the period
             
-        period: Overall period of the raw data if known.  The default is that this
+        period: (dType = numpy.float64) Overall period of the raw data if known.  The default is that this
             is not supplied and is estimated by the function
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -321,22 +321,22 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=
     SYNOPSIS
         removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, denominator=4.0)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        denominator: Number by which to divide the current amplitude to determine 
+        denominator: (dType = float) Number by which to divide the current amplitude to determine 
         the lower threshold of the accepitable peak value
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -380,22 +380,22 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denomi
     SYNOPSIS
         removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, denominator=4.0)
     ARGUMENTS
-        peaks:   Array of trough locations in raw data indices.
+        troughs:   (array dType = numpy.int64) Array of trough locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        denominator: Number by which to divide the current amplitude to determine 
+        denominator: (dType = float) Number by which to divide the current amplitude to determine 
         the upper threshold of the accepitable trough value
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -434,9 +434,9 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     SYNOPSIS
         estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        expectedCyclesPerMinute: Expected number of cycles (heart beats, breaths)
+        expectedCyclesPerMinute: (dType = int) Expected number of cycles (heart beats, breaths)
             per minute based on input data type
     AUTHOR
         Peter Lauren
@@ -456,21 +456,21 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, graph = False,
     SYNOPSIS
         removeOverlappingPeaksAndTroughs(peaks, troughs, rawData)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        troughs:   Array of trough locations in raw data indices.
+        troughs:   (array dType = numpy.int64) Array of trough locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     RETURNS
         filtered peaks, filtered troughs
     AUTHOR
@@ -521,11 +521,11 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
     SYNOPSIS
         removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        troughs:   Array of trough locations in raw data indices.
+        troughs:   (array dType = numpy.int64) Array of trough locations in raw data indices.
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
     RETURNS
         filtered peaks, filtered troughs
     AUTHOR
@@ -583,24 +583,24 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, gra
     SYNOPSIS
         removeClosePeaks(peaks, period, denominator=4)
     ARGUMENTS
-        peaks:   Array of peak locations in raw data indices.
+        peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
-        period:   Overall typical period of raw data in time series index units.
+        period:   (dType = numpy.float64) Overall typical period of raw data in time series index units.
         
-        Troughs:  Whether processing troughs instead of peaks
+        Troughs:  (dType = bool) Whether processing troughs instead of peaks
         
-        denominator: Number by which to divide the period in order to determine
+        denominator: (dType = int) Number by which to divide the period in order to determine
         the minimum acceptable separation
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     RETURNS
         filtered peaks (or troughs)
     AUTHOR
@@ -677,19 +677,19 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         bandPassFilterRawDataAroundDominantFrequency(rawData, graph = True, 
                 prefix = 'BPFilteredCardiacInput', OutDir = '.') 
     ARGUMENTS
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        minBeatsPerSecond: Minimum expected beats per second
+        minBeatsPerSecond: (dType = float) Minimum expected beats per second
         
-        phys_fs: Sampling frequency in Hz.  Required if graph True
+        phys_fs: (dType = float) Sampling frequency in Hz.  Required if graph True
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -787,24 +787,24 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False, graph = 
     SYNOPSIS
         refinePeakLocations(peaks, rawData, period = None) 
     ARGUMENTS
-        peaks: Array of peaks to be refined
+        peaks: (array dType = int64) Array of peaks to be refined
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        period: Overall typical period of raw data in time series index units.
+        period: (dType = NoneType) Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
                 
-        Troughs: Whether troughs are processed instead of peaks
+        Troughs: (dType = bool) Whether troughs are processed instead of peaks
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -860,22 +860,22 @@ def addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None,
         addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None, 
                             dataType = "Cardiac", saveGraph = False, OutDir = None) 
     ARGUMENTS
-        peaks: Array of peaks to be refined
+        peaks: (array dType = int64) Array of peaks to be refined
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        period: Overall typical period of raw data in time series index units.
+        period: (dType = NoneType) Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -923,24 +923,24 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = Fals
     SYNOPSIS
         addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None) 
     ARGUMENTS
-        peaks: Array of peaks to be refined
+        peaks: (array dType = int64) Array of peaks to be refined
         
-        troughs: Array of troughs to be refined
+        troughs: (array dType = int64) Array of troughs to be refined
         
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        period: Overall typical period of raw data in time series index units.
+        period: (dType = NoneType) Overall typical period of raw data in time series index units.
                 Default is none, meaning the period is determined from the raw data.
         
-        graph:   Whether to graph the results
+        graph:   (dType = bool) Whether to graph the results
         
-        phys_fs: Sampling frequency in Hz.  Only relevant if results are to be graphed
+        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if results are to be graphed
         
-        dataType: Type of data being processed
+        dataType: (dType = str) Type of data being processed
         
-        saveGraph: Whether to save graoh to disk
+        saveGraph: (dType = bool) Whether to save graoh to disk
         
-        OutDir:   Output directory.  Only relevant if graph is to be saved to disk.
+        OutDir:   (dType = str) Output directory.  Only relevant if graph is to be saved to disk.
     AUTHOR
         Peter Lauren
     """
@@ -1002,17 +1002,17 @@ def graphPeaksAgainstRawInput(rawData, peaks, phys_fs, peakType, troughs = [],
         graphPeaksAgainstRawInput(rawData, peaks, parameters, peakType, troughs = [], 
                                       OutDir = None, display = True) 
     ARGUMENTS
-        rawData: Raw input data
+        rawData: (array, dType = float) Raw input data
         
-        peaks: Array of peaks to be refined
+        peaks: (array dType = int64) Array of peaks to be refined
         
-        phys_fs: Sampling frequency in Hz
+        phys_fs: (dType = float) Sampling frequency in Hz
                 
-        peakType: String that defines the type of data.  May be "Cardiac" or "Respiratory"
+        peakType: (dType = str) String that defines the type of data.  May be "Cardiac" or "Respiratory"
         
-        troughs: Array of troughs to be refined. Not used if plotting troughs not required
+        troughs: (array dType = int64) Array of troughs to be refined. Not used if plotting troughs not required
         
-        OutDir: String defining the directory to which the  graph is written.  
+        OutDir: (dType = str) String defining the directory to which the  graph is written.  
             Not used if it is not required to save the graph to disk.
     AUTHOR
         Peter Lauren
