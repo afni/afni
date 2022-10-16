@@ -7,6 +7,9 @@ auth = 'PA Taylor'
 # ver : 0.1 || date: Oct 5, 2022
 # + some level of written-ness
 #
+ver = 1.1 # date: Oct 16, 2022
+# + allow 1D files (e.g., ideal stim files) and plugins in the GUI
+#
 #########################################################################
 
 
@@ -39,10 +42,10 @@ text_ic_top     = """#!/bin/tcsh
 # Watch the correlation patterns to that seed location change, and
 # this often provides an excellent way to understand the data.
 #
-# ver = 1.0
+# ver = {ver}
 # -------------------------------------------------------------------------
 
-"""
+""".format(ver=ver)
 
 # ... and functions to define a few quantities are given below:
 #     make_apqc_ic_*( ... ) ...
@@ -96,7 +99,7 @@ set portnum = `afni -available_npb_quiet`
 
 # ===========================================================================
 
-afni -q -no1D -noplugins -no_detach                                     \\
+afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
      -com "SWITCH_UNDERLAY    ${dset_ulay}"                             \\
      -com "INSTACORR INIT                                               \\
