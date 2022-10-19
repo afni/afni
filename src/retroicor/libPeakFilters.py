@@ -49,6 +49,10 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
         Peter Lauren
     """
     
+    if (np.isnan(np.sum(rawData))):
+        print('*** ERROR in percentileFilter: nan values in data: ')
+        return []
+    
     if graph and not phys_fs:
         print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
   
@@ -57,8 +61,8 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
     for i in peaks: peakVals.append(rawData[i])
     
     # Remove peaks that are less than the the required percentile of the input signal
-    # Note that any nan values are first filtered out of the input signal
-    threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
+    # threshold = np.percentile([x for x in rawData if math.isnan(x) == False], percentile)
+    threshold = np.percentile(rawData, percentile)
     if upperThreshold: peaks = peaks[peakVals <= threshold]    
     else: peaks = peaks[peakVals >= threshold]
             
@@ -117,6 +121,10 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         Peter Lauren
     """
     
+    if (np.isnan(np.sum(rawData))):
+        print('*** ERROR in localPercentileFilter: nan values in data: ')
+        return []
+    
     if graph and not phys_fs:
         print('** WARNING: Sampling frequency (phys_fs) must be supplied if graphing required')
         return peaks
@@ -136,7 +144,8 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     for peak in peaks:
         Min = max(0,peak - halfWindowWidth)
         Max = min(upperLimit,peak + halfWindowWidth)
-        thresholds.append(np.percentile([x for x in rawData[Min:Max] if math.isnan(x) == False], percentile))
+        # thresholds.append(np.percentile([x for x in rawData[Min:Max] if math.isnan(x) == False], percentile))
+        thresholds.append(np.percentile(rawData[Min:Max], percentile))
 
     # Apply local percentile filter
     if upperThreshold: peaks = peaks[np.array(peakVals) <= np.array(thresholds)]
@@ -168,9 +177,14 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
          Peter Lauren
      """
     
+     if (np.isnan(np.sum(rawData))):
+        print('*** ERROR in getTimeSeriesPeriod: nan values in data: ')
+        return -1
+    
      # Note that nan values are removed from the input raw values
      limit = round(len(rawData)/2) # Frequency limit is Nyquist frequency
-     validRawData = [x for x in rawData if math.isnan(x) == False] # Raw data with nan's removed
+     # validRawData = [x for x in rawData if math.isnan(x) == False] # Raw data with nan's removed
+     validRawData = rawData
      FourierSpectrum = abs(np.fft.fft(validRawData))
      selectedFourerSpectrum = FourierSpectrum[minFrequency:limit]
      F0 = len(rawData)  # Length of Fourier spectrum
@@ -699,9 +713,13 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     AUTHOR
         Peter Lauren
     """
+    
+    if (np.isnan(np.sum(rawData))):
+        print('*** ERROR in bandPassFilterRawDataAroundDominantFrequency: nan values in data: ')
+        return []
 
     # Remove NaNs from raw data
-    rawData = [x for x in rawData if math.isnan(x) == False]
+    # rawData = [x for x in rawData if math.isnan(x) == False]
     
     rawDataLength = len(rawData)
     

@@ -172,9 +172,15 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3, 
             graph = parameters['verbose'], dataType = "Cardiac",  
             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+   if len(peaks) == 0:
+        print('*** ERROR: Failure to local percentile filter cardiac peaks')
+        return [], 0
 
    # Estimate the overall typical period using filtered cardiac time series
-   period = lpf.getTimeSeriesPeriod(filterData)      
+   period = lpf.getTimeSeriesPeriod(filterData) 
+   if period < 0:     
+        print('*** ERROR: Failure to get typical period using filtered cardiac time series')
+        return [], 0
     
    # Merge peaks that are closer than one quarter of the overall typical period
    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
@@ -305,11 +311,17 @@ def getRespiratoryPeaks(parameters, rawData):
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
+    if period < 0:     
+        print('*** ERROR: Failure to get typical period using filtered respiratory time series')
+        return [], [], 0
     
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
              graph = parameters['verbose'], dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+    if len(peaks) == 0:
+        print('*** ERROR: Failure to percentile filter respiratory peaks')
+        return [], [], 0
     
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
@@ -350,6 +362,9 @@ def getRespiratoryPeaks(parameters, rawData):
     troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True, 
              graph = parameters['verbose'], dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+    if len(troughs) == 0:
+        print('*** ERROR: Failure to percentile filter respiratory troughs')
+        return [], [], 0
     
     # Remove "troughs" that are greater than the raw input a quarter of a period on right side
     # This is to remove false troughs on the downstroke
@@ -787,6 +802,10 @@ def getPhysiologicalNoiseComponents(parameters):
         
         respiratory_peaks, respiratory_troughs, fullLength = \
             getRespiratoryPeaks(parameters, rawData) 
+        if len(respiratory_peaks) == 0:
+            print('*** EOORO: Error getting respiratory peaks or troughs')
+            return []
+            
         
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
