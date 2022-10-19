@@ -11,6 +11,7 @@ import math
 import matplotlib as mpl
 from matplotlib import figure as mplf
 import matplotlib.pyplot as plt
+import bisect
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = False, 
             phys_fs = None, dataType = "Cardiac", saveGraph = False, OutDir = None):
@@ -1054,6 +1055,24 @@ def graphPeaksAgainstRawInput(rawData, peaks, phys_fs, peakType, troughs = [],
         mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
         mpl.pyplot.show()  # If this is left out, output file is blank
 
-
+def checkForNans(rawData, dataType):
+    
+    if (np.isnan(np.sum(rawData))): # If nan's in raw data
+        print('** WARNING. NaN entries at the following indices of the ' + dataType + ' data')
+        nanIndices = np.argwhere(np.isnan(rawData))
+        print(nanIndices)
+        print('NaN values')
+        print(rawData[nanIndices])
+        
+        # Try to replace each nan with adjacent valid value(s) 
+        if (nanIndices[0] == 0):    # If first element a nan
+            rawData[0] = rawData[bisect.bisect_left(nanIndices, -1)]
+        if (nanIndices[-1] == len(rawData) - 1):    # If last element a nan
+            rawData[-1] = rawData[bisect.bisect_right(nanIndices, nanIndices[-1]-1)]
+        for i in nanIndices: # Process all Nans, replacing each one with previous value
+            rawData[i] = rawData[i-1]
+        
+    return rawData
+        
 
         

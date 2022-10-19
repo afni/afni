@@ -133,6 +133,9 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
+   # Check for nan's
+   rawData = lpf.checkForNans(rawData, "cardiac")
+   
    MIN_HEART_RATE = 25  # Minimum HR in BPM
     
    # Determine lower bound based based on minimum HR
@@ -262,10 +265,14 @@ def getRespiratoryPeaks(parameters, rawData):
     AUTHOR
     Peter Lauren
     """
-   
+
+    # DEBUG
     oldArray = rawData
     
     global OutDir
+   
+    # Check for nan's
+    rawData = lpf.checkForNans(rawData, "Respiratory")
    
     # Set maximum breathing period of 10 seconds
     MAX_BREATHING_PERIOD_IN_SECONDS = 10

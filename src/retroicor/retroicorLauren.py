@@ -21,11 +21,6 @@ __author__ = "Peter Lauren"
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Make demo scripts
-        - Add to box:
-            - Samples (input files)
-            - Scripts that run samples with options we want
-            - Physio measure files
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
@@ -52,6 +47,13 @@ __author__ = "Peter Lauren"
             - Findging peaks
             - Determining phase
             - Determining final output
+    
+    DONE:
+        - Make demo scripts
+        - Add to box:
+            - Samples (input files)
+            - Scripts that run samples with options we want
+            - Physio measure files
         
 """
 
