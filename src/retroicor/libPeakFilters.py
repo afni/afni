@@ -1085,10 +1085,17 @@ def checkForNans(rawData, dataType):
         # Try to replace each nan with adjacent valid value(s) 
         if (nanIndices[0] == 0):    # If first element a nan
             rawData[0] = rawData[bisect.bisect_left(nanIndices, -1)]
+            nanIndices = np.delete(nanIndices, 0)
         if (nanIndices[-1] == len(rawData) - 1):    # If last element a nan
             rawData[-1] = rawData[bisect.bisect_right(nanIndices, nanIndices[-1]-1)]
-        for i in nanIndices: # Process all Nans, replacing each one with previous value
-            rawData[i] = rawData[i-1]
+            nanIndices = np.delete(nanIndices, -1)
+        for i in nanIndices: # Process all Nans, 
+            nanIndex = i
+            left = nanIndex - 1
+            right = left+2
+            while np.isnan(rawData[right]): ++right
+            rawData[nanIndex] = rawData[left]+(rawData[right]-rawData[left])*(float(nanIndex-left)/(right-left))
+        
         
     return rawData
         

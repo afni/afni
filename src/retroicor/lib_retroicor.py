@@ -1,7 +1,7 @@
 __authors__ = "Joshua Zosky and Peter Lauren"
 
 """
-    Copyright 2022 Peter Lauren
+    2022 Peter Lauren
     peterdlauren@gmail.com
 
     This file contains all the library functions for "RetroTS2".

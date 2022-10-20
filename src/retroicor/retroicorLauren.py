@@ -6,7 +6,7 @@
 __author__ = "Peter Lauren" 
 
 """
-    Copyright 2022 Peter Lauren
+    2022 Peter Lauren
     peterdlauren@gmail.com
 
     "retroicorLauren" is free software: you can redistribute it and/or modify
