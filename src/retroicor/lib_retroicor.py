@@ -781,6 +781,9 @@ def getPhysiologicalNoiseComponents(parameters):
     if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
         # rawData = readArray(parameters, '-cardFile')
         rawData = readRawInputData(rawDataParams, parameters["-cardFile"], parameters["phys_cardiac_dat"])
+        if len(rawData) == 0:
+            print('Error reading input cardiac data')
+            return []
         
         # if not parameters['phys_fs']: # Sampling frequency not supplied
         #     parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
@@ -799,6 +802,9 @@ def getPhysiologicalNoiseComponents(parameters):
 
         # rawData = readArray(parameters, '-respFile')
         rawData = readRawInputData(rawDataParams, parameters["-respFile"], parameters["phys_resp_dat"])
+        if len(rawData) == 0:
+            print('Error reading input respiratory data')
+            return []
         
         respiratory_peaks, respiratory_troughs, fullLength = \
             getRespiratoryPeaks(parameters, rawData) 
@@ -925,13 +931,16 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         # Read repiration/cardiac file into phys_dat
         phys_dat = []
         with open(filename, "rb") as h:
+            lineNumber = 0
             for entry in h:
+                lineNumber = lineNumber + 1
                 try:
                     float(entry)
                     if float(entry) != 5000.0: # Some files have artifactual entries of 5000.0
                         phys_dat.append(float(entry))
                 except:
-                    print('*** WARNING: invalid, non-numeric data entry: ', entry)
+                    print('*** ERROR: invalid, non-numeric data entry: ', entry, ' at line ', lineNumber)
+                    return []
             for line in h:
                 phys_dat.append(float(line.strip()))
                 
