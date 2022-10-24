@@ -1073,7 +1073,24 @@ def graphPeaksAgainstRawInput(rawData, peaks, phys_fs, peakType, troughs = [],
         mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
         mpl.pyplot.show()  # If this is left out, output file is blank
 
-def checkForNans(rawData, dataType):
+def checkForNans(rawData, dataType, failureThreshold = 100):
+    '''
+    NAME
+        checkForNans
+        Check for NaN entries, in numeric data, and replace them
+     TYPE
+         <void>
+    SYNOPSIS
+        checkForNans(rawData, dataType, failureThreshold) 
+    ARGUMENTS
+        rawData: (array, dType = float) Raw input data
+        
+        dataType: (dType = str) Type of data; "Cardiac" or "Respiratory"
+        
+        failureThreshold: (dType = int) Maximum number of consecutive NaN values before failure
+    AUTHOR
+        Peter Lauren
+    '''    
     
     if (np.isnan(np.sum(rawData))): # If nan's in raw data
         print('** WARNING. NaN entries at the following indices of the ' + dataType + ' data')
@@ -1093,7 +1110,13 @@ def checkForNans(rawData, dataType):
             nanIndex = i
             left = nanIndex - 1
             right = left+2
-            while np.isnan(rawData[right]): ++right
+            nanLength = 1
+            while np.isnan(rawData[right]): 
+                ++right
+                ++nanLength
+            if nanLength > failureThreshold:
+                print('*** ERROR: Too many consecutive NaNs')
+                return []
             rawData[nanIndex] = rawData[left]+(rawData[right]-rawData[left])*(float(nanIndex-left)/(right-left))
         
         

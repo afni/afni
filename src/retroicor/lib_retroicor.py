@@ -134,7 +134,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # array = oldArray[0:200000]
    
    # Check for nan's
-   rawData = lpf.checkForNans(rawData, "cardiac")
+   failureThreshold = parameters['phys_fs'] / 4 # Consecutive NaNs cannot cover more than about 0.25 s
+   rawData = lpf.checkForNans(rawData, "cardiac", failureThreshold = failureThreshold)
+   if len(rawData) == 0:
+       print('*** ERROR: Could not handle all of the NaN values')
    
    MIN_HEART_RATE = 25  # Minimum HR in BPM
     
@@ -939,7 +942,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
                     if float(entry) != 5000.0: # Some files have artifactual entries of 5000.0
                         phys_dat.append(float(entry))
                 except:
-                    print('*** ERROR: invalid, non-numeric data entry: ', entry, ' at line ', lineNumber)
+                    print('*** ERROR: invalid, non-numeric data entry: ', entry, 
+                          ' at line ', lineNumber, ' of ', filename)
                     return []
             for line in h:
                 phys_dat.append(float(line.strip()))
