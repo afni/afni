@@ -7,10 +7,10 @@ Created on Thu Aug 25 14:46:15 2022
 """
 
 import numpy as np
-import math
+# import math
 import matplotlib as mpl
-from matplotlib import figure as mplf
-import matplotlib.pyplot as plt
+# from matplotlib import figure as mplf
+# import matplotlib.pyplot as plt
 import bisect
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = False, 
@@ -71,7 +71,7 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False, graph = F
         if upperThreshold:
            graphPeaksAgainstRawInput(rawData, [], phys_fs, dataType, troughs = peaks,
                 OutDir = OutDir, prefix = dataType + 'AdjustTroughsAfterPctlFilt', 
-                caption = 'Filter troughs based on local percentile of raw data.')
+                caption = 'Filter troughs based on percentile of raw data.')
         else:
            graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
                 OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterPctlFilt', 
@@ -931,7 +931,7 @@ def addMissingPeaks(peaks, rawData, period=None, graph = False, phys_fs = None,
     if graph and phys_fs:
        graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
             OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Filter peaks based on local percentile of raw data.')
+            caption = 'Add missing peaks.')
     
     return peaks
 
@@ -975,10 +975,14 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = Fals
     # Find period if not supplied
     if not period:
         period = getTimeSeriesPeriod(rawData)
+
+    # Threshold for peaks and troughs        
+    threshold = (max(rawData) - min(rawData)) * 0.1
         
     # Find interpeak intervals
     intervals = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
     factor = np.median(intervals)*0.9
+    searchLength = int(factor/2)
     peaksToAdd = [round(intervals[i]/factor)-1 for i in range(0,len(intervals))]
     for i in range(len(intervals)-1,-1,-1):
         if (peaksToAdd[i]>0):
@@ -986,7 +990,13 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = Fals
             start = peaks[i]
             end = peaks[i+1]
             increment = (end-start)/additionPlus1
-            peaks = np.insert(peaks, i+1, [start+increment*j for j in range(1,additionPlus1)])
+            newPeaks = [start+increment*j for j in range(1,additionPlus1)]
+            
+            # Filter out false peaks
+            diff = [rawData[round(x)] - min(rawData[round(x-searchLength):round(x+searchLength)]) for x in newPeaks]
+            newPeaks = np.array(newPeaks)[diff >= -np.float64(threshold)]
+            if len(newPeaks) > 0:
+                troughs = np.insert(troughs, i+1, newPeaks)
         
     # Find intertrough intervals
     intervals = [x - troughs[i - 1] for i, x in enumerate(troughs)][1:]
@@ -998,7 +1008,13 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = Fals
             start = troughs[i]
             end = troughs[i+1]
             increment = (end-start)/additionPlus1
-            troughs = np.insert(troughs, i+1, [start+increment*j for j in range(1,additionPlus1)])
+            newTroughs = [start+increment*j for j in range(1,additionPlus1)]
+            
+            # Filter out false troughs
+            diff = [rawData[round(x)] - min(rawData[round(x-searchLength):round(x+searchLength)]) for x in newTroughs]
+            newTroughs = np.array(newTroughs)[diff <= np.float64(threshold)]
+            if len(newTroughs) > 0:
+                troughs = np.insert(troughs, i+1, newTroughs)
    
     # Adjust peaks from uniform spacing
     peaks = refinePeakLocations(peaks, rawData, period = period/2)

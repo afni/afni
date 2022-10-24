@@ -352,6 +352,17 @@ def getRespiratoryPeaks(parameters, rawData):
              graph = parameters['verbose'], dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)   
     
+    # Remove "peaks" that are less than the raw input a quarter of a period on right side
+    # This is tomove false peaks on the upstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+    
+    # Remove false peaks on the downstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+             graph = parameters['verbose'], dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+    
     # troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     troughs, _ = sps.find_peaks(-np.array(filterData), width=int(parameters["phys_fs"]/8))
    
