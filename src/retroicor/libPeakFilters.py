@@ -641,26 +641,18 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, gra
             del intervals[i]
             
     # Make peaks from intervals
-    offset = 0 
-    peaks = []
-    threshold = round(threshold)
-    if Troughs: # Processing troughs instead of peaks
-        for interval in intervals:
-            peaks.append(offset + np.argmin(rawData[offset:offset+interval]))
-            offset = offset + interval
-        peaks.append(offset + np.argmin(rawData[offset:]))
+    offset = peaks[0] 
+    peaks = [offset]
+    for interval in intervals:
+        peaks.append(offset+interval)
+        offset = offset + interval
    
-        # Adjust troughs from uniform spacing
+    # Adjust peaks/troughs from uniform spacing
+    if Troughs: # Processing troughs instead of peaks
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period, Troughs = True)
     else:   # Processing peaks
-        for interval in intervals:
-            # peaks.append(offset + np.argmax(rawData[offset:offset+interval]))
-            peaks.append(offset+interval)
-            offset = offset + interval
-   
-        # Adjust peaks from uniform spacing
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period)
