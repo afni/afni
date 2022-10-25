@@ -1120,11 +1120,11 @@ def checkForNans(rawData, dataType, failureThreshold = 100):
             right = left+2
             nanLength = 1
             while np.isnan(rawData[right]): 
-                ++right
-                ++nanLength
-            if nanLength > failureThreshold:
-                print('*** ERROR: Too many consecutive NaNs')
-                return []
+                right = right + 1
+                nanLength = nanLength + 1
+                if nanLength > failureThreshold:
+                    print('*** ERROR: Too many consecutive NaNs')
+                    return []
             rawData[nanIndex] = rawData[left]+(rawData[right]-rawData[left])*(float(nanIndex-left)/(right-left))
         
         
