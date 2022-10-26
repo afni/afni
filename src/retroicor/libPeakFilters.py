@@ -831,11 +831,14 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False, graph = 
         return peaks
     
     # Find period if not supplied
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
+    # if not period:
+    #     period = getTimeSeriesPeriod(rawData)
 
-    # Determine half window width
-    halfWindowWidth = round(period/4)
+    # # Determine half window width
+    # halfWindowWidth = round(period/4)
+    
+    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+    halfWindowWidth = round(np.median(intervals)/4)
     
     # Determine offsets
     arrayLength = len(rawData)
