@@ -586,8 +586,8 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
     # Keep only the hioghest peak in interpeak intervals
     for interval in crowdedIntervals[-1:0:-1]:
         peakGroup = [i for i in range(0,len(peaks)) if peaks[i] in troughRanges[interval]]
-        keep = np.argmax([rawData[i] for i in peakGroup])
-        peakGroup.remove(peakGroup[keep])
+        keep = peakGroup[0] + np.argmax([rawData[peaks[i]] for i in peakGroup])
+        peakGroup.remove(keep)
         peaks = np.delete(peaks,peakGroup)
         
     return peaks, troughs
@@ -1013,8 +1013,8 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, graph = Fals
                 troughs = np.insert(troughs, i+1, newTroughs)
    
     # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, period = period/2)
-    troughs = refinePeakLocations(troughs, rawData, period = period/2, Troughs = True)
+    peaks = refinePeakLocations(peaks, rawData, period = np.median(intervals)/2)
+    troughs = refinePeakLocations(troughs, rawData, period = np.median(intervals)/2, Troughs = True)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
