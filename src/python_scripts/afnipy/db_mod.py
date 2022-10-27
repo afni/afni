@@ -11292,6 +11292,8 @@ OPTIONS:  ~2~
 
     -hist                   : show the module history
 
+    -hist_milestones        : show the history of interesting milestones
+
     -requires_afni_version  : show AFNI date required by processing script
 
         Many updates to afni_proc.py are accompanied by corresponding
