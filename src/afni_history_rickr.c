@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Nov, 2022, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method case geme_xnat",
+   "Sort as with geme_index, but pre-sort with RIN rather than alphabetical."
+ } ,
+
  { 13, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix crash (in afni_base.py) if missing tamplate",
    "Thanks to R Birn for noting the problem."

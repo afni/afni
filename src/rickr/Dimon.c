@@ -161,10 +161,11 @@ static char * g_history[] =
     " 4.28 Nov  8, 2021 [rickr]: add -milestones\n"
     " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
     " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
+    " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.30 (April 22, 2022)"
+#define DIMON_VERSION "version 4.30 (November 2, 2022)"
 
 static char * g_milestones[] =
 {
@@ -180,6 +181,7 @@ static char * g_milestones[] =
     " 2013.01 : handle inputs AFNI, NIFTI (and GEMS 4.x, DICOM)\n",
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
     " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
+    " 2022.11 : add GE XNAT multi-echo (non-realtime) sorting, 'geme_xnat'\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -260,8 +262,10 @@ int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
  *    major = (P-g_mod_sort_base) // g_mod_sort   (offset time point)
  *    minor = (P-g_mod_sort_base) %  g_mod_sort   (slice within time point)
  */
-int       g_mod_sort       = 0;  /* currently used by compare_by_rin        */
-int       g_mod_sort_base  = 0;  /* currently used by compare_by_rin        */
+/* globals used by compare_by_rin */
+int       g_mod_sort       = 0;  /* modulo number, # images per sort group */
+int       g_mod_sort_base  = 0;  /* offset to be modulo conting at */
+int       g_nwarn_dupe_rin = 10; /* # warns if duplicate RINs */
 
 /***********************************************************************/
 
@@ -347,8 +351,8 @@ extern int          g_ge_nim_acq;
 extern int          g_sop_iuid_maj;
 extern int          g_sop_iuid_min;
 
-static int          read_obl_info = 1;  /* only process obl_info once */
-static int          want_ushort2float = 0;  /* 9 Jul 2013 */
+static int          read_obl_info = 1;     /* only process obl_info once */
+static int          want_ushort2float = 0; /* 9 Jul 2013 */
 
 
 int compare_finfo_z(const void * v0, const void * v1);
@@ -1589,7 +1593,8 @@ static int read_image_files(param_t * p)
 /* return whether volume_search should wait for image reading */
 static int must_wait_for_read(param_t * p)
 {
-   if( sort_method(p->opts.sort_method) == IFM_SORT_GEME_RIN )
+   int sm = sort_method(p->opts.sort_method);
+   if( (sm == IFM_SORT_GEME_RIN) || (sm == IFM_SORT_GEME_XNAT) )
       return 1;
    return 0;
 }
@@ -1658,7 +1663,8 @@ static int make_sorted_fim_list(param_t  * p)
          qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
          break;
       }
-      case IFM_SORT_GEME:    {
+      case IFM_SORT_GEME:
+      case IFM_SORT_GEME_XNAT: {
          sort_by_geme_index(p);
          break;
       }
@@ -1818,6 +1824,15 @@ int sort_by_geme_index(param_t * p)
    if( gD.level > 2 )fprintf(stderr,"-- sorting by GE ME index...\n");
    n2sort = p->nfim - p->fim_start;
    if( n2sort <= 0 ) return 0;  /* nothing to do */
+
+   /* if IFM_SORT_GEME_XNAT, pre-sort by RIN, dupes are okay */
+   if( sort_method(p->opts.sort_method) == IFM_SORT_GEME_XNAT ) {
+      /* allow RIN dupes (should have necho of each RIN) */
+      g_nwarn_dupe_rin = 0;
+      if( gD.level > 2 ) g_nwarn_dupe_rin = 10;  /* juuuust to verify */
+      do_sort_by_rin(p, p->fim_o+p->fim_start, n2sort);
+   }
+
 
    /* set geme value range and sates to TO_SORT (if TO_PROC) */
    if( geme_set_range_n_state(p, p->fim_start, &min, &max, &snacq) ) return 0;
@@ -3075,7 +3090,7 @@ int compare_by_rin(const void * v0, const void * v1)
    finfo_t  * p0 = (finfo_t *)v0;
    finfo_t  * p1 = (finfo_t *)v1;
    int        ind0, ind1, dir;
-   static int nwarn = 10;
+   static int nwarn = 3;
 
    /* direction does not apply to high-level fields */
    dir = g_dicom_sort_dir;
@@ -3133,11 +3148,11 @@ int compare_by_rin(const void * v0, const void * v1)
    if     ( p0->geh.index < p1->geh.index ) { g_sort_type |= 16; return -dir; }
    else if( p0->geh.index > p1->geh.index ) { g_sort_type |= 16; return dir; }
 
-   /* failure: whine a few times and return equal */
-   if( nwarn > 0 ) {
+   /* failure: possibly whine a few times and return equal */
+   if( g_nwarn_dupe_rin > 0 ) {
       fprintf(stderr,"** comp_RIN: images have equal RIN %d, %d\n",
               p0->geh.index, p1->geh.index);
-      nwarn--;
+      g_nwarn_dupe_rin--;
    }
 
    return 0;
@@ -3943,6 +3958,7 @@ int sort_method(char * method)
    if( ! strcmp(method, "acq_time")   ) return IFM_SORT_ACQ_TIME;
    if( ! strcmp(method, "default")    ) return IFM_SORT_DEFAULT;
    if( ! strcmp(method, "geme_index") ) return IFM_SORT_GEME;
+   if( ! strcmp(method, "geme_xnat")  ) return IFM_SORT_GEME_XNAT;
    if( ! strcmp(method, "num_suffix") ) return IFM_SORT_NUM_SUFF;
    if( ! strcmp(method, "zposn")      ) return IFM_SORT_ZPOSN;
    if( ! strcmp(method, "rin")        ) return IFM_SORT_RIN;
@@ -3960,6 +3976,7 @@ char * sort_method_str(int method)
       case IFM_SORT_ACQ_TIME: return "acq_time";
       case IFM_SORT_DEFAULT:  return "default";
       case IFM_SORT_GEME:     return "geme_index";
+      case IFM_SORT_GEME_XNAT:return "geme_xnat";
       case IFM_SORT_NUM_SUFF: return "num_suffix";
       case IFM_SORT_ZPOSN:    return "zposn";
       case IFM_SORT_RIN:      return "rin";
@@ -5269,6 +5286,12 @@ printf(
 "    %s -infile_pre data/im -sort_by_num_suffix -no_wait \\\n"
 "          -sort_method geme_rin\n"
 "\n"
+"  A6. like geme_index, but pre-sort by RIN (not alphabetically)\n"
+"\n"
+"    %s -infile_pre data/im -dicom_org -num_chan 3 \\\n"
+"          -sort_method geme_xnat\n"
+"\n"
+"\n"
 "  B. for GERT_Reco:\n"
 "\n"
 "    %s -infile_prefix run_003/image -gert_create_dataset\n"
@@ -5471,7 +5494,7 @@ printf(
 "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
 "\n"
 "  ---------------------------------------------------------------\n",
-prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
@@ -5833,6 +5856,8 @@ printf(
     "\n"
     "    -hist              : display a history of program changes\n"
     "\n"
+    "    -milestones        : display a history of program milestones\n"
+    "\n"
     "    -max_images NUM    : limit on images (slices per volume)\n"
     "\n"
     "        e.g.  -max_images 256\n"
@@ -6061,10 +6086,11 @@ printf(
     "           acq_time        : by acqusition time, if set\n"
     "           default         : sort by run, [ATIME], IIND, RIN\n"
     "           geme_index      : by GE multi-echo index\n"
+    "           geme_xnat       : pre-sort by RIN, then sort by geme_index\n"
     "           num_suffix      : based on numeric suffix\n"
     "           zposn           : based on z-coordinate and input order\n"
     "           rin             : sort by RIN (0020 0013)\n"
-    "           geme_rin        : sort by RIN, subsort by echo/RIN\n"
+    "           geme_rin        : modulo sort by RIN, subsort by echo/RIN\n"
     "\n"
     "        more detailed method descriptions:\n"
     "\n"
