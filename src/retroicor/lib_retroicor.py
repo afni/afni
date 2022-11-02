@@ -914,7 +914,11 @@ def getPhysiologicalNoiseComponents(parameters):
     
     df = pd.DataFrame(data,columns=columnNames)
         
-    return df   
+    # return df   
+    physiologicalNoiseComponents = dict()
+    physiologicalNoiseComponents['respiratory_phases'] = respiratory_phases
+    physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
+    return physiologicalNoiseComponents
 
 def readRawInputData(respcard_info, filename=None, phys_dat=None):
     """
@@ -1011,6 +1015,7 @@ def runAnalysis(parameters):
     
     # Send output to terminal
     if (parameters['-abt']): print(repr(physiologicalNoiseComponents))
+    
 
 def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                         phys_json_arg, respiration_out, cardiac_out, rvt_out):
@@ -1138,4 +1143,168 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
             phys_cardiac_dat = []
             
     return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
+
+from numpy import zeros, size
+
+def ouputInJZoskiFormat(physiologicalNoiseComponents, parameters):
+    main_info = dict()
+    # main_info["reml_out"] = []
+    main_info["rvt_out"] = 1
+    main_info["number_of_slices"] = 33
+    main_info["rvt_out"] = main_info["rvt_out"]
+    cnt = 0
+    main_info["respiration_out"] = 1
+    main_info["cardiac_out"] = 1
+    main_info["prefix"] = parameters["prefix"]
+
+    n_r_v = 5
+    n_r_p = 4
+    n_e = 4
+    n_n = 220
+    temp_y_axis = main_info["number_of_slices"] * (
+        (main_info["rvt_out"]) * int(n_r_v)
+        + (main_info["respiration_out"]) * int(n_r_p)
+        + (main_info["cardiac_out"]) * int(n_e)
+    )
+    main_info["reml_out"] = zeros((n_n, temp_y_axis))
+
+    head = (
+        "<RetroTSout\n"
+        'ni_type = "%d*double"\n'
+        'ni_dimen = "%d"\n'
+        'ColumnLabels = "'
+        % (size(main_info["reml_out"], 1), size(main_info["reml_out"], 0))
+    )
+    tail = '"\n>'
+    tailclose = "</RetroTSout>"
+
+    label = head
+    
+    respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
+    cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
+    respiration_info["rvtrs_slc"] = np.zeros(shape=(220, 5))
+
+    main_info["slice_major"] = 1
+    main_info["reml_out"] = []
+    if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
+        # RVT
+        if main_info["rvt_out"] != 0:
+            for j in range(0, size(respiration_info["rvtrs_slc"], 2)):
+                for i in range(0, main_info["number_of_slices"]):
+                    cnt += 1
+                    main_info["reml_out"][:, cnt] = respiration_info["rvtrs_slc"][
+                        :, j
+                    ]  # same for each slice
+                    label = "%s s%d.RVT%d ;" % (label, i, j)
+        # Resp
+        if main_info["respiration_out"] != 0:
+            for j in range(0, size(respiration_info["phase_slice_reg"], 2)):
+                for i in range(0, main_info["number_of_slices"]):
+                    cnt += 1
+                    main_info["reml_out"][:, cnt] = respiration_info["phase_slice_reg"][
+                        :, j, i
+                    ]
+                    label = "%s s%d.Resp%d ;" % (label, i, j)
+        # Card
+        if main_info["Card_out"] != 0:
+            for j in range(0, size(cardiac_info["phase_slice_reg"], 2)):
+                for i in range(0, main_info["number_of_slices"]):
+                    cnt += 1
+                    main_info["reml_out"][:, cnt] = cardiac_info["phase_slice_reg"][
+                        :, j, i
+                    ]
+                    label = "%s s%d.Card%d ;" % (label, i, j)
+        fid = open(("%s.retrots.1D", main_info["prefix"]), "w")
+    else:
+        main_info["rvt_out"] = 0
+        for i in range(0, main_info["number_of_slices"]):
+            if main_info["rvt_out"] != 0:
+                # RVT
+                for j in range(0, np.shape(respiration_info["rvtrs_slc"])[0]):
+                    cnt += 1
+                    main_info["reml_out"].append(
+                        respiration_info["rvtrs_slc"][j]
+                    )  # same regressor for each slice
+                    label = "%s s%d.RVT%d ;" % (label, i, j)
+            if main_info["respiration_out"] != 0:
+                # Resp
+                for j in range(0, np.shape(respiration_info["phase_slice_reg"])[1]):
+                    cnt += 1
+                    main_info["reml_out"].append(
+                        respiration_info["phase_slice_reg"][:, j, i]
+                    )
+                    label = "%s s%d.Resp%d ;" % (label, i, j)
+            if main_info["cardiac_out"] != 0:
+                # Card
+                for j in range(0, np.shape(cardiac_info["phase_slice_reg"])[1]):
+                    cnt += 1
+                    main_info["reml_out"].append(
+                        cardiac_info["phase_slice_reg"][:, j, i]
+                    )
+                    label = "%s s%d.Card%d ;" % (label, i, j)
+        # fid = open(("%s.slibase.1D" % main_info["prefix"]), "w")
+
+    # remove very last ';'
+    label = label[1:-2]
+
+    np.savetxt(
+        "./temp.tmp",
+#        "%s.slibase.1D" % main_info["prefix"],
+        np.column_stack(main_info["reml_out"]),
+        fmt="%.4f",
+        delimiter=" ",
+        newline="\n",
+        header=("%s%s" % (label, tail)),
+        footer=("%s" % tailclose),
+    )
+    
+def phase_estimator(physiologicalNoiseComponents, dataType, main_info, parameters):
+    numTimeSteps = round(24199)
+    phasee = dict()
+    phasee["number_of_slices"] = 33
+    phasee['slice_offset'] = parameters['slice_offset']
+    phasee["t"] = np.zeros(numTimeSteps)
+    for i in range(1,numTimeSteps): phasee["t"][i] = 2.0000e-02 * i
+    
+    if dataType == 'c':
+        phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']
+    else:
+        phasee["phase"] = physiologicalNoiseComponents['respiratory_phases']
+
+    phasee["volume_tr"] = parameters['-TR']
+    phasee["time_series_time"] = np.arange(
+        0, (max(phasee["t"]) - 0.5 * phasee["volume_tr"]), phasee["volume_tr"]
+    )
+    if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
+        phasee["time_series_time"] = np.append(
+            phasee["time_series_time"],
+            [phasee["time_series_time"][-1] + phasee["volume_tr"]],
+        )
+    phasee["phase_slice"] = zeros(
+        (len(phasee["time_series_time"]), phasee["number_of_slices"])
+    )
+    phasee["phase_slice_reg"] = zeros(
+        (len(phasee["time_series_time"]), 4, phasee["number_of_slices"])
+    )
+    for i_slice in range(phasee["number_of_slices"]):
+        tslc = phasee["time_series_time"] + phasee["slice_offset"][i_slice]
+        for i in range(len(phasee["time_series_time"])):
+            imin = np.argmin(abs(tslc[i] - phasee["t"]))
+            phasee["phase_slice"][i, i_slice] = phasee["phase"][imin]
+        # Make regressors for each slice
+        phasee["phase_slice_reg"][:, 0, i_slice] = np.sin(
+            phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 1, i_slice] = np.cos(
+            phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 2, i_slice] = np.sin(
+            2 * phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 3, i_slice] = np.cos(
+            2 * phasee["phase_slice"][:, i_slice]
+        )
+    
+    return  phasee
+    
 

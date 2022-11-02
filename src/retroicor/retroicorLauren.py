@@ -435,6 +435,9 @@ def retro_ts(
     parameters['phys_cardiac_dat'] = phys_cardiac_dat
     parameters['dev'] = dev
     parameters['verbose'] = verbose
+    parameters['rvt_out'] = rvt_out
+    parameters['slice_offset'] = slice_offset
+    parameters['prefix'] = parameters
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
     else: parameters['phys_fs'] = respiration_info['phys_fs']    
     if not parameters['phys_fs']:
@@ -448,8 +451,10 @@ def retro_ts(
     if parameters['-niml']:
         return 0
     
+    lib_retroicor.ouputInJZoskiFormat(physiologicalNoiseComponents, parameters)
+    
     outputFileName = path + "/" + prefix + "FourierSeries.csv"
-    physiologicalNoiseComponents.to_csv(outputFileName)
+    # physiologicalNoiseComponents.to_csv(outputFileName)
 
     # PLot first 200 rows of dataframe
     # colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']

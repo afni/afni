@@ -81,11 +81,11 @@ import gzip
 import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 import lib_retroicor
-from lib_retroicor import phase_estimator
-from lib_retroicor import peak_finder
+from sept_retroicor import phase_estimator
+from sept_retroicor import peak_finder
 from lib_retroicor import readRawInputData
-from lib_retroicor import show_rvt_peak
-from lib_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
+from sept_retroicor import show_rvt_peak
+from sept_retroicor import determineCardiacPhases,determineRespiratoryPhases,compareLaurenAndZoskyPhases
 import os
 
 from datetime import datetime
@@ -622,6 +622,7 @@ def retro_ts(
     # Read in raw data, and find peaks for respiration measurements
     print('Read in raw data, and find peaks for respiration')
     v_np = readRawInputData(respiration_info, respiration_file, phys_resp_dat)
+    rawRespiratorData = v_np
 
     # Find respiratory peaks
     respiration_info['respcard'] = "Respiratory"
@@ -632,6 +633,7 @@ def retro_ts(
 
     # Read in raw data, and find peaks for cardiac measurements    
     v_np = readRawInputData(cardiac_info, cardiac_file, phys_cardiac_dat)
+    rawCardiacData = v_np
 
     # Find cardiac peaks
     cardiac_info['respcard'] = "Cardiac"
@@ -687,16 +689,19 @@ def retro_ts(
                 inc += 1
         
     # R&D: Compare new algorithm for finding phases with old peaks
-    newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), len(v_np), phys_fs)
-    parameters = dict()
-    parameters["-respFile"] = respiration_info["respiration_file"]
-    parameters["-phys_fs"] = respiration_info["phys_fs"]
-    newRespiratoryPhases = determineRespiratoryPhases(parameters,\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
-       [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]])
-    sliceNumber = 0
-    compareLaurenAndZoskyPhases(cardiac_info, respiration_info, cardiac_phased, respiration_phased,\
-                                newCardiacPhases, newRespiratoryPhases, sliceNumber)
+    # rawData = rawCardiacData
+    # newCardiacPhases = determineCardiacPhases((cardiac_info["tp_trace"]*phys_fs).astype(int), 
+    #                                           len(v_np), phys_fs, rawCardiacData)
+    # parameters = dict()
+    # parameters["-respFile"] = respiration_info["respiration_file"]
+    # parameters["-phys_fs"] = respiration_info["phys_fs"]
+    # newRespiratoryPhases = determineRespiratoryPhases(parameters,\
+    #    [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tp_trace"]],\
+    #    [round(elem*respiration_info["phys_fs"]) for elem in respiration_info["tn_trace"]],
+    #    phys_fs, rawRespiratorData)
+    # sliceNumber = 0
+    # compareLaurenAndZoskyPhases(cardiac_info, respiration_info, cardiac_phased, respiration_phased,\
+    #                             newCardiacPhases, newRespiratoryPhases, sliceNumber)
 
     # Show some results
     if show_graphs:
