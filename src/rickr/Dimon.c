@@ -161,10 +161,11 @@ static char * g_history[] =
     " 4.28 Nov  8, 2021 [rickr]: add -milestones\n"
     " 4.29 Feb 16, 2022 [rickr]: propagate obliquity for -ftype AFNI\n"
     " 4.30 Apr 22, 2022 [rickr]: add -sort_method rin, geme_rin\n"
+    " 4.31 Nov  2, 2022 [rickr]: add -sort_method geme_xnat\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.30 (April 22, 2022)"
+#define DIMON_VERSION "version 4.30 (November 2, 2022)"
 
 static char * g_milestones[] =
 {
@@ -180,6 +181,7 @@ static char * g_milestones[] =
     " 2013.01 : handle inputs AFNI, NIFTI (and GEMS 4.x, DICOM)\n",
     " 2014.08 : rewrite to handle NIH GE multi-echo (realtime) sorting\n",
     " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
+    " 2022.11 : add GE XNAT multi-echo (non-realtime) sorting, 'geme_xnat'\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -5853,6 +5855,8 @@ printf(
     "    -help              : show this help information\n"
     "\n"
     "    -hist              : display a history of program changes\n"
+    "\n"
+    "    -milestones        : display a history of program milestones\n"
     "\n"
     "    -max_images NUM    : limit on images (slices per volume)\n"
     "\n"
