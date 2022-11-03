@@ -1146,17 +1146,25 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
 
 from numpy import zeros, size
 
-def ouputInJZoskiFormat(physiologicalNoiseComponents, parameters):
+def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info = dict()
-    # main_info["reml_out"] = []
-    main_info["rvt_out"] = 1
-    main_info["number_of_slices"] = 33
+    main_info["rvt_out"] = parameters["rvt_out"]
+    main_info["number_of_slices"] = parameters['-s']
     main_info["rvt_out"] = main_info["rvt_out"]
-    cnt = 0
-    main_info["respiration_out"] = 1
-    main_info["cardiac_out"] = 1
     main_info["prefix"] = parameters["prefix"]
+    main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
+    main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
+    
+    n_n = 0
+    n_r_v = 0
+    n_r_p = 0
+    n_e = 0
+    # if "time_series_time" in respiration_info:
+    #     n_n = len(respiration_info["time_series_time"])
+    #     n_r_p = size(respiration_info["phase_slice_reg"], 1)
+    #     n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
+    cnt = 0
     n_r_v = 5
     n_r_p = 4
     n_e = 4

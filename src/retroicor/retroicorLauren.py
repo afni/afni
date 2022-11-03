@@ -437,7 +437,7 @@ def retro_ts(
     parameters['verbose'] = verbose
     parameters['rvt_out'] = rvt_out
     parameters['slice_offset'] = slice_offset
-    parameters['prefix'] = parameters
+    parameters['prefix'] = prefix
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
     else: parameters['phys_fs'] = respiration_info['phys_fs']    
     if not parameters['phys_fs']:
@@ -451,7 +451,7 @@ def retro_ts(
     if parameters['-niml']:
         return 0
     
-    lib_retroicor.ouputInJZoskiFormat(physiologicalNoiseComponents, parameters)
+    lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
     outputFileName = path + "/" + prefix + "FourierSeries.csv"
     # physiologicalNoiseComponents.to_csv(outputFileName)
