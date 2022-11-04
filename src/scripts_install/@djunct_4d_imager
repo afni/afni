@@ -49,16 +49,18 @@ set this_prog = "@djunct_4d_imager"
 #set version   = "2.31";  set rev_dat   = "Mar 16, 2021"
 # [PT] AFNI_COMPRESSOR -> NONE
 #
-set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
+#set version   = "2.32";   set rev_dat   = "Sep 27, 2021"
 #     + [PT] chauffeur label_size 3 -> 4, bc imseq.c shifted all sizes
 #       down one level
+#
+set version   = "2.4";   set rev_dat   = "Nov 3, 2022"
+#     + [PT] more control, for using in QC generation
 #
 # ----------------- find AFNI and set viewer ---------------------
 setenv AFNI_COMPRESSOR NONE
 
 # find AFNI binaries directory and viewer location
 set adir      = ""
-set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
     echo "** Cannot find 'afni' (?)."
@@ -69,7 +71,6 @@ else
 endif
 
 # default location of viewer: user could modify!
-set my_viewer    = "$adir/@chauffeur_afni"
 set my_calc_func = "$adir/adjunct_calc_mont_dims.py"
 
 set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
@@ -88,6 +89,12 @@ set imgview = ( "axi" "cor" "sag" )
 set mview = ( "axial" "coronal" "sagittal" )
 
 set movie = ""                        # not on by default, at the moment
+
+# mainstream chauffeur opts to now control
+set ftype = PNG                  # output file format
+
+set DO_ONESCL = 1
+set DO_SEPSCL = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -118,6 +125,12 @@ while ( $ac <= $#argv )
         set opref = `basename "$argv[$ac]"`
         set odir  = `dirname  "$argv[$ac]"`
 
+    # for the images
+    else if ( "$argv[$ac]" == "-save_ftype" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ftype = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-do_movie" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -129,6 +142,9 @@ while ( $ac <= $#argv )
             echo "      -> must be either 'MPEG' or 'AGIF'"
             goto BAD_EXIT
         endif
+
+    else if ( "$argv[$ac]" == "-onescl_off" ) then
+        set DO_ONESCL = 0
 
     #else if ( "$argv[$ac]" == "-no_clean" ) then
     #    set DO_CLEAN = 0
@@ -338,7 +354,7 @@ foreach ii ( `seq 1 1 3` )
     if ( "$movie" != "" ) then
         echo "++ Making '${mview[$ii]}' movie"
         # movie of the unpadded file: each view is pretending to be axial
-        $my_viewer                         \
+        @chauffeur_afni                    \
             -ulay "$ovol"                  \
             -prefix "${opref}_qc_onescl_$ii"  \
             -olay_off                      \
@@ -347,10 +363,11 @@ foreach ii ( `seq 1 1 3` )
             -monty 1                       \
             -set_ijk 0 0 0                 \
             -ulay_range 1% 99.5%           \
+            -no_cor -no_sag                \
             -label_mode 1 -label_size 4    \
             -image_label_ijk
 
-        $my_viewer                         \
+        @chauffeur_afni                    \
             -ulay "$ovol"                  \
             -prefix "${opref}_qc_sepscl_$ii"  \
             -olay_off                      \
@@ -360,6 +377,7 @@ foreach ii ( `seq 1 1 3` )
             -set_ijk 0 0 0                 \
             -globalrange "SLICE"           \
             -ulay_range 1% 99%             \
+            -no_cor -no_sag                \
             -label_mode 1 -label_size 4    \
             -image_label_ijk
     endif
@@ -378,18 +396,22 @@ foreach ii ( `seq 1 1 3` )
     # ------------------ snapshot(s) -----------------------
 
     # global range, almost all
-    $my_viewer                         \
-        -ulay "$ovol"                  \
-        -prefix "${opref}_qc_onescl_$ii"  \
-        -olay_off                      \
-        -montx $Ncol                   \
-        -monty $Nrow                   \
-        -ulay_range 1% 99.5%           \
-        -label_mode 1 -label_size 4    \
-        -image_label_ijk
+    if ( ${DO_ONESCL} == 1 ) then
+        @chauffeur_afni                    \
+            -ulay "$ovol"                  \
+            -prefix "${opref}_qc_onescl_$ii"  \
+            -olay_off                      \
+            -montx $Ncol                   \
+            -monty $Nrow                   \
+            -ulay_range 1% 99.5%           \
+            -label_mode 1 -label_size 4    \
+            -image_label_ijk               \
+            -no_cor -no_sag                \
+            -save_ftype   "${ftype}"
+    endif 
 
     # slicewise ranges
-    $my_viewer                         \
+    @chauffeur_afni                    \
         -ulay "$ovol"                  \
         -prefix "${opref}_qc_sepscl_$ii"  \
         -olay_off                      \
@@ -398,13 +420,15 @@ foreach ii ( `seq 1 1 3` )
         -globalrange "SLICE"           \
         -ulay_range 1% 99%             \
         -label_mode 1 -label_size 4    \
-        -image_label_ijk
+        -image_label_ijk               \
+        -no_cor -no_sag                \
+        -save_ftype   "${ftype}"
 
     # some images are unuseful, so, bye bye; rename useful one
     # correctly, and put into odir (out of wdir)
     if ( 1 ) then
-        \rm ${opref}_*_${ii}.sag.*
-        \rm ${opref}_*_${ii}.cor.*
+        # \rm ${opref}_*_${ii}.sag.*
+        # \rm ${opref}_*_${ii}.cor.*
         
         foreach ff ( `\ls ${opref}_*_${ii}.axi.*` )
             set gg = `echo $ff | sed "s/_${ii}.axi/.${imgview[$ii]}/g"`
@@ -512,6 +536,12 @@ written by PA Taylor (NIMH, NIH, USA).
                     this program...).
 
 -prefix    PPP     :prefix for output files (required).
+
+-save_ftype FTYPE  :type of file as which to save *images*; key types are
+                    listed in the Driver description (def: PNG) (See
+                    DR: SAVE_ALLJPEG, SAVE_ALLPNG, SAVE_JPEG,
+                    SAVE_PNG; for which the user would enter just the
+                    non-"SAVE_" part, just as "PNG", "MPEG", etc.)
 
 -do_movie  MTYPE   :specify type of movie file.  Basically, one of two 
                     options:
