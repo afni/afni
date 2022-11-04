@@ -27,7 +27,7 @@ import json
 from numpy import zeros, size, savetxt, column_stack, shape, array
 from lib_RetroTS.PeakFinder import peak_finder
 from lib_RetroTS.PhaseEstimator import phase_estimator
-from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
+from sept_retroicor import rvt_from_peakfinder
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 from Show_RVT_Peak2 import show_rvt_peak
 

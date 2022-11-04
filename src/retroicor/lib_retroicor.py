@@ -1155,20 +1155,28 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
     main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
     
+    respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
+    cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
+    respiration_info["rvt_shifts"] = list(range(0, 21, 5))
+    respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), len(respiration_info["time_series_time"])))
+
     n_n = 0
     n_r_v = 0
     n_r_p = 0
     n_e = 0
-    # if "time_series_time" in respiration_info:
-    #     n_n = len(respiration_info["time_series_time"])
-    #     n_r_p = size(respiration_info["phase_slice_reg"], 1)
-    #     n_r_v = size(respiration_info["rvtrs_slc"], 0)
 
+    if "time_series_time" in respiration_info:
+        n_n = len(respiration_info["time_series_time"])
+        n_r_p = size(respiration_info["phase_slice_reg"], 1)
+        n_r_v = size(respiration_info["rvtrs_slc"], 0)
+
+    if "time_series_time" in cardiac_info:  # must have cardiac_info
+        n_n = len(
+            cardiac_info["time_series_time"]
+        )  # ok to overwrite len(respiration_info.tst), should be same.
+        n_e = size(cardiac_info["phase_slice_reg"], 1)
+    
     cnt = 0
-    n_r_v = 5
-    n_r_p = 4
-    n_e = 4
-    n_n = 220
     temp_y_axis = main_info["number_of_slices"] * (
         (main_info["rvt_out"]) * int(n_r_v)
         + (main_info["respiration_out"]) * int(n_r_p)
@@ -1187,10 +1195,6 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     tailclose = "</RetroTSout>"
 
     label = head
-    
-    respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
-    cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
-    respiration_info["rvtrs_slc"] = np.zeros(shape=(220, 5))
 
     main_info["slice_major"] = 1
     main_info["reml_out"] = []
@@ -1256,8 +1260,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     label = label[1:-2]
 
     np.savetxt(
-        "./temp.tmp",
-#        "%s.slibase.1D" % main_info["prefix"],
+        "./%s.slibase.1D" % main_info["prefix"],
         np.column_stack(main_info["reml_out"]),
         fmt="%.4f",
         delimiter=" ",

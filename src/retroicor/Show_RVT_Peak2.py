@@ -29,7 +29,7 @@ from matplotlib.pyplot import (
     show,
 )
 from numpy import real, spacing, pi
-from .zscale import z_scale
+from zscale import z_scale
 
 
 def show_rvt_peak(r, fg):
