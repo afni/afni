@@ -1284,17 +1284,20 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     )
     
 def phase_estimator(physiologicalNoiseComponents, dataType, main_info, parameters):
-    numTimeSteps = round(24199)
     phasee = dict()
-    phasee["number_of_slices"] = 33
+    phasee["number_of_slices"] = parameters['-s']
     phasee['slice_offset'] = parameters['slice_offset']
-    phasee["t"] = np.zeros(numTimeSteps)
-    for i in range(1,numTimeSteps): phasee["t"][i] = 2.0000e-02 * i
+    timeStepIncrement = 1.0/parameters['-phys_fs']
     
     if dataType == 'c':
         phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']
+        numTimeSteps = len(physiologicalNoiseComponents['cardiac_phases'])
     else:
         phasee["phase"] = physiologicalNoiseComponents['respiratory_phases']
+        numTimeSteps = len(physiologicalNoiseComponents['respiratory_phases'])
+
+    phasee["t"] = np.zeros(numTimeSteps)
+    for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
 
     phasee["volume_tr"] = parameters['-TR']
     phasee["time_series_time"] = np.arange(
