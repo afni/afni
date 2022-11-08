@@ -1155,26 +1155,41 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
     main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
     
-    respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
-    cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
-    respiration_info["rvt_shifts"] = list(range(0, 21, 5))
-    respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), len(respiration_info["time_series_time"])))
+    if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
+        respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
+        respiration_info["rvt_shifts"] = list(range(0, 21, 5))
+        respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), len(respiration_info["time_series_time"])))
+    if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
+        cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
+        cardiac_info["rvt_shifts"] = list(range(0, 21, 5))
+        cardiac_info["rvtrs_slc"] = np.zeros((len(cardiac_info["rvt_shifts"]), len(cardiac_info["time_series_time"])))
 
     n_n = 0
     n_r_v = 0
     n_r_p = 0
     n_e = 0
 
-    if "time_series_time" in respiration_info:
-        n_n = len(respiration_info["time_series_time"])
-        n_r_p = size(respiration_info["phase_slice_reg"], 1)
-        n_r_v = size(respiration_info["rvtrs_slc"], 0)
+    if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
+        if "time_series_time" in respiration_info:
+            n_n = len(respiration_info["time_series_time"])
+            n_r_p = size(respiration_info["phase_slice_reg"], 1)
+            n_r_v = size(respiration_info["rvtrs_slc"], 0)
+    if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
+        if "time_series_time" in cardiac_info:
+            n_n = len(cardiac_info["time_series_time"])
+            n_r_p = size(cardiac_info["phase_slice_reg"], 1)
+            n_r_v = size(cardiac_info["rvtrs_slc"], 0)
 
-    if "time_series_time" in cardiac_info:  # must have cardiac_info
+    if 'cardiac_info' in locals() and "time_series_time" in cardiac_info:  # must have cardiac_info
         n_n = len(
             cardiac_info["time_series_time"]
         )  # ok to overwrite len(respiration_info.tst), should be same.
         n_e = size(cardiac_info["phase_slice_reg"], 1)
+    elif 'respiration_info' in locals() and "time_series_time" in respiration_info:  # must have cardiac_info
+        n_n = len(
+            respiration_info["time_series_time"]
+        )  # ok to overwrite len(respiration_info.tst), should be same.
+        n_e = size(respiration_info["phase_slice_reg"], 1)
     
     cnt = 0
     temp_y_axis = main_info["number_of_slices"] * (
@@ -1226,7 +1241,6 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                         :, j, i
                     ]
                     label = "%s s%d.Card%d ;" % (label, i, j)
-        fid = open(("%s.retrots.1D", main_info["prefix"]), "w")
     else:
         main_info["rvt_out"] = 0
         for i in range(0, main_info["number_of_slices"]):
