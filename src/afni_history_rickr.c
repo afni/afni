@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Nov, 2022, RCR, "Makefile.macos_10.13_homebrew", MICRO, TYPE_MODIFY,
+   "rename Makefile.macOS_10.13_homebrew to Makefile.macos_10.13_homebrew",
+   "Done for consistency."
+ } ,
+
  {  2, Nov, 2022, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -sort_method case geme_xnat",
    "Sort as with geme_index, but pre-sort with RIN rather than alphabetical."
