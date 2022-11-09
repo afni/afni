@@ -38,6 +38,7 @@ class SysInfo:
    def __init__(self, data_root='', verb=1):
 
       self.system          = platform.system()
+      self.cpu             = platform.processor()
       self.home_dir        = os.environ['HOME']
       self.data_root       = data_root
       self.verb            = verb
@@ -72,6 +73,7 @@ class SysInfo:
       if header: print(UTIL.section_divider('general', hchar='-'))
 
       print('architecture:         %s' % tup_str(platform.architecture()))
+      print('cpu type:             %s' % platform.processor())
       print('system:               %s' % platform.system())
       print('release:              %s' % platform.release())
       print('version:              %s' % platform.version())
