@@ -44,6 +44,8 @@
                 so for an N ROI map, one can always get a NxN matrix out,
                 even if some rows/cols are zeros.
 
+   2022-11-09 : [PT] new opts: '-weight_corr ..', to est. weighted
+                Pearson corr (diff than weight_ts)
 
 */
 
@@ -151,7 +153,8 @@ void usage_NetCorr(int detail)
 "            -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
 "            {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
 "            {-push_thru_many_zeros} {-ts_wb_strlabel}                 \\\n"
-"            {-output_mask_nonnull} {-weight_ts WTS}\n"
+"            {-output_mask_nonnull} {-weight_ts WTS}                   \\\n"
+"            {-weight_corr WCORR}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -239,6 +242,10 @@ void usage_NetCorr(int detail)
 "                      n=0,..,(N-1) time points, then applying a set of \n"
 "                      weights w[n] of the same length from WTS would \n"
 "                      produce a new time series:  B[n] = A[n] * W[n].\n"
+"\n"
+"  -weight_corr WCORR :input a 1D file WTS of weights that will be applied\n"
+"                      to estimate a weighted Pearson Correlation.  This\n"
+"                      is different than the '-weight_ts ..' weighting.\n"
 "\n"
 "    -ts_wb_strlabel  :by default, '-ts_wb_{corr,Z}' output files are named\n"
 "                      using the int number of a given ROI, such as:\n"
@@ -440,6 +447,9 @@ int main(int argc, char *argv[]) {
    char  *fname_wts=NULL;
    MRI_IMAGE *fwts0=NULL, *fwts=NULL;
    float *vec_wts=NULL;
+   char  *fname_wt_corr=NULL;
+   MRI_IMAGE *fwt_corr0=NULL, *fwt_corr=NULL;
+   float *vec_wt_corr=NULL;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
    mainENTRY("3dNetCorr"); machdep(); 
@@ -531,6 +541,14 @@ int main(int argc, char *argv[]) {
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-weight_ts'\n") ;
          fname_wts = argv[iarg];
+         iarg++ ; continue ;
+		}
+
+      // [PT: Nov 9, 2022] new opt for (opt) weighted Pearson Corr
+      if( strcmp(argv[iarg],"-weight_corr") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-weight_corr'\n") ;
+         fname_wt_corr = argv[iarg];
          iarg++ ; continue ;
 		}
 
@@ -780,7 +798,30 @@ int main(int argc, char *argv[]) {
       vec_wts = MRI_FLOAT_PTR( fwts );
       INFO_message("Read in weights file: %s", fname_wts);
    }
-   
+
+   // [PT: Nov 9, 2022]
+   if( fname_wt_corr ) {
+      fwt_corr0 = mri_read_1D (fname_wt_corr);
+      if (fwt_corr0 == NULL) {
+         ERROR_exit("Error reading weight-of-correlation file");
+      }
+      if( fwt_corr0->ny == 1)
+         fwt_corr = mri_transpose(fwt_corr0); // eff *undoes* autotransp
+      else
+         fwt_corr = mri_copy(fwt_corr0); 
+      mri_free(fwt_corr0);
+      if( fwt_corr->ny != Dim[3] ) {
+         ERROR_message("ERROR! Number of time points in volume (%d) "
+                       "doesn't match number of time points in \n"
+                       "\tcorrelation weights (%d)", Dim[3], fwt_corr->ny);
+         mri_free(fwt_corr);
+         exit(5);
+      }
+      vec_wt_corr = MRI_FLOAT_PTR( fwt_corr );
+
+      INFO_message("Read in correlation weights file: %s", fname_wt_corr);
+   }
+
    // [PT: Apr, 2017] output nonnull mask that we've calc'ed.  It is
    // the applied one *if* the user had not input a mask; otherwise,
    // they can compare it with their own and/or with the ROI map they
@@ -1136,7 +1177,14 @@ int main(int argc, char *argv[]) {
             if ( ROI_COUNTnz[i][j] == 0 || ROI_COUNTnz[i][k] == 0 ) {
                Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = 0.0;
             }
-            else{                                                       
+            else if(vec_wt_corr) { // weighted Pearson corr calc
+               Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
+                  THD_pearson_corrd_wt( Dim[3],
+                                        ROI_AVE_TS[i][j], 
+                                        ROI_AVE_TS[i][k], 
+                                        vec_wt_corr );
+            }
+            else {                                                       
                Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
                   CORR_FUN(ROI_AVE_TS[i][j], ROI_AVE_TS[i][k], Dim[3]);
                }
@@ -1441,6 +1489,8 @@ int main(int argc, char *argv[]) {
 
    if ( fwts )
       mri_free(fwts);
+   if ( fwt_corr )
+      mri_free(fwt_corr);
 
    free(Dim); // need to free last because it's used for other arrays...
    free(prefix);

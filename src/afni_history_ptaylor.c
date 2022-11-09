@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Nov , 2022 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-weight_corr ..' (diff application than '-weight_ts ..').",
+   "Calculate weighted Pearson Correlation.  For Dante P.\n"
+},
+
 { 5, Oct , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_ENHANCE,
    "Output a run_instacorr_errts.tcsh script in the results directory.",
    "Very useful for data QC. Use it.  Quick now, here, now, always...\n"

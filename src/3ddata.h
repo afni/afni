@@ -6043,7 +6043,7 @@ extern float quantile_prepare( int n , float *a ) ;
 extern float THD_tictactoe_corr( int,float *,float *) ;  /* 19 Jul 2011 */
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
-
+extern double THD_pearson_corrd_wt( int n, double *x , double *y , float *wt );
 extern void THD_pearson_corr_boot( int n, float *x, float *y,
                             float_triple *rrr ,
                             float_triple *aaa ,
