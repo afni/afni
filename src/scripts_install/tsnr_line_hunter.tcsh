@@ -34,6 +34,9 @@ set polort     = A              # polort for trend removal (A = auto)
 set rdir       = tlines.result  # output directory
 set thresh     = 0.95           # threshold for tscale average
 
+set DO_IMG     = 1
+set MAX_IMG    = 7
+
 set prog = tsnr_line_hunter.tcsh
 
 set version = "0.0, 10 Nov, 2022"
@@ -114,10 +117,9 @@ echo "++ have nslices : $nk_list"
 
 # ----------------------------------------------------------------------
 # make results dir, enter it and remove old results
-
 if ( -d $rdir ) then
    echo "** error, results dir already exists: $rdir"
-   exit
+   exit 
 endif
 
 mkdir $rdir
@@ -125,7 +127,6 @@ if ( $status ) then
    echo "** failed to create results directory, $rdir"
    exit
 endif
-
 
 # ----------------------------------------------------------------------
 # copy inputs (minus pre-ss trs) to results dir
@@ -244,6 +245,65 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
 end  # foreach index
+
+if ( ${DO_IMG} ) then
+   echo "++ Check about making images"
+   set all_bfile = ( bad_coords*.txt )
+   set count     = 0                         # count up to MAX_IMG
+
+   foreach bfile ( ${all_bfile} ) 
+      set run  = "${bfile:r:e}"              # get run string
+      set nbad = `cat $bfile | wc -l`        # number of bad points
+      set rfile = ( stdev.*.scale.${run}.nii.gz )
+
+      if ( ${nbad} ) then
+         foreach line ( `seq 1 1 ${nbad}` )
+            if ( `echo "$count < $MAX_IMG" | bc` ) then
+               set coords = `sed -n "${line}p" $bfile`
+
+               # make the dset with the dashed lines to overlay
+               set nk     = `3dinfo -nk "${rfile}"`
+               set dash   = `echo "scale=0; ${nk}/8" | bc`
+               set ad3    = `3dinfo -ad3 "${rfile}"`
+               3dcalc                                     \
+                  -overwrite                              \
+                  -a    ${rfile}                          \
+                  -expr "within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
+                  -prefix __tmp_dash_line.nii.gz          \
+                  -datum byte
+
+               # [PT] to do: change displayed text, change output
+               #      image file numbering and a couple other niceities.
+               #      - add in 2dcat command
+               #      - dump other useful text info for APQC
+
+               # make image
+               @chauffeur_afni                                        \
+                  -ulay               ${rfile}                        \
+                  -olay               __tmp_dash_line.nii.gz          \
+                  -pbar_posonly                                       \
+                  -cbar               "Reds_and_Blues_Inv"            \
+                  -func_range         1                               \
+                  -set_subbricks      0 0 0                           \
+                  -thr_olay           0.9                             \
+                  -olay_alpha         Yes                             \
+                  -olay_boxed         Yes                             \
+                  -set_dicom_xyz      ${coords}                       \
+                  -opacity            9                               \
+                  -blowup             4                               \
+                  -no_cor -no_axi                                     \
+                  -montx 1 -monty 1                                   \
+                  -prefix             img_${run}_${line}              \
+                  -set_xhairs OFF                                     \
+                  -label_mode 1 -label_size 4                         \
+
+               \rm __tmp_dash_line.nii.gz 
+               @ count += 1
+            endif
+         end
+      endif
+   end
+endif
 
 
 # ----------------------------------------------------------------------
