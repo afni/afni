@@ -26,6 +26,7 @@ DEF = {
     'open_pages'    : True,     # T/F: open pages in browser?
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
+    'pause_time'    : 2.0,      # time (s) to pause to let pages load
 }
 
 # ==========================================================================

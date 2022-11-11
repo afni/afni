@@ -13,22 +13,26 @@
 # ==========================================================================
 
 version = '1.0'
+version = '1.1'  # adds in Timer functionality, so multiple pages can
+                 # load when opened.
+                 # Also add '-hview' functionality
 
 # ==========================================================================
 
-from flask      import Flask, send_from_directory, request, jsonify
-from flask_cors import CORS # to circumvent 'no access issues from UI'
+from flask        import Flask, send_from_directory, request, jsonify
+from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+from threading    import Timer
 import json
-import pprint   as     pp
+import pprint     as     pp
 import sys
 import os
-import argparse as     argp
+import argparse   as     argp
 import webbrowser
 import textwrap
 #import signal
-#from threading import Timer
 
-from afnipy     import lib_apqc_open as lao
+from afnipy       import lib_apqc_open as lao
+from afnipy       import afni_base     as BASE
 
 dent = '\n' + 5*' '
 
@@ -85,7 +89,7 @@ written by: T Hanayik (Oxford Uni, UK)
 # ============================== input stuff ===============================
 
 # get args
-parser = argp.ArgumentParser( prog=str(sys.argv[0]), 
+parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               add_help=False,
                               formatter_class=argp.RawDescriptionHelpFormatter,
                               description=textwrap.dedent(help_str_top),
@@ -131,13 +135,22 @@ parser.add_argument('-new_windows_only', action="store_true",
                     '(def: open first page in a new window, then any more '
                     'in new tabs)')
 
+parser.add_argument('-pause_time', nargs=1,
+                    default=[lao.DEF['pause_time']],
+                    help='total time (s) to pause to let pages load '
+                    '(def: {})'.format(lao.DEF['pause_time']))
+
 parser.add_argument('-ver', action="store_true", 
                     default=False,
                     help='display version') 
 
-parser.add_argument('-help', '-h', action="store_true", 
+parser.add_argument('-help', action="store_true", 
                     default=False,
-                    help='display help') 
+                    help='display help in terminal') 
+
+parser.add_argument('-hview', action="store_true", 
+                    default=False,
+                    help='display help in a text editor') 
 
 args             = parser.parse_args()
 all_inpath       = args.infiles
@@ -148,9 +161,18 @@ jump_to          = args.jump_to[0]
 do_open_pages    = args.open_pages_off
 do_ver           = args.ver
 do_help          = args.help
+do_hview         = args.hview
 do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
+pause_time       = float(args.pause_time[0])
 
+# hview functionality
+if do_hview :
+    prog = str(sys.argv[0]).split('/')[-1]
+    cmd  = 'apsearch -view_prog_help {}'.format( prog )
+    BASE.simple_shell_exec(cmd)
+    sys.exit(0)
+    
 # display program version
 if len(sys.argv) == 1 or do_help :
     parser.print_help()
@@ -267,6 +289,28 @@ def save_json():
 def load_json():
     print('loading json')
 
+def open_all_browser_pages( portnum ):
+    """This function loops over the list of HTML pages (rem_html_list) and
+    opens them at the 'jump_to' location, using the given host and
+    portnum.
+
+    The following could all be parameters, in addition to the current
+    portnum:
+    rem_html_list, host, jump_to, page_code, other_page_code.
+
+    This function exists so that the Time functionality of threading
+    can be used, so delay page rendering slightly until the Flask
+    server is up and running.
+
+    """
+    page_code = first_page_code
+    for rem_html in rem_html_list:
+        url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
+        print('''++ URL for browser: '{}' '''.format( url ))
+        if do_open_pages :
+            webbrowser.open(url, new = page_code)
+            page_code = other_page_code
+
 # ================================ main =====================================
 
 if __name__ == "__main__":
@@ -280,14 +324,8 @@ if __name__ == "__main__":
     # construct the web address for each page to be opened, and if
     # asked for open the browser (first page in new window and others
     # in new tab)
-    page_code = first_page_code
-    for rem_html in rem_html_list:
-        url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
-        print('''++ URL for browser: '{}' '''.format( url ))
-        if do_open_pages :
-            webbrowser.open(url, new = page_code)
-            page_code = other_page_code
-
+    Timer(pause_time, open_all_browser_pages, [portnum]).start() 
+    
     # start the flask application---have to refresh above pages?
     app.run(host=host, port=portnum) #, debug=True)
 
