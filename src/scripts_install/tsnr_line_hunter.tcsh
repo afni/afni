@@ -247,9 +247,24 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 end  # foreach index
 
 if ( ${DO_IMG} ) then
+   # for the user to see, but esp. styled for APQC
+
+   # [PT] to do: 
+   #      - dump other useful text info for APQC
+   #      - make the *.dat file with warning level
+   #      - split out the text into separate pieces
+
    echo "++ Check about making images"
    set all_bfile = ( bad_coords*.txt )
    set count     = 0                         # count up to MAX_IMG
+
+   # text for under image in APQC
+   set subtext   = ""\""loc:"
+   set lsubprev  = 0                         # used when breaking lines
+
+   # text for above image in APQC
+   set text = \""ulay: $rdir/stdev*scale*.nii.gz (scaled stdev, per run)"\"
+   set text = "${text:q} ,, "\""olay: markers of vertical outlier lines"\"
 
    foreach bfile ( ${all_bfile} ) 
       set run  = "${bfile:r:e}"              # get run string
@@ -261,11 +276,22 @@ if ( ${DO_IMG} ) then
             if ( `echo "$count < $MAX_IMG" | bc` ) then
                set iii    = `printf "%02d" $ii`
                set coords = `sed -n "${ii}p" $bfile`
-               set lab    = "${run}:${iii}"
+               set lab    = "${run}:${ii}"
+
+               set lenlab = `echo ${lab} | awk '{print length($0)}'`
+               set lensub = `echo ${subtext} | awk '{print length($0)}'`
+
+               if ( `echo "(${lensub}-${lsubprev}+${lenlab}) < 80" | bc` ) then
+                  set subtext  = "${subtext:q} ${lab},"
+               else
+                  # calc len of prev lines, and use that in later calcs of len
+                  set lsubprev = `echo ${subtext} | awk '{print length($0)}'`
+                  set subtext  = "${subtext:q}"\"" ,, "\""    ${lab},"
+               endif
 
                # make the dset with the dashed lines to overlay
-               set nk     = `3dinfo -nk "${rfile}"`
-               set dash   = `echo "scale=0; ${nk}/8" | bc`
+               set nk     = `3dinfo -nk "${rfile}"`         # nvox along k
+               set dash   = `echo "scale=0; ${nk}/8" | bc`  # len of dash
                set ad3    = `3dinfo -ad3 "${rfile}"`
                3dcalc                                     \
                   -overwrite                              \
@@ -273,9 +299,6 @@ if ( ${DO_IMG} ) then
                   -expr "within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
                   -prefix __tmp_dash_line.nii.gz          \
                   -datum byte
-
-               # [PT] to do: 
-               #      - dump other useful text info for APQC
 
                # make image
                @chauffeur_afni                                        \
@@ -295,33 +318,64 @@ if ( ${DO_IMG} ) then
                   -montx 1 -monty 1                                   \
                   -prefix             img_${run}_${iii}               \
                   -set_xhairs OFF                                     \
-                  -label_mode 0 #-label_size 4                         \
-                  #-label_string "${lab}"
+                  -label_mode 0
 
                \rm __tmp_dash_line.nii.gz 
                @ count += 1
-            endif
-         end
+            endif   # end count<MAX_IMG
+         end   # end ii loop
+      endif   # end nbad>0
+   end   # end bfile loop
+
+   # finish the subtext string (replace last char with closing quote)
+   set subtext = `echo ${subtext:q} | \
+                     awk '{print substr($0,1,length($0)-1)}'`
+   set subtext = "${subtext:q}"\"
+
+   # combine img files
+   if ( ${count} ) then
+       set opref = QC_tsnr_lines
+       2dcat                                                             \
+           -overwrite                                                    \
+           -zero_wrap                                                    \
+           -gap         1                                                \
+           -gap_col     0 0 0                                            \
+           -nx ${MAX_IMG}                                                \
+           -ny 1                                                         \
+           -prefix ${opref}.jpg                                          \
+           img_*png
+
+   # create APQC text info...
+   set tjson = _tmpw.txt
+   set ojson = ${opref}.json
+
+cat << EOF >! ${tjson}
+itemtype    :: WARN
+itemid      :: tsnr_lines
+blockid     :: warns
+blockid_hov :: all warnings from processing
+title       :: Check all warnings from processing
+text        :: "TSNR lines warnings"
+subtext     :: ${subtext:q}
+warn_level  :: severe
+EOF
+
+      # ... and jsonify it for APQC
+      abids_json_tool.py                                                  \
+          -overwrite                                                      \
+          -txt2json                                                       \
+          -delimiter_major '::'                                           \
+          -delimiter_minor ',,'                                           \
+          -input  ${tjson}                                                \
+          -prefix ${ojson} 
+
+      if ( $do_clean == 1 ) then
+         \rm img_*png
+         \rm ${tjson}
       endif
-   end
-endif
-
-# combine img files
-if ( ${count} ) then
-    2dcat                                                             \
-        -overwrite                                                    \
-        -zero_wrap                                                    \
-        -gap         1                                                \
-        -gap_col     0 0 0                                            \
-        -nx ${MAX_IMG}                                                \
-        -ny 1                                                         \
-        -prefix QC_tsnr_lines.jpg                                     \
-        img_*png
-
-   if ( $do_clean == 1 ) then
-      \rm img_*png
    endif
-endif
+
+endif # end of DO_IMG
 
 # ----------------------------------------------------------------------
 # if do_clean, clean up and run away
