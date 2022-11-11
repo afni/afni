@@ -16,6 +16,7 @@ version = '1.0'
 version = '1.1'  # adds in Timer functionality, so multiple pages can
                  # load when opened.
                  # Also add '-hview' functionality
+version = '1.11' # add more help text and examples
 
 # ==========================================================================
 
@@ -77,7 +78,25 @@ When finished:
 
 Examples ~1~
 
-  open_apqc.py  -infiles  data_21_ap/sub*/*results/QC_*/index.html 
+  1) Open many APQC HTML pages for several subjects, with the server
+     on so QC ratings/comments will be saved:
+
+     open_apqc.py  -infiles  data_21_ap/sub*/*results/QC_*/index.html 
+
+  2) The same as #1, but have each page jump to the 'vstat' block of
+     the HTML:
+
+     open_apqc.py                                                 \\
+         -infiles  data_21_ap/sub*/*results/QC_*/index.html       \\
+         -jump_to  vstat
+
+  3) The same as #2, but open all pages in new tabs of the existing
+     browser window (instead of starting new window):
+
+     open_apqc.py                                                 \\
+         -infiles  data_21_ap/sub*/*results/QC_*/index.html       \\
+         -jump_to  vstat                                          \\
+         -new_tabs_only
 
 {ddashline}
 written by: T Hanayik (Oxford Uni, UK)
@@ -99,29 +118,10 @@ parser.add_argument('-infiles', nargs='+',
                     default=[lao.DEF['infiles']],
                     help='path to one or more APQC index.html files')
 
-parser.add_argument('-portnum', nargs=1,
-                    default=[lao.DEF['portnum']], 
-                    help='specify port number to first try to open '
-                    '(def: {})'.format(lao.DEF['portnum']))
-
-parser.add_argument('-port_nsearch', nargs=1,
-                    default=[lao.DEF['nsearch']],
-                    help='specify how many port numbers to search through '
-                    '(def: {})'.format(lao.DEF['nsearch']))
-
-parser.add_argument('-host', nargs=1,
-                    default=[lao.DEF['host']],
-                    help='specify hostname (def: {})'.format(lao.DEF['host']))
-
 parser.add_argument('-jump_to', nargs=1,
                     default=[lao.DEF['jump_to']],
                     help='when opening the APQC HTML, jump to the provided '
                     'QC block or sub-block name (e.g., "ve2a", "qsumm", etc.)')
-
-parser.add_argument('-open_pages_off', action="store_false", 
-                    default=lao.DEF['open_pages'],
-                    help='turn off default behavior to open pages in a '
-                    'browswer (def: open in new window[+tabs])')
 
 parser.add_argument('-new_tabs_only', action="store_true", 
                     default=lao.DEF['new_tabs_only'],
@@ -139,6 +139,30 @@ parser.add_argument('-pause_time', nargs=1,
                     default=[lao.DEF['pause_time']],
                     help='total time (s) to pause to let pages load '
                     '(def: {})'.format(lao.DEF['pause_time']))
+
+parser.add_argument('-open_pages_off', action="store_false", 
+                    default=lao.DEF['open_pages'],
+                    help='(not typically needed) '
+                    'turn off default behavior to open pages in a '
+                    'browswer (def: open in new window[+tabs])')
+
+parser.add_argument('-portnum', nargs=1,
+                    default=[lao.DEF['portnum']], 
+                    help='(not typically needed) '
+                    'specify port number to first try to open '
+                    '(def: {})'.format(lao.DEF['portnum']))
+
+parser.add_argument('-port_nsearch', nargs=1,
+                    default=[lao.DEF['nsearch']],
+                    help='(not typically needed) '
+                    'specify how many port numbers to search through '
+                    '(def: {})'.format(lao.DEF['nsearch']))
+
+parser.add_argument('-host', nargs=1,
+                    default=[lao.DEF['host']],
+                    help='(not typically needed) '
+                    'specify hostname '
+                    'def: {})'.format(lao.DEF['host']))
 
 parser.add_argument('-ver', action="store_true", 
                     default=False,
