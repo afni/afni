@@ -257,9 +257,11 @@ if ( ${DO_IMG} ) then
       set rfile = ( stdev.*.scale.${run}.nii.gz )
 
       if ( ${nbad} ) then
-         foreach line ( `seq 1 1 ${nbad}` )
+         foreach ii ( `seq 1 1 ${nbad}` )
             if ( `echo "$count < $MAX_IMG" | bc` ) then
-               set coords = `sed -n "${line}p" $bfile`
+               set iii    = `printf "%02d" $ii`
+               set coords = `sed -n "${ii}p" $bfile`
+               set lab    = "${run}:${iii}"
 
                # make the dset with the dashed lines to overlay
                set nk     = `3dinfo -nk "${rfile}"`
@@ -272,9 +274,7 @@ if ( ${DO_IMG} ) then
                   -prefix __tmp_dash_line.nii.gz          \
                   -datum byte
 
-               # [PT] to do: change displayed text, change output
-               #      image file numbering and a couple other niceities.
-               #      - add in 2dcat command
+               # [PT] to do: 
                #      - dump other useful text info for APQC
 
                # make image
@@ -293,9 +293,10 @@ if ( ${DO_IMG} ) then
                   -blowup             4                               \
                   -no_cor -no_axi                                     \
                   -montx 1 -monty 1                                   \
-                  -prefix             img_${run}_${line}              \
+                  -prefix             img_${run}_${iii}               \
                   -set_xhairs OFF                                     \
-                  -label_mode 1 -label_size 4                         \
+                  -label_mode 0 #-label_size 4                         \
+                  #-label_string "${lab}"
 
                \rm __tmp_dash_line.nii.gz 
                @ count += 1
@@ -305,6 +306,22 @@ if ( ${DO_IMG} ) then
    end
 endif
 
+# combine img files
+if ( ${count} ) then
+    2dcat                                                             \
+        -overwrite                                                    \
+        -zero_wrap                                                    \
+        -gap         1                                                \
+        -gap_col     0 0 0                                            \
+        -nx ${MAX_IMG}                                                \
+        -ny 1                                                         \
+        -prefix QC_tsnr_lines.jpg                                     \
+        img_*png
+
+   if ( $do_clean == 1 ) then
+      \rm img_*png
+   endif
+endif
 
 # ----------------------------------------------------------------------
 # if do_clean, clean up and run away
