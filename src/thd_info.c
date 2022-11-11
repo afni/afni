@@ -360,7 +360,8 @@ float THD_dset_extent_rlpais(THD_3dim_dataset *dset, char ret,
    return out;
 }
 
-char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
+/* add show_hist, to include history text  [13 Oct 2022 rickr] */
+char * THD_dataset_info( THD_3dim_dataset *dset , int verbose , int show_hist )
 {
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
@@ -628,7 +629,8 @@ ENTRY("THD_dataset_info") ;
 
    /** If present, print out History **/
 
-   { char *chn ; int j,k ;
+   if( show_hist ) {
+     char *chn ; int j,k ;
      chn = tross_Get_History(dset) ;
      if( chn != NULL ){
        j = strlen(chn) ;

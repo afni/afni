@@ -1,0 +1,43 @@
+# Quick build setup script 1/3.  Should match with 'steps_linux_ubuntu22.rst'
+# From bash shell:
+#   sudo bash OS_notes.linux_ubuntu_22_64_a_admin.txt 2>&1 | tee o.ubu_22_a.txt
+# From tcsh shell:
+#   sudo bash OS_notes.linux_ubuntu_22_64_a_admin.txt |& tee o.ubu_22_a.txt
+
+
+echo "++ Add universe repo"
+sudo add-apt-repository universe
+
+
+echo "++ Update package manager info"
+sudo apt-get update
+
+
+echo "++ Get main dependencies"
+sudo apt-get install -y tcsh xfonts-base libssl-dev       \
+                        python-is-python3                 \
+                        python3-matplotlib python3-numpy  \
+                        gsl-bin netpbm gnome-tweaks       \
+                        libjpeg62 xvfb xterm vim curl     \
+                        gedit evince eog                  \
+                        libglu1-mesa-dev libglw1-mesa     \
+                        libxm4 build-essential            \
+                        libcurl4-openssl-dev libxml2-dev  \
+                        libgfortran-11-dev libgomp1       \
+                        gnome-terminal nautilus           \
+                        firefox xfonts-100dpi             \
+                        r-base-dev cmake
+
+
+echo "++ Get more dependencies for R-package brms"
+sudo apt-get install -y libgdal-dev libopenblas-dev       \
+                        libnode-dev libudunits2-dev
+
+
+echo "++ Make symlink for package GSL"
+sudo ln -s \
+        /usr/lib/x86_64-linux-gnu/libgsl.so.27            \
+        /usr/lib/x86_64-linux-gnu/libgsl.so.19
+
+
+echo "++ Done with sudo-required part"

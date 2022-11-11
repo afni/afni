@@ -7,7 +7,8 @@
 #include "mrilib.h"
 
 int print_classic_label2index(THD_3dim_dataset * dset, char * labelname);
-int print_classic_info       (THD_3dim_dataset * dset, char * dname, int verb);
+int print_classic_info       (THD_3dim_dataset * dset, char * dname,
+                              int verb, int show_hist);
 int validate_field_struct(int verb);
 
 int Syntax(TFORM targ, int detail)
@@ -18,6 +19,8 @@ int Syntax(TFORM targ, int detail)
 "  -verb means to print out lots of stuff\n"
 "  -VERB means even more stuff [including slice time offsets]\n"
 "  -short means to print out less stuff [now the default]\n"
+"  -no_hist means to omit the HISTORY text\n"
+"\n"
 "%s"
 "\n"
 ":SPX:"
@@ -415,6 +418,7 @@ int main( int argc , char *argv[] )
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
    int classic_niml_hdr = 0;    /* classic: show niml header */
    int classic_subb_info = 0;   /* classic: show sub-brick info */
+   int classic_hist=1;          /* include HISTORY text [13 Oct 2022 rickr] */
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    THD_fvec3 fv = {{-666.0, -666.0, -666.0}};
    char *tempstr = NULL;
@@ -448,6 +452,8 @@ int main( int argc , char *argv[] )
             verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){
             verbose = -1; iarg++; continue; }
+      else if( strncmp(argv[iarg],"-no_hist",5) == 0 ){
+            classic_hist = 0; iarg++; continue; }
       else if( strcasecmp(argv[iarg],"-header_line") == 0 ||
                strcasecmp(argv[iarg],"-hdr") == 0 ){
             withhead = 1; iarg++; continue; }
@@ -866,7 +872,7 @@ int main( int argc , char *argv[] )
                }
                 
             } else { /*** real CLASSIC: get and output general info ***/
-               if( print_classic_info(dset, argv[iarg], verbose) )
+               if( print_classic_info(dset, argv[iarg], verbose, classic_hist) )
                   exit(1);
             }
 
@@ -1407,12 +1413,13 @@ int print_classic_label2index(THD_3dim_dataset * dset, char * labelname)
 }
 
 /* try to print the index of the specified label */
-int print_classic_info(THD_3dim_dataset * dset, char * dname, int verb)
+int print_classic_info(THD_3dim_dataset * dset, char * dname, int verb,
+                       int show_hist)
 {
    char * outbuf;
    ENTRY("print_classic_info");
 
-   outbuf = THD_dataset_info( dset , verb ) ;
+   outbuf = THD_dataset_info( dset , verb , show_hist ) ;
    if( outbuf != NULL ){
       printf("\n") ;
       puts(outbuf) ;

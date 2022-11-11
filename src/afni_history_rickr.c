@@ -53,6 +53,62 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Nov, 2022, RCR, "Makefile.macos_10.13_homebrew", MICRO, TYPE_MODIFY,
+   "rename Makefile.macOS_10.13_homebrew to Makefile.macos_10.13_homebrew",
+   "Done for consistency."
+ } ,
+
+ {  2, Nov, 2022, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method case geme_xnat",
+   "Sort as with geme_index, but pre-sort with RIN rather than alphabetical."
+ } ,
+
+ { 13, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix crash (in afni_base.py) if missing tamplate",
+   "Thanks to R Birn for noting the problem."
+ } ,
+
+ { 13, Oct, 2022, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -no_hist to 3dinfo, to omit the HISTORY text",
+   NULL
+ } ,
+
+ { 13, Oct, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "okay, fix 'final DF fraction' to be wrt uncensored TRs",
+   NULL
+ } ,
+
+ { 12, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add basic output of 'final DF fraction'",
+   NULL
+ } ,
+
+ {  8, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "w/PT, reformat help examples and remove extra indentation",
+   NULL
+ } ,
+
+ {  6, Oct, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "replace aparc.a2009s+aseg.nii with aparc.a2009s+aseg_REN_all.nii.gz",
+   NULL
+ } ,
+
+ { 20, Sep, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "make -timing_to_1D overlap error more clear",
+   "Thanks to the suffering of Y Takarae."
+ } ,
+
+ {  6, Sep, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove specific commits from cmake/afni_project_dependencies.cmake",
+   "Build off of the current master."
+ } ,
+
+ {  2, Sep, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "trap NIFTI write errors (via new nifti_image_write_bricks_status())",
+   "Have 3dcopy and 3dreit return non-zero status on failure.\n"
+   "Thanks to J Teves for reminding us of this shortcoming."
+ } ,
+
  { 30, Aug, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "make -show_example allow unique substring matching",
    "This allows one to run simply 'afni_proc.py -show_example 6b', say.\n"

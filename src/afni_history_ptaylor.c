@@ -69,6 +69,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Nov , 2022 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-weight_corr ..' (diff application than '-weight_ts ..').",
+   "Calculate weighted Pearson Correlation.  For Dante P.\n"
+},
+
+{ 5, Oct , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_ENHANCE,
+   "Output a run_instacorr_errts.tcsh script in the results directory.",
+   "Very useful for data QC. Use it.  Quick now, here, now, always...\n"
+},
+
+{ 22, Sep , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-clusterize_wami ..', for Clustering functionality.",
+   "Adds a 'whereami' table to the output dir.\n"
+},
+
+{ 1, Sep , 2022 , PT , "3dBrickStat" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: when using '-min' with '-positive' (or sim) and no mask.",
+   "Tended to return 0 (now fixed).  Thanks for mentioning, Xiaowei!\n"
+},
+
 { 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
    "Add -values_stay_str flag, so num/str items stay as str type.",
    "Otherwise, by default they attempt to be int, then float, then str.\n"

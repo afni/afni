@@ -7293,7 +7293,7 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char *inf ;
 STATUS("getting anat info") ;
-      inf = THD_dataset_info( im3d->anat_now , 0 ) ;
+      inf = THD_dataset_info( im3d->anat_now , 0 , 1 ) ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
@@ -7320,7 +7320,7 @@ STATUS("getting anat info") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char *inf ;
 STATUS("getting func info") ;
-      inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+      inf = THD_dataset_info( im3d->fim_now , 0 , 1 ) ;
 STATUS("got func info") ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){

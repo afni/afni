@@ -142,9 +142,14 @@
 #          + remove any non-programmatic exclamation marks. those are BAD
 #            to have in t/csh scripts, even in comments.
 #
-set version   = "2.55";   set rev_dat   = "May 10, 2022"
+#set version   = "2.55";   set rev_dat   = "May 10, 2022"
 #     + [PT] for 3dWarp-deobliqueing, use NN interp for mask, not wsinc5
 #            -> thanks, RCR
+#
+set version   = "2.6";   set rev_dat   = "OCt 31, 2022"
+#     + [PT] removing use of -cost_aff opt (it will just produce a warning
+#            message).  It had been ignored, anyways.  Affine cost just
+#            matches the cost_nl_init choice.
 #
 # ----------------------------------------------------------------
 
@@ -195,7 +200,7 @@ set DO_EXTRA_QC = 1      # more chauffeur output
 set JUMP_TO_EXTRA_QC = 0 # just for testing/internal purposes
 set DO_RANDOM_TMP = 1    # use random chars in tmp fname; can use nicer
 
-set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
+set USER_COST_AFF = 0       # did user use -cost_aff?
 set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
 set cost_nlf   = "-pcl"     # used in:  3dQwarp, final rounds
 
@@ -326,7 +331,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-cost_aff" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set cost_aff = "$argv[$ac]"
+        ##set cost_aff = "$argv[$ac]"
+        echo "+* WARNING ********"
+        echo "   The option '-cost_aff' is no longer used.  The affine"
+        echo "   alignment cost function will simply match the"
+        echo "   '-cost_nl_init ..' value."
+        set USER_COST_AFF = 1
 
     # [PT: Jan 14, 2020] probably just for backwards compatability:
     # default will be lpa hereafter  (could be '-pcl' for back-compat)
@@ -874,14 +884,15 @@ if ( $skipwarp ) goto CLEANUP
 echo "++ SSW Step 6"
 
 # [PT: Jan 7, 2019] use lpa+ZZ cost func by default; also add in -twopass
+# [PT: Oct 31, 2022] um, $cost_aff has no effect here
 echo "++ SSW Step 6 ... piece 0"
 3dAllineate \
     -1Dmatrix_apply "${pref}TAL5_Allin.aff12.1D"   \
     -source $odir/anatSS."${SubID}".nii            \
     -master "${pref}TAL5mm.nii"                    \
-    -cost ${cost_aff}                              \
-    -twopass                                       \
-    -autoweight -source_automask                   \
+    #-cost ${cost_aff}                              \
+    #-twopass                                       \
+    #-autoweight -source_automask                   \
     -final wsinc5                                  \
     -prefix "${pref}AffSS.nii"
 
@@ -1203,7 +1214,6 @@ USAGE ~1~
        {-init_skullstr_off}  \
        {-extra_qc_off}       \
        {-jump_to_extra_qc}   \
-       {-cost_aff CA}        \
        {-cost_nl_init CNI}   \
        {-cost_nl_final CNF}  \
        {-deoblique}          \
@@ -1306,12 +1316,10 @@ grown/improved over time):
               This command would just be tacked on to previously
               executed one.
 
-  -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
-              part of alignment.  Here, 'CA' would be just the name of
-              the cost function to be provided after '-cost ..' (def:
-              is now "lpa+ZZ").  This is probably only here for
-              backwards compatability to older @SSwarper (where def
-              was 'hel').
+  #-cost_aff CA :***no longer used.*** The affine cost function is only  
+              set via cost_nl_init, since the affine alignment is just a
+              'preliminary alignment' for that one.  So, what is specified
+              for the cost_nl_init will be used for the affine.
 
   -cost_nl_init CNI 
              :(opt) specify cost function for initial nonlinear
@@ -1609,6 +1617,14 @@ EXAMPLES ~1~
         -odir    group/o.aw_sub-001
 
 EOF
+
+if ( ${USER_COST_AFF} == 1 ) then
+    echo "+* WARNING: the user used the '-cost_aff ..' option,"
+    echo "   but it is no longer used within the program---it has no effect."
+    echo "   The affine cost function just follows what is set by"
+    echo "   The '-cost_nl_init ..' option value (or its default)."
+endif
+
 
    goto GOOD_EXIT
 

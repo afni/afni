@@ -668,6 +668,35 @@ ININFO_message("THD_pearson_corr_wt: n=%d ws=%g xm=%g ym=%g xv=%g yv=%g xy=%g",
 }
 
 /*----------------------------------------------------------------*/
+
+// [PT: Nov 9, 2022] weighted Pearson corr--double time!
+double THD_pearson_corrd_wt( int n, double *x , double *y , float *wt )
+{
+   double xv=0.0 , yv=0.0 , xy=0.0 , vv,ww ;
+   double xm=0.0 , ym=0.0 , ws=0.0 ;
+   int ii ;
+
+   if( wt == NULL ) return THD_pearson_corrd(n,x,y) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     xm += wt[ii]*x[ii]; ym += wt[ii]*y[ii]; ws += wt[ii];
+   }
+   xm /= ws ; ym /= ws ;
+   for( ii=0 ; ii < n ; ii++ ){
+     vv = x[ii]-xm ; ww = y[ii]-ym ;
+     xv += wt[ii]*vv*vv ; yv += wt[ii]*ww*ww ; xy += wt[ii]*vv*ww ;
+   }
+
+#if 0
+ININFO_message("THD_pearson_corrd_wt: n=%d ws=%g xm=%g ym=%g xv=%g yv=%g xy=%g",
+               n,ws,xm,ym,xv,yv,xy ) ;
+#endif
+
+   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
+   return xy/sqrt(xv*yv) ;
+}
+
+/*----------------------------------------------------------------*/
 /* compute distance between two arrays    ZSS May 04 2012 */
 float THD_distance( int n, float *x , float *y, int abs)
 {

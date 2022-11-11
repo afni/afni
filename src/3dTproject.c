@@ -864,9 +864,10 @@ STATUS("making all-voxels mask") ;
 
    /*----- create array to hold all fixed orts (at this point, un-censored) -----*/
 
-   if( nort_fixed > 0 )
+   if( nort_fixed > 0 ) {
      ort_fixed_unc = (float *)malloc( sizeof(float) * (nt * nort_fixed + 2 ) ) ;
      for( jj=0 ; jj < nt*nort_fixed ; jj++ ) ort_fixed_unc[jj] = 0.0f ;
+   }
 
    /*-- load the polort part of ort_fixed_unc ;
         note that the all 1s regressor will be first among equals --*/

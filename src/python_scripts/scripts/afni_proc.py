@@ -741,9 +741,10 @@ g_history = """
     7.46 Aug 30, 2022:
        - make -show_example allow unique substring matching
        - pass final_epi_dset as a uvar if there is no warped version
+    7.47 Oct  8, 2022: w/PT: reformat of help examples
 """
 
-g_version = "version 7.46, August 30, 2022"
+g_version = "version 7.47, October 8, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

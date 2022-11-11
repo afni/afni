@@ -307,6 +307,8 @@ def update_field_help():
      ['This is the total number of TRs minus the number of regressors.',
       'SO - This field is worth considering for subject omission.',
       '     A small value suggests over-modeling the data.'])
+   add_field_help('final DF fraction', 'DF used / TRs total',
+      ['This is the fraction of DF remaining in the regression.'])
 
    add_field_help('TRs censored', 'total censored across all runs')
    add_field_help('censor fraction', 'fraction of total TRs',
@@ -521,8 +523,11 @@ endif
 echo "TRs total                 : $num_trs"
 
 @ dof_rem = $rows_cols[1] - $rows_cols[2]
+set dof_rfrac = `ccalc -nice "$dof_rem/$total_trs"`
+
 echo "degrees of freedom used   : $rows_cols[2]"
 echo "degrees of freedom left   : $dof_rem"
+echo "final DF fraction         : $dof_rfrac"
 echo ""
 """
 
@@ -922,9 +927,11 @@ g_history = """
    1.22 Feb  3, 2022: added -init_uvars_json
    1.23 May 18, 2022: allow for tlrc as initial view
    1.24 Aug 18, 2022: do not cat any pre_ss_warn dset, as output is now a dict
+   1.25 Oct 12, 2022: added 'final DF fraction' to basic script
+   1.26 Oct 13, 2022: fix 'final DF fraction' to be wrt uncensored TRs
 """
 
-g_version = "gen_ss_review_scripts.py version 1.24, Aug 18, 2022"
+g_version = "gen_ss_review_scripts.py version 1.26, October 13, 2022"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
