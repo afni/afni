@@ -18,11 +18,13 @@
 #    - get 90th %ile in volume mask
 #    - scale variance to val/90%, with max of 1
 #    - Localstat -mask mean over columns
+#    - 
 #
 #    * consider Color_circle_AJJ (tighter color ranges up top)
 #
 # TODO:
 #
+#   - if mask, verify dimensions and require min voxels per column
 #   - fixed z-coord
 #   - uvar for directory: vlines_tcat_dir (vlines.pb00.tcat)
 #   - uvar for AP polort
@@ -37,6 +39,7 @@
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
+set min_cvox   = 5              # minimum voxels in a column
 set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
 set nneeded    = 10             # minimum time series length (after nfirst)
@@ -191,19 +194,11 @@ if ( $mask_in == AUTO ) then
    echo ""
 endif
 
+# --------------------------------------------------
 # set the masking option
 # (mask is either NONE or mask.nii.gz)
 if ( $mask_in == "" ) then
    set mask_in = NONE
-endif
-
-# apply any mask erosions
-if ( $nerode > 0 ) then
-   echo "++ eroding $mask_in by $nerode voxels"
-   mv $mask_in tmp.mask.nii.gz
-   3dmask_tool -prefix $mask_in -input tmp.mask.nii.gz \
-               -dilate_inputs -$nerode
-   echo ""
 endif
 
 set mask_opt = ""
@@ -212,6 +207,41 @@ if ( $mask_in != NONE ) then
    set mask_opt = ( -mask $mask_in )
 endif
 
+# --------------------------------------------------
+# if we have mask, possibly erode and trim short columns
+if ( $mask_in != NONE ) then
+   # if mask, verify consistent dimensions
+   set nzero = `3dinfo -same_dim $mask_in $dset_list | grep 0 | wc -l`
+   if ( $nzero != 0 ) then
+      echo "** cannot have dimensionality difference with a mask"
+      3dinfo -same_dim -prefix $mask_in $dset_list
+      exit 1
+   endif
+
+   # apply any mask erosions
+   if ( $nerode > 0 ) then
+      echo "++ eroding $mask_in by $nerode voxels"
+      mv $mask_in tmp.mask.nii.gz
+      3dmask_tool -prefix $mask_in -input tmp.mask.nii.gz \
+                  -dilate_inputs -$nerode
+      echo ""
+   endif
+
+   # apply min_cvox
+   if ( $min_cvox > 0 ) then
+      echo "++ requiring $min_cvox voxels in mask columns"
+      set nk = $nk_list[1]
+      set cset = tmp.mask.col.count.nii.gz
+      3dLocalstat $mask_opt -nbhd "Rect(0,0,-$nk)" -stat sum \
+               -prefix $cset $mask_in
+      mv $mask_in tmp.mask.nii.gz
+      3dcalc -a tmp.mask.nii.gz -b $cset -expr "a*step(b+1-$min_cvox)" \
+             -prefix $mask_in
+      echo ""
+   endif
+endif
+
+# --------------------------------------------------
 # if detrending is A or AUTO, compute degree
 if ( $polort == A || $polort == AUTO ) then
    set vals = ( `3dinfo -nt -tr $dset_list[1]` )
@@ -222,6 +252,7 @@ if ( $polort == A || $polort == AUTO ) then
    echo "-- using AUTO polort $polort for detrending"
 endif
 
+# ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
 
