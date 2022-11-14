@@ -19,6 +19,19 @@
 #    - scale stdev to val/90%, with max of 1
 #    - Localstat -mask mean over columns
 #
+#    * consider Color_circle_AJJ (tighter color ranges up top)
+#
+# TODO:
+#
+#   - default is automask, nerode 2
+#   - variance (in 3dTstat)
+#   - intersection
+#   - 7.2
+#   - fixed z-coord
+#   - uvar for directory: vlines_tcat_dir (vlines.pb00.tcat)
+#   - uvar for AP polort
+#   - add help
+#
 # ----------------------------------------------------------------------
 
 
@@ -26,12 +39,13 @@
 # main input variables ($run is the typical one to set)
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
-set mask_in    = ''             # any input mask (possibly renamed)
-set nfirst     = 3              # number of first time points to exclude
+set mask_in    = 'AUTO'         # any input mask (possibly renamed)
+set nerode     = 2              # number of mask erosions
+set nfirst     = 0              # number of first time points to exclude
 set nneeded    = 10             # minimum time series length (after nfirst)
 set percentile = 90             # for stdev limit
 set polort     = A              # polort for trend removal (A = auto)
-set rdir       = tlines.result  # output directory
+set rdir       = vlines.result  # output directory
 set thresh     = 0.95           # threshold for tscale average
 
 set DO_IMG     = 1
@@ -57,6 +71,9 @@ while ( $ac <= $#argv )
       set echo
 
    # general processing options
+   else if ( "$argv[$ac]" == "-nerode" ) then
+      @ ac += 1
+      set nerode = $argv[$ac]
    else if ( "$argv[$ac]" == "-nfirst" ) then
       @ ac += 1
       set nfirst = $argv[$ac]
@@ -169,17 +186,27 @@ cd $rdir
 # if the user wants an automask, make one
 if ( $mask_in == AUTO ) then
    set mask_in = mask.nii.gz
-   echo "++ creating eroded automask from first dset"
-   3dAutomask -erode 1 -prefix $mask_in $dset_list[1]
+   echo "++ creating automask from first dset"
+   3dAutomask -prefix $mask_in $dset_list[1]
    if ( $status ) then
       exit 1
    endif
+   echo ""
 endif
 
 # set the masking option
 # (mask is either NONE or mask.nii.gz)
 if ( $mask_in == "" ) then
    set mask_in = NONE
+endif
+
+# apply any mask erosions
+if ( $nerode > 0 ) then
+   echo "++ eroding $mask_in by $nerode voxels"
+   mv $mask_in tmp.mask.nii.gz
+   3dmask_tool -prefix $mask_in -input tmp.mask.nii.gz \
+               -dilate_inputs -$nerode
+   echo ""
 endif
 
 set mask_opt = ""
@@ -214,11 +241,14 @@ foreach index ( `count -digits 1 1 $#dset_list` )
       3dTproject -quiet -polort $polort -prefix $newset -input $dset
       # and replace $dset with the new one
       set dset = $newset
+      echo ""
    endif
 
    # compute stdev dset
    set sset = stdev.0.orig.r$ind02.nii.gz
    3dTstat -stdev -prefix $sset $dset
+   # 3dcalc -prefix $sset -a tmp.var.nii.gz -expr 'a*a'
+   # rm tmp.var.nii.gz
 
    # get 90%ile in mask
    set perc = ( `3dBrickStat $mask_opt -percentile 90 1 90 -perc_quiet $sset` )
@@ -240,11 +270,13 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                 | tee $cfile
 
    set bfile = bad_coords.r$ind02.txt
-   grep -v '#' $cfile | awk '{printf "%7.1f %7.1f %7.1f\n", $14, $15, $16}' \
+   grep -v '#' $cfile | awk '{printf "%7.2f %7.2f %7.2f\n", $14, $15, $16}' \
         | tee $bfile
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
 end  # foreach index
+echo ""
+
 
 if ( ${DO_IMG} ) then
    # for the user to see, but esp. styled for APQC
@@ -255,7 +287,7 @@ if ( ${DO_IMG} ) then
    #      - split out the text into separate pieces
 
    echo "++ Check about making images"
-   set all_bfile = ( bad_coords*.txt )
+   set all_bfile = ( bad_coords.r*.txt )
    set count     = 0                         # count up to MAX_IMG
 
    # text for under image in APQC
@@ -393,7 +425,7 @@ endif
 echo ""
 echo "== found questionable regions across inputs: $bad_counts"
 echo ""
-foreach file ( bad_coords.r*.txt )
+foreach file ( bad_coords.*.txt )
    echo =============== $file ===============
    cat $file
    echo ""
