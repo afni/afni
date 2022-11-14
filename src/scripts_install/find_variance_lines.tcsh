@@ -14,23 +14,20 @@
 # steps:
 #    - automask and erode
 #    - detrend at regress polort level
-#    - compute temporal standard deviation volume
+#    - compute temporal variance volume
 #    - get 90th %ile in volume mask
-#    - scale stdev to val/90%, with max of 1
+#    - scale variance to val/90%, with max of 1
 #    - Localstat -mask mean over columns
 #
 #    * consider Color_circle_AJJ (tighter color ranges up top)
 #
 # TODO:
 #
-#   - default is automask, nerode 2
-#   - variance (in 3dTstat)
-#   - intersection
-#   - 7.2
 #   - fixed z-coord
 #   - uvar for directory: vlines_tcat_dir (vlines.pb00.tcat)
 #   - uvar for AP polort
-#   - add help
+#   - AP usage: rdir, nerode 2; tee stderr to out.vlines.pb00.tcat.txt
+#   - add help, including defaults
 #
 # ----------------------------------------------------------------------
 
@@ -40,10 +37,10 @@
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
-set nerode     = 2              # number of mask erosions
+set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
 set nneeded    = 10             # minimum time series length (after nfirst)
-set percentile = 90             # for stdev limit
+set percentile = 90             # use as new statistical limit (variance)
 set polort     = A              # polort for trend removal (A = auto)
 set rdir       = vlines.result  # output directory
 set thresh     = 0.95           # threshold for tscale average
@@ -244,18 +241,18 @@ foreach index ( `count -digits 1 1 $#dset_list` )
       echo ""
    endif
 
-   # compute stdev dset
-   set sset = stdev.0.orig.r$ind02.nii.gz
-   3dTstat -stdev -prefix $sset $dset
-   # 3dcalc -prefix $sset -a tmp.var.nii.gz -expr 'a*a'
-   # rm tmp.var.nii.gz
+   # compute temporal variance dset (square stdev for now)
+   set sset = var.0.orig.r$ind02.nii.gz
+   3dTstat -stdev -prefix tmp.stdev.nii.gz $dset
+   3dcalc -prefix $sset -a tmp.stdev.nii.gz -expr 'a*a'
+   rm tmp.stdev.nii.gz
 
    # get 90%ile in mask
    set perc = ( `3dBrickStat $mask_opt -percentile 90 1 90 -perc_quiet $sset` )
    if ( $status ) exit
 
    # scale to fraction of 90%ile (max 1)
-   set scaleset = stdev.1.scale.r$ind02.nii.gz
+   set scaleset = var.1.scale.r$ind02.nii.gz
    3dcalc -a $sset -expr "min(1,a/$perc)" -prefix $scaleset
    set sset = $scaleset
 
@@ -277,7 +274,21 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 end  # foreach index
 echo ""
 
+# ---------------------------------------------------------------------------
+# report intersection clusters from projection dsets
+echo "-- evaluating intersection..."
+set pset = proj.min.nii.gz
+3dMean -min -prefix proj.min.nii.gz proj.r*.nii.gz
 
+set cfile = bad_clust.inter.txt
+3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
+             | tee $cfile
+set bfile = bad_coords.inter.txt
+grep -v '#' $cfile | awk '{printf "%7.2f %7.2f %7.2f\n", $14, $15, $16}' \
+     | tee $bfile
+
+# ---------------------------------------------------------------------------
+# create images pointing to vlines
 if ( ${DO_IMG} ) then
    # for the user to see, but esp. styled for APQC
 
@@ -295,13 +306,13 @@ if ( ${DO_IMG} ) then
    set lsubprev  = 0                         # used when breaking lines
 
    # text for above image in APQC
-   set text = \""ulay: $rdir/stdev*scale*.nii.gz (scaled stdev, per run)"\"
+   set text = \""ulay: $rdir/var*scale*.nii.gz (scaled var, per run)"\"
    set text = "${text:q} ,, "\""olay: markers of vertical outlier lines"\"
 
    foreach bfile ( ${all_bfile} ) 
       set run  = "${bfile:r:e}"              # get run string
       set nbad = `cat $bfile | wc -l`        # number of bad points
-      set rfile = ( stdev.*.scale.${run}.nii.gz )
+      set rfile = ( var.*.scale.${run}.nii.gz )
 
       if ( ${nbad} ) then
          foreach ii ( `seq 1 1 ${nbad}` )
@@ -463,9 +474,9 @@ Look for bars of high TSNR that might suggest scanner interference.
    steps:
       - automask and erode
       - detrend at regress polort level
-      - compute temporal standard deviation volume
+      - compute temporal variance volume
       - get 90th %ile in volume mask
-      - scale stdev to val/90%, with max of 1
+      - scale variance to val/90%, with max of 1
       - Localstat -mask mean over columns
 
 Blah blah blah, blah blah, blah.
