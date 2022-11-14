@@ -252,6 +252,11 @@ if ( $polort == A || $polort == AUTO ) then
    echo "-- using AUTO polort $polort for detrending"
 endif
 
+# --------------------------------------------------
+# make note of a central z-coordinate, since 'z' will
+# not matter in projection dsets
+set zcoord = `3dinfo -dcz $dset_list[1]`
+
 # ---------------------------------------------------------------------------
 # count the number of bad columnar regions per input
 set bad_counts = ()
@@ -298,7 +303,8 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                 | tee $cfile
 
    set bfile = bad_coords.r$ind02.txt
-   grep -v '#' $cfile | awk '{printf "%7.2f %7.2f %7.2f\n", $14, $15, $16}' \
+   grep -v '#' $cfile                                                     \
+        | awk '{ z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
         | tee $bfile
 
    set bad_counts = ( $bad_counts `cat $bfile | wc -l` )
@@ -315,7 +321,8 @@ set cfile = bad_clust.inter.txt
 3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
              | tee $cfile
 set bfile = bad_coords.inter.txt
-grep -v '#' $cfile | awk '{printf "%7.2f %7.2f %7.2f\n", $14, $15, $16}' \
+grep -v '#' $cfile                                                    \
+     | awk '{z='$zcoord'; printf "%7.2f %7.2f %7.2f\n", $14, $15, z}' \
      | tee $bfile
 
 # ---------------------------------------------------------------------------
