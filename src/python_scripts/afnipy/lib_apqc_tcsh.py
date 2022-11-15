@@ -229,9 +229,12 @@ auth = 'PA Taylor'
 #      ---> but just as quickly have removed it; might distract from the
 #           important sulcal/gyral overlap
 #
-ver = '4.06' ; date = 'Aug 31, 2022'
+#ver = '4.06' ; date = 'Aug 31, 2022'
 # [PT] make a JSON version of ss_rev_basic TXT file in QC*/extra_info
 #      -> will use this for 'saving' mode of APQC HTML interaction
+#
+ver = '4.1' ; date = 'Nov 15, 2022'
+# [PT] many new parts for var_lines (AKA vlines) and tcat QC
 #
 #########################################################################
 
@@ -258,6 +261,9 @@ dir_info   = 'extra_info'            # for gen_ss- and AP-JSONs, and more
 
 page_title_json = '__page_title'
 
+# used in one of the warnings checks
+fname_vlines_img = 'QC_var_lines.jpg'
+fname_vlines_txt = 'QC_var_lines.txt'
 
 # ----------------------------------------------------------------------
 
@@ -4335,18 +4341,61 @@ visualize in APQC by stacking the lists adjacently.
 
     return otext
 
+def vlines_parse_QC_txt(fname):
+    '''The text file created by find_variance_lines.tcsh has useful
+    information for QC pieces. This function opens, reads and parses
+    the file, returning both the full text and the list/name of the
+    [0]th line found (i.e., what is the [0]th image shown); returns
+    null strings if there were no image found
+
+    Parameters
+    ----------
+    fname : str
+            name of text file
+
+    Return
+    ------
+    str_full : str
+            the full contents of the file, as a single string (it is only
+            one line, at present)
+    str_name : str
+            name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
+
+    '''
+
+    # default return, if error exiting
+    BAD_RETURN = ""
+
+    if not(os.path.isfile( fname )) :    BAD_RETURN
+    
+    fff = open(fname, 'r')
+    X = fff.readlines()
+    fff.close()
+    
+    # parse first entry
+    str_full = X[0].strip()
+    if not(str_full) :    BAD_RETURN
+
+    str_name = str_full.split(":")[0]
+
+    return str_full, str_name
+
 # -----------------
 
-# tsnr lines (***Yet to get uvar!***)
+# check for lines in EPI: ['vlines_tcat_dir']
 def apqc_warns_vlines( obase, qcb, qci,
                        dirname = '' ):
+
+    if not(dirname) :
+        print("+* WARNING: no dirname for apqc_warns_vlines()?")
+        return ''
     
     opref = '_'.join([obase, qcb, qci]) # full name
 
-    # files in the 'tlines.results/' dir, if (possibly bad) lines were
+    # special files in the  dir, if (possibly bad) lines were
     # found
-    file_img = dirname + '/' + 'QC_var_lines.jpg'
-    file_txt = dirname + '/' + 'QC_var_lines.txt'
+    file_img = dirname + '/' + fname_vlines_img
+    file_txt = dirname + '/' + fname_vlines_txt
 
     comm  = '''show any variance line warnings from the EPI'''
     cmd0  = '''
@@ -4358,7 +4407,7 @@ def apqc_warns_vlines( obase, qcb, qci,
     set tjsonw  = _tmpw.txt
     set ojsonw  = ${{odir_img}}/${{opref}}.json
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_img}}/${{opref}}_0.sag.json  # lie of convenience here
+    set ojson  = ${{odir_img}}/${{opref}}_0.sag.json
     '''.format( opref )
 
     # --------- start creating warning text
@@ -4368,12 +4417,11 @@ def apqc_warns_vlines( obase, qcb, qci,
     list_bad   = []
     otext      = 'No lines found\n'
 
+    # use the text file info, if it exists
     text_loc = ''
-    if os.path.isfile( file_txt ) :
-        fff = open(file_txt, 'r')
-        X = fff.readlines()
-        fff.close()
-        text_loc = 'imgs: ' + X[0].strip() + ' (with vertical markers)'
+    str_full, str_name = vlines_parse_QC_txt( file_txt )
+    if str_full :
+        text_loc = 'imgs: ' + str_full + ' (with vertical markers)'
 
     # alternate: some variance lines, and now we have to do work :(
     if os.path.isfile( file_img ) : 
@@ -4406,6 +4454,7 @@ def apqc_warns_vlines( obase, qcb, qci,
                 list_title.append(title)
             text_inter = 'Intersecting  : {}\n'.format(nrow)
 
+        # info from bad_coords.r* files
         for i in range(nbad):
             title = list_bad[i].split('/')[-1]
             title = title.split('.')[1]
@@ -4469,7 +4518,7 @@ def apqc_warns_vlines( obase, qcb, qci,
     endif
     '''.format( file_img=file_img )
 
-    subtext = '''"ulay: tlines.result/var*scale*.nii.gz (scaled variance per run)",,'''
+    subtext = '''"ulay: {}/var*scale*.nii.gz (scaled variance per run)",,'''.format(dirname)
     subtext+= '''"{}"'''.format(text_loc)
 
     #subtext = 

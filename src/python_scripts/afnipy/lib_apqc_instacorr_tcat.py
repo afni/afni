@@ -26,7 +26,7 @@ from afnipy import lib_apqc_tcsh       as lat
 
 # ----------------------------------------------------------------------
 
-scriptname = 'run_instacorr_errts.tcsh'         # output file, tcsh script
+scriptname = 'run_instacorr_tcat.tcsh'         # output file, tcsh script
 
 # ===========================================================================
 # ===========================================================================
@@ -38,9 +38,8 @@ text_ic_top     = """#!/bin/tcsh
 # generator.  
 #
 # It's purpose is to facilitate investigating the properties of the
-# processing's residual dataset (errts*HEAD) file, by using the AFNI
-# GUI's InstaCorr functionality.  
-
+# raw/unprocessed input data, using the AFNI GUI's InstaCorr functionality.  
+#
 # As described in the popup help, users should just need to hold down
 # the Ctrl+Shift keys and then left-click and move the mouse around
 # (dragging or re-clicking).  Watch the correlation patterns to that
@@ -63,6 +62,9 @@ set voxvol      = `3dinfo -voxvol "${ic_dset}"`
 set ic_seedrad  = `echo "${voxvol}"                                      \\
                         | awk '{printf "%0.2f",(2*($1)^0.3334);}'`
 echo "++ seedcorr radius: ${ic_seedrad}"
+set ic_blur     = `echo "${voxvol}"                                      \\
+                        | awk '{printf "%0.2f",(1.5*($1)^0.3334);}'`
+echo "++ blurring radius: ${ic_blur}"
 
 # ===========================================================================
 # parameters set by default
@@ -77,11 +79,11 @@ setenv AFNI_NO_OBLIQUE_WARNING YES
 # InstaCorr parameters
 
 set ic_ignore   = 0
-set ic_blur     = 0
+set ic_blur     = ${ic_blur}           # bc the data be unprocessed
 set ic_automask = no
 set ic_despike  = no
 set ic_bandpass = 0,99999
-set ic_polort   = -1
+set ic_polort   = 3                    # bc the data be unprocessed
 set ic_method   = P
 
 # GUI visualization parameters
@@ -131,7 +133,7 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_user -pause \\
-"      Run InstaCorr on the residuals (errts) dataset\\n\\n\\
+"      Run InstaCorr on the initial (tcat) dataset\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
@@ -144,7 +146,7 @@ You can hold down Left-click and drag the cursor around, too.\\n\\
 \\n\\
 You will see the (unmasked) wholebrain correlation patterns\\n\\
 from each clicked 'seed' location, updating instantly.\\n\\
-Transparent thresholding is used (via 'A' and 'B' buttons).\\n\\
+Transparent+boxed thresholding is ON (via 'A' and 'B' buttons).\\n\\
 \\n\\
 To jump to particular coordinates:\\n\\
 + Right-click -> 'Jump to (xyz)' \\n\\
@@ -174,10 +176,12 @@ exit 0
 # ===========================================================================
 # 
 
-def make_apqc_ic_ulay( ap_ssdict ):
+def make_apqc_ic_ulay_and_ic_dset( ap_ssdict ):
     """Decide which 3D or 4D dataset should be the underlay in the APQC
     run_instacorr* script.  This just involves going through a list of
-    possible items, in order.
+    possible items, in order.  
+
+    This dataset will be both the ulay and olay.
 
     Parameters
     ----------
@@ -186,71 +190,31 @@ def make_apqc_ic_ulay( ap_ssdict ):
 
     Return
     ------
-    ouvar : str
-                the uvar of the chosen dset
     otxt  : str
                 the tcsh-syntax string that sets the variable with the
-                chosen uvar's value.
+                chosen dset's value.
     """
 
     # default return, if error exiting
-    BAD_RETURN = "", ""
+    BAD_RETURN = ""
 
     # list of uvars, in decreasing order of preference
-    list_ldep = ['final_anat', 'vr_base_dset', 'errts_dset']
+    ldep = ['tcat_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        otxt  = """set dset_ulay = {}\n""".format(ap_ssdict[ldep[0]])
+    else:
+        all_pb00 = glob.glob('pb00*HEAD')
+        all_pb00.sort()
+        if not(len(all_pb00)) :
+            print("** ERROR: Could not find ulay for instacorr tcat?")
+            return BAD_RETURN
+        otxt  = """set dset_ulay = {}\n""".format(all_pb00[0])
 
-    # initialize
-    ouvar = ''
-    otxt  = """set dset_ulay = """
+    otxt+= """set ic_dset   = ${dset_ulay}\n"""
 
-    for ldep in list_ldep:
-        if lat.check_dep(ap_ssdict, [ldep]) :
-            ouvar = ldep
-            otxt += '''"{}"'''.format(ap_ssdict[ldep])
-            break
-    otxt+= """\n"""
+    return otxt
 
-    return ouvar, otxt
-
-def make_apqc_ic_dset( ap_ssdict ):
-    """Decide which 4D dataset should be used to generate the correlations
-    in the APQC run_instacorr* script.  This just involves going
-    through a list of possible items, in order.
-
-    Parameters
-    ----------
-    ap_ssdict : dict
-                the dictionary of 'uvar' elements for a given subject
-
-    Return
-    ------
-    ouvar : str
-                the uvar of the chosen dset
-    otxt  : str
-                the tcsh-syntax string that sets the variable with the
-                chosen uvar's value.
-    """
-
-    # default return, if error exiting
-    BAD_RETURN = "", ""
-
-    # list of uvars, in decreasing order of preference
-    list_ldep = ['errts_dset']
-
-    # initialize
-    ouvar = ''
-    otxt  = """set ic_dset   = """
-
-    for ldep in list_ldep:
-        if lat.check_dep(ap_ssdict, [ldep]) :
-            ouvar = ldep
-            otxt += '''"{}"'''.format(ap_ssdict[ldep])
-            break
-    otxt+= """\n"""
-
-    return ouvar, otxt
-
-def make_apqc_ic_all_load( ap_ssdict, skip_uvars=None ):
+def make_apqc_ic_all_load( ap_ssdict, do_check_vlines=True ):
     """All results directory dsets get loaded in, to be available to be
 used.  We build the list order so that the most useful to explore with
 InstaCorr are first, and then everything follows in alphabetical
@@ -261,43 +225,52 @@ order.
     ----------
     ap_ssdict : dict
                 the dictionary of 'uvar' elements for a given subject
-    skip_uvars: list
-                list of uvars to skip (because they might already be 
-                set as $dset_ulay and/or $ic_dset).
+    do_check_vline : bool
+                check if the vlines_tcat_dir exists, and then load its
+                contents as well
 
     Return
     ------
     otxt  : str
                 the tcsh-syntax string that sets the variable with the
-                chosen uvar's value.
+                list.
 
     """
 
     # default return, if error exiting
     BAD_RETURN = ""
 
-    # list of uvars, in decreasing order of preference
-    list_ldep = ['anat_final', 'vr_base_dset', 
-                 'errts_dset', 'mask_dset']
-
-    # initialize
+    # initialize---even though the ulay and ic_dset here are likely to
+    # be same file, leave script like this in case they are not (in
+    # the future)
     otxt = """\n"""
     otxt+= """set all_load  = ( "${dset_ulay}" "${ic_dset}"        \\\n"""
+
     # indentation index for below
     nindent = otxt.index('(') + 2
     nfinal  = otxt.index('\\') - 1
 
-    for ldep in list_ldep:
-        if lat.check_dep(ap_ssdict, [ldep]) :
-            if skip_uvars and not(ldep in skip_uvars) :
-                line = '''{}"{}" '''.format(' '*nindent, ap_ssdict[ldep])
-                npad = nfinal - len(line)
-                if npad > 0 :
-                    line+= ' '*npad
-                line+= '''\\\n'''
-                otxt+= line
+    list_ldep = ['vlines_tcat_dir']
+    if do_check_vlines and lat.check_dep(ap_ssdict, list_ldep) :
+        vline_dsets = ap_ssdict[list_ldep[0]] + '/' + '*.nii*'
+        # don't put quotes if using wildcard
+        line = '''{}{} '''.format(' '*nindent, vline_dsets)
+        npad = nfinal - len(line)
+        if npad > 0 :
+            line+= ' '*npad
+        line+= '''\\\n'''
+        otxt+= line
     
-    otxt+= """{}all_runs.*.HEAD *.HEAD *.nii* )""".format(' '*nindent)
+    if len(glob.glob('pb00*HEAD')) > 1 :
+        # don't put quotes if using wildcard
+        line = '''{}{} '''.format(' '*nindent, 'pb00*HEAD' )
+        npad = nfinal - len(line)
+        if npad > 0 :
+            line+= ' '*npad
+        line+= '''\\\n'''
+        otxt+= line
+
+    otxt+= """{}*.HEAD *.nii* )""".format(' '*nindent)
     otxt+= """\n"""
 
     return otxt
@@ -322,17 +295,12 @@ def make_apqc_ic_script( ap_ssdict ):
     otxt = text_ic_top
 
     # get the text for the underlay and "input" dset for InstaCorr
-    uvar_ulay, text_ulay = make_apqc_ic_ulay( ap_ssdict )
-    uvar_dset, text_dset = make_apqc_ic_dset( ap_ssdict )
+    text_ulay_and_ic = make_apqc_ic_ulay_and_ic_dset( ap_ssdict )
 
-    # ... and make list of already-loaded dsets, which don't need to
-    # be listed again in the all_load var
-    list_skip     = [uvar_ulay, uvar_dset]
-    text_all_load = make_apqc_ic_all_load( ap_ssdict,
-                                           skip_uvars = list_skip )
+    # ... and make list of all dsets to load
+    text_all_load = make_apqc_ic_all_load( ap_ssdict )
 
-    otxt+= text_ulay
-    otxt+= text_dset
+    otxt+= text_ulay_and_ic
     otxt+= text_all_load
 
     # and finish, with default text (above)
