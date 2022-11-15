@@ -742,6 +742,7 @@ g_history = """
        - make -show_example allow unique substring matching
        - pass final_epi_dset as a uvar if there is no warped version
     7.47 Oct  8, 2022: w/PT: reformat of help examples
+    7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
 """
 
 g_version = "version 7.47, October 8, 2022"
@@ -808,8 +809,8 @@ interesting milestones for afni_proc.py:
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
+   2022.11 : find_variance_lines.tcsh
 """
-# 2022.11 : QC matching paper?? find_variance_lines.tcsh
 
 
 g_process_changes_str = """
@@ -1376,7 +1377,7 @@ class SubjProcSream:
                         helpstr='use -legendre in 3dToutcount?  (def=yes)')
         self.valid_opts.add_opt('-outlier_polort', 1, [],
                         helpstr='3dToutcount polort (default is as with 3dD)')
-        self.valid_opts.add_opt('-qc_var_line_blocks', -1, [],
+        self.valid_opts.add_opt('-find_var_line_blocks', -1, [],
                         helpstr="find_variance_lines.tcsh for given blocks")
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
@@ -2405,7 +2406,7 @@ class SubjProcSream:
         post_func_list = [
             #   option name                  function name (as string)
             ['-radial_correlate_blocks',    'run_radial_correlate'],
-            ['-qc_var_line_blocks',         'run_qc_var_line_blocks'],
+            ['-find_var_line_blocks',       'run_qc_var_line_blocks'],
         ]
         
         for fstuff in post_func_list:

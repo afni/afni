@@ -118,7 +118,9 @@ g_ss_uvar_fields = [ \
    ['suma_specs',      'actual spec file names', 
                        ['std.141.FT_lh.spec']],
    ['surf_vol',        'surface volume dset', 
-                       'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
+                       'FT.surf_SurfVol_Alnd_Exp+orig.HEAD'],
+   ['vlines_tcat_dir', 'variance lines dir for tcat', 
+                       'vlines.pb00.tcat']
    ]
 
 

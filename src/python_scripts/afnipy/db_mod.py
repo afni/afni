@@ -826,7 +826,7 @@ def run_qc_var_line_blocks(proc, block):
            'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
            '%s'                                                            \
            '       -rdir %s \\\n'                                          \
-           '       %s |& tee out.%s\n\n'                                   \
+           '       %s |& tee out.%s.txt\n\n'                               \
            % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
