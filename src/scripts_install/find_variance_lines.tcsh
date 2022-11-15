@@ -340,28 +340,32 @@ grep -v '#' $cfile                                                    \
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
 if ( $do_img ) then
-   # for the user to see, but esp. styled for APQC
-
-   # [PT] to do: 
-   #      - dump other useful text info for APQC
-   #      - make the *.dat file with warning level
-   #      - split out the text into separate pieces
+   # for the user to see, but mainly to be used in APQC; just using
+   # simple text recording here, leave most work for APQC prog
 
    echo "++ Check about making images"
-   set all_bfile = ( bad_coords.r*.txt )
-   set count     = 0                         # count up to max_img
+   set all_bfile = ( bad_coords.inter.txt bad_coords.r*.txt )
+
+   # if only 1 run, just refer to r01, not inter (which always exists)
+   if ( "${#all_bfile}" == "2" ) then
+      set all_bfile = ( bad_coords.r*.txt )
+   endif
 
    # text for under image in APQC
-   set subtext   = ""\""loc:"
-   set lsubprev  = 0                         # used when breaking lines
+   set text    = ""
+   set count   = 0                            # count up to max_img
 
-   # text for above image in APQC
-   set text = \""ulay: $rdir/var*scale*.nii.gz (scaled var, per run)"\"
-   set text = "${text:q} ,, "\""olay: markers of vertical outlier lines"\"
-
-   foreach bfile ( ${all_bfile} ) 
-      set run  = "${bfile:r:e}"              # get run string
+   foreach bb ( `seq 1 1 ${#all_bfile}` ) 
+      set bfile = "${all_bfile[$bb]}"
+      set name = "${bfile:r:e}"              # get inter/run string
       set nbad = `cat $bfile | wc -l`        # number of bad points
+
+      if ( "${name}" == "inter" ) then
+         set run = "r01"    # special case: use r01 to show intersection pts
+      else
+         set run = ${name}
+      endif
+
       set rfile = ( var.*.scale.${run}.nii.gz )
 
       if ( ${nbad} ) then
@@ -369,17 +373,14 @@ if ( $do_img ) then
             if ( `echo "$count < $max_img" | bc` ) then
                set iii    = `printf "%02d" $ii`
                set coords = `sed -n "${ii}p" $bfile`
-               set lab    = "${run}:${ii}"
+               set lab    = "${name}:${ii}"
 
-               set lenlab = `echo ${lab} | awk '{print length($0)}'`
-               set lensub = `echo ${subtext} | awk '{print length($0)}'`
+               set text   = "${text:q} ${lab},"
 
-               if ( `echo "(${lensub}-${lsubprev}+${lenlab}) < 80" | bc` ) then
-                  set subtext  = "${subtext:q} ${lab},"
+               if ( `echo "${bb} % 2" | bc` ) then
+                  set val = 1.0
                else
-                  # calc len of prev lines, and use that in later calcs of len
-                  set lsubprev = `echo ${subtext} | awk '{print length($0)}'`
-                  set subtext  = "${subtext:q}"\"" ,, "\""    ${lab},"
+                  set val = 0.8
                endif
 
                # make the dset with the dashed lines to overlay
@@ -389,7 +390,7 @@ if ( $do_img ) then
                3dcalc                                     \
                   -overwrite                              \
                   -a    ${rfile}                          \
-                  -expr "within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
+                  -expr "${val}*within(x,${coords[1]}-0.25*${ad3[1]},${coords[1]}+0.25*${ad3[1]})*within(y,${coords[2]}-0.25*${ad3[2]},${coords[2]}+0.25*${ad3[2]})*(step(${dash}-k)+step(k-${nk}+${dash}))" \
                   -prefix __tmp_dash_line.nii.gz          \
                   -datum byte
 
@@ -401,7 +402,7 @@ if ( $do_img ) then
                   -cbar               "Reds_and_Blues_Inv"            \
                   -func_range         1                               \
                   -set_subbricks      0 0 0                           \
-                  -thr_olay           0.9                             \
+                  -thr_olay           0.5                             \
                   -olay_alpha         Yes                             \
                   -olay_boxed         Yes                             \
                   -set_dicom_xyz      ${coords}                       \
@@ -409,7 +410,7 @@ if ( $do_img ) then
                   -blowup             4                               \
                   -no_cor -no_axi                                     \
                   -montx 1 -monty 1                                   \
-                  -prefix             img_${run}_${iii}               \
+                  -prefix             img_${name}_${iii}              \
                   -set_xhairs OFF                                     \
                   -label_mode 0
 
@@ -420,14 +421,14 @@ if ( $do_img ) then
       endif   # end nbad>0
    end   # end bfile loop
 
-   # finish the subtext string (replace last char with closing quote)
-   set subtext = `echo ${subtext:q} | \
-                     awk '{print substr($0,1,length($0)-1)}'`
-   set subtext = "${subtext:q}"\"
+   # finish the subtext string (remove last comma)
+   set text = `echo ${text:q} | awk '{print substr($0,1,length($0)-1)}'`
+
+   echo ${text} > QC_var_lines.txt
 
    # combine img files
    if ( ${count} ) then
-       set opref = QC_tsnr_lines
+       set opref = QC_var_lines
        2dcat                                                             \
            -overwrite                                                    \
            -zero_wrap                                                    \
@@ -438,36 +439,10 @@ if ( $do_img ) then
            -prefix ${opref}.jpg                                          \
            img_*png
 
-   # create APQC text info...
-   set tjson = _tmpw.txt
-   set ojson = ${opref}.json
-
-cat << EOF >! ${tjson}
-itemtype    :: WARN
-itemid      :: tsnr_lines
-blockid     :: warns
-blockid_hov :: all warnings from processing
-title       :: Check all warnings from processing
-text        :: "TSNR lines warnings"
-subtext     :: ${subtext:q}
-warn_level  :: severe
-EOF
-
-      # ... and jsonify it for APQC
-      abids_json_tool.py                                                  \
-          -overwrite                                                      \
-          -txt2json                                                       \
-          -delimiter_major '::'                                           \
-          -delimiter_minor ',,'                                           \
-          -input  ${tjson}                                                \
-          -prefix ${ojson} 
-
       if ( $do_clean == 1 ) then
          \rm img_*png
-         \rm ${tjson}
       endif
    endif
-
 endif # end of do_img
 
 # ----------------------------------------------------------------------
@@ -690,6 +665,7 @@ $prog modification history:
    0.1  11 Nov 2022 : [PT] make @chauffeur_afni images
    0.2  14 Nov 2022 : use variance; erode and trim; verify dims,
                       3dmask_tool; report at fixed z; help
+   0.3  14 Nov 2022 : [PT] update images and text info
 
 EOF
 # check $version, at top
