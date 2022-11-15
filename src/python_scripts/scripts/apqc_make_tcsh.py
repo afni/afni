@@ -1307,6 +1307,25 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
+    # QC block: "warns"
+    # item    : variance lines
+
+    ### [PT] come back to this for check criteria!! Right now, this
+    ### dir is created if the check is made
+    ##ldep = [ ... ]  if lat.check_dep(ap_ssdict,
+    ##ldep) :
+    if os.path.isdir('vlines.pb00.tcat') :
+        ban      = lat.bannerize('var_line warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_vlines( obase, "warns", "vlines",
+                                          dirname = 'vlines.pb00.tcat' )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
     # QC block: "qsumm"
     # item    : quant output of @ss_review_basic
 

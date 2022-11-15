@@ -4135,13 +4135,6 @@ those might have been flipped.'''
     -no_cor
     -prefix            ${odir_img}/${opref_o}
     '''
-#    cmd0 = '''
-#    @djunct_edgy_align_check
-#    -ulay    ${fdset_0_orig}
-#    -box_focus_slices ${focus_box}
-#    -olay    ${olay_flip}
-#    -prefix  ${odir_img}/${opref_o}
-#    '''
 
     # ... followed by "flipped" one
     # [PT: May 26, 2020] update the way this is now, for cleaner views
@@ -4159,13 +4152,6 @@ those might have been flipped.'''
     -no_cor
     -prefix            ${odir_img}/${opref_f}
     '''
-#    cmd1 = '''
-#    @djunct_edgy_align_check
-#    -ulay    ${fdset_1_flipped}
-#    -box_focus_slices ${focus_box}
-#    -olay    ${olay_flip}
-#    -prefix  ${odir_img}/${opref_f}
-#    '''
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -4234,6 +4220,302 @@ those might have been flipped.'''
             pre, jsontxt_warn, jsontxt_warn_cmd,
             cmd0, cmd1, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
+
+# -------------------------------------------------------------------
+
+def vlines_read_in_coords(fname):
+    '''Read in a file 'fname' of coords, and return a list of strings (one
+    per row).  Also return the number of columns.  The fname file
+    might be empty.
+
+    Parameters
+    ----------
+    fname  : str
+             filename to read in
+
+    Return
+    ------
+    list_rows : list (of str)
+             list form of fname, each row being 1 string that has no 
+             whitespace at the right.
+    '''
+
+    fff = open(fname, 'r')
+    X = fff.readlines()
+    fff.close()
+
+    list_rows = []
+    for x in X:
+        y = x.rstrip()
+        if y :
+            list_rows.append(y)
+
+    return list_rows
+
+def vlines_combine_coord_lists(list_coordlist, list_title, maxnblock = 3):
+    '''Take a list of lists (of coords) and create a block of text to
+visualize in APQC by stacking the lists adjacently.
+    
+    Parameters
+    ----------
+    list_coordlist : list (of lists (of str))
+            1 or more lists of coordinates;  each sublist is a list
+            of strings (one string is a row of coords)
+    list_title : list (of str)
+            list of titles to put at the top of each column
+    maxnblock : int
+            max number text blocks to output, by default.
+
+    Return
+    ------
+    otext : str
+            text block to be used in APQC report. Consecutive lists
+            of text
+
+    '''
+
+    nlist = len(list_coordlist)
+
+    if nlist == 0 :                  return ''
+    if nlist != len(list_title) :    return ''
+
+    # only use as many as we can and/or are allowed
+    ntot  = nlist
+    extra = ''
+    if maxnblock < ntot :
+        ntot  = maxnblock
+        extra = '  ...'      # hint that more files than are shown exist
+
+    # store nrows and max row width for each list
+    l_nrow   = []
+    l_maxwid = []
+    for n in range(ntot):
+        coordlist = list_coordlist[n]
+        l_nrow.append(len(coordlist))
+        maxwid = -1
+        for y in coordlist :
+            if len(y) > maxwid :
+                maxwid = len(y)
+        l_maxwid.append(maxwid)
+    max_nrow = max(l_nrow)
+
+    # commence the text string
+    otext = ''
+
+    # the title line
+    for n in range(ntot) :
+        otext+= '{title:^{wid}s}'.format(title=list_title[n], 
+                                         wid=l_maxwid[n])
+        if n < ntot-1 :
+            otext+= ' '*2
+        else:
+            otext+= extra + '\n'
+
+    # the title underlining
+    for n in range(ntot) :
+        otext+= '-'*l_maxwid[n]
+        if n < ntot-1 :
+            otext+= ' '*2
+        else:
+            otext+= '\n'
+            
+    # each row of info
+    for i in range(max_nrow):
+        for n in range(ntot) :
+            # print a row *if* it exists
+            if i < l_nrow[n]: 
+                otext+= '{row:<{wid}s}'.format(row=list_coordlist[n][i], 
+                                               wid=l_maxwid[n])
+            else:
+                otext+= ' '*l_maxwid[n]
+            if n < ntot-1 :
+                otext+= ' '*2
+            else:
+                otext+= '\n'
+
+    return otext
+
+# -----------------
+
+# tsnr lines (***Yet to get uvar!***)
+def apqc_warns_vlines( obase, qcb, qci,
+                       dirname = '' ):
+    
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    # files in the 'tlines.results/' dir, if (possibly bad) lines were
+    # found
+    file_img = dirname + '/' + 'QC_var_lines.jpg'
+    file_txt = dirname + '/' + 'QC_var_lines.txt'
+
+    comm  = '''show any variance line warnings from the EPI'''
+    cmd0  = '''
+    echo "++ Check EPI variance lines (vlines) in: {}"
+    '''.format( dirname )
+
+    pre = '''
+    set opref = {}
+    set tjsonw  = _tmpw.txt
+    set ojsonw  = ${{odir_img}}/${{opref}}.json
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}_0.sag.json  # lie of convenience here
+    '''.format( opref )
+
+    # --------- start creating warning text
+
+    # default: no variance lines, which makes life simple :)
+    warn_level = "none"
+    list_bad   = []
+    otext      = 'No lines found\n'
+
+    text_loc = ''
+    if os.path.isfile( file_txt ) :
+        fff = open(file_txt, 'r')
+        X = fff.readlines()
+        fff.close()
+        text_loc = 'imgs: ' + X[0].strip() + ' (with vertical markers)'
+
+    # alternate: some variance lines, and now we have to do work :(
+    if os.path.isfile( file_img ) : 
+        warn_level = "medium"   ## or should be severe?
+
+        otext = ''              # start afresh
+
+        # get the list of files, and count
+        list_bad = glob.glob(dirname + '/' + 'bad_coords.r*.txt')
+        list_bad.sort()
+        nbad = len(list_bad)
+        # ... and check for an intersection file (should only be 1)
+        list_inter = glob.glob(dirname + '/' + 'bad_coords.inter.txt')
+
+        # get coordinate list, and store title+list of all non-empty
+        # files.  Remember: [0]th list is intersection, and [1:] lists
+        # are per-run
+        list_coordlist = []
+        list_title     = []
+        list_nlines    = []
+
+        # info from intersection file
+        if list_inter and nbad>1 :
+            title = 'Intersecting all'
+
+            coordlist = vlines_read_in_coords(list_inter[0])
+            nrow      = len(coordlist)
+            if nrow :
+                list_coordlist.append(coordlist)
+                list_title.append(title)
+            text_inter = 'Intersecting  : {}\n'.format(nrow)
+
+        for i in range(nbad):
+            title = list_bad[i].split('/')[-1]
+            title = title.split('.')[1]
+
+            coordlist = vlines_read_in_coords(list_bad[i])
+            nrow      = len(coordlist)
+            list_nlines.append(nrow)  # keep track of ALL of them
+            if nrow :
+                list_coordlist.append(coordlist)
+                list_title.append(title)
+        all_num = [str(x) for x in list_nlines]
+        otext+= 'Lines per run : {}\n'.format(' '.join(all_num))
+
+        if list_inter and nbad>1 :
+            otext+= text_inter 
+        otext+= '\n'
+
+        # main table text
+        ttt   = 'Coordinates (check locations with InstaCorr)\n'
+        otext+= ttt + '-'*(len(ttt)-1) + '\n'
+        otext+= vlines_combine_coord_lists(list_coordlist, list_title)
+        otext+= '\n'
+
+    # write out the text file to a temporary file
+    fff = open('_tmp_vlines_warns.txt', 'w')
+    fff.write(otext)
+    fff.close()
+    
+    # --------- finish creating warning text
+
+    jsontxt_warn = '''
+    cat << EOF >! ${{tjsonw}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "EPI variance lines warnings" 
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_warn_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjsonw}
+    -prefix ${ojsonw}
+    '''
+
+    # --------- image text
+
+    # copy warning text (and image, if it exists)
+    cmd1 = '''
+    \cp _tmp_vlines_warns.txt ${{odir_img}}/${{opref}}.dat
+    if ( -f {file_img} ) then
+    ~~~~\cp {file_img} ${{odir_img}}/${{opref}}_0.sag.jpg
+    endif
+    '''.format( file_img=file_img )
+
+    subtext = '''"ulay: tlines.result/var*scale*.nii.gz (scaled variance per run)",,'''
+    subtext+= '''"{}"'''.format(text_loc)
+
+    #subtext = 
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               subtext)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+
+    comm = commentize( comm )
+    cmd0 = commandize( cmd0, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt_warn      = commandize( jsontxt_warn, cmdindent=0, ALLEOL=False )
+    jsontxt_warn_cmd  = commandize( jsontxt_warn_cmd, padpost=2 )
+    cmd1  = commandize( cmd1, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt       = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd   = commandize( jsontxt_cmd, padpost=2 )
+    #jsontxt2      = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    #jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, cmd0,
+            pre, jsontxt_warn, jsontxt_warn_cmd,
+            cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
 
 
 # -------------------------------------------------------------------
