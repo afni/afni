@@ -567,10 +567,14 @@ Options (processing):
 
    -do_clean VAL        : do we clean up a little? (def=$do_clean)
 
+                             VAL in {0,1}
+
                           Remove likely unneeded datasets, particular the
                           large time series datasets.
 
    -do_img VAL          : make vline images? (def=$do_img)
+
+                             VAL in {0,1}
 
                           Specify whether to make jpeg images of high
                           variance locations.
@@ -588,6 +592,8 @@ Options (processing):
 
    -mask VAL            : mask for computations (def=$mask_in)
 
+                             VAL in {AUTO, NONE, dataset}
+
                           Specify a mask dataset to restrict variance
                           computations to.  VAL should be a dataset, with
                           exception for special cases:
@@ -597,6 +603,8 @@ Options (processing):
 
    -min_cvox VAL        : min voxels for valid mask column (def=$min_cvox)
 
+                             VAL in Z+ (positive integers)
+
                           In the input or automask, after any eroding, remove
                           voxels that do not have at least 'VAL' voxels in the
                           verticle column.  Otherwise, edge voxels might end
@@ -604,20 +612,28 @@ Options (processing):
 
    -min_nt VAL          : minimum number of time points required (def=$min_nt)
 
+                             VAL > 1 (integer)
+
                           This is just a minimum limit to be sure the input
                           time series are long enough to be reasonable.
 
    -nerode VAL          : how much to erode input or auto-mask (def=$nerode)
 
+                             VAL >= 0 (integer)
+
                           Specify the number of levels to erode any mask by.
                           "3dmask_tool -dilate -VAL " is used.
 
-   -nfirst VAL          : discard the first VAL time point (def=$nfirst)
+   -nfirst VAL          : discard the first VAL time points (def=$nfirst)
+
+                             VAL >= 0 (integer)
 
                           Specify the number of time points to discard from
                           the start of each run (pre-steady state, presumably).
 
    -perc VAL            : percentile of variance vals to scale to (def=$perc)
+
+                             VAL in {0..99}
 
                           When looking for high variance, the values are scaled
                           by this percentile value, with a scaled limit of 1.
@@ -629,6 +645,8 @@ Options (processing):
                           value, without worrying about the exact numbers.
 
    -polort VAL          : polynomial detrending degree (def=$polort)
+
+                             VAL >= -1 (integer), or in {A,AUTO,NONE}
 
                           Specify the polynomial degree to use for time series
                           detrending prior to the variance computation.  This
@@ -647,6 +665,8 @@ Options (processing):
                                 3       : remove a cubic polynomial trend
 
    -rdir VAL            : name of the output directory (def=$rdir)
+
+                             VAL is a new directory name
 
                           All output is put into this results directory.
 
