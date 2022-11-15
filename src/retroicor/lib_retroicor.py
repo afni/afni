@@ -133,6 +133,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    # # Debug
    # array = oldArray[0:200000]
    
+   global OutDir
+   
    # Check for nan's
    failureThreshold = parameters['phys_fs'] / 4 # Consecutive NaNs cannot cover more than about 0.25 s
    rawData = lpf.checkForNans(rawData, "cardiac", failureThreshold = failureThreshold)
@@ -146,13 +148,14 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Remove NaNs from raw data
    rawData = [x for x in rawData if math.isnan(x) == False]
-    
-   global OutDir
    
+   # Initialise graph index
+   graphIndex = 0
+    
    # Band pass filter raw data
    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,\
         parameters["phys_fs"], graph = True, saveGraph = parameters["verbose"],\
-        OutDir=OutDir)
+        OutDir=OutDir, graphIndex = graphIndex)
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -1147,22 +1150,60 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
 from numpy import zeros, size
 
 def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
+    """
+    NAME
+        ouputInNimlFormat 
+            Output physiological noise components to NeuroImaging Markup Language (NIML) format
+    TYPE
+        <class void>
+    SYNOPSIS
+       ouputInNimlFormat(physiologicalNoiseComponents, parameters)
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            respiratory_phases: (dType = class 'list') Respiratory phases in time points (not seconds)
+            
+            cardiac_phases: (dType = class 'list') Cardiac phases in time points (not seconds)
+            
+        parameters:   Dictionary with the following fields.
+        
+            -s:        (dtype = class 'int') Number of slices
+            
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
+                        which defines the length of time 
+            
+            -phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+        
+            rvt_out:   (dType = int) Whether to have RVT output
+            
+            slice_offset: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                          
+            prefix: (dType = str) Prefix for output filename.
+                       
+    AUTHOR
+       Peter Lauren and Josh Zosky 
+    """
+    
     main_info = dict()
     main_info["rvt_out"] = parameters["rvt_out"]
     main_info["number_of_slices"] = parameters['-s']
-    main_info["rvt_out"] = main_info["rvt_out"]
     main_info["prefix"] = parameters["prefix"]
     main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
     main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
     
     if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
-        respiration_info = phase_estimator(physiologicalNoiseComponents, 'r', main_info, parameters)
+        respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
+                        parameters)
         respiration_info["rvt_shifts"] = list(range(0, 21, 5))
-        respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), len(respiration_info["time_series_time"])))
+        respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), 
+                        len(respiration_info["time_series_time"])))
     if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
-        cardiac_info = phase_estimator(physiologicalNoiseComponents, 'c', main_info, parameters)
+        cardiac_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'c', 
+                        parameters)
         cardiac_info["rvt_shifts"] = list(range(0, 21, 5))
-        cardiac_info["rvtrs_slc"] = np.zeros((len(cardiac_info["rvt_shifts"]), len(cardiac_info["time_series_time"])))
+        cardiac_info["rvtrs_slc"] = np.zeros((len(cardiac_info["rvt_shifts"]), 
+                        len(cardiac_info["time_series_time"])))
 
     n_n = 0
     n_r_v = 0
@@ -1283,7 +1324,43 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
         footer=("%s" % tailclose),
     )
     
-def phase_estimator(physiologicalNoiseComponents, dataType, main_info, parameters):
+def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameters):
+    """
+    NAME
+        makeRegressorsForEachSlice 
+            Make regressors for each lice as per "Image-Based Method for Retrospective 
+            Correction of Physiological Motion Effects in fMRI: RETROICOR" by 
+            Gary H. Glover, Tie-Qiang Li, and David Ress (2000).  Also make time vector
+    TYPE
+        <class 'dict'>
+    SYNOPSIS
+       makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameters)
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            respiratory_phases: (dType = class 'list') Respiratory phases in time points (not seconds)
+            
+            cardiac_phases: (dType = class 'list') Cardiac phases in time points (not seconds)
+            
+        dataType:     (dtype = class 'str') Type of data to be processed.  'c' for cardiac.
+                      'r' for respiratory
+            
+        parameters:   Dictionary with the following fields.
+        
+            -s:        (dtype = class 'int') Number of slices
+            
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
+                        which defines the length of time 
+            
+            -phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+        
+            slice_offset: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                       
+    AUTHOR
+       Peter Lauren and Josh Zosky 
+    """
+    
     phasee = dict()
     phasee["number_of_slices"] = parameters['-s']
     phasee['slice_offset'] = parameters['slice_offset']

@@ -677,7 +677,8 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, gra
     return peaks
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
-        phys_fs, graph = False, dataType = "Cardiac", saveGraph = False, OutDir = None) :
+        phys_fs, graph = False, dataType = "Cardiac", saveGraph = False, OutDir = None,
+        graphIndex = None) :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
