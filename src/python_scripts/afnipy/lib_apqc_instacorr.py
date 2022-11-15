@@ -7,8 +7,11 @@ auth = 'PA Taylor'
 # ver : 0.1 || date: Oct 5, 2022
 # + some level of written-ness
 #
-ver = 1.1 # date: Oct 16, 2022
+#ver = 1.1 # date: Oct 16, 2022
 # + allow 1D files (e.g., ideal stim files) and plugins in the GUI
+#
+ver = 1.2 # date: Nov 15, 2022
+# + tweak pop-up msg text and minor function fix
 #
 #########################################################################
 
@@ -36,12 +39,14 @@ text_ic_top     = """#!/bin/tcsh
 #
 # It's purpose is to facilitate investigating the properties of the
 # processing's residual dataset (errts*HEAD) file, by using the AFNI
-# GUI's InstaCorr functionality.  As described in the popup help,
-# users should just need to hold down the Ctrl+Shift keys and then
-# left-click and move the mouse around (dragging or re-clicking).
-# Watch the correlation patterns to that seed location change, and
-# this often provides an excellent way to understand the data.
-#
+# GUI's InstaCorr functionality.  
+
+# As described in the popup help, users should just need to hold down
+# the Ctrl+Shift keys and then left-click and move the mouse around
+# (dragging or re-clicking).  Watch the correlation patterns to that
+# seed location change, and this often provides an excellent way to
+# understand the data.
+
 # ver = {ver}
 # -------------------------------------------------------------------------
 
@@ -137,7 +142,11 @@ Hold down Ctrl+Shift, and Left-click anywhere in the dataset,\\n\\
 and/or hold down the Left-click and drag the cursor around.\\n\\
 \\n\\
 You will see the (unmasked) wholebrain correlation patterns\\n\\
-from each clicked "seed" location, updating instantly.\\n\\
+from each clicked 'seed' location, updating instantly.\\n\\
+\\n\\
+To jump to particular coordinates, Right-click in the image,\\n\\
+select 'Jump to (xyz)', and enter 3 space-separated coords.\\n\\
+Perhaps Right-click in the image and select 'InstaCorr set'.\\n\\
 \\n\\
 When done, hit 'OK' to exit.\\n"`
 
@@ -261,7 +270,7 @@ order.
     """
 
     # default return, if error exiting
-    BAD_RETURN = "", ""
+    BAD_RETURN = ""
 
     # list of uvars, in decreasing order of preference
     list_ldep = ['anat_final', 'vr_base_dset', 
