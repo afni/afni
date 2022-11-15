@@ -2408,7 +2408,7 @@ class SubjProcSream:
             ['-radial_correlate_blocks',    'run_radial_correlate'],
             ['-find_var_line_blocks',       'run_qc_var_line_blocks'],
         ]
-        
+
         for fstuff in post_func_list:
             oname = fstuff[0]           # option name
             fname = fstuff[1]           # function as string
@@ -2417,10 +2417,22 @@ class SubjProcSream:
             rcblocks, rv = self.user_opts.get_string_list(oname)
             if rv: return 1
 
+            # now vlines becomes special, make 'tcat' the default
+            if oname == '-find_var_line_blocks' and rcblocks is None:
+               print("-- including default: -find_var_line_blocks tcat")
+               rcblocks = ['tcat']
+
             # was this option used?
             if rcblocks != None:
                valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
                                'scale', 'regress']
+
+               # special case: block NONE turns off the option
+               if "NONE" in rcblocks:
+                  if self.verb > 1:
+                     print("-- block NONE, so skipping option %s" % oname)
+                  continue
+
                for blabel in rcblocks:
                    block = self.find_block(blabel)
                    if not block:

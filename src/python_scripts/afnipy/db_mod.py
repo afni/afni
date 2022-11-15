@@ -708,8 +708,8 @@ def make_outlier_commands(proc, block):
     proc.out_wfile = 'out.pre_ss_warn.txt'
     proc.outl_rfile = ofile    # per run outlier file
 
-    cmd  = '# %s\n'                                                       \
-           '# data check: compute outlier fraction for each volume\n'     \
+    cmd  = '# %s\n'                                               \
+           '# QC: compute outlier fraction for each volume\n'     \
            % block_header('auto block: outcount')
 
     if proc.out_ss_lim > 0.0: cmd += 'touch %s\n' % proc.out_wfile
@@ -766,8 +766,8 @@ def run_radial_correlate(proc, block, full=0):
        rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
        # rdir = 'corr_test.results.%s' % block.label
 
-       cmd  = '# %s\n'                                                       \
-              '# data check: compute correlations with spherical averages\n' \
+       cmd  = '# %s\n'                                                    \
+              '# QC: compute correlations with spherical averages\n'      \
               % block_header('@radial_correlate (%s)' % block.label)
 
        cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
@@ -778,7 +778,7 @@ def run_radial_correlate(proc, block, full=0):
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
-              '# data check: compute correlations with spherical ~averages\n' \
+              '# QC: compute correlations with spherical ~averages\n'         \
               '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
               '                  -rdir %s \\\n'                               \
               '%s'                                                            \
@@ -11864,6 +11864,25 @@ OPTIONS:  ~2~
         runs the given system command.
 
         See also -execute.
+
+    -find_var_line_blocks B0 B1 ... : specify blocks for find_variance_lines
+
+            default: -find_var_line_blocks tcat
+            e.g. -find_var_line_blocks tcat volreg
+            e.g. -find_var_line_blocks NONE
+
+        With this option set, find_variance_lines.tcsh will be run at the end
+        of each listed block.  It looks for columns of high temporal variance 
+        (looking across slices) in the time series data.
+
+        Valid blocks include:
+
+            tcat, tshift, volreg, blur, scale, NONE
+
+        Since 'tcat' is the default block used, this option is turned off by
+        using NONE as a block.
+
+        See 'find_variance_lines.tcsh -help' for details.
 
     -gen_epi_review SCRIPT_NAME : specify script for EPI review
 
