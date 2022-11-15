@@ -3,7 +3,7 @@
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # ----------------------------------------------------------------------
-# Look for bars of high TSNR that might suggest scanner interference.
+# Look for bars of high variance that might suggest scanner interference.
 #
 # inputs: multiple runs of EPI datasets
 # output: a directory containing
@@ -12,7 +12,7 @@
 #         - cluster reports and x,y coordinates high averages
 #
 # steps:
-#    - automask and erode
+#    - automask, erode and require min column height
 #    - detrend at regress polort level
 #    - compute temporal variance volume
 #    - get 90th %ile in volume mask
@@ -24,11 +24,6 @@
 #
 # TODO:
 #
-#   - if mask, verify dimensions and require min voxels per column
-#   - fixed z-coord
-#   - uvar for directory: vlines_tcat_dir (vlines.pb00.tcat)
-#   - uvar for AP polort
-#   - AP usage: rdir, nerode 2; tee stderr to out.vlines.pb00.tcat.txt
 #   - add help, including defaults
 #
 # ----------------------------------------------------------------------
@@ -40,10 +35,10 @@ set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
 set min_cvox   = 5              # minimum voxels in a column
+set min_nt     = 10             # minimum time series length (after nfirst)
 set nerode     = 0              # number of mask erosions
 set nfirst     = 0              # number of first time points to exclude
-set nneeded    = 10             # minimum time series length (after nfirst)
-set percentile = 90             # use as new statistical limit (variance)
+set perc       = 90             # percentile limit of variance
 set polort     = A              # polort for trend removal (A = auto)
 set rdir       = vlines.result  # output directory
 set thresh     = 0.95           # threshold for tscale average
@@ -51,9 +46,9 @@ set thresh     = 0.95           # threshold for tscale average
 set DO_IMG     = 1
 set MAX_IMG    = 7
 
-set prog = tsnr_line_hunter.tcsh
+set prog = find_variance_lines.tcsh
 
-set version = "0.0, 10 Nov, 2022"
+set version = "0.2, 14 Nov, 2022"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -67,25 +62,39 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-ver" ) then
       echo "version $version"
       exit
-   else if ( "$argv[$ac]" == "-echo" ) then
-      set echo
 
    # general processing options
+   else if ( "$argv[$ac]" == "-do_clean" ) then
+      @ ac += 1
+      set do_clean = $argv[$ac]
+   else if ( "$argv[$ac]" == "-echo" ) then
+      set echo
+   else if ( "$argv[$ac]" == "-mask" ) then
+      @ ac += 1
+      set mask_in = $argv[$ac]
+   else if ( "$argv[$ac]" == "-min_cvox" ) then
+      @ ac += 1
+      set min_cvox = $argv[$ac]
+   else if ( "$argv[$ac]" == "-min_nt" ) then
+      @ ac += 1
+      set min_nt = $argv[$ac]
    else if ( "$argv[$ac]" == "-nerode" ) then
       @ ac += 1
       set nerode = $argv[$ac]
    else if ( "$argv[$ac]" == "-nfirst" ) then
       @ ac += 1
       set nfirst = $argv[$ac]
-   else if ( "$argv[$ac]" == "-mask" ) then
+   else if ( "$argv[$ac]" == "-perc" ) then
       @ ac += 1
-      set mask_in = $argv[$ac]
-   else if ( "$argv[$ac]" == "-percentile" ) then
-      @ ac += 1
-      set percentile = $argv[$ac]
+      set perc = $argv[$ac]
    else if ( "$argv[$ac]" == "-polort" ) then
       @ ac += 1
       set polort = $argv[$ac]
+      if ( $polort == AUTO ) then
+         set polort = A
+      else if ( $polort == NONE ) then
+         set polort = -1
+      endif
    else if ( "$argv[$ac]" == "-rdir" ) then
       @ ac += 1
       set rdir = $argv[$ac]
@@ -109,7 +118,7 @@ endif
 
 # ----------------------------------------------------------------------
 # check for sufficient NT, and note the number of slices
-@ nneeded += $nfirst
+@ min_nt += $nfirst
 set nk_list = ()
 foreach dset ( $din_list )
    set nstuff = `3dinfo -nt -nk $dset`
@@ -118,9 +127,9 @@ foreach dset ( $din_list )
       echo "** failed to get NT,NK from dset $dset"
       echo ""
       exit 1
-   else if ( $nstuff[1] < $nneeded ) then
+   else if ( $nstuff[1] < $min_nt ) then
       echo ""
-      echo "** require $nneeded TRs, but have $nstuff[1] in $dset, skipping..."
+      echo "** require $min_nt TRs, but have $nstuff[1] in $dset, skipping..."
       echo "   (accounting for nfirst = $nfirst)"
       echo ""
       exit 1
@@ -243,7 +252,7 @@ endif
 
 # --------------------------------------------------
 # if detrending is A or AUTO, compute degree
-if ( $polort == A || $polort == AUTO ) then
+if ( $polort == A ) then
    set vals = ( `3dinfo -nt -tr $dset_list[1]` )
    if ( $status ) exit
    set polort = \
@@ -279,17 +288,18 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
    # compute temporal variance dset (square stdev for now)
    set sset = var.0.orig.r$ind02.nii.gz
-   3dTstat -stdev -prefix tmp.stdev.nii.gz $dset
+   3dTstat -stdevNOD -prefix tmp.stdev.nii.gz $dset
    3dcalc -prefix $sset -a tmp.stdev.nii.gz -expr 'a*a'
    rm tmp.stdev.nii.gz
 
    # get 90%ile in mask
-   set perc = ( `3dBrickStat $mask_opt -percentile 90 1 90 -perc_quiet $sset` )
+   set pp = ( `3dBrickStat $mask_opt -percentile $perc 1 $perc \
+                           -perc_quiet $sset` )
    if ( $status ) exit
 
    # scale to fraction of 90%ile (max 1)
    set scaleset = var.1.scale.r$ind02.nii.gz
-   3dcalc -a $sset -expr "min(1,a/$perc)" -prefix $scaleset
+   3dcalc -a $sset -expr "min(1,a/$pp)" -prefix $scaleset
    set sset = $scaleset
 
    # project the masked mean across slices
@@ -471,8 +481,10 @@ endif
 # ----------------------------------------------------------------------
 # babble about the results
 
+set nbinter = `cat bad_coords.inter.txt | wc -l`
 echo ""
 echo "== found questionable regions across inputs: $bad_counts"
+echo "   found questionable intersected regions  : $nbinter"
 echo ""
 foreach file ( bad_coords.*.txt )
    echo =============== $file ===============
@@ -497,30 +509,148 @@ SHOW_HELP:
 
 cat << EOF
 ---------------------------------------------------------------------------
-$prog       - look for high TSNR columns (across z) in time series data
+$prog   - look for high temporal variance columns
 
    usage : $prog [options] datasets ..."
 
-Look for bars of high TSNR that might suggest scanner interference.
+Look for bars of high variance that might suggest scanner interference.
 
    inputs: multiple runs of EPI datasets
    output: a directory containing
-           - stdandard deviation maps per run: original and scaled
-           - per column (voxel across slices) averaged
-           - cluster reports and x,y coordinates high averages
+           - variance maps per run: original and scaled
+           - cluster reports and x,y coordinates at high averages
+           - a JPEG image showing locations of high variance
+
+This program takes one or more runs of (presumably) EPI time series data,
+and looks for slice locations with consistenly high temporal variance across
+the (masked) slices.
 
    steps:
-      - automask and erode
-      - detrend at regress polort level
+      - (possibly) automask, erode and require columns of $min_cvox voxels
+      - (possibly) detrend at regress polort level, default = $polort
       - compute temporal variance volume
-      - get 90th %ile in volume mask
-      - scale variance to val/90%, with max of 1
+      - get p90 = 90th %ile in volume mask, default %ile = $perc
+      - scale variance to val/p90, with max of 1
       - Localstat -mask mean over columns
+      - find separate clusters of them
 
-Blah blah blah, blah blah, blah.
+------------------------------------------------------------
+Examples:
+
+  1. Run using defaults.
+
+        $prog epi_r1.nii epi_r2.nii epi_r3.nii
+          OR
+        $prog epi_r*.nii
+
+  2. What would afni_proc.py do?
+
+        $prog -rdir vlines.pb00.tcat -nerode 2 \\
+            pb00*tcat*.HEAD |& tee out.vlines.pb00.tcat.txt
+
+  3. Provide a mask (and do not erode).  Do not detrend time series.
+     Use the default output directory, $rdir.
+
+        $prog -mask my_mask.nii.gz -polort -1 \\
+              epi_run*.nii.gz
+
+------------------------------------------------------------
+Options (terminal):
+
+   -help                : show this help
+   -hist                : show the version history
+   -ver                 : show the current version
+
+Options (processing):
+
+   -do_clean VAL        : do we clean up a little? (def=$do_clean)
+
+                          Remove likely unneeded datasets, particular the
+                          large time series datasets.
+
+   -echo                : run script with shell 'echo' set (def=no)
+                          (this is VERY verbose)
+
+                          With this set, it is as if running the (tcsh) as in:
+
+                             tcsh -x .../$prog ...
+
+                          So all shell commands (including setting variables,
+                          "if" evaluations, etc.) are shown.  This is useful
+                          for debugging.
+
+   -mask VAL            : mask for computations (def=$mask_in)
+
+                          Specify a mask dataset to restrict variance
+                          computations to.  VAL should be a dataset, with
+                          exception for special cases:
+
+                             AUTO : generate automask with 3dAutomask
+                             NONE : do not mask
+
+   -min_cvox VAL        : min voxels for valid mask column (def=$min_cvox)
+
+                          In the input or automask, after any eroding, remove
+                          voxels that do not have at least 'VAL' voxels in the
+                          verticle column.  Otherwise, edge voxels might end
+                          up in the result.
+
+   -min_nt VAL          : minimum number of time points required (def=$min_nt)
+
+                          This is just a minimum limit to be sure the input
+                          time series are long enough to be reasonable.
+
+   -nerode VAL          : how much to erode input or auto-mask (def=$nerode)
+
+                          Specify the number of levels to erode any mask by.
+                          "3dmask_tool -dilate -VAL " is used.
+
+   -nfirst VAL          : discard the first VAL time point (def=$nfirst)
+
+                          Specify the number of time points to discard from
+                          the start of each run (pre-steady state, presumably).
+
+   -perc VAL            : percentile of variance vals to scale to (def=$perc)
+
+                          When looking for high variance, the values are scaled
+                          by this percentile value, with a scaled limit of 1.
+                          So if the 90%-ile of variance values were 876.5, then
+                          variance would be scaled using v_new = v_old/876.5,
+                          with v_new limited to the range [0,1].
+
+                          This allows evaluation relative to a modestly extreme
+                          value, without worrying about the exact numbers.
+
+   -polort VAL          : polynomial detrending degree (def=$polort)
+
+                          Specify the polynomial degree to use for time series
+                          detrending prior to the variance computation.  This
+                          should be an integer >= -1 (or a special case).  The
+                          default is the same as that used by afni_proc.py and
+                          3dDeconvolve, which is based on the duration of the
+                          run, in seconds.
+
+                          Special cases or examples:
+
+                                A       : auto = floor(run_duration/150)+1
+                                AUTO    : auto = floor(run_duration/150)+1
+                                NONE    : do not detrend (same as -1)
+                                -1      : do not detrend
+                                0       : only remove the mean
+                                3       : remove a cubic polynomial trend
+
+   -rdir VAL            : name of the output directory (def=$rdir)
+
+                          All output is put into this results directory.
+
 
 - R Reynolds, P Taylor, D Glen
+  Nov, 2022
+  version $version
+
 EOF
+exit
+
 
 SHOW_HIST:
 
@@ -530,6 +660,9 @@ cat << EOF
 $prog modification history:
 
    0.0  10 Nov 2022 : something to play with
+   0.1  11 Nov 2022 : [PT] make @chauffeur_afni images
+   0.2  14 Nov 2022 : use variance; erode and trim; verify dims,
+                      3dmask_tool; report at fixed z
 
 EOF
 # check $version, at top
