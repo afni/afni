@@ -787,6 +787,50 @@ def run_radial_correlate(proc, block, full=0):
 
     return 0, cmd
 
+def run_qc_var_line_blocks(proc, block):
+    """
+    """
+    prog = 'find_variance_lines.tcsh'
+    if min(proc.reps_all) < 10:
+       print('** warning: %s requires 10+ time points\n' \
+             '   (are all -dsets parameters actually time series?)\n' \
+             % prog)
+       return 1, ''
+
+    # todo?
+    olist, rv = proc.user_opts.get_string_list('-vlines_opts')
+    if olist and len(olist) > 0:
+        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    # note the dsets that will be applied
+    # in the regress case, go after errts as a single time series
+    if block.label == 'regress':
+       print("** RCR - todo: find_variance_lines for regress block")
+       return 1
+       if proc.errts_final == '':
+          print("** missing errts dataset for find_variance_lines in regress")
+          return 1, ''
+       dsets = '%s%s.HEAD %s%s.HEAD' % (proc.all_runs, proc.view,
+                                        proc.errts_final, proc.view)
+    else:
+       dsets = proc.dset_form_wild(block.label, eind=-1)
+
+    # set the result directory, and save as a uvar
+    rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
+    proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
+
+    nerode = 2
+    cmd  = '# ---------------------------------------------------------\n' \
+           '# QC: look for columns of high variance\n'                     \
+           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           '%s'                                                            \
+           '       -rdir %s \\\n'                                          \
+           '       %s |& tee out.%s\n\n'                                   \
+           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
+
+    return 0, cmd
+
 def combine_censor_files(proc, cfile, newfile=''):
     """create a 1deval command to multiply the 2 current censor file
        with the existing one, writing to newfile
