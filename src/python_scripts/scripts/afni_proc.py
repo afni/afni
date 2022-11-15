@@ -745,7 +745,7 @@ g_history = """
     7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
 """
 
-g_version = "version 7.47, October 8, 2022"
+g_version = "version 7.48, November 15, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
