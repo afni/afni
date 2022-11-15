@@ -848,7 +848,7 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
-  - when replacing 'examples' help section, move -ask_me EXAMPLES secion
+  - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort

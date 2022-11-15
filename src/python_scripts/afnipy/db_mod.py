@@ -4445,7 +4445,7 @@ def db_mod_mask(block, proc, user_opts):
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -mask_dilate requres an int nsteps (have '%s')" % \
+            print("** -mask_dilate requires an int nsteps (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -4970,7 +4970,7 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -scale_max_val requres an int param (have '%s')" % \
+            print("** -scale_max_val requires an int param (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -11325,7 +11325,7 @@ OPTIONS:  ~2~
 
        The file naming between older and newer tedana versions (or newer
        using "tedana --convention orig") is shown with this option.  For
-       example, the denoised time series after being Optimially Combined
+       example, the denoised time series after being Optimally Combined
        has possible names of:
 
            orig                 BIDS
@@ -11376,7 +11376,7 @@ OPTIONS:  ~2~
         Display the given afni_proc.py help example.  Details shown depend
         on the verbose level, as specified with -verb:
 
-            0: no formatting - command can be copied and applied elseshere
+            0: no formatting - command can be copied and applied elsewhere
             1: basic         - show header and formatted command
             2: detailed      - include full description, as in -help output
 
@@ -13307,7 +13307,7 @@ OPTIONS:  ~2~
         See also -surf_anat_aligned, -surf_anat_has_skull.
         See example #8 for typical usage.
 
-    -surf_spec spec1 [spec2]: specify surface specificatin file(s)
+    -surf_spec spec1 [spec2]: specify surface specification file(s)
 
             e.g. -surf_spec SUMA/sb23_?h_141_std.spec
 
@@ -13430,7 +13430,7 @@ OPTIONS:  ~2~
         per subject for the correction for multiple comparisons.
 
         Programs 3dBlurToFWHM and SurfSmooth apply -blur_size as the
-        resulting blur, and so do not requre blur estimation.
+        resulting blur, and so do not require blur estimation.
 
         Please see '3dmerge -help'      for more information.
         Please see '3dBlurInMask -help' for more information.
@@ -13884,7 +13884,7 @@ OPTIONS:  ~2~
     -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
 
         To go with either -regress_anaticor or -regress_anaticor_fast,
-        this option is used the specifiy an alternate label of an ROI
+        this option is used the specify an alternate label of an ROI
         mask to be used in the ANATICOR step.  The default LABEL is WMe
         (eroded white matter from 3dSeg).
 
