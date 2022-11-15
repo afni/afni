@@ -22,10 +22,6 @@
 #
 #    * consider Color_circle_AJJ (tighter color ranges up top)
 #
-# TODO:
-#
-#   - add help, including defaults
-#
 # ----------------------------------------------------------------------
 
 
@@ -33,7 +29,9 @@
 # main input variables ($run is the typical one to set)
 set din_list   = ( )            # input datasets
 set do_clean   = 1              # do we remove temporary files
+set do_img     = 1              # make images
 set mask_in    = 'AUTO'         # any input mask (possibly renamed)
+set max_img    = 7              # maximum number of high-var images to make
 set min_cvox   = 5              # minimum voxels in a column
 set min_nt     = 10             # minimum time series length (after nfirst)
 set nerode     = 0              # number of mask erosions
@@ -43,8 +41,6 @@ set polort     = A              # polort for trend removal (A = auto)
 set rdir       = vlines.result  # output directory
 set thresh     = 0.95           # threshold for tscale average
 
-set DO_IMG     = 1
-set MAX_IMG    = 7
 
 set prog = find_variance_lines.tcsh
 
@@ -67,11 +63,17 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-do_clean" ) then
       @ ac += 1
       set do_clean = $argv[$ac]
+   else if ( "$argv[$ac]" == "-do_img" ) then
+      @ ac += 1
+      set do_img = $argv[$ac]
    else if ( "$argv[$ac]" == "-echo" ) then
       set echo
    else if ( "$argv[$ac]" == "-mask" ) then
       @ ac += 1
       set mask_in = $argv[$ac]
+   else if ( "$argv[$ac]" == "-max_img" ) then
+      @ ac += 1
+      set max_img = $argv[$ac]
    else if ( "$argv[$ac]" == "-min_cvox" ) then
       @ ac += 1
       set min_cvox = $argv[$ac]
@@ -337,7 +339,7 @@ grep -v '#' $cfile                                                    \
 
 # ---------------------------------------------------------------------------
 # create images pointing to vlines
-if ( ${DO_IMG} ) then
+if ( $do_img ) then
    # for the user to see, but esp. styled for APQC
 
    # [PT] to do: 
@@ -347,7 +349,7 @@ if ( ${DO_IMG} ) then
 
    echo "++ Check about making images"
    set all_bfile = ( bad_coords.r*.txt )
-   set count     = 0                         # count up to MAX_IMG
+   set count     = 0                         # count up to max_img
 
    # text for under image in APQC
    set subtext   = ""\""loc:"
@@ -364,7 +366,7 @@ if ( ${DO_IMG} ) then
 
       if ( ${nbad} ) then
          foreach ii ( `seq 1 1 ${nbad}` )
-            if ( `echo "$count < $MAX_IMG" | bc` ) then
+            if ( `echo "$count < $max_img" | bc` ) then
                set iii    = `printf "%02d" $ii`
                set coords = `sed -n "${ii}p" $bfile`
                set lab    = "${run}:${ii}"
@@ -413,7 +415,7 @@ if ( ${DO_IMG} ) then
 
                \rm __tmp_dash_line.nii.gz 
                @ count += 1
-            endif   # end count<MAX_IMG
+            endif   # end count<max_img
          end   # end ii loop
       endif   # end nbad>0
    end   # end bfile loop
@@ -431,7 +433,7 @@ if ( ${DO_IMG} ) then
            -zero_wrap                                                    \
            -gap         1                                                \
            -gap_col     0 0 0                                            \
-           -nx ${MAX_IMG}                                                \
+           -nx ${max_img}                                                \
            -ny 1                                                         \
            -prefix ${opref}.jpg                                          \
            img_*png
@@ -466,7 +468,7 @@ EOF
       endif
    endif
 
-endif # end of DO_IMG
+endif # end of do_img
 
 # ----------------------------------------------------------------------
 # if do_clean, clean up and run away
@@ -568,6 +570,11 @@ Options (processing):
                           Remove likely unneeded datasets, particular the
                           large time series datasets.
 
+   -do_img VAL          : make vline images? (def=$do_img)
+
+                          Specify whether to make jpeg images of high
+                          variance locations.
+
    -echo                : run script with shell 'echo' set (def=no)
                           (this is VERY verbose)
 
@@ -662,7 +669,7 @@ $prog modification history:
    0.0  10 Nov 2022 : something to play with
    0.1  11 Nov 2022 : [PT] make @chauffeur_afni images
    0.2  14 Nov 2022 : use variance; erode and trim; verify dims,
-                      3dmask_tool; report at fixed z
+                      3dmask_tool; report at fixed z; help
 
 EOF
 # check $version, at top
