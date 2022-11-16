@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -find_var_line_blocks for calling find_variance_lines.tcsh",
+   NULL
+ } ,
+
+ { 14, Nov, 2022, RCR, "find_variance_lines.tcsh", MAJOR, TYPE_NEW_PROG,
+   "(w PT/DG) look for columns of high temporal variance in time series",
+   "Will be a recommended QC option in afni_proc.py."
+ } ,
+
  {  9, Nov, 2022, RCR, "Makefile.macos_10.13_homebrew", MICRO, TYPE_MODIFY,
    "rename Makefile.macOS_10.13_homebrew to Makefile.macos_10.13_homebrew",
    "Done for consistency."

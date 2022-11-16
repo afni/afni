@@ -708,8 +708,8 @@ def make_outlier_commands(proc, block):
     proc.out_wfile = 'out.pre_ss_warn.txt'
     proc.outl_rfile = ofile    # per run outlier file
 
-    cmd  = '# %s\n'                                                       \
-           '# data check: compute outlier fraction for each volume\n'     \
+    cmd  = '# %s\n'                                               \
+           '# QC: compute outlier fraction for each volume\n'     \
            % block_header('auto block: outcount')
 
     if proc.out_ss_lim > 0.0: cmd += 'touch %s\n' % proc.out_wfile
@@ -766,8 +766,8 @@ def run_radial_correlate(proc, block, full=0):
        rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
        # rdir = 'corr_test.results.%s' % block.label
 
-       cmd  = '# %s\n'                                                       \
-              '# data check: compute correlations with spherical averages\n' \
+       cmd  = '# %s\n'                                                    \
+              '# QC: compute correlations with spherical averages\n'      \
               % block_header('@radial_correlate (%s)' % block.label)
 
        cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
@@ -778,12 +778,56 @@ def run_radial_correlate(proc, block, full=0):
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
-              '# data check: compute correlations with spherical ~averages\n' \
+              '# QC: compute correlations with spherical ~averages\n'         \
               '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
               '                  -rdir %s \\\n'                               \
               '%s'                                                            \
               '                  %s\n\n'                                      \
               % (proc.regress_polort, rdir, other_opts, dsets)
+
+    return 0, cmd
+
+def run_qc_var_line_blocks(proc, block):
+    """
+    """
+    prog = 'find_variance_lines.tcsh'
+    if min(proc.reps_all) < 10:
+       print('** warning: %s requires 10+ time points\n' \
+             '   (are all -dsets parameters actually time series?)\n' \
+             % prog)
+       return 1, ''
+
+    # todo?
+    olist, rv = proc.user_opts.get_string_list('-vlines_opts')
+    if olist and len(olist) > 0:
+        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+    else: other_opts = ''
+
+    # note the dsets that will be applied
+    # in the regress case, go after errts as a single time series
+    if block.label == 'regress':
+       print("** RCR - todo: find_variance_lines for regress block")
+       return 1
+       if proc.errts_final == '':
+          print("** missing errts dataset for find_variance_lines in regress")
+          return 1, ''
+       dsets = '%s%s.HEAD %s%s.HEAD' % (proc.all_runs, proc.view,
+                                        proc.errts_final, proc.view)
+    else:
+       dsets = proc.dset_form_wild(block.label, eind=-1)
+
+    # set the result directory, and save as a uvar
+    rdir = 'vlines.pb%02d.%s' % (block.index, block.label)
+    proc.uvars.set_var('vlines_%s_dir' % block.label, [rdir])
+
+    nerode = 2
+    cmd  = '# ---------------------------------------------------------\n' \
+           '# QC: look for columns of high variance\n'                     \
+           'find_variance_lines.tcsh -polort %s -nerode %s \\\n'           \
+           '%s'                                                            \
+           '       -rdir %s \\\n'                                          \
+           '       %s |& tee out.%s.txt\n\n'                               \
+           % (proc.regress_polort, nerode, other_opts, rdir, dsets, rdir)
 
     return 0, cmd
 
@@ -4401,7 +4445,7 @@ def db_mod_mask(block, proc, user_opts):
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -mask_dilate requres an int nsteps (have '%s')" % \
+            print("** -mask_dilate requires an int nsteps (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -4926,7 +4970,7 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print("** -scale_max_val requres an int param (have '%s')" % \
+            print("** -scale_max_val requires an int param (have '%s')" % \
                   uopt.parlist[0])
             block.valid = 0
             return 1
@@ -11281,7 +11325,7 @@ OPTIONS:  ~2~
 
        The file naming between older and newer tedana versions (or newer
        using "tedana --convention orig") is shown with this option.  For
-       example, the denoised time series after being Optimially Combined
+       example, the denoised time series after being Optimally Combined
        has possible names of:
 
            orig                 BIDS
@@ -11332,7 +11376,7 @@ OPTIONS:  ~2~
         Display the given afni_proc.py help example.  Details shown depend
         on the verbose level, as specified with -verb:
 
-            0: no formatting - command can be copied and applied elseshere
+            0: no formatting - command can be copied and applied elsewhere
             1: basic         - show header and formatted command
             2: detailed      - include full description, as in -help output
 
@@ -11820,6 +11864,25 @@ OPTIONS:  ~2~
         runs the given system command.
 
         See also -execute.
+
+    -find_var_line_blocks B0 B1 ... : specify blocks for find_variance_lines
+
+            default: -find_var_line_blocks tcat
+            e.g. -find_var_line_blocks tcat volreg
+            e.g. -find_var_line_blocks NONE
+
+        With this option set, find_variance_lines.tcsh will be run at the end
+        of each listed block.  It looks for columns of high temporal variance 
+        (looking across slices) in the time series data.
+
+        Valid blocks include:
+
+            tcat, tshift, volreg, blur, scale, NONE
+
+        Since 'tcat' is the default block used, this option is turned off by
+        using NONE as a block.
+
+        See 'find_variance_lines.tcsh -help' for details.
 
     -gen_epi_review SCRIPT_NAME : specify script for EPI review
 
@@ -13244,7 +13307,7 @@ OPTIONS:  ~2~
         See also -surf_anat_aligned, -surf_anat_has_skull.
         See example #8 for typical usage.
 
-    -surf_spec spec1 [spec2]: specify surface specificatin file(s)
+    -surf_spec spec1 [spec2]: specify surface specification file(s)
 
             e.g. -surf_spec SUMA/sb23_?h_141_std.spec
 
@@ -13367,7 +13430,7 @@ OPTIONS:  ~2~
         per subject for the correction for multiple comparisons.
 
         Programs 3dBlurToFWHM and SurfSmooth apply -blur_size as the
-        resulting blur, and so do not requre blur estimation.
+        resulting blur, and so do not require blur estimation.
 
         Please see '3dmerge -help'      for more information.
         Please see '3dBlurInMask -help' for more information.
@@ -13821,7 +13884,7 @@ OPTIONS:  ~2~
     -regress_anaticor_label LABEL : specify LABEL for ANATICOR ROI
 
         To go with either -regress_anaticor or -regress_anaticor_fast,
-        this option is used the specifiy an alternate label of an ROI
+        this option is used the specify an alternate label of an ROI
         mask to be used in the ANATICOR step.  The default LABEL is WMe
         (eroded white matter from 3dSeg).
 

@@ -742,12 +742,14 @@ g_history = """
        - make -show_example allow unique substring matching
        - pass final_epi_dset as a uvar if there is no warped version
     7.47 Oct  8, 2022: w/PT: reformat of help examples
+    7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
 """
 
-g_version = "version 7.47, October 8, 2022"
+g_version = "version 7.48, November 15, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
@@ -807,7 +809,9 @@ interesting milestones for afni_proc.py:
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
+   2022.11 : find_variance_lines.tcsh
 """
+
 
 g_process_changes_str = """
 ---------- changes to afni_proc.py that might afftect results ----------
@@ -844,7 +848,7 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
-  - when replacing 'examples' help section, move -ask_me EXAMPLES secion
+  - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -1373,6 +1377,8 @@ class SubjProcSream:
                         helpstr='use -legendre in 3dToutcount?  (def=yes)')
         self.valid_opts.add_opt('-outlier_polort', 1, [],
                         helpstr='3dToutcount polort (default is as with 3dD)')
+        self.valid_opts.add_opt('-find_var_line_blocks', -1, [],
+                        helpstr="find_variance_lines.tcsh for given blocks")
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
@@ -2391,30 +2397,58 @@ class SubjProcSream:
 
     def set_post_funcs(self):
         """process any options that should set post_funcs for some blocks
+
+              - applied post_funcs are called as FUNC(proc, block)
+
            return 0 on success
         """
-        
-        oname = '-radial_correlate_blocks'
-        rcblocks, rv = self.user_opts.get_string_list(oname)
-        if rv: return 1
-        # was this option used?
-        if rcblocks != None:
-           valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
-                           'scale', 'regress']
-           for blabel in rcblocks:
-               block = self.find_block(blabel)
-               if not block:
-                  print("** no '%s' block for option %s" % (blabel, oname))
-                  return 1
-               if not blabel in valid_blocks:
-                  print("** block '%s' is not valid for %s" % (blabel, oname))
-                  print("   (valid blocks are %s)" % ', '.join(valid_blocks))
-                  return 1
 
-               if self.verb > 3:
-                  print('++ appending %s to block.post_funcs in block %s' \
-                        % ('run_radial_correlate', blabel))
-               block.post_funcs.append(run_radial_correlate)
+        post_func_list = [
+            #   option name                  function name (as string)
+            ['-radial_correlate_blocks',    'run_radial_correlate'],
+            ['-find_var_line_blocks',       'run_qc_var_line_blocks'],
+        ]
+
+        for fstuff in post_func_list:
+            oname = fstuff[0]           # option name
+            fname = fstuff[1]           # function as string
+            func =  eval(fname)         # actual function
+
+            rcblocks, rv = self.user_opts.get_string_list(oname)
+            if rv: return 1
+
+            # now vlines becomes special, make 'tcat' the default
+            if oname == '-find_var_line_blocks' and rcblocks is None:
+               print("-- including default: -find_var_line_blocks tcat")
+               rcblocks = ['tcat']
+
+            # was this option used?
+            if rcblocks != None:
+               valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
+                               'scale', 'regress']
+
+               # special case: block NONE turns off the option
+               if "NONE" in rcblocks:
+                  if self.verb > 1:
+                     print("-- block NONE, so skipping option %s" % oname)
+                  continue
+
+               for blabel in rcblocks:
+                   block = self.find_block(blabel)
+                   if not block:
+                      print("** no '%s' block for option %s" % (blabel, oname))
+                      return 1
+                   if not blabel in valid_blocks:
+                      print("** block '%s' is not valid for %s" \
+                            % (blabel, oname))
+                      print("   (valid blocks are %s)" % \
+                            ', '.join(valid_blocks))
+                      return 1
+
+                   if self.verb > 3:
+                      print('++ appending %s to block.post_funcs in block %s' \
+                            % (fname, blabel))
+                   block.post_funcs.append(func)
 
         return 0
 
