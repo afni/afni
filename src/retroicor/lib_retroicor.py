@@ -827,12 +827,14 @@ def getPhysiologicalNoiseComponents(parameters):
             getRespiratoryPeaks(parameters, rawData) 
         if len(respiratory_peaks) == 0:
             print('*** EOORO: Error getting respiratory peaks or troughs')
-            return []
-            
+            return []            
         
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False])
+            
+        if parameters['rvt_out']:
+            rvt = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'])
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -1411,5 +1413,46 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
         )
     
     return  phasee
-    
 
+def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
+    
+    rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq)
+    
+    # TODO: Add code
+    
+def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
+
+    troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)    
+    
+    # TODO: Add code
+    
+    
+def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
+   
+    # Assign RVT to first trough
+    if respiratory_peaks[0] < respiratory_troughs[0]:
+        meanPeak = (rawData[respiratory_peaks[0]] + rawData[respiratory_peaks[1]])/2
+        troughRVTs = [(meanPeak - rawData[respiratory_troughs[0]])*freq/
+                    (respiratory_peaks[1] - respiratory_peaks[0])]
+        peakIndexLeft = 1
+    else:
+        # Assume first breath symmetric about trough
+        troughRVTs = [(rawData[respiratory_peaks[0]] - rawData[respiratory_troughs[0]])*freq*2/
+                    (respiratory_peaks[0] - respiratory_troughs[0])]
+        peakIndexLeft = 0
+
+    peakIndexRight = peakIndexLeft + 1
+    
+    # Determine range of troughs with peak on either side
+    if  respiratory_peaks[-1] > respiratory_troughs[-1]:
+        end = len(respiratory_troughs)
+    else: end = len(respiratory_peaks) - 1
+        
+    # Assign RVT values to middle troughs
+    for i in range(1,end):
+        meanPeak = (rawData[respiratory_peaks[peakIndexLeft]] + rawData[respiratory_peaks[peakIndexRight]])/2
+        troughRVTs.append(meanPeak - rawData[respiratory_peaks[i]]*freq/
+                          (respiratory_peaks[peakIndexRight] - respiratory_peaks[peakIndexLeft]))
+        peakIndexLeft += 1
+        peakIndexRight += 1
+        
