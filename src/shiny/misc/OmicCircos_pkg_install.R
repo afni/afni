@@ -7,7 +7,11 @@
 ## get R version 
 r.ver <- R.Version()
 
-if(r.ver$minor >= 6){
+if(r.ver$major == 4) {
+	if (!require("BiocManager", quietly = TRUE))
+		install.packages("BiocManager",repos="https://cloud.r-project.org")
+	BiocManager::install("OmicCircos")
+} else if(r.ver$major == 3 & r.ver$minor >= 6){
 
   if (!requireNamespace("BiocManager",quietly=TRUE))
     install.packages("BiocManager",repos="https://cloud.r-project.org")
