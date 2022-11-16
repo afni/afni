@@ -1420,11 +1420,42 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
     
     # TODO: Add code
     
-def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
+def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
 
-    troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)    
+    # Get trough RVTs
+    troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
+
+    # Get raw RVTs by connecting the troughs
+    rawRVTs = connectTroughRVTs(respiratory_troughs, troughRVTs, len(rawData))
     
-    # TODO: Add code
+    # Display raw RVTs with peaks, troughs and raw data
+    # if dev:
+    
+    return rawRVTs
+    
+def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
+    
+    # Initialise output array
+    connectedRVTs = []
+    
+    # Assign value of first trought to preceding elements
+    for i in range(0,respiratory_troughs[0]):
+        connectedRVTs.append(troughRVTs[0])
+        
+    #Assign values to regions between troughs
+    numTroughs = len(respiratory_troughs)
+    for j in range(1,numTroughs):
+        i = j - 1
+        increment = (troughRVTs[j] - troughRVTs[i])/(respiratory_troughs[j] - respiratory_troughs[i])
+        start = respiratory_troughs[i]
+        end = respiratory_troughs[j]
+        for k in range(start, end): connectedRVTs.append(connectedRVTs[k-1] + increment)
+    
+    # Assign value of last trought to postceding elements
+    for i in range(respiratory_troughs[-1],fullLength):
+        connectedRVTs.append(troughRVTs[-1])
+    
+    return connectedRVTs
     
     
 def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
@@ -1437,8 +1468,8 @@ def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
         peakIndexLeft = 1
     else:
         # Assume first breath symmetric about trough
-        troughRVTs = [(rawData[respiratory_peaks[0]] - rawData[respiratory_troughs[0]])*freq*2/
-                    (respiratory_peaks[0] - respiratory_troughs[0])]
+        troughRVTs = [((rawData[respiratory_peaks[0]] - rawData[respiratory_troughs[0]])*freq)/
+                    (2*(respiratory_peaks[0] - respiratory_troughs[0]))]
         peakIndexLeft = 0
 
     peakIndexRight = peakIndexLeft + 1
@@ -1451,8 +1482,15 @@ def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
     # Assign RVT values to middle troughs
     for i in range(1,end):
         meanPeak = (rawData[respiratory_peaks[peakIndexLeft]] + rawData[respiratory_peaks[peakIndexRight]])/2
-        troughRVTs.append(meanPeak - rawData[respiratory_peaks[i]]*freq/
+        troughRVTs.append(((meanPeak - rawData[respiratory_troughs[i]])*freq)/
                           (respiratory_peaks[peakIndexRight] - respiratory_peaks[peakIndexLeft]))
         peakIndexLeft += 1
         peakIndexRight += 1
+        
+    # Process last trough if it comes after the last peak.  Assume last breath symmetric
+    if  respiratory_peaks[-1] < respiratory_troughs[-1]:
+        troughRVTs.append(((rawData[respiratory_peaks[-1]] - rawData[respiratory_troughs[-1]])*freq)/
+                    (2*(respiratory_troughs[-1] - respiratory_peaks[-1])))
+        
+    return troughRVTs
         
