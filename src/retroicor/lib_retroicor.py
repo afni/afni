@@ -1429,8 +1429,30 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True)
     rawRVTs = connectTroughRVTs(respiratory_troughs, troughRVTs, len(rawData))
     
     # Display raw RVTs with peaks, troughs and raw data
-    # if dev:
-    
+    if dev:
+         x = []    
+         end = min(len(rawRVTs),round(len(rawRVTs)*50.0/len(respiratory_peaks)))
+         for i in range(0,end): x.append(i/freq)
+         fig, ax_left = plt.subplots()
+         plt.xlabel("Time (s)")
+         plt.ylabel('Input data input value',color='g')
+         ax_right = ax_left.twinx()
+         ax_right.plot(x, rawRVTs[0:end], color='darkorange', linewidth=3)
+         plt.plot(respiratory_troughs/freq, troughRVTs, "o", color = 'darkgoldenrod') # Trough RVTs
+         ax_left.plot(x, rawData[0:end], color='green')
+         peakVals = []
+         for i in respiratory_peaks: peakVals.append(rawData[i])
+         ax_left.plot(respiratory_peaks/freq, peakVals, "ro") # Peaks
+         troughVals = []
+         for i in respiratory_troughs: troughVals.append(rawData[i])
+         ax_left.plot(respiratory_troughs/freq, troughVals, "bo") # Peaks
+         plt.ylabel('Raw RVT',color='darkorange', fontweight='bold')
+         plt.title("Raw RVT (orange) and raw input data (green)")
+             
+         # Save plot to file
+         plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
+         plt.show()
+   
     return rawRVTs
     
 def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
