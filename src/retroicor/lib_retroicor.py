@@ -1421,6 +1421,67 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
     # TODO: Add code
     
 def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
+    
+    # Get peak layer
+    peakLayer = getLayer(rawData, respiratory_peaks.tolist())
+    
+    # Get trough layer
+    troughLayer = getLayer(rawData, respiratory_troughs.tolist())
+    
+    # Get period layer
+    periodLayer = getPeriodLayer(respiratory_peaks, len(rawData), freq)
+    
+    # Get raw RVT
+    rawRVT = ((peakLayer-troughLayer)*freq)/periodLayer
+    
+    # Display raw RVT as required
+    
+    return rawRVT
+    
+def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'linear'):
+    
+    # Get critical point locations
+    criticalPoints = [round((i+j)/2) for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
+    
+    # Get critical point periods
+    criticalPointPeriods = [j-i for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
+    
+    # Apply first period to beginning
+    criticalPoints.insert(0,0)
+    criticalPointPeriods.insert(0,criticalPointPeriods[0])
+
+    # Apply last period to end
+    criticalPoints.append(fullLength)
+    criticalPointPeriods.append(criticalPointPeriods[-1])
+    
+    # Output layer is found by interpoalting the periods among the critical points
+    f = scipy.interpolate._interpolate.interp1d(criticalPoints, criticalPointPeriods, kind = interpolationOrder)    
+    layer = f([x for x in range(0,fullLength)])
+    
+    return layer
+
+def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
+    
+    # Get critical point values
+    criticalPointValues = [rawData[i] for i in criticalPoints]
+    
+    # Apply first period to beginning
+    criticalPoints.insert(0,0)
+    criticalPointValues.insert(0,criticalPointValues[0])
+
+    # Apply last period to end
+    fullLength = len(rawData)
+    criticalPoints.append(fullLength)
+    criticalPointValues.append(criticalPointValues[-1])
+    
+    # Output layer is found by interpoalting the periods among the critical points
+    f = scipy.interpolate._interpolate.interp1d(criticalPoints, criticalPointValues, kind = interpolationOrder)    
+    layer = f([x for x in range(0,fullLength)])
+    
+    return layer
+    
+    
+def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
 
     # Get trough RVTs
     troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
