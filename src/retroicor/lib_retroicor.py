@@ -1420,21 +1420,42 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
     
     # TODO: Add code
     
-def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
+def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
+              interpolationOrder = 'linear'):
     
     # Get peak layer
-    peakLayer = getLayer(rawData, respiratory_peaks.tolist())
+    peakLayer = getLayer(rawData, respiratory_peaks.tolist(), 
+                         interpolationOrder = interpolationOrder)
     
     # Get trough layer
-    troughLayer = getLayer(rawData, respiratory_troughs.tolist())
+    troughLayer = getLayer(rawData, respiratory_troughs.tolist(), 
+                           interpolationOrder = interpolationOrder)
     
     # Get period layer
-    periodLayer = getPeriodLayer(respiratory_peaks, len(rawData), freq)
+    periodLayer = getPeriodLayer(respiratory_peaks, len(rawData), freq, 
+                                 interpolationOrder = interpolationOrder)
     
     # Get raw RVT
     rawRVT = ((peakLayer-troughLayer)*freq)/periodLayer
     
     # Display raw RVT as required
+    if dev:
+         x = []    
+         end = len(rawData)
+         for i in range(0,end): x.append(i/freq)
+         fig, ax_left = plt.subplots()
+         plt.xlabel("Time (s)")
+         plt.ylabel('Input data value',color='g')
+         ax_left.plot(x, rawData, color='green')
+         ax_left.plot(x, peakLayer, color='red')
+         ax_left.plot(x, troughLayer, color='blue')
+         ax_left.plot(x, periodLayer, color='magenta')
+         ax_left.plot(x, rawRVT, color='darkgoldenrod')
+         plt.title("Raw RVT (darkgoldenrod) and raw input data (green)")
+             
+         # Save plot to file
+         plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
+         plt.show()
     
     return rawRVT
     
