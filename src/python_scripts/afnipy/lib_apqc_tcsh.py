@@ -4421,7 +4421,7 @@ def apqc_warns_vlines( obase, qcb, qci,
     text_loc = ''
     str_full, str_name = vlines_parse_QC_txt( file_txt )
     if str_full :
-        text_loc = 'imgs: ' + str_full + ' (with vertical markers)'
+        text_loc = 'olay: line markers for ' + str_full
 
     # alternate: some variance lines, and now we have to do work :(
     if os.path.isfile( file_img ) : 
@@ -4442,6 +4442,7 @@ def apqc_warns_vlines( obase, qcb, qci,
         list_coordlist = []
         list_title     = []
         list_nlines    = []
+        sum_nrow       = 0
 
         # info from intersection file
         if list_inter and nbad>1 :
@@ -4452,6 +4453,7 @@ def apqc_warns_vlines( obase, qcb, qci,
             if nrow :
                 list_coordlist.append(coordlist)
                 list_title.append(title)
+                sum_nrow+= nrow
             text_inter = 'Intersecting  : {}\n'.format(nrow)
 
         # info from bad_coords.r* files
@@ -4465,6 +4467,7 @@ def apqc_warns_vlines( obase, qcb, qci,
             if nrow :
                 list_coordlist.append(coordlist)
                 list_title.append(title)
+                sum_nrow+= nrow
         all_num = [str(x) for x in list_nlines]
         otext+= 'Lines per run : {}\n'.format(' '.join(all_num))
 
@@ -4472,8 +4475,13 @@ def apqc_warns_vlines( obase, qcb, qci,
             otext+= text_inter 
         otext+= '\n'
 
+        ttt_extra = 'of each'
+        if sum_nrow > 7 :
+            ttt_extra = 'of the first 7'
+
         # main table text
-        ttt   = 'Coordinates (check locations with InstaCorr)\n'
+        ttt   = 'Coordinates (see images {}, below, '.format(ttt_extra)
+        ttt  += 'check locations with InstaCorr)\n'
         otext+= ttt + '-'*(len(ttt)-1) + '\n'
         otext+= vlines_combine_coord_lists(list_coordlist, list_title)
         otext+= '\n'
