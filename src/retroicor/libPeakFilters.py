@@ -243,9 +243,21 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     threshold = -(max(rawData) - min(rawData)) * 0.1
         
     searchLength = round(period * portion)
-    searchLength = min(searchLength, peaks[0] - 1)
-    searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
-    diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks]
+    start = 0       # start and end are to handle peaks right at the beginning or end of the input data
+    end = len(peaks)
+    if peaks[0] > 1:
+        searchLength = min(searchLength, peaks[0] - 1)
+    else:
+        searchLength = min(searchLength, peaks[1] - 1)
+        start = 1
+    if len(rawData) - peaks[-1] > 1:
+        searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
+    else:
+        searchLength = min(searchLength, len(rawData) - peaks[-2] - 1)
+        end = -1
+    diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) for x in peaks[start:end]]
+    if start > 0: diff.insert(0,0)
+    if end == -1: diff.append(0)
     if len(diff) > 0: peaks = peaks[diff >= np.float64(threshold)]
             
     # Graph (and save) results as required
