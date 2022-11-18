@@ -1445,13 +1445,15 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
          for i in range(0,end): x.append(i/freq)
          fig, ax_left = plt.subplots()
          plt.xlabel("Time (s)")
-         plt.ylabel('Input data value',color='g')
+         plt.ylabel('Input data value',color='black')
          ax_left.plot(x, rawData, color='green')
          ax_left.plot(x, peakLayer, color='red')
          ax_left.plot(x, troughLayer, color='blue')
          ax_left.plot(x, periodLayer, color='magenta')
          ax_left.plot(x, rawRVT, color='darkgoldenrod')
-         plt.title("Raw RVT (darkgoldenrod) and raw input data (green)")
+         TitleStr = "Raw RVT (dark goldenrod) and raw input data (green).\n"
+         TitleStr = TitleStr + "Red = peak layer. Blue = trough layer. Magenta = period layer"
+         plt.title(TitleStr)
              
          # Save plot to file
          plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
