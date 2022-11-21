@@ -449,7 +449,7 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
     SYNOPSIS
        determineCardiacPhases(peaks, fullLength)
     ARGUMENTS
-        peaks:   (dType int64 array) Peaks in input cardiac time series.  Type = <class 'numpy.ndarray'>.
+        peaks:   (dType int64 array) Peaks in input cardiac time series.
         
         fullLength:   (dType = int) Lenagth of cardiac time series
         
@@ -1415,14 +1415,70 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     return  phasee
 
 def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
-    
+    """
+    NAME
+        getRVT 
+            Get Regression Volume Per Time (RVT) as described in ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       getRVT(rawData, respiratory_peaks, respiratory_troughs, freq)
+    ARGUMENTS
+        rawData:     <class 'numpy.ndarray'> Raw respiratory data
+        
+        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        
+        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        
+        freq:       <class 'float'> Time point sampling frequency in Hz
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+       
     rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq)
+    
     
     # TODO: Add code
     
 def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
               interpolationOrder = 'linear'):
-    
+    """
+    NAME
+        getRawRVT 
+            Get raw Regression Volume Per Time (RVT) as described in ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini.  That is, get RVT for each input time point.
+    TYPE
+        <class 'numpy.ndarray'>
+    SYNOPSIS
+       getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
+                     interpolationOrder = 'linear')
+    ARGUMENTS
+        rawData:     <class 'numpy.ndarray'> Raw respiratory data
+        
+        respiratory_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        
+        respiratory_troughs:  <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        
+        freq:  <class 'float'> Time point sampling frequency in Hz
+        
+        dev:   <class 'bool'> Whether runnung in development mode
+        
+        interpolationOrder:    <class 'str'> Method of interpolation among critical
+                                points (peaks, troughs, etc.)  Valid values are 'linear'
+                                (the default), 'quadratic' and 'cubic'.  The following are
+                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+       
     # Get peak layer
     peakLayer = getLayer(rawData, respiratory_peaks.tolist(), 
                          interpolationOrder = interpolationOrder)
@@ -1464,7 +1520,33 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
     return rawRVT
     
 def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'linear'):
-    
+    """
+    NAME
+        getPeriodLayer 
+            Get a 1D layer estimating the period at each time point based on interpolation
+            of the measured period in the middle of each respiratory or cardiac interval.
+    TYPE
+        <class 'numpy.ndarray'>
+    SYNOPSIS
+       getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'linear')
+    ARGUMENTS
+        respiratory_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        
+        fullLength:         <class 'int'> Full length of array of point on which
+                            respiratory peaks are based
+        
+        freq:  <class 'float'> Time point sampling frequency in Hz
+        
+        interpolationOrder:    <class 'str'> Method of interpolation among critical
+                                points (peaks, troughs, etc.)  Valid values are 'linear'
+                                (the default), 'quadratic' and 'cubic'.  The following are
+                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+       
     # Get critical point locations
     criticalPoints = [round((i+j)/2) for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
     
@@ -1486,7 +1568,30 @@ def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'li
     return layer
 
 def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
-    
+    """
+    NAME
+        getLayer 
+            Get a 1D layer made by interpolating among a set of ``critical points'' 
+            (which may be peaks or troughs).
+    TYPE
+        <class 'numpy.ndarray'>
+    SYNOPSIS
+       getLayer(rawData, criticalPoints, interpolationOrder = 'linear')
+    ARGUMENTS
+        rawData:     <class 'numpy.ndarray'> Raw respiratory data
+        
+        criticalPoints:  <class 'numpy.ndarray'> Peaks or troughs in input respiratory time series.
+        
+        interpolationOrder:    <class 'str'> Method of interpolation among critical
+                                points (peaks, troughs, etc.)  Valid values are 'linear'
+                                (the default), 'quadratic' and 'cubic'.  The following are
+                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+       
     # Get critical point values
     criticalPointValues = [rawData[i] for i in criticalPoints]
     
@@ -1507,6 +1612,34 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
     
     
 def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
+    """
+    NAME
+        getRawRVTBasedOnTroughs 
+            Get Regression Volume Per Time (RVT) as described in ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini.  This approach is based on interpolating among
+            RVT values, for each trough, based on the difference between the mean value
+            of the adjacent peaks and the trough divided by the period around the trough.
+            (Not currently used.)
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True)
+    ARGUMENTS
+        rawData:     <class 'numpy.ndarray'> Raw respiratory data
+        
+        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        
+        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        
+        freq:       <class 'float'> Time point sampling frequency in Hz
+        
+        dev:   <class 'bool'> Whether runnung in development mode
+                       
+    AUTHOR
+       Peter Lauren 
+    """
 
     # Get trough RVTs
     troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
@@ -1542,6 +1675,31 @@ def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, fre
     return rawRVTs
     
 def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
+    """
+    NAME
+        connectTroughRVTs 
+            Connect Regression Volume Per Time (RVT) as described in ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini, based on troughs.  This approach is based on interpolating among
+            RVT values, for each trough, based on the difference between the mean value
+            of the adjacent peaks and the trough divided by the period around the trough.
+            (Not currently used.)
+    TYPE
+        <class 'list'>
+    SYNOPSIS
+       connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength)
+    ARGUMENTS
+        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        
+        troughRVTs:   <class 'list'> Array of RVTs estimated at each trough
+        
+        fullLength:         <class 'int'> Full length of array of point on which
+                            respiratory peaks are based
+                       
+    AUTHOR
+       Peter Lauren 
+    """
     
     # Initialise output array
     connectedRVTs = []
@@ -1567,6 +1725,31 @@ def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
     
     
 def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
+    """
+    NAME
+        getRawRVTBasedOnTroughs 
+            Get Regression Volume Per Time (RVT) as described in ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini, for each trough.  This approach is based on  
+            the difference between the mean value of the adjacent peaks and the trough 
+            divided by the period around the trough.  (Not currently used.)
+    TYPE
+       <class 'list'>
+    SYNOPSIS
+       getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
+    ARGUMENTS
+        rawData:     <class 'numpy.ndarray'> Raw respiratory data
+        
+        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        
+        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+                
+        freq:       <class 'float'> Time point sampling frequency in Hz
+                       
+    AUTHOR
+       Peter Lauren 
+    """
    
     # Assign RVT to first trough
     if respiratory_peaks[0] < respiratory_troughs[0]:
