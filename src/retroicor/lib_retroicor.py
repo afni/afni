@@ -31,6 +31,7 @@ import pandas as pd
 import gzip
 import json
 import statistics
+from matplotlib.ticker import FormatStrFormatter
 
 # Local libraries
 import libPeakFilters as lpf
@@ -1506,6 +1507,7 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
          ax_left.plot(x, peakLayer, color='red')
          ax_left.plot(x, troughLayer, color='blue')
          ax_right = ax_left.twinx()
+         ax_right.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
          ax_right.plot(x, periodLayer, color='magenta')
          plt.ylabel('Period (s)',color='magenta', fontweight='bold')
          ax_left.plot(x, rawRVT, color='darkgoldenrod')
