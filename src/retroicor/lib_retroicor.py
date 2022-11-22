@@ -1492,7 +1492,7 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
                                  interpolationOrder = interpolationOrder)
     
     # Get raw RVT
-    rawRVT = ((peakLayer-troughLayer)*freq)/periodLayer
+    rawRVT = (peakLayer-troughLayer)/periodLayer
     
     # Display raw RVT as required
     if dev:
@@ -1551,7 +1551,7 @@ def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'li
     criticalPoints = [round((i+j)/2) for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
     
     # Get critical point periods
-    criticalPointPeriods = [j-i for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
+    criticalPointPeriods = [(j-i)/freq for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
     
     # Apply first period to beginning
     criticalPoints.insert(0,0)
