@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Nov , 2022 , PT , "find_variance_lines.tcsh" , MINOR , TYPE_ENHANCE,
+   "Put a backslash before shell commands, so possible aliases aren't used.",
+   "Also put numbers by each exit.  Thanks, S Torrisis!\n"
+},
+
 { 9, Nov , 2022 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "New opt: '-weight_corr ..' (diff application than '-weight_ts ..').",
    "Calculate weighted Pearson Correlation.  For Dante P.\n"

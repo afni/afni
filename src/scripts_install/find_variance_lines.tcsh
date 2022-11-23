@@ -44,7 +44,7 @@ set thresh     = 0.95           # threshold for tscale average
 
 set prog = find_variance_lines.tcsh
 
-set version = "0.2, 14 Nov, 2022"
+set version = "0.4, 23 Nov, 2022"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -57,7 +57,7 @@ while ( $ac <= $#argv )
       goto SHOW_HIST
    else if ( "$argv[$ac]" == "-ver" ) then
       echo "version $version"
-      exit
+      exit 0
 
    # general processing options
    else if ( "$argv[$ac]" == "-do_clean" ) then
@@ -115,7 +115,7 @@ end
 if ( $#din_list < 1 ) then
    echo "** missing input datasets (they should come as trailing arguments"
    echo ""
-   exit
+   exit 0
 endif
 
 # ----------------------------------------------------------------------
@@ -147,13 +147,13 @@ echo "++ have nslices : $nk_list"
 # make results dir, enter it and remove old results
 if ( -d $rdir ) then
    echo "** error, results dir already exists: $rdir"
-   exit 
+   exit 0
 endif
 
 mkdir $rdir
 if ( $status ) then
    echo "** failed to create results directory, $rdir"
-   exit
+   exit 0
 endif
 
 # ----------------------------------------------------------------------
@@ -173,7 +173,7 @@ foreach index ( `count -digits 1 1 $#din_list` )
 
    if ( $status ) then
        echo "** failed to copy EPI dataset $inset, exiting..."
-       exit
+       exit 1
    endif
 end
 
@@ -182,7 +182,7 @@ if ( $mask_in != "" && $mask_in != AUTO && $mask_in != NONE ) then
    3dcopy $mask_in $rdir/mask.nii.gz
    if ( $status ) then
        echo "** failed to copy -mask dataset $mask_in, exiting..."
-       exit
+       exit 1
    endif
    set mask_in = mask.nii.gz
 endif
@@ -232,7 +232,7 @@ if ( $mask_in != NONE ) then
    # apply any mask erosions
    if ( $nerode > 0 ) then
       echo "++ eroding $mask_in by $nerode voxels"
-      mv $mask_in tmp.mask.nii.gz
+      \mv $mask_in tmp.mask.nii.gz
       3dmask_tool -prefix $mask_in -input tmp.mask.nii.gz \
                   -dilate_inputs -$nerode
       echo ""
@@ -245,7 +245,7 @@ if ( $mask_in != NONE ) then
       set cset = tmp.mask.col.count.nii.gz
       3dLocalstat $mask_opt -nbhd "Rect(0,0,-$nk)" -stat sum \
                -prefix $cset $mask_in
-      mv $mask_in tmp.mask.nii.gz
+      \mv $mask_in tmp.mask.nii.gz
       3dcalc -a tmp.mask.nii.gz -b $cset -expr "a*step(b+1-$min_cvox)" \
              -prefix $mask_in
       echo ""
@@ -256,10 +256,10 @@ endif
 # if detrending is A or AUTO, compute degree
 if ( $polort == A ) then
    set vals = ( `3dinfo -nt -tr $dset_list[1]` )
-   if ( $status ) exit
+   if ( $status ) exit 1
    set polort = \
        `afni_python_wrapper.py -print "get_default_polort($vals[1],$vals[2])"`
-   if ( $status ) exit
+   if ( $status ) exit 1
    echo "-- using AUTO polort $polort for detrending"
 endif
 
@@ -292,12 +292,12 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set sset = var.0.orig.r$ind02.nii.gz
    3dTstat -stdevNOD -prefix tmp.stdev.nii.gz $dset
    3dcalc -prefix $sset -a tmp.stdev.nii.gz -expr 'a*a'
-   rm tmp.stdev.nii.gz
+   \rm tmp.stdev.nii.gz
 
    # get 90%ile in mask
    set pp = ( `3dBrickStat $mask_opt -percentile $perc 1 $perc \
                            -perc_quiet $sset` )
-   if ( $status ) exit
+   if ( $status ) exit 1
 
    # scale to fraction of 90%ile (max 1)
    set scaleset = var.1.scale.r$ind02.nii.gz
@@ -474,7 +474,7 @@ end
 # DONE
 # ===========================================================================
 
-exit
+exit 0
 
 
 # ===========================================================================
@@ -651,7 +651,7 @@ Options (processing):
   version $version
 
 EOF
-exit
+exit 0
 
 
 SHOW_HIST:
@@ -666,8 +666,10 @@ $prog modification history:
    0.2  14 Nov 2022 : use variance; erode and trim; verify dims,
                       3dmask_tool; report at fixed z; help
    0.3  14 Nov 2022 : [PT] update images and text info
+   0.4  23 Nov 2022 : [PT] shell calls not aliased;
+                      all exits are belong to integers
 
 EOF
 # check $version, at top
 
-exit
+exit 0
