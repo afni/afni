@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 import math
 import scipy
 from scipy import signal as sps
-import pandas as pd
 import gzip
 import json
 import statistics
@@ -761,6 +760,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
     return phases
 
+# [PT] this function does *not* output a pandas frame anymore
 def getPhysiologicalNoiseComponents(parameters):
     """
     NAME
@@ -858,9 +858,6 @@ def getPhysiologicalNoiseComponents(parameters):
     
     global GLOBAL_M
     
-    # Initialize output table
-    df = pd.DataFrame()
-    
     # Make output table columns names
     columnNames = []
     numSections = parameters["-s"]
@@ -917,10 +914,8 @@ def getPhysiologicalNoiseComponents(parameters):
     print("DEBUG: nsections =", numSections)
     data = np.reshape(data[0:nrow-(nrow%numSections)][:], (nreg*numSections, -1)).T
     print("DEBUG: shape AFTER =", np.shape(data))
-    
-    df = pd.DataFrame(data,columns=columnNames)
-        
-    # return df   
+            
+    # return 
     physiologicalNoiseComponents = dict()
     physiologicalNoiseComponents['respiratory_phases'] = respiratory_phases
     physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
