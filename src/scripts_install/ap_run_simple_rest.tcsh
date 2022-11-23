@@ -32,13 +32,14 @@ set run_proc = 0        # do we run the resulting proc script?
 set template = MNI152_2009_template_SSW.nii.gz
 set verb     = 1
 
-# rcr-todo
+# rcr - todo
+set compare_opts = 0    # compare against corresponding AP example
 set run_clustsim = 1    # time-saving option, but takes time
 
 # ----------------------------------------------------------------------
 # parameters not controlled by user
 set prog = `basename $0`
-set script_version = 0.2
+set script_version = 0.3
 
 
 # ===========================================================================
@@ -245,6 +246,7 @@ afni_proc.py                                                        \
     -copy_anat                 $anat \
     -dsets                     $epi_list \
     -tcat_remove_first_trs     $nt_rm \
+    -align_unifize_epi         local                                \
     -align_opts_aea            -cost lpc+ZZ -giant_move -check_flip \
     -tlrc_base                 $template \
     -volreg_align_to           MIN_OUTLIER                          \
@@ -274,6 +276,7 @@ else
 #
 #     -blocks align tlrc
 #     -copy_anat
+#     -align_unifize_epi
 #     -align_opts_aea
 #     -tlrc_base
 #     -volreg_align_e2a
@@ -447,11 +450,11 @@ terminal options:
 
    -help                   : show this help
 
-required perameters:
+required parameters:
 
    -epi EPI_r1 EPI_r2 ...  : specify a list of EPI datasets
 
-optional perameters:
+optional parameters:
 
    -anat ANAT              : specify single anatomical dataset
 
@@ -506,6 +509,7 @@ $prog modification history:
 
    0.1  : Apr  8, 2021: initial version
    0.2  : Aug 17, 2022: -anat is now optional (only -epi is needed)
+   0.3  : Nov 23, 2022: add -align_unifize_epi local
 
    current version: $script_version
 EOF
