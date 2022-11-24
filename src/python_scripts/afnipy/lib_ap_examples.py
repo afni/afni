@@ -577,11 +577,13 @@ def populate_examples():
            entire volume were acquired at the beginning of the TR.
 
            The 'align' block implies using align_epi_anat.py to align the
-           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
-           for the cost function (more robust than lpc), and -giant_move (in
-           case the anat and EPI start a little far apart).  This block
-           computes the anat to EPI transformation matrix, which will be 
-           inverted in the volreg block, based on -volreg_align_e2a.
+           anatomy with the EPI.  Here, the EPI base is first unifized locally.
+           Additional epi/anat alignment options specify using lpc+ZZ for the
+           cost function (more robust than simply lpc), -giant_move (in case
+           the anat and EPI start a bit far apart), and -check_flip, to try to
+           verify whether EPI left and right agree with the anatomy.
+           This block computes the anat to EPI transformation matrix, which
+           will be inverted in the volreg block, based on -volreg_align_e2a.
 
            Also, compute the transformation of the anatomy to MNI space, using
            affine registration (for speed in this simple example) to align to
@@ -650,11 +652,15 @@ def populate_examples():
                                     'blur', 'mask', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
         ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4.0']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
         ['-regress_stim_labels',   ['vis', 'aud']],
@@ -669,6 +675,7 @@ def populate_examples():
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
         ['-execute',               []],
        ],
      ))
@@ -717,6 +724,7 @@ def populate_examples():
                                     'blur', 'mask', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
@@ -1133,6 +1141,7 @@ def populate_examples():
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
            than the default lpc one.  Apply -giant_move, in case the datasets
            do not start off well-aligned.  Include -check_flip for good measure.
+           A locally unifized EPI base is used for anatomical registration.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
@@ -1187,6 +1196,7 @@ def populate_examples():
         ['-anat_follower_erode',   ['FSvent', 'FSWe']],
         ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
@@ -1251,7 +1261,9 @@ def populate_examples():
         ['-copy_anat',             ['FT_anat+orig']],
         ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
         ['-tlrc_base',             ['TT_N27+tlrc']],
         ['-tlrc_NL_warp',          []],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1489,6 +1501,7 @@ def populate_examples():
         ['-ricor_regs_nfirst',     ['2']],
         ['-ricor_regs',            ['FT/fake.slibase.FT.r?.1D']],
         ['-ricor_regress_method',  ['per-run']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
@@ -1525,6 +1538,7 @@ def populate_examples():
         ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
         ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1570,6 +1584,7 @@ def populate_examples():
                                     'FT/FT_epi_r2+orig.HEAD',
                                     'FT/FT_epi_r3+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
