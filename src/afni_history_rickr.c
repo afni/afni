@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add examples simple_rest_QC, simple_rest_QC_na",
+   "These are the DEFAULT comparison example in ap_run_simple_rest.tcsh."
+ } ,
+
+ { 23, Nov, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add add -align_unifize_epi local and -compare_to options",
+   NULL
+ } ,
+
  { 15, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -find_var_line_blocks for calling find_variance_lines.tcsh",
    NULL

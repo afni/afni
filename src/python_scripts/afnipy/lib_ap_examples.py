@@ -1726,6 +1726,91 @@ def populate_examples():
        ],
      ))
                                       
+   ap_examples.append( APExample('simple_rest_QC',
+     source='ap_run_simple_rest.tcsh',
+     descrip='for QC, run ap_run_simple_rest.tcsh with defaults',
+     header="""
+              (recommended?  yes, for quick quality control)
+
+         This example matches running ap_run_simple_rest.tcsh with default
+         parameters using anat and EPI data from AFNI_data6/FT.  It is meant
+         for quality control evaluation, treating it as rest.
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-out_dir',               ['SID.results']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
+                                    'FT/FT_epi_r2+orig.HEAD',
+                                    'FT/FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['6']],
+        ['-regress_censor_motion', ['0.25']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
+   ap_examples.append( APExample('simple_rest_QC_na',
+     source='ap_run_simple_rest.tcsh',
+     descrip='for QC, run ap_run_simple_rest.tcsh with NO ANAT',
+     header="""
+              (recommended?  yes, for quick quality control of EPI)
+
+         This example matches running ap_run_simple_rest.tcsh with default
+         parameters using only EPI data from AFNI_data6/FT.  It is meant
+         for quality control evaluation, treating it as rest.
+
+         No anatomical volume is included, excluding many options from 
+         example simple_rest_QC.
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-out_dir',               ['SID.results']],
+        ['-blocks',                ['tshift', 'volreg', 'mask',
+                                    'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
+                                    'FT/FT_epi_r2+orig.HEAD',
+                                    'FT/FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-blur_size',             ['6']],
+        ['-regress_censor_motion', ['0.25']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
    return
 
 def find_eg(name):
