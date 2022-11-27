@@ -1464,29 +1464,28 @@ QC images ~2~
 
 USING SSW WITH AFNI_PROC.PY ~1~
 
-  When B-O-B uses @SSwarper for skull-stripping plus warping, He
-  gives afni_proc.py these options (among others), after running
-  ${this_prog} successfully -- here, 'subj' is the subject
+  When B-O-B uses @SSwarper for skull-stripping plus warping, He gives
+  afni_proc.py these options (among others, hence the ellipses), after
+  running ${this_prog} successfully. Here, 'subj' is the subject
   identifier:
 
-  |  set btemplate = MNI152_2009_template_SSW.nii.gz
-  |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
-  |  if ( "$tpath" == "" ) exit 1
-  |
-  |  afni_proc.py                                                  \
-  |    [...other stuff here: processing blocks, options...]        \
-  |    -copy_anat anatSS.\${subj}.nii                               \
-  |    -anat_has_skull no                                          \
-  |    -align_opts_aea -ginormous_move -deoblique on -cost lpc+ZZ  \
-  |    -volreg_align_to MIN_OUTLIER                                \
-  |    -volreg_align_e2a                                           \
-  |    -volreg_tlrc_warp -tlrc_base $tpath/$btemplate              \
-  |    -tlrc_NL_warp                                               \
-  |    -tlrc_NL_warped_dsets                                       \
-  |       anatQQ.\${subj}.nii                                       \
-  |       anatQQ.\${subj}.aff12.1D                                  \
-  |       anatQQ.\${subj}_WARP.nii
-
+  |    set template = MNI152_2009_template_SSW.nii.gz
+  |    
+  |    afni_proc.py                                                  \
+  |      ...                                                         \
+  |      -copy_anat             anatSS.\${subj}.nii                   \
+  |      -anat_has_skull        no                                   \
+  |      -align_opts_aea        -cost lpc+ZZ -giant_move             \
+  |                             -check_flip                          \
+  |      -volreg_align_to       MIN_OUTLIER                          \
+  |      -volreg_align_e2a                                           \
+  |      -volreg_tlrc_warp                                           \
+  |      -tlrc_base             \${template}                          \
+  |      -tlrc_NL_warp                                               \
+  |      -tlrc_NL_warped_dsets  anatQQ.\${subj}.nii                   \
+  |                             anatQQ.\${subj}.aff12.1D              \
+  |                             anatQQ.\${subj}_WARP.nii
+  |      ...
 
 NOTES ~1~
 

@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Nov , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Update the help for integrating SSW with afni_proc.py (AP).",
+   "More readable, and simpler option usage\n"
+},
+
 { 23, Nov , 2022 , PT , "find_variance_lines.tcsh" , MINOR , TYPE_ENHANCE,
    "Put a backslash before shell commands, so possible aliases aren't used.",
    "Also put numbers by each exit.  Thanks, S Torrisis!\n"
