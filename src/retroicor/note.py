@@ -1,4 +1,4 @@
-
+Useless change
 note_on_quants = """
 
 Let's define the following quantities related to data acquisition and

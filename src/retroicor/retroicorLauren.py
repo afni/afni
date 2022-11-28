@@ -152,6 +152,8 @@ def getSliceOffsets(offsetDict):
             volume_tr:   (dType = float) Volume repetition time (TR) which defines the length of time 
             between the acquisition of consecutive frames/volumes; in seconds
             
+            num_time_pts:  (dType = int) Number of time points in the output
+            
             slice_offset:   (2D array dType = numpy.float64) Vector of slice 
                             acquisition time offsets in seconds.
         
@@ -254,6 +256,7 @@ def retro_ts(
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
+    num_time_pts=None,
     OutDir=now_str,
     prefix="Output_File_Name",
     slice_offset=0,
@@ -290,6 +293,7 @@ def retro_ts(
             phys_fs=None,
             number_of_slices=None,
             volume_tr=None,
+            num_time_pts=None,
             OutDir=now_str,
             prefix="Output_File_Name",
             slice_offset=0,
@@ -319,6 +323,8 @@ def retro_ts(
         
         volume_tr: (dType = float) Volume repetition time (TR) which defines the length of time 
         between the acquisition of consecutive frames/volumes; in seconds
+        
+        num_time_pts: (dType = int) Number of time points in the output
         
         OutDir: (dType = str) String giving name of directory to create for output files.
         Default is "retro_" follwed by the current date and time.
@@ -397,6 +403,7 @@ def retro_ts(
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
     offsetDict["volume_tr"] = volume_tr
+    offsetDict["num_time_pts"] = int(num_time_pts)
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_order"] = slice_order
     offsetDict["quiet"] = quiet
@@ -427,6 +434,7 @@ def retro_ts(
     parameters['-respFile'] = respiration_file
     parameters['-s'] = number_of_slices
     parameters['-TR'] = volume_tr
+    parameters['-num_time_pts'] = int(num_time_pts)
     parameters['-phys_fs'] = phys_fs
     parameters['-abt'] = abt
     parameters['-aby'] = aby
@@ -476,10 +484,10 @@ This function creates slice-based regressors for regressing out components of
     heart rate, respiration and respiration volume per time.
 
 Windows Example:
-C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2 -Nt 220
 
 Mac/Linux Example:
-/usr/afni/python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2
+/usr/afni/python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20 -volume_tr 2 -Nt 220
 
 Input
 ================================================================================
@@ -494,6 +502,7 @@ Input
     numSlices: (number_of_slices) Number of slices
     volume_tr: (volume_tr) Volume repetition time (TR) which defines the length of time 
     between the acquisition of consecutive frames/volumes; in seconds
+    num_time_pts: (dType = int) Number of time points in the output
 
     Method 2:
     ---------
@@ -503,6 +512,7 @@ Input
             the json corresponding to the phys_file will be loaded.
     numSlices: (number_of_slices) Number of slices
     volume_tr: Volume TR in seconds
+    num_time_pts: (dType = int) Number of time points in the output
 
     Optional:
     ---------
@@ -554,25 +564,25 @@ Input
 
                retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
-                          -slice_order alt-z
+                          -slice_order alt-z -Nt 220
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
                retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
-                          -slice_offset "$offlist"
+                          -slice_offset "$offlist" -Nt 220
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
                retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
                           -slice_order custom              \\
-                          -slice_offset "$offlist"
+                          -slice_offset "$offlist" -Nt 220
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
                retroicorLauren.py -cardFile ECG.1D -respFile Resp.1D             \\
                           -volume_tr 2 -freq 50 -numSlices 10 -prefix fred    \\
-                          -slice_order slice_offsets.txt
+                          -slice_order slice_offsets.txt -Nt 220
 
 
     ============================================================================
@@ -586,7 +596,7 @@ Output:
 
     Example:
     C:\\afni\\python retroicorLauren.py -respFile resp_file.dat -cardFile card_file.dat -freq 50 -numSlices 20
-        -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1
+        -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1 -Nt 220
 
         Output:
         The file "subject12_regressors.slibase.1D" will be saved to current
@@ -598,6 +608,7 @@ Output:
         "-freq": None,
         "-numSlices": None,
         "-volume_tr": None,
+        "-num_time_pts": None,
         "-OutDir": now_str,
         "-prefix": "Output_File_Name",
         "-slice_offset": 0,
@@ -663,6 +674,7 @@ Output:
         phys_fs=opt_dict["-freq"],
         number_of_slices=int(opt_dict["-numSlices"]),
         volume_tr=float(opt_dict["-volume_tr"]),
+        num_time_pts=int(opt_dict["-num_time_pts"]),
         OutDir=opt_dict["-OutDir"],
         prefix=opt_dict["-prefix"],
         slice_offset=opt_dict["-slice_offset"],

@@ -760,14 +760,13 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
     return phases
 
-# [PT] this function does *not* output a pandas frame anymore
 def getPhysiologicalNoiseComponents(parameters):
     """
     NAME
         getPhysiologicalNoiseComponents 
             Return physiological (respiratory and cardiac) contamination components of BOLD signal
     TYPE
-        <class 'pandas.core.frame.DataFrame'>
+        Dictionary with the following fields
     SYNOPSIS
        getPhysiologicalNoiseComponents(parameters)
     ARGUMENTS
@@ -835,7 +834,8 @@ def getPhysiologicalNoiseComponents(parameters):
                     [x for x in rawData if math.isnan(x) == False])
             
         if parameters['rvt_out']:
-            rvt = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'])
+            rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
+                         parameters['-num_time_pts'], parameters['-TR'], interpolationOrder = 'linear')
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -857,23 +857,7 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratoryBCoeffs.append(1.0)
     
     global GLOBAL_M
-    
-    # Make output table columns names
-    columnNames = []
-    numSections = parameters["-s"]
-    len_resp = len(respiratory_phases)
-    len_card = len(cardiac_phases)
-    if len_resp:
-        for s in range(0,numSections):
-            for r in range(0,4):
-                string = 's' + str(s) + '.Resp' + str(r)
-                columnNames.append(string)
-    if len_card:
-        for s in range(0,numSections):
-            for r in range(0,4):
-                string = 's' + str(s) + '.Card' + str(r)
-                columnNames.append(string)
-        
+           
     # Make output table data matrix
     data = []
     len_resp = len(respiratory_phases)
@@ -914,11 +898,12 @@ def getPhysiologicalNoiseComponents(parameters):
     print("DEBUG: nsections =", numSections)
     data = np.reshape(data[0:nrow-(nrow%numSections)][:], (nreg*numSections, -1)).T
     print("DEBUG: shape AFTER =", np.shape(data))
-            
-    # return 
+        
+    # return df   
     physiologicalNoiseComponents = dict()
     physiologicalNoiseComponents['respiratory_phases'] = respiratory_phases
     physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
+    physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
     return physiologicalNoiseComponents
 
 def readRawInputData(respcard_info, filename=None, phys_dat=None):
@@ -1281,7 +1266,8 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                     ]
                     label = "%s s%d.Card%d ;" % (label, i, j)
     else:
-        main_info["rvt_out"] = 0
+        # main_info["rvt_out"] = 0
+        respiration_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
@@ -1410,7 +1396,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     
     return  phasee
 
-def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
+def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, TR, interpolationOrder = 'linear'):
     """
     NAME
         getRVT 
@@ -1421,7 +1407,7 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
     TYPE
         <class 'list'>
     SYNOPSIS
-       getRVT(rawData, respiratory_peaks, respiratory_troughs, freq)
+       getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, interpolationOrder)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -1430,15 +1416,56 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq):
         respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
         
         freq:       <class 'float'> Time point sampling frequency in Hz
+        
+        interpolationOrder:    <class 'str'> Method of interpolation among critical
+                                points (peaks, troughs, etc.)  Valid values are 'linear'
+                                (the default), 'quadratic' and 'cubic'.  The following are
+                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren 
     """
        
-    rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq)
+    # Get raw RVT values
+    rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq,
+                       interpolationOrder = interpolationOrder)
     
+    # Get RVT regressors
+    NUM_RVT = 5
+    rvtRegressors = getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder)
     
-    # TODO: Add code
+    return rvtRegressors
+
+def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder = 'linear'):
+    time = []    
+    end = len(rawRVT)
+    for i in range(0,end): time.append(i/freq)
+    
+    NT_InterpPts = np.zeros(num_time_pts)
+    for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
+    
+    rvt_shifts = []
+    for i in range(0,NUM_RVT): rvt_shifts.append(i * NUM_RVT)
+
+    output = np.zeros((len(rvt_shifts), num_time_pts)) # 2D array of zeros
+    for i in range(0, NUM_RVT):    # Process each row
+        shf = rvt_shifts[i]                # i-th RVT 
+        nsamp = int(round(shf * freq))  # i-th RVT times sample frequency
+        sind = np.add(list(range(0, len(time))), nsamp) # array of integers from nsamp
+                                                          # to nsamp times the number of samples
+        sind[np.nonzero(sind < 0)] = 0          # Rectify result
+        sind[np.nonzero(sind > (len(time) - 1))] = len(time) - 1 # Limit result to length of input
+        rvt_shf = scipy.interpolate._interpolate.interp1d(   # Build function that maps time to rawRVT[sind]
+            time, rawRVT[sind], kind = interpolationOrder, bounds_error=True
+        )
+        rvt_shf_y = rvt_shf(NT_InterpPts) # Apply function to time
+        
+        output[:][i] = rvt_shf_y
+        
+    return output 
+
+    
     
 def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
               interpolationOrder = 'linear'):
