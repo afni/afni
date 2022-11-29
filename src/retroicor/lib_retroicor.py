@@ -1417,6 +1417,8 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, 
         
         freq:       <class 'float'> Time point sampling frequency in Hz
         
+        num_time_pts: (dType = int) Number of time points in the output
+        
         interpolationOrder:    <class 'str'> Method of interpolation among critical
                                 points (peaks, troughs, etc.)  Valid values are 'linear'
                                 (the default), 'quadratic' and 'cubic'.  The following are
@@ -1438,6 +1440,39 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, 
     return rvtRegressors
 
 def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder = 'linear'):
+    """
+    NAME
+        getRvtRegressors 
+            Get RVT regressors that can be used in the fMRI time series analysis and is an 
+            estimate of the respiration volume per time.  See ``Separating 
+            respiratory-variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
+            and Peter A. Bandettini, NeuroImage 31 (2006) p. 1537
+    TYPE
+        <class 'numpy.ndarray'>
+    SYNOPSIS
+       getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder = 'linear')
+    ARGUMENTS
+        rawRVT:     <class 'numpy.ndarray'> RVT at each input time point
+        
+        NUM_RVT:    <class 'int'> Number of time points in the output.
+        
+        freq:       <class 'float'> Time point sampling frequency in Hz
+        
+        num_time_pts: (dType = int) Number of time points in the output
+        
+        TR:    <class 'float'> Volume TR.
+        
+        interpolationOrder:    <class 'str'> Method of interpolation among critical
+                                points (peaks, troughs, etc.)  Valid values are 'linear'
+                                (the default), 'quadratic' and 'cubic'.  The following are
+                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+                       
+    AUTHOR
+       Peter Lauren  and Joshua Zosky
+    """
+       
     time = []    
     end = len(rawRVT)
     for i in range(0,end): time.append(i/freq)
