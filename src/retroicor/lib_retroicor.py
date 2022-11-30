@@ -903,7 +903,7 @@ def getPhysiologicalNoiseComponents(parameters):
     physiologicalNoiseComponents = dict()
     physiologicalNoiseComponents['respiratory_phases'] = respiratory_phases
     physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
-    physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
+    if parameters['rvt_out']: physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
     return physiologicalNoiseComponents
 
 def readRawInputData(respcard_info, filename=None, phys_dat=None):
@@ -1267,7 +1267,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                     label = "%s s%d.Card%d ;" % (label, i, j)
     else:
         # main_info["rvt_out"] = 0
-        respiration_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
+        if main_info['rvt_out']: respiration_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
@@ -1475,10 +1475,12 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
        
     time = []    
     end = len(rawRVT)
-    for i in range(0,end): time.append(i/freq)
+    # for i in range(0,end): time.append(i/freq)
+    for i in range(0,end): time.append(i)
     
     NT_InterpPts = np.zeros(num_time_pts)
-    for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
+    # for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
+    for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR/freq
     
     rvt_shifts = []
     for i in range(0,NUM_RVT): rvt_shifts.append(i * NUM_RVT)
@@ -1496,6 +1498,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
         )
         rvt_shf_y = rvt_shf(NT_InterpPts) # Apply function to time
         
+        # output[:][i] = rvt_shf_y
         output[:][i] = rvt_shf_y
         
     return output 
@@ -1612,17 +1615,21 @@ def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'li
     # Get critical point periods
     criticalPointPeriods = [(j-i)/freq for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
     
-    # Apply first period to beginning
-    criticalPoints.insert(0,0)
-    criticalPointPeriods.insert(0,criticalPointPeriods[0])
-
-    # Apply last period to end
-    criticalPoints.append(fullLength)
-    criticalPointPeriods.append(criticalPointPeriods[-1])
-    
     # Output layer is found by interpoalting the periods among the critical points
     f = scipy.interpolate._interpolate.interp1d(criticalPoints, criticalPointPeriods, kind = interpolationOrder)    
-    layer = f([x for x in range(0,fullLength)])
+    layer = f([x for x in range(criticalPoints[0],criticalPoints[-1])])
+    
+    # Apply first period to beginning
+    insertion = [layer[0]] * respiratory_peaks[0]
+    layer = np.insert(layer, 0, insertion)
+    # criticalPoints.insert(0,0)
+    # criticalPointPeriods.insert(0,criticalPointPeriods[0])
+
+    # Apply last period to end
+    appendage = (fullLength - len(layer)) * [layer[-1]]
+    layer = np.append(layer, appendage)
+    # criticalPoints.append(fullLength)
+    # criticalPointPeriods.append(criticalPointPeriods[-1])
     
     return layer
 
