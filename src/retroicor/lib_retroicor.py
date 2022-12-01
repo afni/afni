@@ -783,6 +783,8 @@ def getPhysiologicalNoiseComponents(parameters):
             
             -TR      : (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
                         which defines the length of time            
+                        
+            -num_time_pts:  (dType = int) Number of time points in the output
     AUTHOR
        Peter Lauren
     """
@@ -834,21 +836,9 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False])
-            
-        # Get maximum number of output time points
-        max_numTime_pts = len(np.arange(
-            0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
-        ))
         
-        # If the user has supplied the number of output times points, it must not 
-        #   be greater than the determined maximum
-        if parameters['-num_time_pts']: 
-            if parameters['-num_time_pts'] > max_numTime_pts:
-                print('WARNING: -num_time_pts argument too large for input data')
-                print('  Adjusted to maximum allowable value, ', max_numTime_pts)
-                parameters['-num_time_pts'] = max_numTime_pts
-        else: 
-            parameters['-num_time_pts'] = max_numTime_pts
+        # Ensure number of output time points not too high
+        parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
             
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
@@ -922,6 +912,47 @@ def getPhysiologicalNoiseComponents(parameters):
     physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
     if parameters['rvt_out']: physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
     return physiologicalNoiseComponents
+
+def limitNumOutputTimepoints(rawData, parameters):
+    """
+    NAME
+        limitNumOutputTimepoints
+            Ensure number of output time points not too high
+     TYPE
+        <class 'int'>
+    SYNOPSIS
+        limitNumOutputTimepoints(rawData, parameters) 
+    ARGUMENTS
+        rawData: (array, dType = float) Raw input data
+        
+        parameters:   Dictionary with the following fields.
+            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
+                        which defines the length of time 
+                        
+            -num_time_pts:  (dType = int) Number of time points in the output
+
+    AUTHOR
+        Peter Lauren
+    """
+            
+    # Get maximum number of output time points
+    max_numTime_pts = len(np.arange(
+        0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
+    ))
+    
+    # If the user has supplied the number of output times points, it must not 
+    #   be greater than the determined maximum
+    if parameters['-num_time_pts']: 
+        if parameters['-num_time_pts'] > max_numTime_pts:
+            print('WARNING: -num_time_pts argument too large for input data')
+            print('  Adjusted to maximum allowable value, ', max_numTime_pts)
+            parameters['-num_time_pts'] = max_numTime_pts
+    else: 
+        parameters['-num_time_pts'] = max_numTime_pts
+        
+    return parameters['-num_time_pts']
 
 def readRawInputData(respcard_info, filename=None, phys_dat=None):
     """

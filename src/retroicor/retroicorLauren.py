@@ -152,7 +152,7 @@ def getSliceOffsets(offsetDict):
             volume_tr:   (dType = float) Volume repetition time (TR) which defines the length of time 
             between the acquisition of consecutive frames/volumes; in seconds
             
-            num_time_pts:  (dType = int) Number of time points in the output
+            -num_time_pts:  (dType = int) Number of time points in the output
             
             slice_offset:   (2D array dType = numpy.float64) Vector of slice 
                             acquisition time offsets in seconds.
