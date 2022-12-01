@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Dec , 2022 , PT , "align_epi_anat.py" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: using -pre_matrix with -output_dir was broken.",
+   "Now internally use full path for pre_matrix (+bonus: check existence).\n"
+},
+
 { 27, Nov , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
    "Update the help for integrating SSW with afni_proc.py (AP).",
    "More readable, and simpler option usage\n"
