@@ -742,7 +742,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     print('Frequency peak: ' + str(F0 * frequencyPeak) + ' Hz')
         
     # Determine band limits
-    lowerMin = round(frequencyPeak/2)
+    # lowerMin = round(frequencyPeak/2)                DEBUG
+    lowerMin = round(frequencyPeak/3)                # debug
     lowerMax = round(1.5*frequencyPeak)
     upperMin = rawDataLength - lowerMax
     upperMax = rawDataLength - lowerMin

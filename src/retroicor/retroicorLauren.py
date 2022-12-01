@@ -426,7 +426,7 @@ def retro_ts(
 
     respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
         getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                            phys_json, respiration_out, cardiac_out, rvt_out)        
+                            phys_json, respiration_out, cardiac_out, rvt_out) 
         
     # Set paremeters
     parameters = dict()

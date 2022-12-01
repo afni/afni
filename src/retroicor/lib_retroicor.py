@@ -776,11 +776,13 @@ def getPhysiologicalNoiseComponents(parameters):
             
             -cardFile:   file containing cardiac time series
             
-            -aby     :   whether  a and b coefficients as per Glover et al, Magnetic 
+            -aby     : whether  a and b coefficients as per Glover et al, Magnetic 
                                         Resonance in Medicine 44:162–167 (2000)
                                         
-            -niml    :   whether output should be in niml format instead of CSV
+            -niml    : whether output should be in niml format instead of CSV
             
+            -TR      : (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
+                        which defines the length of time            
     AUTHOR
        Peter Lauren
     """
@@ -832,6 +834,21 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False])
+            
+        # Get maximum number of output time points
+        max_numTime_pts = len(np.arange(
+            0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
+        ))
+        
+        # If the user has supplied the number of output times points, it must not 
+        #   be greater than the determined maximum
+        if parameters['-num_time_pts']: 
+            if parameters['-num_time_pts'] > max_numTime_pts:
+                print('WARNING: -num_time_pts argument too large for input data')
+                print('  Adjusted to maximum allowable value, ', max_numTime_pts)
+                parameters['-num_time_pts'] = max_numTime_pts
+        else: 
+            parameters['-num_time_pts'] = max_numTime_pts
             
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
@@ -1268,6 +1285,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     else:
         # main_info["rvt_out"] = 0
         if main_info['rvt_out']: respiration_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
+        # if main_info['rvt_out']: respiration_info["rvtrs_slc"] = np.matrix.transpose(physiologicalNoiseComponents['rvt_coeffs'])
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
@@ -1476,11 +1494,11 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
     time = []    
     end = len(rawRVT)
     # for i in range(0,end): time.append(i/freq)
-    for i in range(0,end): time.append(i)
+    for i in range(0,end): time.append(i/freq)
     
     NT_InterpPts = np.zeros(num_time_pts)
     # for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
-    for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR/freq
+    for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     
     rvt_shifts = []
     for i in range(0,NUM_RVT): rvt_shifts.append(i * NUM_RVT)
@@ -1502,9 +1520,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
         output[:][i] = rvt_shf_y
         
     return output 
-
-    
-    
+      
 def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
               interpolationOrder = 'linear'):
     """
