@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Dec , 2022 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "Opt '-init_scale ..' to provide initial len scaling before affine align.",
+   "Useful if input is much smaller/bigger than template.\n"
+},
+
 { 1, Dec , 2022 , PT , "align_epi_anat.py" , MICRO , TYPE_BUG_FIX,
    "Fix bug: using -pre_matrix with -output_dir was broken.",
    "Now internally use full path for pre_matrix (+bonus: check existence).\n"
