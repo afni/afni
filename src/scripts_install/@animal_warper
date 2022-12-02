@@ -346,9 +346,12 @@ set progname = @animal_warper
 #     + [PT] fix desc of opt name "-qw_opts" in help to what it actually is:
 #            "-extra_qw_opts".  Thanks, C Garin.
 #   
-set version   = "3.6";   set rev_dat   = "Dec 1, 2022"
+#set version   = "3.6";   set rev_dat   = "Dec 1, 2022"
 #     + [PT] new opt '-init_scale ..' for pre-scaling input anatomical if
 #            it is much smaller/larger than the template (applied in AEA)
+#   
+set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
+#     + [PT] add QC image when using '-init_scale ..'
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -420,10 +423,11 @@ set backup_ao          = ""
 set DO_ECHO            = ""
 
 # put all QC/ image prefixes here, so we refer more easily to them in help
-set iqc00 = init_qc_00.input+base
-set iqc01 = init_qc_01.input_sh+base
-set iqc02 = init_qc_02.input_aff+base
-set iqc03 = init_qc_03.input_NL+base
+set iqc00  = init_qc_00.input+base
+set iqc01  = init_qc_01.input_sh+base
+set iqc01b = init_qc_01.input_sh_scale+base      # if init scaling is used
+set iqc02  = init_qc_02.input_aff+base
+set iqc03  = init_qc_03.input_NL+base
 
 set qc00  = qc_00.wrpd_input+base
 set qc01  = qc_01.input+wrpd_base
@@ -1488,6 +1492,23 @@ ${init_scale} 0.0 0.0 0.0
 0.0 ${init_scale} 0.0 0.0
 0.0 0.0 ${init_scale} 0.0
 EOF
+      # just for QC image-generating purposes
+      3dAllineate                                                  \
+         -overwrite                                                \
+         -1Dmatrix_apply "${premat_fname}"                         \
+         -input          "${imed}/${srcsh_dset}"                   \
+         -prefix         "${imed}/__tmp_INIT_SCALE.nii.gz"
+
+      set opref = QC/${iqc01b}${src_add}
+      @djunct_overlap_check                             \
+          -ulay    "${imed}/__tmp_INIT_SCALE.nii.gz"    \
+          -olay    "${base_dset}"                       \
+          -opacity 3                                    \
+          -prefix  ${opref}
+
+      if ( "${keep_temp}" != "1") then
+         \rm -rf "${imed}/__tmp_INIT_SCALE.nii.gz"
+      endif
    endif
 
    # outputs a BRIK/HEAD file
@@ -3432,6 +3453,10 @@ Outputs (we got plenty of 'em!) ~1~
 
     + ${iqc01}*.jpg
       [ulay] input source dset, center-shifted location
+      [olay] base dset
+
+    + ${iqc01b}*.jpg   (only created if using '-init_scale ..')
+      [ulay] same as previous ulay, but with init_scale value applied
       [olay] base dset
 
     + ${iqc02}*.jpg
