@@ -1416,6 +1416,11 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     phasee["time_series_time"] = np.arange(
         0, (max(phasee["t"]) - 0.5 * phasee["volume_tr"]), phasee["volume_tr"]
     )
+    
+    # Reduce number of output time points to user-specified value if required.
+    if parameters['-num_time_pts']:
+        phasee["time_series_time"] = phasee["time_series_time"][0:parameters['-num_time_pts']]  
+    
     if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
         phasee["time_series_time"] = np.append(
             phasee["time_series_time"],
