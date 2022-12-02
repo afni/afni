@@ -818,6 +818,9 @@ def getPhysiologicalNoiseComponents(parameters):
             cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
                                                 parameters['phys_fs'], rawData)
         
+        # Ensure number of output time points not too high
+        parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
+        
     # Process respiratory data if any
     if parameters["-respFile"] or len(parameters["phys_resp_dat"]) > 0:
 
