@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Dec , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Put quotes around (hopefully) every path, so spaces in paths are OK.",
+   "This is because of OneDrive.  Grrrr.\n"
+},
+
 { 6, Dec , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
    "Put quotes around (hopefully) every path, so spaces in paths are OK.",
    "This is because of OneDrive.  Grrrr.\n"

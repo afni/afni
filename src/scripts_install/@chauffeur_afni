@@ -1599,7 +1599,7 @@ if ( "${clust_cmd}" != "" ) then
     endif
 
 # store the command (don't indent)
-cat <<EOF > ${odir}/${impref}_clust_cmd.txt
+cat <<EOF > "${odir}/${impref}_clust_cmd.txt"
 3dClusterize                                  \
     ${clust_cmd}                              \
     -idat ${subbb[2]}                         \
@@ -1614,9 +1614,9 @@ EOF
         -idat ${subbb[2]}                         \
         -ithr ${subbb[3]}                         \
         ${clust_thr_args}                         \
-        -pref_map ${read_dir}/olay_clust.nii      \
-        -inset  ${olay}                           \
-        > ${odir}/${impref}_clust_rep.txt
+        -pref_map "${read_dir}/olay_clust.nii"    \
+        -inset  "${olay}"                         \
+        > "${odir}/${impref}_clust_rep.txt"
 
     if ( $status ) then
         echo "** ERROR: 3dClusterize failed for some reason (see above)."
@@ -1629,12 +1629,12 @@ EOF
         whereami                                                             \
             -omask       ${read_dir}/olay_clust.nii                          \
             -atlas       "${clust_wami}"                                     \
-            > ${odir}/${impref}_clust_whereami.txt
+            > "${odir}/${impref}_clust_whereami.txt"
 
         if ( $status ) then
             echo "** WARNING: bad whereami; check atlas: ${clust_wami}"
             echo "** WARNING: bad whereami; check atlas: ${clust_wami}" \
-                >> ${odir}/${impref}_clust_whereami.txt
+                >> "${odir}/${impref}_clust_whereami.txt"
         endif
     endif
 
@@ -2470,7 +2470,7 @@ if ( $?killX ) kill %1
 if ( $DO_CLEAN ) then
     echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
     # AKA $read_dir, at present
-    \rm -rf $odir/$tmp_dir
+    \rm -rf "$odir/$tmp_dir"
 else
     echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
 endif
