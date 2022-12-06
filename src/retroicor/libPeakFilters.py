@@ -722,9 +722,6 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     if (np.isnan(np.sum(rawData))):
         print('*** ERROR in bandPassFilterRawDataAroundDominantFrequency: nan values in data: ')
         return []
-
-    # Remove NaNs from raw data
-    # rawData = [x for x in rawData if math.isnan(x) == False]
     
     rawDataLength = len(rawData)
     
@@ -736,15 +733,33 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     
     # Get Fourier transform
     FourierTransform = np.fft.fft(rawData)
+    FourierSpectrum = abs(FourierTransform)
     
     # Determine frequency peak
-    frequencyPeak = np.argmax(abs(np.fft.fft(rawData))[lowerCutoffIndex:round(rawDataLength/2)])+lowerCutoffIndex
+    NyquistLength = round(rawDataLength/2)
+    frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])+lowerCutoffIndex
     print('Frequency peak: ' + str(F0 * frequencyPeak) + ' Hz')
-        
+    
+    # Find bounds based on -3 dB limits
+    peakVal = FourierSpectrum[frequencyPeak]
+    targetValue = peakVal/2
+    leftIndices = [i for i in range(0,frequencyPeak) if FourierSpectrum[i] < targetValue]
+    if len(leftIndices) == 0:
+       lowerMin = 0
+    else: lowerMin = max(leftIndices)
+    rightIndices = [i for i in range(frequencyPeak,NyquistLength) if FourierSpectrum[i] < targetValue]
+    if len(rightIndices) == 0:
+       lowerMax = NyquistLength-1
+    else: lowerMax = min(rightIndices)
+    
+    # Avoid filter being too narrow
+    lowerMin = min(round(frequencyPeak/2), lowerMin)
+    lowerMax = max(round(1.5*frequencyPeak), lowerMax)
+                                
     # Determine band limits
     # lowerMin = round(frequencyPeak/2)                DEBUG
-    lowerMin = round(frequencyPeak/3)                # debug
-    lowerMax = round(1.5*frequencyPeak)
+    # lowerMin = round(frequencyPeak/3)                # debug
+    # lowerMax = round(1.5*frequencyPeak)
     upperMin = rawDataLength - lowerMax
     upperMax = rawDataLength - lowerMin
     
