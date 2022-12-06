@@ -1480,6 +1480,18 @@ more details for select functions:
   SPMG1                 : 1-regressor SPM gamma variate
                duration : positive lobe: 0..12 sec, undershoot: 12..24 sec
                    peak : 0.175 @ t=5.0, -0.0156 @ t=15.7
+
+                        * Note that SPMG1 is pretty close to (a manually toyed
+                          with and not mathematically derived (that would be
+                          too useful)):
+
+                             TWOGAMpw(5,5.3,0.0975,15,9)
+
+                          However TWOGAMpw() scales to a peak of 1.
+
+  SPMG1(d)              : SPMG1 convolved for a duration of d seconds.
+                        * Convolved versions are scaled to a peak of 1.
+
   SPMG, SPMG2           : 2-regressor SPM gamma variate
                         : with derivative, to account for small temporal shift
   SPMG3                 : 3-regressor SPM gamma variate
