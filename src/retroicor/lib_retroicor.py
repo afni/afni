@@ -867,6 +867,7 @@ def getPhysiologicalNoiseComponents(parameters):
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
                          parameters['-num_time_pts'], parameters['-TR'], interpolationOrder = 'linear')
+    else: parameters['rvt_out'] = False
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
@@ -1409,7 +1410,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
             -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
                         which defines the length of time 
             
-            -phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
         
             slice_offset: Vector of slice acquisition time offsets in seconds.
                           (default is equivalent of alt+z)
@@ -1421,7 +1422,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     phasee = dict()
     phasee["number_of_slices"] = parameters['-s']
     phasee['slice_offset'] = parameters['slice_offset']
-    timeStepIncrement = 1.0/parameters['-phys_fs']
+    timeStepIncrement = 1.0/parameters['phys_fs']
     
     if dataType == 'c':
         phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']

@@ -459,6 +459,7 @@ def retro_ts(
     if parameters['-niml']:
         return 0
     
+    parameters
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
     outputFileName = path + "/" + prefix + "FourierSeries.csv"
