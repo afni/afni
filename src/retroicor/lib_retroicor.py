@@ -214,7 +214,23 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
 
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period)   
+   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, graph = parameters['verbose'],
+                               phys_fs = parameters["phys_fs"])   
+   
+   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # This is tomove false peaks on the upstroke
+   # searchLength = round(parameters["-phys_fs"]/16)
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+   if len(peaks) == 0:
+       print('ERROR in getCardiacPeaks: Peaks array empty')
+       return peaks, len(rawData)
+    
+   # Remove false peaks on the downstroke
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+        graph = parameters['verbose'], dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
    
            
      # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
@@ -232,7 +248,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    #          for i in range(1,numberToAdd):
    #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
     
-   # Graph respiratory peaks and troughs against respiratory time series
+   # Graph cardiac peaks against respiratory time series
    if parameters['dev']:
        lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Cardiac",
             OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
@@ -417,6 +433,11 @@ def getRespiratoryPeaks(parameters, rawData):
     peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
         graph = parameters['verbose'], dataType = "Respiratory",  
         phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+   
+    # Adjust troughs from uniform spacing
+    troughs = lpf.refinePeakLocations(troughs, rawData, graph = parameters['verbose'],
+             dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
+             Troughs = True, saveGraph = parameters['verbose'], OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)

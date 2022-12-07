@@ -889,10 +889,18 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False, graph = 
     peaks = peaks + offsets
             
     # Graph (and save) results as required
+    if Troughs:
+        Caption = 'Adjust troughs from uniform spacing.'
+        Troughs = peaks
+        Peaks = []
+    else:
+        Caption = 'Adjust peaks from uniform spacing.'
+        Troughs = []
+        Peaks = peaks
     if graph and phys_fs:
-       graphPeaksAgainstRawInput(rawData, peaks, phys_fs, dataType, 
+       graphPeaksAgainstRawInput(rawData, Peaks, phys_fs, dataType, 
             OutDir = OutDir, prefix = dataType + 'AdjustPeaksFromUniformSpacing', 
-            caption = 'Adjust peaks from uniform spacing.')
+            caption = Caption, troughs = Troughs)
            
     # Apply offsets
     return peaks
