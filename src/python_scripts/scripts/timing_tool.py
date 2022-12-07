@@ -213,7 +213,7 @@ examples: ~1~
           timing_tool.py -multi_timing stimes.*.txt        \\
                -multi_timing_to_events all.events.txt      \\
                -tr 1.25 -multi_stim_dur 1 -min_frac 0.5    \\
-               -per_run -run_len 370 
+               -per_run -run_len 370
 
    Example 8b.  break the event list into events and ISIs ~2~
 
@@ -228,7 +228,7 @@ examples: ~1~
           timing_tool.py -multi_timing stimes.*.txt            \\
                -multi_timing_to_event_pair events.txt isi.txt  \\
                -tr 1.25 -multi_stim_dur 1 -min_frac 0.5        \\
-               -per_run -run_len 370 
+               -per_run -run_len 370
 
    Example 9a.  convert from global stim times to local ~2~
 
@@ -239,7 +239,7 @@ examples: ~1~
                 -global_to_local local.1D                      \\
                 -run_len 200 200 200
 
-       Note that if stim.1D looks like this ( ** but as a single column ** ): 
+       Note that if stim.1D looks like this ( ** but as a single column ** ):
 
                 12.3 115 555 654 777 890
 
@@ -320,7 +320,7 @@ examples: ~1~
 
       Restrict global events list to:
 
-             event index (i), duration (d), offset from previous (o), 
+             event index (i), duration (d), offset from previous (o),
              start time (t), and stim file (f)
 
        Also, write the output to elist13b.txt, rather than the screen.
@@ -477,7 +477,7 @@ examples: ~1~
       whatever comes next (usually a BPress, but if that does not happen,
       Post is the limit).
 
-      Suppose the inputs are 3 timing files stim.Pre.txt, stim.BPress.txt and 
+      Suppose the inputs are 3 timing files stim.Pre.txt, stim.BPress.txt and
       stim.Post.txt, and we want to create stim.Pre_DM.txt to be the same as
       stim.Pre.txt, but with that variable duration attached.  Then use the
       -multi_durations_from_offsets option as follows, providing the old
@@ -572,7 +572,7 @@ options with both single and multi versions (all single first): ~1~
         e.g. empty (no events)
 
                 0         0         0
-        
+
         If all durations are the same, the result will not have duration
         modulators.
 
@@ -585,9 +585,9 @@ options with both single and multi versions (all single first): ~1~
         Comment lines are okay (starting with #).
 
             Consider -write_as_married.
-        
+
    --------------------
-        
+
    -multi_timing FILE1 FILE2 ... : specify multiple timing files to load ~2~
 
         e.g. -timing stimesB_*.1D
@@ -796,7 +796,7 @@ action options (apply to single timing element, only): ~1~
         A label of 0 will cause that timing entry to be dropped.  Otherwise,
         each distinct label will have those times put into its timing file.
 
-        e.g. 
+        e.g.
 
                 timing file:
                     23.5     46.0     79.3     84.9      116.2
@@ -928,7 +928,7 @@ action options (apply to single timing element, only): ~1~
         e.g. -timing_to_1D stim_file.1D
 
         This action is used to convert stimulus times to set (i.e. 1) values
-        in a 1D stim_file.  
+        in a 1D stim_file.
 
         Besides an input -timing file, -tr is needed to specify the timing grid
         of the output 1D file, -stim_dur is needed to specify the duration of
@@ -1081,9 +1081,9 @@ action options (apply to multi timing elements, only): ~1~
         e.g. -multi_timing_to_event_pair events.txt isi.txt
 
         Similar to -multi_timing_to_events, but break the output event file
-        into 2 pieces, an event list and an ISI list.  Each event E followed by 
+        into 2 pieces, an event list and an ISI list.  Each event E followed by
         K zeros in the previous events file would be broken into a single E (in
-        the new event file) and K+1 (in the ISI file).  Note that K+1 is 
+        the new event file) and K+1 (in the ISI file).  Note that K+1 is
         appropriate from the assumption that events are 0-duration.  The ISI
         entries should sum to the total number of TRs per run.
 
@@ -1198,7 +1198,7 @@ general options: ~1~
 
         e.g. -mplaces 1
 
-        Akin to -nplaces, this option controls the number of places to the 
+        Akin to -nplaces, this option controls the number of places to the
         right of the decimal that are used when printing stimulus event
         modulators (amplitude and duration modulators).
         The default is -1, which uses the minimum needed for accuracy.
@@ -1335,7 +1335,7 @@ general options: ~1~
 
         In the case of a show_isi_stats option, the user can opt to save all
         rest (pre-stim, isi, post-stim) durations to a timing-style file.  Each
-        row (run) would have one more entry than the number of stimuli (for 
+        row (run) would have one more entry than the number of stimuli (for
         pre- and post- rest).  Note that pre- and post- might be 0.
 
 -----------------------------------------------------------------------------
@@ -1356,8 +1356,8 @@ quick ~sorted listing (with grouping):
     dmBLOCK                     : duration modulated BLOCK
     dmUBLOCK                    : duration modulated BLOCK,
                                   with convolved Unit height
-    BLOCK4(...)                 : explicitly use BLOCK4
-    BLOCK5(...)                 : explicitly use BLOCK5
+    BLOCK4(...)                 : explicitly use BLOCK4 shape (default)
+    BLOCK5(...)                 : explicitly use BLOCK5 shape
 
     CSPLIN(b,c,n)               : n-param cubic spline,
                                   from time b to c sec after event
@@ -1377,9 +1377,9 @@ quick ~sorted listing (with grouping):
     TWOGAMpw(K1,W1,r,K2,W2)     : GAMpw(K1,W1) - r*GAMpw(K2,W2)
 
     MION(d)                     : d-second convolution of h(t) =
-                                      16.4486 * ( -0.184/ 1.5 * exp(-t/ 1.5)   
-                                                  +0.330/ 4.5 * exp(-t/ 4.5)   
-                                                  +0.670/13.5 * exp(-t/13.5) ) 
+                                      16.4486 * ( -0.184/ 1.5 * exp(-t/ 1.5)
+                                                  +0.330/ 4.5 * exp(-t/ 4.5)
+                                                  +0.670/13.5 * exp(-t/13.5) )
     MIONN(d)                    : negative of MION(d) (to get positive betas)
 
     POLY(b,c,n)                 : n-parameter Legendre polynomial expansion,
@@ -1391,10 +1391,12 @@ quick ~sorted listing (with grouping):
     SPMG                        : same as SPMG2
     SPMG1                       : 1-parameter SPM gamma variate function
                                      exp(-t)*(A1*t^P1-A2*t^P2) where
-                                     A1 = 0.0083333333  P1 = 5  (main lobe) 
+                                     A1 = 0.0083333333  P1 = 5  (main lobe)
                                      A2 = 1.274527e-13  P2 = 15 (undershoot)
+                                : approximately equal to
+                                     TWOGAMpw(5,5.3,0.0975,15,9)
     SPMG2                       : 2-parameter SPM = SPMG1 + derivative
-    SPMG3                       : 3-parameter SPM : SPMG2 + dispersion 
+    SPMG3                       : 3-parameter SPM : SPMG2 + dispersion
     SPMG1(d)                    : SPMG1 convolved for duration d
     SPMG2(d)                    : SPMG2 convolved for duration d
     SPMG3(d)                    : SPMG3 convolved for duration d
@@ -1420,7 +1422,7 @@ more details for select functions:
   GAM(p,q,d)            : convolve with d-second boxcar
                defaults : p=8.6, q=0.547
                duration : approx. 12+d seconds
- 
+
                    peak : peak = 1.0, default peak @ t=4.7
 
   ---------------------------------------------------------------------------
@@ -1443,20 +1445,37 @@ more details for select functions:
 
   duration modulation - individual stimulus durations included in timing file
 
-  dmBLOCK, dmBLOCK(0)   : akin to BLOCK(d), where d varies per stimulus event
-                   peak : see BLOCK(d), maybe dur=peak in [0,1], then max ~5.1
+  dmBLOCK               : akin to BLOCK(d), where d varies per stimulus event
+                   peak : peak ~= dur, for dur in [0,1]
+                        : max ~= 5.1, as dur approaches 15
                duration : see BLOCK(d), approx 15+d seconds
-  dmBLOCK(p)      p > 0 : all peaks equal to p, regardless of duration
-                          (same as dmUBLOCK(p))
-                  p < 0 : same as p=0, or dmBLOCK(0)
 
-  dmUBLOCK, dmUBLOCK(0) : basically equals dmBLOCK/5.1 (so max peak = 1)
+                        *********************************************
+  dmBLOCK(p)            * WARNING: basically do not use parameter p *
+                        *********************************************
+                  p = 0 : same as dmBLOCK
+                  p < 0 : same as p=0, or dmBLOCK
+                  p > 0 : all peaks equal to p, regardless of duration
+                          (same as dmUBLOCK(p))
+
+  dmUBLOCK              : basically equals dmBLOCK/5.1 (so max peak = 1)
                    peak : d=1:p=1/5.1, to max d=15:p=1 (i.e. BLOCK(d)/5.1)
-  dmUBLOCK(p)     p > 0 : all peaks = p, regardless of duration
-                          (same as dmBLOCK(p))
-                  p < 0 : like p=0, but scale so peak = 1 for dur=|p|
+               duration : see BLOCK(d), approx 15+d seconds
+
+  dmUBLOCK(p)     p = 0 : same as dmUBLOCK, no need to use p=0
+                  p < 0 : like p=0, but scale so peak = 1 @ dur=|p|
                           e.g. dmUBLOCK(-5) will have peak = 1.0 for a 5s dur,
                                i.e ~= dmBLOCK/4.0
+                        : shorter events still have smaller peaks, longer still
+                          have longer (up to the max at ~15 s)
+
+                        **********************************************
+                        * WARNING: basically do not use p > 0        *
+                        *        - this generally does not match     *
+                        *          what we expect of a BOLD response *
+                        **********************************************
+                  p > 0 : all peaks = p, regardless of duration
+                          (same as dmBLOCK(p))
 
   ---------------------------------------------------------------------------
 
@@ -1546,7 +1565,7 @@ g_history = """
    1.7  Jul 12, 2010 - added -truncate_times and -round_times
                        (added for S Durgerian)
    1.8  Aug 16, 2010 - use lib_textdata for I/O
-   1.9  Oct 15, 2010 
+   1.9  Oct 15, 2010
         - added -multi_timing_to_events, -multi_timing_to_event_pair, -per_run
           (added for N Adleman)
    1.10 Oct 16, 2010 - fixed timing_to_1D fractions
@@ -1656,7 +1675,7 @@ class ATInterface:
       # user options - multi var
       self.m_timing        = []         # AfniTiming:AfniData instance list
       self.m_fnames        = []
-      self.m_stim_dur      = [] 
+      self.m_stim_dur      = []
 
       # initialize valid_opts
       self.init_options()
@@ -1842,7 +1861,7 @@ class ATInterface:
          self.m_timing[ind].init_durations(sdurs[ind])
 
    def show_multi(self):
-      print('==================== multi-timing list ====================\n') 
+      print('==================== multi-timing list ====================\n')
       for rd in self.m_timing: rd.show()
 
    def write_timing(self, fname):
@@ -1872,7 +1891,7 @@ class ATInterface:
 
    def write_simple_tsv(self, prefix='', suffix='', sep=''):
       """write the multi timing files out using the given prefix, but in a
-         simple TSV format: 
+         simple TSV format:
             onset duration [modulators] trial_type
          if sep == ''      : separate with a tab
          if sep == 'space' : align with spaces      ** TODO **
@@ -2014,7 +2033,7 @@ class ATInterface:
       if suffix != '':
          return fname[:(len(suffix)+1)]
       return fname
-      
+
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
@@ -2031,87 +2050,87 @@ class ATInterface:
                          helpstr='display the current version number')
 
       # action options - single data
-      self.valid_opts.add_opt('-add_offset', 1, [], 
+      self.valid_opts.add_opt('-add_offset', 1, [],
                          helpstr='offset all data by the given value')
 
-      self.valid_opts.add_opt('-add_rows', 1, [], 
+      self.valid_opts.add_opt('-add_rows', 1, [],
                          helpstr='append the rows (runs) from the given file')
 
-      self.valid_opts.add_opt('-apply_end_times_as_durations', 1, [], 
+      self.valid_opts.add_opt('-apply_end_times_as_durations', 1, [],
                          helpstr='use as end times to apply as durations')
 
-      self.valid_opts.add_opt('-extend', 1, [], 
+      self.valid_opts.add_opt('-extend', 1, [],
                          helpstr='extend the rows lengths from the given file')
 
-      self.valid_opts.add_opt('-global_to_local', 1, [], 
+      self.valid_opts.add_opt('-global_to_local', 1, [],
                          helpstr='convert global times to local and write')
 
-      self.valid_opts.add_opt('-local_to_global', 1, [], 
+      self.valid_opts.add_opt('-local_to_global', 1, [],
                          helpstr='convert local times to global and write')
 
-      self.valid_opts.add_opt('-partition', 2, [], 
+      self.valid_opts.add_opt('-partition', 2, [],
                          helpstr='partition the events into multiple files')
 
-      self.valid_opts.add_opt('-part_init', 1, [], 
+      self.valid_opts.add_opt('-part_init', 1, [],
                          helpstr='initial index for event list part (def=0)')
 
-      self.valid_opts.add_opt('-round_times', 1, [], 
+      self.valid_opts.add_opt('-round_times', 1, [],
                          helpstr='round times up if past FRAC of TR')
 
-      self.valid_opts.add_opt('-scale_data', 1, [], 
+      self.valid_opts.add_opt('-scale_data', 1, [],
                          helpstr='multiply all data by the given value')
 
       self.valid_opts.add_opt('-select_runs', -1, [],
                          helpstr='copy old runs to go into new timing')
 
-      self.valid_opts.add_opt('-shift_to_run_offset', 1, [], 
+      self.valid_opts.add_opt('-shift_to_run_offset', 1, [],
                          helpstr='shift each run to start at time OFFSET')
 
-      self.valid_opts.add_opt('-show_duration_stats', 0, [], 
+      self.valid_opts.add_opt('-show_duration_stats', 0, [],
                          helpstr='display min/mean/max/stdev of event durs')
 
-      self.valid_opts.add_opt('-show_events', 0, [], 
+      self.valid_opts.add_opt('-show_events', 0, [],
                          helpstr='display events list')
 
-      self.valid_opts.add_opt('-show_timing', 0, [], 
+      self.valid_opts.add_opt('-show_timing', 0, [],
                          helpstr='display timing contents')
 
-      self.valid_opts.add_opt('-sort', 0, [], 
+      self.valid_opts.add_opt('-sort', 0, [],
                          helpstr='sort the data, per row')
 
-      self.valid_opts.add_opt('-test_local_timing', 0, [], 
+      self.valid_opts.add_opt('-test_local_timing', 0, [],
                          helpstr='check timing files for local timing issues')
 
-      self.valid_opts.add_opt('-timing_to_1D', 1, [], 
+      self.valid_opts.add_opt('-timing_to_1D', 1, [],
                          helpstr='convert stim_times to 0/1 stim_file')
 
-      self.valid_opts.add_opt('-timing_to_1D_mods', 0, [], 
+      self.valid_opts.add_opt('-timing_to_1D_mods', 0, [],
                          helpstr='write amplitude modulators, not binary')
 
-      self.valid_opts.add_opt('-timing_to_1D_warn_ok', 0, [], 
+      self.valid_opts.add_opt('-timing_to_1D_warn_ok', 0, [],
                          helpstr='make some conversion issues non-fatal')
 
-      self.valid_opts.add_opt('-transpose', 0, [], 
+      self.valid_opts.add_opt('-transpose', 0, [],
                          helpstr='transpose timing data (must be rectangular)')
 
-      self.valid_opts.add_opt('-marry_AM', 1, [], 
+      self.valid_opts.add_opt('-marry_AM', 1, [],
                          acplist=LT.g_marry_AM_methods,
                          helpstr='attach event modulators')
 
-      self.valid_opts.add_opt('-truncate_times', 0, [], 
+      self.valid_opts.add_opt('-truncate_times', 0, [],
                          helpstr='truncation times to multiple of TR')
 
-      self.valid_opts.add_opt('-write_timing', 1, [], 
+      self.valid_opts.add_opt('-write_timing', 1, [],
                          helpstr='write timing contents to the given file')
 
       # (ending with matches for multi)
-      self.valid_opts.add_opt('-timing', 1, [], 
+      self.valid_opts.add_opt('-timing', 1, [],
                          helpstr='load the given timing file')
-      self.valid_opts.add_opt('-show_isi_stats', 0, [], 
+      self.valid_opts.add_opt('-show_isi_stats', 0, [],
                          helpstr='show ISI stats for the main timing object')
-      self.valid_opts.add_opt('-show_timing_ele', 0, [], 
+      self.valid_opts.add_opt('-show_timing_ele', 0, [],
                          helpstr='display info about the main timing element')
-      self.valid_opts.add_opt('-stim_dur', 1, [], 
+      self.valid_opts.add_opt('-stim_dur', 1, [],
                          helpstr='provide a stimulus duration for main timing')
 
       # halfway case for FSL timing list
@@ -2125,62 +2144,62 @@ class ATInterface:
                          helpstr='load the 3 column TSV timing files')
       self.valid_opts.add_opt('-multi_timing_ncol_tsv', -1, [], okdash=0,
                          helpstr='load the N column TSV timing files')
-      self.valid_opts.add_opt('-multi_show_duration_stats', 0, [], 
+      self.valid_opts.add_opt('-multi_show_duration_stats', 0, [],
                          helpstr='display min/mean/max/stdev of event durs')
-      self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
+      self.valid_opts.add_opt('-multi_show_isi_stats', 0, [],
                          helpstr='show ISI stats for load_multi_timing objs')
-      self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
+      self.valid_opts.add_opt('-multi_show_timing_ele', 0, [],
                          helpstr='display info about the multi timing elements')
       self.valid_opts.add_opt('-multi_stim_dur', -1, [],
                          helpstr='provide stimulus durations for timing list')
-      self.valid_opts.add_opt('-multi_timing_to_events', 1, [], 
+      self.valid_opts.add_opt('-multi_timing_to_events', 1, [],
                          helpstr='convert stim_times event file')
-      self.valid_opts.add_opt('-multi_timing_to_event_pair', 2, [], 
+      self.valid_opts.add_opt('-multi_timing_to_event_pair', 2, [],
                          helpstr='convert stim_times event/isi files')
-      self.valid_opts.add_opt('-multi_durations_from_offsets', 2, [], 
+      self.valid_opts.add_opt('-multi_durations_from_offsets', 2, [],
                          helpstr='set durations for class from next events')
-      self.valid_opts.add_opt('-multi_timing_to_event_list', 2, [], 
+      self.valid_opts.add_opt('-multi_timing_to_event_list', 2, [],
                          helpstr='convert to event list (style, filename)')
-      self.valid_opts.add_opt('-write_multi_timing', 1, [], 
+      self.valid_opts.add_opt('-write_multi_timing', 1, [],
                          helpstr='write multi timing using the given prefix')
-      self.valid_opts.add_opt('-write_simple_tsv', 1, [], 
+      self.valid_opts.add_opt('-write_simple_tsv', 1, [],
                          helpstr='write multi timing in simple TSV format')
 
 
       # general options (including multi)
-      self.valid_opts.add_opt('-min_frac', 1, [], 
+      self.valid_opts.add_opt('-min_frac', 1, [],
                          helpstr='min tr fraction (in [0,1.0])')
-      self.valid_opts.add_opt('-nplaces', 1, [], 
+      self.valid_opts.add_opt('-nplaces', 1, [],
                          helpstr='set number of decimal places for printing')
-      self.valid_opts.add_opt('-mplaces', 1, [], 
+      self.valid_opts.add_opt('-mplaces', 1, [],
                          helpstr='number of decimal places for married info')
-      self.valid_opts.add_opt('-per_run', 0, [], 
+      self.valid_opts.add_opt('-per_run', 0, [],
                          helpstr='perform operations per run')
-      self.valid_opts.add_opt('-per_run_file', 0, [], 
+      self.valid_opts.add_opt('-per_run_file', 0, [],
                          helpstr='perform operations per run (one file each)')
       self.valid_opts.add_opt('-run_len', -1, [], okdash=0,
                          helpstr='specify the lengths of each run (seconds)')
-      self.valid_opts.add_opt('-show_tr_offsets', 0, [], 
+      self.valid_opts.add_opt('-show_tr_offsets', 0, [],
                          helpstr='show stimulus times modulo the TR')
-      self.valid_opts.add_opt('-show_tr_stats', 0, [], 
+      self.valid_opts.add_opt('-show_tr_stats', 0, [],
                          helpstr='show fractional TR stats timing files')
-      self.valid_opts.add_opt('-show_tsv_label_details', 0, [], 
+      self.valid_opts.add_opt('-show_tsv_label_details', 0, [],
                          helpstr='show column labels from TSV file')
-      self.valid_opts.add_opt('-write_tsv_cols_of_interest', 1, [], 
+      self.valid_opts.add_opt('-write_tsv_cols_of_interest', 1, [],
                          helpstr='write applied TSV columns to new file')
-      self.valid_opts.add_opt('-warn_tr_stats', 0, [], 
+      self.valid_opts.add_opt('-warn_tr_stats', 0, [],
                          helpstr='warn about bad fractional TR stats')
-      self.valid_opts.add_opt('-tr', 1, [], 
+      self.valid_opts.add_opt('-tr', 1, [],
                          helpstr='specify output timing resolution (seconds)')
-      self.valid_opts.add_opt('-tsv_def_dur_label', 1, [], 
+      self.valid_opts.add_opt('-tsv_def_dur_label', 1, [],
                          helpstr='specify label for duration column if d=n/a')
-      self.valid_opts.add_opt('-tsv_labels', -1, [], 
+      self.valid_opts.add_opt('-tsv_labels', -1, [],
                          helpstr='specify labels for conversion from TSV')
-      self.valid_opts.add_opt('-verb', 1, [], 
+      self.valid_opts.add_opt('-verb', 1, [],
                          helpstr='set the verbose level (default is 1)')
-      self.valid_opts.add_opt('-write_all_rest_times', 1, [], 
+      self.valid_opts.add_opt('-write_all_rest_times', 1, [],
                          helpstr='in isi_stats, save rest durations to file')
-      self.valid_opts.add_opt('-write_as_married', 0, [], 
+      self.valid_opts.add_opt('-write_as_married', 0, [],
                          helpstr='attempt to write timing files as married')
 
       return 0
@@ -2767,7 +2786,7 @@ class ATInterface:
       # make a new timing instance to write from married data, and write
       timing = self.m_timing[cindex].copy()
       timing.init_from_mdata(mdata)
-    
+
       timing.write_times(ofile, nplaces=self.nplaces,
                  mplaces=self.mplaces, force_married=1)
 
@@ -2848,7 +2867,7 @@ class ATInterface:
                            [ [onset, dur, class_label, amp mods...], ... ]
                          ]
 
-            allevents: from complete_event_list(nbased=0) 
+            allevents: from complete_event_list(nbased=0)
             labels:    labels to match class_index values
             nmods:     maximum modulators across classes
 
@@ -3056,7 +3075,7 @@ class ATInterface:
          elist.append(astr)
 
       return elist
-                        
+
    def make_s1d_ehdr_list(self, stypes):
 
       # apply special case of ALL for types
@@ -3079,7 +3098,7 @@ class ATInterface:
          else:         elist.append(astr)
 
       return elist
-                        
+
 
    def multi_timing_to_events(self, fname, wname=None):
       """convert multi-stim_times to 0..N event list

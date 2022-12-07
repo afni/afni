@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Dec, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add more detail to timing_tool.py -help_basis",
+   NULL
+ } ,
+
  { 23, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add examples simple_rest_QC, simple_rest_QC_na",
    "These are the DEFAULT comparison example in ap_run_simple_rest.tcsh."
