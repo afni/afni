@@ -446,9 +446,9 @@ def retro_ts(
     parameters['rvt_out'] = rvt_out
     parameters['slice_offset'] = slice_offset
     if prefix: parameters['prefix'] = prefix
-    elif  phys_json: parameters['prefix'] = phys_json.split('.', 1)[0]
-    elif  parameters['-cardFile']: parameters['prefix'] = parameters['-cardFile'].split('.', 1)[0]
-    elif  parameters['-respFile']: parameters['prefix'] = parameters['-respFile'].split('.', 1)[0]
+    elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
+    elif  parameters['-cardFile']: parameters['prefix'] = getPrefix(parameters['-cardFile'])
+    elif  parameters['-cardFile']: parameters['prefix'] = getPrefix(parameters['-respFile'])
     else: 
         print('Error: Could not determine output file prefix')
         return 1
@@ -478,6 +478,14 @@ def retro_ts(
     if (parameters['-abt']): print(repr(physiologicalNoiseComponents))
     
     return 0
+
+def getPrefix(fileName):
+    
+    if fileName.find('/') >= 0: return fileName.split('/',1)[-1].split('.', 1)[0] # Linux search path
+    if fileName.find(':') >= 0: return fileName.split(':',1)[-1].split('.', 1)[0] # Mac search path
+    
+    # No search path given
+    return fileName.split('.', 1)[0]
 
 
 if __name__ == "__main__":

@@ -867,7 +867,9 @@ def getPhysiologicalNoiseComponents(parameters):
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
                          parameters['-num_time_pts'], parameters['-TR'], interpolationOrder = 'linear')
-    else: parameters['rvt_out'] = False
+    else:
+        if parameters['rvt_out']: print('WARNING: Cannot determine RVT.  No respiratory data')
+        parameters['rvt_out'] = False
         
     if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
