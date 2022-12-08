@@ -258,7 +258,7 @@ def retro_ts(
     volume_tr=None,
     num_time_pts=None,
     OutDir=now_str,
-    prefix="Output_File_Name",
+    prefix=None,
     slice_offset=0,
     fir_order=40,
     quiet=1,
@@ -295,7 +295,7 @@ def retro_ts(
             volume_tr=None,
             num_time_pts=None,
             OutDir=now_str,
-            prefix="Output_File_Name",
+            prefix=None,
             slice_offset=0,
             fir_order=40,
             quiet=1,
@@ -329,7 +329,7 @@ def retro_ts(
         OutDir: (dType = str) String giving name of directory to create for output files.
         Default is "retro_" follwed by the current date and time.
         
-        prefix: (dType = str) Prefix for output filename.
+        prefix: (dType = str) Prefix for output filename.  Default = None
         
         slice_offset: (dType = int) Vector of slice acquisition time offsets in seconds.
         
@@ -445,7 +445,13 @@ def retro_ts(
     parameters['verbose'] = verbose
     parameters['rvt_out'] = rvt_out
     parameters['slice_offset'] = slice_offset
-    parameters['prefix'] = prefix
+    if prefix: parameters['prefix'] = prefix
+    elif  phys_json: parameters['prefix'] = phys_json.split('.', 1)[0]
+    elif  parameters['-cardFile']: parameters['prefix'] = parameters['-cardFile'].split('.', 1)[0]
+    elif  parameters['-respFile']: parameters['prefix'] = parameters['-respFile'].split('.', 1)[0]
+    else: 
+        print('Error: Could not determine output file prefix')
+        return 1
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
     else: parameters['phys_fs'] = respiration_info['phys_fs']    
     if not parameters['phys_fs']:
@@ -458,11 +464,10 @@ def retro_ts(
         return 1
     if parameters['-niml']:
         return 0
-    
-    parameters
+    parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
-    outputFileName = path + "/" + prefix + "FourierSeries.csv"
+    # outputFileName = path + "/" + prefix + "FourierSeries.csv"
     # physiologicalNoiseComponents.to_csv(outputFileName)
 
     # PLot first 200 rows of dataframe
@@ -611,7 +616,7 @@ Output:
         "-volume_tr": None,
         "-num_time_pts": None,
         "-OutDir": now_str,
-        "-prefix": "Output_File_Name",
+        "-prefix": None,
         "-slice_offset": 0,
         "-fir_order": 40,
         "-quiet": 1,

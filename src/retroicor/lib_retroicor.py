@@ -1373,7 +1373,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     label = label[1:-2]
 
     np.savetxt(
-        "./%s.slibase.1D" % main_info["prefix"],
+        "./%s/%s.slibase.1D" % (parameters['OutDir'], main_info["prefix"]),
         np.column_stack(main_info["reml_out"]),
         fmt="%.4f",
         delimiter=" ",
