@@ -101,26 +101,26 @@ as a login shell, and interactive shell, or a non-interactive shell.
          - at a console login
          - when login is via ssh
 
-      In many cases, login shells are also interactive, but the do not need
+      In many cases, login shells are also interactive, but they do not need
       to be.
 
    b. An interactive shell is meant for reading commands from stdin (standard
-      input), such as when a user opens a new terminal, or simply types
-      a shell name and hits <enter>, e.g. "bash"<enter>.  It is meant to
-      continue processing new commands until the input stream ends.
+      input), such as when a user opens a terminal, or simply types a shell
+      name and hits <enter> to start a new shell, e.g. "bash"<enter>.  It is
+      meant to continue processing new commands until the input stream ends
+      (e.g. via "exit" or ctrl-d).
 
    c. A non-interactive shell is one that a user does not interact with, such
-      as with a shell script.
+      as when running a shell script.
 
 
-This help section focuses on commonly used user control files, omitting files
-like /etc/csh.cshrc and .history.  It also does not cover every possibility
+This help section focuses on commonly used user controled RC files, omitting
+system files like /etc/csh.cshrc.  It also does not cover every possibility
 of dot files for each shell.  There are often many files that are searched
-for in each case, but we stick to what might be most standard.
+for in each case, but we stick to what might be reasonably typical.
 
-The noted RC files all belong under a user's $HOME directory, though there
-can be system files under /etc, and the files do not necessarily need to be
-under $HOME.
+The noted RC files are generally kept within a user's $HOME directory, though
+they are not necessarily required to be.
 
 
    1. csh/tcsh RC files: .tcshrc .cshrc
@@ -187,6 +187,7 @@ under $HOME.
 
          .zshenv
          .zprofile
+         .zlogin
 
       4b. zsh interactive shell:
 
@@ -305,9 +306,10 @@ g_history = """
    1.18 Apr 15, 2022 
         - fix .bashrc help, it is not read in non-interactive shell
         - look for .zshrc
+   1.19 Dec  9, 2022 - minor update to help_rc_files
 """
 
-g_version = "afni_system_check.py version 1.18, April 14, 2022"
+g_version = "afni_system_check.py version 1.19, December 9, 2022"
 
 
 class CmdInterface:
