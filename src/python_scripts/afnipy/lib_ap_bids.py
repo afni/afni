@@ -36,9 +36,17 @@
 
 import sys, os, glob
 import subprocess
+import argparse
 
-from afnipy import lib_archivotron_bids as larchiv_bids
-generate_bids = larchiv_bids.generate_bids()
+from archivotron import bids
+BIDS_GENERATOR = bids.generate_bids()
+
+POSSIBLE_EXTENSIONS = (
+    '.nii.gz',
+    '.nii',
+    '.json',
+    '.HEAD',
+)
 
 # -------------------------------------------------------------------------
 
@@ -368,14 +376,19 @@ class bids_datype:
 
         # leaf level: populate all dafiles for this datype
         self.set_list_dafile()
-
-        # populate all ses for this subj
-        if self.ndafile :
-            for dafile in self.list_dafile:
-                self.add_dafile(dafile)
-
-
-        self.nnifti = self.get_num_nifti()
+       
+        name_ext = {}
+        for f in self.list_dafile:
+            for x in POSSIBLE_EXTENSIONS:
+                if f.endswith(x):
+                    f = f.removesuffix(x)
+                    if f in name_ext.keys():
+                        name_ext[f].append(x)
+                    else:
+                        name_ext[f] = [x]
+        self.list_twig = [
+            DataTwig(self.dirname, k, name_ext[k], subj=subj, ses=ses) for k in name_ext.keys()
+        ]
 
     # ----------------------------------------------------------
 
@@ -433,6 +446,7 @@ class bids_dafile:
         dirname       = dirname.rstrip('/')
 
         self.dirname  = dirname                # directory
+        print(self.dirname)
         self.abspath  = ''                     # abs path of dirname
 
         self.subj     = subj                   # subj ID
@@ -458,5 +472,65 @@ class bids_dafile:
 
         """
 
-        self.dict_archinfo = generate_bids.into_attributes(self.abspath + '/' 
+        self.dict_archinfo = BIDS_GENERATOR.into_attributes(self.dirname + '/' 
                                                             + self.dafile)
+
+class DataTwig:
+    """A collection of closely related data files which share the same prefix."""
+    def __init__(self,
+        dirname: str,
+        prefix: str,
+        extensions: list[str],
+        subj: str = '',
+        ses: str = '',
+        datype: str = '',
+        verb: int = 0,
+    ):
+        """Construct a DataTwig
+
+        Parameters
+        ----------
+        dirname: str
+            The relative path from the root of the collection to this twig's parent.
+        prefix: str
+            The common prefix for all files in this twig.
+        extensions: list[str]
+            The available file extensions for this twig.
+        """
+        self.dirname = dirname
+        self.prefix = prefix
+        self.list_ext = extensions
+        self.arch_info = BIDS_GENERATOR.into_attributes(
+            self.dirname + '/' + self.prefix
+        )
+
+    @property
+    def leaves(self) -> list[str]:
+        return [
+            self.dirname + '/' + self.prefix + ext for ext in self.list_ext
+        ]
+
+# TODO: break this into its own script
+def main():
+    parser = argparse.ArgumentParser(
+        prog='arco',
+        description='Investigate a dataset structure'
+    )
+    parser.add_argument(
+        'dataset',
+        help='The dataset to investigate',
+    )
+    args = parser.parse_args()
+    dataset = os.path.relpath(args.dataset)
+    bd = bids_dataset(dataset)
+    for _, subj in bd.dict_subj.items():
+        for _, ses in subj.dict_ses.items():
+            for _, datype in ses.dict_datype.items():
+                for twig in datype.list_twig:
+                    print(
+                        f'{twig.prefix}: {twig.arch_info} with leaves'
+                        f'{twig.leaves}'
+                    )
+
+if __name__ == '__main__':
+    main()
