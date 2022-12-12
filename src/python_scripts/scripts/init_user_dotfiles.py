@@ -16,21 +16,37 @@ from afnipy import afni_util as UTIL
 
 g_help_string = """
 =============================================================================
-init_dotfiles.py - innitialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
+init_dotfiles.py - initialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
+
+   For some background, please see:
+
+      afni_system_check.py -help_dot_files
+
+   1. Add ABIN to the PATH in all evaluated dot/RC files.
+      ABIN can be set by -dir_bin, else it will be come from:
+
+         which afni_proc.py
+
+   2. If requested and on a mac, set DYLD_LIBRARY_PATH.
+
+   3. If requested, run apsearch?  Maybe?  We shall see...
 
 
-   babble...
+   rcr - more babble...
 
 ------------------------------------------
+examples:
 
-   terminal options:
+------------------------------------------
+terminal options:
 
       -help                     : show this help
       -hist                     : show module history
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
-   other options
+other options
+
       -verb LEVEL               : set the verbosity level
 
 -----------------------------------------------------------------------------
@@ -42,9 +58,16 @@ g_history = """
    init_dotfiles.py history:
 
    0.0  Dec  8, 2012    - ripped from the heart of @update.afni.binaries...
+                          encased in a block of ice... zillagod
 """
 
 g_version = "init_dotfiles.py version 0.0, December 8, 2022"
+
+g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
+             '.cshrc', '.login', '.tcshrc',
+             '.profile',
+             '.zlogin', '.zprofile', '.zshenv', '.zshrc']
+
 
 # ---------------------------------------------------------------------------
 # general functions
@@ -60,6 +83,9 @@ def MESGg(mstr, pre=''):
 
 def MESGe(mstr):
   print("** error: %s" % mstr)
+
+def MESGw(mstr):
+  print("** warning: %s" % mstr)
 
 def MESGm(mstr):
   print("-- %s" % mstr)
@@ -86,9 +112,12 @@ class MyInterface:
       self.do_dotfiles     = 0      # do we actually modify dotfiles?
       self.do_flatdir      = 0      # do we update for flat_namespace?
       self.make_backup     = 1      # do we run apserach?
-
       self.verb            = verb
 
+      # rcr - info that means not making any edits
+      self.list_dotfiles   = 0
+      self.dry_run         = 0
+     
       # uncontrollable variables
       self.bak_suffix      = '.iud.bak' # suffix for backup files
       self.cmd_file        = ''         # write any run shell commands
@@ -263,6 +292,10 @@ class MyInterface:
       if self.verb > 2:
          self.show_vars("have abin")
 
+      # start attacking dot/rc files
+      if self.modify_dotfiles():
+         return -1
+
       return 0
 
    def set_dir_vars(self):
@@ -279,14 +312,17 @@ class MyInterface:
       # ------------------------------
       # user-controllable dir: bin
       if self.dir_bin == '':
-         if self.dir_abin == '':
+         # then use dir_abin, if populated
+         if self.dir_abin != '':
             MESGe("have no found abin, so please use -dir_bin")
             return -1
          self.dir_bin = self.dir_abin
+         if self.verb > 1:
+            MESGi("setting dir_bin to ABIN %s" % self.dir_abin)
 
       # verify dir_bin now
       if not os.path.isdir(self.dir_bin):
-         MESGe("-dir_bin is not an existing directory")
+         MESGe("-dir_bin is not an existing directory, too afraid to proceed")
          return -1
 
       # ------------------------------
@@ -294,6 +330,8 @@ class MyInterface:
       if self.dir_work == '':
          # if not set, use HOME directory
          self.dir_work = os.getenv("HOME")
+         if self.verb > 1:
+            MESGi("setting dir_work to $HOME")
 
       # verify dir_work now
       if not os.path.isdir(self.dir_work):
@@ -331,7 +369,7 @@ class MyInterface:
       st, so, se = BASE.simple_shell_exec(cmd, capture=1)
       if st:
          if self.verb > 2:
-            MESGe("no prog %s in PATH" % prog)
+            MESGw("no prog %s in PATH" % prog)
          return pdir
 
       so = so.strip()
