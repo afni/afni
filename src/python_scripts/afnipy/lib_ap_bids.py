@@ -19,7 +19,9 @@
 # |----subject (subj: sub-001, sub-002, ...)
 #      |----ses (ses: ses-01, ses-02, ...; also sometimes just 'ses')
 #           |----data_type (AKA modality; datype: anat, func, ...)
-#                |----data_files (dafiles: NIFTI, JSON, ...)
+#                |----twig (prefix of NIFTI, JSON, ...)
+#                     |----archive info (archinfo: dictionary from archivotron)
+#                     |----extension list (list_ext: list of file exts for twig)
 #
 # Here, these are represented as nested dictionaries, with each set of
 # keys being the items of the next level down, until one gets to
@@ -41,7 +43,7 @@ import argparse
 from archivotron import bids
 BIDS_GENERATOR = bids.generate_bids()
 
-POSSIBLE_EXTENSIONS = (
+TWIG_EXTENSIONS = (
     '.nii.gz',
     '.nii',
     '.json',
@@ -57,10 +59,12 @@ def make_abspath_from_dirname(dirname):
     dirname : str
               relative or abs path
 
-    str
+    Return 
+    ------
+            : str
               abs path name
-
     '''
+
     if not os.path.isdir(dirname) :
         print("** WARN: {} is not a valid dirname".format(dirname))
         return ''
@@ -73,10 +77,12 @@ def make_tail_from_dirname(dirname):
     dirname : str
               relative or abs path
 
+    Return 
+    ------
     tail    : str
               tail of abs path (i.e., last item in path)
-
     '''
+
     if not os.path.isdir(dirname) :
         print("+* WARN: {} is not a valid dirname".format(dirname))
         return ''
@@ -377,17 +383,18 @@ class bids_datype:
         # leaf level: populate all dafiles for this datype
         self.set_list_dafile()
        
-        name_ext = {}
+        dict_ext = {}
         for f in self.list_dafile:
-            for x in POSSIBLE_EXTENSIONS:
-                if f.endswith(x):
-                    f = f.removesuffix(x)
-                    if f in name_ext.keys():
-                        name_ext[f].append(x)
+            for ext in TWIG_EXTENSIONS:
+                if f.endswith(ext):
+                    f = f.removesuffix(ext)
+                    if f in dict_ext.keys():
+                        dict_ext[f].append(ext)
                     else:
-                        name_ext[f] = [x]
+                        dict_ext[f] = [ext]
         self.list_twig = [
-            DataTwig(self.dirname, k, name_ext[k], subj=subj, ses=ses) for k in name_ext.keys()
+            DataTwig(self.dirname, k, dict_ext[k], subj=subj, ses=ses) \
+            for k in dict_ext.keys()
         ]
 
     # ----------------------------------------------------------
@@ -410,7 +417,7 @@ class bids_datype:
 
     def add_dafile(self, dafile):
         """Add a dafile items (i.e., sub-001_T1w.nii.gz, sub-001_T1w.json,
-etc.).
+        etc.).
 
         This increases the size of the object's dictionary of
         BIDS data_files, self.dict_dafile.
@@ -476,7 +483,8 @@ class bids_dafile:
                                                             + self.dafile)
 
 class DataTwig:
-    """A collection of closely related data files which share the same prefix."""
+    """A collection of closely related data files which share the same
+prefix."""
     def __init__(self,
         dirname: str,
         prefix: str,
@@ -491,11 +499,13 @@ class DataTwig:
         Parameters
         ----------
         dirname: str
-            The relative path from the root of the collection to this twig's parent.
+            The relative path from the root of the collection to this
+            twig's parent.
         prefix: str
             The common prefix for all files in this twig.
         extensions: list[str]
             The available file extensions for this twig.
+
         """
         self.dirname = dirname
         self.prefix = prefix
