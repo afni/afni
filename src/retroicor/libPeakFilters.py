@@ -171,7 +171,7 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
       TYPE
           <class 'numpy.float64'>
      SYNOPSIS
-         getTimeSeriesPeriod(rawData)
+         getTimeSeriesPeriod(rawData, minFrequency=1)
      ARGUMENTS
          rawData: (array dType = float64) Raw cardiac data
          
@@ -477,7 +477,7 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
      TYPE
          <class 'numpy.float64'>
     SYNOPSIS
-        estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute)
+        estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70)
     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
@@ -628,7 +628,9 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
      TYPE
          <class 'numpy.ndarray'>
     SYNOPSIS
-        removeClosePeaks(peaks, period, denominator=4)
+        removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
+                             show_graph = False, save_graph = True, phys_fs = None, 
+                             dataType = "Cardiac", OutDir = None)
     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data indices.
         
@@ -832,7 +834,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
             prefix = dataType + 'BPF_VRawInput'
             mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
             
-        mpl.pyplot.show()
+        mpl.pyplot.show(block=False)
+        if not show_graph: mpl.pyplot.close()  # Close graph after saving
         
     return filteredRawData
 
@@ -1093,8 +1096,8 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs, p
      TYPE
          <void>
     SYNOPSIS
-        graphPeaksAgainstRawInput(rawData, peaks, parameters, peakType, troughs = [], 
-                                      OutDir = None, display = True) 
+        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs, peakType, troughs = [], 
+                OutDir = None, prefix = 'cardiacPeaks', caption = []) 
     ARGUMENTS
         show_graph:   (dType = bool) Whether to graph the results
         
@@ -1157,7 +1160,7 @@ def checkForNans(rawData, dataType, failureThreshold = 100):
      TYPE
          <void>
     SYNOPSIS
-        checkForNans(rawData, dataType, failureThreshold) 
+        checkForNans(rawData, dataType, failureThreshold = 100) 
     ARGUMENTS
         rawData: (array, dType = float) Raw input data
         

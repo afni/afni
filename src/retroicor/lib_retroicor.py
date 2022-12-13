@@ -108,7 +108,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     TYPE
         <class 'numpy.ndarray'>, int
    SYNOPSIS
-       getCardiacPeaks(parameters)
+       getCardiacPeaks(parameters, rawData, filterPercentile=70.0)
    ARGUMENTS
        parameters:   dictionary of input parameters which includes the following fields.
        
@@ -269,13 +269,13 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
 def getRespiratoryPeaks(parameters, rawData):
     """
     NAME
-    getRespiratoryPeaks
-    Get peaks from repiratory time series supplied as an ASCII 
-    file with one time series entry per line
+        getRespiratoryPeaks
+        Get peaks from repiratory time series supplied as an ASCII 
+        file with one time series entry per line
     TYPE
-    <class 'numpy.ndarray'>, int
+        <class 'numpy.ndarray'>, int
     SYNOPSIS
-    respFile(parameters)
+        respFile(parameters, rawData)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes the following fields.
     
@@ -467,7 +467,7 @@ def getRespiratoryPeaks(parameters, rawData):
      
     return peaks, troughs, len(rawData)
 
-def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
+def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, show_graph = False, save_graph = True):
     """
     NAME
        determineCardiacPhases
@@ -475,7 +475,7 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
     TYPE
         <class 'list'>
     SYNOPSIS
-       determineCardiacPhases(peaks, fullLength)
+       determineCardiacPhases(peaks, fullLength, phys_fs, rawData, show_graph = False, save_graph = True)
     ARGUMENTS
         peaks:   (dType int64 array) Peaks in input cardiac time series.
         
@@ -485,7 +485,9 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
         
         rawData: (dType = float, array) Raw cardiac data
         
-        graph:   (dType = bool) Whether to graph the results
+        show_graph:   (dType = bool) Whether to graph the results
+        
+        save_graph: (dType = bool) Whether to save graoh to disk
     AUTHOR
        Peter Lauren
     """
@@ -525,7 +527,7 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
     # Move phase range from [0,2Pi] to [-Pi,Pi]
     phases = [x - math.pi for x in phases]
      
-    if graph:
+    if show_graph or save_graph:
         # PLot phases
         x = []    
         end = min(len(phases),round(len(phases)*50.0/len(peaks)))
@@ -540,8 +542,10 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
         mpl.pyplot.title("Cardiac phase (red) and raw input data (green)")
             
         # Save plot to file
-        mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-        mpl.pyplot.show()
+        if save_graph:
+            mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            mpl.pyplot.show(block=False)
+            if not show_graph: mpl.pyplot.close()  # Close graph after saving
             
     return phases
 
@@ -617,7 +621,7 @@ def getBCoeffs(parameters, key, phases):
             
 
 def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, 
-                               phys_fs, rawData, graph = False):
+                               phys_fs, rawData, show_graph = False, save_graph = True):
     """
     NAME
         determineRespiratoryPhases
@@ -625,7 +629,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     TYPE
         <class 'list'>
     SYNOPSIS
-       determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs)
+       determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, 
+                                      phys_fs, rawData, show_graph = False, save_graph = True)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes the following fields.
             -respFile;   Name of ASCII file with respiratory time series
@@ -639,7 +644,9 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         
         rawData:     Raw respiratory data
         
-        graph:   (dType = bool) Whether to graph the results
+        show_graph:   (dType = bool) Whether to graph the results
+        
+        save_graph: (dType = bool) Whether to save graoh to disk
         
     AUTHOR
        Peter Lauren
@@ -765,7 +772,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         # Use result to estimate phase at given time point
         phases[i] = (math.pi*count*polarity)/denom
     
-    if graph:  
+    if show_graph or save_graph:  
         # PLot phases and raw data against time in seconds.
         peakVals = []
         for i in respiratory_peaks: peakVals.append(rawData[i])
@@ -785,7 +792,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
             
         # Save plot to file
         mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-        mpl.pyplot.show()
+        mpl.pyplot.show(block=False)
+        if not show_graph: mpl.pyplot.close()  # Close graph after saving
     
         
     return phases
@@ -846,7 +854,8 @@ def getPhysiologicalNoiseComponents(parameters):
         
         if len(cardiac_peaks) > 0:
             cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
-                    parameters['phys_fs'], rawData, graph = parameters['verbose'])
+                    parameters['phys_fs'], rawData,  show_graph = parameters['show_graphs']>0, 
+                    save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
         parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
@@ -868,7 +877,9 @@ def getPhysiologicalNoiseComponents(parameters):
         
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
-                    [x for x in rawData if math.isnan(x) == False], graph = parameters['verbose'])
+                    [x for x in rawData if math.isnan(x) == False], 
+                    show_graph = parameters['show_graph']>0, 
+                    save_graph = parameters['save_graph']>0)
         
         # Ensure number of output time points not too high
         parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
