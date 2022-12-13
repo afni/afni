@@ -10,6 +10,7 @@ import platform
 from afnipy import option_list as OL
 from afnipy import afni_base as BASE
 from afnipy import afni_util as UTIL
+from afnipy import lib_vars_object as VO
 
 # ----------------------------------------------------------------------
 # globals
@@ -68,6 +69,12 @@ g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.profile',
              '.zlogin', '.zprofile', '.zshenv', '.zshrc']
 
+g_rc_mod = [ '.profile',
+             '.bash_profile', '.bashrc',
+             '.zshrc',
+             '.cshrc', '.tcshrc',
+           ]
+
 
 # ---------------------------------------------------------------------------
 # general functions
@@ -93,6 +100,33 @@ def MESGm(mstr):
 def MESGp(mstr):
   print("++ %s" % mstr)
 
+# creation of file object
+def file_object(fname, verb=1):
+   """return a vars object for the given file"""
+
+   vo = VO.VarsObject(fname)
+   vo.isfile = os.path.isfile(fname)
+   vo.isread = 0
+   vo.tlines = []
+   # try to read, but no whining
+   if vo.isfile:
+      try:
+         tlines = UTIL.read_text_file(fname, lines=1, strip=0, verb=0)
+         vo.isread = 1
+         vo.tlines = tlines
+      except:
+         if verb: MESGw("failed to read existing dot file %s" % fname)
+   vo.nlines = len(vo.tlines)
+   vo.follow = 0    # for .[t]cshrc, does it source the other
+
+   return vo
+
+# akin to grep, but want sequential tokens not after comment
+def fo_has_token_pair(fo, t0, t1, sub0=0, sub1=0):
+   """does some file_object line contain sequential tokens t0 and t1?
+   """
+   return 0
+
 # ---------------------------------------------------------------------------
 
 
@@ -106,8 +140,9 @@ class MyInterface:
       self.user_opts       = None
 
       # command-line controlled variables
+      self.dflist          = None   # user-specified dotfile list
       self.dir_bin         = ''     # dir to add to PATH
-      self.dir_work        = ''     # HOME or specified
+      self.dir_dot         = ''     # HOME or specified location of DF
       self.do_apsearch     = 0      # do we run apserach?
       self.do_dotfiles     = 0      # do we actually modify dotfiles?
       self.do_flatdir      = 0      # do we update for flat_namespace?
@@ -123,6 +158,7 @@ class MyInterface:
       self.cmd_file        = ''         # write any run shell commands
       self.dir_abin        = ''         # any found abin in PATH
       self.dir_orig        = ''         # starting dir, if we care
+      self.dfobjs          = {}         # dict of VO for each file
       self.tmpfile         = '.tmp.iu.dotfile'  # file for temp writing
 
       # possible mac stuff
@@ -143,7 +179,7 @@ class MyInterface:
       else:
          mstr = ''
 
-      goodtypes = [str, int, float, bool]
+      goodtypes = [str, int, float, bool, list]
 
       MESG("== main interface vars %s:" % mstr)
       keys = list(self.__dict__.keys())
@@ -151,10 +187,9 @@ class MyInterface:
       for attr in keys:
          val = getattr(self,attr)
          tval = type(val)
-         # skip no-atomic types
-         if tval not in goodtypes:
-            continue
-         MESG("   %-15s : %-15s : %s" % (attr, tval, val))
+         # skip invalid types
+         if val is None or tval in goodtypes:
+             MESG("   %-15s : %-15s : %s" % (attr, tval, val))
       MESG("")
 
    def init_options(self):
@@ -171,9 +206,11 @@ class MyInterface:
                       helpstr='display the current version number')
 
       # main options
+      self.valid_opts.add_opt('-dflist', -1, [], 
+                      helpstr='specify list of dotfiles to possibly modify')
       self.valid_opts.add_opt('-dir_bin', 1, [], 
                       helpstr='directory to add to PATH')
-      self.valid_opts.add_opt('-dir_work', 1, [], 
+      self.valid_opts.add_opt('-dir_dot', 1, [], 
                       helpstr='directory to mod files under (def=$HOME)')
       self.valid_opts.add_opt('-do_apsearch', 1, [], 
                       acplist=['yes','no'],
@@ -233,15 +270,20 @@ class MyInterface:
       for opt in uopts.olist:
 
          # main options
-         if opt.name == '-dir_bin':
+         if opt.name == '-dflist':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return -1
+            self.dflist = val
+
+         elif opt.name == '-dir_bin':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.dir_bin = val
 
-         elif opt.name == '-dir_work':
+         elif opt.name == '-dir_dot':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
-            self.dir_work = val
+            self.dir_dot = val
 
          elif opt.name == '-do_apsearch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -275,7 +317,7 @@ class MyInterface:
       """main processing
            - dir_abin = `which afni_proc.py`
            - update dir_bin
-           - cd to dir_work (usually $HOME)
+           - cd to dir_dot (usually $HOME)
            ...
 
          return  0 on success
@@ -286,17 +328,161 @@ class MyInterface:
       if self.verb > 1:
          MESGm('processing...')
 
+      # set up and verify directory variables
       if self.set_dir_vars():
          return -1
 
-      if self.verb > 2:
-         self.show_vars("have abin")
+      # 'cd' to dir_dot
+      try:
+         os.chdir(self.dir_dot)
+      except:
+         MESGe("failed to 'cd' to dir_dot, '%s'" % self.dir_dot)
+         return -1
 
-      # start attacking dot/rc files
+      # and attack dot/rc files
       if self.modify_dotfiles():
          return -1
 
       return 0
+
+   def modify_dotfiles(self):
+      """first detect what updates might be needed, then make them
+         - use self.dflist if not None, else the default g_rc_mod
+      """
+
+      # init dflist if not set by user
+      if self.dflist is None:
+         if self.verb > 1:
+            MESGm("using default dotfile list")
+         self.dflist = g_rc_mod
+
+      rv, modlist = self.files_to_mod()
+
+      return rv
+
+   def files_to_mod(self):
+      """return a list of files that actually seem to need modifying
+         - this is informative, do not actually make changes here
+         - return status (0 on success) and the new list
+
+         side effect: populate dfobjs
+
+         0. dfile list entries should be known and not conntain paths
+         1. populate dfobjs (read in all found files)
+         1. if both .cshrc and .tcshrc, determine whether the
+            latter references the former
+         2. 
+
+         possible list: '.bash_profile', '.bashrc', '.cshrc', '.tcshrc',
+                        '.profile', '.zshrc'
+      """
+
+      # ------------------------------------------------------------
+      # check that entires are known (and do not contain '/')
+      errs = 0
+      for fname in self.dflist:
+         if fname not in g_rc_mod:
+            if fname.find('/') >= 0 :
+               MESGe("dotfile %s contain a path ('/' char)\n"%fname +
+                     "   (use -dir_dot to specify location)")
+            else:
+               MESGe("not sure how to modify file %s" % fname)
+            errs += 1
+
+      # fail on any bad names
+      if errs:
+         return errs, []
+
+      # ------------------------------------------------------------
+      # try to read in whatever files exist into file objects
+      for dfname in self.dflist:
+         vo = file_object(dfname, verb=self.verb)
+         self.dfobjs[dfname] = vo
+         if self.verb > 1:
+            if vo.isfile: lstr = "%3d lines" % vo.nlines
+            else:         lstr = "not found"
+            MESGp("%-20s : %s" % (dfname, lstr))
+
+      # ------------------------------------------------------------
+      # check on having both .cshrc and .tcshrc
+      errs = self.check_for_cshrc_tcshrc()
+
+      # rcr - replace this
+      mfiles = self.dflist
+
+      return errs, mfiles
+
+   def check_for_cshrc_tcshrc(self):
+      """if both .cshrc and .tcshrc exist, we would like to see that 
+         .cshrc is sourced by .tcshrc
+
+         side effect: set follow if sourcing the other dot file
+         return 1 on some fatal error
+      """
+      fc = '.cshrc'
+      ft = '.tcshrc'
+      in_c = fc in self.dflist
+      in_t = ft in self.dflist
+
+      # if neither file is of interest, just run away
+      if not in_c and not in_t:
+         return 0
+
+      # we are checking at least one file, do they both exist?
+      if in_c: ec = self.dfobjs[fc].isfile
+      else:    ec = os.path.isfile(fc)
+      if in_t: et = self.dfobjs[ft].isfile
+      else:    et = os.path.isfile(ft)
+
+      # if not, just run away
+      if not ec or not et:
+         return 0
+
+      # both files exist, and at least one is in dflist, so we want .cshrc
+      # to be sourced by .tcshrc (or the reverse), and therefore we might
+      # need file objects for each
+
+      # create an object if not in dfobjs
+      if in_c: fco = self.dfobjs[fc]
+      else:    fco = file_object(fc, verb=self.verb)
+      if in_t: fto = self.dfobjs[ft]
+      else:    fto = file_object(ft, verb=self.verb)
+
+      # ------------------------------------------------------------
+      # main work: does .tcshrc source .cshrc?
+      sd = fo_has_token_pair(fto, '.', fc, sub0=0, sub1=1)
+      ss = fo_has_token_pair(fto, 'source', fc, sub0=0, sub1=1)
+      follow_t = sd or ss
+
+      sd = fo_has_token_pair(fco, '.', ft, sub0=0, sub1=1)
+      ss = fo_has_token_pair(fco, 'source', ft, sub0=0, sub1=1)
+      follow_c = sd or ss
+
+      # we want exactly one to follow the other
+      retval = 0
+
+      if follow_t:
+         fto.follow = 1
+         if self.verb > 0:
+            MESGm("good: %s seems to contain 'source %s'" % (ft, fc))
+         # if they source each other, this should be fatal
+         if follow_c:
+            MESGe("both %s and %s seem to source each other" % (ft, fc))
+            retval = 1
+      elif follow_c:
+         fco.follow = 1
+         if self.verb > 0:
+            MESGm("good: %s seems to contain 'source %s'" % (fc, ft))
+      else:
+         if self.verb > 0:
+            MESGw("%s does NOT seem to contain 'source %s'" % (ft, fc))
+            MESG("   (csh and tcsh will use different files)")
+
+      # free any temporary file object
+      if not in_c: del(fco)
+      if not in_t: del(fto)
+
+      return retval
 
    def set_dir_vars(self):
       """set dirs: abin, orig, bin, work (where dotfiles are expected to be)
@@ -318,25 +504,35 @@ class MyInterface:
             return -1
          self.dir_bin = self.dir_abin
          if self.verb > 1:
-            MESGi("setting dir_bin to ABIN %s" % self.dir_abin)
+            MESGm("setting dir_bin to ABIN %s" % self.dir_abin)
 
       # verify dir_bin now
       if not os.path.isdir(self.dir_bin):
          MESGe("-dir_bin is not an existing directory, too afraid to proceed")
          return -1
 
+      # and require an absolute path (could be applied from anywhere)
+      if self.dir_bin[0] != '/':
+         MESGe("-dir_bin must be an absolute path (start with '/'),\n" +
+               "   since dot files can be sourced from any directory\n" +
+               "   dir_bin = %s" % self.dir_bin)
+         return -1
+
       # ------------------------------
       # user-controllable dir: work
-      if self.dir_work == '':
+      if self.dir_dot == '':
          # if not set, use HOME directory
-         self.dir_work = os.getenv("HOME")
+         self.dir_dot = os.getenv("HOME")
          if self.verb > 1:
-            MESGi("setting dir_work to $HOME")
+            MESGm("setting dir_dot to $HOME")
 
-      # verify dir_work now
-      if not os.path.isdir(self.dir_work):
-         MESGe("-dir_work is not an existing directory")
+      # verify dir_dot now
+      if not os.path.isdir(self.dir_dot):
+         MESGe("-dir_dot is not an existing directory: '%s'" % self.dir_dot)
          return -1
+
+      if self.verb > 2:
+         self.show_vars("have abin")
 
       return 0
 
@@ -404,8 +600,9 @@ def main():
 
    rv = me.execute()
    if rv > 0: return 0  # non-fatal early termination
+   if rv < 0: return 1  # fatal
 
-   return rv
+   return 0
 
 if __name__ == '__main__':
    sys.exit(main())
