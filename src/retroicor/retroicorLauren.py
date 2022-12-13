@@ -265,11 +265,12 @@ def retro_ts(
     demo=0,
     dev=False,
     verbose=False,
+    show_graphs=0,
+    save_graphs=1,
     rvt_out=0,
     cardiac_out=1,
     respiration_out=1,
     slice_order="alt+z",
-    show_graphs=1,
     zero_phase_offset=0,
     phys_file=None,
     phys_json=None,
@@ -306,7 +307,8 @@ def retro_ts(
             cardiac_out=1,
             respiration_out=1,
             slice_order="alt+z",
-            show_graphs=1,
+            show_graphs=0,
+            save_graphs=1,
             zero_phase_offset=0,
             phys_file=None,
             phys_json=None,
@@ -363,6 +365,8 @@ def retro_ts(
             each slice in seconds)
             
         show_graphs: (dType = int) Whether to show graphs
+        
+        save_graphs: (dType = int) Whether to save graphs
         
         zero_phase_offset: (dType = int) Phase offset added to the location of each peak.
         Default is 0.0
@@ -457,6 +461,8 @@ def retro_ts(
     if not parameters['phys_fs']:
         print('Error: Sampling frequency in Hz (phys_fs) required')
         return 1
+    parameters['show_graphs']=show_graphs
+    parameters['save_graphs']=save_graphs
 
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
@@ -550,11 +556,21 @@ Input
     demo: Run demonstration of retroicorLauren
             (default is 0)
     dev: Run development mode for retroicorLauren
-            (default is 1)
+            (default is 0)
     verbose: Run verbose mode for retroicorLauren
-            (default is 1)
+            (default is 0)
     show_graphs:
             (default is unset; set with any parameter to view)
+            0: Do not show graphs
+            1: Show end results (cardiac peaks, respiratory peaks and final RVT)
+            2: Show end, and intermediate results results (band-pass filter, 
+                cardiac peaks, respiratory peaks and final RVT)
+    save_graphs:
+            (default is set to 1; set with any parameter to save)
+            0: Do not save graphs
+            1: Save end results (cardiac peaks, respiratory peaks and final RVT)
+            2: Save end, and intermediate results results (band-pass filter, 
+                cardiac peaks, respiratory peaks and final RVT)
     debug Drop into pdb upon an exception
             (default is False)
     ============================================================================
@@ -636,7 +652,8 @@ Output:
         "-cardiac_out": 1,
         "-respiration_out": 1,
         "-slice_order": "alt+z",
-        "-show_graphs": 1,
+        "-show_graphs": 0,
+        "-save_graphs": 1,
         "-zero_phase_offset": 0,
         "-phys_file":None,
         "-phys_json":None,
@@ -701,7 +718,8 @@ Output:
         cardiac_out= (int(opt_dict["-cardiac_out"])),
         respiration_out= (int(opt_dict["-respiration_out"])),
         slice_order=opt_dict["-slice_order"],
-        show_graphs=opt_dict["-show_graphs"],
+        show_graphs=int(opt_dict["-show_graphs"]),
+        save_graphs=int(opt_dict["-save_graphs"]),
         zero_phase_offset=opt_dict["-zero_phase_offset"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],

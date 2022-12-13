@@ -154,8 +154,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     
    # Band pass filter raw data
    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,\
-        parameters["phys_fs"], graph = True, saveGraph = parameters["verbose"],\
-        OutDir=OutDir, graphIndex = graphIndex)
+        parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, OutDir=OutDir, graphIndex = graphIndex)
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -164,20 +164,22 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/40))
    
    # Graph initial peaks and save graph to disk
-   if parameters['verbose']:
-       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Cardiac", 
-            OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
-            caption = 'Cardiac peaks from band-pass filtered input.')
+   lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Cardiac", 
+        OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
+        caption = 'Cardiac peaks from band-pass filtered input.')
    
    # Adjust peaks from uniform spacing
-   peaks = lpf.refinePeakLocations(peaks, rawData, graph = parameters['verbose'],
+   peaks = lpf.refinePeakLocations(peaks, rawData, 
              dataType = "Cardiac",  phys_fs = parameters["phys_fs"], 
-            saveGraph = parameters['verbose'], OutDir = OutDir)
+            show_graph = parameters['show_graphs']>1, 
+            save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
    # Remove peaks that are less than the required percentile of the local input signal
    peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3, 
-            graph = parameters['verbose'], dataType = "Cardiac",  
-            phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+            show_graph = parameters['show_graphs']>1, 
+            save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+            phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
         print('*** ERROR: Failure to local percentile filter cardiac peaks')
         return [], 0
@@ -190,47 +192,54 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     
    # Merge peaks that are closer than one quarter of the overall typical period
    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["-phys_fs"]/16)
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
 
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, graph = parameters['verbose'],
-                               phys_fs = parameters["phys_fs"])   
+   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, show_graph = parameters['show_graphs']>1, 
+                save_graph = parameters["save_graphs"]>1, 
+                phys_fs = parameters["phys_fs"])   
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["-phys_fs"]/16)
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-        graph = parameters['verbose'], dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>0, 
+        save_graph = parameters["save_graphs"]>0, dataType = "Cardiac",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
            
      # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
@@ -249,29 +258,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
     
    # Graph cardiac peaks against respiratory time series
-   if parameters['dev']:
-       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Cardiac",
-            OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
-            caption = 'Cardiac peaks after all filtering.')
-               
-   # # Graph cardiac peaks against cardiac time series
-   # x = []    
-   # end = len(rawData)
-   # for i in range(0,end): x.append(i/parameters["phys_fs"])
-   # peakVals = []
-   # for i in peaks: peakVals.append(rawData[i])
-   # mplf.Figure(figsize =(7,7))
-   # mpl.pyplot.subplot(211)
-   # mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
-   # mpl.pyplot.plot(peaks/parameters["phys_fs"], peakVals, "ro") # Peaks
-   # mpl.pyplot.xlabel("time(s)")
-   # mpl.pyplot.ylabel("Input data input value")
-   # mpl.pyplot.title("Cardiac peaks (red) and raw input data (green)",\
-   #             fontdict={'fontsize': 12})
-        
-   # # Save plot to file
-   # mpl.pyplot.savefig('%s/cardiacPeaks.pdf' % (OutDir)) 
-   # mpl.pyplot.show()  # If this is left out, output file is blank
+   lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
+         parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Cardiac",
+         OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
+         caption = 'Cardiac peaks after all filtering.')
     
    return peaks, len(rawData)
 
@@ -310,8 +300,8 @@ def getRespiratoryPeaks(parameters, rawData):
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBreathsPerSecond,\
-        parameters["phys_fs"], graph = True, saveGraph = parameters["verbose"],\
-        OutDir=OutDir)
+        parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, OutDir=OutDir)
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -321,15 +311,16 @@ def getRespiratoryPeaks(parameters, rawData):
     peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/4))
    
     # Graph initial peaks and save graph to disk
-    if parameters['verbose']:
-       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory", 
-            OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
-            caption = 'Respiratory peaks from band-pass filtered input.')
+    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Respiratory", 
+         OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
+         caption = 'Respiratory peaks from band-pass filtered input.')
    
     # Adjust peaks from uniform spacing
-    peaks = lpf.refinePeakLocations(peaks, rawData, graph = parameters['verbose'],
+    peaks = lpf.refinePeakLocations(peaks, rawData, 
              dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
-            saveGraph = parameters['verbose'], OutDir = OutDir)
+            show_graph = parameters['show_graphs']>1, 
+            save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
@@ -339,8 +330,9 @@ def getRespiratoryPeaks(parameters, rawData):
     
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     if len(peaks) == 0:
         print('*** ERROR: Failure to percentile filter respiratory peaks')
         return [], [], 0
@@ -348,53 +340,61 @@ def getRespiratoryPeaks(parameters, rawData):
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
     peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Merge peaks that are closer than one quarter of the overall typical period
     peaks = lpf.removeClosePeaks(peaks, period, rawData, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
 
     # Add missing peaks
     peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)   
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)   
     
     # Remove "peaks" that are less than the raw input a quarter of a period on right side
     # This is tomove false peaks on the upstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
     troughs, _ = sps.find_peaks(-np.array(filterData), width=int(parameters["phys_fs"]/8))
    
     # Graph initial peaks and save graph to disk
-    if parameters['verbose']:
-       lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory", 
+    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Respiratory", 
             troughs = troughs, OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
             caption = 'Respiratory troughs from band-pass filtered input.')
     
     # Remove troughs that are more than the 90th percentile of the input signal
     troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], OutDir = OutDir)
     if len(troughs) == 0:
         print('*** ERROR: Failure to percentile filter respiratory troughs')
         return [], [], 0
@@ -402,42 +402,49 @@ def getRespiratoryPeaks(parameters, rawData):
     # Remove "troughs" that are greater than the raw input a quarter of a period on right side
     # This is to remove false troughs on the downstroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, period=period, 
-             graph = parameters['verbose'], dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+             show_graph = parameters['show_graphs']>1, 
+             save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
     # Remove false troughs on the uptroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData,\
             period=period, direction = 'left', 
-            graph = parameters['verbose'], dataType = "Respiratory",  
-            phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+            show_graph = parameters['show_graphs']>1, 
+            save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+            phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
     # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
     troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-        graph = parameters['verbose'], dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
     # Merge troughs that are closer than one quarter of the overall typical period
     troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True, 
-        graph = parameters['verbose'], dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
     # Remove peaks/troughs that are also troughs/peaks
     peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
-        graph = parameters['verbose'], dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     
     # Add missing peaks and troughs
     peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
-        graph = parameters['verbose'], dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], saveGraph = parameters['verbose'], OutDir = OutDir)
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
+        phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
     # Adjust troughs from uniform spacing
-    troughs = lpf.refinePeakLocations(troughs, rawData, graph = parameters['verbose'],
+    troughs = lpf.refinePeakLocations(troughs, rawData, show_graph = parameters['show_graphs']>1, 
+            save_graph = parameters["save_graphs"]>1, 
              dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
-             Troughs = True, saveGraph = parameters['verbose'], OutDir = OutDir)
+             Troughs = True, OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
@@ -454,13 +461,13 @@ def getRespiratoryPeaks(parameters, rawData):
     # troughs = np.delete(troughs,indices2remove)
     
     # Graph respiratory peaks and troughs against respiratory time series
-    if parameters['dev']:
-        lpf.graphPeaksAgainstRawInput(rawData, peaks, parameters["phys_fs"], "Respiratory",\
-                    troughs = troughs, caption = 'Respiratory peaks after all filtering.')
+    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
+        parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Respiratory",\
+        troughs = troughs, caption = 'Respiratory peaks after all filtering.')
      
     return peaks, troughs, len(rawData)
 
-def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
+def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, graph = False):
     """
     NAME
        determineCardiacPhases
@@ -477,6 +484,8 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
         phys_fs:   (dType = float) Physiological signal sampling frequency in Hz. 
         
         rawData: (dType = float, array) Raw cardiac data
+        
+        graph:   (dType = bool) Whether to graph the results
     AUTHOR
        Peter Lauren
     """
@@ -515,23 +524,24 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData):
       
     # Move phase range from [0,2Pi] to [-Pi,Pi]
     phases = [x - math.pi for x in phases]
-      
-    # PLot phases
-    x = []    
-    end = min(len(phases),round(len(phases)*50.0/len(peaks)))
-    for i in range(0,end): x.append(i/phys_fs)
-    fig, ax_left = mpl.pyplot.subplots()
-    mpl.pyplot.xlabel("Time (s)")
-    mpl.pyplot.ylabel('Input data input value',color='g')
-    ax_right = ax_left.twinx()
-    ax_right.plot(x, phases[0:end], color='red')
-    ax_left.plot(x, rawData[0:end], color='green')
-    mpl.pyplot.ylabel('Phase (Radians)',color='r')
-    mpl.pyplot.title("Cardiac phase (red) and raw input data (green)")
-        
-    # Save plot to file
-    mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-    mpl.pyplot.show()
+     
+    if graph:
+        # PLot phases
+        x = []    
+        end = min(len(phases),round(len(phases)*50.0/len(peaks)))
+        for i in range(0,end): x.append(i/phys_fs)
+        fig, ax_left = mpl.pyplot.subplots()
+        mpl.pyplot.xlabel("Time (s)")
+        mpl.pyplot.ylabel('Input data input value',color='g')
+        ax_right = ax_left.twinx()
+        ax_right.plot(x, phases[0:end], color='red')
+        ax_left.plot(x, rawData[0:end], color='green')
+        mpl.pyplot.ylabel('Phase (Radians)',color='r')
+        mpl.pyplot.title("Cardiac phase (red) and raw input data (green)")
+            
+        # Save plot to file
+        mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+        mpl.pyplot.show()
             
     return phases
 
@@ -606,7 +616,8 @@ def getBCoeffs(parameters, key, phases):
     return b
             
 
-def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, phys_fs, rawData):
+def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, 
+                               phys_fs, rawData, graph = False):
     """
     NAME
         determineRespiratoryPhases
@@ -627,6 +638,8 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         phys_fs:     Physiological signal sampling frequency in Hz 
         
         rawData:     Raw respiratory data
+        
+        graph:   (dType = bool) Whether to graph the results
         
     AUTHOR
        Peter Lauren
@@ -752,31 +765,27 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         # Use result to estimate phase at given time point
         phases[i] = (math.pi*count*polarity)/denom
     
-      
-    # PLot phases and raw data against time in seconds.
-    peakVals = []
-    for i in respiratory_peaks: peakVals.append(rawData[i])
-    troughVals = []
-    for i in respiratory_troughs: troughVals.append(rawData[i])
-    x = []    
-    end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
-    for i in range(0,end): x.append(i/phys_fs)
-    fig, ax_left = mpl.pyplot.subplots()
-    mpl.pyplot.xlabel("Time (s)")
-    mpl.pyplot.ylabel('Input data input value',color='g')
-    ax_right = ax_left.twinx()
-    # ax_right.plot(x[3000:4000], phases[3000:4000], color='red')
-    # ax_left.plot(x[3000:4000], rawData[3000:4000], color='green')
-    ax_right.plot(x, phases[0:end], color='red')
-    ax_left.plot(x, rawData[0:end], color='green')
-    # ax_left.plot(respiratory_peaks/parameters["phys_fs"], peakVals, "mo") # Peaks
-    # ax_left.plot(respiratory_troughs/parameters["phys_fs"], troughVals, "bo") # troughs
-    mpl.pyplot.ylabel('Phase (Radians)',color='r')
-    mpl.pyplot.title("Respiratory phase (red) and raw input data (green)")
-        
-    # Save plot to file
-    mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-    mpl.pyplot.show()
+    if graph:  
+        # PLot phases and raw data against time in seconds.
+        peakVals = []
+        for i in respiratory_peaks: peakVals.append(rawData[i])
+        troughVals = []
+        for i in respiratory_troughs: troughVals.append(rawData[i])
+        x = []    
+        end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+        for i in range(0,end): x.append(i/phys_fs)
+        fig, ax_left = mpl.pyplot.subplots()
+        mpl.pyplot.xlabel("Time (s)")
+        mpl.pyplot.ylabel('Input data input value',color='g')
+        ax_right = ax_left.twinx()
+        ax_right.plot(x, phases[0:end], color='red')
+        ax_left.plot(x, rawData[0:end], color='green')
+        mpl.pyplot.ylabel('Phase (Radians)',color='r')
+        mpl.pyplot.title("Respiratory phase (red) and raw input data (green)")
+            
+        # Save plot to file
+        mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+        mpl.pyplot.show()
     
         
     return phases
@@ -837,7 +846,7 @@ def getPhysiologicalNoiseComponents(parameters):
         
         if len(cardiac_peaks) > 0:
             cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
-                                                parameters['phys_fs'], rawData)
+                    parameters['phys_fs'], rawData, graph = parameters['verbose'])
         
         # Ensure number of output time points not too high
         parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
@@ -859,14 +868,17 @@ def getPhysiologicalNoiseComponents(parameters):
         
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
-                    [x for x in rawData if math.isnan(x) == False])
+                    [x for x in rawData if math.isnan(x) == False], graph = parameters['verbose'])
         
         # Ensure number of output time points not too high
         parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
             
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
-                         parameters['-num_time_pts'], parameters['-TR'], interpolationOrder = 'linear')
+                         parameters['-num_time_pts'], parameters['-TR'], 
+                         show_graph = parameters['show_graph']>0, 
+                         save_graph = parameters['save_graph']>0, 
+                         interpolationOrder = 'linear')
     else:
         if parameters['rvt_out']: print('WARNING: Cannot determine RVT.  No respiratory data')
         parameters['rvt_out'] = False
@@ -1477,7 +1489,8 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     
     return  phasee
 
-def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, TR, interpolationOrder = 'linear'):
+def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, 
+           TR, show_graph = False, save_graph = True, interpolationOrder = 'linear'):
     """
     NAME
         getRVT 
@@ -1512,6 +1525,7 @@ def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, 
        
     # Get raw RVT values
     rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq,
+                       show_graph = False, save_graph = True, 
                        interpolationOrder = interpolationOrder)
     
     # Get RVT regressors
@@ -1584,8 +1598,8 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
         
     return output 
       
-def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
-              interpolationOrder = 'linear'):
+def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, show_graph = 0, 
+              save_graph = 1, interpolationOrder = 'linear'):
     """
     NAME
         getRawRVT 
@@ -1607,7 +1621,9 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
         
         freq:  <class 'float'> Time point sampling frequency in Hz
         
-        dev:   <class 'bool'> Whether runnung in development mode
+        show_graph:   (dType = bool) Whether to graph the results
+        
+        save_graph: (dType = bool) Whether to save graoh to disk
         
         interpolationOrder:    <class 'str'> Method of interpolation among critical
                                 points (peaks, troughs, etc.)  Valid values are 'linear'
@@ -1635,7 +1651,7 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
     rawRVT = (peakLayer-troughLayer)/periodLayer
     
     # Display raw RVT as required
-    if dev:
+    if show_graph or save_graph:
          x = []    
          end = len(rawData)
          for i in range(0,end): x.append(i/freq)
@@ -1655,8 +1671,11 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
          plt.title(TitleStr)
              
          # Save plot to file
-         plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
-         plt.show()
+         if save_graph:
+             plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
+             plt.show(block=False)
+             if not show_graph: mpl.pyplot.close()  # Close graph after saving
+
     
     return rawRVT
     
