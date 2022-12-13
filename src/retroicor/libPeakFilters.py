@@ -1147,10 +1147,17 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs, p
          
     # Save plot to file
     if save_graph:
-        mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-        mpl.pyplot.show(block=False)  # If this is left out, output file is blank
+        if not OutDir:
+            print('**WARNING (graphPeaksAgainstRawInput): Cannot save graph.  No output directory specified')
+            if not show_graph: mpl.pyplot.close()  # Close graph after saving
+            return 1
+        else:
+            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            mpl.pyplot.show(block=False)  # If this is left out, output file is blank
         
     if not show_graph: mpl.pyplot.close()  # Close graph after saving
+    
+    return 0
 
 def checkForNans(rawData, dataType, failureThreshold = 100):
     '''

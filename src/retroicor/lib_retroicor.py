@@ -237,8 +237,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-        show_graph = parameters['show_graphs']>0, 
-        save_graph = parameters["save_graphs"]>0, dataType = "Cardiac",  
+        show_graph = parameters['show_graphs']>1, 
+        save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
            
@@ -258,8 +258,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
     
    # Graph cardiac peaks against respiratory time series
-   lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
-         parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Cardiac",
+   lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
+         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Cardiac",
          OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
          caption = 'Cardiac peaks after all filtering.')
     
@@ -463,7 +463,7 @@ def getRespiratoryPeaks(parameters, rawData):
     # Graph respiratory peaks and troughs against respiratory time series
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Respiratory",\
-        troughs = troughs, caption = 'Respiratory peaks after all filtering.')
+        troughs = troughs, caption = 'Respiratory peaks after all filtering.', OutDir = OutDir)
      
     return peaks, troughs, len(rawData)
 
@@ -878,8 +878,8 @@ def getPhysiologicalNoiseComponents(parameters):
         respiratory_phases = determineRespiratoryPhases(parameters, \
                 respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False], 
-                    show_graph = parameters['show_graph']>0, 
-                    save_graph = parameters['save_graph']>0)
+                    show_graph = parameters['show_graphs']>0, 
+                    save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
         parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
@@ -887,8 +887,8 @@ def getPhysiologicalNoiseComponents(parameters):
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
                          parameters['-num_time_pts'], parameters['-TR'], 
-                         show_graph = parameters['show_graph']>0, 
-                         save_graph = parameters['save_graph']>0, 
+                         show_graph = parameters['show_graphs']>0, 
+                         save_graph = parameters['save_graphs']>0, 
                          interpolationOrder = 'linear')
     else:
         if parameters['rvt_out']: print('WARNING: Cannot determine RVT.  No respiratory data')
