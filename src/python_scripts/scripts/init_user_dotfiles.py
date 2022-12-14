@@ -58,11 +58,12 @@ R Reynolds    December 2022
 g_history = """
    init_dotfiles.py history:
 
-   0.0  Dec  8, 2012    - ripped from the heart of @update.afni.binaries...
-                          encased in a block of ice... zillagod
+   0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
+                       encased in a block of ice... zillagod
+   0.1  Dec 14, 2012 - file objects, tokens, -force 
 """
 
-g_version = "init_dotfiles.py version 0.0, December 8, 2022"
+g_version = "init_dotfiles.py version 0.1, December 14, 2022"
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -105,6 +106,7 @@ def file_object(fname, verb=1):
    """return a vars object for the given file"""
 
    vo = VO.VarsObject(fname)
+   vo.name   = fname    # already implied, buy hey
    vo.isfile = os.path.isfile(fname)
    vo.isread = 0
    vo.tlines = []
@@ -119,12 +121,86 @@ def file_object(fname, verb=1):
    vo.nlines = len(vo.tlines)
    vo.follow = 0    # for .[t]cshrc, does it source the other
 
+   # note whether to modify, and then what mods are needed
+   vo.nmods  = 0    # main question, number of desired mods to file
+   vo.m_path = 0    # needs mod: PATH
+   vo.m_flat = 0    # needs mod: flat_namespace
+   vo.m_aps  = 0    # needs mod: apsearch
+
    return vo
+
+# akin to grep
+def fo_has_token(fo, t0, sub0=0):
+   """does some file_object line contain token t0?
+      (like grep -ql, but try to handle comments)
+
+      - ignore anything after a '#'
+      - if sub0, that token can be a substring
+      - do not try to be TOO intelligent
+         - no line continuation searches
+   """
+   for tline in fo.tlines:
+      cposn = tline.find('#')
+      # skip any pure comment line
+      if cposn == 0:
+         continue
+      if cposn > 0:
+         tt = tline[0:cposn]
+      else:
+         tt = tline
+      toks = tt.split()
+      if len(toks) < 1:
+         continue
+
+      # do we have our token?
+      found = False
+      for tind in range(len(toks)):
+         tok = toks[tind]
+         if sub0: found = tok.find(t0) >= 0
+         else:    found = t0 == tok
+
+         # MAIN CHECK: is it there?
+         if found:
+            return 1
+
+   return 0
 
 # akin to grep, but want sequential tokens not after comment
 def fo_has_token_pair(fo, t0, t1, sub0=0, sub1=0):
    """does some file_object line contain sequential tokens t0 and t1?
+
+      - ignore anything after a '#'
+      - if sub0,sub1, that token can be a substring
+      - do not try to be TOO intelligent
+         - no line continuation searches
    """
+   for tline in fo.tlines:
+      cposn = tline.find('#')
+      # skip any pure comment line
+      if cposn == 0:
+         continue
+      if cposn > 0:
+         tt = tline[0:cposn]
+      else:
+         tt = tline
+      toks = tt.split()
+      if len(toks) < 2:
+         continue
+
+      # we have at least 2 tokens, try find t0
+      found = False
+      for tind in range(len(toks)-1):
+         tok = toks[tind]
+         if sub0: found = t0 in tok
+         else:    found = t0 == tok
+         if found:
+            if sub1: found = t1 in toks[tind+1]
+            else:    found = t1 == toks[tind+1]
+
+         # MAIN CHECK: do we have a pair?
+         if found:
+            return 1
+
    return 0
 
 # ---------------------------------------------------------------------------
@@ -146,6 +222,7 @@ class MyInterface:
       self.do_apsearch     = 0      # do we run apserach?
       self.do_dotfiles     = 0      # do we actually modify dotfiles?
       self.do_flatdir      = 0      # do we update for flat_namespace?
+      self.force           = 0      # force updates, even for grep failures
       self.make_backup     = 1      # do we run apserach?
       self.verb            = verb
 
@@ -218,6 +295,9 @@ class MyInterface:
       self.valid_opts.add_opt('-do_dotfiles', 1, [], 
                       acplist=['yes','no'],
                       helpstr='actually update the dotfiles (yes/no)')
+      self.valid_opts.add_opt('-force', 1, [], 
+                      acplist=['yes','no'],
+                      helpstr='force all updates (yes/no)')
       self.valid_opts.add_opt('-make_backup', 1, [], 
                       acplist=['yes','no'],
                       helpstr='back up each edited file (yes/no)')
@@ -297,6 +377,12 @@ class MyInterface:
             if val.lower() == 'yes':
                self.do_dotfiles = 1
 
+         elif opt.name == '-force':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            if val.lower() == 'yes':
+               self.force = 1
+
          elif opt.name == '-make_backup':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
@@ -356,25 +442,27 @@ class MyInterface:
             MESGm("using default dotfile list")
          self.dflist = g_rc_mod
 
-      rv, modlist = self.files_to_mod()
+      rv = self.set_file_mod_flags()
 
       return rv
 
-   def files_to_mod(self):
-      """return a list of files that actually seem to need modifying
+   def set_file_mod_flags(self):
+      """within the dfobjs list, set all mod flags
          - this is informative, do not actually make changes here
          - return status (0 on success) and the new list
 
-         side effect: populate dfobjs
+         side effect: populate dfobjs: nmods and m_*
 
          0. dfile list entries should be known and not conntain paths
          1. populate dfobjs (read in all found files)
-         1. if both .cshrc and .tcshrc, determine whether the
-            latter references the former
-         2. 
+         2. if both .cshrc and .tcshrc, determine whether one soures the other
+         3. main point: for each file obj, set 'nmods'
+            - 
 
          possible list: '.bash_profile', '.bashrc', '.cshrc', '.tcshrc',
                         '.profile', '.zshrc'
+
+         return 0 on success
       """
 
       # ------------------------------------------------------------
@@ -391,7 +479,7 @@ class MyInterface:
 
       # fail on any bad names
       if errs:
-         return errs, []
+         return errs
 
       # ------------------------------------------------------------
       # try to read in whatever files exist into file objects
@@ -407,10 +495,99 @@ class MyInterface:
       # check on having both .cshrc and .tcshrc
       errs = self.check_for_cshrc_tcshrc()
 
-      # rcr - replace this
-      mfiles = self.dflist
+      # ------------------------------------------------------------
+      # check on generally needed mods: 
+      errs += self.note_files_to_modify()
 
-      return errs, mfiles
+      return errs
+
+   def note_files_to_modify(self):
+      """depending on options, check (and set corresponding m_ for):
+            - m_path: adding to PATH
+            - m_flat: applying flat_namespace
+            - m_aps:  applying apsearch
+      """
+      # check for needed path update
+      for name, fo in self.dfobjs.items():
+         self.check_to_set_path(fo)
+
+      # check for needed flat_namespace update
+      if self.do_flatdir:
+         for name, fo in self.dfobjs.items():
+            self.check_to_add_flatdir(fo)
+
+      # check for needed apsearch update
+      if self.do_apsearch:
+         for name, fo in self.dfobjs.items():
+            self.check_to_add_apsearch(fo)
+
+      # let user know of plans
+      if self.verb > 0:
+         ndfo = len(self.dfobjs)
+         ntot = sum([fo.nmods for n,fo in self.dfobjs.items()])
+         if ntot == 0:
+            MESG("no modifcations needed across %d files" % ndfo)
+         else:
+            MESG("want %d modifications across %d files:" % (ntot, ndfo))
+            MESG("   file             path  flatdir  apsearch\n" \
+                 "   ---------------  ----  -------  --------")
+            for name, fo in self.dfobjs.items():
+               ml = []
+               MESG("   %-15s  %-4d  %-7d  %-8d" % \
+                    (name, fo.m_path, fo.m_flat, fo.m_aps))
+
+      return 0
+
+   def check_to_add_flatdir(self, fo):
+      pass
+   def check_to_add_apsearch(self, fo):
+      pass
+   def check_to_set_path(self, fo):
+      """try to determine whether file is setting dir_bin
+
+         How to check PATH at this point?
+           - for now, mimic @uab and do a simple grep for the abin tail
+      """
+      doit = 0
+      if self.verb > 2:
+         MESG("== check_to_set_path: %s" % fo.name)
+
+      # if follower, no worries
+      if fo.follow:
+         if self.verb > 2:
+            MESGm("file %s is a follower" % fo.name)
+      # if forcing updates, no worries
+      elif self.force:
+         if self.verb > 2:
+            MESGm("file %s has forced updates" % fo.name)
+         doit = 1
+
+      # actual "thinking": for now, just search for PATH tail
+      else:
+         tail = self.path_tail(self.dir_bin)
+         if fo_has_token(fo, tail, sub0=1):
+            if self.verb > 2:
+               MESGm("found PATH token %s in file %s" % (tail, fo.name))
+         else:
+            if self.verb > 2:
+               MESGm("no PATH token %s in file %s" % (tail, fo.name))
+            doit = 1
+
+      if doit:
+         if self.verb > 2:
+            MESGp("will add %s to PATH in file %s" % (self.dir_bin, fo.name))
+         fo.nmods += 1
+         fo.m_path = 1
+
+   def path_tail(self, somepath):
+      """like $val:t in tcsh"""
+
+      posn = somepath.rfind('/')
+
+      if posn < 0:
+         return somepath
+      else:
+         return somepath[posn+1:]
 
    def check_for_cshrc_tcshrc(self):
       """if both .cshrc and .tcshrc exist, we would like to see that 
