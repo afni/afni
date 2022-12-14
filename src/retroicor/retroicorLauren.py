@@ -728,3 +728,5 @@ Output:
         niml=opt_dict["-niml"],
         args = sys.argv[1:]
     )
+    
+    print('Program completed successfully')

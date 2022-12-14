@@ -926,7 +926,7 @@ def getPhysiologicalNoiseComponents(parameters):
         T = len_resp
     elif len_card :
         T = len_card
-    print('T = ', T)
+    print('Maximum length of phase array = ', T)
 
     nreg = 0              # number of regressors we make
     for t in range(0,T):
@@ -950,11 +950,12 @@ def getPhysiologicalNoiseComponents(parameters):
 
     # Reshape matrix according to number of slices
     nrow = np.shape(data)[0]
-    print("DEBUG: nrow =", nrow)
-    print("DEBUG: shape BEFORE =", np.shape(data))
-    print("DEBUG: nsections =", numSections)
+    # DEBUGGING INFO.
+    # print("DEBUG: nrow =", nrow)
+    # print("DEBUG: shape BEFORE =", np.shape(data))
+    # print("DEBUG: nsections =", numSections)
     data = np.reshape(data[0:nrow-(nrow%numSections)][:], (nreg*numSections, -1)).T
-    print("DEBUG: shape AFTER =", np.shape(data))
+    # print("DEBUG: shape AFTER =", np.shape(data))
         
     # return df   
     physiologicalNoiseComponents = dict()

@@ -758,7 +758,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     # Determine frequency peak
     NyquistLength = round(rawDataLength/2)
     frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])+lowerCutoffIndex
-    print('Frequency peak: ' + str(F0 * frequencyPeak) + ' Hz')
+    print(dataType + ' band-pass filter frequency peak: ' + str(F0 * frequencyPeak) + ' Hz')
     
     # Find bounds based on -3 dB limits
     peakVal = FourierSpectrum[frequencyPeak]
