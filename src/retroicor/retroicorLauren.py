@@ -699,7 +699,7 @@ Output:
         print('WARNING: Number of slices not given.')
         
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
-    retro_ts(
+    return_status = retro_ts(
         respiration_file=opt_dict["-respFile"],
         cardiac_file=opt_dict["-cardFile"],
         phys_fs=opt_dict["-freq"],
@@ -729,4 +729,8 @@ Output:
         args = sys.argv[1:]
     )
     
-    print('Program completed successfully')
+    if return_status == 0:
+        print('Program completed successfully')
+    else:
+        print('Program failed')
+        
