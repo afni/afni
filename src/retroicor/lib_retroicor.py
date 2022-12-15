@@ -220,9 +220,9 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
 
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, show_graph = parameters['show_graphs']>1, 
-                save_graph = parameters["save_graphs"]>1, 
-                phys_fs = parameters["phys_fs"])   
+   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, show_graph = max(parameters['show_graphs']-1,0), 
+                save_graph = max(parameters["save_graphs"]-1,0), 
+                phys_fs = parameters["phys_fs"], OutDir = OutDir)   
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
@@ -301,7 +301,7 @@ def getRespiratoryPeaks(parameters, rawData):
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBreathsPerSecond,\
         parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
-        save_graph = parameters["save_graphs"]>1, OutDir=OutDir)
+        save_graph = parameters["save_graphs"]>1, OutDir=OutDir, dataType = "Respiratory")
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -463,7 +463,8 @@ def getRespiratoryPeaks(parameters, rawData):
     # Graph respiratory peaks and troughs against respiratory time series
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Respiratory",\
-        troughs = troughs, caption = 'Respiratory peaks after all filtering.', OutDir = OutDir)
+        troughs = troughs, caption = 'Respiratory peaks after all filtering.', OutDir = OutDir,
+        prefix = 'respiratoryPeaksAndTroughsFinal')
      
     return peaks, troughs, len(rawData)
 

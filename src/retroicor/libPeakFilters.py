@@ -619,7 +619,7 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
     return peaks, troughs
 
 def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
-                     show_graph = False, save_graph = True, phys_fs = None, 
+                     show_graph = 0, save_graph = 1, phys_fs = None, 
                      dataType = "Cardiac", OutDir = None):
     """
     NAME
@@ -681,12 +681,14 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period, 
-                Troughs = True, show_graph = show_graph, save_graph = save_graph)
+                Troughs = True, show_graph = max(show_graph-1,0), 
+                save_graph = max(save_graph-1,0), phys_fs = phys_fs, OutDir = OutDir)
     else:   # Processing peaks
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period, 
-                    show_graph = show_graph, save_graph = save_graph)
+                    show_graph = max(show_graph-1,0), 
+                    save_graph = max(save_graph-1,0), phys_fs = phys_fs, OutDir = OutDir)
             
     # Convert peaks back to numpy array and remove duplicates that may result from refining the locations
     peaks = np.unique(np.array(peaks))
@@ -979,7 +981,7 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False, save_graph 
    
     # Adjust peaks from uniform spacing
     peaks = refinePeakLocations(peaks, rawData, period = period, show_graph = show_graph, 
-                save_graph = save_graph)
+                save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir)
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
@@ -1073,9 +1075,11 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, show_graph =
    
     # Adjust peaks from uniform spacing
     peaks = refinePeakLocations(peaks, rawData, period = np.median(intervals)/2, 
-                show_graph = show_graph, save_graph = save_graph)
+                show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
+                phys_fs = phys_fs, OutDir = OutDir)
     troughs = refinePeakLocations(troughs, rawData, period = np.median(intervals)/2, 
-            Troughs = True, show_graph = show_graph, save_graph = save_graph)
+            Troughs = True, show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
+            phys_fs = phys_fs, OutDir = OutDir)
     
     # Remove extra peaks bewteen troughs and troughs between peaks
     peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
