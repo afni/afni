@@ -744,9 +744,10 @@ g_history = """
     7.47 Oct  8, 2022: w/PT: reformat of help examples
     7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
     7.49 Nov 23, 2022: added examples simple_rest_QC, simple_rest_QC_na
+    7.50 Dec 16, 2022: update example 6, 6b
 """
 
-g_version = "version 7.49, November 23, 2022"
+g_version = "version 7.50, December 16, 2022"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2932,7 +2933,8 @@ class SubjProcSream:
 
         return unique
 
-    def opts_include_unused_blocks(self, blocks, whine=1):
+    def opts_include_unused_blocks(self, blocks, whine=1,
+                                   allow=['-volreg_base_dset']):
         """return whether options refer to blocks that are not being used"""
 
         # start with all BlockLabels and remove those in passed list
@@ -2949,6 +2951,7 @@ class SubjProcSream:
         for opt in self.user_opts.olist:
             ind = opt.name.find('_')
             if ind < 0: continue
+            if opt.name in allow: continue
             if opt.name[0:ind+1] in badlist:
                 if whine: print("** missing '%s' block for option '%s'" \
                                 % (opt.name[1:ind], opt.name))

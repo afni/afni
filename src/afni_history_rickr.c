@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Dec, 2022, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "update mask order in examples 6,6b (mask then blur)",
+   NULL
+ } ,
+
  {  9, Dec, 2022, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "add more detail to afni_system_check.py -help_dot_files",
    NULL
