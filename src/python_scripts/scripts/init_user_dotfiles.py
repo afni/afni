@@ -76,6 +76,12 @@ g_rc_mod = [ '.profile',
              '.cshrc', '.tcshrc',
            ]
 
+g_valid_shells = ['bash', 'sh', 'tcsh', 'csh', 'zsh']
+
+
+g_flatdir  = '/opt/X11/lib/flat_namespace'
+g_dylibvar = 'DYLD_LIBRARY_PATH'
+g_aps_file = 'all_progs.COMP'       # under $HOME/.afni/help (can be multiple)
 
 # ---------------------------------------------------------------------------
 # general functions
@@ -191,10 +197,10 @@ def fo_has_token_pair(fo, t0, t1, sub0=0, sub1=0):
       found = False
       for tind in range(len(toks)-1):
          tok = toks[tind]
-         if sub0: found = t0 in tok
+         if sub0: found = tok.find(t0) >= 0
          else:    found = t0 == tok
          if found:
-            if sub1: found = t1 in toks[tind+1]
+            if sub1: found = toks[tind+1].find(t1) >= 0
             else:    found = t1 == toks[tind+1]
 
          # MAIN CHECK: do we have a pair?
@@ -202,6 +208,40 @@ def fo_has_token_pair(fo, t0, t1, sub0=0, sub1=0):
             return 1
 
    return 0
+
+def shell_for_dotfile(fname):
+   """given the dot file name, return corresponding shell"""
+   if fname not in g_rc_all:
+      return ''
+
+   if fname in ['.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc']:
+      return 'bash'
+   elif fname in ['.cshrc', '.login', '.tcshrc']:
+      return 'tcsh'
+   elif fname in ['.profile']:
+      return 'sh'
+   elif fname in ['.zlogin', '.zprofile', '.zshenv', '.zshrc']:
+      return 'zsh'
+   else:
+      print("** unhandled shell for dotfile, '%s'" % fname)
+      return ''
+
+
+def all_progs_shell_file(fname):
+   """given the dot file name, return the all_progs file to source"""
+   shell = shell_for_dotfile(fname)
+   if shell not in g_valid_shells:
+      return ''
+
+   if shell in ['bash', 'sh']:
+      return '%s.bash' % g_aps_file
+   elif shell in ['tcsh', 'csh']:
+      return g_aps_file
+   elif shell in ['zsh']:
+      return '%s.zsh' % g_aps_file
+   else:
+      print("** unhandled AP file for dotfile, '%s'" % fname)
+      return ''
 
 # ---------------------------------------------------------------------------
 
@@ -219,12 +259,15 @@ class MyInterface:
       self.dflist          = None   # user-specified dotfile list
       self.dir_bin         = ''     # dir to add to PATH
       self.dir_dot         = ''     # HOME or specified location of DF
-      self.do_apsearch     = 0      # do we run apserach?
-      self.do_dotfiles     = 0      # do we actually modify dotfiles?
-      self.do_flatdir      = 0      # do we update for flat_namespace?
       self.force           = 0      # force updates, even for grep failures
       self.make_backup     = 1      # do we run apserach?
-      self.verb            = verb
+      self.test            = 0      # just run in test mode
+      self.verb            = verb   # verbosity level
+
+      # user controlled, but not direct with options
+      self.do_apsearch     = 0      # do we update for apserach?
+      self.do_flatdir      = 0      # do we update for flat_namespace?
+      self.do_path         = 0      # do we update for PATH?
 
       # rcr - info that means not making any edits
       self.list_dotfiles   = 0
@@ -289,18 +332,16 @@ class MyInterface:
                       helpstr='directory to add to PATH')
       self.valid_opts.add_opt('-dir_dot', 1, [], 
                       helpstr='directory to mod files under (def=$HOME)')
-      self.valid_opts.add_opt('-do_apsearch', 1, [], 
-                      acplist=['yes','no'],
-                      helpstr='make updates regarding apsearch (yes/no)')
-      self.valid_opts.add_opt('-do_dotfiles', 1, [], 
-                      acplist=['yes','no'],
-                      helpstr='actually update the dotfiles (yes/no)')
-      self.valid_opts.add_opt('-force', 1, [], 
-                      acplist=['yes','no'],
-                      helpstr='force all updates (yes/no)')
+      self.valid_opts.add_opt('-do_updates', -1, [], 
+                      acplist=['apsearch', 'flatdir', 'path', 'ALL'],
+                      helpstr='make the given updates (e.g. apsearch path)')
+      self.valid_opts.add_opt('-force', 0, [], 
+                      helpstr='force all updates')
       self.valid_opts.add_opt('-make_backup', 1, [], 
                       acplist=['yes','no'],
                       helpstr='back up each edited file (yes/no)')
+      self.valid_opts.add_opt('-test', 0, [], 
+                      helpstr='run without making any updates')
 
       # general options
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -365,29 +406,32 @@ class MyInterface:
             if val == None or err: return -1
             self.dir_dot = val
 
-         elif opt.name == '-do_apsearch':
-            val, err = uopts.get_string_opt('', opt=opt)
-            if val == None or err: return -1
-            if val.lower() == 'yes':
+         # main action option: which to perform
+         elif opt.name == '-do_updates':
+            vlist, err = uopts.get_string_list('', opt=opt)
+            if vlist == None or err: return -1
+            if 'apsearch' in vlist:
                self.do_apserach = 1
-
-         elif opt.name == '-do_dotfiles':
-            val, err = uopts.get_string_opt('', opt=opt)
-            if val == None or err: return -1
-            if val.lower() == 'yes':
-               self.do_dotfiles = 1
+            if 'flatdir' in vlist:
+               self.do_flatdir = 1
+            if 'path' in vlist:
+               self.do_path = 1
+            if 'ALL' in vlist:
+               self.do_path = 1
+               self.do_apserach = 1
+               self.do_flatdir = 1
 
          elif opt.name == '-force':
-            val, err = uopts.get_string_opt('', opt=opt)
-            if val == None or err: return -1
-            if val.lower() == 'yes':
-               self.force = 1
+            self.force = 1
 
          elif opt.name == '-make_backup':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             if val.lower() == 'yes':
                self.make_backup = 1
+
+         elif opt.name == '-test':
+            self.test = 1
 
          # general options
 
@@ -425,28 +469,28 @@ class MyInterface:
          MESGe("failed to 'cd' to dir_dot, '%s'" % self.dir_dot)
          return -1
 
-      # and attack dot/rc files
-      if self.modify_dotfiles():
-         return -1
-
-      return 0
-
-   def modify_dotfiles(self):
-      """first detect what updates might be needed, then make them
-         - use self.dflist if not None, else the default g_rc_mod
-      """
-
       # init dflist if not set by user
       if self.dflist is None:
          if self.verb > 1:
             MESGm("using default dotfile list")
          self.dflist = g_rc_mod
 
-      rv = self.set_file_mod_flags()
+      # see what mods might be needed
+      if self.evaluate_files_to_modify():
+         return -1
 
-      return rv
+      # if this is just a test, we are done
+      if self.test:
+         return 0
 
-   def set_file_mod_flags(self):
+      # and attack dot/rc files
+      # if self.modify_dotfiles():
+      #    return -1
+
+      return 0
+
+
+   def evaluate_files_to_modify(self):
       """within the dfobjs list, set all mod flags
          - this is informative, do not actually make changes here
          - return status (0 on success) and the new list
@@ -471,7 +515,7 @@ class MyInterface:
       for fname in self.dflist:
          if fname not in g_rc_mod:
             if fname.find('/') >= 0 :
-               MESGe("dotfile %s contain a path ('/' char)\n"%fname +
+               MESGe("dotfile %s contains a path ('/' char)\n"%fname +
                      "   (use -dir_dot to specify location)")
             else:
                MESGe("not sure how to modify file %s" % fname)
@@ -497,29 +541,27 @@ class MyInterface:
 
       # ------------------------------------------------------------
       # check on generally needed mods: 
-      errs += self.note_files_to_modify()
+      errs += self.set_file_mod_flags()
 
       return errs
 
-   def note_files_to_modify(self):
+   def set_file_mod_flags(self):
       """depending on options, check (and set corresponding m_ for):
             - m_path: adding to PATH
             - m_flat: applying flat_namespace
             - m_aps:  applying apsearch
       """
+      # check for needed apsearch update
+      for name, fo in self.dfobjs.items():
+         self.check_to_add_apsearch(fo)
+
+      # check for needed flat_namespace update
+      for name, fo in self.dfobjs.items():
+         self.check_to_add_flatdir(fo)
+
       # check for needed path update
       for name, fo in self.dfobjs.items():
          self.check_to_set_path(fo)
-
-      # check for needed flat_namespace update
-      if self.do_flatdir:
-         for name, fo in self.dfobjs.items():
-            self.check_to_add_flatdir(fo)
-
-      # check for needed apsearch update
-      if self.do_apsearch:
-         for name, fo in self.dfobjs.items():
-            self.check_to_add_apsearch(fo)
 
       # let user know of plans
       if self.verb > 0:
@@ -538,10 +580,88 @@ class MyInterface:
 
       return 0
 
-   def check_to_add_flatdir(self, fo):
-      pass
    def check_to_add_apsearch(self, fo):
-      pass
+      """try to determine whether file is setting DYLD_LIBRARY_PATH
+
+           - for now, mimic @uab and do a simple grep for the abin tail
+      """
+      doit = 0
+      if self.verb > 2:
+         MESG("== check_to_add_apsearch: %s" % fo.name)
+
+      # if follower, no worries
+      if fo.follow:
+         if self.verb > 2:
+            MESGm("file %s is a follower" % fo.name)
+      # if forcing updates, just do it (even flatdir on Linux, for testing)
+      elif self.force:
+         if self.verb > 2:
+            MESGm("file %s has forced updates" % fo.name)
+         doit = 1
+
+      # actual "thinking": for now
+      # apsearch file depends on shell, so it is more complicated
+      else:
+         apsname = all_progs_shell_file(fo.name)
+         if apsname == '':
+            MESGw("file %s has unknown all_progs, skipping..." % fo.name)
+            return
+
+         if fo_has_token(fo, apsname, sub0=1):
+            if self.verb > 2:
+               MESGm("found aps token %s in file %s" % (apsname, fo.name))
+         else:
+            if self.verb > 2:
+               MESGm("no aps token %s in file %s" % (apsname, fo.name))
+            doit = 1
+
+      if doit:
+         if self.verb > 2:
+            MESGp("will source %s in file %s" % (apsname, fo.name))
+         fo.nmods += 1
+         fo.m_aps = 1
+
+   def check_to_add_flatdir(self, fo):
+      """try to determine whether file is setting DYLD_LIBRARY_PATH
+
+           - for now, mimic @uab and do a simple grep for the abin tail
+      """
+      doit = 0
+      if self.verb > 2:
+         MESG("== check_to_add_flatdir: %s" % fo.name)
+
+      # if follower, no worries
+      if fo.follow:
+         if self.verb > 2:
+            MESGm("file %s is a follower" % fo.name)
+      # if forcing updates, just do it (even flatdir on Linux, for testing)
+      elif self.force:
+         if self.verb > 2:
+            MESGm("file %s has forced updates" % fo.name)
+         doit = 1
+
+      # actual "thinking": for now, just search for PATH tail
+      # (only apply on a mac)
+      elif not self.is_mac:
+         if self.verb > 2:
+            MESGm("not on a mac, skip flatdir")
+      else:
+         # check for flat_namespace and DYLD_LIBRARY_PATH
+         if fo_has_token(fo, g_flatdir, sub0=1) and \
+            fo_has_token(fo, g_dylibvar, sub0=1):
+            if self.verb > 2:
+               MESGm("found flatdir token %s in file %s" % (g_flatdir, fo.name))
+         else:
+            if self.verb > 2:
+               MESGm("no flatdir token %s in file %s" % (g_flatdir, fo.name))
+            doit = 1
+
+      if doit:
+         if self.verb > 2:
+            MESGp("will add %s to PATH in file %s" % (self.dir_bin, fo.name))
+         fo.nmods += 1
+         fo.m_path = 1
+
    def check_to_set_path(self, fo):
       """try to determine whether file is setting dir_bin
 
@@ -676,7 +796,7 @@ class MyInterface:
       # user-controllable dir: bin
       if self.dir_bin == '':
          # then use dir_abin, if populated
-         if self.dir_abin != '':
+         if self.dir_abin == '':
             MESGe("have no found abin, so please use -dir_bin")
             return -1
          self.dir_bin = self.dir_abin
