@@ -70,11 +70,10 @@ g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.profile',
              '.zlogin', '.zprofile', '.zshenv', '.zshrc']
 
-g_rc_mod = [ '.profile',
-             '.bash_profile', '.bashrc',
-             '.zshrc',
+g_rc_mod = [ '.bash_profile', '.bashrc',
              '.cshrc', '.tcshrc',
-           ]
+             '.profile',
+             '.zshrc']
 
 g_valid_shells = ['bash', 'sh', 'tcsh', 'csh', 'zsh']
 
@@ -111,11 +110,12 @@ def MESGp(mstr):
 def file_object(fname, verb=1):
    """return a vars object for the given file"""
 
-   vo = VO.VarsObject(fname)
-   vo.name   = fname    # already implied, buy hey
-   vo.isfile = os.path.isfile(fname)
-   vo.isread = 0
-   vo.tlines = []
+   vo         = VO.VarsObject(fname)
+   vo.name    = fname    # already implied, buy hey
+   vo.isfile  = os.path.isfile(fname)
+   vo.isread  = 0
+   vo.tlines  = []
+
    # try to read, but no whining
    if vo.isfile:
       try:
@@ -124,15 +124,17 @@ def file_object(fname, verb=1):
          vo.tlines = tlines
       except:
          if verb: MESGw("failed to read existing dot file %s" % fname)
-   vo.nlines = len(vo.tlines)
-   vo.follow = 0    # for .[t]cshrc, does it source the other
+
+   vo.nlines  = len(vo.tlines)
+   vo.follow  = 0   # for .[t]cshrc, does it source the other
+   vo.bfollow = 0   # for .[t]cshrc, does it source the other
 
    # note whether to modify, and then what mods are needed
-   vo.nmods  = 0    # main question, number of desired mods to file
-   vo.m_path = 0    # needs mod: PATH
-   vo.m_flat = 0    # needs mod: flat_namespace
-   vo.m_aps  = 0    # needs mod: apsearch
-
+   vo.nmods   = 0   # main question, number of desired mods to file
+   vo.m_path  = 0   # needs mod: PATH
+   vo.m_flat  = 0   # needs mod: flat_namespace
+   vo.m_aps   = 0   # needs mod: apsearch
+ 
    return vo
 
 # akin to grep
@@ -312,12 +314,54 @@ class MyInterface:
              MESG("   %-15s : %-15s : %s" % (attr, tval, val))
       MESG("")
 
+   def show_dotfiles(self, which='all'):
+      """show known dotfiles (g_rc_all or _mod, depending on 'which')"""
+      # if being quiet, just spit out the names
+      if self.verb == 0:
+         if which == 'mod':
+            MESG('\n'.join(g_rc_mod))
+         else:
+            MESG('\n'.join(g_rc_all))
+         return
+
+      # else, be more verbose
+      if which == 'all':
+         wstr = which
+         dlist = g_rc_all
+      else:
+         wstr = "modifiable"
+         dlist = g_rc_mod
+      MESG("")
+      MESG("known (RC)dotfiles (%s) :\n" % wstr)
+
+      MESG("  %-15s  %-10s  %-15s" % ('dotfile', 'shell', 'apsearch_file'))
+      MESG("  %-15s  %-10s  %-15s" % ('-------', '-----', '-'*13))
+      for fname in dlist:
+         shell = shell_for_dotfile(fname)
+         apfile = all_progs_shell_file(fname)
+         MESG("  %-15s  %-10s  %-15s" % (fname, shell, apfile))
+      MESG("")
+
+   def show_shells(self):
+      """show valid shells to work with (g_valid_shells)"""
+      if self.verb > 0:
+          MESG("valid shells : %s" % (', '.join(g_valid_shells)))
+      else:
+          MESG("%s" % ('\n'.join(g_valid_shells)))
+
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
       # short, terminal options
       self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
+      self.valid_opts.add_opt('-help_dotfiles_all', 0, [],
+                      helpstr='display all "known" dotfiles')
+      self.valid_opts.add_opt('-help_dotfiles_mod', 0, [],
+                      helpstr='display modifiable dotfiles')
+      self.valid_opts.add_opt('-help_shells', 0, [],
+                      helpstr='display program help')
+
       self.valid_opts.add_opt('-hist', 0, [],
                       helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],
@@ -367,6 +411,8 @@ class MyInterface:
          MESG(g_help_string)
          return 1
 
+      # ** -help_{dot,shells}* are below, to handle -verb
+
       if '-hist' in sys.argv:
          MESG(g_history)
          return 1
@@ -390,8 +436,19 @@ class MyInterface:
 
       for opt in uopts.olist:
 
+         # TERMINAL help options that might need -verb
+         if opt.name == '-help_dotfiles_all':
+            self.show_dotfiles(which='all')
+            return 1
+         elif opt.name == '-help_dotfiles_mod':
+            self.show_dotfiles(which='mod')
+            return 1
+         elif opt.name == '-help_shells':
+            self.show_shells()
+            return 1
+
          # main options
-         if opt.name == '-dflist':
+         elif opt.name == '-dflist':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
             self.dflist = val
@@ -533,17 +590,34 @@ class MyInterface:
          if self.verb > 1:
             if vo.isfile: lstr = "%3d lines" % vo.nlines
             else:         lstr = "not found"
-            MESGp("%-20s : %s" % (dfname, lstr))
+            MESGp("   %-20s : %s" % (dfname, lstr))
 
       # ------------------------------------------------------------
       # check on having both .cshrc and .tcshrc
       errs = self.check_for_cshrc_tcshrc()
 
       # ------------------------------------------------------------
+      # check on .bashrc setting BASH_ENV
+      if '.bashrc' in self.dfobjs.keys():
+         fo = self.dfobjs['.bashrc']
+         if fo_has_token_pair(fo, 'export', 'BASH_ENV', sub1=1):
+            if self.verb > 1:
+               MESGm("note: .bashrc exports BASH_ENV")
+            fo.bfollow = 1
+
+      # ------------------------------------------------------------
       # check on generally needed mods: 
       errs += self.set_file_mod_flags()
 
       return errs
+
+   def fo_sources_file(self, fo, fname):
+      """return whether fo contains something like 'source fname'"""
+      if fo_has_token_pair(fo, 'source', fname, sub0=0, sub1=1):
+         return 1
+      if fo_has_token_pair(fo, '.',      fname, sub0=0, sub1=1):
+         return 1
+      return 0
 
    def set_file_mod_flags(self):
       """depending on options, check (and set corresponding m_ for):
@@ -581,7 +655,7 @@ class MyInterface:
       return 0
 
    def check_to_add_apsearch(self, fo):
-      """try to determine whether file is setting DYLD_LIBRARY_PATH
+      """try to determine whether file references all_progs.COMP*
 
            - for now, mimic @uab and do a simple grep for the abin tail
       """
@@ -634,6 +708,9 @@ class MyInterface:
       if fo.follow:
          if self.verb > 2:
             MESGm("file %s is a follower" % fo.name)
+      elif fo.bfollow:
+         if self.verb > 2:
+            MESGm("file %s is a BASH_ENV follower" % fo.name)
       # if forcing updates, just do it (even flatdir on Linux, for testing)
       elif self.force:
          if self.verb > 2:
@@ -747,13 +824,8 @@ class MyInterface:
 
       # ------------------------------------------------------------
       # main work: does .tcshrc source .cshrc?
-      sd = fo_has_token_pair(fto, '.', fc, sub0=0, sub1=1)
-      ss = fo_has_token_pair(fto, 'source', fc, sub0=0, sub1=1)
-      follow_t = sd or ss
-
-      sd = fo_has_token_pair(fco, '.', ft, sub0=0, sub1=1)
-      ss = fo_has_token_pair(fco, 'source', ft, sub0=0, sub1=1)
-      follow_c = sd or ss
+      follow_t = self.fo_sources_file(fto, fc)
+      follow_c = self.fo_sources_file(fco, ft)
 
       # we want exactly one to follow the other
       retval = 0
