@@ -19,21 +19,29 @@ g_help_string = """
 =============================================================================
 init_dotfiles.py - initialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
 
+   Either initialize or just evaluate dot files for:
+
+      - having ABIN in PATH
+      - (for macs) have flat_namespace in DYLD_LIBRARY_PATH
+      - (optionally) apsearch tab completion setup file
+           .afni/help/all_progs.COMP (depending on shell)
+
    For some background, please see:
 
       afni_system_check.py -help_dot_files
 
-   1. Add ABIN to the PATH in all evaluated dot/RC files.
-      ABIN can be set by -dir_bin, else it will be come from:
+   For evaluation, this would report on which might be needed to do.
 
-         which afni_proc.py
+   For initializing files, this would:
 
-   2. If requested and on a mac, set DYLD_LIBRARY_PATH.
+      1. Add ABIN to the PATH in all evaluated dot/RC files.
+         ABIN can be set by -dir_bin, else it will be come from:
+            which afni_proc.py
 
-   3. If requested, run apsearch?  Maybe?  We shall see...
+      2. If requested and on a mac, set DYLD_LIBRARY_PATH.
 
+      3. If requested, source all_progs.COMP.
 
-   rcr - more babble...
 
 ------------------------------------------
 examples:
@@ -70,7 +78,7 @@ g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.profile',
              '.zlogin', '.zprofile', '.zshenv', '.zshrc']
 
-g_rc_mod = [ '.bash_profile', '.bashrc',
+g_rc_mod = [ '.bashrc',
              '.cshrc', '.tcshrc',
              '.profile',
              '.zshrc']
@@ -263,18 +271,14 @@ class MyInterface:
       self.dir_dot         = ''     # HOME or specified location of DF
       self.force           = 0      # force updates, even for grep failures
       self.make_backup     = 1      # do we run apserach?
-      self.test            = 0      # just run in test mode
+      self.test            = 0      # just run in test mode (NO MODS)
       self.verb            = verb   # verbosity level
 
-      # user controlled, but not direct with options
+      # user controlled, but not directly with options
       self.do_apsearch     = 0      # do we update for apserach?
       self.do_flatdir      = 0      # do we update for flat_namespace?
       self.do_path         = 0      # do we update for PATH?
 
-      # rcr - info that means not making any edits
-      self.list_dotfiles   = 0
-      self.dry_run         = 0
-     
       # uncontrollable variables
       self.bak_suffix      = '.iud.bak' # suffix for backup files
       self.cmd_file        = ''         # write any run shell commands
@@ -451,7 +455,11 @@ class MyInterface:
          elif opt.name == '-dflist':
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
-            self.dflist = val
+            # special options:
+            if 'ALL' in val:
+               self.dflist = g_rc_all
+            else:
+               self.dflist = val
 
          elif opt.name == '-dir_bin':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -541,11 +549,119 @@ class MyInterface:
          return 0
 
       # and attack dot/rc files
-      # if self.modify_dotfiles():
-      #    return -1
+      if self.modify_dotfiles():
+         return -1
 
       return 0
 
+   def modify_dotfiles(self):
+      """actually apply all of the specified modifications
+            - if make_backup save original with suffix bak_suffix
+            - for each file object
+                - go from m_path, m_flat, vo.m_aps
+      """
+
+      for fname, fo in self.dfobjs.items():
+         # if not making modifications, skip
+         if fo.nmods < 1:
+            continue
+
+         # make a list of commands to add (for the shell implied by fname)
+         cmd_str = self.make_fo_cmd_string(fo)
+         if cmd_str == '':
+            continue
+
+         # ----------------------------------------
+         # okay, we have a string to append
+
+         # maybe make a backup file
+         if self.make_backup:
+             pass
+
+         # if fo.nmods = fo.m_path + fo.m_flat + fo.m_aps
+         # if no mods, continue
+         # if make_backup, do so
+         # get mod string based on shell
+         # write with mod string
+         pass
+      
+      return 0
+
+   def make_fo_cmd_string(self, fo):
+      """create a full command string to append to the current dot file"""
+      return ''
+
+   def cmd_flat(self, shell):
+      """return a shell-based command to add dir_flat to DYLD"""
+      comment = '# look for shared libraries under flat_namespace'
+      if   shell in ['bash', 'sh', 'zsh']:
+         rstr = '%s\nexport %s=${%s}:%s'    \
+                % (comment, g_dylibvar, g_dylibvar, g_flatdir)
+      elif shell in ['tcsh', 'csh']:
+         rstr = '%s\n'                      \
+                'if ( $?%s ) then\n'        \
+                '   setenv %s ${%s}:%s\n'   \
+                'else\n'                    \
+                '   setenv %s %s\n'         \
+                'endif\n'                   \
+                % (comment, g_dylibvar,
+                            g_dylibvar, g_dylibvar, g_flatdir,
+                            g_dylibvar, g_flatdir)
+      else:
+         if self.verb > 1:
+            MESGm("omitting PATH update shell %s" % shell)
+         rstr = ''
+
+      return rstr
+
+   def cmd_path(self, shell):
+      """return a shell-based PATH command to add dir_bin to PATH"""
+      comment = '# add AFNI abin to PATH'
+      if   shell in ['bash', 'sh', 'zsh']:
+         return '%s\nexport PATH=${PATH}:%s\n' % (comment, self.dir_bin)
+      elif shell in ['tcsh', 'csh']:
+         return '%s\nsetenv PATH ${PATH}:%s\n' % (comment, self.dir_bin)
+      else:
+         if self.verb > 1:
+            MESGm("omitting PATH update shell %s" % shell)
+         return ''
+
+   def cmd_apearch(self, shell):
+      """return a command to source apsearch tab completion file"""
+      comment = '# set up tab completion for AFNI programs'
+      if shell in ['bash', 'sh']:
+         apfile = g_aps_file + '.bash'
+         rstr = '%s\n'                                          \
+                'if [ -f $HOME/.afni/help/%s ]\n'               \
+                'then\n'                                        \
+                '   source $HOME/.afni/help/%s\n'               \
+                'fi\n' % (comment, apfile, apfile)
+      elif shell in ['tcsh', 'csh']:
+         apfile = g_aps_file
+         rstr = '%s\n'                                          \
+                '# (only do this in an interactive shell)\n'    \
+                'if ( $?prompt ) then\n'                        \
+                '   if ( "$prompt" != "" ) then\n'              \
+                '      if ( -f $HOME/.afni/help/%s ) then\n'    \
+                '         source $HOME/.afni/help/%s\n'         \
+                '      endif\n'                                 \
+                '   endif\n'                                    \
+                'endif\n' % (comment, apfile, apfile)
+      elif shell == 'zsh':
+         apfile = g_aps_file + '.zsh'
+         rstr = '%s\n'                                              \
+                'if [ -f $HOME/.afni/help/%s ]\n'                   \
+                'then\n'                                            \
+                '   autoload -U +X bashcompinit && bashcompinit\n'  \
+                '   autoload -U +X compinit && compinit \\\n'       \
+                '     && source $HOME/.afni/help/%s\n'              \
+                'fi\n' % (comment, apfile, apfile)
+      else:
+         if self.verb > 1:
+            MESGm("omitting apsearch string for shell %s" % shell)
+         rstr = ''
+
+      return rstr
 
    def evaluate_files_to_modify(self):
       """within the dfobjs list, set all mod flags
@@ -569,14 +685,27 @@ class MyInterface:
       # ------------------------------------------------------------
       # check that entires are known (and do not contain '/')
       errs = 0
+      skips = 0
       for fname in self.dflist:
-         if fname not in g_rc_mod:
+         if fname not in g_rc_all:
             if fname.find('/') >= 0 :
                MESGe("dotfile %s contains a path ('/' char)\n"%fname +
                      "   (use -dir_dot to specify location)")
             else:
                MESGe("not sure how to modify file %s" % fname)
             errs += 1
+         elif fname not in g_rc_mod:
+            if self.verb > 0:
+               MESGw("skipping general file %s" % fname)
+            skips += 1
+
+      if skips:
+         newlist = [fn for fn in self.dflist if fn in g_rc_mod]
+         lo = len(self.dflist)
+         ln = len(newlist)
+         self.dflist = newlist
+         if self.verb > 0:
+            MESGm("skipping files, truncating from %d to %d" % (lo, ln))
 
       # fail on any bad names
       if errs:
@@ -597,19 +726,36 @@ class MyInterface:
       errs = self.check_for_cshrc_tcshrc()
 
       # ------------------------------------------------------------
-      # check on .bashrc setting BASH_ENV
-      if '.bashrc' in self.dfobjs.keys():
-         fo = self.dfobjs['.bashrc']
-         if fo_has_token_pair(fo, 'export', 'BASH_ENV', sub1=1):
-            if self.verb > 1:
-               MESGm("note: .bashrc exports BASH_ENV")
-            fo.bfollow = 1
+      # check on bash-based followers
+      errs += self.check_for_other_followers()
 
       # ------------------------------------------------------------
       # check on generally needed mods: 
       errs += self.set_file_mod_flags()
 
       return errs
+
+   def check_for_other_followers(self):
+      """.bash_profile, use of BASH_ENV
+      """
+
+      # check on .bashrc setting BASH_ENV
+      if '.bashrc' in self.dfobjs.keys():
+         fo = self.dfobjs['.bashrc']
+         if fo_has_token_pair(fo, 'export', 'BASH_ENV', sub1=1):
+            fo.bfollow = 1
+            if self.verb > 1:
+               MESGm("note: .bashrc exports BASH_ENV")
+
+      # check on .bash_profile sourcing .bashrc
+      if '.bash_profile' in self.dfobjs.keys():
+         fo = self.dfobjs['.bash_profile']
+         if self.fo_sources_file(fo, '.bashrc'):
+            fo.follow = 1
+            if self.verb > 1:
+               MESGm("note: .bash_profile sources .bashrc")
+
+      return 0
 
    def fo_sources_file(self, fo, fname):
       """return whether fo contains something like 'source fname'"""
@@ -637,8 +783,12 @@ class MyInterface:
       for name, fo in self.dfobjs.items():
          self.check_to_set_path(fo)
 
-      # let user know of plans
-      if self.verb > 0:
+      # track nmods
+      for name, fo in self.dfobjs.items():
+         fo.nmods = fo.m_path + fo.m_flat + fo.m_aps
+
+      # let user know of plans (if test, report even if verb=0)
+      if self.verb > 0 or self.test:
          ndfo = len(self.dfobjs)
          ntot = sum([fo.nmods for n,fo in self.dfobjs.items()])
          if ntot == 0:
@@ -692,7 +842,6 @@ class MyInterface:
       if doit:
          if self.verb > 2:
             MESGp("will source %s in file %s" % (apsname, fo.name))
-         fo.nmods += 1
          fo.m_aps = 1
 
    def check_to_add_flatdir(self, fo):
@@ -736,7 +885,6 @@ class MyInterface:
       if doit:
          if self.verb > 2:
             MESGp("will add %s to PATH in file %s" % (self.dir_bin, fo.name))
-         fo.nmods += 1
          fo.m_path = 1
 
    def check_to_set_path(self, fo):
@@ -773,7 +921,6 @@ class MyInterface:
       if doit:
          if self.verb > 2:
             MESGp("will add %s to PATH in file %s" % (self.dir_bin, fo.name))
-         fo.nmods += 1
          fo.m_path = 1
 
    def path_tail(self, somepath):
