@@ -4,9 +4,14 @@
 
 # -------------------------------------------------------------------------
 #
-# A rough draft at storing data from BIDS datasets.  The goal of this
-# is to build something usable for an afni_proc.py BIDS-App. 
+# Work in Progress
+# Goals:
+# - Ingest a root BIDS directory and be capable of IDing the contents of its
+#   leaves.
+# - Use this library and a set of afni_proc options to generate a
+#   collection-wide set of afni_proc scripts.
 #
+# TODO: understand what PT means here
 # The means for *getting* information are not going to be used
 # longterm.  A BIDS expert will know better approaches for that aspect.
 #
@@ -15,15 +20,18 @@
 # This basically comprises a set of objects to contain the
 # (conceptual) data hierarchy:
 # 
-# dataset (AKA data_collection; daset)
+# collection
 # |----subject (subj: sub-001, sub-002, ...)
 #      |----ses (ses: ses-01, ses-02, ...; also sometimes just 'ses')
-#           |----data_type (AKA modality; datype: anat, func, ...)
-#                |----data_files (dafiles: NIFTI, JSON, ...)
+#           |----modality (AKA modality; datype: anat, func, ...)
+#                |----twigs (datafiles with the same prefix)
+#                     |----leaves (individual files)
 #
 # Here, these are represented as nested dictionaries, with each set of
 # keys being the items of the next level down, until one gets to
-# data_files, which just exist in a list.
+# twigs, which allow you to generate the filenames of the leaves but do not
+# directly store the filenames (this would waste memory since they only differ
+# by extensions).
 #
 # In *many* cases, the hierarchical level is also the name of a
 # directory containing other objects, until one reaches the
@@ -48,6 +56,8 @@ POSSIBLE_EXTENSIONS = (
     '.HEAD',
 )
 
+LIB_AP_BIDS_VERBOSITY = 0
+
 # -------------------------------------------------------------------------
 
 def make_abspath_from_dirname(dirname):
@@ -62,7 +72,8 @@ def make_abspath_from_dirname(dirname):
 
     '''
     if not os.path.isdir(dirname) :
-        print("** WARN: {} is not a valid dirname".format(dirname))
+        # TODO: make this a UserWarning?
+        print(f"** WARN: {dirname} is not a valid dirname")
         return ''
     return os.path.abspath(dirname)
 
@@ -78,307 +89,175 @@ def make_tail_from_dirname(dirname):
 
     '''
     if not os.path.isdir(dirname) :
+        # TODO: make this a UserWarning?
         print("+* WARN: {} is not a valid dirname".format(dirname))
         return ''
 
     apath = os.path.abspath(dirname)
     tail  = apath.split('/')[-1]
 
-    if not( len(tail) ):
-        print("+* WARN: cannot find tail from dir: {}\n"
-              "   abspath = {}".format(dirname, apath))
+    if not len(tail):
+        # TODO: make this a UserWarning?
+        print(
+            f"+* WARN: cannot find tail from dir: {dirname}\n"
+            f"   abspath = {apath}"
+        )
         return ''
     return tail
 
 # -------------------------------------------------------------------------
 
-class bids_dataset:
-    """An object storing the full BIDS tree for a dataset.  
+class Collection:
+    """An object storing the full data collection."""
+    def __init__(self, dirname: str, label: str = '', verb: int = 0):
+        """A collection of data which follows a well-defined rubric.
 
-    Importantly, contains a dictionary of session info (dict_subj).
-
-    """
-
-    def __init__(self, dirname, label='', verb=0):
+        Parameters
+        ----------
+        dirname: str
+            The directory that acts as the collection root.
+        label: str, optional
+            The label to give this dataset. Default ''.
+        """
         dirname = dirname.rstrip('/')          # remove any trailing '/'
 
         self.dirname  = dirname                # entered path
-        self.abspath  = ''                     # abs path of dirname
-        self.daset    = ''
-        self.label    = label                  # dataset/proj label
+        self.abspath = make_abspath_from_dirname(dirname)
+        self.daset = make_tail_from_dirname(dirname)
+        self.label = label                  # dataset/proj label
 
-        self.list_subjname = []                # list of 'sub-*' str
-        self.nsubj         = 0     
-        self.dict_subj     = {}                # dict of bids_subject objs
+        self.subj = {
+            make_tail_from_dirname(s): Subject(s) for s in glob.glob(
+                self.abspath + '/sub-*'
+            )
+        }
 
         self.verb          = verb
-        # -----------------------
 
         self.abspath = make_abspath_from_dirname(dirname)
         self.daset   = make_tail_from_dirname(dirname)
 
-        self.set_list_subjname()
+    def __str__(self) -> str:
+        subj_strings = []
+        for subj, subj_obj in self.subj.items():
+            subj_strings.append(f'{subj}:')
+            subj_lines = [
+                '\t' + str(sl) for sl in str(subj_obj).split('\n')
+            ]
+            subj_strings.append('\n'.join(subj_lines))
+        return '\n'.join(subj_strings)
 
-        # populate all ses for this subj
-        if self.nsubj :
-            for subj in self.list_subjname:
-                self.add_subj(subj)
+class Subject:
+    """An object storing a collection subject.
 
-    # ----------------------------------------------------------
-
-    def set_list_subjname(self):
-        all_subj = glob.glob(self.abspath + '/sub-*')
-        all_subj.sort()
-        nsubj = len(all_subj)
-
-        if nsubj :
-            self.has_subj      = True
-            self.list_subjname = [x.split('/')[-1] for x in all_subj]
-            self.nsubj         = nsubj
-            if self.verb :
-                print("++ list of {} subj:\n   {}"
-                      "".format(nsubj, '\n   '.join(self.list_subjname)))
-        else:
-            # problem if no other dirs exist
-            print("** ERROR: no subj in '{}'?".format(self.abspath))
-            sys.exit(1)
-
-    def add_subj(self, subj):
-        """Add a subj.
-
-        This increases the size of the object's dictionary of subj,
-        self.dict_subj.
-
-        Parameters
-        ----------
-        subj : str
-               name of subj and subj directory
-
-        """
-        subjdir = self.dirname + '/' + subj
-        self.dict_subj[subj] = bids_subject( subjdir,
-                                                 verb   = self.verb )
-
-# -------------------------------------------------------------------------
-
-class bids_subject:
-    """An object storing the full BIDS tree for a subj.  
-
-    Importantly, contains a dictionary of session info (dict_ses).
-
-    Trickily, there may or may not be a ses-level dir for this
-    (reflected in ses ID).  We refer to this as an "unseparated"
+    A subject always contains sessions, but session directories may not be
+    present in the actual directory layout!
+    We refer to this as an "unseparated"
     session, and it will just bear the label 'ses' (rather than 'ses-*').
 
     """
 
-    def __init__(self, dirname, verb=0):
+    def __init__(self, dirname):
         dirname = dirname.rstrip('/')          # remove any trailing '/'
 
         self.dirname  = dirname                # entered path
-        self.abspath  = ''                     # abs path of dirname
-        self.subj     = ''                     # subj ID
+        self.abspath  = make_abspath_from_dirname(dirname)
+        self.subj     = make_tail_from_dirname(dirname)
 
-        self.has_ses      = None               # does 'ses-*' level exist?
-        self.list_sesname = []                 # list of 'ses-*' str
-        self.nses         = 0     
-        self.dict_ses     = {}                 # dict of bids_session objs
-
-        self.verb         = verb
-        # -----------------------
-
-        self.abspath = make_abspath_from_dirname(dirname)
-        self.subj    = make_tail_from_dirname(dirname)
-
-        self.set_list_sesname()
-
-        # populate all ses for this subj
-        if self.has_ses :
-            for ses in self.list_sesname:
-                self.add_ses_sep(ses)
-        elif self.has_ses == False :
-            self.add_ses_unsep()
-
-    # ----------------------------------------------------------
-
-    def set_list_sesname(self):
-        all_ses = glob.glob(self.abspath + '/ses-*')
-        all_ses.sort()
-        nses = len(all_ses)
-
-        if nses :
-            self.has_ses      = True
-            self.list_sesname = [x.split('/')[-1] for x in all_ses]
-            self.nses         = nses
-            if self.verb :
-                print("++ list of {} ses:\n   {}"
-                      "".format(nses, '\n   '.join(self.list_sesname)))
-        elif len(next(os.walk(self.abspath))[1]) :
-            # check if there are ANY other (=non-ses) dirs here
-            self.has_ses  = False
+        contents_with_ses = glob.glob(self.abspath + '/ses-*')
+        if len(contents_with_ses) == 0:
+            # Invisible session, make a session from the same dir
+            self.sessions = {"ses": Session(self.abspath)}
         else:
-            # problem if no other dirs exist
-            print("** ERROR: no directories in '{}'?".format(self.abspath))
-            sys.exit(1)
+            self.sessions = {
+                make_tail_from_dirname(s): Session(s) for s in contents_with_ses
+            }
 
-    def add_ses_sep(self, ses):
-        """Add a session that is 'separate' in the sense of existing in a
-        'ses-*' dir of its own.
+    @property
+    def subject_label(self) -> str:
+        return self.subj
 
-        This increases the size of the object's dictionary of
-        sessions, self.dict_ses.
+    @property
+    def session_labels(self) -> str:
+        return self.sessions.keys()
 
-        Parameters
-        ----------
-        ses : str
-              name of session and session directory
+    @property
+    def modality_labels(self) -> str:
+        modalities = []
+        for _, ses in self.sessions.items():
+            for m in ses.modalities:
+                modalities.append(m)
+        return list(set(modalities))
 
-        """
-        sesdir = self.dirname + '/' + ses
-        self.dict_ses[ses] = bids_session( sesdir,
-                                           subj = self.subj, 
-                                           ses  = ses,
-                                           verb = self.verb )
-
-    def add_ses_unsep(self):
-        """Add a session that is 'unseparated' in the sense of NOT existing in
-        a 'ses-*' dir of its own.  There can be only one of these, by
-        definition.  The key of this in the dictionary will just be
-        'ses'.
-
-        This increases the size of the object's dictionary of
-        sessions, self.dict_ses.
-
-        Parameters
-        ----------
-        ses : str
-              name of session and session directory
-
-        """
-
-        # This ses is wicked, tricksy, false! Note the tricksiness here.
-        ses    = 'ses'  
-        sesdir = self.dirname 
-
-        self.dict_ses[ses] = bids_session( sesdir,
-                                           subj = self.subj, 
-                                           ses  = ses,
-                                           verb = self.verb )
-
-# -------------------------------------------------------------------------
-
-class bids_session:
+    def __str__(self) -> str:
+        ses_strings = []
+        for ses, ses_obj in self.sessions.items():
+            ses_strings.append(f'{ses}:')
+            ses_lines = [
+                '\t' + str(sl) for sl in str(ses_obj).split('\n')
+            ]
+            ses_strings.append('\n'.join(ses_lines))
+        return '\n'.join(ses_strings)
+    
+class Session:
     """An object storing the session-level information for a subject.
 
-    Importantly, contains a dictionary of 'data_type' info
-    (dict_datype).
-
-    NB: we introduce the term "datype", because "datatype" and "dtype"
-    exist already in Python. **This term might change to a better one
-    in development**
-
+    Importantly, contains a dictionary of modality info.
     """
 
-    def __init__(self, dirname, subj='', ses='', verb=0):
+    def __init__(self, dirname):
         dirname        = dirname.rstrip('/')
 
         self.dirname  = dirname                # directory
-        self.abspath  = ''                     # abs path of dirname
-        self.subj     = subj                   # subj ID
-        self.ses      = ses                    # ses ID; stays '' if not subdir
+        self.abspath  = make_abspath_from_dirname(dirname)
+        tail_dirname = make_tail_from_dirname(dirname)
+        self.ses = tail_dirname if "ses" in tail_dirname else "ses"
 
-        self.list_datypename = []              # anat, func, etc.
-        self.ndatype         = 0
-        self.dict_datype     = {}              # dictionary of interest
+        self.modalities     = {
+            make_tail_from_dirname(m): Modality(m) for m in glob.glob(
+                self.abspath + '/*'
+            )
+        }
 
-        self.verb            = verb
-        # -----------------------
+    @property
+    def subject_label(self) -> str:
+        return self.modality[self.modality.keys()[0]].subject
 
-        self.abspath = make_abspath_from_dirname(dirname)
+    @property
+    def session_label(self) -> str:
+        return self.modality[self.modality.keys()[0]].session
 
-        self.set_list_datypename()
+    @property
+    def modality_labels(self) -> list[str]:
+        return self.modalities.keys()
 
-        # populate all datype for this ses
-        if self.ndatype :
-            for datype in self.list_datypename:
-                self.add_datype(datype)
+    def __str__(self) -> str:
+        modality_strings = []
+        for modality, modality_obj in self.modalities.items():
+            modality_strings.append(f'{modality}:')
+            modality_lines = [
+                '\t' + str(sl) for sl in str(modality_obj).split('\n')
+            ]
+            modality_strings.append('\n'.join(modality_lines))
+        return '\n'.join(modality_strings)
 
-    # ----------------------------------------------------------
+              
+class Modality:
+    """An object storing the BIDS modality (or in BIDS parlance, "data type")
+    -level (contents of anat/, func/, etc.) information for a subject.
 
-    def set_list_datypename(self):
-        all_datype = next(os.walk(self.abspath))[1]  # all dirs present
-        all_datype.sort()
-        ndatype = len(all_datype)
-
-        if ndatype :
-            self.list_datypename = [x.split('/')[-1] for x in all_datype]
-            self.ndatype         = ndatype
-            if self.verb :
-                print("++ list of {} data types in {}:\n   {}"
-                      "".format( ndatype, self.ses,
-                                 '\n   '.join(self.list_datypename) ))
-        else:
-            print("** WARN: no datype dirs in '{}'?".format(self.abspath))
-
-    def add_datype(self, datype):
-        """Add a datype directory (i.e., anat, func, etc.).
-
-        This increases the size of the object's dictionary of
-        BIDS data_types, self.dict_datype.
-
-        Parameters
-        ----------
-        datype : str
-              name of datype and datype directory
-
-        """
-        datypedir = self.dirname + '/' + datype
-        self.dict_datype[datype] = bids_datype( datypedir,
-                                                subj   = self.subj, 
-                                                ses    = self.ses,
-                                                datype = datype,
-                                                verb   = self.verb )
-
-# -------------------------------------------------------------------------
-
-class bids_datype:
-    """An object storing the BIDS data_type (datype)-level (contents of
-    anat/, func/, etc.) information for a subject.
-
-    NB: we introduce "datype", because "datatype" and "dtype" exist
-    already in Python.
-
-    Importantly, contains a dictionary of 'data_files' info
-    (dict_dafile).
-
+    Rather than more directories, this object contains "twigs" which bundle
+    files that share prefixes.
     """
 
-    def __init__(self, dirname, subj='', ses='', datype='', verb=0):
+    def __init__(self, dirname):
         dirname       = dirname.rstrip('/')
 
         self.dirname  = dirname                # directory
-        self.abspath  = ''                     # abs path of dirname
+        self.abspath  = make_abspath_from_dirname(dirname)
 
-        self.subj     = subj                   # subj ID
-        self.ses      = ses                    # ses ID; stays '' if not subdir
-        self.datype   = datype                 # anat, func, etc.
-
-        self.list_dafile = []                   # list of datafiles
-        self.ndafile     = 0
-        self.dict_dafile = {}
-
-        self.nnifti     = 0                    # how many dafiles are nii?
-
-        self.verb     = verb
-        # ----------------------------
-
-        self.abspath = make_abspath_from_dirname(dirname)
-
-        # leaf level: populate all dafiles for this datype
-        self.set_list_dafile()
-       
         name_ext = {}
-        for f in self.list_dafile:
+        for f in glob.glob(self.dirname + '/*'):
             for x in POSSIBLE_EXTENSIONS:
                 if f.endswith(x):
                     f = f.removesuffix(x)
@@ -387,93 +266,24 @@ class bids_datype:
                     else:
                         name_ext[f] = [x]
         self.list_twig = [
-            DataTwig(self.dirname, k, name_ext[k], subj=subj, ses=ses) for k in name_ext.keys()
+            DataTwig(self.dirname, k, name_ext[k]) for k in name_ext.keys()
         ]
 
-    # ----------------------------------------------------------
+    @property
+    def subject(self) -> str:
+        return self.list_twig[0].subject
 
-    def set_list_dafile(self):
-        all_dafile = glob.glob(self.abspath + '/*')  # all files present
-        all_dafile.sort()
-        ndafile = len(all_dafile)
-        if ndafile :
-            self.list_dafile = [x.split('/')[-1] for x in all_dafile]
-            self.ndafile     = ndafile
+    @property
+    def session(self) -> str:
+        return self.list_twig[0].session
 
-            if self.verb :
-                print("++ list of {} data files in '{}':\n   {}"
-                      "".format( ndafile, self.datype,
-                                 '\n   '.join(self.list_dafile) ))
-        else:
-            print("** WARN: no dafile files in '{}'?".format(self.abspath))
+    @property
+    def modality(self) -> str:
+        return self.list_twig[0].modality
 
+    def __str__(self) -> str:
+        return ', '.join([str(t) for t in self.list_twig])
 
-    def add_dafile(self, dafile):
-        """Add a dafile items (i.e., sub-001_T1w.nii.gz, sub-001_T1w.json,
-etc.).
-
-        This increases the size of the object's dictionary of
-        BIDS data_files, self.dict_dafile.
-
-        Parameters
-        ----------
-        dafile : str
-              name of datafile
-
-        """
-        dafiledir = self.dirname #+ '/' + dafile
-        self.dict_dafile[dafile] = bids_dafile( dafiledir,
-                                                subj   = self.subj, 
-                                                ses    = self.ses,
-                                                datype = self.datype,
-                                                dafile = dafile,
-                                                verb   = self.verb )
-
-    def get_num_nifti(self):
-        num = 0
-        for dafile in self.list_dafile:
-            if dafile.endswith('.nii') or dafile.endswith('.nii.gz'):
-                num+= 1
-        return num
-        
-# =========================================================================
-
-class bids_dafile:
-    """
-    """
-
-    def __init__(self, dirname, subj='', ses='', datype='', dafile='', verb=0):
-        dirname       = dirname.rstrip('/')
-
-        self.dirname  = dirname                # directory
-        print(self.dirname)
-        self.abspath  = ''                     # abs path of dirname
-
-        self.subj     = subj                   # subj ID
-        self.ses      = ses                    # ses ID; stays '' if not subdir
-        self.datype   = datype                 # anat, func, etc.
-        self.dafile   = dafile                 # AAA.nii.gz, BBB.json
-
-        self.dict_archinfo = {}                   # list of datafiles
-
-        self.nnifti     = 0                    # how many dafiles are nii?
-
-        self.verb     = verb
-        # ----------------------------
-
-        self.abspath = make_abspath_from_dirname(dirname)
-
-        self.add_archinfo()
-
-    # ----------------------------------------------------------
-
-    def add_archinfo(self):
-        """Add a archival info for this dafile.
-
-        """
-
-        self.dict_archinfo = BIDS_GENERATOR.into_attributes(self.dirname + '/' 
-                                                            + self.dafile)
 
 class DataTwig:
     """A collection of closely related data files which share the same prefix."""
@@ -481,10 +291,6 @@ class DataTwig:
         dirname: str,
         prefix: str,
         extensions: list[str],
-        subj: str = '',
-        ses: str = '',
-        datype: str = '',
-        verb: int = 0,
     ):
         """Construct a DataTwig
 
@@ -510,6 +316,25 @@ class DataTwig:
             self.dirname + '/' + self.prefix + ext for ext in self.list_ext
         ]
 
+    @property
+    def subject(self) -> str:
+        return self.arch_info['sub']
+
+    @property
+    def session(self) -> str:
+        if "ses" in self.arch_info.keys():
+            return self.arch_info['ses']
+        else:
+            return "ses"
+
+    @property
+    def modality(self) -> str:
+        return self.arch_info['modality']
+
+    def __str__(self) -> str:
+        return self.arch_info['suffix']
+
+
 # TODO: break this into its own script
 def main():
     parser = argparse.ArgumentParser(
@@ -522,15 +347,8 @@ def main():
     )
     args = parser.parse_args()
     dataset = os.path.relpath(args.dataset)
-    bd = bids_dataset(dataset)
-    for _, subj in bd.dict_subj.items():
-        for _, ses in subj.dict_ses.items():
-            for _, datype in ses.dict_datype.items():
-                for twig in datype.list_twig:
-                    print(
-                        f'{twig.prefix}: {twig.arch_info} with leaves'
-                        f'{twig.leaves}'
-                    )
+    bd = Collection(dataset)
+    print(bd)
 
 if __name__ == '__main__':
     main()
