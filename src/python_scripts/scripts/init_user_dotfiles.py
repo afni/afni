@@ -17,7 +17,7 @@ from afnipy import lib_vars_object as VO
 
 g_help_string = """
 =============================================================================
-init_dotfiles.py - initialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
+init_user_dotfiles.py - initialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
 
    Either initialize or just evaluate dot files for:
 
@@ -64,14 +64,15 @@ R Reynolds    December 2022
 """
 
 g_history = """
-   init_dotfiles.py history:
+   init_user_dotfiles.py history:
 
    0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
                        encased in a block of ice... zillagod
    0.1  Dec 14, 2012 - file objects, tokens, -force 
 """
 
-g_version = "init_dotfiles.py version 0.1, December 14, 2022"
+g_prog = "init_user_dotfiles.py"
+g_version = "%s, version 0.1, December 14, 2022" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -135,7 +136,8 @@ def file_object(fname, verb=1):
 
    vo.nlines  = len(vo.tlines)
    vo.follow  = 0   # for .[t]cshrc, does it source the other
-   vo.bfollow = 0   # for .[t]cshrc, does it source the other
+   vo.leader  = ''  # file it sources
+   vo.bfollow = 0   # for .bashrc, does it source BASH_ENV file
 
    # note whether to modify, and then what mods are needed
    vo.nmods   = 0   # main question, number of desired mods to file
@@ -155,6 +157,9 @@ def fo_has_token(fo, t0, sub0=0):
       - do not try to be TOO intelligent
          - no line continuation searches
    """
+   if not fo.isfile:
+      return 0
+
    for tline in fo.tlines:
       cposn = tline.find('#')
       # skip any pure comment line
@@ -190,6 +195,9 @@ def fo_has_token_pair(fo, t0, t1, sub0=0, sub1=0):
       - do not try to be TOO intelligent
          - no line continuation searches
    """
+   if not fo.isfile:
+      return 0
+
    for tline in fo.tlines:
       cposn = tline.find('#')
       # skip any pure comment line
@@ -269,25 +277,25 @@ class MyInterface:
       self.dflist          = None   # user-specified dotfile list
       self.dir_bin         = ''     # dir to add to PATH
       self.dir_dot         = ''     # HOME or specified location of DF
+      self.dry_run         = 0      # do everything but modify files
       self.force           = 0      # force updates, even for grep failures
-      self.make_backup     = 1      # do we run apserach?
+      self.make_backup     = 1      # do we back files up before modifying?
       self.test            = 0      # just run in test mode (NO MODS)
       self.verb            = verb   # verbosity level
 
       # user controlled, but not directly with options
-      self.do_apsearch     = 0      # do we update for apserach?
+      self.do_apsearch     = 0      # do we update for apsearch?
       self.do_flatdir      = 0      # do we update for flat_namespace?
       self.do_path         = 0      # do we update for PATH?
+      self.dir_orig        = ''     # starting dir, if we care
+      self.dir_dot_abs     = ''     # absolute path to dir_dot
 
       # uncontrollable variables
       self.bak_suffix      = '.iud.bak' # suffix for backup files
-      self.cmd_file        = ''         # write any run shell commands
       self.dir_abin        = ''         # any found abin in PATH
-      self.dir_orig        = ''         # starting dir, if we care
       self.dfobjs          = {}         # dict of VO for each file
-      self.tmpfile         = '.tmp.iu.dotfile'  # file for temp writing
 
-      # possible mac stuff
+      # system and possible mac stuff
       self.sysname         = platform.system()
       self.is_mac          = self.sysname == 'Darwin'
       self.flatdir         = '/opt/X11/lib/flat_namespace'
@@ -383,11 +391,13 @@ class MyInterface:
       self.valid_opts.add_opt('-do_updates', -1, [], 
                       acplist=['apsearch', 'flatdir', 'path', 'ALL'],
                       helpstr='make the given updates (e.g. apsearch path)')
+      self.valid_opts.add_opt('-dry_run', 0, [], 
+                      helpstr='do everything but modify files')
       self.valid_opts.add_opt('-force', 0, [], 
                       helpstr='force all updates')
       self.valid_opts.add_opt('-make_backup', 1, [], 
                       acplist=['yes','no'],
-                      helpstr='back up each edited file (yes/no)')
+                      helpstr='back up each edited file (yes/no, def=yes)')
       self.valid_opts.add_opt('-test', 0, [], 
                       helpstr='run without making any updates')
 
@@ -476,15 +486,18 @@ class MyInterface:
             vlist, err = uopts.get_string_list('', opt=opt)
             if vlist == None or err: return -1
             if 'apsearch' in vlist:
-               self.do_apserach = 1
+               self.do_apsearch = 1
             if 'flatdir' in vlist:
                self.do_flatdir = 1
             if 'path' in vlist:
                self.do_path = 1
             if 'ALL' in vlist:
                self.do_path = 1
-               self.do_apserach = 1
+               self.do_apsearch = 1
                self.do_flatdir = 1
+
+         elif opt.name == '-dry_run':
+            self.dry_run = 1
 
          elif opt.name == '-force':
             self.force = 1
@@ -492,11 +505,16 @@ class MyInterface:
          elif opt.name == '-make_backup':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
-            if val.lower() == 'yes':
+            if val.lower() == 'no':
+               self.make_backup = 0
+            else:
                self.make_backup = 1
 
          elif opt.name == '-test':
             self.test = 1
+            self.do_path = 1
+            self.do_apsearch = 1
+            self.do_flatdir = 1
 
          # general options
 
@@ -527,9 +545,10 @@ class MyInterface:
       if self.set_dir_vars():
          return -1
 
-      # 'cd' to dir_dot
+      # 'cd' to dir_dot and note full path
       try:
          os.chdir(self.dir_dot)
+         self.dir_dot_abs = os.getcwd() # note path to dot files
       except:
          MESGe("failed to 'cd' to dir_dot, '%s'" % self.dir_dot)
          return -1
@@ -562,40 +581,141 @@ class MyInterface:
       """
 
       for fname, fo in self.dfobjs.items():
-         # if not making modifications, skip
-         if fo.nmods < 1:
-            continue
-
          # make a list of commands to add (for the shell implied by fname)
+         # (if not making modifications, still might need follower text)
          cmd_str = self.make_fo_cmd_string(fo)
          if cmd_str == '':
+            if self.verb > 2 or self.test or self.dry_run:
+               MESGm("no updates for file %s" % fname)
             continue
 
          # ----------------------------------------
          # okay, we have a string to append
 
          # maybe make a backup file
-         if self.make_backup:
-             pass
+         if self.verb > 3:
+            MESG("="*70)
+            MESG("==== mods for: %s ====\n%s\n\n" % (fname, cmd_str))
 
-         # if fo.nmods = fo.m_path + fo.m_flat + fo.m_aps
-         # if no mods, continue
-         # if make_backup, do so
-         # get mod string based on shell
-         # write with mod string
-         pass
-      
+         if self.make_backup:
+            if self.make_backup_file(fo):
+               return 1
+
+         # main point: append the string
+         if self.append_to_file(fo, cmd_str):
+            return 1
+
+      return 0
+
+   def append_to_file(self, fo, cmd):
+      """append 'cmd' to the file (might actually create)"""
+      if self.verb > 1:
+         if fo.isfile:
+            MESGp("appending text to file %s" % fo.name)
+         else:
+            MESGp("creating new file %s" % fo.name)
+
+      # if dry run, report on the update, but do not make it
+      if self.dry_run:
+         MESGp("="*70)
+         MESGp("==== dry_run: would modify %s :\n%s\n\n" % (fo.name, cmd))
+         return 0
+
+      # actually edit the file
+      rv = UTIL.write_text_to_file(fo.name, cmd, mode='a+', wrap=0)
+      if rv:
+         MESGe("failed to append shell text to file %s" % fo.name)
+         return 1
+      if self.verb > 0:
+         MESGm("updated dot file %s" % fo.name)
+
+   def make_backup_file(self, fo):
+      """back forig up to fnew
+           - atomically: 
+              - rename forig to fnew (to preserve time stamp)
+              - copy fnew to forig
+      """
+      # if the old does not exist, return
+      if not fo.isfile:
+          if self.verb > 0:
+             MESGm("file %s does not yet exist to back up" % fo.name)
+          return 0
+
+      # actually make the backup
+      nfile = '%s%s' % (fo.name, self.bak_suffix)
+      if self.verb > 0:
+         MESGm("backing up %s to %s" % (fo.name, nfile))
+
+      ccmd = 'cp -p %s %s' % (fo.name, nfile)
+
+      # if dry run, just report what we would do and return
+      if self.dry_run:
+          MESGp("dry_run : %s" % ccmd)
+          return 0
+
+      # not a dry run, do the work
+      st, tout = UTIL.exec_tcsh_command(ccmd)
+
+      # report status
+      if self.verb > 1:
+         if st: sstr = 'BAD'
+         else:  sstr = 'good'
+         MESGp("backup command status : %s (%s)" % (st, sstr))
+      if st:
+         MESGe("backup failure, cmd: %s\n   output %s\n" % (ccmd, tout))
+         return 1
+
       return 0
 
    def make_fo_cmd_string(self, fo):
       """create a full command string to append to the current dot file"""
-      return ''
+      cmd_list = []
+      shell = shell_for_dotfile(fo.name)
+      if fo.m_path:
+         cmd = self.cmd_path(shell)
+         if cmd != '':
+            cmd_list.append(cmd)
+      if fo.m_flat:
+         cmd = self.cmd_flat(shell)
+         if cmd != '':
+            cmd_list.append(cmd)
+      if fo.m_aps:
+         cmd = self.cmd_apsearch(shell)
+         if cmd != '':
+            cmd_list.append(cmd)
+
+      # if a follower does not exist, create it to follow
+      if fo.nmods == 0 and fo.follow and fo.leader != '' and not fo.isfile:
+         cmd = self.cmd_follow(shell, fo.leader)
+         if cmd != '':
+            cmd_list.append(cmd)
+
+      # if there is nothing to do, just return
+      if len(cmd_list) == 0:
+         return ''
+
+      # return a complete command
+      cfull = '\n'                                                           \
+              '# -------------------------------------------------------\n'  \
+              '# for AFNI: auto-inserted by %s\n'                            \
+              '\n'                                                           \
+              '%s'                                                           \
+              '# -------------------------------------------------------\n\n'\
+              %(g_prog, '\n'.join(cmd_list))
+
+      return cfull
+
+   def cmd_follow(self, shell, leader):
+      """return a shell-based command to source the leader file"""
+      comment = '# import the environment from %s' % leader
+      rstr = '%s\nsource %s/%s\n' % (comment, self.dir_dot_abs, leader)
+      return rstr
 
    def cmd_flat(self, shell):
       """return a shell-based command to add dir_flat to DYLD"""
       comment = '# look for shared libraries under flat_namespace'
-      if   shell in ['bash', 'sh', 'zsh']:
-         rstr = '%s\nexport %s=${%s}:%s'    \
+      if shell in ['bash', 'sh', 'zsh']:
+         rstr = '%s\nexport %s=${%s}:%s\n'  \
                 % (comment, g_dylibvar, g_dylibvar, g_flatdir)
       elif shell in ['tcsh', 'csh']:
          rstr = '%s\n'                      \
@@ -626,7 +746,7 @@ class MyInterface:
             MESGm("omitting PATH update shell %s" % shell)
          return ''
 
-   def cmd_apearch(self, shell):
+   def cmd_apsearch(self, shell):
       """return a command to source apsearch tab completion file"""
       comment = '# set up tab completion for AFNI programs'
       if shell in ['bash', 'sh']:
@@ -676,7 +796,7 @@ class MyInterface:
          3. main point: for each file obj, set 'nmods'
             - 
 
-         possible list: '.bash_profile', '.bashrc', '.cshrc', '.tcshrc',
+         possible list: '.bashrc', '.cshrc', '.tcshrc',
                         '.profile', '.zshrc'
 
          return 0 on success
@@ -736,7 +856,7 @@ class MyInterface:
       return errs
 
    def check_for_other_followers(self):
-      """.bash_profile, use of BASH_ENV
+      """.bashrc, use of BASH_ENV
       """
 
       # check on .bashrc setting BASH_ENV
@@ -749,11 +869,13 @@ class MyInterface:
 
       # check on .bash_profile sourcing .bashrc
       if '.bash_profile' in self.dfobjs.keys():
+         leader = '.bashrc'
          fo = self.dfobjs['.bash_profile']
-         if self.fo_sources_file(fo, '.bashrc'):
+         if self.fo_sources_file(fo, leader):
             fo.follow = 1
+            fo.leader = leader  # track the file it follows
             if self.verb > 1:
-               MESGm("note: .bash_profile sources .bashrc")
+               MESGm("note: .bash_profile sources %s" % leader)
 
       return 0
 
@@ -771,38 +893,67 @@ class MyInterface:
             - m_flat: applying flat_namespace
             - m_aps:  applying apsearch
       """
-      # check for needed apsearch update
-      for name, fo in self.dfobjs.items():
-         self.check_to_add_apsearch(fo)
+      # check for needed path update
+      if self.do_path:
+         for name, fo in self.dfobjs.items():
+            self.check_to_set_path(fo)
 
       # check for needed flat_namespace update
-      for name, fo in self.dfobjs.items():
-         self.check_to_add_flatdir(fo)
+      if self.do_flatdir:
+         for name, fo in self.dfobjs.items():
+            self.check_to_add_flatdir(fo)
 
-      # check for needed path update
-      for name, fo in self.dfobjs.items():
-         self.check_to_set_path(fo)
+      # check for needed apsearch update
+      if self.do_apsearch:
+         for name, fo in self.dfobjs.items():
+            self.check_to_add_apsearch(fo)
 
       # track nmods
       for name, fo in self.dfobjs.items():
          fo.nmods = fo.m_path + fo.m_flat + fo.m_aps
 
       # let user know of plans (if test, report even if verb=0)
-      if self.verb > 0 or self.test:
-         ndfo = len(self.dfobjs)
-         ntot = sum([fo.nmods for n,fo in self.dfobjs.items()])
-         if ntot == 0:
-            MESG("no modifcations needed across %d files" % ndfo)
-         else:
-            MESG("want %d modifications across %d files:" % (ntot, ndfo))
-            MESG("   file             path  flatdir  apsearch\n" \
-                 "   ---------------  ----  -------  --------")
-            for name, fo in self.dfobjs.items():
-               ml = []
-               MESG("   %-15s  %-4d  %-7d  %-8d" % \
-                    (name, fo.m_path, fo.m_flat, fo.m_aps))
+      if self.verb > 0 or self.test or self.dry_run:
+         self.report_intentions()
 
       return 0
+
+   def report_intentions(self):
+      """report what modifications might be made"""
+
+      if self.verb == 0:
+         return
+
+      MESG("")
+
+      # if testing or dry run, report full test table
+      if self.test:       tstr = 'testing - '
+      elif self.dry_run:  tstr = 'dry_run - '
+      else:               tstr = 'applying - '
+
+      # report what operations would actually be performed here
+      olist = []
+      if self.do_path: olist.append('path')
+      if self.do_flatdir: olist.append('flatdir')
+      if self.do_apsearch: olist.append('apsearch')
+      if len(olist) > 0: ostr = ', '.join(olist)
+      else:              ostr = 'NOTHING'
+      MESGp("applying opertaions: %s\n" % ostr)
+
+      # and report the modification table
+      ndfo = len(self.dfobjs)
+      ntot = sum([fo.nmods for n,fo in self.dfobjs.items()])
+      if ntot == 0:
+         MESG("no modifications needed across %d files" % ndfo)
+      else:
+         MESG("%swant %d modifications across %d files:" % (tstr,ntot,ndfo))
+         MESG("   file             path  flatdir  apsearch  follow\n" \
+              "   ---------------  ----  -------  --------  ------")
+         for name, fo in self.dfobjs.items():
+            ml = []
+            MESG("   %-15s  %-4d  %-7d  %-8d  %-6d" % \
+                 (name, fo.m_path, fo.m_flat, fo.m_aps, fo.follow))
+      MESG("")
 
    def check_to_add_apsearch(self, fo):
       """try to determine whether file references all_progs.COMP*
@@ -810,6 +961,7 @@ class MyInterface:
            - for now, mimic @uab and do a simple grep for the abin tail
       """
       doit = 0
+      apsname = all_progs_shell_file(fo.name)
       if self.verb > 2:
          MESG("== check_to_add_apsearch: %s" % fo.name)
 
@@ -826,7 +978,6 @@ class MyInterface:
       # actual "thinking": for now
       # apsearch file depends on shell, so it is more complicated
       else:
-         apsname = all_progs_shell_file(fo.name)
          if apsname == '':
             MESGw("file %s has unknown all_progs, skipping..." % fo.name)
             return
@@ -884,8 +1035,9 @@ class MyInterface:
 
       if doit:
          if self.verb > 2:
-            MESGp("will add %s to PATH in file %s" % (self.dir_bin, fo.name))
-         fo.m_path = 1
+            MESGp("will add %s to %s in file %s" \
+                  % (g_flatdir, g_dylibvar, fo.name))
+         fo.m_flat = 1
 
    def check_to_set_path(self, fo):
       """try to determine whether file is setting dir_bin
@@ -937,6 +1089,9 @@ class MyInterface:
       """if both .cshrc and .tcshrc exist, we would like to see that 
          .cshrc is sourced by .tcshrc
 
+         if only .cshrc does not exist, remove it from list
+         if .tcshrc does not exist, create it as a follower
+
          side effect: set follow if sourcing the other dot file
          return 1 on some fatal error
       """
@@ -945,40 +1100,31 @@ class MyInterface:
       in_c = fc in self.dflist
       in_t = ft in self.dflist
 
-      # if neither file is of interest, just run away
-      if not in_c and not in_t:
+      # only worry about followers if they are both in the list
+      if not in_c or not in_t:
          return 0
 
-      # we are checking at least one file, do they both exist?
+      # ------------------------------------------------------------
+      # check for existence
       if in_c: ec = self.dfobjs[fc].isfile
       else:    ec = os.path.isfile(fc)
       if in_t: et = self.dfobjs[ft].isfile
       else:    et = os.path.isfile(ft)
 
-      # if not, just run away
-      if not ec or not et:
-         return 0
-
-      # both files exist, and at least one is in dflist, so we want .cshrc
-      # to be sourced by .tcshrc (or the reverse), and therefore we might
-      # need file objects for each
-
-      # create an object if not in dfobjs
-      if in_c: fco = self.dfobjs[fc]
-      else:    fco = file_object(fc, verb=self.verb)
-      if in_t: fto = self.dfobjs[ft]
-      else:    fto = file_object(ft, verb=self.verb)
 
       # ------------------------------------------------------------
-      # main work: does .tcshrc source .cshrc?
+      # main work: does one file source the other?
+      fco = self.dfobjs[fc]
+      fto = self.dfobjs[ft]
+
       follow_t = self.fo_sources_file(fto, fc)
       follow_c = self.fo_sources_file(fco, ft)
 
-      # we want exactly one to follow the other
       retval = 0
 
       if follow_t:
          fto.follow = 1
+         fto.leader = fc
          if self.verb > 0:
             MESGm("good: %s seems to contain 'source %s'" % (ft, fc))
          # if they source each other, this should be fatal
@@ -987,12 +1133,26 @@ class MyInterface:
             retval = 1
       elif follow_c:
          fco.follow = 1
+         fco.leader = ft
          if self.verb > 0:
             MESGm("good: %s seems to contain 'source %s'" % (fc, ft))
       else:
-         if self.verb > 0:
-            MESGw("%s does NOT seem to contain 'source %s'" % (ft, fc))
-            MESG("   (csh and tcsh will use different files)")
+         # - if both files exist, one should source the other
+         # - else if .tcshrc exsts, create .cshrc as a follower
+         # - else (no .tcshrc): create .tcshrc as a follower
+         #     - .cshrc gets the mods, whether it exists or not
+         if ec and et:
+            if self.verb > 0:
+               MESGw("%s does NOT seem to contain 'source %s'" % (ft, fc))
+               MESGm("(csh and tcsh will use different files)")
+         elif et:
+            MESGm("no %s, will create one as a follower of %s" % (fc, ft))
+            fco.follow = 1
+            fco.leader = ft
+         else: # no .tcshrc
+            MESGm("no %s, will create one as a follower of %s" % (ft, fc))
+            fto.follow = 1
+            fto.leader = fc
 
       # free any temporary file object
       if not in_c: del(fco)
