@@ -115,6 +115,9 @@ def MESGm(mstr):
 def MESGp(mstr):
   print("++ %s" % mstr)
 
+def MESGi(mstr):
+  print("   %s" % mstr)
+
 # creation of file object
 def file_object(fname, verb=1):
    """return a vars object for the given file"""
@@ -685,10 +688,14 @@ class MyInterface:
             cmd_list.append(cmd)
 
       # if a follower does not exist, create it to follow
-      if fo.nmods == 0 and fo.follow and fo.leader != '' and not fo.isfile:
-         cmd = self.cmd_follow(shell, fo.leader)
-         if cmd != '':
-            cmd_list.append(cmd)
+      if fo.nmods == 0 and not fo.isfile and fo.follow and fo.leader != '':
+         # also, be sure leader either exists or has mods
+         if fo.leader in self.dfobjs.keys():
+            fl = self.dfobjs[fo.leader]
+            if fl.isfile or fl.nmods > 0:
+               cmd = self.cmd_follow(shell, fo.leader)
+               if cmd != '':
+                  cmd_list.append(cmd)
 
       # if there is nothing to do, just return
       if len(cmd_list) == 0:
@@ -864,7 +871,7 @@ class MyInterface:
          fo = self.dfobjs['.bashrc']
          if fo_has_token_pair(fo, 'export', 'BASH_ENV', sub1=1):
             fo.bfollow = 1
-            if self.verb > 1:
+            if self.verb > 0:
                MESGm("note: .bashrc exports BASH_ENV")
 
       # check on .bash_profile sourcing .bashrc
@@ -938,7 +945,16 @@ class MyInterface:
       if self.do_apsearch: olist.append('apsearch')
       if len(olist) > 0: ostr = ', '.join(olist)
       else:              ostr = 'NOTHING'
-      MESGp("applying opertaions: %s\n" % ostr)
+      MESGp("applying opertaions: %s" % ostr)
+
+      # possibly give initial reminder about update peculiarities
+      if self.force:
+         if self.verb > 0:
+            MESGi("(forcing updates)")
+      if self.do_flatdir and not self.is_mac and not self.force:
+         if self.verb > 0:
+            MESGi("(not on a mac, should skip flatdir)")
+      MESG("")
 
       # and report the modification table
       ndfo = len(self.dfobjs)
@@ -1020,7 +1036,7 @@ class MyInterface:
       # actual "thinking": for now, just search for PATH tail
       # (only apply on a mac)
       elif not self.is_mac:
-         if self.verb > 2:
+         if self.verb > 1:
             MESGm("not on a mac, skip flatdir")
       else:
          # check for flat_namespace and DYLD_LIBRARY_PATH
