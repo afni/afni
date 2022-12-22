@@ -17,46 +17,201 @@ from afnipy import lib_vars_object as VO
 
 g_help_string = """
 =============================================================================
-init_user_dotfiles.py - initialize user dotfiles (.cshrc, .tcshrc, .bashrc ...)
+init_user_dotfiles.py - initialize user dot files (.cshrc, .bashrc, ...)
 
-   Either initialize or just evaluate dot files for:
+   Either initialize or just evaluate dot files for: ~1~
 
       - having ABIN in PATH
-      - (for macs) have flat_namespace in DYLD_LIBRARY_PATH
-      - (optionally) apsearch tab completion setup file
+      - (for macs) having flat_namespace in DYLD_LIBRARY_PATH
+      - (optionally) sourcing apsearch tab completion setup file
            .afni/help/all_progs.COMP (depending on shell)
 
    For some background, please see:
 
       afni_system_check.py -help_dot_files
 
-   For evaluation, this would report on which might be needed to do.
+   This program can evaluate what might need to be done to the given files.
+   It can also make the needed changes.
 
-   For initializing files, this would:
+   The potential changes to evaluate or perform are:
 
       1. Add ABIN to the PATH in all evaluated dot/RC files.
-         ABIN can be set by -dir_bin, else it will be come from:
+         ABIN can be set by -dir_bin, or else it will be come from:
             which afni_proc.py
 
-      2. If requested and on a mac, set DYLD_LIBRARY_PATH.
+      2. If requested and on a mac, set DYLD_LIBRARY_PATH to include
+         /opt/X11/lib/flat_namespace.
 
-      3. If requested, source all_progs.COMP.
+      3. If requested, source all_progs.COMP for tab completion of
+         AFNI command options.  For example, try typing:
 
+            afni_proc.py -regr<tab>
+
+         Where <tab> is pressed when the cursor is still attached to 'regr'.
+         If tab completion is working, this should show many possible options
+         that start with -regr (-regress, actually).  For a shorter example,
+         try:
+
+            afni -h<tab>
 
 ------------------------------------------
-examples:
+examples: ~1~
+
+    0. basic terminal examples: get help or list dot files ~2~
+
+        init_user_dotfiles.py -help
+        init_user_dotfiles.py -help_dotfiles_all
+
+    1. test dot files in the $HOME directory or in some/other/dir ~2~
+
+        # dot files under $HOME dir
+        init_user_dotfiles.py -test
+
+        # the dot files are under some/other/dir
+        init_user_dotfiles.py -test -dir_dot some/other/dir
+
+    2. do a dry run, for just the path or ALL updates ~2~
+
+        # just PATH
+        init_user_dotfiles.py -do_updates path -dir_dot DDIR -dry_run
+
+        # all updates
+        init_user_dotfiles.py -do_updates ALL -dir_dot DDIR -dry_run
+
+    3. actually modify the files (e.g., just omit -dry_run) ~2~
+
+        # update for PATH
+        init_user_dotfiles.py -do_updates path -dir_dot DDIR
+
+        # perform all updates
+        init_user_dotfiles.py -do_updates ALL -dir_dot DDIR
+
+        # only consider .bashrc and .cshrc
+        init_user_dotfiles.py -do_updates ALL -dir_dot DDIR \\
+            -dflist .bashrc .cshrc
 
 ------------------------------------------
-terminal options:
+terminal options: ~1~
 
       -help                     : show this help
+      -help_dotfiles_all        : display dot files known by program
+      -help_dotfiles_mod        : display modifiable dot files
+      -help_shells              : display shells known by program
       -hist                     : show module history
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
-other options
+other options:
 
-      -verb LEVEL               : set the verbosity level
+      -dflist DFILE DFILE ...   : specify dot files to focus on
+                                  (default from -help_dotfiles_mod)
+
+         e.g. -dflist .cshrc .bashrc .zshrc
+
+         Specify the list of RC/dot files to process.  Files outside this
+         list will be ignored.
+
+         Special cases:
+
+            ALL : set list to all known dot files (see -help_dotfiles_all)
+            MOD : set list to all modifiable dot files (see -help_dotfiles_mod)
+
+      -dir_bin DIR_BIN          : specify bin directory to add to PATH
+                                  (default comes from `which afni_proc.py`)
+
+         e.g. -dir_bin /some/other/abin
+
+         For use with 'path' modifications, specify the bin directory that
+         would be added to the PATH.
+
+      -dir_dot DDIR             : specify directory containing dot files
+
+         e.g.,    -dir_dot some/dot/files/are/here
+         default: -dir_dot $HOME
+
+         Specify an alternate location of dot files, besides $HOME.
+         This can be for useful if being set up by an admin, or perhaps
+         for testing.
+         
+      -do_updates UPD UPD ...   : specify which updates to make
+                                  (default is nothing)
+
+         e.g. -do_updates flatdir
+         e.g. -do_updates path apsearch
+         e.g. -do_updates ALL
+
+         Specify one or more updates to attempt.  Valid updates include:
+
+            apsearch    : source ~/.afni/help/all_progs.COMP
+                          (or all_progs.COMP.bash or all_progs.COMP.zsh)
+
+            flatdir     : add /opt/X11/lib/flat_namespace to DYLD_LIBRARY_PATH
+
+            path        : add DIR_BIN to PATH
+
+            ALL         : do all of the above
+
+      -dry_run                  : do not modify files, but see what would happen
+
+         e.g. -dry_run
+
+         With this option, the program prepares to modify files, but does not
+         actually perform the modifications.  Instead, the user is informed of
+         what would be done, had the option not been included.
+
+         This is intended as a test run for a command that would otherwise
+         perform the operations specified by the -do_updates parameters.
+
+         This is similar to -test, except that it restricts operations to those
+         in -do_updates, plus it shows the actual text of all intended file
+         modifications.  If a user wanted to make their own changes, for 
+         example, they could append this modification text to each file in
+         question.
+
+            See also -test.
+
+      -force                    : force edits, whether they seem needed or not
+
+         e.g. -force
+
+         When considering changes to make (operations to add to the dot files),
+         if it seems to the program that the operation is already happening,
+         or if it does not seem appropriate (e.g. setting DYLD_LIBRARY_PATH on
+         a linux system), such a modification will be skipped.
+
+         Use this -force option to force a change, even if it looks like such a
+         change is not needed.
+
+      -make_backup yes/no       : specify whether to make backups of originals
+
+         e.g.,    -make_backup no
+         default: -make_backup yes
+
+         By default, this program will make a backup of any file that will be
+         changed.  The backup name will be the same as a original name, plus
+         the extension '.iud.bak'.  For example:
+            .cshrc
+         would be backed up to
+            .cshrc.iud.bak
+
+         Use this option to turn off the default behavior.
+
+      -test                     : just test the files for potential changes
+
+          e.g., -test
+
+          Use this option to simply report on what changes might be needed for
+          the given files.  It checks for all possibly appropriate changes,
+          reporting the resulting table, and quits.
+
+            See also -dry_run.
+
+      -verb LEVEL               : set the verbosity level (default 1)
+
+          e.g., -verb 2
+
+          Specify how verbose the program should be, from 0=quiet to 4=max.
+          As is typical, the default level is 1.
 
 -----------------------------------------------------------------------------
 R Reynolds    December 2022
@@ -69,10 +224,11 @@ g_history = """
    0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
                        encased in a block of ice... zillagod
    0.1  Dec 14, 2012 - file objects, tokens, -force 
+   0.2  Dec 21, 2012 - seems basically ready (needs help)
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 0.1, December 14, 2022" % g_prog
+g_version = "%s, version 0.2, December 21, 2022" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -375,7 +531,7 @@ class MyInterface:
       self.valid_opts.add_opt('-help_dotfiles_mod', 0, [],
                       helpstr='display modifiable dotfiles')
       self.valid_opts.add_opt('-help_shells', 0, [],
-                      helpstr='display program help')
+                      helpstr='display all "known" shells')
 
       self.valid_opts.add_opt('-hist', 0, [],
                       helpstr='display the modification history')
@@ -471,6 +627,8 @@ class MyInterface:
             # special options:
             if 'ALL' in val:
                self.dflist = g_rc_all
+            elif 'MOD' in val:
+               self.dflist = g_rc_mod
             else:
                self.dflist = val
 
