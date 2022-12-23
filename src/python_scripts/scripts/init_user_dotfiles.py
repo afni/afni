@@ -223,12 +223,11 @@ g_history = """
 
    0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
                        encased in a block of ice... zillagod
-   0.1  Dec 14, 2012 - file objects, tokens, -force 
-   0.2  Dec 21, 2012 - seems basically ready (needs help)
+   1.0  Dec 23, 2012 - initial release
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 0.2, December 21, 2022" % g_prog
+g_version = "%s, version 1.0, December 23, 2022" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',

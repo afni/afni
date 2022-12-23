@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Dec, 2022, RCR, "init_user_dotfiles.py", MAJOR, TYPE_NEW_PROG,
+   "evaluate or initialize dot/RC files for running AFNI",
+   "From the perspective of:\n"
+   "    i) adding a directory (ABIN?) to the PATH\n"
+   "   ii) sourcing the apsearch all_progs.COMP file (per shell)\n"
+   "  iii) (for macs) adding flat_namespace to DYLD_LIBRARY_PATH"
+ } ,
+
  { 16, Dec, 2022, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "update mask order in examples 6,6b (mask then blur)",
    NULL
