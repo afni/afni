@@ -78,7 +78,11 @@ Major blocks of calculation:
 import sys
 import numpy as np
 import lib_retroicor
-from lib_retroicor import getPhysiologicalNoiseComponents, getInputFileParameters
+from lib_retroicor import (
+    getPhysiologicalNoiseComponents, 
+    getInputFileParameters,
+    show_rvt_peak
+    )
 import os
 
 from datetime import datetime
@@ -472,6 +476,8 @@ def retro_ts(
         return 0
     parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
+    
+    show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, 1)
     
     # outputFileName = path + "/" + prefix + "FourierSeries.csv"
     # physiologicalNoiseComponents.to_csv(outputFileName)
