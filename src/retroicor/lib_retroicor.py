@@ -1974,6 +1974,9 @@ def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
 
 def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg):
     
+    respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
+                        parameters)
+
     numTimeSteps = len(respiration_info["phase_slice"])
     timeStepIncrement = parameters['-TR']
     time1 = np.zeros(numTimeSteps)
@@ -1983,9 +1986,6 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     time2 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time2[i] = timeStepIncrement * i
     
-    respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
-                        parameters)
-
     
     # rvt_peak_plot = mplf(fg)
     # rvt_peak_plot.clf()
