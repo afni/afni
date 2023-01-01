@@ -1243,9 +1243,10 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
 
 #return 1 if all strings in vector ss can be changed to numbers
 is.num.string <- function(ss) {
-   if (is.null(ss) || !length(ss) || ss == '' ||
-       is.null(tryCatch(as.numeric(ss), 
-                           warning=function(ex) {}))) {
+   #if (is.null(ss) || !length(ss) || ss == '' ||
+   if (is.null(ss) || !length(ss) || identical(ss, "") ||  # Gang Chen - 01/01/2023: '' is tricky to deal with
+   	is.null(tryCatch(as.numeric(ss),
+                          warning=function(ex) {}))) {
       return(0);
    } else {
       return(1);
