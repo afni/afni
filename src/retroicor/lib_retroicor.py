@@ -1998,5 +1998,11 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     TitleStr = "Phase sampled at slice acquisition time\n"
     TitleStr = TitleStr + "Original Phase (yellow), slice 0 (red) and slice 1 (blue)"
     plt.title(TitleStr)
-    show()
+            
+    # Save plot to file
+    if parameters['save_graphs']:
+        plt.savefig('%s/RvtPeak.pdf' % (OutDir)) 
+        plt.show(block=False)
+        show()
+        if not parameters['show_graphs']: mpl.pyplot.close()  # Close graph after saving
     
