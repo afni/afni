@@ -1985,46 +1985,7 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     timeStepIncrement = 1.0/parameters['phys_fs']
     time2 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time2[i] = timeStepIncrement * i
-    
-    
-    # rvt_peak_plot = mplf(fg)
-    # rvt_peak_plot.clf()
-    # # set(fg, 'KeyPressFcn', @afni_fig_interface)  # Appears to be unnecessary to retain from MATLAB code
-    # subplot(211)
-    # plot(time, np.real(respiration_info["x"]), "g")
-
-    # if respiration_info["rvt"].any():
-    #     subplot(211)
-    #     plot(
-    #         respiration_info["t_mid_prd"], z_scale(respiration_info["respiration_infovt"], 
-    #             min(respiration_info["p_trace"]), max(respiration_info["p_trace"])), "k"
-    #     )
-    # plot(respiration_info["tp_trace"], respiration_info["p_trace"], "ro", respiration_info["tp_trespiration_infoace"], respiration_info["p_trace"], "r")
-    # plot(respiration_info["tn_trespiration_infoace"], respiration_info["n_trespiration_infoace"], "bo", respiration_info["tn_trace"], respiration_info["n_trace"], "b")
-    # plot(respiration_info["t_mid_prd"], respiration_info["p_trace_mid_prd"], "kx")
-    # for i in range(len(respiration_info["prd"])):
-    #     text(respiration_info["t_mid_prd"][i], respiration_info["p_trace_mid_prd"][i], "%.2f" % respiration_info["prd"][i])
-    # if respiration_info["tR"]:
-    #     if respiration_info["p_trace_r"].any():
-    #         plot(respiration_info["trespiration_info"], respiration_info["p_trace_r"], "m")
-    #         plot(respiration_info["tR"], respiration_info["n_trace_r"], "y")
-    #     if respiration_info["rvtrs"].any():
-    #         plot(
-    #             respiration_info["tR"], z_scale(respiration_info["rvtrs"], min(respiration_info["p_trace"]), max(respiration_info["p_trace"])), "k."
-    #         )
-    # xlabel("time (sec)")
-    # title(respiration_info["v_name"])  # , 'Interpreter', 'None')
-    # subplot(413)
-    # vn = np.real(respiration_info["x"]) / (abs(respiration_info["x"]) + np.spacing(1))
-    # plot(time, vn, "g")
-    # plot(time, respiration_info["phase"] / 2 / np.pi, "m")
-    # if "phase_r" in respiration_info:
-    #     plot(respiration_info["tR"], respiration_info["phase_r"] / 2 / np.pi, "m-.")
-    # xlabel("time (sec)")
-    # title("Scaled by magnitude of analytical signal")  # , 'Interpreter', 'None')
-    # legend(["Scaled signal", "phase"])
-    # subplot(414)
-    
+       
     plot(time2, physiologicalNoiseComponents["respiratory_phases"], "y")
     plot(
         time1, respiration_info["phase_slice"][:, 0], "ro"
@@ -2033,43 +1994,9 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     plot(time1, respiration_info["phase_slice"][:, 1], "b-")
     grid("on")
     xlabel("time (sec)")
-    title("Phase sampled at slice acquisition time")
-    legend(["original phase", "slice 0", "slice 1", "slice 1"])
+    
+    TitleStr = "Phase sampled at slice acquisition time\n"
+    TitleStr = TitleStr + "Original Phase (yellow), slice 0 (red) and slice 1 (blue)"
+    plt.title(TitleStr)
     show()
     
-def z_scale(x, lower_bound, upper_bound, perc=[]):
-     # Would be good to get rid of the need for this function
-     # ZSCALE (X,UB,LB)
-     #
-     # This function scales  X into Y such that
-     #   its maximum value is UB
-     #   and minimum value is LB
-     # If perc is specified, then clipping is done
-     # at the percentile range specified (e.g. [2, 98])
-     # before scaling.
-     # If X is all constants, it gets scaled to UB;
-     #
-     #           Ziad, Oct 30 96 / modified March 18 97
-
-     if type(x) != type(np.array):
-         x = np.array(x)
-     if upper_bound < lower_bound:
-         print("Error z_scale: Upper bound < Lower bound")
-         return
-     if perc:
-         lower_clip = np.percentile(x, perc[0])
-         upper_clip = np.percentile(x, perc[1])
-         x = x.clip(lower_clip, upper_clip)
-
-     xmin = min(x)
-     xmax = max(x)
-
-     if xmin == xmax:
-         # If x is all constants, then scale up to upper_bound value
-         y = np.array(size(x))
-         y.fill(upper_bound)
-     else:
-         # If x is not all constants, then scale to bounds
-         y = (((x - xmin) / (xmax - xmin)) * (upper_bound - lower_bound)) + lower_bound
-     return y
-       
