@@ -1632,9 +1632,10 @@ g_history = """
    3.16 Dec 29, 2021 - added -write_simple_tsv (and process mod_* columns)
    3.17 Jul 19, 2022 - added details to -help_basis
    3.18 Sep 20, 2022 - make -timing_to_1D overlap error more clear
+   3.19 Jan  3, 2023 - fix -write_tsv_cols_of_interest with -tsv_labels
 """
 
-g_version = "timing_tool.py version 3.18, September 20, 2022"
+g_version = "timing_tool.py version 3.19, January 3, 2023"
 
 
 

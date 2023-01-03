@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jan, 2023, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -write_tsv_cols_of_interest with -tsv_labels",
+   NULL
+ } ,
+
  { 23, Dec, 2022, RCR, "init_user_dotfiles.py", MAJOR, TYPE_NEW_PROG,
    "evaluate or initialize dot/RC files for running AFNI",
    "From the perspective of:\n"
