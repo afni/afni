@@ -1004,6 +1004,17 @@ action options (apply to single timing element, only): ~1~
 
             Consider example 7.
 
+   -tsv_def_dur_label LABEL     : specify backup duration for n/a ~2~
+
+        e.g. -tsv_def_dur_label duration
+
+        In some TSV event files, an event duration might have a value of n/a,
+        such as when the column is based on reaction time.  In such a case,
+        this option can be used to specify an alternate TSV column to use for
+        the event duration.
+
+            See also, -tsv_labels.
+
    -write_as_married            : if possible, output in married format ~2~
 
         e.g. -write_as_married
