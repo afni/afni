@@ -4,6 +4,31 @@
 Created on Thu Aug 25 14:46:15 2022
 
 @author: peterlauren
+
+Peak detection is as follows.
+1. Non-numeric (NaN) data in the input is identified and removed with the user being advised of their location and nature.
+2. The remaining data is band-pass filtered as follows.
+    a. The data is Fourier transformed to FT.
+    b. The harmonic frequency unit, F0, is determined as the sampling frequency (Hz) divided by the raw data length.
+    c. The lower cutoff index, fmin, is the rounded quotient of the postulated minimum number of beats, or breaths, per second divided by F0.
+    d. Find the peak, indexed fp, between fmin and the Nyquist frequency.
+    e. Find the bounds, around the peak, based on -3 dB limits.  The lower bound is constrained to be at ≤ fp/2 and the upper bound constrained to be ≥ 1.5fp.
+    f. FT⟶0 outside these bounds but unchanged within.
+    g. An inverse FT obtains the BP filtered signal.
+3. Initial peaks found using the Python function scipy.signal.findpeaks with a (smoothing window) width of 0.025 seconds.
+4. Adjust peaks to account for non-uniform spacing.  Step 3 gives estimates of the peak locations.  A gradient ascent peak search is done around each of these estimates.
+5. Remove peaks < the required percentile (typically 70th) of the local input signal.
+6. Merge peaks closer than a quarter of the overall typical period.
+7. Remove peaks that are less than the raw input a quarter of a period on either side.  
+8. Remove peaks < a quarter as far from the local minimum to the adjacent peaks.
+9. Add missing peaks based on breaks in the periodicity.
+10. Repeat step 7.
+The following steps are subsequently done for the respiratory data.
+11. Troughs initially found as peaks in the inverted band-pass filtered signal.
+12. Repeat steps 4-10 with lower thresholds, for peaks, replaced by upper thresholds for troughs.
+13. Remove peaks/troughs that are also troughs/peaks.
+14. Add missing peaks and troughs based on outliers in the interpeak, and intertrough, intervals and refining estimated peak locations using gradient ascent/descent.
+
 """
 
 import numpy as np

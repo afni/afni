@@ -170,7 +170,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        print('Failed to band-pass filter cardiac data')   
        return []
    
-   # Get initial peaks using window that is an tenth of a second  (HR <+ 680 BPM)
+   # Get initial peaks using window that is an fortieth of a second  (HR <+ 680 BPM)
    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/40))
    
    # Graph initial peaks and save graph to disk
