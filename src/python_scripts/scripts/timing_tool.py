@@ -1349,18 +1349,20 @@ general options: ~1~
         row (run) would have one more entry than the number of stimuli (for
         pre- and post- rest).  Note that pre- and post- might be 0.
 
+"""
+
+g_help_trailer = """
 -----------------------------------------------------------------------------
 R Reynolds    December 2008
 =============================================================================
 """
 
-
 g_help_basis_string = """
 =============================================================================
-descriptions of various basis functions, as applied by 3dDeconvolve
+descriptions of various basis functions, as applied by 3dDeconvolve ~1~
 
-=============================================================================
-quick ~sorted listing (with grouping):
+-----------------------------------------------------------------------------
+quick ~sorted listing (with grouping): ~2~
 
     BLOCK(d)                    : d-second convolved BLOCK function (def=BLOCK4)
     BLOCK(d,p)                  : d-second convolved BLOCK function, with peak=p
@@ -1381,9 +1383,10 @@ quick ~sorted listing (with grouping):
     GAM                         : same as GAM(8.6,0.547)
     GAM(p,q)                    : 1 parameter gamma variate
                                   (t/(p*q))^p * exp(p-t/q)
-    GAM(p,q,d)                  : GAM(p,q) with convolved duration d
+    GAM(p,q,d)                  : GAM(p,q) with convolution duration d
     GAMpw(K,W)                  : GAM, with shape parameters K and W
-                                  K = time to peak ; W = FWHM
+    GAMpw(K,W,d)                : GAMpw, including duration d
+                                  K = time to peak ; W = FWHM ; d = duration
     TWOGAM(p1,q1,r,p2,q2)       : GAM(p1,q1) - r*GAM(p2,q2)
     TWOGAMpw(K1,W1,r,K2,W2)     : GAMpw(K1,W1) - r*GAMpw(K2,W2)
 
@@ -1422,9 +1425,10 @@ quick ~sorted listing (with grouping):
                                   equals WAV(d,2,4,6,0.2,2)
     WAV(d,D,R,F,Uf,Ur)          : fully specified WAV function
 
-=============================================================================
-more details for select functions:
 -----------------------------------------------------------------------------
+more details for select functions: ~2~
+-----------------------------------------------------------------------------
+                                                                GAM ~3~
 
   GAM                   : same as GAM(p,q), where p=8.6, q=0.547
                duration : approx. 12 seconds
@@ -1436,7 +1440,13 @@ more details for select functions:
 
                    peak : peak = 1.0, default peak @ t=4.7
 
-  ---------------------------------------------------------------------------
+  GAMpw(K,W,d)          : alternate parameterization of GAM
+                          K = time to peak, W = FWHM, d = duration
+               duration : ... will ponder ... (and add convolution dur d)
+                   peak : K
+                
+  ------------------------------------------------------------
+                                                                BLOCK ~3~
 
   BLOCK                 : INVALID on its own
                         : BLOCK is an integrated gamma variate function
@@ -1452,7 +1462,8 @@ more details for select functions:
                           g(t) = t^4 * exp(-t) /(4^4*exp(-4))
   BLOCK5(...)           : g(t) = t^5 * exp(-t) /(5^5*exp(-5))
 
-  ---------------------------------------------------------------------------
+  ------------------------------------------------------------
+                                       for duration modulation: dmBLOCK ~3~
 
   duration modulation - individual stimulus durations included in timing file
 
@@ -1488,7 +1499,8 @@ more details for select functions:
                   p > 0 : all peaks = p, regardless of duration
                           (same as dmBLOCK(p))
 
-  ---------------------------------------------------------------------------
+  ------------------------------------------------------------
+                                                                TENT ~3~
 
   TENT(b,c,n)           : n tents/regressors, spanning b..c sec after stimulus
                         : half-tent at time b, half-tent at time c
@@ -1501,11 +1513,13 @@ more details for select functions:
                           --> akin to assuming first and last betas are 0
                         : same as TENT(b+v,c-v,n-2), where v = (c-b)/(n-1)
 
-  ---------------------------------------------------------------------------
+  ------------------------------------------------------------
+                                                                CSPLIN ~3~
 
   CSPLIN(b,c,n)         : n-param cubic spline, from time b to c sec after event
 
-  ---------------------------------------------------------------------------
+  ------------------------------------------------------------
+                                                                SPMG ~3~
 
   SPMG1                 : 1-regressor SPM gamma variate
                duration : positive lobe: 0..12 sec, undershoot: 12..24 sec
@@ -1527,7 +1541,8 @@ more details for select functions:
   SPMG3                 : 3-regressor SPM gamma variate
                         : with dispersion curve
 
-  ---------------------------------------------------------------------------
+  ------------------------------------------------------------
+                                                                WAV ~3~
 
   WAV                   : 1-regressor WAV function from waver
   WAV(d)                : convolves with stimulus duration d, in seconds
@@ -1544,7 +1559,10 @@ more details for select functions:
                           - similar to GAM, with subsequent undershoot
 
   ---------------------------------------------------------------------------
-  example:
+  example of plotting basis functions: ~3~
+
+     With 200 time points at TR=0.1s, these are 20s curves.  The number of
+     time points and TR will depend on what one wishes to plot.
 
      3dDeconvolve -nodata 200 0.1 -polort -1 -num_stimts 4      \\
         -stim_times 1 '1D:0' GAM                                \\
@@ -1644,9 +1662,10 @@ g_history = """
    3.17 Jul 19, 2022 - added details to -help_basis
    3.18 Sep 20, 2022 - make -timing_to_1D overlap error more clear
    3.19 Jan  3, 2023 - fix -write_tsv_cols_of_interest with -tsv_labels
+   3.20 Jan  4, 2023 - include -help_basis output in main -help
 """
 
-g_version = "timing_tool.py version 3.19, January 3, 2023"
+g_version = "timing_tool.py version 3.20, January 4, 2023"
 
 
 
@@ -2225,6 +2244,8 @@ class ATInterface:
 
       if len(sys.argv) <= 1 or '-help' in sys.argv:
          print(g_help_string)
+         print(g_help_basis_string)
+         print(g_help_trailer)
          return 0
 
       if len(sys.argv) <= 1 or '-help_basis' in sys.argv:
