@@ -477,7 +477,12 @@ def retro_ts(
     parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
-    show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, 1)
+    if parameters['-respFile']:
+        status = show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, 1)
+        if status == 1:
+            print('*** Error in retro_ts')
+            print('Failure to show RVT peak')
+            return 1
     
     # outputFileName = path + "/" + prefix + "FourierSeries.csv"
     # physiologicalNoiseComponents.to_csv(outputFileName)

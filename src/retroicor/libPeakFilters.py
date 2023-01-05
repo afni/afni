@@ -6,7 +6,7 @@ Created on Thu Aug 25 14:46:15 2022
 @author: peterlauren
 
 Peak detection is as follows.
-1. Non-numeric (NaN) data in the input is identified and removed with the user being advised of their location and nature.
+1. Non-numeric (NaN) data in the input is identified and the gap replaced by a linear interpolation from the adjacent valid entries.
 2. The remaining data is band-pass filtered as follows.
     a. The data is Fourier transformed to FT.
     b. The harmonic frequency unit, F0, is determined as the sampling frequency (Hz) divided by the raw data length.

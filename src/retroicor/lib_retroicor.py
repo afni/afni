@@ -998,11 +998,21 @@ def limitNumOutputTimepoints(rawData, parameters):
     AUTHOR
         Peter Lauren
     """
-            
+    # DEBUG
     # Get maximum number of output time points
-    max_numTime_pts = len(np.arange(
-        0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
-    ))
+    # Num TR intervals covered by physio data (float)
+    duration = len(rawData)/parameters['phys_fs']
+    max_numTime_float = duration/parameters['-TR'] 
+    eps_nt = 0.1    # Tolerance for rounding up number of TRs (fraction of TR)
+    max_numTime_pts = int(max_numTime_float + eps_nt)
+    
+    print("++ duration of physio signal:", duration)
+    print("++ TR (MRI data)            :", parameters['-TR'])
+    print("++ number of TRs from physio:", max_numTime_float)
+    print("++ number of TRs (as int)   :", max_numTime_pts)
+    # max_numTime_pts = len(np.arange(
+    #     0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
+    # ))
     
     # If the user has supplied the number of output times points, it must not 
     #   be greater than the determined maximum
@@ -1462,11 +1472,19 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     timeStepIncrement = 1.0/parameters['phys_fs']
     
     if dataType == 'c':
-        phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']
         numTimeSteps = len(physiologicalNoiseComponents['cardiac_phases'])
+        if numTimeSteps == 0:
+            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Cardiac phases required but none available')
+            return None
+        phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']
     else:
-        phasee["phase"] = physiologicalNoiseComponents['respiratory_phases']
         numTimeSteps = len(physiologicalNoiseComponents['respiratory_phases'])
+        if numTimeSteps == 0:
+            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Respiratory phases required but none available')
+            return None
+        phasee["phase"] = physiologicalNoiseComponents['respiratory_phases']
 
     phasee["t"] = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
@@ -1976,6 +1994,10 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     
     respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
                         parameters)
+    if not respiration_info:
+        print('*** Error in show_rvt_peak')
+        print('Failed to make regressors for each slice')
+        return 1
 
     numTimeSteps = len(respiration_info["phase_slice"])
     timeStepIncrement = parameters['-TR']
@@ -2005,4 +2027,6 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
         plt.show(block=False)
         show()
         if not parameters['show_graphs']: mpl.pyplot.close()  # Close graph after saving
+        
+    return 0
     
