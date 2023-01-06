@@ -221,13 +221,14 @@ R Reynolds    December 2022
 g_history = """
    init_user_dotfiles.py history:
 
-   0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
+   0.0  Dec  8, 2022 - ripped from the heart of @update.afni.binaries...
                        encased in a block of ice... zillagod
-   1.0  Dec 23, 2012 - initial release
+   1.0  Dec 23, 2022 - initial release
+   1.1  Jan  6, 2023 - always output something in test mode
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 1.0, December 23, 2022" % g_prog
+g_version = "%s, version 1.1, January 6, 2023" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -1085,33 +1086,34 @@ class MyInterface:
    def report_intentions(self):
       """report what modifications might be made"""
 
-      if self.verb == 0:
+      # if neither verb nor testing, do not bother being chatty
+      # (but if testing, we always want output)
+      if self.verb == 0 and not self.test:
          return
-
-      MESG("")
 
       # if testing or dry run, report full test table
       if self.test:       tstr = 'testing - '
       elif self.dry_run:  tstr = 'dry_run - '
       else:               tstr = 'applying - '
 
-      # report what operations would actually be performed here
-      olist = []
-      if self.do_path: olist.append('path')
-      if self.do_flatdir: olist.append('flatdir')
-      if self.do_apsearch: olist.append('apsearch')
-      if len(olist) > 0: ostr = ', '.join(olist)
-      else:              ostr = 'NOTHING'
-      MESGp("applying opertaions: %s" % ostr)
+      if self.verb > 0:
+          MESG("")
 
-      # possibly give initial reminder about update peculiarities
-      if self.force:
-         if self.verb > 0:
-            MESGi("(forcing updates)")
-      if self.do_flatdir and not self.is_mac and not self.force:
-         if self.verb > 0:
-            MESGi("(not on a mac, should skip flatdir)")
-      MESG("")
+          # report what operations would actually be performed here
+          olist = []
+          if self.do_path: olist.append('path')
+          if self.do_flatdir: olist.append('flatdir')
+          if self.do_apsearch: olist.append('apsearch')
+          if len(olist) > 0: ostr = ', '.join(olist)
+          else:              ostr = 'NOTHING'
+          MESGm("considered opertaions: %s" % ostr)
+
+          # possibly give initial reminder about update peculiarities
+          if self.force:
+             MESGi("(forcing updates)")
+          if self.do_flatdir and not self.is_mac and not self.force:
+             MESGi("(not on a mac, should skip flatdir)")
+          MESG("")
 
       # and report the modification table
       ndfo = len(self.dfobjs)
@@ -1119,14 +1121,17 @@ class MyInterface:
       if ntot == 0:
          MESG("no modifications needed across %d files" % ndfo)
       else:
-         MESG("%swant %d modifications across %d files:" % (tstr,ntot,ndfo))
+         if self.verb > 0:
+             MESG("%swant %d modifications across %d files:" % (tstr,ntot,ndfo))
          MESG("   file             path  flatdir  apsearch  follow\n" \
               "   ---------------  ----  -------  --------  ------")
          for name, fo in self.dfobjs.items():
             ml = []
             MESG("   %-15s  %-4d  %-7d  %-8d  %-6d" % \
                  (name, fo.m_path, fo.m_flat, fo.m_aps, fo.follow))
-      MESG("")
+
+      if self.verb > 0:
+         MESG("")
 
    def check_to_add_apsearch(self, fo):
       """try to determine whether file references all_progs.COMP*
