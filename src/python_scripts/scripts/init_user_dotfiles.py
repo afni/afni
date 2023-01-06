@@ -189,10 +189,10 @@ other options:
 
          By default, this program will make a backup of any file that will be
          changed.  The backup name will be the same as a original name, plus
-         the extension '.iud.bak'.  For example:
+         the extension '.adot.bak'.  For example:
             .cshrc
          would be backed up to
-            .cshrc.iud.bak
+            .cshrc.adot.bak
 
          Use this option to turn off the default behavior.
 
@@ -449,9 +449,9 @@ class MyInterface:
       self.dir_dot_abs     = ''     # absolute path to dir_dot
 
       # uncontrollable variables
-      self.bak_suffix      = '.iud.bak' # suffix for backup files
-      self.dir_abin        = ''         # any found abin in PATH
-      self.dfobjs          = {}         # dict of VO for each file
+      self.bak_suffix      = '.adot.bak' # suffix for backup files
+      self.dir_abin        = ''          # any found abin in PATH
+      self.dfobjs          = {}          # dict of VO for each file
 
       # system and possible mac stuff
       self.sysname         = platform.system()
