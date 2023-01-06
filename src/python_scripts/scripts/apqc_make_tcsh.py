@@ -235,8 +235,13 @@ auth = 'PA Taylor'
 #ver = '4.1' ; date = 'Oct 5, 2022'
 # [PT] add in run_instacorr_errts.tcsh script
 #
-ver = '4.2' ; date = 'Nov 15, 2022'
+#ver = '4.2' ; date = 'Nov 15, 2022'
 # [PT] add in run_instacorr_tcat.tcsh script
+#
+ver = '4.3' ; date = 'Jan 6, 2023'
+# [PT] new opt: -vstat_list, to add a user-defined list of labels
+#      that would appear in the vstat section (default is still to have
+#      5 chosen by the program)
 #
 #########################################################################
 
@@ -741,7 +746,8 @@ if __name__ == "__main__":
         #all_vstat = ["Full_Fstat"]
         #if lat.check_dep(ap_ssdict, ldep3) :
         #    all_vstat.extend(ap_ssdict[ldep3[0]])
-        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'] )
+        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'],
+                                           user_plabs=iopts.vstat_label_list )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):

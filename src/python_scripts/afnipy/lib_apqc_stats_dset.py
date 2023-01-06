@@ -9,9 +9,10 @@ auth = 'PA Taylor'
 #
 #########################################################################
 #
-ver = '1.0' ; date = 'Jan 19, 2022'
+#ver = '1.0' ; date = 'Jan 19, 2022'
 #
-#
+ver = '1.1' ; date = 'Jan 6, 2023'
+# [PT] update to integrate in user vstat label selection
 #
 #
 #
@@ -337,7 +338,7 @@ def is_label_SERIES_Coef_with_Tstat(idx, list_label):
         return 1, fidx
     else:
         # should not happen
-        print("+* WARN: looks like part of TENT train, but cannot find "
+        print("+* WARNING: looks like part of TENT train, but cannot find "
               "Fstat in label list?")
         return 1, -1
 
@@ -555,7 +556,7 @@ The output
                     bad_labs.append(ilab)
 
             else:
-                print("+* WARN: GLT label with unmatched properties?\n"
+                print("+* WARNING: GLT label with unmatched properties?\n"
                       "   Observed for: {}"
                           "".format(ilab))
                 bad_labs.append(ilab)
@@ -589,7 +590,7 @@ The output
                     bad_labs.append(list_label[idx])
 
             else:
-                print("+* WARN: nonGLT label with unmatched properties?\n"
+                print("+* WARNING: nonGLT label with unmatched properties?\n"
                       "   Observed for: {}"
                           "".format(ilab))
                 bad_labs.append(ilab)
@@ -601,7 +602,7 @@ The output
             mini_other_Fstat.append([idx, vso])
 
         else:
-            print("+* WARN: found no home for: {}"
+            print("+* WARNING: found no home for: {}"
                   "".format(ilab))
             bad_labs.append(ilab)
 
@@ -669,6 +670,7 @@ pre-labels (e.g., stimulus names).
     good_plabs   : (list) list of prelabs that DO appear within list_label
     list_vso     : (list) list of vstat objects to use (one per 'good' prelab)
                    -> these become the main output to use
+    nvso         : (int) len of list_vso, the number of obj to use
 
     '''
     
@@ -752,7 +754,7 @@ pre-labels (e.g., stimulus names).
             elif flab.startswith(plab + '_GLT#') and \
                  flab.endswith('_Fstat') :
                 # should not reach here: should be caught earlier
-                print("+* WARN: should have caught GLT FStat earlier?\n"
+                print("+* WARNING: should have caught GLT FStat earlier?\n"
                       "   Observed for: {}"
                           "".format(plab))
                 vso.set_olay_all_fstat(flab, idx)
@@ -777,14 +779,37 @@ pre-labels (e.g., stimulus names).
 
     if bad_plabs :
         nbad = len(bad_plabs)
-        print("+* WARNING: {} unlocatable user prefix label(s):\n"
+        print("+* WARNING: {} unlocatable user prefix for vstat label(s):\n"
               "      {}\n".format(nbad, ', '.join(bad_plabs)))
         if verb :
             print("   ... when searching through these actual labels:\n:"
                   "      {}\n"
                   "".format(', '.join(list_label)))
 
-    return nbad, bad_plabs, good_plabs, list_vso
+    # check for duplicates, in case user entered different forms
+    # of same thing
+    if 1 :
+        list_olay = [vso.olay_label for vso in list_vso]
+        # get list of any items whose overlay label is a repeat
+        list_dup_idx = [ i for i in range(len(list_olay)) \
+                         if list_olay.index(list_olay[i]) != i ]
+        ndup = len(list_dup_idx)
+        if ndup :
+            if 1 : #verb :
+                list_dup = [ list_olay[i] for i in range(len(list_olay)) \
+                             if list_olay.index(list_olay[i]) != i ]
+                print("+* WARNING: {} dups in user vstat list:".format(ndup))
+                print("   {}".format(", ".join(list_dup)))
+
+            # to remove, put list in order of decreasing index
+            list_dup_idx.sort(reverse=True)
+            for nn in list_dup_idx:
+                tmp = list_vso.pop(nn)
+                tmp = good_plabs.pop(nn)
+
+    nvso_final = len(list_vso)
+
+    return nbad, bad_plabs, good_plabs, list_vso, nvso_final
 
 # ----------------------------------------------------------------------
 
@@ -818,7 +843,7 @@ pref#2_Coef, etc.)
                       not specified by user (probably always want this True)
     nmax_selfchosen : (int) if the user has not specified a list of labels,
                       how many items should we choose to output
-    user_labpre     : (list) a list of user-specified stim or GLT
+    user_plabs      : (list) a list of user-specified stim or GLT
                       labels to find within the stats_dset labels.  If 
                       empty, use internal 'default logic' to decide what 
                       to include in the QC block
@@ -838,15 +863,12 @@ pref#2_Coef, etc.)
 
     list_vso    = []
 
-    ### At the moment, don't go down this route---need to wait for
-    ### uvar functionality for user passing this list in; but the
-    ### function should be ready for parsing
-    if 0 and user_plabs :
+    if user_plabs :
         if use_Full_Fstat :
             if not('Full_Fstat' in user_plabs) :
                 user_plabs.insert(0, 'Full_Fstat')
 
-        nbad, bad_plabs, good_plabs, list_vso = \
+        nbad, bad_plabs, good_plabs, list_vso, nvso = \
             check_plabs_in_label_list( user_plabs, dset_labels, fname )
 
     else:
