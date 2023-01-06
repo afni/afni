@@ -11,7 +11,7 @@
 #   -epi2anat -ex_mode dry_run -epi_base 6 -child_epi epi_r??+orig.HEAD \
 #   -anat2epi -epi2anat -tlrc_apar sb23_mpra_at+tlrc -suffix _alx2
 
-import sys
+import sys, os
 import copy
 from time import asctime
 
@@ -605,7 +605,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.62" # software version (update for changes)
+      self.align_version = "1.63" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1615,7 +1615,13 @@ class RegWrap:
       #get pre-transformation matrix
       opt = self.user_opts.find_opt('-pre_matrix')
       if opt != None: 
-         ps.pre_matrix = opt.parlist[0]
+         # [PT: Dec 1, 2022] get abs path version of each path
+         # (expanduser deals with '~'); needed if using output_dir
+         abs_path = os.path.abspath(os.path.expanduser(opt.parlist[0]))
+         if not(os.path.isfile(abs_path)) :
+            self.error_msg("pre_matrix filename '{}' does not exist here: {}"
+            "".format(opt.parlist[0], abs_path))
+         ps.pre_matrix = abs_path
       else :
          ps.pre_matrix = ""
 

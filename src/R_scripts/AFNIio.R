@@ -1243,9 +1243,10 @@ who.called.me <- function (quiet_inquisitor=FALSE, trim = 0) {
 
 #return 1 if all strings in vector ss can be changed to numbers
 is.num.string <- function(ss) {
-   if (is.null(ss) || !length(ss) || ss == '' ||
-       is.null(tryCatch(as.numeric(ss), 
-                           warning=function(ex) {}))) {
+   #if (is.null(ss) || !length(ss) || ss == '' ||
+   if (is.null(ss) || !length(ss) || identical(ss, "") ||  # Gang Chen - 01/01/2023: '' is tricky to deal with
+   	is.null(tryCatch(as.numeric(ss),
+                          warning=function(ex) {}))) {
       return(0);
    } else {
       return(1);
@@ -3696,7 +3697,8 @@ gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt o
       outList[[1]]    <- vector('list', n_gl)
       outList[[2]]    <- vector('list', n_gl)
       outList[[3]] <- vector('list', n_gl)
-      comQV <- ifelse(is.null(lop$vVars), lop$QV, c(lop$QV, lop$vVars)) #c(lop$QV, lop$vVars)
+      #comQV <- ifelse(is.null(lop$vVars), lop$QV, c(lop$QV, lop$vVars)) #c(lop$QV, lop$vVars)
+      comQV <- c(lop$QV, lop$vVars)
       for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
          if(length(comQV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
          if((length(comQV)>0) & any(comQV %in% code[[n]])) {

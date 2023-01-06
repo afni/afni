@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.0, Oct 1, 2022
+Version 2.1.1, Jan 1, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1700,10 +1700,10 @@ if(lop$ICC) {  # ICC part
          n <- 1
          while(!is.null(fm) & (n <= lop$num_glt)) {
             if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
-               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL) else
             gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
-               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
-            if(is.na(gltRes[[n]])) fm <- NULL
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL)
+            if(is.null(gltRes[[n]])) fm <- NULL
             n <- n+1
          }
       }

@@ -254,7 +254,7 @@ int Syntax(TFORM targ, int detail)
 "                      0 otherwise. \n"
 "               For -same_grid to be 1, all of -same_dim, -same_delta,\n"
 "               -same_orient, -same_center, and -same_obl must return 1\n"
-"   -same_dim: 1 if dimensions are the same between dset pairs\n"
+"   -same_dim: 1 if dimensions (nx,ny,nz) are the same between dset pairs\n"
 "   -same_delta: 1 if voxels sizes are the same between dset pairs\n"
 "   -same_orient: 1 if orientation is the same between dset pairs\n"
 "   -same_center: 1 if geometric center is the same between dset pairs\n"

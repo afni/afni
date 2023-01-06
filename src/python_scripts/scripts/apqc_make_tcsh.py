@@ -232,13 +232,18 @@ auth = 'PA Taylor'
 #      ---> but just as quickly have removed it; might distract from the
 #           important sulcal/gyral overlap
 #
-ver = '4.1' ; date = 'Oct 5, 2022'
+#ver = '4.1' ; date = 'Oct 5, 2022'
 # [PT] add in run_instacorr_errts.tcsh script
 #
+#ver = '4.2' ; date = 'Nov 15, 2022'
+# [PT] add in run_instacorr_tcat.tcsh script
+#
+ver = '4.3' ; date = 'Jan 6, 2023'
+# [PT] new opt: -vstat_list, to add a user-defined list of labels
+#      that would appear in the vstat section (default is still to have
+#      5 chosen by the program)
+#
 #########################################################################
-
-# !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
-
 
 import sys
 import os
@@ -252,6 +257,7 @@ from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
 from afnipy import lib_apqc_instacorr  as laic
+from afnipy import lib_apqc_instacorr_tcat  as laict
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -298,7 +304,7 @@ if __name__ == "__main__":
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
 
-    # ----------------------- InstaCorr script ----------------------
+    # ----------------------- InstaCorr scripts ----------------------
 
     # [PT: Oct 5, 2022] make an instacorr run script in the main
     # results directory
@@ -332,7 +338,33 @@ if __name__ == "__main__":
             msg = lat.commandize(msg, ALLEOL=False)
             print( msg )
 
-    
+    ldep     = ['tcat_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        # make the full text
+        script_text_insta = laict.make_apqc_ic_script(ap_ssdict)
+
+        # write the text file in the results directory
+        otcsh_insta  = iopts.subjdir + '/' + laict.scriptname
+        fff = open(otcsh_insta, 'w')
+        fff.write(script_text_insta)
+        fff.close()
+
+        # make executable, a la rcr
+        try: code = eval('0o755')
+        except: code = eval('0755')
+        try:
+            os.chmod(otcsh_insta, code)
+        except:
+            omsg = "failed: chmod {} {}".format(code, otcsh_insta)
+            print(omsg)
+
+        msg = '''
+        ++ Done making (executable) InstaCorr script:
+        {}
+        '''.format(otcsh_insta)
+        msg = lat.commandize(msg, ALLEOL=False)
+        print( msg )
+
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0
@@ -714,7 +746,8 @@ if __name__ == "__main__":
         #all_vstat = ["Full_Fstat"]
         #if lat.check_dep(ap_ssdict, ldep3) :
         #    all_vstat.extend(ap_ssdict[ldep3[0]])
-        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'] )
+        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'],
+                                           user_plabs=iopts.vstat_label_list )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):
@@ -1300,6 +1333,22 @@ if __name__ == "__main__":
         txtfile  = ap_ssdict['flip_check_dset']
         cmd      = lat.apqc_warns_flip( obase, "warns", "flip",
                                         fname = txtfile )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : variance lines
+
+    ldep = ['vlines_tcat_dir']  
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('var_line warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_vlines( obase, "warns", "vlines",
+                                          dirname=ap_ssdict['vlines_tcat_dir'] )
 
         str_FULL+= ban
         str_FULL+= cmd

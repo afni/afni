@@ -1348,13 +1348,13 @@ def parse_Ncol_tsv(fname, hlabels=None,
       col_dur_alt = cols_alt[1]
 
    # perhaps we want to write out cols of interest
-   if not tsv_int is None:
-      # first merge col_inds nand cols_alt, then write
+   if tsv_int is not None:
+      # first be sure any col_dur_alt is in col_inds, then write
       if verb > 1:
          print("== writing to tsv %s" % tsv_int)
       csub = col_inds[:]
-      csub.extend(cols_alt)
-      csub = UTIL.get_unique_sublist(csub)
+      if col_dur_alt >= 0 and col_dur_alt not in csub:
+         csub.append(col_dur_alt)
       write_tsv_cols(lines, csub, ofile=tsv_int)
 
    # if show_only, we are done

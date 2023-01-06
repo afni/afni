@@ -69,6 +69,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Dec , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Put quotes around (hopefully) every path, so spaces in paths are OK.",
+   "This is because of OneDrive.  Grrrr.\n"
+},
+
+{ 6, Dec , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Put quotes around (hopefully) every path, so spaces in paths are OK.",
+   "This is because of OneDrive.  Grrrr.\n"
+},
+
+{ 2, Dec , 2022 , PT , "@animal_warper" , MINOR , TYPE_ENHANCE,
+   "Add another QC image if  '-init_scale ..' is used.",
+   "Useful to check if scaling is approximately appropriate.\n"
+},
+
+{ 1, Dec , 2022 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "Opt '-init_scale ..' to provide initial len scaling before affine align.",
+   "Useful if input is much smaller/bigger than template.\n"
+},
+
+{ 1, Dec , 2022 , PT , "align_epi_anat.py" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: using -pre_matrix with -output_dir was broken.",
+   "Now internally use full path for pre_matrix (+bonus: check existence).\n"
+},
+
+{ 27, Nov , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Update the help for integrating SSW with afni_proc.py (AP).",
+   "More readable, and simpler option usage\n"
+},
+
+{ 23, Nov , 2022 , PT , "find_variance_lines.tcsh" , MINOR , TYPE_ENHANCE,
+   "Put a backslash before shell commands, so possible aliases aren't used.",
+   "Also put numbers by each exit.  Thanks, S Torrisis!\n"
+},
+
 { 9, Nov , 2022 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "New opt: '-weight_corr ..' (diff application than '-weight_ts ..').",
    "Calculate weighted Pearson Correlation.  For Dante P.\n"

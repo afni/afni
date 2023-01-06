@@ -81,8 +81,13 @@
 # [PT] AP can now pass opts here via '-html_review_opts ..'
 # - first one is '-mot_grayplot_off', for S Torrisi.
 #
-ver = '1.96' ; date = 'Feb 10, 2022' 
+#ver = '1.96' ; date = 'Feb 10, 2022' 
 # [PT] matplotlib ver check to be >= 2.2, not just >2.2
+#
+ver = '2.00' ; date = 'Jan 6, 2023' 
+# [PT] apqc_make_tcsh.py updates:
+#      + add -vstat_list opt
+#      + improve opt parsing/error checking
 #
 #########################################################################
 
@@ -1779,6 +1784,17 @@ Options:
                    a huuuge dataset and the grayplot took annoyingly long
                    to estimate.  Not recommended to use, generally. 
 
+-vstat_list A B C ...
+                  :(opt, only applicable if stim timing is used in
+                   processing) provide a list of label items to specify
+                   which volumes's images should appear in the vstat
+                   QC block.  Each item should correspond to subbrick
+                   label basename (so not including '_GLT', "#N",
+                   'Tstat', 'Fstat', 'Coef', etc.) in the stats_dset.
+                   'Full_Fstat' is always added/included, even if not
+                   provided in this list. If not used, the program
+                   uses default logic to pick up to 5 items to show.
+
 '''.format( ", ".join(ok_review_styles) )
 
 # -------------------------------------------------------------------
@@ -1786,13 +1802,13 @@ Options:
 class apqc_tcsh_opts:
 
     def __init__(self):
-        # Each of these is required.  Might have other optional
-        # options in the future
         self.json     = ""
         self.subjdir  = ""
         self.revstyle = "basic"
         self.pythonic2basic = 0
+
         self.do_mot_grayplot = True
+        self.vstat_label_list = []
 
     def set_json(self, json):
         self.json = json
@@ -1808,6 +1824,14 @@ class apqc_tcsh_opts:
             self.do_mot_grayplot = True
         else:
             self.do_mot_grayplot = False
+
+    def add_vstat_label(self, label):
+        # keep list unique; checking if label is valid in the
+        # stats_dset only comes later, when actually applied
+        if label in self.vstat_label_list :
+            print("+* WARNING: label {} already in vstat list".format(label))
+        else:
+            self.vstat_label_list.append(label)
 
     # check requirements
     def check_req(self):
@@ -1836,6 +1860,16 @@ class apqc_tcsh_opts:
 
 # -------------------------------------------------------------------
 
+### Keep this list uptodate as new options get added, for parsing 
+list_apqc_tcsh_opts = ['-help', '-h',
+                       '-ver',
+                       '-uvar_json',
+                       '-subj_dir',
+                       '-review_style',
+                       '-mot_grayplot_off',
+                       '-vstat_list',
+                       ]
+
 def parse_tcsh_args(argv):
     '''Parse arguments for tcsh scripter.
 
@@ -1850,7 +1884,8 @@ def parse_tcsh_args(argv):
         self-"check_req()" method, as well.
     '''
 
-    Narg = len(argv)
+    Narg   = len(argv)
+    Nargm1 = Narg - 1     # to check if opt is missing par(s)
 
     if not(Narg):
         print(help_string_apqc_make_tcsh)
@@ -1859,7 +1894,8 @@ def parse_tcsh_args(argv):
     # initialize argument array
     iopts = apqc_tcsh_opts()
 
-    # check through inputs
+    # check through inputs: 
+    # **NB: make sure each opt is in list_apqc_tcsh_opts, above**
     i = 0
     while i < Narg:
         if argv[i] == "-ver":
@@ -1873,19 +1909,19 @@ def parse_tcsh_args(argv):
         # ---------- req ---------------
 
         elif argv[i] == "-uvar_json":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_json(argv[i])
 
         elif argv[i] == "-subj_dir":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_subjdir(argv[i])
 
         elif argv[i] == "-review_style":
-            if i >= Narg:
+            if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_revstyle(argv[i])
@@ -1894,6 +1930,18 @@ def parse_tcsh_args(argv):
         ### AP can now pass opts here via '-html_review_opts ..'
         elif argv[i] == "-mot_grayplot_off":
             iopts.set_mot_grayplot(False)
+
+        # get a list of labels 
+        elif argv[i] == "-vstat_list":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            while i+1 < Narg :
+                # NB: this requires keeping the list of options uptodate!
+                if argv[i+1] in list_apqc_tcsh_opts :
+                    break
+                else:
+                    i+= 1
+                    iopts.add_vstat_label(argv[i])
 
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))

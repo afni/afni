@@ -53,6 +53,54 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jan, 2023, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -write_tsv_cols_of_interest with -tsv_labels",
+   NULL
+ } ,
+
+ { 23, Dec, 2022, RCR, "init_user_dotfiles.py", MAJOR, TYPE_NEW_PROG,
+   "evaluate or initialize dot/RC files for running AFNI",
+   "From the perspective of:\n"
+   "    i) adding a directory (ABIN?) to the PATH\n"
+   "   ii) sourcing the apsearch all_progs.COMP file (per shell)\n"
+   "  iii) (for macs) adding flat_namespace to DYLD_LIBRARY_PATH"
+ } ,
+
+ { 16, Dec, 2022, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "update mask order in examples 6,6b (mask then blur)",
+   NULL
+ } ,
+
+ {  9, Dec, 2022, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add more detail to afni_system_check.py -help_dot_files",
+   NULL
+ } ,
+
+ {  7, Dec, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add more detail to timing_tool.py -help_basis",
+   NULL
+ } ,
+
+ { 23, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add examples simple_rest_QC, simple_rest_QC_na",
+   "These are the DEFAULT comparison example in ap_run_simple_rest.tcsh."
+ } ,
+
+ { 23, Nov, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add add -align_unifize_epi local and -compare_to options",
+   NULL
+ } ,
+
+ { 15, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -find_var_line_blocks for calling find_variance_lines.tcsh",
+   NULL
+ } ,
+
+ { 14, Nov, 2022, RCR, "find_variance_lines.tcsh", MAJOR, TYPE_NEW_PROG,
+   "(w PT/DG) look for columns of high temporal variance in time series",
+   "Will be a recommended QC option in afni_proc.py."
+ } ,
+
  {  9, Nov, 2022, RCR, "Makefile.macos_10.13_homebrew", MICRO, TYPE_MODIFY,
    "rename Makefile.macOS_10.13_homebrew to Makefile.macos_10.13_homebrew",
    "Done for consistency."
