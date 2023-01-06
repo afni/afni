@@ -11923,6 +11923,7 @@ OPTIONS:  ~2~
     -html_review_opts  ...   : pass extra options to apqc_make_tcsh.py
 
             e.g. -html_review_opts -mot_grayplot_off
+            e.g. -html_review_opts -vstat_list vis aud V-A
 
         Blindly pass the given options to apqc_make_tcsh.py.
 
