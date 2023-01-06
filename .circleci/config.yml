@@ -192,7 +192,7 @@ commands:
           name: Write osx dependencies to a file
           command: |
             echo \
-              python@3.8 \
+              python \
               cmake ninja llvm pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
@@ -219,13 +219,13 @@ commands:
             set -o pipefail
 
             # Python3.9 currently causes failure so 3.8 keg needs to be used:
-            brew install python@3.8
-            export PATH="/usr/local/opt/python@3.8/bin:$PATH"
-            echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
-            export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
-            echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
-            export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
-            echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
+            brew install python
+            # export PATH="/usr/local/opt/python@3.8/bin:$PATH"
+            # echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
+            # export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
+            # echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
+            # export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
+            # echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
 
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
