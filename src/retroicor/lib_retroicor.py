@@ -2025,8 +2025,8 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
     if parameters['save_graphs']:
         plt.savefig('%s/RvtPeak.pdf' % (OutDir)) 
         plt.show(block=False)
-        show()
-        if not parameters['show_graphs']: mpl.pyplot.close()  # Close graph after saving
+        if parameters['show_graphs']: show()
+        else: mpl.pyplot.close()  # Close graph after saving
         
     return 0
     

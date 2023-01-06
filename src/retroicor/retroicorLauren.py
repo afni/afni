@@ -477,7 +477,8 @@ def retro_ts(
     parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
-    if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
+    if len(physiologicalNoiseComponents['respiratory_phases']) > 0 and\
+        (parameters['save_graphs'] or parameters['show_graphs']):
         status = show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, 1)
         if status == 1:
             print('*** Error in retro_ts')
