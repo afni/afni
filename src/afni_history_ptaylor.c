@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Jan , 2023 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_NEW_OPT,
+   "Add '-vstat_list' opt, so user can enter label bases for vstat in APQC.",
+   "HTML still has up to 5 automatically chosen vols by def in vstat.\n"
+},
+
 { 6, Dec , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Put quotes around (hopefully) every path, so spaces in paths are OK.",
    "This is because of OneDrive.  Grrrr.\n"
