@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Jan , 2023 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_ENHANCE,
+   "Output more information if the input cdiflist appears to be ragged.",
+   "Help pinpoint the potential problem row for the user.\n"
+},
+
 { 6, Jan , 2023 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_NEW_OPT,
    "Add '-vstat_list' opt, so user can enter label bases for vstat in APQC.",
    "HTML still has up to 5 automatically chosen vols by def in vstat.\n"
