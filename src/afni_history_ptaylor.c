@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Jan , 2023 , PT , "@chauffeur_afni" , MICRO , TYPE_ENHANCE,
+   "Extra check of a couple of options, that only correct key words are used.",
+   "Done for the '-left_is_* ..' opts.\n"
+},
+
 { 10, Jan , 2023 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_ENHANCE,
    "Output more information if the input cdiflist appears to be ragged.",
    "Help pinpoint the potential problem row for the user.\n"

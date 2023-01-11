@@ -340,8 +340,12 @@
 #set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
 #    + [PT] new opt: clusterize_wami
 #
-set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
+#set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
 #    + [PT] cleaner clust output, sep cmd
+#
+set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
+#    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
+#      correct key word is not used
 #
 # =====================================================================
 
@@ -872,11 +876,25 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-left_is_left" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_left' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_LEFT "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-left_is_posterior" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_posterior' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_POSTERIOR "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-zerocolor" ) then
