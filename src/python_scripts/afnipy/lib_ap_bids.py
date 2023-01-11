@@ -98,7 +98,7 @@ def make_abspath_from_dirname(dirname):
     '''
     if not os.path.isdir(dirname) :
         # TODO: make this a UserWarning?
-        print(f"** WARN: {dirname} is not a valid dirname")
+        print("** WARN: {} is not a valid dirname".format(dirname))
         return ''
     return os.path.abspath(dirname)
 
@@ -124,8 +124,8 @@ def make_tail_from_dirname(dirname):
     if not len(tail):
         # TODO: make this a UserWarning?
         print(
-            f"+* WARN: cannot find tail from dir: {dirname}\n"
-            f"   abspath = {apath}"
+            "+* WARN: cannot find tail from dir: {}\n"
+            "   abspath = {}".format(dirname, apath)
         )
         return ''
     return tail
@@ -234,7 +234,7 @@ class Subject:
     def __str__(self) -> str:
         ses_strings = []
         for ses, ses_obj in self.ses_dict.items():
-            ses_strings.append(f'{ses}:')
+            ses_strings.append('{}:'.format(ses))
             ses_lines = [
                 '\t' + str(sl) for sl in str(ses_obj).split('\n')
             ]
