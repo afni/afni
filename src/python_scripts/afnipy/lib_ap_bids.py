@@ -24,8 +24,8 @@
 # |----subject (subj: sub-001, sub-002, ...)
 #      |----ses (ses: ses-01, ses-02, ...; also sometimes just 'ses')
 #           |----modality (AKA modality; datype: anat, func, ...)
-#                |----twigs (datafiles with the same prefix)
-#                     |----leaves (individual files)
+#                |----twig (datafiles with the same prefix)
+#                     |----leaf (individual files)
 #
 # Here, these are represented as nested dictionaries, with each set of
 # keys being the items of the next level down, until one gets to
@@ -154,7 +154,7 @@ class Collection:
 
         # glob for all sub-* directories in self.abspath
         all_dir = [ x for x in glob.glob( self.abspath + '/sub-*' ) \
-                     if os.path.isdir(x) ]
+                    if os.path.isdir(x) ]
 
         # make dictionary of subject IDs
         self.subj_dict = {
@@ -163,18 +163,14 @@ class Collection:
 
     @property
     def subj_list(self) -> list:
-        """
-        Return list of subject IDs.
-        """
+        """Return list of subject IDs."""
         lll = list(self.subj_dict.keys())
         lll.sort()
         return lll
 
     @property
     def nsubj(self) -> int:
-        """
-        Return number of subjects.
-        """
+        """Return number of subjects."""
         return len(self.subj_dict)
 
     def __str__(self) -> str:
@@ -225,25 +221,19 @@ class Subject:
 
     @property
     def get_subj(self) -> str:
-        """
-        Return subject ID (in a safe way!)
-        """
+        """Return subject ID (in a safe way!)"""
         return self.subj
 
     @property
     def ses_list(self) -> list:
-        """
-        Return list of session IDs.
-        """
+        """Return list of session IDs."""
         lll = list(self.ses_dict.keys())
         lll.sort()
         return lll
 
     @property
     def nses(self) -> int:
-        """
-        Return number of sessions.
-        """
+        """Return number of sessions."""
         return len(self.ses_dict)
 
     def __str__(self) -> str:
@@ -282,9 +272,7 @@ class Session:
 
     @property
     def get_ses(self) -> str:
-        """
-        Return session ID (in a safe way!)
-        """
+        """Return session ID (in a safe way!)."""
         return self.ses
 
     @property
@@ -297,9 +285,7 @@ class Session:
 
     @property
     def modality_list(self) -> list:
-        """
-        Return (lexicographically sorted) list of modalities
-        """
+        """Return (lexicographically sorted) list of modalities."""
         lll = list(self.modality_dict.keys())
         lll.sort()
 
@@ -337,7 +323,7 @@ class Modality:
                     else:
                         name_ext[f] = [x]
         self.twig_list = [
-            DataTwig(self.dirname, k, name_ext[k]) for k in name_ext.keys()
+            Twig(self.dirname, k, name_ext[k]) for k in name_ext.keys()
         ]
 
     @property
@@ -356,7 +342,7 @@ class Modality:
         return ', '.join([str(t) for t in self.twig_list])
 
 
-class DataTwig:
+class Twig:
     """A collection of closely related data files which share the same
     prefix.
 
@@ -365,9 +351,9 @@ class DataTwig:
     def __init__(self,
                  dirname    : str,
                  prefix     : str,
-                 extensions : list,
+                 ext_list   : list,
     ):
-        """Construct a DataTwig
+        """Construct a Twig
 
         Parameters
         ----------
@@ -376,20 +362,21 @@ class DataTwig:
             parent.
         prefix: str
             The common prefix for all files in this twig.
-        extensions: list
+        ext_list: list
             The available file extensions for this twig.
         """
         self.dirname   = dirname.rstrip('/')
         self.prefix    = prefix
-        self.list_ext  = extensions
+        self.ext_list  = ext_list
+
         self.arch_info = BIDS_GENERATOR.into_attributes(
             self.dirname + '/' + self.prefix
         )
 
     @property
-    def leaves(self) -> list:
+    def leaf_list(self) -> list:
         return [
-            self.dirname + '/' + self.prefix + ext for ext in self.list_ext
+            self.dirname + '/' + self.prefix + ext for ext in self.ext_list
         ]
 
     @property
