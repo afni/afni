@@ -144,31 +144,38 @@ class Collection:
         label: str, optional
             The label to give this dataset. Default ''.
         """
-        dirname = dirname.rstrip('/')          # remove any trailing '/'
 
-        self.dirname = dirname                # entered path
-        self.abspath = make_abspath_from_dirname(dirname)
-        self.collection_name = make_tail_from_dirname(dirname)
+        self.dirname = dirname.rstrip('/')    # entered path, no trailing '/'
         self.label   = label                  # dataset/proj label
+        self.verb    = verb
+
+        self.abspath         = make_abspath_from_dirname(self.dirname)
+        self.collection_name = make_tail_from_dirname(self.dirname)
 
         # glob for all sub-* directories in self.abspath
         all_dir = [ x for x in glob.glob( self.abspath + '/sub-*' ) \
                      if os.path.isdir(x) ]
 
+        # make dictionary of subject IDs
         self.subj_dict = {
             make_tail_from_dirname(s): Subject(s) for s in all_dir
         }
 
-        self.verb          = verb
-
     @property
     def subj_list(self) -> list:
         """
-        Return list of session IDs.
+        Return list of subject IDs.
         """
         lll = list(self.subj_dict.keys())
         lll.sort()
         return lll
+
+    @property
+    def nsubj(self) -> int:
+        """
+        Return number of subjects.
+        """
+        return len(self.subj_dict)
 
     def __str__(self) -> str:
         """Return a (multiline) string of the data collection contents,
@@ -196,23 +203,24 @@ class Subject:
     """
 
     def __init__(self, dirname):
-        dirname = dirname.rstrip('/')          # remove any trailing '/'
 
-        self.dirname  = dirname                # entered path
-        self.abspath  = make_abspath_from_dirname(dirname)
-        self.subj     = make_tail_from_dirname(dirname)
+        self.dirname  = dirname.rstrip('/')    # entered path, no trailing '/'
         self.ses_dict = {}                     # dict of sessions
 
-        # glob for all ses-* directories in self.abspath
-        contents_with_ses = [ x for x in glob.glob( self.abspath + '/ses-*' ) \
-                              if os.path.isdir(x) ]
+        self.abspath  = make_abspath_from_dirname(self.dirname)
+        self.subj     = make_tail_from_dirname(self.dirname)
 
-        if len(contents_with_ses) == 0:
+        # glob for all ses-* directories in self.abspath
+        all_dir = [ x for x in glob.glob( self.abspath + '/ses-*' ) \
+                    if os.path.isdir(x) ]
+
+        # make dictionary of all session IDs
+        if len(all_dir) == 0:
             # Invisible session, make a session from the same dir
             self.ses_dict = {"ses": Session(self.abspath)}
         else:
             self.ses_dict = {
-                make_tail_from_dirname(s): Session(s) for s in contents_with_ses
+                make_tail_from_dirname(s): Session(s) for s in all_dir
             }
 
     @property
@@ -231,15 +239,21 @@ class Subject:
         lll.sort()
         return lll
 
+    @property
+    def nses(self) -> int:
+        """
+        Return number of sessions.
+        """
+        return len(self.ses_dict)
+
     def __str__(self) -> str:
-        ses_strings = []
-        for ses, ses_obj in self.ses_dict.items():
-            ses_strings.append('{}:'.format(ses))
-            ses_lines = [
-                '\t' + str(sl) for sl in str(ses_obj).split('\n')
-            ]
-            ses_strings.append('\n'.join(ses_lines))
-        return '\n'.join(ses_strings)
+        lines = []
+        for ses in self.ses_list :
+            ses_obj   = self.ses_dict[ses]
+            lines.append(ses_obj.get_ses)
+            lines.append(indent_str_by_line(str(ses_obj)))
+        return '\n'.join(lines)
+
     
 class Session:
     """An object storing the session-level information for a subject.
@@ -248,11 +262,11 @@ class Session:
     """
 
     def __init__(self, dirname):
-        dirname        = dirname.rstrip('/')
 
-        self.dirname  = dirname                # directory
-        self.abspath  = make_abspath_from_dirname(dirname)
-        tail_dirname  = make_tail_from_dirname(dirname)
+        self.dirname  = dirname.rstrip('/')       # directory, no trailing '/'
+
+        self.abspath  = make_abspath_from_dirname(self.dirname)
+        tail_dirname  = make_tail_from_dirname(self.dirname)
         self.ses      = tail_dirname if "ses" in tail_dirname else "ses"
         self.modality_dict = {}
 
@@ -260,9 +274,18 @@ class Session:
         all_dir = [ x for x in glob.glob( self.abspath + '/*' ) \
                      if os.path.isdir(x) ]
 
+        # dictionary of modalities
         self.modality_dict = {
             make_tail_from_dirname(m): Modality(m) for m in all_dir
         }
+
+
+    @property
+    def get_ses(self) -> str:
+        """
+        Return session ID (in a safe way!)
+        """
+        return self.ses
 
     @property
     def subject_label(self) -> str:
@@ -300,10 +323,9 @@ class Modality:
     """
 
     def __init__(self, dirname):
-        dirname       = dirname.rstrip('/')
 
-        self.dirname  = dirname                # directory
-        self.abspath  = make_abspath_from_dirname(dirname)
+        self.dirname  = dirname.rstrip('/')       # directory, no trailing '/'
+        self.abspath  = make_abspath_from_dirname(self.dirname)
 
         name_ext = {}
         for f in glob.glob(self.dirname + '/*'):
@@ -314,47 +336,52 @@ class Modality:
                         name_ext[f].append(x)
                     else:
                         name_ext[f] = [x]
-        self.list_twig = [
+        self.twig_list = [
             DataTwig(self.dirname, k, name_ext[k]) for k in name_ext.keys()
         ]
 
     @property
     def subject(self) -> str:
-        return self.list_twig[0].subject
+        return self.twig_list[0].subject
 
     @property
     def session(self) -> str:
-        return self.list_twig[0].session
+        return self.twig_list[0].session
 
     @property
     def get_modality(self) -> str:
-        return self.list_twig[0].modality
+        return self.twig_list[0].modality
 
     def __str__(self) -> str:
-        return ', '.join([str(t) for t in self.list_twig])
+        return ', '.join([str(t) for t in self.twig_list])
 
 
 class DataTwig:
-    """A collection of closely related data files which share the same prefix."""
+    """A collection of closely related data files which share the same
+    prefix.
+
+    """
+
     def __init__(self,
-        dirname: str,
-        prefix: str,
-        extensions: list,
+                 dirname    : str,
+                 prefix     : str,
+                 extensions : list,
     ):
         """Construct a DataTwig
 
         Parameters
         ----------
         dirname: str
-            The relative path from the root of the collection to this twig's parent.
+            The relative path from the root of the collection to this twig's 
+            parent.
         prefix: str
             The common prefix for all files in this twig.
         extensions: list
             The available file extensions for this twig.
         """
-        self.dirname = dirname
-        self.prefix = prefix
-        self.list_ext = extensions
+        self.dirname   = dirname.rstrip('/')
+        self.prefix    = prefix
+        self.list_ext  = extensions
         self.arch_info = BIDS_GENERATOR.into_attributes(
             self.dirname + '/' + self.prefix
         )
@@ -394,9 +421,9 @@ def main():
         'dataset',
         help='The dataset to investigate',
     )
-    args = parser.parse_args()
+    args    = parser.parse_args()
     dataset = os.path.relpath(args.dataset)
-    bd = Collection(dataset)
+    bd      = Collection(dataset)
     print(bd)
 
 if __name__ == '__main__':
