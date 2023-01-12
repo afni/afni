@@ -301,6 +301,11 @@ class Session:
 
         return lll
 
+    @property
+    def nmodality(self) -> int:
+        """Return number of modalities."""
+        return len(self.modality_dict)
+
     def __str__(self) -> str:
         lines = []
         for modality in self.modality_list :
@@ -353,6 +358,11 @@ class Modality:
     def get_modality(self) -> str:
         return self.twig_list[0].modality
 
+    @property
+    def ntwig(self) -> int:
+        """Return number of twigs."""
+        return len(self.twig_list)
+
     def __str__(self) -> str:
         return ', '.join([str(t) for t in self.twig_list])
 
@@ -397,9 +407,15 @@ class Twig:
 
     @property
     def leaf_list(self) -> list:
+        """Return list of leaves."""
         return [
             self.dirname + '/' + self.prefix + ext for ext in self.ext_list
         ]
+
+    @property
+    def nleaf(self) -> int:
+        """Return number of leaves."""
+        return len(self.ext_list) # should be same len, and faster to get
 
     @property
     def subject(self) -> str:
