@@ -133,7 +133,12 @@ def make_tail_from_dirname(dirname):
 # -------------------------------------------------------------------------
 
 class Collection:
-    """An object storing the full data collection."""
+    """An object storing the full data collection.
+
+    The primary data structure is subj_dict, a dictionary of subjects
+    organized as subj_id:subj_obj pairs.
+
+    """
     def __init__(self, dirname: str, label: str = '', verb: int = 0):
         """A collection of data which follows a well-defined rubric.
 
@@ -189,12 +194,15 @@ class Collection:
 
 
 class Subject:
-    """An object storing a collection subject.
+    """An object storing one subject's information.
 
-    A subject always contains sessions, but session directories may not be
-    present in the actual directory layout!
-    We refer to this as an "unseparated"
-    session, and it will just bear the label 'ses' (rather than 'ses-*').
+    The primary data structure is ses_dict, a dictionary of sessions
+    organized as ses_id:ses_obj pairs.
+
+    NB: A subject always contain at least one session, even if the
+    file structure does not contain an actual session directory. We
+    refer to this as an "unseparated" session, and it will just bear
+    the label 'ses' (rather than 'ses-*').
 
     """
 
@@ -246,9 +254,11 @@ class Subject:
 
     
 class Session:
-    """An object storing the session-level information for a subject.
+    """An object storing one session's modality information.
 
-    Importantly, contains a dictionary of modality info.
+    The primary data structure is modality_dict, a dictionary of
+    modalities organized as modality_id:modality_obj pairs.
+
     """
 
     def __init__(self, dirname):
@@ -301,11 +311,16 @@ class Session:
 
               
 class Modality:
-    """An object storing the BIDS modality (or in BIDS parlance, "data type")
-    -level (contents of anat/, func/, etc.) information for a subject.
+    """An object storing one modality's twig information.
 
-    Rather than more directories, this object contains "twigs" which bundle
-    files that share prefixes.
+    The primary data structure is twig_list, a list of twigs.
+
+    Nomenclature note: A 'modality is a 'data type' in BIDS parlance,
+    such as 'anat', 'func', etc.).
+
+    Rather than more directories, this object contains "twigs" which
+    bundle files that share prefixes.
+
     """
 
     def __init__(self, dirname):
@@ -343,8 +358,14 @@ class Modality:
 
 
 class Twig:
-    """A collection of closely related data files which share the same
-    prefix.
+    """An object storing one twig's leaf_list (data file, or data+JSON
+    pair sharing the same prefix) information.
+
+    The primary data structure is arch_info, a dict of Archivotron's
+    analytic representation of the leaf basename.
+
+    Nomenclature note: a 'leaf' is a collection of closely related data
+    files which share the same prefix.
 
     """
 
@@ -369,6 +390,7 @@ class Twig:
         self.prefix    = prefix
         self.ext_list  = ext_list
 
+        # Q: rename 'arch_info' to 'dict_arch' or 'dict_leaf'?
         self.arch_info = BIDS_GENERATOR.into_attributes(
             self.dirname + '/' + self.prefix
         )
