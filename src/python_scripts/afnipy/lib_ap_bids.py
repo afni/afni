@@ -21,11 +21,13 @@
 # (conceptual) data hierarchy:
 # 
 # collection
-# |----subject (subj: sub-001, sub-002, ...)
-#      |----ses (ses: ses-01, ses-02, ...; also sometimes just 'ses')
-#           |----modality (AKA modality; datype: anat, func, ...)
-#                |----twig (datafiles with the same prefix)
-#                     |----leaf (individual files)
+# |----subj (subject: sub-001, sub-002, ...)
+#      |----ses (session: ses-01, ses-02, ...; also sometimes just 'ses')
+#           |----modality (AKA 'data type': anat, func, ...)
+#                |----twig (data file prefixes: sub-102_ses-01_run-01_T1w, ...)
+#                     |----ext_list (list of file extensions for twig)
+#                          ... and leaf list (full path of each twig file)
+#                     |----arch_dict (dict of component pieces of twig)
 #
 # Here, these are represented as nested dictionaries, with each set of
 # keys being the items of the next level down, until one gets to
@@ -51,11 +53,14 @@ BIDS_GENERATOR = bids.generate_bids()
 
 INDENT_STR = ' '*4
 
+# [Q] do we want to keep the leading '.' in the ext list?  typically,
+# people don't refer to the dot as part of the ext.  We'd have to
+# adjust how they were used/counted below, but it might make sense.
 POSSIBLE_EXTENSIONS = (
     '.nii.gz',
     '.nii',
     '.json',
-    '.HEAD',
+    '.HEAD',            # Q: don't need to include BRIK and BRIK.gz?
 )
 
 LIB_AP_BIDS_VERBOSITY = 0
@@ -107,8 +112,10 @@ def make_tail_from_dirname(dirname):
     Parameters
     ----------
     dirname : str
-              relative or abs path
+              relative or abs path to a *directory*, specifically
 
+    Return
+    ------
     tail    : str
               tail of abs path (i.e., last item in path)
 
@@ -126,6 +133,36 @@ def make_tail_from_dirname(dirname):
         print(
             "+* WARN: cannot find tail from dir: {}\n"
             "   abspath = {}".format(dirname, apath)
+        )
+        return ''
+    return tail
+
+def make_tail_from_filename(fname):
+    '''
+    Parameters
+    ----------
+    fname : str
+              relative or abs path to a *file*, specifically
+
+    Return
+    ------
+    tail    : str
+              tail of abs path (i.e., last item in path)
+
+    '''
+    if not os.path.isfile(fname) :
+        # TODO: make this a UserWarning?
+        print("+* WARN: {} is not a valid filename".format(fname))
+        return ''
+
+    apath = os.path.abspath(fname)
+    tail  = apath.split('/')[-1]
+
+    if not len(tail):
+        # TODO: make this a UserWarning?
+        print(
+            "+* WARN: cannot find tail from file: {}\n"
+            "   abspath = {}".format(fname, apath)
         )
         return ''
     return tail
@@ -192,9 +229,7 @@ class Collection:
     def __str__(self) -> str:
         """Return a (multiline) string of the data collection contents,
         hierarchically indenting by each level (kinda like tree).
-
         """
-
         lines = []
         for subj in self.subj_list :
             subj_obj   = self.subj_dict[subj]
@@ -270,6 +305,9 @@ class Subject:
         return len(self.ses_dict)
 
     def __str__(self) -> str:
+        """Return a (multiline) string of the subject collection contents,
+        hierarchically indenting by each level (kinda like tree).
+        """
         lines = []
         for ses in self.ses_list :
             ses_obj   = self.ses_dict[ses]
@@ -348,6 +386,9 @@ class Session:
         return len(self.modality_dict)
 
     def __str__(self) -> str:
+        """Return a (multiline) string of the session collection contents,
+        hierarchically indenting by each level (kinda like tree).
+        """
         lines = []
         for modality in self.modality_list :
             modality_obj = self.modality_dict[modality]
@@ -359,14 +400,14 @@ class Session:
 class Modality:
     """An object storing one modality's twig information.
 
-    The primary data structure in this object is twig_list, a list of
+    The primary data structure in this object is twig_dict, a dict of
     twigs.
 
     Nomenclature note: A 'modality is a 'data type' in BIDS parlance,
     such as 'anat', 'func', etc.).
 
-    Rather than more directories, this object contains "twigs" which
-    bundle files that share prefixes.
+    Rather than more directories, this object contains a dict of
+    "twigs", which bundle files that share prefixes.
 
     """
 
@@ -388,62 +429,92 @@ class Modality:
         self.verb     = verb
 
         self.abspath   = make_abspath_from_dirname(self.dirname)
-        self.twig_list = []
+        self.modality  = make_tail_from_dirname(self.dirname)
+        self.twig_dict = {}
 
+        # glob for all files in self.abspath
+        all_fname = [ x for x in glob.glob( self.abspath + '/*' ) \
+                      if os.path.isfile(x) ]
+
+        # create name_ext dict
         name_ext = {}
-        for f in glob.glob(self.dirname + '/*'):
-            for x in POSSIBLE_EXTENSIONS:
-                if f.endswith(x):
-                    f = f.rstrip(x)
-                    if f in name_ext.keys():
-                        name_ext[f].append(x)
+        for fname in all_fname:
+            for ext in POSSIBLE_EXTENSIONS:
+                if fname.endswith(ext):
+                    tail = make_tail_from_filename(fname)
+                    # make key value juuust from tail (dooon't use rstrip())
+                    pref = tail[:-len(ext)]
+                    if pref in name_ext.keys():
+                        name_ext[pref].append(ext)
                     else:
-                        name_ext[f] = [x]
+                        name_ext[pref] = [ext]
 
-        self.twig_list = [
-            Twig(self.dirname, k, name_ext[k], verb=self.verb)  \
-            for k in name_ext.keys()
-        ]
+        if len(name_ext) :
+            # dictionary of twigs
+            self.twig_dict = {
+                k: Twig(self.dirname, k, name_ext[k], verb=self.verb)   \
+                for k in name_ext.keys() # these keys have no path piece
+            }
+        else:
+            print("+* WARNING: found no twigs (files with possible ext)")
 
-        if len(self.twig_list) == 0 :
-            print("+* WARNING: found no twig items")
 
-    @property
-    def subject(self) -> str:
-        return self.twig_list[0].subject
-
-    @property
-    def session(self) -> str:
-        return self.twig_list[0].session
+#    @property
+#    def subject(self) -> str:
+#        return self.twig_list[0].subject
+#
+#    @property
+#    def session(self) -> str:
+#        return self.twig_list[0].session
 
     @property
     def get_modality(self) -> str:
-        return self.twig_list[0].modality
+        """Return modality name (in a safe way!)."""
+        return self.modality
 
     @property
     def n_twig(self) -> int:
         """Return number of twigs."""
-        return len(self.twig_list)
+        return len(self.twig_dict)
+
+    @property
+    def twig_list(self) -> list:
+        """Return (lexicographically sorted) list of twigs."""
+        lll = list(self.twig_dict.keys())
+        lll.sort()
+        return lll
 
     def __str__(self) -> str:
-        return ', '.join([str(t) for t in self.twig_list])
+        """Return a (multiline) string of the modality collection contents,
+        hierarchically indenting by each level (kinda like tree).
+        """
+        lines = []
+        for twig in self.twig_list :
+            twig_obj = self.twig_dict[twig]
+            lines.append(twig_obj.get_twig)
+            lines.append(indent_str_by_line(str(twig_obj)))
+        return '\n'.join(lines)
 
 
 class Twig:
-    """An object storing one twig's leaf_list (data file, or data+JSON
-    pair sharing the same prefix) information.
+    """An object storing one twig's ext_list, which in combination with
+    the twig name yields the leaf_list (all data files sharing the
+    same prefix), and arch_dict information.
 
-    The primary data structure in this object is arch_info, a dict of
+    The primary data structure in this object is arch_dict, a dict of
     Archivotron's analytic representation of the leaf basename.
 
-    Nomenclature note: a 'leaf' is a collection of closely related data
-    files which share the same prefix.
+    Nomenclature note: a 'twig' is the prefix shared by one or more
+    files of interest (like the "X" in "X.nii.gz and X.json").  A
+    'leaf' is a collection of closely related data files which share
+    the same prefix.  Knowing the twig and ext_list allows you to
+    reconstruct the leaf_list.
 
     """
 
     def __init__(self,
                  dirname    : str,
-                 prefix     : str,
+                 twig       : str,
                  ext_list   : list,
                  verb       : int = 0,
     ):
@@ -455,7 +526,7 @@ class Twig:
         dirname: str
             The directory (relative or absolute path) that acts as the 
             subject root.
-        prefix: str
+        twig: str
             The common prefix for all files in this twig.
         ext_list: list
             The available file extensions for this twig.
@@ -465,26 +536,30 @@ class Twig:
         """
 
         self.dirname   = dirname.rstrip('/')
-        self.prefix    = prefix
+        self.twig      = twig
         self.ext_list  = ext_list
         self.verb      = verb
 
-        self.arch_info = {}
+        self.arch_dict = {}
 
-        # Q: rename 'arch_info' to 'dict_arch' or 'dict_leaf'?
-        self.arch_info = BIDS_GENERATOR.into_attributes(
-            self.dirname + '/' + self.prefix
+        self.arch_dict = BIDS_GENERATOR.into_attributes(
+            self.dirname + '/' + self.twig
         )
 
-        if len(self.arch_info) == 0 :
-            print("+* WARNING: empty arch_info")
+        if len(self.arch_dict) == 0 :
+            print("+* WARNING: empty arch_dict")
 
+
+    @property
+    def get_twig(self) -> str:
+        """Return twig name (in a safe way!)."""
+        return self.twig
 
     @property
     def leaf_list(self) -> list:
         """Return list of leaves."""
         return [
-            self.dirname + '/' + self.prefix + ext for ext in self.ext_list
+            self.dirname + '/' + self.twig + ext for ext in self.ext_list
         ]
 
     @property
@@ -493,22 +568,25 @@ class Twig:
         return len(self.ext_list) # should be same len, and faster to get
 
     @property
-    def subject(self) -> str:
-        return self.arch_info['sub']
+    def subj(self) -> str:
+        return 'sub-' + self.arch_dict['sub']
 
     @property
-    def session(self) -> str:
-        if "ses" in self.arch_info.keys():
-            return self.arch_info['ses']
+    def ses(self) -> str:
+        if "ses" in self.arch_dict.keys():
+            return 'ses-' + self.arch_dict['ses']
         else:
             return "ses"
 
     @property
     def modality(self) -> str:
-        return self.arch_info['modality']
+        return self.arch_dict['modality']
 
     def __str__(self) -> str:
-        return self.arch_info['suffix']
+        """Return a (single line, comma-separated) string of the list of file
+        extensions for this twig.
+        """
+        return ', '.join(self.ext_list)
 
 
 # TODO: break this into its own script
