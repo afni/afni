@@ -140,14 +140,19 @@ class Collection:
 
     """
     def __init__(self, dirname: str, label: str = '', verb: int = 0):
-        """A collection of data which follows a well-defined rubric.
+        """A collection of group-level data that follows a well-defined
+        rubric, such as BIDS or BIDS-ish.
 
         Parameters
         ----------
         dirname: str
-            The directory that acts as the collection root.
+            The directory (relative or absolute path) that acts as the 
+            collection root.
         label: str, optional
             The label to give this dataset. Default ''.
+        verb: int, optional
+            Verbosity level for chatting while working (def = 0).
+
         """
 
         self.dirname = dirname.rstrip('/')    # entered path, no trailing '/'
@@ -156,15 +161,21 @@ class Collection:
 
         self.abspath         = make_abspath_from_dirname(self.dirname)
         self.collection_name = make_tail_from_dirname(self.dirname)
+        self.subj_dict = {}
 
         # glob for all sub-* directories in self.abspath
         all_dir = [ x for x in glob.glob( self.abspath + '/sub-*' ) \
                     if os.path.isdir(x) ]
 
-        # make dictionary of subject IDs
-        self.subj_dict = {
-            make_tail_from_dirname(s): Subject(s) for s in all_dir
-        }
+        if len(all_dir) :
+            # make dictionary of subject IDs
+            self.subj_dict = {
+                make_tail_from_dirname(s): \
+                Subject(s, verb=verb) for s in all_dir
+            }
+        else:
+            print("+* WARNING: found no subj")
+
 
     @property
     def subj_list(self) -> list:
@@ -174,7 +185,7 @@ class Collection:
         return lll
 
     @property
-    def nsubj(self) -> int:
+    def n_subj(self) -> int:
         """Return number of subjects."""
         return len(self.subj_dict)
 
@@ -206,13 +217,26 @@ class Subject:
 
     """
 
-    def __init__(self, dirname):
+    def __init__(self, dirname, verb: int = 0):
+        """A collection of subject data that follows a well-defined rubric,
+        such as BIDS or BIDS-ish.
+
+        Parameters
+        ----------
+        dirname: str
+            The directory (relative or absolute path) that acts as the 
+            subject root.
+        verb: int, optional
+            Verbosity level for chatting while working (def = 0).
+
+        """
 
         self.dirname  = dirname.rstrip('/')    # entered path, no trailing '/'
-        self.ses_dict = {}                     # dict of sessions
+        self.verb     = verb
 
         self.abspath  = make_abspath_from_dirname(self.dirname)
         self.subj     = make_tail_from_dirname(self.dirname)
+        self.ses_dict = {}                     # dict of sessions
 
         # glob for all ses-* directories in self.abspath
         all_dir = [ x for x in glob.glob( self.abspath + '/ses-*' ) \
@@ -224,7 +248,8 @@ class Subject:
             self.ses_dict = {"ses": Session(self.abspath)}
         else:
             self.ses_dict = {
-                make_tail_from_dirname(s): Session(s) for s in all_dir
+                make_tail_from_dirname(s): \
+                Session(s, verb=self.verb) for s in all_dir
             }
 
     @property
@@ -240,7 +265,7 @@ class Subject:
         return lll
 
     @property
-    def nses(self) -> int:
+    def n_ses(self) -> int:
         """Return number of sessions."""
         return len(self.ses_dict)
 
@@ -261,9 +286,22 @@ class Session:
 
     """
 
-    def __init__(self, dirname):
+    def __init__(self, dirname, verb: int = 0):
+        """A collection of session data that follows a well-defined rubric,
+        such as BIDS or BIDS-ish.
+
+        Parameters
+        ----------
+        dirname: str
+            The directory (relative or absolute path) that acts as the 
+            subject root.
+        verb: int, optional
+            Verbosity level for chatting while working (def = 0).
+
+        """
 
         self.dirname  = dirname.rstrip('/')       # directory, no trailing '/'
+        self.verb     = verb
 
         self.abspath  = make_abspath_from_dirname(self.dirname)
         tail_dirname  = make_tail_from_dirname(self.dirname)
@@ -274,10 +312,14 @@ class Session:
         all_dir = [ x for x in glob.glob( self.abspath + '/*' ) \
                      if os.path.isdir(x) ]
 
-        # dictionary of modalities
-        self.modality_dict = {
-            make_tail_from_dirname(m): Modality(m) for m in all_dir
-        }
+        if len(all_dir) :
+            # dictionary of modalities
+            self.modality_dict = {
+                make_tail_from_dirname(m): \
+                Modality(m, verb=self.verb) for m in all_dir
+            }
+        else:
+            print("+* WARNING: found no modalities")
 
 
     @property
@@ -298,11 +340,10 @@ class Session:
         """Return (lexicographically sorted) list of modalities."""
         lll = list(self.modality_dict.keys())
         lll.sort()
-
         return lll
 
     @property
-    def nmodality(self) -> int:
+    def n_modality(self) -> int:
         """Return number of modalities."""
         return len(self.modality_dict)
 
@@ -318,7 +359,8 @@ class Session:
 class Modality:
     """An object storing one modality's twig information.
 
-    The primary data structure is twig_list, a list of twigs.
+    The primary data structure in this object is twig_list, a list of
+    twigs.
 
     Nomenclature note: A 'modality is a 'data type' in BIDS parlance,
     such as 'anat', 'func', etc.).
@@ -328,10 +370,25 @@ class Modality:
 
     """
 
-    def __init__(self, dirname):
+    def __init__(self, dirname, verb: int = 0):
+        """A collection of modality data that follows a well-defined rubric,
+        such as BIDS or BIDS-ish.
+
+        Parameters
+        ----------
+        dirname: str
+            The directory (relative or absolute path) that acts as the 
+            subject root.
+        verb: int, optional
+            Verbosity level for chatting while working (def = 0).
+
+        """
 
         self.dirname  = dirname.rstrip('/')       # directory, no trailing '/'
-        self.abspath  = make_abspath_from_dirname(self.dirname)
+        self.verb     = verb
+
+        self.abspath   = make_abspath_from_dirname(self.dirname)
+        self.twig_list = []
 
         name_ext = {}
         for f in glob.glob(self.dirname + '/*'):
@@ -342,9 +399,14 @@ class Modality:
                         name_ext[f].append(x)
                     else:
                         name_ext[f] = [x]
+
         self.twig_list = [
-            Twig(self.dirname, k, name_ext[k]) for k in name_ext.keys()
+            Twig(self.dirname, k, name_ext[k], verb=self.verb)  \
+            for k in name_ext.keys()
         ]
+
+        if len(self.twig_list) == 0 :
+            print("+* WARNING: found no twig items")
 
     @property
     def subject(self) -> str:
@@ -359,7 +421,7 @@ class Modality:
         return self.twig_list[0].modality
 
     @property
-    def ntwig(self) -> int:
+    def n_twig(self) -> int:
         """Return number of twigs."""
         return len(self.twig_list)
 
@@ -371,8 +433,8 @@ class Twig:
     """An object storing one twig's leaf_list (data file, or data+JSON
     pair sharing the same prefix) information.
 
-    The primary data structure is arch_info, a dict of Archivotron's
-    analytic representation of the leaf basename.
+    The primary data structure in this object is arch_info, a dict of
+    Archivotron's analytic representation of the leaf basename.
 
     Nomenclature note: a 'leaf' is a collection of closely related data
     files which share the same prefix.
@@ -383,27 +445,40 @@ class Twig:
                  dirname    : str,
                  prefix     : str,
                  ext_list   : list,
+                 verb       : int = 0,
     ):
-        """Construct a Twig
+        """A collection of "twig" data that follows a well-defined rubric,
+        such as BIDS or BIDS-ish.
 
         Parameters
         ----------
         dirname: str
-            The relative path from the root of the collection to this twig's 
-            parent.
+            The directory (relative or absolute path) that acts as the 
+            subject root.
         prefix: str
             The common prefix for all files in this twig.
         ext_list: list
             The available file extensions for this twig.
+        verb: int, optional
+            Verbosity level for chatting while working (def = 0).
+
         """
+
         self.dirname   = dirname.rstrip('/')
         self.prefix    = prefix
         self.ext_list  = ext_list
+        self.verb      = verb
+
+        self.arch_info = {}
 
         # Q: rename 'arch_info' to 'dict_arch' or 'dict_leaf'?
         self.arch_info = BIDS_GENERATOR.into_attributes(
             self.dirname + '/' + self.prefix
         )
+
+        if len(self.arch_info) == 0 :
+            print("+* WARNING: empty arch_info")
+
 
     @property
     def leaf_list(self) -> list:
@@ -413,7 +488,7 @@ class Twig:
         ]
 
     @property
-    def nleaf(self) -> int:
+    def n_leaf(self) -> int:
         """Return number of leaves."""
         return len(self.ext_list) # should be same len, and faster to get
 
