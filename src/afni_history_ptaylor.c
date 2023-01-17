@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "More new options, in particular for ijkord (-> useful for 3dcalc expr).",
+   "Also clean up other features/help. Add -npad_safety_on, too.\n"
+},
+
 { 11, Jan , 2023 , PT , "@chauffeur_afni" , MICRO , TYPE_ENHANCE,
    "Extra check of a couple of options, that only correct key words are used.",
    "Done for the '-left_is_* ..' opts.\n"
