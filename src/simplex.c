@@ -845,7 +845,9 @@ void newuoa_optimization
      NEWUOA will operate on these, since it is scale-free */
 
   for( ii=0 ; ii < r+p ; ii++ ){
-    dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]);
+    if(N_psiz[ii] == 0.0) dv[ii] = 0.0;
+    else
+       dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]);
     if( dv[ii] < 0.0 || dv[ii] > 0.0 ) dv[ii] = DRED01(dv[ii]); /* 03 Nov 2006 */
   }
 
