@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.0,  Oct 1, 2022
+Version 4.1.1,  Jan 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1021,7 +1021,8 @@ process.MVM.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
