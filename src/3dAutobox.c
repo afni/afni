@@ -181,7 +181,7 @@ void help_autobox()
      "in a script.  If you knew that you wanted the z-slice range to use\n"
      "in a 3dcalc 'within()' expression, then you could extract the 3rd row\n"
      "to get the correct index and slice ranges, e.g., in tcsh:\n"
-     "    set vvv = `sed -n 1p FILE_ijkord.txt`\n"
+     "    set vvv = `sed -n 3p FILE_ijkord.txt`\n"
      "\n"
      "... where now ${vvv} will have 3 values, the first of which is the\n"
      "relevant index letter, then the min and max slice range values.\n"
