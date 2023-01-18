@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.10, Dec 19, 2021
+Version 0.1.11, Jan 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -539,7 +539,8 @@ process.ICC.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
