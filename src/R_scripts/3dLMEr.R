@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.9, Oct 1, 2022
+Version 0.1.10, Jan 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -740,7 +740,8 @@ process.LME.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
@@ -1018,13 +1019,13 @@ cat('is likely inappropriate.\n\n')
 
 # pick up a test voxel
 if(!is.na(lop$maskFN)) {
-  idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- which(lop$maskData == 1, arr.ind = T)
 
   # make sure there was something in the mask
-  if(length(idx)==0L) errex.AFNI(
-   c("Input mask has no voxels == 1!\n",
-     "If your mask has many non-zero values (e.g an atlas),\n",
-     "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
+  #if(length(idx)==0L) errex.AFNI(
+  # c("Input mask has no voxels == 1!\n",
+  #   "If your mask has many non-zero values (e.g an atlas),\n",
+  #   "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
 
   idx <- idx[floor(dim(idx)[1]/2),1:3]
   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
