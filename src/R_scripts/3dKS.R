@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dKS.R ==================          ")
 print("AFNI Kolmogorov-Smirnov testing program!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.2,  March. 1, 2012")
+print("Version 0.0.3,  Jan 17, 2023")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - https://afni.nimh.nih.gov/sscc/gangc/")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -299,7 +299,11 @@ for(ii in 1:nGrp) {
    print("Masking is optional.")
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
+   if(masked) {
+      maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): ")
+      maskData <- read.AFNI(maskFN)$ttt
+      maskData <- ifelse(abs(maskData) > 1e-16, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+   }
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
       
    nBrick <- 2   # no. sub-bricks in the main output
