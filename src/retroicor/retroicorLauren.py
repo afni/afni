@@ -21,6 +21,8 @@ __author__ = "Peter Lauren"
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
+        - Test start time via TR shift
+        - Get rid of dashes in dictionaries
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
