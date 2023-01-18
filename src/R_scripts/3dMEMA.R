@@ -213,6 +213,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
          lop$maskData <- read.AFNI(lop$maskFN, 
                                    verb=lop$verb, meth=lop$iometh)$brk
+	 lop$maskData <- ifelse(abs(lop$maskData) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
    }else {
       lop$maskFN <- NULL;
    }
@@ -511,7 +512,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.1, June 11, 2021
+Version 1.1.2, Jan 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1340,7 +1341,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE);
          return(NULL);
       }
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
       if (verb) cat ("Done read ", lop$maskFN,'\n');
    }
    if(!is.null(lop$maskFN)) 
