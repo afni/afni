@@ -257,7 +257,7 @@ def getSliceOffsets(offsetDict):
     
 
 def retro_ts(
-    respiration_file=None,
+    resp_file=None,
     cardiac_file=None,
     phys_fs=None,
     number_of_slices=None,
@@ -275,7 +275,7 @@ def retro_ts(
     save_graphs=1,
     rvt_out=0,
     cardiac_out=1,
-    respiration_out=1,
+    resp_out=1,
     slice_order="alt+z",
     zero_phase_offset=0,
     phys_file=None,
@@ -295,7 +295,7 @@ def retro_ts(
         
     SYNOPSIS
         retro_ts(
-            respiration_file=None,
+            resp_file=None,
             cardiac_file=None,
             phys_fs=None,
             number_of_slices=None,
@@ -311,7 +311,7 @@ def retro_ts(
             verbose=False,
             rvt_out=0,
             cardiac_out=1,
-            respiration_out=1,
+            resp_out=1,
             slice_order="alt+z",
             show_graphs=0,
             save_graphs=1,
@@ -321,7 +321,7 @@ def retro_ts(
             args=None)
         
     ARGUMENTS
-        respiration_file: (dType = str) String giving name of ASCII file with respiratory time series
+        resp_file: (dType = str) String giving name of ASCII file with respiratory time series
         
         cardiac_file: (dType = str) String giving name of ASCII file with cardiac time series
         
@@ -355,7 +355,7 @@ def retro_ts(
         
         cardiac_out: (dType = int) Flag for writing Cardiac regressors (default is 1)
         
-        respiration_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
+        resp_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
         
         slice_order: (dType = str) Slice timing information in seconds. The default is
         alt+z. See 3dTshift help for more info.
@@ -424,9 +424,9 @@ def retro_ts(
     # Create information dictionary for each type of signal
     # Note that this is done by reading the relevant input parameters
     print('Create information dictionary for each type of signal')
-    respiration_info = dict()
-    respiration_info["respiration_file"] = respiration_file
-    respiration_info["phys_fs"] = phys_fs
+    resp_info = dict()
+    resp_info["resp_file"] = resp_file
+    resp_info["phys_fs"] = phys_fs
     cardiac_info = dict()
     cardiac_info["phys_fs"] = phys_fs
     cardiac_info["cardiac_file"] = cardiac_file
@@ -434,14 +434,14 @@ def retro_ts(
     # Get input file parameters
     print('Get input file parameters')
 
-    respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
-        getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                            phys_json, respiration_out, cardiac_out, rvt_out) 
+    resp_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
+        getInputFileParameters(resp_info, cardiac_info, phys_file,\
+                            phys_json, resp_out, cardiac_out, rvt_out) 
         
     # Set paremeters
     parameters = dict()
     parameters['cardFile'] = cardiac_file
-    parameters['respFile'] = respiration_file
+    parameters['respFile'] = resp_file
     parameters['s'] = number_of_slices
     parameters['TR'] = volume_tr
     parameters['num_time_pts'] = int(num_time_pts)
@@ -463,7 +463,7 @@ def retro_ts(
         print('Error: Could not determine output file prefix')
         return 1
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
-    else: parameters['phys_fs'] = respiration_info['phys_fs']    
+    else: parameters['phys_fs'] = resp_info['phys_fs']    
     if not parameters['phys_fs']:
         print('Error: Sampling frequency in Hz (phys_fs) required')
         return 1
@@ -481,7 +481,7 @@ def retro_ts(
     
     if len(physiologicalNoiseComponents['respiratory_phases']) > 0 and\
         (parameters['save_graphs'] or parameters['show_graphs']):
-        status = show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, 1)
+        status = show_rvt_peak(resp_info, physiologicalNoiseComponents, parameters, 1)
         if status == 1:
             print('*** Error in retro_ts')
             print('Failure to show RVT peak')
@@ -515,7 +515,7 @@ if __name__ == "__main__":
     opt_dict = {
         "-help": """
 This function creates slice-based regressors for regressing out components of
-    heart rate, respiration and respiration volume per time.
+    heart rate, resp and respiration volume per time.
 
 Windows Example:
 C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
@@ -560,7 +560,7 @@ Input
     ============================================================================
     cardiac_out: Flag for writing Cardiac regressors
             (default is 1)
-    respiration_out: Flag for writing Respiratory regressors
+    resp_out: Flag for writing Respiratory regressors
             (default is 1)
     rvt_out: Flag for writing RVT regressors
             (default is 0)
@@ -640,7 +640,7 @@ Output:
 
     Example:
     C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat -card_file card_file.dat -freq 50 -num_slices 20
-        -volume_tr 2 -prefix subject12_regressors -respiration_out 1 -cardiac_out 1 -Nt 220
+        -volume_tr 2 -prefix subject12_regressors -resp_out 1 -cardiac_out 1 -Nt 220
 
         Output:
         The file "subject12_regressors.slibase.1D" will be saved to current
@@ -664,7 +664,7 @@ Output:
         "-debug": False,
         "-rvt_out": 0,
         "-cardiac_out": 1,
-        "-respiration_out": 1,
+        "-resp_out": 1,
         "-slice_order": "alt+z",
         "-show_graphs": 0,
         "-save_graphs": 1,
@@ -714,7 +714,7 @@ Output:
         
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     return_status = retro_ts(
-        respiration_file=opt_dict["-resp_file"],
+        resp_file=opt_dict["-resp_file"],
         cardiac_file=opt_dict["-card_file"],
         phys_fs=opt_dict["-freq"],
         number_of_slices=int(opt_dict["-num_slices"]),
@@ -730,7 +730,7 @@ Output:
         verbose=opt_dict["-verbose"],
         rvt_out= (int(opt_dict["-rvt_out"]) ),
         cardiac_out= (int(opt_dict["-cardiac_out"])),
-        respiration_out= (int(opt_dict["-respiration_out"])),
+        resp_out= (int(opt_dict["-resp_out"])),
         slice_order=opt_dict["-slice_order"],
         show_graphs=int(opt_dict["-show_graphs"]),
         save_graphs=int(opt_dict["-save_graphs"]),

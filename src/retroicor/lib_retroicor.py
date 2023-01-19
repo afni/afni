@@ -1123,8 +1123,8 @@ def runAnalysis(parameters):
     if (parameters['abt']): print(repr(physiologicalNoiseComponents))
     
 
-def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
-                        phys_json_arg, respiration_out, cardiac_out, rvt_out):
+def getInputFileParameters(resp_info, cardiac_info, phys_file,\
+                        phys_json_arg, resp_out, cardiac_out, rvt_out):
     """
     NAME
         getInputFileParameters 
@@ -1135,12 +1135,12 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     TYPE
         <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
     SYNOPSIS
-       getInputFileParameters(respiration_info, cardiac_info, phys_file,
-       phys_json_arg, respiration_out, cardiac_out, rvt_out)
+       getInputFileParameters(resp_info, cardiac_info, phys_file,
+       phys_json_arg, resp_out, cardiac_out, rvt_out)
     ARGUMENTS
-        respiration_info:   Dictionary with the following fields.
+        resp_info:   Dictionary with the following fields.
         
-            respiration_file:  (dType = str) Name of ASCII file with respiratory time series
+            resp_file:  (dType = str) Name of ASCII file with respiratory time series
             
             phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
             
@@ -1155,7 +1155,7 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                 
         phys_json_arg: (dType = NoneType) File metadata in JSON format
         
-        respiration_out: (dType = int) Whether to have respiratory output
+        resp_out: (dType = int) Whether to have respiratory output
         
         cardiac_out:  (dType = int) Whether to have cardiac output
         
@@ -1166,19 +1166,19 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
     """
     
     # Initialize outputs
-    respiration_file = None
+    resp_file = None
     phys_resp_dat = []
     cardiac_file = None
     phys_cardiac_dat = []
             
     # Ensure there are no conflicting input file types
     # BIDS = Brain Imaging Data Structure
-    if (((phys_file is not None) and (respiration_info["respiration_file"] is not None))
+    if (((phys_file is not None) and (resp_info["resp_file"] is not None))
         or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
         
-    # Get the peaks for respiration_info and cardiac_info
+    # Get the peaks for resp_info and cardiac_info
     # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
     if phys_file:
         # Use json reader to read file data into phys_meta
@@ -1205,13 +1205,13 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                     phys_dat[k].append(float(v))
                     
         # Process StartTime is in JSON file
-        if ('StartTime' in phys_meta and "StartTime" not in respiration_info):
+        if ('StartTime' in phys_meta and "StartTime" not in resp_info):
             startTime = float(phys_meta["StartTime"])
             if (startTime > 0):
                 print('***** WARNING: JSON file gives positive start time which is not currently handled')
                 print('    Start time must be <= 0')
             else:
-                respiration_info["StartTime"] = startTime            
+                resp_info["StartTime"] = startTime            
                 cardiac_info["StartTime"] = startTime            
                     
         print('phys_meta = ', phys_meta)
@@ -1223,10 +1223,10 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
             # Read respiratory component
             if k.lower() == 'respiratory' or k.lower() == 'respiration':
                 # create peaks only if asked for    25 May 2021 [rickr]
-                if respiration_out or rvt_out:
-                   if not respiration_info["phys_fs"]:
-                       respiration_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   respiration_file = None
+                if resp_out or rvt_out:
+                   if not resp_info["phys_fs"]:
+                       resp_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   resp_file = None
                    phys_resp_dat = phys_dat[k]
             
             # Read cardiac component
@@ -1241,14 +1241,14 @@ def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
                 print("** warning phys data contains column '%s', but\n" \
                       "   RetroTS only handles cardiac or respiratory data" % k)
     else:   # Not a JSON file
-        if respiration_info["respiration_file"]:
-            respiration_file = respiration_info["respiration_file"]
+        if resp_info["resp_file"]:
+            resp_file = resp_info["resp_file"]
             phys_resp_dat = []
         if cardiac_info["cardiac_file"]:
             cardiac_file = cardiac_info["cardiac_file"]
             phys_cardiac_dat = []
             
-    return respiration_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
+    return resp_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
 
 from numpy import zeros, size
 
@@ -1292,15 +1292,15 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info["rvt_out"] = parameters["rvt_out"]
     main_info["number_of_slices"] = parameters['s']
     main_info["prefix"] = parameters["prefix"]
-    main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
+    main_info["resp_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
     main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
     
     if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
-        respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
+        resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
                         parameters)
-        respiration_info["rvt_shifts"] = list(range(0, 21, 5))
-        respiration_info["rvtrs_slc"] = np.zeros((len(respiration_info["rvt_shifts"]), 
-                        len(respiration_info["time_series_time"])))
+        resp_info["rvt_shifts"] = list(range(0, 21, 5))
+        resp_info["rvtrs_slc"] = np.zeros((len(resp_info["rvt_shifts"]), 
+                        len(resp_info["time_series_time"])))
     if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
         cardiac_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'c', 
                         parameters)
@@ -1314,10 +1314,10 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     n_e = 0
 
     if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
-        if "time_series_time" in respiration_info:
-            n_n = len(respiration_info["time_series_time"])
-            n_r_p = size(respiration_info["phase_slice_reg"], 1)
-            n_r_v = size(respiration_info["rvtrs_slc"], 0)
+        if "time_series_time" in resp_info:
+            n_n = len(resp_info["time_series_time"])
+            n_r_p = size(resp_info["phase_slice_reg"], 1)
+            n_r_v = size(resp_info["rvtrs_slc"], 0)
     if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
         if "time_series_time" in cardiac_info:
             n_n = len(cardiac_info["time_series_time"])
@@ -1327,18 +1327,18 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     if 'cardiac_info' in locals() and "time_series_time" in cardiac_info:  # must have cardiac_info
         n_n = len(
             cardiac_info["time_series_time"]
-        )  # ok to overwrite len(respiration_info.tst), should be same.
+        )  # ok to overwrite len(resp_info.tst), should be same.
         n_e = size(cardiac_info["phase_slice_reg"], 1)
-    elif 'respiration_info' in locals() and "time_series_time" in respiration_info:  # must have cardiac_info
+    elif 'resp_info' in locals() and "time_series_time" in resp_info:  # must have cardiac_info
         n_n = len(
-            respiration_info["time_series_time"]
-        )  # ok to overwrite len(respiration_info.tst), should be same.
-        n_e = size(respiration_info["phase_slice_reg"], 1)
+            resp_info["time_series_time"]
+        )  # ok to overwrite len(resp_info.tst), should be same.
+        n_e = size(resp_info["phase_slice_reg"], 1)
     
     cnt = 0
     temp_y_axis = main_info["number_of_slices"] * (
         (main_info["rvt_out"]) * int(n_r_v)
-        + (main_info["respiration_out"]) * int(n_r_p)
+        + (main_info["resp_out"]) * int(n_r_p)
         + (main_info["cardiac_out"]) * int(n_e)
     )
     main_info["reml_out"] = zeros((n_n, temp_y_axis))
@@ -1360,19 +1360,19 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
         # RVT
         if main_info["rvt_out"] != 0:
-            for j in range(0, size(respiration_info["rvtrs_slc"], 2)):
+            for j in range(0, size(resp_info["rvtrs_slc"], 2)):
                 for i in range(0, main_info["number_of_slices"]):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = respiration_info["rvtrs_slc"][
+                    main_info["reml_out"][:, cnt] = resp_info["rvtrs_slc"][
                         :, j
                     ]  # same for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
         # Resp
-        if main_info["respiration_out"] != 0:
-            for j in range(0, size(respiration_info["phase_slice_reg"], 2)):
+        if main_info["resp_out"] != 0:
+            for j in range(0, size(resp_info["phase_slice_reg"], 2)):
                 for i in range(0, main_info["number_of_slices"]):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = respiration_info["phase_slice_reg"][
+                    main_info["reml_out"][:, cnt] = resp_info["phase_slice_reg"][
                         :, j, i
                     ]
                     label = "%s s%d.Resp%d ;" % (label, i, j)
@@ -1387,23 +1387,23 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                     label = "%s s%d.Card%d ;" % (label, i, j)
     else:
         # main_info["rvt_out"] = 0
-        if main_info['rvt_out']: respiration_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
-        # if main_info['rvt_out']: respiration_info["rvtrs_slc"] = np.matrix.transpose(physiologicalNoiseComponents['rvt_coeffs'])
+        if main_info['rvt_out']: resp_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
+        # if main_info['rvt_out']: resp_info["rvtrs_slc"] = np.matrix.transpose(physiologicalNoiseComponents['rvt_coeffs'])
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
-                for j in range(0, np.shape(respiration_info["rvtrs_slc"])[0]):
+                for j in range(0, np.shape(resp_info["rvtrs_slc"])[0]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        respiration_info["rvtrs_slc"][j]
+                        resp_info["rvtrs_slc"][j]
                     )  # same regressor for each slice
                     label = "%s s%d.RVT%d ;" % (label, i, j)
-            if main_info["respiration_out"] != 0:
+            if main_info["resp_out"] != 0:
                 # Resp
-                for j in range(0, np.shape(respiration_info["phase_slice_reg"])[1]):
+                for j in range(0, np.shape(resp_info["phase_slice_reg"])[1]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        respiration_info["phase_slice_reg"][:, j, i]
+                        resp_info["phase_slice_reg"][:, j, i]
                     )
                     label = "%s s%d.Resp%d ;" % (label, i, j)
             if main_info["cardiac_out"] != 0:
@@ -1990,16 +1990,16 @@ def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
         
     return troughRVTs
 
-def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg):
+def show_rvt_peak(resp_info, physiologicalNoiseComponents, parameters, fg):
     
-    respiration_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
+    resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
                         parameters)
-    if not respiration_info:
+    if not resp_info:
         print('*** Error in show_rvt_peak')
         print('Failed to make regressors for each slice')
         return 1
 
-    numTimeSteps = len(respiration_info["phase_slice"])
+    numTimeSteps = len(resp_info["phase_slice"])
     timeStepIncrement = parameters['TR']
     time1 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time1[i] = timeStepIncrement * i
@@ -2010,10 +2010,10 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
        
     plot(time2, physiologicalNoiseComponents["respiratory_phases"], "y")
     plot(
-        time1, respiration_info["phase_slice"][:, 0], "ro"
+        time1, resp_info["phase_slice"][:, 0], "ro"
     )  
-    plot(time1, respiration_info["phase_slice"][:, 1], "bo")
-    plot(time1, respiration_info["phase_slice"][:, 1], "b-")
+    plot(time1, resp_info["phase_slice"][:, 1], "bo")
+    plot(time1, resp_info["phase_slice"][:, 1], "b-")
     grid("on")
     xlabel("time (sec)")
     
