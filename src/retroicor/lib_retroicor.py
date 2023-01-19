@@ -208,7 +208,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
-   # searchLength = round(parameters["-phys_fs"]/16)
+   # searchLength = round(parameters["phys_fs"]/16)
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
@@ -236,7 +236,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    
    # Remove "peaks" that are less than the raw input a quarter of a period on right side
    # This is tomove false peaks on the upstroke
-   # searchLength = round(parameters["-phys_fs"]/16)
+   # searchLength = round(parameters["phys_fs"]/16)
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
@@ -848,9 +848,9 @@ def getPhysiologicalNoiseComponents(parameters):
     rawDataParams["phys_fs"] = parameters["phys_fs"]
     
     # Process cardiac data if any
-    if parameters["-cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
+    if parameters["cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
         # rawData = readArray(parameters, '-cardFile')
-        rawData = readRawInputData(rawDataParams, parameters["-cardFile"], parameters["phys_cardiac_dat"])
+        rawData = readRawInputData(rawDataParams, parameters["cardFile"], parameters["phys_cardiac_dat"])
         if len(rawData) == 0:
             print('Error reading input cardiac data')
             return []
@@ -869,13 +869,13 @@ def getPhysiologicalNoiseComponents(parameters):
                     save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
-        parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
+        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
         
     # Process respiratory data if any
-    if parameters["-respFile"] or len(parameters["phys_resp_dat"]) > 0:
+    if parameters["respFile"] or len(parameters["phys_resp_dat"]) > 0:
 
         # rawData = readArray(parameters, '-respFile')
-        rawData = readRawInputData(rawDataParams, parameters["-respFile"], parameters["phys_resp_dat"])
+        rawData = readRawInputData(rawDataParams, parameters["respFile"], parameters["phys_resp_dat"])
         if len(rawData) == 0:
             print('Error reading input respiratory data')
             return []
@@ -893,11 +893,11 @@ def getPhysiologicalNoiseComponents(parameters):
                     save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
-        parameters['-num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
+        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
             
         if parameters['rvt_out']:
             rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
-                         parameters['-num_time_pts'], parameters['-TR'], 
+                         parameters['num_time_pts'], parameters['TR'], 
                          show_graph = parameters['show_graphs']>0, 
                          save_graph = parameters['save_graphs']>0, 
                          interpolationOrder = 'linear')
@@ -905,7 +905,7 @@ def getPhysiologicalNoiseComponents(parameters):
         if parameters['rvt_out']: print('WARNING: Cannot determine RVT.  No respiratory data')
         parameters['rvt_out'] = False
         
-    if (parameters['-aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
+    if (parameters['aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
                                 # Resonance in Medicine 44:162–167 (2000)
         # Get a coefficients
         cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
@@ -1002,29 +1002,29 @@ def limitNumOutputTimepoints(rawData, parameters):
     # Get maximum number of output time points
     # Num TR intervals covered by physio data (float)
     duration = len(rawData)/parameters['phys_fs']
-    max_numTime_float = duration/parameters['-TR'] 
+    max_numTime_float = duration/parameters['TR'] 
     eps_nt = 0.1    # Tolerance for rounding up number of TRs (fraction of TR)
     max_numTime_pts = int(max_numTime_float + eps_nt)
     
     print("++ duration of physio signal:", duration)
-    print("++ TR (MRI data)            :", parameters['-TR'])
+    print("++ TR (MRI data)            :", parameters['TR'])
     print("++ number of TRs from physio:", max_numTime_float)
     print("++ number of TRs (as int)   :", max_numTime_pts)
     # max_numTime_pts = len(np.arange(
-    #     0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['-TR']), parameters['-TR']
+    #     0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['TR']), parameters['TR']
     # ))
     
     # If the user has supplied the number of output times points, it must not 
     #   be greater than the determined maximum
-    if parameters['-num_time_pts']: 
-        if parameters['-num_time_pts'] > max_numTime_pts:
+    if parameters['num_time_pts']: 
+        if parameters['num_time_pts'] > max_numTime_pts:
             print('WARNING: -num_time_pts argument too large for input data')
             print('  Adjusted to maximum allowable value, ', max_numTime_pts)
-            parameters['-num_time_pts'] = max_numTime_pts
+            parameters['num_time_pts'] = max_numTime_pts
     else: 
-        parameters['-num_time_pts'] = max_numTime_pts
+        parameters['num_time_pts'] = max_numTime_pts
         
-    return parameters['-num_time_pts']
+    return parameters['num_time_pts']
 
 def readRawInputData(respcard_info, filename=None, phys_dat=None):
     """
@@ -1110,17 +1110,17 @@ def runAnalysis(parameters):
     if len(physiologicalNoiseComponents) == 0:
         print('Error in runAnalysis. Failure to get physionlogical noise components')
         return 1
-    if parameters['-niml']:
+    if parameters['niml']:
         return 0
     
-    physiologicalNoiseComponents.to_csv(parameters['-outputFileName'])
+    physiologicalNoiseComponents.to_csv(parameters['outputFileName'])
     
     # PLot first 200 rows of dataframe
     colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
     physiologicalNoiseComponents.head(200).plot(color=colors)
     
     # Send output to terminal
-    if (parameters['-abt']): print(repr(physiologicalNoiseComponents))
+    if (parameters['abt']): print(repr(physiologicalNoiseComponents))
     
 
 def getInputFileParameters(respiration_info, cardiac_info, phys_file,\
@@ -1290,7 +1290,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     
     main_info = dict()
     main_info["rvt_out"] = parameters["rvt_out"]
-    main_info["number_of_slices"] = parameters['-s']
+    main_info["number_of_slices"] = parameters['s']
     main_info["prefix"] = parameters["prefix"]
     main_info["respiration_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
     main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
@@ -1467,7 +1467,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     """
     
     phasee = dict()
-    phasee["number_of_slices"] = parameters['-s']
+    phasee["number_of_slices"] = parameters['s']
     phasee['slice_offset'] = parameters['slice_offset']
     timeStepIncrement = 1.0/parameters['phys_fs']
     
@@ -1489,14 +1489,14 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     phasee["t"] = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
 
-    phasee["volume_tr"] = parameters['-TR']
+    phasee["volume_tr"] = parameters['TR']
     phasee["time_series_time"] = np.arange(
         0, (max(phasee["t"]) - 0.5 * phasee["volume_tr"]), phasee["volume_tr"]
     )
     
     # Reduce number of output time points to user-specified value if required.
-    if parameters['-num_time_pts']:
-        phasee["time_series_time"] = phasee["time_series_time"][0:parameters['-num_time_pts']]  
+    if parameters['num_time_pts']:
+        phasee["time_series_time"] = phasee["time_series_time"][0:parameters['num_time_pts']]  
     
     if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
         phasee["time_series_time"] = np.append(
@@ -2000,7 +2000,7 @@ def show_rvt_peak(respiration_info, physiologicalNoiseComponents, parameters, fg
         return 1
 
     numTimeSteps = len(respiration_info["phase_slice"])
-    timeStepIncrement = parameters['-TR']
+    timeStepIncrement = parameters['TR']
     time1 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time1[i] = timeStepIncrement * i
     numTimeSteps = len(physiologicalNoiseComponents['respiratory_phases'])

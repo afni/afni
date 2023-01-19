@@ -23,6 +23,7 @@ __author__ = "Peter Lauren"
     TODO:
         - Test start time via TR shift
         - Get rid of dashes in dictionaries
+        - Get rid of camel casing in
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
@@ -440,15 +441,15 @@ def retro_ts(
         
     # Set paremeters
     parameters = dict()
-    parameters['-cardFile'] = cardiac_file
-    parameters['-respFile'] = respiration_file
-    parameters['-s'] = number_of_slices
-    parameters['-TR'] = volume_tr
-    parameters['-num_time_pts'] = int(num_time_pts)
-    parameters['-phys_fs'] = phys_fs
-    parameters['-abt'] = abt
-    parameters['-aby'] = aby
-    parameters['-niml'] = niml
+    parameters['cardFile'] = cardiac_file
+    parameters['respFile'] = respiration_file
+    parameters['s'] = number_of_slices
+    parameters['TR'] = volume_tr
+    parameters['num_time_pts'] = int(num_time_pts)
+    parameters['phys_fs'] = phys_fs
+    parameters['abt'] = abt
+    parameters['aby'] = aby
+    parameters['niml'] = niml
     parameters['phys_resp_dat'] = phys_resp_dat
     parameters['phys_cardiac_dat'] = phys_cardiac_dat
     parameters['dev'] = dev
@@ -457,8 +458,8 @@ def retro_ts(
     parameters['slice_offset'] = slice_offset
     if prefix: parameters['prefix'] = prefix
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
-    elif  parameters['-cardFile']: parameters['prefix'] = getPrefix(parameters['-cardFile'])
-    elif  parameters['-cardFile']: parameters['prefix'] = getPrefix(parameters['-respFile'])
+    elif  parameters['cardFile']: parameters['prefix'] = getPrefix(parameters['cardFile'])
+    elif  parameters['cardFile']: parameters['prefix'] = getPrefix(parameters['respFile'])
     else: 
         print('Error: Could not determine output file prefix')
         return 1
@@ -474,7 +475,7 @@ def retro_ts(
     if len(physiologicalNoiseComponents) == 0:
         print('*** Error in retro_ts.  Failure to get physiological noise components')
         return 1
-    if parameters['-niml']:
+    if parameters['niml']:
         return 0
     parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
@@ -495,7 +496,7 @@ def retro_ts(
     # physiologicalNoiseComponents.head(200).plot(color=colors)
     
     # Send output to terminal
-    if (parameters['-abt']): print(repr(physiologicalNoiseComponents))
+    if (parameters['abt']): print(repr(physiologicalNoiseComponents))
     
     return 0
 
