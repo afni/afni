@@ -213,7 +213,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
          lop$maskData <- read.AFNI(lop$maskFN, 
                                    verb=lop$verb, meth=lop$iometh)$brk
-	 lop$maskData <- ifelse(abs(lop$maskData) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+	 lop$maskData <- ifelse(abs(lop$maskData) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
    }else {
       lop$maskFN <- NULL;
    }
@@ -1342,7 +1342,7 @@ process.MEMA.opts <- function (lop, verb = 0) {
          return(NULL);
       }
       #lop$maskData <- mm$brk
-      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if (verb) cat ("Done read ", lop$maskFN,'\n');
    }
    if(!is.null(lop$maskFN)) 
