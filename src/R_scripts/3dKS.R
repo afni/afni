@@ -302,7 +302,7 @@ for(ii in 1:nGrp) {
    if(masked) {
       maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): ")
       maskData <- read.AFNI(maskFN)$ttt
-      maskData <- ifelse(abs(maskData) > 1e-16, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+      maskData <- ifelse(abs(maskData) > 1e-16, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
    }
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
       
