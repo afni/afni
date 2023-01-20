@@ -1,4 +1,4 @@
-#!/usr/bin/env AFNI_Batch_R
+1;95;0c!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -516,7 +516,7 @@ process.ICC.opts <- function (lop, verb = 0) {
       }
       #lop$maskData <- mm$brk[,,,1]
       #lop$maskData <- mm$brk
-      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
