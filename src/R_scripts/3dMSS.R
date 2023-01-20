@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.18, Jan 17, 2023
+Version 0.0.19, Jan 20, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -535,7 +535,7 @@ process.MSS.opts <- function (lop, verb = 0) {
       #} else lop$maskData <- mm[,,,1]
       #lop$maskData <- mm$brk
       #lop$maskData <- mm$brk
-      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeroes
+      lop$maskData <- ifelse(abs(mm) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }
