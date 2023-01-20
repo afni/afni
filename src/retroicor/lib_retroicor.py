@@ -82,7 +82,8 @@ def readArray(parameters, key):
     """
     NAME
         readArray
-            Read an array from an input file specified by the key in the parameters field
+            Read an array from an input file specified by the key in the 
+            parameters field
             
     TYPE
         <class 'list'>
@@ -120,7 +121,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    SYNOPSIS
        getCardiacPeaks(parameters, rawData, filterPercentile=70.0)
    ARGUMENTS
-       parameters:   dictionary of input parameters which includes the following fields.
+       parameters:   dictionary of input parameters which includes the following 
+                     fields.
        
            phys_fs: (dType = float) Sampling frequency in Hz
            
@@ -146,8 +148,10 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    global OutDir
    
    # Check for nan's
-   failureThreshold = parameters['phys_fs'] / 4 # Consecutive NaNs cannot cover more than about 0.25 s
-   rawData = lpf.checkForNans(rawData, "cardiac", failureThreshold = failureThreshold)
+   failureThreshold = parameters['phys_fs'] / 4 # Consecutive NaNs cannot cover 
+                                                # more than about 0.25 s
+   rawData = lpf.checkForNans(rawData, "cardiac", 
+                              failureThreshold = failureThreshold)
    if len(rawData) == 0:
        print('*** ERROR: Could not handle all of the NaN values')
    
@@ -163,20 +167,23 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    graphIndex = 0
     
    # Band pass filter raw data
-   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,\
-        parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
-        save_graph = parameters["save_graphs"]>1, OutDir=OutDir, graphIndex = graphIndex)
+   filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
+         minBeatsPerSecond,parameters["phys_fs"],\
+         show_graph = parameters['show_graphs']>1,\
+         save_graph = parameters["save_graphs"]>1, OutDir=OutDir,\
+         graphIndex = graphIndex)
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
    
-   # Get initial peaks using window that is an fortieth of a second  (HR <+ 680 BPM)
-   peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/40))
+   # Get initial peaks using window that is a fortieth of a second (HR <= 680 BPM)
+   peaks, _ = sps.find_peaks(np.array(filterData),\
+                             width=int(parameters["phys_fs"]/40))
    
    # Graph initial peaks and save graph to disk
    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
-        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Cardiac", 
-        OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"],  
+        "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
         caption = 'Cardiac peaks from band-pass filtered input.')
    
    # Adjust peaks from uniform spacing
@@ -185,9 +192,9 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
             show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
-   # Remove peaks that are less than the required percentile of the local input signal
-   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, numPeriods=3, 
-            show_graph = parameters['show_graphs']>1, 
+   # Remove peaks less than the required percentile of the local input signal
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, 
+            numPeriods=3, show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
             phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
@@ -206,11 +213,12 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
-   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # Remove "peaks" that are less than the raw input a quarter of a period on 
+   #    right side
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["phys_fs"]/16)
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-        show_graph = parameters['show_graphs']>1, 
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData,  
+        period=period, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
@@ -218,27 +226,31 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+        direction='left', period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
-   # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+   # Remove peaks that are less than a quarter as far from the local minimum to 
+   #  the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
 
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, show_graph = max(parameters['show_graphs']-1,0), 
+   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
+                show_graph = max(parameters['show_graphs']-1,0), 
                 save_graph = max(parameters["save_graphs"]-1,0), 
                 phys_fs = parameters["phys_fs"], OutDir = OutDir)   
    
-   # Remove "peaks" that are less than the raw input a quarter of a period on right side
+   # Remove "peaks" that are less than the raw input a quarter of a period on 
+   #  right side
    # This is tomove false peaks on the upstroke
    # searchLength = round(parameters["phys_fs"]/16)
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-        show_graph = parameters['show_graphs']>1, 
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+        period=period, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
    if len(peaks) == 0:
@@ -246,7 +258,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        return peaks, len(rawData)
     
    # Remove false peaks on the downstroke
-   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
+   peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+        direction='left', period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
@@ -269,8 +282,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
     
    # Graph cardiac peaks against respiratory time series
    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
-         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Cardiac",
-         OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
+         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], 
+         "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
          caption = 'Cardiac peaks after all filtering.')
     
    return peaks, len(rawData)
@@ -287,7 +300,8 @@ def getRespiratoryPeaks(parameters, rawData):
     SYNOPSIS
         respFile(parameters, rawData)
     ARGUMENTS
-        parameters:   dictionary of input parameters which includes the following fields.
+        parameters:   dictionary of input parameters which includes the 
+                      following fields.
     
         rawData: (dType = float, array) Raw cardiac data
     AUTHOR
@@ -309,20 +323,23 @@ def getRespiratoryPeaks(parameters, rawData):
     minBreathsPerSecond = 1.0/MAX_BREATHING_PERIOD_IN_SECONDS
    
     # Band pass filter raw data
-    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, minBreathsPerSecond,\
+    filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, 
+        minBreathsPerSecond,
         parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
-        save_graph = parameters["save_graphs"]>1, OutDir=OutDir, dataType = "Respiratory")
+        save_graph = parameters["save_graphs"]>1, OutDir=OutDir, 
+        dataType = "Respiratory")
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
    
-    # Get initial peaks using window that is an eighth of a second  (BR <+ 480 BPM)
-    # peaks, _ = sps.find_peaks(np.array(rawData), width=int(parameters["phys_fs"]/4))
-    peaks, _ = sps.find_peaks(np.array(filterData), width=int(parameters["phys_fs"]/4))
+    # Get initial peaks using window that is eighth of a second  (BR <+ 480 BPM)
+    peaks, _ = sps.find_peaks(np.array(filterData), 
+                              width=int(parameters["phys_fs"]/4))
    
     # Graph initial peaks and save graph to disk
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
-        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Respiratory", 
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], 
+        "Respiratory", 
          OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
          caption = 'Respiratory peaks from band-pass filtered input.')
    
@@ -335,84 +352,95 @@ def getRespiratoryPeaks(parameters, rawData):
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
     if period < 0:     
-        print('*** ERROR: Failure to get typical period using filtered respiratory time series')
+        print('*** ERROR: Failure to get typical period using filtered'+
+              ' respiratory time series')
         return [], [], 0
     
     # Remove peaks that are less than the 10th percentile of the input signal
     peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
              dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     if len(peaks) == 0:
         print('*** ERROR: Failure to percentile filter respiratory peaks')
         return [], [], 0
     
-    # Remove "peaks" that are less than the raw input a quarter of a period on right side
-    # This is tomove false peaks on the upstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-             dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+    # Remove "peaks" that are less than the raw input a quarter of a period on 
+    # right side.  This is tomove false peaks on the upstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+             period=period, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Remove false peaks on the downstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-             dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+             direction='left', period=period, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
-    # Remove peaks that are less than a quarter as far from the local minimum to the adjacent peaks
+    # Remove peaks that are less than a quarter as far from the local minimum to 
+    #  the adjacent peaks
     peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
              dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Merge peaks that are closer than one quarter of the overall typical period
     peaks = lpf.removeClosePeaks(peaks, period, rawData, 
              dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
 
     # Add missing peaks
     peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
              dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)   
     
-    # Remove "peaks" that are less than the raw input a quarter of a period on right side
-    # This is tomove false peaks on the upstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, period=period, 
-             dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+    # Remove "peaks" that are less than the raw input a quarter of a period on 
+    # right side.  This is tomove false peaks on the upstroke
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+             period=period, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
     # Remove false peaks on the downstroke
-    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='left', period=period, 
-             dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
+    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
+             direction='left', period=period, dataType = "Respiratory",  
+             phys_fs = parameters["phys_fs"], 
+             show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
     
-    # troughs, _ = sps.find_peaks(-np.array(rawData), width=int(parameters["phys_fs"]/8))
-    troughs, _ = sps.find_peaks(-np.array(filterData), width=int(parameters["phys_fs"]/8))
+    troughs, _ = sps.find_peaks(-np.array(filterData), 
+                                width=int(parameters["phys_fs"]/8))
    
     # Graph initial peaks and save graph to disk
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
-        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], "Respiratory", 
-            troughs = troughs, OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
-            caption = 'Respiratory troughs from band-pass filtered input.')
+        parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], 
+        "Respiratory", troughs = troughs, OutDir = OutDir, 
+         prefix = 'respiratoryPeaksFromBPFInput', 
+         caption = 'Respiratory troughs from band-pass filtered input.')
     
     # Remove troughs that are more than the 90th percentile of the input signal
-    troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, upperThreshold=True, 
-             show_graph = parameters['show_graphs']>1, 
+    troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, 
+             upperThreshold=True, show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], OutDir = OutDir)
     if len(troughs) == 0:
         print('*** ERROR: Failure to percentile filter respiratory troughs')
         return [], [], 0
     
-    # Remove "troughs" that are greater than the raw input a quarter of a period on right side
-    # This is to remove false troughs on the downstroke
-    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, period=period, 
-             show_graph = parameters['show_graphs']>1, 
+    # Remove "troughs" that are greater than the raw input a quarter of a period 
+    # on right side.  This is to remove false troughs on the downstroke
+    troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, 
+             period=period, show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
@@ -423,13 +451,14 @@ def getRespiratoryPeaks(parameters, rawData):
             save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
             phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
-    # Remove troughs that are less than a quarter as far from the local maximum to the adjacent troughs
-    troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-        show_graph = parameters['show_graphs']>1, 
+    # Remove troughs that are less than a quarter as far from the local maximum 
+    # to the adjacent troughs
+    troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, 
+        rawData, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
-    # Merge troughs that are closer than one quarter of the overall typical period
+    # Merge troughs that are closer than a quarter of the overall typical period
     troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
@@ -441,52 +470,39 @@ def getRespiratoryPeaks(parameters, rawData):
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
     
-    # Remove extra peaks bewteen troughs and troughs between peaks
-    # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
-    
     # Add missing peaks and troughs
-    peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
-        show_graph = parameters['show_graphs']>1, 
+    peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, 
+        rawData, period=None, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
    
     # Adjust troughs from uniform spacing
-    troughs = lpf.refinePeakLocations(troughs, rawData, show_graph = parameters['show_graphs']>1, 
+    troughs = lpf.refinePeakLocations(troughs, rawData, 
+            show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, 
              dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
              Troughs = True, OutDir = OutDir)
     
-    # Remove extra peaks bewteen troughs and troughs between peaks
-    # peaks, troughs = lpf.removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
-    
-    # Filter peaks and troughs.  Reject peak/trough pairs where
-    #    difference is less than one tenth of the total range
-    # nPeaks = len(peaks)
-    # nTroughs = len(troughs)
-    # minNum = min(nPeaks,nTroughs)
-    # ptPairs = [rawData[peaks[x]]-rawData[troughs[x]] for x in range(0,minNum)]
-    # threshold = (max(rawData)-min(rawData))/10
-    # indices2remove = list(filter(lambda x: ptPairs[x] <threshold, range(len(ptPairs))))
-    # peaks = np.delete(peaks,indices2remove)
-    # troughs = np.delete(troughs,indices2remove)
-    
     # Graph respiratory peaks and troughs against respiratory time series
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
-        parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], "Respiratory",\
-        troughs = troughs, caption = 'Respiratory peaks after all filtering.', OutDir = OutDir,
+        parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], 
+        "Respiratory", troughs = troughs, 
+        caption = 'Respiratory peaks after all filtering.', OutDir = OutDir,
         prefix = 'respiratoryPeaksAndTroughsFinal')
      
     return peaks, troughs, len(rawData)
 
-def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, show_graph = False, save_graph = True):
+def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, 
+                           show_graph = False, save_graph = True):
     """
     NAME
        determineCardiacPhases
-           Determine phases, in the cardiac cycle based on the Glover (2000) paper
+         Determine phases, in the cardiac cycle based on the Glover (2000) paper
     TYPE
         <class 'list'>
     SYNOPSIS
-       determineCardiacPhases(peaks, fullLength, phys_fs, rawData, show_graph = False, save_graph = True)
+       determineCardiacPhases(peaks, fullLength, phys_fs, rawData, 
+                              show_graph = False, save_graph = True)
     ARGUMENTS
         peaks:   (dType int64 array) Peaks in input cardiac time series.
         
@@ -564,7 +580,8 @@ def getACoeffs(parameters, key, phases):
     """
     NAME
        getACoeffs
-           Determine a coefficients from equation 4 of Glover (2000) paper (equation 4)
+           Determine a coefficients from equation 4 of Glover (2000) paper 
+           (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
@@ -574,7 +591,8 @@ def getACoeffs(parameters, key, phases):
         
         key       :   key to file of interest
         
-        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
+        phases    :   <class 'list'> containing phases determined as described 
+                      in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -599,7 +617,8 @@ def getBCoeffs(parameters, key, phases):
     """
     NAME
        getBCoeffs
-           Determine b coefficients from equation 4 of Glover (2000) paper (equation 4)
+           Determine b coefficients from equation 4 of Glover (2000) paper 
+           (equation 4)
     TYPE
         <class 'list'>
     SYNOPSIS
@@ -609,7 +628,8 @@ def getBCoeffs(parameters, key, phases):
         
         key       :   key to file of interest
         
-        phases    :   <class 'list'> containing phases determined as described in Glover (2000) paper
+        phases    :   <class 'list'> containing phases determined as described 
+                      in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -631,25 +651,29 @@ def getBCoeffs(parameters, key, phases):
     return b
             
 
-def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, 
-                               phys_fs, rawData, show_graph = False, save_graph = True):
+def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs, 
+                    phys_fs, rawData, show_graph = False, save_graph = True):
     """
     NAME
         determineRespiratoryPhases
-            Determine respiratory phases as descibed in Glover (2000) paper (equation 3)
+            Determine respiratory phases as descibed in Glover (2000) paper 
+            (equation 3)
     TYPE
         <class 'list'>
     SYNOPSIS
-       determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_troughs, 
-                                      phys_fs, rawData, show_graph = False, save_graph = True)
+       determineRespiratoryPhases(parameters, resp_peaks, resp_troughs, 
+                    phys_fs, rawData, show_graph = False, save_graph = True)
     ARGUMENTS
-        parameters:   dictionary of input parameters which includes the following fields.
-            -respFile;   Name of ASCII file with respiratory time series
-            phys_fs:     Physiological signal sampling frequency in Hz.
+        parameters:   dictionary of input parameters which includes the 
+          following fields.
+            respFile;   Name of ASCII file with respiratory time series
+             phys_fs:     Physiological signal sampling frequency in Hz.
         
-        respiratory_peaks      :   peaks in respiratory time series.  Type = <class 'numpy.ndarray'>
+        resp_peaks      :   peaks in respiratory time series.  
+                            Type = <class 'numpy.ndarray'>
         
-        respiratory_troughs    :   <class 'numpy.ndarray'> containing troughs in the respiratory time series
+        resp_troughs    :   <class 'numpy.ndarray'> containing troughs in the 
+                            respiratory time series
         
         phys_fs:     Physiological signal sampling frequency in Hz 
         
@@ -663,46 +687,40 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
        Peter Lauren
     """
     
-    # DEBUG
-    # rawData = rawData[3000:4000]
-    # respiratory_peaks = np.array([n for n in respiratory_peaks if n > 3000 and n<4000]) - 3000
-    # respiratory_troughs = np.array([n for n in respiratory_troughs if n > 3000 and n<4000]) - 3000
-    # respiratory_peaks - 3000
-    # respiratory_troughs - 3000
-    
     rawData = rawData - min(rawData)
     
     NUM_BINS = 100
     
     # Determine whether currently inspiration or expiration
-    if respiratory_peaks[0] < respiratory_troughs[0]:
+    if resp_peaks[0] < resp_troughs[0]:
         polarity = 1
     else:
         polarity = -1
         
     # Number of segments where each segment is either inspiration or expiration
-    numFullSegments = len(respiratory_peaks) + len(respiratory_troughs) - 1
+    numFullSegments = len(resp_peaks) + len(resp_troughs) - 1
     
     # Initialize array of output phases
     phases = np.zeros(len(rawData))
     
     # Assign values to time series before first full segment
     peakIndex = 0
-    troughIndex = np.argmin(respiratory_troughs)
+    troughIndex = np.argmin(resp_troughs)
     start = 0
-    finish = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+    finish = min(resp_peaks[peakIndex], resp_troughs[troughIndex])
     if finish == 0:
-        finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        finish = max(resp_peaks[peakIndex], resp_troughs[troughIndex])
     denom = finish  # Total length of segment
     
     # Histogram values in segment
-    sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]] 
-    # sample = sample - min(sample)
+    sample = [x - rawData[resp_troughs[troughIndex]] 
+              for x in rawData[start:finish]] 
+
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
     if polarity > 0: Rmax = max(sample)
-    else: Rmax = rawData[respiratory_peaks[0]] # Maximum value in segment
+    else: Rmax = rawData[resp_peaks[0]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         end = round(sample[i]*NUM_BINS/Rmax) # Summation limit
         
@@ -726,21 +744,23 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     for segment in range(0,numFullSegments):    # Process each segment in turn
     
         # Determine segment from the peak and trough indices
-        start = min(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
-        finish = max(respiratory_peaks[peakIndex], respiratory_troughs[troughIndex])
+        start = min(resp_peaks[peakIndex], resp_troughs[troughIndex])
+        finish = max(resp_peaks[peakIndex], resp_troughs[troughIndex])
         denom = finish - start  # Total length of segment
         
         # Histogram values in segment
-        sample = [x - rawData[respiratory_troughs[troughIndex]] for x in rawData[start:finish]] 
+        sample = [x - rawData[resp_troughs[troughIndex]] 
+                  for x in rawData[start:finish]] 
         sample = sample - min(sample)
-        counts, bins = np.histogram([x for x in sample if math.isnan(x) == False], bins=NUM_BINS) 
+        counts, bins = np.histogram([x 
+                    for x in sample if math.isnan(x) == False], bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
         Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
             end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
             
-            # Count values, in segment that are not greater than the summation limit
+            # Count values, in segment that are <= the summation limit
             count = 0
             end = min(end, len(counts))
             if end > 0:
@@ -755,7 +775,7 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
         polarity = -polarity
         if polarity > 0: peakIndex = peakIndex + 1
         else: troughIndex = troughIndex + 1
-        if peakIndex>=len(respiratory_peaks) or troughIndex>=len(respiratory_troughs): break
+        if peakIndex>=len(resp_peaks) or troughIndex>=len(resp_troughs): break
     
     # Assign values to time series after last full segment
     start = finish
@@ -763,12 +783,12 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     denom = finish - start  # Total length of segment
     
     # Histogram values in segment
-    sample = [x - rawData[respiratory_troughs[-1]] for x in rawData[start:finish]]  
+    sample = [x - rawData[resp_troughs[-1]] for x in rawData[start:finish]]  
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
     if polarity < 0: Rmax = max(sample)
-    else: Rmax = rawData[respiratory_peaks[-1]] # Maximum value in segment
+    else: Rmax = rawData[resp_peaks[-1]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         end = round(sample[i-start]*NUM_BINS/Rmax) # Summation limit
         
@@ -786,11 +806,11 @@ def determineRespiratoryPhases(parameters, respiratory_peaks, respiratory_trough
     if show_graph or save_graph:  
         # PLot phases and raw data against time in seconds.
         peakVals = []
-        for i in respiratory_peaks: peakVals.append(rawData[i])
+        for i in resp_peaks: peakVals.append(rawData[i])
         troughVals = []
-        for i in respiratory_troughs: troughVals.append(rawData[i])
+        for i in resp_troughs: troughVals.append(rawData[i])
         x = []    
-        end = min(len(phases),round(len(phases)*50.0/len(respiratory_peaks)))
+        end = min(len(phases),round(len(phases)*50.0/len(resp_peaks)))
         for i in range(0,end): x.append(i/phys_fs)
         fig, ax_left = mpl.pyplot.subplots()
         mpl.pyplot.xlabel("Time (s)")
@@ -813,7 +833,8 @@ def getPhysiologicalNoiseComponents(parameters):
     """
     NAME
         getPhysiologicalNoiseComponents 
-            Return physiological (respiratory and cardiac) contamination components of BOLD signal
+            Return physiological (respiratory and cardiac) contamination 
+            components of BOLD signal
     TYPE
         Dictionary with the following fields
     SYNOPSIS
@@ -821,17 +842,17 @@ def getPhysiologicalNoiseComponents(parameters):
     ARGUMENTS
         parameters:   Dictionary with the following fields.
         
-            -respFile:   file containing respiratory time series
+            respFile:   file containing respiratory time series
             
-            -cardFile:   file containing cardiac time series
+            cardFile:   file containing cardiac time series
             
-            -aby     : whether  a and b coefficients as per Glover et al, Magnetic 
-                                        Resonance in Medicine 44:162–167 (2000)
+            -aby     : whether  a and b coefficients as per Glover et al, 
+                       Magnetic Resonance in Medicine 44:162–167 (2000)
                                         
             -niml    : whether output should be in niml format instead of CSV
             
-            -TR      : (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
-                        which defines the length of time            
+            -TR      : (dtype = class 'float') (volume_tr) Volume repetition 
+                       time (TR) which defines the length of time            
                         
             -num_time_pts:  (dType = int) Number of time points in the output
     AUTHOR
@@ -839,81 +860,86 @@ def getPhysiologicalNoiseComponents(parameters):
     """
     
     # Initializations
-    respiratory_phases = np.array([]) #None
-    cardiac_phases     = []           #
+    resp_phases = np.array([]) #None
+    card_phases     = []           #
     
     # Parameters to read in raw data
     rawDataParams = dict()
-    if 'StartTime' in parameters: rawDataParams['StartTime'] = parameters['StartTime']
+    if 'StartTime' in parameters: 
+        rawDataParams['StartTime'] = parameters['StartTime']
     rawDataParams["phys_fs"] = parameters["phys_fs"]
     
     # Process cardiac data if any
-    if parameters["cardFile"] or len(parameters["phys_cardiac_dat"]) > 0:           
-        # rawData = readArray(parameters, '-cardFile')
-        rawData = readRawInputData(rawDataParams, parameters["cardFile"], parameters["phys_cardiac_dat"])
+    if parameters["cardFile"] or len(parameters["phys_card_dat"]) > 0:           
+        # rawData = readArray(parameters, 'cardFile')
+        rawData = readRawInputData(rawDataParams, parameters["cardFile"], 
+                                   parameters["phys_card_dat"])
         if len(rawData) == 0:
             print('Error reading input cardiac data')
             return []
-        
-        # if not parameters['phys_fs']: # Sampling frequency not supplied
-        #     parameters['phys_fs'] = lpf.estimateSamplingFrequencyFromRawData(rawData, 70)
                 
-        cardiac_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
-        if len(cardiac_peaks) == 0:
+        card_peaks, fullLength = getCardiacPeaks(parameters, rawData) 
+        if len(card_peaks) == 0:
             print('ERROR in getPhysiologicalNoiseComponents: No cardiac peaks')
             return []
         
-        if len(cardiac_peaks) > 0:
-            cardiac_phases = determineCardiacPhases(cardiac_peaks, fullLength,\
-                    parameters['phys_fs'], rawData,  show_graph = parameters['show_graphs']>0, 
+        if len(card_peaks) > 0:
+            card_phases = determineCardiacPhases(card_peaks, fullLength,\
+                    parameters['phys_fs'], rawData,  
+                    show_graph = parameters['show_graphs']>0, 
                     save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
-        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
+        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, 
+                                                              parameters)
         
     # Process respiratory data if any
     if parameters["respFile"] or len(parameters["phys_resp_dat"]) > 0:
 
-        # rawData = readArray(parameters, '-respFile')
-        rawData = readRawInputData(rawDataParams, parameters["respFile"], parameters["phys_resp_dat"])
+        # rawData = readArray(parameters, 'respFile')
+        rawData = readRawInputData(rawDataParams, parameters["respFile"], 
+                                   parameters["phys_resp_dat"])
         if len(rawData) == 0:
             print('Error reading input respiratory data')
             return []
         
-        respiratory_peaks, respiratory_troughs, fullLength = \
+        resp_peaks, resp_troughs, fullLength = \
             getRespiratoryPeaks(parameters, rawData) 
-        if len(respiratory_peaks) == 0:
+        if len(resp_peaks) == 0:
             print('*** EOORO: Error getting respiratory peaks or troughs')
             return []            
         
-        respiratory_phases = determineRespiratoryPhases(parameters, \
-                respiratory_peaks, respiratory_troughs, parameters['phys_fs'], \
+        resp_phases = determineRespiratoryPhases(parameters, \
+                resp_peaks, resp_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False], 
                     show_graph = parameters['show_graphs']>0, 
                     save_graph = parameters['save_graphs']>0)
         
         # Ensure number of output time points not too high
-        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, parameters)
+        parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, 
+                                                              parameters)
             
         if parameters['rvt_out']:
-            rvt_coeffs = getRVT(rawData, respiratory_peaks, respiratory_troughs, parameters['phys_fs'],
+            rvt_coeffs = getRVT(rawData, resp_peaks, resp_troughs, 
+                                parameters['phys_fs'],
                          parameters['num_time_pts'], parameters['TR'], 
                          show_graph = parameters['show_graphs']>0, 
                          save_graph = parameters['save_graphs']>0, 
                          interpolationOrder = 'linear')
     else:
-        if parameters['rvt_out']: print('WARNING: Cannot determine RVT.  No respiratory data')
+        if parameters['rvt_out']: 
+            print('WARNING: Cannot determine RVT.  No respiratory data')
         parameters['rvt_out'] = False
         
-    if (parameters['aby']):    # Determine a and b coefficients as per Glover et al, Magnetic 
-                                # Resonance in Medicine 44:162–167 (2000)
+    if (parameters['aby']):    # Determine a and b coefficients as per Glover et 
+                        #  al, Magnetic Resonance in Medicine 44:162–167 (2000)
         # Get a coefficients
-        cardiacACoeffs = getACoeffs(parameters, '-cardFile', cardiac_phases)
-        respiratoryACoeffs = getACoeffs(parameters, '-respFile', respiratory_phases)
+        cardiacACoeffs = getACoeffs(parameters, 'cardFile', card_phases)
+        respiratoryACoeffs = getACoeffs(parameters, 'respFile', resp_phases)
         
         # Get b coefficients
-        cardiacBCoeffs = getBCoeffs(parameters, '-cardFile', cardiac_phases)
-        respiratoryBCoeffs = getBCoeffs(parameters, '-respFile', respiratory_phases)
+        cardiacBCoeffs = getBCoeffs(parameters, 'cardFile', card_phases)
+        respiratoryBCoeffs = getBCoeffs(parameters, 'respFile', resp_phases)
     else:   # a and b coefficients set to 1.0
         cardiacACoeffs = [1.0]
         respiratoryACoeffs = [1.0]
@@ -928,8 +954,8 @@ def getPhysiologicalNoiseComponents(parameters):
            
     # Make output table data matrix
     data = []
-    len_resp = len(respiratory_phases)
-    len_card = len(cardiac_phases)
+    len_resp = len(resp_phases)
+    len_card = len(card_phases)
 
     if len_resp and len_card :
         T = min(len_resp, len_card)
@@ -946,33 +972,30 @@ def getPhysiologicalNoiseComponents(parameters):
         if len_resp :
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
-                addend.append(respiratoryACoeffs[m0]*math.cos(m*respiratory_phases[t]))
-                addend.append(respiratoryBCoeffs[m0]*math.sin(m*respiratory_phases[t]))
+                addend.append(respiratoryACoeffs[m0]*math.cos(m*resp_phases[t]))
+                addend.append(respiratoryBCoeffs[m0]*math.sin(m*resp_phases[t]))
                 if not(t):
                     nreg+= 2
         if len_card:
             for m in range(1,GLOBAL_M):
                 m0 = m - 1
-                addend.append(cardiacACoeffs[m0]*math.cos(m*cardiac_phases[t]))
-                addend.append(cardiacBCoeffs[m0]*math.sin(m*cardiac_phases[t]))
+                addend.append(cardiacACoeffs[m0]*math.cos(m*card_phases[t]))
+                addend.append(cardiacBCoeffs[m0]*math.sin(m*card_phases[t]))
                 if not(t):
                     nreg+= 2
         data.append(addend)
 
     # Reshape matrix according to number of slices
     nrow = np.shape(data)[0]
-    # DEBUGGING INFO.
-    # print("DEBUG: nrow =", nrow)
-    # print("DEBUG: shape BEFORE =", np.shape(data))
-    # print("DEBUG: nsections =", numSections)
-    data = np.reshape(data[0:nrow-(nrow%numSections)][:], (nreg*numSections, -1)).T
-    # print("DEBUG: shape AFTER =", np.shape(data))
+    data = np.reshape(data[0:nrow-(nrow%numSections)][:], 
+                      (nreg*numSections, -1)).T
         
     # return df   
     physiologicalNoiseComponents = dict()
-    physiologicalNoiseComponents['respiratory_phases'] = respiratory_phases
-    physiologicalNoiseComponents['cardiac_phases'] = cardiac_phases
-    if parameters['rvt_out']: physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
+    physiologicalNoiseComponents['resp_phases'] = resp_phases
+    physiologicalNoiseComponents['card_phases'] = card_phases
+    if parameters['rvt_out']: 
+        physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
     return physiologicalNoiseComponents
 
 def limitNumOutputTimepoints(rawData, parameters):
@@ -988,10 +1011,10 @@ def limitNumOutputTimepoints(rawData, parameters):
         rawData: (array, dType = float) Raw input data
         
         parameters:   Dictionary with the following fields.
-            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs: (dType = float) Physiological signal sampling frequency (Hz)
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
-                        which defines the length of time 
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition  
+                        time (TR) which defines the length of time 
                         
             -num_time_pts:  (dType = int) Number of time points in the output
 
@@ -1010,9 +1033,6 @@ def limitNumOutputTimepoints(rawData, parameters):
     print("++ TR (MRI data)            :", parameters['TR'])
     print("++ number of TRs from physio:", max_numTime_float)
     print("++ number of TRs (as int)   :", max_numTime_pts)
-    # max_numTime_pts = len(np.arange(
-    #     0, (len(rawData)/parameters['phys_fs'] - 0.5 * parameters['TR']), parameters['TR']
-    # ))
     
     # If the user has supplied the number of output times points, it must not 
     #   be greater than the determined maximum
@@ -1030,8 +1050,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     """
     NAME
         readRawInputData 
-            Read in raw input data according to the user=supplied program arguments.
-            Outputs raw data.
+            Read in raw input data according to the user=supplied program 
+            arguments. Outputs raw data.
     TYPE
         <class 'numpy.ndarray'> 
     SYNOPSIS
@@ -1041,7 +1061,7 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
         
             StartTime:   (Optional)  Time at which the signal of interest starts
             
-            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs: (dType = float) Physiological signal sampling frequency (Hz)
                    
         filename:   String giving the local name of the input file
         
@@ -1060,7 +1080,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
                 lineNumber = lineNumber + 1
                 try:
                     float(entry)
-                    if float(entry) != 5000.0: # Some files have artifactual entries of 5000.0
+                    if float(entry) != 5000.0: # Some files have artifactual 
+                                               # entries of 5000.0
                         phys_dat.append(float(entry))
                 except:
                     print('*** ERROR: invalid, non-numeric data entry: ', entry, 
@@ -1073,7 +1094,8 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
     
     # Trim leading datapoints if they precede start time
     if ('StartTime' in respcard_info and respcard_info['StartTime']<0):
-        start_index = round(-respcard_info['StartTime'] * respcard_info["phys_fs"])
+        start_index = round(-respcard_info['StartTime'] * 
+                            respcard_info["phys_fs"])
         print('start_index = ', start_index)
         v_np = v_np[start_index:-1]
     
@@ -1083,7 +1105,8 @@ def runAnalysis(parameters):
     """
     NAME
         runAnalysis 
-            Run retroicor analysis as described by Glover (2000) and implemented by Peter Lauren
+            Run retroicor analysis as described by Glover (2000) and implemented 
+            by Peter Lauren
     TYPE
         void
     SYNOPSIS
@@ -1092,11 +1115,12 @@ def runAnalysis(parameters):
     
         parameters:   Dictionary with the following fields.
         
-            -respFile:   file containing respiratory time series
+            respFile:   file containing respiratory time series
             
-            -cardFile:   file containing cardiac time series
+            cardFile:   file containing cardiac time series
             
-            -aby: whether  a and b coefficients as per Glover et al, Magnetic  Resonance in Medicine 44:162–167 (2000)
+            -aby: whether  a and b coefficients as per Glover et al, Magnetic  
+                  Resonance in Medicine 44:162–167 (2000)
                                         
             -niml: whether output should be in niml format instead of CSV
             
@@ -1108,7 +1132,8 @@ def runAnalysis(parameters):
     
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
-        print('Error in runAnalysis. Failure to get physionlogical noise components')
+        print('Error in runAnalysis. Failure to get physionlogical noise'+
+              ' components')
         return 1
     if parameters['niml']:
         return 0
@@ -1116,48 +1141,54 @@ def runAnalysis(parameters):
     physiologicalNoiseComponents.to_csv(parameters['outputFileName'])
     
     # PLot first 200 rows of dataframe
-    colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
+    colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen',
+              'red','magenta']
     physiologicalNoiseComponents.head(200).plot(color=colors)
     
     # Send output to terminal
     if (parameters['abt']): print(repr(physiologicalNoiseComponents))
     
 
-def getInputFileParameters(resp_info, cardiac_info, phys_file,\
-                        phys_json_arg, resp_out, cardiac_out, rvt_out):
+def getInputFileParameters(resp_info, card_info, phys_file,\
+                        phys_json_arg, resp_out, card_out, rvt_out):
     """
     NAME
         getInputFileParameters 
-            Returns the local respiriation file name  (if JSON file absent, None otherwise), 
-            respiration file data (if JSON file present, None otherwise), the 
-            local cardiac file name  (if JSON file absent, None otherwise), 
-            cardiac file data (if JSON file present, None otherwise).
+            Returns the local respiriation file name  (if JSON file absent, None 
+            otherwise), respiration file data (if JSON file present, None 
+            otherwise), the local cardiac file name  (if JSON file absent, None 
+            otherwise), cardiac file data (if JSON file present, None otherwise)
     TYPE
-        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, <class 'numpy.ndarray'>
+        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, 
+        <class 'numpy.ndarray'>
     SYNOPSIS
-       getInputFileParameters(resp_info, cardiac_info, phys_file,
-       phys_json_arg, resp_out, cardiac_out, rvt_out)
+       getInputFileParameters(resp_info, card_info, phys_file,
+       phys_json_arg, resp_out, card_out, rvt_out)
     ARGUMENTS
         resp_info:   Dictionary with the following fields.
         
-            resp_file:  (dType = str) Name of ASCII file with respiratory time series
+            resp_file:  (dType = str) Name of ASCII file with respiratory time 
+                                      series
             
-            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs: (dType = float) Physiological signal sampling 
+                                     frequency (Hz)
             
-        cardiac_info:   Dictionary with the following fields.
+        card_info:   Dictionary with the following fields.
             
-            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs:   (dType = float) Physiological signal sampling 
+                                       frequency (Hz)
         
-            cardiac_file:  (dType = str) Name of ASCII file with cardiac time series
+            card_file:  (dType = str) Name of ASCII file with cardiac time 
+                                      series
             
-        phys_file: (dType = NoneType) BIDS formatted physio file in tab separated format. May
-                    be gzipped.
+        phys_file: (dType = NoneType) BIDS formatted physio file in tab 
+                    separated format. May be gzipped.
                 
         phys_json_arg: (dType = NoneType) File metadata in JSON format
         
         resp_out: (dType = int) Whether to have respiratory output
         
-        cardiac_out:  (dType = int) Whether to have cardiac output
+        card_out:  (dType = int) Whether to have cardiac output
         
         rvt_out:  (dType = int) Whether to have RVT output
             
@@ -1168,18 +1199,18 @@ def getInputFileParameters(resp_info, cardiac_info, phys_file,\
     # Initialize outputs
     resp_file = None
     phys_resp_dat = []
-    cardiac_file = None
-    phys_cardiac_dat = []
+    card_file = None
+    phys_card_dat = []
             
     # Ensure there are no conflicting input file types
     # BIDS = Brain Imaging Data Structure
     if (((phys_file is not None) and (resp_info["resp_file"] is not None))
-        or ((phys_file is not None) and (cardiac_info["cardiac_file"] is not None))):
+        or ((phys_file is not None) and (card_info["card_file"] is not None))):
         raise ValueError('You should not pass a BIDS style phsyio file'
                          ' and respiration or cardiac files.')
         
-    # Get the peaks for resp_info and cardiac_info
-    # init dicts, may need -cardiac_out 0, for example   [16 Nov 2021 rickr]
+    # Get the peaks for resp_info and card_info
+    # init dicts, may need -card_out 0, for example   [16 Nov 2021 rickr]
     if phys_file:
         # Use json reader to read file data into phys_meta
         with open(phys_json_arg, 'rt') as h:
@@ -1208,11 +1239,12 @@ def getInputFileParameters(resp_info, cardiac_info, phys_file,\
         if ('StartTime' in phys_meta and "StartTime" not in resp_info):
             startTime = float(phys_meta["StartTime"])
             if (startTime > 0):
-                print('***** WARNING: JSON file gives positive start time which is not currently handled')
+                print('***** WARNING: JSON file gives positive start time'+
+                      ' which is not currently handled')
                 print('    Start time must be <= 0')
             else:
                 resp_info["StartTime"] = startTime            
-                cardiac_info["StartTime"] = startTime            
+                card_info["StartTime"] = startTime            
                     
         print('phys_meta = ', phys_meta)
         # Read columns field from JSON data
@@ -1232,11 +1264,11 @@ def getInputFileParameters(resp_info, cardiac_info, phys_file,\
             # Read cardiac component
             elif k.lower() == 'cardiac':
                 # create peaks only if asked for    25 May 2021 [rickr]
-                if cardiac_out != 0:
-                   if not cardiac_info["phys_fs"]:
-                       cardiac_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   cardiac_file = None
-                   phys_cardiac_dat = phys_dat[k]
+                if card_out != 0:
+                   if not card_info["phys_fs"]:
+                       card_info['phys_fs'] = phys_meta['SamplingFrequency']
+                   card_file = None
+                   phys_card_dat = phys_dat[k]
             else:
                 print("** warning phys data contains column '%s', but\n" \
                       "   RetroTS only handles cardiac or respiratory data" % k)
@@ -1244,11 +1276,11 @@ def getInputFileParameters(resp_info, cardiac_info, phys_file,\
         if resp_info["resp_file"]:
             resp_file = resp_info["resp_file"]
             phys_resp_dat = []
-        if cardiac_info["cardiac_file"]:
-            cardiac_file = cardiac_info["cardiac_file"]
-            phys_cardiac_dat = []
+        if card_info["card_file"]:
+            card_file = card_info["card_file"]
+            phys_card_dat = []
             
-    return resp_file, phys_resp_dat, cardiac_file, phys_cardiac_dat
+    return resp_file, phys_resp_dat, card_file, phys_card_dat
 
 from numpy import zeros, size
 
@@ -1256,7 +1288,8 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     """
     NAME
         ouputInNimlFormat 
-            Output physiological noise components to NeuroImaging Markup Language (NIML) format
+            Output physiological noise components to NeuroImaging Markup 
+            Language (NIML) format
     TYPE
         <class void>
     SYNOPSIS
@@ -1264,18 +1297,21 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the following fields.
         
-            respiratory_phases: (dType = class 'list') Respiratory phases in time points (not seconds)
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
             
-            cardiac_phases: (dType = class 'list') Cardiac phases in time points (not seconds)
+            card_phases: (dType = class 'list') Cardiac phases in time points
+                                                (not seconds)
             
         parameters:   Dictionary with the following fields.
         
             -s:        (dtype = class 'int') Number of slices
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
-                        which defines the length of time 
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                       time (TR) which defines the length of time 
             
-            -phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            -phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                        in Hz.
         
             rvt_out:   (dType = int) Whether to have RVT output
             
@@ -1292,44 +1328,46 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info["rvt_out"] = parameters["rvt_out"]
     main_info["number_of_slices"] = parameters['s']
     main_info["prefix"] = parameters["prefix"]
-    main_info["resp_out"] = len(physiologicalNoiseComponents['respiratory_phases']) > 0
-    main_info["cardiac_out"] = len(physiologicalNoiseComponents['cardiac_phases']) > 0
+    main_info["resp_out"] = len(physiologicalNoiseComponents['resp_phases']) > 0
+    main_info["card_out"] = len(physiologicalNoiseComponents['card_phases']) > 0
     
-    if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
-        resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
-                        parameters)
+    if len(physiologicalNoiseComponents['resp_phases']) > 0:
+        resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                        'r', parameters)
         resp_info["rvt_shifts"] = list(range(0, 21, 5))
         resp_info["rvtrs_slc"] = np.zeros((len(resp_info["rvt_shifts"]), 
                         len(resp_info["time_series_time"])))
-    if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
-        cardiac_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'c', 
-                        parameters)
-        cardiac_info["rvt_shifts"] = list(range(0, 21, 5))
-        cardiac_info["rvtrs_slc"] = np.zeros((len(cardiac_info["rvt_shifts"]), 
-                        len(cardiac_info["time_series_time"])))
+    if len(physiologicalNoiseComponents['card_phases']) > 0:
+        card_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                        'c', parameters)
+        card_info["rvt_shifts"] = list(range(0, 21, 5))
+        card_info["rvtrs_slc"] = np.zeros((len(card_info["rvt_shifts"]), 
+                        len(card_info["time_series_time"])))
 
     n_n = 0
     n_r_v = 0
     n_r_p = 0
     n_e = 0
 
-    if len(physiologicalNoiseComponents['respiratory_phases']) > 0:
+    if len(physiologicalNoiseComponents['resp_phases']) > 0:
         if "time_series_time" in resp_info:
             n_n = len(resp_info["time_series_time"])
             n_r_p = size(resp_info["phase_slice_reg"], 1)
             n_r_v = size(resp_info["rvtrs_slc"], 0)
-    if len(physiologicalNoiseComponents['cardiac_phases']) > 0:
-        if "time_series_time" in cardiac_info:
-            n_n = len(cardiac_info["time_series_time"])
-            n_r_p = size(cardiac_info["phase_slice_reg"], 1)
-            n_r_v = size(cardiac_info["rvtrs_slc"], 0)
+    if len(physiologicalNoiseComponents['card_phases']) > 0:
+        if "time_series_time" in card_info:
+            n_n = len(card_info["time_series_time"])
+            n_r_p = size(card_info["phase_slice_reg"], 1)
+            n_r_v = size(card_info["rvtrs_slc"], 0)
 
-    if 'cardiac_info' in locals() and "time_series_time" in cardiac_info:  # must have cardiac_info
+    if 'card_info' in locals() and "time_series_time" in card_info:  
+              # must have card_info
         n_n = len(
-            cardiac_info["time_series_time"]
+            card_info["time_series_time"]
         )  # ok to overwrite len(resp_info.tst), should be same.
-        n_e = size(cardiac_info["phase_slice_reg"], 1)
-    elif 'resp_info' in locals() and "time_series_time" in resp_info:  # must have cardiac_info
+        n_e = size(card_info["phase_slice_reg"], 1)
+    elif 'resp_info' in locals() and "time_series_time" in resp_info:  
+                                                # must have card_info
         n_n = len(
             resp_info["time_series_time"]
         )  # ok to overwrite len(resp_info.tst), should be same.
@@ -1339,7 +1377,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     temp_y_axis = main_info["number_of_slices"] * (
         (main_info["rvt_out"]) * int(n_r_v)
         + (main_info["resp_out"]) * int(n_r_p)
-        + (main_info["cardiac_out"]) * int(n_e)
+        + (main_info["card_out"]) * int(n_e)
     )
     main_info["reml_out"] = zeros((n_n, temp_y_axis))
 
@@ -1378,17 +1416,17 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                     label = "%s s%d.Resp%d ;" % (label, i, j)
         # Card
         if main_info["Card_out"] != 0:
-            for j in range(0, size(cardiac_info["phase_slice_reg"], 2)):
+            for j in range(0, size(card_info["phase_slice_reg"], 2)):
                 for i in range(0, main_info["number_of_slices"]):
                     cnt += 1
-                    main_info["reml_out"][:, cnt] = cardiac_info["phase_slice_reg"][
+                    main_info["reml_out"][:, cnt] = card_info["phase_slice_reg"][
                         :, j, i
                     ]
                     label = "%s s%d.Card%d ;" % (label, i, j)
     else:
         # main_info["rvt_out"] = 0
-        if main_info['rvt_out']: resp_info["rvtrs_slc"] = physiologicalNoiseComponents['rvt_coeffs']
-        # if main_info['rvt_out']: resp_info["rvtrs_slc"] = np.matrix.transpose(physiologicalNoiseComponents['rvt_coeffs'])
+        if main_info['rvt_out']: resp_info["rvtrs_slc"] =\
+                                     physiologicalNoiseComponents['rvt_coeffs']
         for i in range(0, main_info["number_of_slices"]):
             if main_info["rvt_out"] != 0:
                 # RVT
@@ -1406,12 +1444,12 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                         resp_info["phase_slice_reg"][:, j, i]
                     )
                     label = "%s s%d.Resp%d ;" % (label, i, j)
-            if main_info["cardiac_out"] != 0:
+            if main_info["card_out"] != 0:
                 # Card
-                for j in range(0, np.shape(cardiac_info["phase_slice_reg"])[1]):
+                for j in range(0, np.shape(card_info["phase_slice_reg"])[1]):
                     cnt += 1
                     main_info["reml_out"].append(
-                        cardiac_info["phase_slice_reg"][:, j, i]
+                        card_info["phase_slice_reg"][:, j, i]
                     )
                     label = "%s s%d.Card%d ;" % (label, i, j)
         # fid = open(("%s.slibase.1D" % main_info["prefix"]), "w")
@@ -1429,35 +1467,41 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
         footer=("%s" % tailclose),
     )
     
-def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameters):
+def makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                               dataType, parameters):
     """
     NAME
         makeRegressorsForEachSlice 
-            Make regressors for each lice as per "Image-Based Method for Retrospective 
-            Correction of Physiological Motion Effects in fMRI: RETROICOR" by 
-            Gary H. Glover, Tie-Qiang Li, and David Ress (2000).  Also make time vector
+            Make regressors for each lice as per "Image-Based Method for 
+            Retrospective Correction of Physiological Motion Effects in 
+            fMRI: RETROICOR" by Gary H. Glover, Tie-Qiang Li, and David Ress 
+            (2000).  Also make time vector
     TYPE
         <class 'dict'>
     SYNOPSIS
-       makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameters)
+       makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                                  dataType, parameters)
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the following fields.
         
-            respiratory_phases: (dType = class 'list') Respiratory phases in time points (not seconds)
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
             
-            cardiac_phases: (dType = class 'list') Cardiac phases in time points (not seconds)
+            card_phases: (dType = class 'list') Cardiac phases in time points 
+                                                (not seconds)
             
-        dataType:     (dtype = class 'str') Type of data to be processed.  'c' for cardiac.
-                      'r' for respiratory
+        dataType:     (dtype = class 'str') Type of data to be processed.  'c' 
+                                            for cardiac.'r' for respiratory
             
         parameters:   Dictionary with the following fields.
         
             -s:        (dtype = class 'int') Number of slices
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition time (TR) 
-                        which defines the length of time 
+            -TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                        time (TR) which defines the length of time 
             
-            phys_fs:   (dType = float) Physiological signal sampling frequency in Hz.
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                       in Hz.
         
             slice_offset: Vector of slice acquisition time offsets in seconds.
                           (default is equivalent of alt+z)
@@ -1472,19 +1516,19 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     timeStepIncrement = 1.0/parameters['phys_fs']
     
     if dataType == 'c':
-        numTimeSteps = len(physiologicalNoiseComponents['cardiac_phases'])
+        numTimeSteps = len(physiologicalNoiseComponents['card_phases'])
         if numTimeSteps == 0:
             print('*** Error in makeRegressorsForEachSlice')
             print('*** Cardiac phases required but none available')
             return None
-        phasee["phase"] = physiologicalNoiseComponents['cardiac_phases']
+        phasee["phase"] = physiologicalNoiseComponents['card_phases']
     else:
-        numTimeSteps = len(physiologicalNoiseComponents['respiratory_phases'])
+        numTimeSteps = len(physiologicalNoiseComponents['resp_phases'])
         if numTimeSteps == 0:
             print('*** Error in makeRegressorsForEachSlice')
             print('*** Respiratory phases required but none available')
             return None
-        phasee["phase"] = physiologicalNoiseComponents['respiratory_phases']
+        phasee["phase"] = physiologicalNoiseComponents['resp_phases']
 
     phasee["t"] = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
@@ -1496,7 +1540,8 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     
     # Reduce number of output time points to user-specified value if required.
     if parameters['num_time_pts']:
-        phasee["time_series_time"] = phasee["time_series_time"][0:parameters['num_time_pts']]  
+        phasee["time_series_time"] = \
+        phasee["time_series_time"][0:parameters['num_time_pts']]  
     
     if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
         phasee["time_series_time"] = np.append(
@@ -1530,64 +1575,73 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents, dataType, parameter
     
     return  phasee
 
-def getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, num_time_pts, 
-           TR, show_graph = False, save_graph = True, interpolationOrder = 'linear'):
+def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts, 
+           TR, show_graph = False, save_graph = True, 
+           interpolationOrder = 'linear'):
     """
     NAME
         getRVT 
             Get Regression Volume Per Time (RVT) as described in ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini
+            respiratory-variation-related fluctuations from neuronal-activity-
+            related fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, 
+            Monica A. Smith, and Peter A. Bandettini
     TYPE
         <class 'list'>
     SYNOPSIS
-       getRVT(rawData, respiratory_peaks, respiratory_troughs, freq, interpolationOrder)
+       getRVT(rawData, resp_peaks, resp_troughs, freq, interpolationOrder)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
-        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        resp_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time 
+                                               series.
         
-        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        resp_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory 
+                                                 time series.
         
         freq:       <class 'float'> Time point sampling frequency in Hz
         
         num_time_pts: (dType = int) Number of time points in the output
         
-        interpolationOrder:    <class 'str'> Method of interpolation among critical
-                                points (peaks, troughs, etc.)  Valid values are 'linear'
-                                (the default), 'quadratic' and 'cubic'.  The following are
-                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
-                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+        interpolationOrder:    <class 'str'> Method of interpolation among 
+                                critical points (peaks, troughs, etc.)  Valid 
+                                values are 'linear' (the default), 'quadratic' 
+                                and 'cubic'.  The following are also valid but 
+                                NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. 
+                                ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren 
     """
        
     # Get raw RVT values
-    rawRVT = getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq,
+    rawRVT = getRawRVT(rawData, resp_peaks, resp_troughs, freq,
                        show_graph = False, save_graph = True, 
                        interpolationOrder = interpolationOrder)
     
     # Get RVT regressors
     NUM_RVT = 5
-    rvtRegressors = getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder)
+    rvtRegressors = getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,\
+                                     interpolationOrder)
     
     return rvtRegressors
 
-def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder = 'linear'):
+def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, 
+                     interpolationOrder = 'linear'):
     """
     NAME
         getRvtRegressors 
-            Get RVT regressors that can be used in the fMRI time series analysis and is an 
-            estimate of the respiration volume per time.  See ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini, NeuroImage 31 (2006) p. 1537
+            Get RVT regressors that can be used in the fMRI time series analysis
+            and is an estimate of the respiration volume per time.  See 
+            ``Separating respiratory-variation-related fluctuations from 
+            neuronal-activity-related fluctuations in fMRI'' by Rasmus M. Birn, 
+            Jason B. Diamond, Monica A. Smith, and Peter A. Bandettini, 
+            NeuroImage 31 (2006) p. 1537
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
-       getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder = 'linear')
+       getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, 
+                        interpolationOrder = 'linear')
     ARGUMENTS
         rawRVT:     <class 'numpy.ndarray'> RVT at each input time point
         
@@ -1599,11 +1653,13 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
         
         TR:    <class 'float'> Volume TR.
         
-        interpolationOrder:    <class 'str'> Method of interpolation among critical
-                                points (peaks, troughs, etc.)  Valid values are 'linear'
-                                (the default), 'quadratic' and 'cubic'.  The following are
-                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
-                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+        interpolationOrder:    <class 'str'> Method of interpolation among 
+                                critical points (peaks, troughs, etc.)  Valid 
+                                values are 'linear' (the default), 'quadratic' 
+                                and 'cubic'.  The following are also valid but 
+                                NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. 
+                                ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren  and Joshua Zosky
@@ -1625,11 +1681,13 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
     for i in range(0, NUM_RVT):    # Process each row
         shf = rvt_shifts[i]                # i-th RVT 
         nsamp = int(round(shf * freq))  # i-th RVT times sample frequency
-        sind = np.add(list(range(0, len(time))), nsamp) # array of integers from nsamp
-                                                          # to nsamp times the number of samples
+        sind = np.add(list(range(0, len(time))), nsamp) # array of integers from
+                                     # nsampto nsamp times the number of samples
         sind[np.nonzero(sind < 0)] = 0          # Rectify result
-        sind[np.nonzero(sind > (len(time) - 1))] = len(time) - 1 # Limit result to length of input
-        rvt_shf = scipy.interpolate._interpolate.interp1d(   # Build function that maps time to rawRVT[sind]
+        sind[np.nonzero(sind > (len(time) - 1))] = len(time) - 1 # Limit result 
+                                                           # to length of input
+        rvt_shf = scipy.interpolate._interpolate.interp1d(   # Build function 
+                                                # that maps time to rawRVT[sind]
             time, rawRVT[sind], kind = interpolationOrder, bounds_error=True
         )
         rvt_shf_y = rvt_shf(NT_InterpPts) # Apply function to time
@@ -1639,26 +1697,29 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, interpolationOrder
         
     return output 
       
-def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, show_graph = 0, 
+def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0, 
               save_graph = 1, interpolationOrder = 'linear'):
     """
     NAME
         getRawRVT 
-            Get raw Regression Volume Per Time (RVT) as described in ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini.  That is, get RVT for each input time point.
+            Get raw Regression Volume Per Time (RVT) as described in 
+            ``Separating respiratory-variation-related fluctuations from 
+            neuronal-activity-related fluctuations in fMRI'' by Rasmus M. Birn, 
+            Jason B. Diamond, Monica A. Smith, and Peter A. Bandettini.  That 
+            is, get RVT for each input time point.
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
-       getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True,
+       getRawRVT(rawData, resp_peaks, resp_troughs, freq, dev = True,
                      interpolationOrder = 'linear')
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
-        respiratory_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        resp_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time 
+                                                                        series.
         
-        respiratory_troughs:  <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        resp_troughs:  <class 'numpy.ndarray'> Troughs in input respiratory time 
+                                                                         series.
         
         freq:  <class 'float'> Time point sampling frequency in Hz
         
@@ -1666,26 +1727,28 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, show_graph 
         
         save_graph: (dType = bool) Whether to save graoh to disk
         
-        interpolationOrder:    <class 'str'> Method of interpolation among critical
-                                points (peaks, troughs, etc.)  Valid values are 'linear'
-                                (the default), 'quadratic' and 'cubic'.  The following are
-                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
-                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+        interpolationOrder:    <class 'str'> Method of interpolation among 
+                                critical points (peaks, troughs, etc.)  Valid 
+                                values are 'linear' (the default), 'quadratic' 
+                                and 'cubic'.  The following are also valid but 
+                                NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. 
+                                ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren 
     """
        
     # Get peak layer
-    peakLayer = getLayer(rawData, respiratory_peaks.tolist(), 
+    peakLayer = getLayer(rawData, resp_peaks.tolist(), 
                          interpolationOrder = interpolationOrder)
     
     # Get trough layer
-    troughLayer = getLayer(rawData, respiratory_troughs.tolist(), 
+    troughLayer = getLayer(rawData, resp_troughs.tolist(), 
                            interpolationOrder = interpolationOrder)
     
     # Get period layer
-    periodLayer = getPeriodLayer(respiratory_peaks, len(rawData), freq, 
+    periodLayer = getPeriodLayer(resp_peaks, len(rawData), freq, 
                                  interpolationOrder = interpolationOrder)
     
     # Get raw RVT
@@ -1708,7 +1771,8 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, show_graph 
          plt.ylabel('Period (s)',color='magenta', fontweight='bold')
          ax_left.plot(x, rawRVT, color='darkgoldenrod')
          TitleStr = "Raw RVT (dark goldenrod) and raw input data (green).\n"
-         TitleStr = TitleStr + "Red = peak layer. Blue = trough layer. Magenta = period layer"
+         TitleStr = TitleStr + "Red = peak layer. Blue = trough layer. '+\
+                                                       'Magenta = period layer"
          plt.title(TitleStr)
              
          # Save plot to file
@@ -1720,46 +1784,54 @@ def getRawRVT(rawData, respiratory_peaks, respiratory_troughs, freq, show_graph 
     
     return rawRVT
     
-def getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'linear'):
+def getPeriodLayer(resp_peaks, fullLength, freq, interpolationOrder = 'linear'):
     """
     NAME
         getPeriodLayer 
-            Get a 1D layer estimating the period at each time point based on interpolation
-            of the measured period in the middle of each respiratory or cardiac interval.
+            Get a 1D layer estimating the period at each time point based on 
+            interpolation of the measured period in the middle of each 
+            respiratory or cardiac interval.
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
-       getPeriodLayer(respiratory_peaks, fullLength, freq, interpolationOrder = 'linear')
+       getPeriodLayer(resp_peaks, fullLength, freq, 
+                      interpolationOrder = 'linear')
     ARGUMENTS
-        respiratory_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        resp_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time 
+                                                                        series.
         
         fullLength:         <class 'int'> Full length of array of point on which
                             respiratory peaks are based
         
         freq:  <class 'float'> Time point sampling frequency in Hz
         
-        interpolationOrder:    <class 'str'> Method of interpolation among critical
-                                points (peaks, troughs, etc.)  Valid values are 'linear'
-                                (the default), 'quadratic' and 'cubic'.  The following are
-                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
-                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+        interpolationOrder:    <class 'str'> Method of interpolation among 
+                                critical points (peaks, troughs, etc.)  Valid 
+                                values are 'linear' (the default), 'quadratic' 
+                                and 'cubic'.  The following are also valid but 
+                                NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. 
+                                ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren 
     """
        
     # Get critical point locations
-    criticalPoints = [round((i+j)/2) for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
+    criticalPoints = [round((i+j)/2) for i, j in zip(resp_peaks[:-1], 
+                                                     resp_peaks[1:])]
     
     # Get critical point periods
-    criticalPointPeriods = [(j-i)/freq for i, j in zip(respiratory_peaks[:-1], respiratory_peaks[1:])]
+    criticalPointPeriods = [(j-i)/freq for i, j in zip(resp_peaks[:-1], 
+                                                       resp_peaks[1:])]
     
     # Output layer is found by interpoalting the periods among the critical points
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, criticalPointPeriods, kind = interpolationOrder)    
+    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+                                criticalPointPeriods, kind = interpolationOrder)    
     layer = f([x for x in range(criticalPoints[0],criticalPoints[-1])])
     
     # Apply first period to beginning
-    insertion = [layer[0]] * respiratory_peaks[0]
+    insertion = [layer[0]] * resp_peaks[0]
     layer = np.insert(layer, 0, insertion)
     # criticalPoints.insert(0,0)
     # criticalPointPeriods.insert(0,criticalPointPeriods[0])
@@ -1776,8 +1848,8 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
     """
     NAME
         getLayer 
-            Get a 1D layer made by interpolating among a set of ``critical points'' 
-            (which may be peaks or troughs).
+            Get a 1D layer made by interpolating among a set of ``critical 
+            points'' (which may be peaks or troughs).
     TYPE
         <class 'numpy.ndarray'>
     SYNOPSIS
@@ -1785,13 +1857,16 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
-        criticalPoints:  <class 'numpy.ndarray'> Peaks or troughs in input respiratory time series.
+        criticalPoints:  <class 'numpy.ndarray'> Peaks or troughs in input 
+                                                 respiratory time series.
         
-        interpolationOrder:    <class 'str'> Method of interpolation among critical
-                                points (peaks, troughs, etc.)  Valid values are 'linear'
-                                (the default), 'quadratic' and 'cubic'.  The following are
-                                also valid but NOT recommended; ‘nearest’, ‘nearest-up’, 
-                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. ‘zero’, ‘slinear’.
+        interpolationOrder:    <class 'str'> Method of interpolation among 
+                                critical points (peaks, troughs, etc.)  Valid 
+                                values are 'linear' (the default), 'quadratic' 
+                                and 'cubic'.  The following are also valid but 
+                                NOT recommended; ‘nearest’, ‘nearest-up’, 
+                                ‘zero’, ‘slinear’, ‘previous’, or ‘next’. 
+                                ‘zero’, ‘slinear’.
                        
     AUTHOR
        Peter Lauren 
@@ -1809,34 +1884,39 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
     criticalPoints.append(fullLength)
     criticalPointValues.append(criticalPointValues[-1])
     
-    # Output layer is found by interpoalting the periods among the critical points
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, criticalPointValues, kind = interpolationOrder)    
+    # Output layer is found by interpoalting the periods among the critical pts
+    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+                                criticalPointValues, kind = interpolationOrder)    
     layer = f([x for x in range(0,fullLength)])
     
     return layer
     
     
-def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True):
+def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True):
     """
     NAME
         getRawRVTBasedOnTroughs 
             Get Regression Volume Per Time (RVT) as described in ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini.  This approach is based on interpolating among
-            RVT values, for each trough, based on the difference between the mean value
-            of the adjacent peaks and the trough divided by the period around the trough.
-            (Not currently used.)
+            respiratory-variation-related fluctuations from neuronal-
+            activity-related fluctuations in fMRI'' by Rasmus M. Birn, Jason B. 
+            Diamond, Monica A. Smith, and Peter A. Bandettini.  This approach is 
+            based on interpolating among RVT values, for each trough, based on 
+            the difference between the mean value of the adjacent peaks and the 
+            trough divided by the period around the trough.  (Not currently 
+                                                              used.)
     TYPE
         <class 'list'>
     SYNOPSIS
-       getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, freq, dev = True)
+       getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, 
+                               dev = True)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
-        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        resp_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time 
+                                               series.
         
-        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        resp_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory 
+                                                 time series.
         
         freq:       <class 'float'> Time point sampling frequency in Hz
         
@@ -1847,29 +1927,30 @@ def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, fre
     """
 
     # Get trough RVTs
-    troughRVTs = getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
+    troughRVTs = getTroughRVTs(rawData, resp_peaks, resp_troughs, freq)
 
     # Get raw RVTs by connecting the troughs
-    rawRVTs = connectTroughRVTs(respiratory_troughs, troughRVTs, len(rawData))
+    rawRVTs = connectTroughRVTs(resp_troughs, troughRVTs, len(rawData))
     
     # Display raw RVTs with peaks, troughs and raw data
     if dev:
          x = []    
-         end = min(len(rawRVTs),round(len(rawRVTs)*50.0/len(respiratory_peaks)))
+         end = min(len(rawRVTs),round(len(rawRVTs)*50.0/len(resp_peaks)))
          for i in range(0,end): x.append(i/freq)
          fig, ax_left = plt.subplots()
          plt.xlabel("Time (s)")
          plt.ylabel('Input data input value',color='g')
          ax_right = ax_left.twinx()
          ax_right.plot(x, rawRVTs[0:end], color='darkorange', linewidth=3)
-         plt.plot(respiratory_troughs/freq, troughRVTs, "o", color = 'darkgoldenrod') # Trough RVTs
+         plt.plot(resp_troughs/freq, troughRVTs, "o", color = 'darkgoldenrod') 
+                                                                  # Trough RVTs
          ax_left.plot(x, rawData[0:end], color='green')
          peakVals = []
-         for i in respiratory_peaks: peakVals.append(rawData[i])
-         ax_left.plot(respiratory_peaks/freq, peakVals, "ro") # Peaks
+         for i in resp_peaks: peakVals.append(rawData[i])
+         ax_left.plot(resp_peaks/freq, peakVals, "ro") # Peaks
          troughVals = []
-         for i in respiratory_troughs: troughVals.append(rawData[i])
-         ax_left.plot(respiratory_troughs/freq, troughVals, "bo") # Peaks
+         for i in resp_troughs: troughVals.append(rawData[i])
+         ax_left.plot(resp_troughs/freq, troughVals, "bo") # Peaks
          plt.ylabel('Raw RVT',color='darkorange', fontweight='bold')
          plt.title("Raw RVT (orange) and raw input data (green)")
              
@@ -1879,23 +1960,25 @@ def getRawRVTBasedOnTroughs(rawData, respiratory_peaks, respiratory_troughs, fre
    
     return rawRVTs
     
-def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
+def connectTroughRVTs(resp_troughs, troughRVTs, fullLength):
     """
     NAME
         connectTroughRVTs 
-            Connect Regression Volume Per Time (RVT) as described in ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini, based on troughs.  This approach is based on interpolating among
-            RVT values, for each trough, based on the difference between the mean value
-            of the adjacent peaks and the trough divided by the period around the trough.
-            (Not currently used.)
+            Connect Regression Volume Per Time (RVT) as described in 
+            ``Separating respiratory-variation-related fluctuations from 
+            neuronal-activity-related fluctuations in fMRI'' by Rasmus M. Birn, 
+            Jason B. Diamond, Monica A. Smith,       and Peter A. Bandettini, 
+            based on troughs.  This approach is based on interpolating among
+            RVT values, for each trough, based on the difference between the 
+            mean value of the adjacent peaks and the trough divided by the 
+            period around the trough. (Not currently used.)
     TYPE
         <class 'list'>
     SYNOPSIS
-       connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength)
+       connectTroughRVTs(resp_troughs, troughRVTs, fullLength)
     ARGUMENTS
-        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        resp_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory 
+                                                 time series.
         
         troughRVTs:   <class 'list'> Array of RVTs estimated at each trough
         
@@ -1910,45 +1993,50 @@ def connectTroughRVTs(respiratory_troughs, troughRVTs, fullLength):
     connectedRVTs = []
     
     # Assign value of first trought to preceding elements
-    for i in range(0,respiratory_troughs[0]):
+    for i in range(0,resp_troughs[0]):
         connectedRVTs.append(troughRVTs[0])
         
     #Assign values to regions between troughs
-    numTroughs = len(respiratory_troughs)
+    numTroughs = len(resp_troughs)
     for j in range(1,numTroughs):
         i = j - 1
-        increment = (troughRVTs[j] - troughRVTs[i])/(respiratory_troughs[j] - respiratory_troughs[i])
-        start = respiratory_troughs[i]
-        end = respiratory_troughs[j]
-        for k in range(start, end): connectedRVTs.append(connectedRVTs[k-1] + increment)
+        increment = (troughRVTs[j] - troughRVTs[i])/(resp_troughs[j] -\
+                                                     resp_troughs[i])
+        start = resp_troughs[i]
+        end = resp_troughs[j]
+        for k in range(start, end): connectedRVTs.append(connectedRVTs[k-1] +\
+                                                         increment)
     
     # Assign value of last trought to postceding elements
-    for i in range(respiratory_troughs[-1],fullLength):
+    for i in range(resp_troughs[-1],fullLength):
         connectedRVTs.append(troughRVTs[-1])
     
     return connectedRVTs
     
     
-def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
+def getTroughRVTs(rawData, resp_peaks, resp_troughs, freq):
     """
     NAME
         getRawRVTBasedOnTroughs 
             Get Regression Volume Per Time (RVT) as described in ``Separating 
-            respiratory-variation-related fluctuations from neuronal-activity-related 
-            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, Monica A. Smith, 
-            and Peter A. Bandettini, for each trough.  This approach is based on  
-            the difference between the mean value of the adjacent peaks and the trough 
-            divided by the period around the trough.  (Not currently used.)
+            respiratory-variation-related fluctuations from neuronal-activity-
+            related fluctuations in fMRI'' by Rasmus M. Birn, Jason B. Diamond, 
+            Monica A. Smith, and Peter A. Bandettini, for each trough.  This 
+            approach is based on the difference between the mean value of the 
+            adjacent peaks and the trough divided by the period around the 
+            trough.  (Not currently used.)
     TYPE
        <class 'list'>
     SYNOPSIS
-       getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq)
+       getTroughRVTs(rawData, resp_peaks, resp_troughs, freq)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
-        respiratory_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time series.
+        resp_peaks:    <class 'numpy.ndarray'> Peaks in input respiratory time 
+                                               series.
         
-        respiratory_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory time series.
+        resp_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory 
+                                                 time series.
                 
         freq:       <class 'float'> Time point sampling frequency in Hz
                        
@@ -1957,36 +2045,40 @@ def getTroughRVTs(rawData, respiratory_peaks, respiratory_troughs, freq):
     """
    
     # Assign RVT to first trough
-    if respiratory_peaks[0] < respiratory_troughs[0]:
-        meanPeak = (rawData[respiratory_peaks[0]] + rawData[respiratory_peaks[1]])/2
-        troughRVTs = [(meanPeak - rawData[respiratory_troughs[0]])*freq/
-                    (respiratory_peaks[1] - respiratory_peaks[0])]
+    if resp_peaks[0] < resp_troughs[0]:
+        meanPeak = (rawData[resp_peaks[0]] + rawData[resp_peaks[1]])/2
+        troughRVTs = [(meanPeak - rawData[resp_troughs[0]])*freq/
+                    (resp_peaks[1] - resp_peaks[0])]
         peakIndexLeft = 1
     else:
         # Assume first breath symmetric about trough
-        troughRVTs = [((rawData[respiratory_peaks[0]] - rawData[respiratory_troughs[0]])*freq)/
-                    (2*(respiratory_peaks[0] - respiratory_troughs[0]))]
+        troughRVTs = [((rawData[resp_peaks[0]] -\
+                    rawData[resp_troughs[0]])*freq)/
+                    (2*(resp_peaks[0] - resp_troughs[0]))]
         peakIndexLeft = 0
 
     peakIndexRight = peakIndexLeft + 1
     
     # Determine range of troughs with peak on either side
-    if  respiratory_peaks[-1] > respiratory_troughs[-1]:
-        end = len(respiratory_troughs)
-    else: end = len(respiratory_peaks) - 1
+    if  resp_peaks[-1] > resp_troughs[-1]:
+        end = len(resp_troughs)
+    else: end = len(resp_peaks) - 1
         
     # Assign RVT values to middle troughs
     for i in range(1,end):
-        meanPeak = (rawData[respiratory_peaks[peakIndexLeft]] + rawData[respiratory_peaks[peakIndexRight]])/2
-        troughRVTs.append(((meanPeak - rawData[respiratory_troughs[i]])*freq)/
-                          (respiratory_peaks[peakIndexRight] - respiratory_peaks[peakIndexLeft]))
+        meanPeak = (rawData[resp_peaks[peakIndexLeft]] +\
+                rawData[resp_peaks[peakIndexRight]])/2
+        troughRVTs.append(((meanPeak - rawData[resp_troughs[i]])*freq)/
+                (resp_peaks[peakIndexRight] - resp_peaks[peakIndexLeft]))
         peakIndexLeft += 1
         peakIndexRight += 1
         
-    # Process last trough if it comes after the last peak.  Assume last breath symmetric
-    if  respiratory_peaks[-1] < respiratory_troughs[-1]:
-        troughRVTs.append(((rawData[respiratory_peaks[-1]] - rawData[respiratory_troughs[-1]])*freq)/
-                    (2*(respiratory_troughs[-1] - respiratory_peaks[-1])))
+    # Process last trough if it comes after the last peak.  Assume last breath 
+    # symmetric
+    if  resp_peaks[-1] < resp_troughs[-1]:
+        troughRVTs.append(((rawData[resp_peaks[-1]] -\
+                    rawData[resp_troughs[-1]])*freq)/
+                    (2*(resp_troughs[-1] - resp_peaks[-1])))
         
     return troughRVTs
 
@@ -2003,22 +2095,23 @@ def show_rvt_peak(resp_info, physiologicalNoiseComponents, parameters, fg):
     timeStepIncrement = parameters['TR']
     time1 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time1[i] = timeStepIncrement * i
-    numTimeSteps = len(physiologicalNoiseComponents['respiratory_phases'])
+    numTimeSteps = len(physiologicalNoiseComponents['resp_phases'])
     timeStepIncrement = 1.0/parameters['phys_fs']
     time2 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time2[i] = timeStepIncrement * i
        
-    plot(time2, physiologicalNoiseComponents["respiratory_phases"], "y")
+    plot(time2, physiologicalNoiseComponents["resp_phases"], "y")
     plot(
         time1, resp_info["phase_slice"][:, 0], "ro"
     )  
     plot(time1, resp_info["phase_slice"][:, 1], "bo")
     plot(time1, resp_info["phase_slice"][:, 1], "b-")
-    grid("on")
+    grid("on", color = "gray")
     xlabel("time (sec)")
     
     TitleStr = "Phase sampled at slice acquisition time\n"
-    TitleStr = TitleStr + "Original Phase (yellow), slice 0 (red) and slice 1 (blue)"
+    TitleStr = TitleStr +\
+        'Original Phase (yellow), slice 0 (red) and slice 1 (blue)'
     plt.title(TitleStr)
             
     # Save plot to file

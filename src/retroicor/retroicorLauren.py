@@ -120,7 +120,8 @@ def setup_exceptionhook():
             _pdb_excepthook(type, value, tb)
             
         ARGUMENTS
-            type: (dType = sys.exc_type) Exception type being handled (a subclass of BaseException)
+            type: (dType = sys.exc_type) Exception type being handled (a 
+                  subclass of BaseException)
             
             value: (dType = sys.exc_value) Exception instance
             
@@ -155,8 +156,9 @@ def getSliceOffsets(offsetDict):
         
             number_of_slices:   (dType = int) Number of slices
             
-            volume_tr:   (dType = float) Volume repetition time (TR) which defines the length of time 
-            between the acquisition of consecutive frames/volumes; in seconds
+            volume_tr:   (dType = float) Volume repetition time (TR) which 
+            defines the length of time between the acquisition of consecutive 
+            frames/volumes; in seconds
             
             -num_time_pts:  (dType = int) Number of time points in the output
             
@@ -258,7 +260,7 @@ def getSliceOffsets(offsetDict):
 
 def retro_ts(
     resp_file=None,
-    cardiac_file=None,
+    card_file=None,
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
@@ -274,7 +276,7 @@ def retro_ts(
     show_graphs=0,
     save_graphs=1,
     rvt_out=0,
-    cardiac_out=1,
+    card_out=1,
     resp_out=1,
     slice_order="alt+z",
     zero_phase_offset=0,
@@ -296,7 +298,7 @@ def retro_ts(
     SYNOPSIS
         retro_ts(
             resp_file=None,
-            cardiac_file=None,
+            card_file=None,
             phys_fs=None,
             number_of_slices=None,
             volume_tr=None,
@@ -310,7 +312,7 @@ def retro_ts(
             dev=0,
             verbose=False,
             rvt_out=0,
-            cardiac_out=1,
+            card_out=1,
             resp_out=1,
             slice_order="alt+z",
             show_graphs=0,
@@ -321,44 +323,52 @@ def retro_ts(
             args=None)
         
     ARGUMENTS
-        resp_file: (dType = str) String giving name of ASCII file with respiratory time series
+        resp_file: (dType = str) String giving name of ASCII file with 
+                   respiratory time series
         
-        cardiac_file: (dType = str) String giving name of ASCII file with cardiac time series
+        card_file: (dType = str) String giving name of ASCII file with 
+                      cardiac time series
         
         phys_fs: (dType = float) Physiological signal sampling frequency in Hz.
         
         number_of_slices: (dType = int) Number of slices.
         
-        volume_tr: (dType = float) Volume repetition time (TR) which defines the length of time 
-        between the acquisition of consecutive frames/volumes; in seconds
+        volume_tr: (dType = float) Volume repetition time (TR) which defines the 
+                   length of time between the acquisition of consecutive 
+                   frames/volumes; in seconds
         
         num_time_pts: (dType = int) Number of time points in the output
         
-        OutDir: (dType = str) String giving name of directory to create for output files.
-        Default is "retro_" follwed by the current date and time.
+        OutDir: (dType = str) String giving name of directory to create for 
+                output files.  Default is "retro_" follwed by the current date 
+                and time.
         
         prefix: (dType = str) Prefix for output filename.  Default = None
         
-        slice_offset: (dType = int) Vector of slice acquisition time offsets in seconds.
+        slice_offset: (dType = int) Vector of slice acquisition time offsets in 
+                      seconds.
         
         fir_order: (dType = int) Order of Finite Impulse Response (FIR) filter
         
         quiet: (dType = int) 0 if show graphs. 1 if do not show graphs
         
-        demo: (dType = int) Whether running in demo mode.  (Show graphs and pause between graphs.)
+        demo: (dType = int) Whether running in demo mode.  (Show graphs and 
+                            pause between graphs.)
         
-        dev: (dType = bool) Whether running in dev(elopment) mode.   (Show graphs and pause between graphs.)
+        dev: (dType = bool) Whether running in dev(elopment) mode.   (Show 
+                            graphs and pause between graphs.)
         
-        verbose: (dType = bool) Whether runnung in verbose mode.  Save graphs, of each filtering step, to disk.
+        verbose: (dType = bool) Whether runnung in verbose mode.  Save graphs, 
+                                of each filtering step, to disk.
         
         rvt_out: (dType = int) Flag for writing RVT regressors (default is 0)
         
-        cardiac_out: (dType = int) Flag for writing Cardiac regressors (default is 1)
+        card_out: (dType = int) Flag for writing Cardiac regressors (default is 1)
         
         resp_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
         
-        slice_order: (dType = str) Slice timing information in seconds. The default is
-        alt+z. See 3dTshift help for more info.
+        slice_order: (dType = str) Slice timing information in seconds. The 
+                     default is alt+z. See 3dTshift help for more info.
             alt+z    = alternating in the plus direction
             alt-z    = alternating in the minus direction
             seq+z    = sequential in the plus direction
@@ -374,11 +384,11 @@ def retro_ts(
         
         save_graphs: (dType = int) Whether to save graphs
         
-        zero_phase_offset: (dType = int) Phase offset added to the location of each peak.
-        Default is 0.0
+        zero_phase_offset: (dType = int) Phase offset added to the location of 
+                           each peak. Default is 0.0
         
-        phys_file: (dType = NoneType) BIDS formatted physio file in tab separated format. May
-        be gzipped.
+        phys_file: (dType = NoneType) BIDS formatted physio file in tab separated 
+        format. May be gzipped.
                        
         phys_json: (dType = NoneType) File metadata in JSON format
         
@@ -429,18 +439,18 @@ def retro_ts(
     resp_info["phys_fs"] = phys_fs
     cardiac_info = dict()
     cardiac_info["phys_fs"] = phys_fs
-    cardiac_info["cardiac_file"] = cardiac_file
+    cardiac_info["card_file"] = card_file
        
     # Get input file parameters
     print('Get input file parameters')
 
-    resp_file, phys_resp_dat, cardiac_file, phys_cardiac_dat =\
+    resp_file, phys_resp_dat, card_file, phys_card_dat =\
         getInputFileParameters(resp_info, cardiac_info, phys_file,\
-                            phys_json, resp_out, cardiac_out, rvt_out) 
+                            phys_json, resp_out, card_out, rvt_out) 
         
     # Set paremeters
     parameters = dict()
-    parameters['cardFile'] = cardiac_file
+    parameters['cardFile'] = card_file
     parameters['respFile'] = resp_file
     parameters['s'] = number_of_slices
     parameters['TR'] = volume_tr
@@ -450,15 +460,17 @@ def retro_ts(
     parameters['aby'] = aby
     parameters['niml'] = niml
     parameters['phys_resp_dat'] = phys_resp_dat
-    parameters['phys_cardiac_dat'] = phys_cardiac_dat
+    parameters['phys_card_dat'] = phys_card_dat
     parameters['dev'] = dev
     parameters['verbose'] = verbose
     parameters['rvt_out'] = rvt_out
     parameters['slice_offset'] = slice_offset
     if prefix: parameters['prefix'] = prefix
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
-    elif  parameters['cardFile']: parameters['prefix'] = getPrefix(parameters['cardFile'])
-    elif  parameters['cardFile']: parameters['prefix'] = getPrefix(parameters['respFile'])
+    elif  parameters['cardFile']: 
+        parameters['prefix'] = getPrefix(parameters['cardFile'])
+    elif  parameters['cardFile']: 
+        parameters['prefix'] = getPrefix(parameters['respFile'])
     else: 
         print('Error: Could not determine output file prefix')
         return 1
@@ -472,16 +484,18 @@ def retro_ts(
 
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
-        print('*** Error in retro_ts.  Failure to get physiological noise components')
+        print('*** Error in retro_ts.  Failure to get physiological noise\
+              components')
         return 1
     if parameters['niml']:
         return 0
     parameters['OutDir'] = OutDir
     lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
-    if len(physiologicalNoiseComponents['respiratory_phases']) > 0 and\
+    if len(physiologicalNoiseComponents['resp_phases']) > 0 and\
         (parameters['save_graphs'] or parameters['show_graphs']):
-        status = show_rvt_peak(resp_info, physiologicalNoiseComponents, parameters, 1)
+        status = show_rvt_peak(resp_info, physiologicalNoiseComponents, 
+                               parameters, 1)
         if status == 1:
             print('*** Error in retro_ts')
             print('Failure to show RVT peak')
@@ -491,7 +505,8 @@ def retro_ts(
     # physiologicalNoiseComponents.to_csv(outputFileName)
 
     # PLot first 200 rows of dataframe
-    # colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen','red','magenta']
+    # colors = ['blue','cyan','blueviolet','cadetblue', 'olive','yellowgreen',
+    # 'red','magenta']
     # physiologicalNoiseComponents.head(200).plot(color=colors)
     
     # Send output to terminal
@@ -501,8 +516,10 @@ def retro_ts(
 
 def getPrefix(fileName):
     
-    if fileName.find('/') >= 0: return fileName.split('/',1)[-1].split('.', 1)[0] # Linux search path
-    if fileName.find(':') >= 0: return fileName.split(':',1)[-1].split('.', 1)[0] # Mac search path
+    if fileName.find('/') >= 0: 
+        return fileName.split('/',1)[-1].split('.', 1)[0] # Linux search path
+    if fileName.find(':') >= 0: 
+        return fileName.split(':',1)[-1].split('.', 1)[0] # Mac search path
     
     # No search path given
     return fileName.split('.', 1)[0]
@@ -518,24 +535,26 @@ This function creates slice-based regressors for regressing out components of
     heart rate, resp and respiration volume per time.
 
 Windows Example:
-C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
+C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat 
+    -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
 
 Mac/Linux Example:
-/usr/afni/python retroicorLauren.py -resp_file resp_file.dat -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
+/usr/afni/python retroicorLauren.py -resp_file resp_file.dat 
+    -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
 
 Input
 ================================================================================
-    retroicorLauren.py can be run with independent respiration and cardiac data files
-    (Method 1), or with a BIDS formatted physio file and json (Method 2).
+    retroicorLauren.py can be run with independent respiration and cardiac data 
+    files (Method 1), or with a BIDS formatted physio file and json (Method 2).
 
     Method 1:
     ---------
     respFile: (respiration_file) Respiration data file
-    caesFile: (cardiac_file) Cardiac data file
+    caesFile: (card_file) Cardiac data file
     freq: (phys_fs) Physiological signal sampling frequency in Hz.
     numSlices: (number_of_slices) Number of slices
-    volume_tr: (volume_tr) Volume repetition time (TR) which defines the length of time 
-    between the acquisition of consecutive frames/volumes; in seconds
+    volume_tr: (volume_tr) Volume repetition time (TR) which defines the length 
+    of time between the acquisition of consecutive frames/volumes; in seconds
     num_time_pts: (dType = int) Number of time points in the output
 
     Method 2:
@@ -550,15 +569,18 @@ Input
 
     Optional:
     ---------
-    abt 0|1                  : Output a and b coefficients to terminal (Default = false)
-    aby 0|1                  : Output time series based on a,b coefficients (Default = false) 
-    niml 0|1                 : Output in NIML format instead of CSV format (Default = false) 
+    abt 0|1                  : Output a and b coefficients to terminal 
+                               (Default = false)
+    aby 0|1                  : Output time series based on a,b coefficients 
+                               (Default = false) 
+    niml 0|1                 : Output in NIML format instead of CSV format 
+                               (Default = false) 
     ============================================================================
     OutDir: Output directory
     ============================================================================
     prefix: Prefix of output file
     ============================================================================
-    cardiac_out: Flag for writing Cardiac regressors
+    card_out: Flag for writing Cardiac regressors
             (default is 1)
     resp_out: Flag for writing Respiratory regressors
             (default is 1)
@@ -606,26 +628,26 @@ Input
             For example, the following 4 commands would produce identical
             output, based on 10 slices using a (non-default) alt-z slice order:
 
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D             \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred    \\
+               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
+                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
                           -slice_order alt-z -Nt 220
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D             \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred    \\
+               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
+                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
                           -slice_order custom              \\
                           -slice_offset "$offlist" -Nt 220
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D             \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred    \\
+               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
+                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
                           -slice_order custom              \\
                           -slice_offset "$offlist" -Nt 220
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D             \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred    \\
+               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
+                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
                           -slice_order slice_offsets.txt -Nt 220
 
 
@@ -639,8 +661,9 @@ Output:
     option "-prefix".
 
     Example:
-    C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat -card_file card_file.dat -freq 50 -num_slices 20
-        -volume_tr 2 -prefix subject12_regressors -resp_out 1 -cardiac_out 1 -Nt 220
+    C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat 
+        -card_file card_file.dat -freq 50 -num_slices 20
+        -volume_tr 2 -prefix subject12_regressors -resp_out 1 -card_out 1 -Nt 220
 
         Output:
         The file "subject12_regressors.slibase.1D" will be saved to current
@@ -663,7 +686,7 @@ Output:
         "-verbose": False,
         "-debug": False,
         "-rvt_out": 0,
-        "-cardiac_out": 1,
+        "-card_out": 1,
         "-resp_out": 1,
         "-slice_order": "alt+z",
         "-show_graphs": 0,
@@ -715,7 +738,7 @@ Output:
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     return_status = retro_ts(
         resp_file=opt_dict["-resp_file"],
-        cardiac_file=opt_dict["-card_file"],
+        card_file=opt_dict["-card_file"],
         phys_fs=opt_dict["-freq"],
         number_of_slices=int(opt_dict["-num_slices"]),
         volume_tr=float(opt_dict["-volume_tr"]),
@@ -729,7 +752,7 @@ Output:
         dev=opt_dict["-dev"],
         verbose=opt_dict["-verbose"],
         rvt_out= (int(opt_dict["-rvt_out"]) ),
-        cardiac_out= (int(opt_dict["-cardiac_out"])),
+        card_out= (int(opt_dict["-card_out"])),
         resp_out= (int(opt_dict["-resp_out"])),
         slice_order=opt_dict["-slice_order"],
         show_graphs=int(opt_dict["-show_graphs"]),
