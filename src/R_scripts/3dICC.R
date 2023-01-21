@@ -1,4 +1,4 @@
-1;95;0c!/usr/bin/env AFNI_Batch_R
+#!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
