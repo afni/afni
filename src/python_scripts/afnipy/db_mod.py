@@ -1840,7 +1840,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
        dstr = '%s          -datum %s \\\n' % (indent, rdatum)
 
     errset = '%s.errts.r$run%s%s' % (prefix, eistr, proc.view)
-    detset = '%s.det.r$run%s%s'   % (prefix, eistr, proc.view)
+    detset = '%s.det.r$run%s'     % (prefix, eistr)
     cmd = cmd +                                                         \
         "%s    # final result: add REML errts to polynomial baseline\n" \
         "%s    3dcalc -a %s \\\n"                                       \
@@ -1852,9 +1852,9 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
            indent, prefix, eistr, proc.view,
            dstr, indent, cur_prefix)
 
-    # QC: create string for variance maps
+    # QC: create string for variance maps (1 and '    ' for perrun)
     cmd = cmd + ricor_qc_varmaps(proc, qcdir, prev_prefix, matrix,
-                                 errset, detset, eistr, indent)
+                                 errset, detset, eistr, 1, indent+'    ')
 
     if proc.use_me:
        cmd = cmd + "    end\n\n"
@@ -1868,7 +1868,8 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
 
     return cmd
 
-def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset, eistr, indent):
+def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
+                     eistr, perrun, indent):
    """create QC variance ratio dset, and intermediate stdev maps
 
       given:
@@ -1877,6 +1878,7 @@ def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset, eistr, indent):
            polmat  - polort X-matrix (xmat.1D)
            errset  - errts from regression
            eistr   - echo index string, in case we write per echo
+           perrun  - is this per run (do we need a $run variable)?
            indent  - indentation string
       create:
            detset  - detrend dset (no +view)
@@ -1885,38 +1887,54 @@ def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset, eistr, indent):
               ricor.vrat            : variance ratio
    """
 
+   # 4 cases for a comment string...
+   cstr = ''
+   if eistr != '':
+      cstr = 'per echo'
+   if perrun:
+      if cstr == '':    # new comment
+         cstr += 'per run'
+      else:             # already have per echo
+         cstr += ' and run'
+   if cstr != '':
+      cstr = ' (%s)' % cstr
+
    # input: prev_prefix, matrix (polort)
-   qcstr = "\n"                                                            \
-       "%s    # -------------------------------------------------------\n" \
-       "%s    # QC: compute stdev and variance ratio (per echo and run)\n" \
-       "\n"                                                                \
-       "%s    # remove polort baseline from original (for variance)\n"     \
-       "%s    3dTproject -polort 0 -ort %s \\\n"                           \
-       "%s               -input %s \\\n"                                   \
-       "%s               -prefix %s\n\n"                                   \
-       % (indent, indent, indent,
+   qcstr = "\n"                                                        \
+       "%s# -------------------------------------------------------\n" \
+       "%s# QC: compute stdev and variance ratio%s\n"                  \
+       "\n"                                                            \
+       "%s# remove polort baseline from original (for variance)\n"     \
+       "%s3dTproject -polort 0 -ort %s \\\n"                           \
+       "%s           -input %s \\\n"                                   \
+       "%s           -prefix %s\n\n"                                   \
+       % (indent, indent, cstr, indent,
           indent, polmat, indent, inset,
           indent, detset)
 
-   stdev_orig  = 'ricor.sd.orig.r$run%s' % eistr
-   stdev_ricor = 'ricor.sd.ricor.r$run%s' % eistr
-   var_rat     = 'ricor.vrat.r$run%s' % eistr
+   # include $run var if needed
+   if perrun: rstr = '.r$run'
+   else:      rstr = ''
 
-   qcstr = qcstr +                                                  \
-       "%s    # compute stdev maps: orig and ricor (detrended)\n"   \
-       "%s    3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
-       "%s            %s\n"                                         \
-       "%s    3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
-       "%s            %s\n\n"                                       \
-       % (indent, indent, qcdir, stdev_orig, indent, detset,
+   stdev_orig  = 'ricor.sd.orig%s%s' % (rstr, eistr)
+   stdev_ricor = 'ricor.sd.ricor%s%s' % (rstr, eistr)
+   var_rat     = 'ricor.vrat%s%s' % (rstr, eistr)
+
+   qcstr = qcstr +                                              \
+       "%s# compute stdev maps: orig and ricor (detrended)\n"   \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s%s\n"                                       \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s\n\n"                                       \
+       % (indent, indent, qcdir, stdev_orig, indent, detset, proc.view,
                   indent, qcdir, stdev_ricor, indent, errset)
 
-   qcstr = qcstr +                                                      \
-       "%s    # compute variance ratio (>1), removing small values\n"   \
-       "%s    3dcalc -a %s/%s%s \\\n"                                   \
-       "%s           -b %s/%s%s \\\n"                                   \
-       "%s           -expr 'step(a-1)*step(b-1)*a**2/b**2' \\\n"        \
-       "%s           -prefix %s/%s\n"                                   \
+   qcstr = qcstr +                                                  \
+       "%s# compute variance ratio (>1), removing small values\n"   \
+       "%s3dcalc -a %s/%s%s \\\n"                                   \
+       "%s       -b %s/%s%s \\\n"                                   \
+       "%s       -expr 'step(a-1)*step(b-1)*a**2/b**2' \\\n"        \
+       "%s       -prefix %s/%s\n"                                   \
        % (indent, indent, qcdir, stdev_orig, proc.view,
                   indent, qcdir, stdev_ricor, proc.view,
           indent, indent, qcdir, var_rat)
