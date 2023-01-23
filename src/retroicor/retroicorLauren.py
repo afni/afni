@@ -22,7 +22,6 @@ __author__ = "Peter Lauren"
     
     TODO:
         - Test start time via TR shift
-        - Get rid of camel casing in
         - Align names of variables
         - Add plot font size as command line option
         - quiet switch?
@@ -264,6 +263,7 @@ def retro_ts(
     phys_fs=None,
     number_of_slices=None,
     volume_tr=None,
+    start_time=None,
     num_time_pts=None,
     OutDir=now_str,
     prefix=None,
@@ -302,6 +302,7 @@ def retro_ts(
             phys_fs=None,
             number_of_slices=None,
             volume_tr=None,
+            start_time=None,
             num_time_pts=None,
             OutDir=now_str,
             prefix=None,
@@ -336,6 +337,8 @@ def retro_ts(
         volume_tr: (dType = float) Volume repetition time (TR) which defines the 
                    length of time between the acquisition of consecutive 
                    frames/volumes; in seconds
+                   
+        start_time: Start time in secomds.  (Must be negative)
         
         num_time_pts: (dType = int) Number of time points in the output
         
@@ -454,6 +457,7 @@ def retro_ts(
     parameters['respFile'] = resp_file
     parameters['s'] = number_of_slices
     parameters['TR'] = volume_tr
+    parameters['StartTime'] = start_time
     parameters['num_time_pts'] = int(num_time_pts)
     parameters['phys_fs'] = phys_fs
     parameters['abt'] = abt
@@ -675,6 +679,7 @@ Output:
         "-freq": None,
         "-num_slices": None,
         "-volume_tr": None,
+        "-start_time": None,
         "-num_time_pts": None,
         "-out_dir": now_str,
         "-prefix": None,
@@ -742,6 +747,7 @@ Output:
         phys_fs=opt_dict["-freq"],
         number_of_slices=int(opt_dict["-num_slices"]),
         volume_tr=float(opt_dict["-volume_tr"]),
+        start_time=float(opt_dict["-start_time"]),
         num_time_pts=int(opt_dict["-num_time_pts"]),
         OutDir=opt_dict["-out_dir"],
         prefix=opt_dict["-prefix"],

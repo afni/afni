@@ -867,6 +867,9 @@ def getPhysiologicalNoiseComponents(parameters):
     rawDataParams = dict()
     if 'StartTime' in parameters: 
         rawDataParams['StartTime'] = parameters['StartTime']
+        if 'TR' in parameters: # Start-time/TR test
+            print('TR shift in regressors = ', 
+                  rawDataParams['StartTime'] - parameters['TR'])
     rawDataParams["phys_fs"] = parameters["phys_fs"]
     
     # Process cardiac data if any
