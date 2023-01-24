@@ -159,7 +159,7 @@ def getSliceOffsets(offsetDict):
             defines the length of time between the acquisition of consecutive 
             frames/volumes; in seconds
             
-            -num_time_pts:  (dType = int) Number of time points in the output
+            num_time_pts:  (dType = int) Number of time points in the output
             
             slice_offset:   (2D array dType = numpy.float64) Vector of slice 
                             acquisition time offsets in seconds.
@@ -498,8 +498,7 @@ def retro_ts(
     
     if len(physiologicalNoiseComponents['resp_phases']) > 0 and\
         (parameters['save_graphs'] or parameters['show_graphs']):
-        status = show_rvt_peak(resp_info, physiologicalNoiseComponents, 
-                               parameters, 1)
+        status = show_rvt_peak(physiologicalNoiseComponents, parameters)
         if status == 1:
             print('*** Error in retro_ts')
             print('Failure to show RVT peak')

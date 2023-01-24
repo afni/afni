@@ -263,23 +263,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
         phys_fs = parameters["phys_fs"], OutDir = OutDir)
-   
-           
-     # Check for, and fill in, missing peaks - MAKE OWN FUNCTION
-   # interpeak = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
-   # minSep = min(interpeak)
-   # Threshold = minSep * 2
-   # numPeaks = len(peaks)
-   # for p in range(numPeaks-2,-1,-1):
-   #      if interpeak[p] > Threshold:
-   #          numberToAdd = int(round(interpeak[p]/minSep))
-   #          sep = round(interpeak[p]/numberToAdd)
-   #          if sep < minSep:
-   #              numberToAdd = numberToAdd - 1
-   #              sep = round(interpeak[p]/numberToAdd)               
-   #          for i in range(1,numberToAdd):
-   #              peaks = np.insert(peaks, p+i, peaks[p]+i*sep)
-    
+      
    # Graph cardiac peaks against respiratory time series
    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
          parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], 
@@ -846,15 +830,15 @@ def getPhysiologicalNoiseComponents(parameters):
             
             cardFile:   file containing cardiac time series
             
-            -aby     : whether  a and b coefficients as per Glover et al, 
+            aby     : whether  a and b coefficients as per Glover et al, 
                        Magnetic Resonance in Medicine 44:162–167 (2000)
                                         
-            -niml    : whether output should be in niml format instead of CSV
+            niml    : whether output should be in niml format instead of CSV
             
-            -TR      : (dtype = class 'float') (volume_tr) Volume repetition 
+            TR      : (dtype = class 'float') (volume_tr) Volume repetition 
                        time (TR) which defines the length of time            
                         
-            -num_time_pts:  (dType = int) Number of time points in the output
+            num_time_pts:  (dType = int) Number of time points in the output
     AUTHOR
        Peter Lauren
     """
@@ -1016,10 +1000,10 @@ def limitNumOutputTimepoints(rawData, parameters):
         parameters:   Dictionary with the following fields.
             phys_fs: (dType = float) Physiological signal sampling frequency (Hz)
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition  
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition  
                         time (TR) which defines the length of time 
                         
-            -num_time_pts:  (dType = int) Number of time points in the output
+            num_time_pts:  (dType = int) Number of time points in the output
 
     AUTHOR
         Peter Lauren
@@ -1041,7 +1025,7 @@ def limitNumOutputTimepoints(rawData, parameters):
     #   be greater than the determined maximum
     if parameters['num_time_pts']: 
         if parameters['num_time_pts'] > max_numTime_pts:
-            print('WARNING: -num_time_pts argument too large for input data')
+            print('WARNING: num_time_pts argument too large for input data')
             print('  Adjusted to maximum allowable value, ', max_numTime_pts)
             parameters['num_time_pts'] = max_numTime_pts
     else: 
@@ -1122,12 +1106,12 @@ def runAnalysis(parameters):
             
             cardFile:   file containing cardiac time series
             
-            -aby: whether  a and b coefficients as per Glover et al, Magnetic  
+            aby: whether  a and b coefficients as per Glover et al, Magnetic  
                   Resonance in Medicine 44:162–167 (2000)
                                         
-            -niml: whether output should be in niml format instead of CSV
+            niml: whether output should be in niml format instead of CSV
             
-            -outputFileName:   Output filename
+            outputFileName:   Output filename
             
     AUTHOR
        Peter Lauren
@@ -1308,12 +1292,12 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
             
         parameters:   Dictionary with the following fields.
         
-            -s:        (dtype = class 'int') Number of slices
+            s:        (dtype = class 'int') Number of slices
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
                        time (TR) which defines the length of time 
             
-            -phys_fs:   (dType = float) Physiological signal sampling frequency 
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
                                         in Hz.
         
             rvt_out:   (dType = int) Whether to have RVT output
@@ -1498,9 +1482,9 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             
         parameters:   Dictionary with the following fields.
         
-            -s:        (dtype = class 'int') Number of slices
+            s:        (dtype = class 'int') Number of slices
             
-            -TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
                         time (TR) which defines the length of time 
             
             phys_fs:   (dType = float) Physiological signal sampling frequency 
@@ -2085,7 +2069,45 @@ def getTroughRVTs(rawData, resp_peaks, resp_troughs, freq):
         
     return troughRVTs
 
-def show_rvt_peak(resp_info, physiologicalNoiseComponents, parameters, fg):
+def show_rvt_peak(physiologicalNoiseComponents, parameters):
+    """
+    NAME
+        show_rvt_peak 
+            Show RVT peaks and phase sampled at different acquisition times.
+    TYPE
+       <class 'int'>
+    SYNOPSIS
+       show_rvt_peak(physiologicalNoiseComponents, parameters)
+    ARGUMENTS
+        physiologicalNoiseComponents: <class 'dict'> Dictionary with the
+                                                            following field:
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+                                                 time series.
+                
+        parameters:       <class 'float'> Time point sampling frequency in Hz
+        
+            s:        (dtype = class 'int') Number of slices
+            
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                        time (TR) which defines the length of time 
+            
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                       in Hz.
+        
+            slice_offset: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                          
+            save_graphs: (dtype = <class 'bool'>) Whether to save graph to file
+                
+            show_graphs: (dtype = <class 'bool'>) Whether to display graph 
+                            while program is running
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+   
     
     resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 'r', 
                         parameters)
