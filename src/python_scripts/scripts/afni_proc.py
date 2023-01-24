@@ -745,9 +745,10 @@ g_history = """
     7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
     7.49 Nov 23, 2022: added examples simple_rest_QC, simple_rest_QC_na
     7.50 Dec 16, 2022: update example 6, 6b
+    7.51 Jan 24, 2023: add QC to ricor block
 """
 
-g_version = "version 7.50, December 16, 2022"
+g_version = "version 7.51, January 24, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

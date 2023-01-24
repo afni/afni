@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jan, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add QC output to ricor block",
+   NULL
+ } ,
+
  {  3, Jan, 2023, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
    "fix -write_tsv_cols_of_interest with -tsv_labels",
    NULL
