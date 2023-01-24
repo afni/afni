@@ -1674,15 +1674,18 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     # process 3D+time data
     if proc.use_me:
-       eprefix = prefix + '.e$eind'
+       eistr = '.e$eind'
        indent = '   '
-       eiter = '.e$eind'
        cmd += "# process one echo at a time, across runs\n" \
               "foreach eind ( $echo_list )\n"
     else:
-       eprefix = prefix
+       eistr = ''
        indent = ''
-       eiter = ''
+
+    # set more complete variables, to include QC
+    eprefix = prefix + eistr
+    errset = '%s.errts' % eprefix
+    detset = '%s.det' % eprefix
 
     cmd = cmd +                                                      \
         "%s# 3dREMLfit does not currently catenate a dataset list\n" \
@@ -1694,11 +1697,11 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         '%s3dREMLfit -input "$dsets" \\\n'                        \
         "%s    -matrix %s \\\n"                                   \
         "%s    -%sbeta %s.betas \\\n"                             \
-        "%s    -%serrts %s.errts \\\n"                            \
+        "%s    -%serrts %s \\\n"                                  \
         "%s    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
         % (indent, indent, indent, indent, matrix,
            indent, solver, eprefix,
-           indent, solver, eprefix, indent)
+           indent, solver, errset, indent)
 
     cmd = cmd +                                                   \
         "%s# re-create polynomial baseline\n"                     \
@@ -1728,18 +1731,20 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "\n" % (indent, indent, indent, indent, indent, indent, indent)
 
     cmd = cmd +                                                     \
-        '%s    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'     \
+        '%s    3dcalc -a %s%s"[$startind..$endind]" \\\n'           \
         '%s           -b %s.polort%s"[$startind..$endind]" \\\n'    \
         '%s'                                                        \
         '%s           -expr a+b -prefix %s\n'                       \
         "%s    @ startind = $endind + 1\n"                          \
-        % (indent, eprefix, proc.view,
+        % (indent, errset, proc.view,
            indent, eprefix, proc.view, dstr,
            indent, cur_prefix, indent)
-
-    # QC: create variance maps
-
     cmd = cmd + '%send\n' % indent
+
+
+    # QC: create string for variance maps (1 and '    ' for perrun)
+    cmd = cmd + ricor_qc_varmaps(proc, qcdir, '"$dsets"', matrix,
+                     '%s%s'%(errset,proc.view), detset, eistr, 0, indent)
 
     if proc.use_me:
        cmd = cmd + 'end\n'
