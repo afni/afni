@@ -1638,9 +1638,14 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - across runs: catenate regressors across runs\n'\
-          'foreach run ( $runs )\n' % block_header('ricor')
+          % block_header('ricor')
+
+    # create QC directory for variance ratios
+    qcdir = 'ricor_QC'
+    cmd = cmd + ricor_qc_mkdir(qcdir)
 
     cmd = cmd +                                                         \
+        "foreach run ( $runs )\n"                                       \
         "    # detrend regressors (make orthogonal to poly baseline)\n" \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"        \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
@@ -1668,15 +1673,18 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     # process 3D+time data
     if proc.use_me:
-       eprefix = prefix + '.e$eind'
+       eistr = '.e$eind'
        indent = '   '
-       eiter = '.e$eind'
        cmd += "# process one echo at a time, across runs\n" \
               "foreach eind ( $echo_list )\n"
     else:
-       eprefix = prefix
+       eistr = ''
        indent = ''
-       eiter = ''
+
+    # set more complete variables, to include QC
+    eprefix = prefix + eistr
+    errset = '%s.errts' % eprefix
+    detset = '%s.det' % eprefix
 
     cmd = cmd +                                                      \
         "%s# 3dREMLfit does not currently catenate a dataset list\n" \
@@ -1688,11 +1696,11 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         '%s3dREMLfit -input "$dsets" \\\n'                        \
         "%s    -matrix %s \\\n"                                   \
         "%s    -%sbeta %s.betas \\\n"                             \
-        "%s    -%serrts %s.errts \\\n"                            \
+        "%s    -%serrts %s \\\n"                                  \
         "%s    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
         % (indent, indent, indent, indent, matrix,
            indent, solver, eprefix,
-           indent, solver, eprefix, indent)
+           indent, solver, errset, indent)
 
     cmd = cmd +                                                   \
         "%s# re-create polynomial baseline\n"                     \
@@ -1722,15 +1730,20 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "\n" % (indent, indent, indent, indent, indent, indent, indent)
 
     cmd = cmd +                                                     \
-        '%s    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'     \
+        '%s    3dcalc -a %s%s"[$startind..$endind]" \\\n'           \
         '%s           -b %s.polort%s"[$startind..$endind]" \\\n'    \
         '%s'                                                        \
         '%s           -expr a+b -prefix %s\n'                       \
         "%s    @ startind = $endind + 1\n"                          \
-        '%send\n'                                                   \
-        % (indent, eprefix, proc.view,
+        % (indent, errset, proc.view,
            indent, eprefix, proc.view, dstr,
-           indent, cur_prefix, indent, indent)
+           indent, cur_prefix, indent)
+    cmd = cmd + '%send\n' % indent
+
+
+    # QC: create string for variance maps (1 and '    ' for perrun)
+    cmd = cmd + ricor_qc_varmaps(proc, qcdir, '"$dsets"', matrix,
+                     '%s%s'%(errset,proc.view), detset, eistr, 0, indent)
 
     if proc.use_me:
        cmd = cmd + 'end\n'
@@ -1764,9 +1777,14 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - per run: each run uses separate regressors\n'  \
-          'foreach run ( $runs )\n' % block_header('ricor')
+          % block_header('ricor')
+
+    # create QC directory for variance ratios
+    qcdir = 'ricor_QC'
+    cmd = cmd + ricor_qc_mkdir(qcdir)
 
     cmd = cmd +                                                            \
+        "foreach run ( $runs )\n"                                          \
         "    # detrend regressors (make orthogonal to poly baseline)\n"    \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"           \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"                 \
@@ -1825,16 +1843,22 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     else:
        dstr = '%s          -datum %s \\\n' % (indent, rdatum)
 
+    errset = '%s.errts.r$run%s%s' % (prefix, eistr, proc.view)
+    detset = '%s.det.r$run%s'     % (prefix, eistr)
     cmd = cmd +                                                         \
         "%s    # final result: add REML errts to polynomial baseline\n" \
-        "%s    3dcalc -a %s.errts.r$run%s%s \\\n"                       \
+        "%s    3dcalc -a %s \\\n"                                       \
         "%s           -b %s.polort.r$run%s%s \\\n"                      \
         '%s'                                                            \
         "%s           -expr a+b -prefix %s\n"                           \
         % (indent,
-           indent, prefix, eistr, proc.view,
+           indent, errset,
            indent, prefix, eistr, proc.view,
            dstr, indent, cur_prefix)
+
+    # QC: create string for variance maps (1 and '    ' for perrun)
+    cmd = cmd + ricor_qc_varmaps(proc, qcdir, prev_prefix, matrix,
+                                 errset, detset, eistr, 1, indent+'    ')
 
     if proc.use_me:
        cmd = cmd + "    end\n\n"
@@ -1847,6 +1871,83 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         "1dcat rm.ricor_s0_r[0-9]*.1D > %s\n\n" % proc.ricor_reg
 
     return cmd
+
+def ricor_qc_varmaps(proc, qcdir, inset, polmat, errset, detset,
+                     eistr, perrun, indent):
+   """create QC variance ratio dset, and intermediate stdev maps
+
+      given:
+           qcdir   - qc directory name
+           inset   - orig dset
+           polmat  - polort X-matrix (xmat.1D)
+           errset  - errts from regression
+           eistr   - echo index string, in case we write per echo
+           perrun  - is this per run (do we need a $run variable)?
+           indent  - indentation string
+      create:
+           detset  - detrend dset (no +view)
+           STATS:  
+              ricor.sd.{orig,ricor} : stdev of detrended time series
+              ricor.vrat            : variance ratio
+   """
+
+   # 4 cases for a comment string...
+   cstr = ''
+   if eistr != '':
+      cstr = 'per echo'
+   if perrun:
+      if cstr == '':    # new comment
+         cstr += 'per run'
+      else:             # already have per echo
+         cstr += ' and run'
+   if cstr != '':
+      cstr = ' (%s)' % cstr
+
+   # input: prev_prefix, matrix (polort)
+   qcstr = "\n"                                                        \
+       "%s# -------------------------------------------------------\n" \
+       "%s# QC: compute stdev and variance ratio%s\n"                  \
+       "\n"                                                            \
+       "%s# remove polort baseline from original (for variance)\n"     \
+       "%s3dTproject -polort 0 -ort %s \\\n"                           \
+       "%s           -input %s \\\n"                                   \
+       "%s           -prefix %s\n\n"                                   \
+       % (indent, indent, cstr, indent,
+          indent, polmat, indent, inset,
+          indent, detset)
+
+   # include $run var if needed
+   if perrun: rstr = '.r$run'
+   else:      rstr = ''
+
+   stdev_orig  = 'ricor.sd.orig%s%s' % (rstr, eistr)
+   stdev_ricor = 'ricor.sd.ricor%s%s' % (rstr, eistr)
+   var_rat     = 'ricor.vrat%s%s' % (rstr, eistr)
+
+   qcstr = qcstr +                                              \
+       "%s# compute stdev maps: orig and ricor (detrended)\n"   \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s%s\n"                                       \
+       "%s3dTstat -stdevNOD -prefix %s/%s \\\n"                 \
+       "%s        %s\n\n"                                       \
+       % (indent, indent, qcdir, stdev_orig, indent, detset, proc.view,
+                  indent, qcdir, stdev_ricor, indent, errset)
+
+   qcstr = qcstr +                                                  \
+       "%s# compute variance ratio (>1), removing small values\n"   \
+       "%s3dcalc -a %s/%s%s \\\n"                                   \
+       "%s       -b %s/%s%s \\\n"                                   \
+       "%s       -expr 'step(a-1)*step(b-1)*a**2/b**2' \\\n"        \
+       "%s       -prefix %s/%s\n"                                   \
+       % (indent, indent, qcdir, stdev_orig, proc.view,
+                  indent, qcdir, stdev_ricor, proc.view,
+          indent, indent, qcdir, var_rat)
+
+   return qcstr
+
+def ricor_qc_mkdir(qcdir):
+    return "\n# store variance maps in QC directory\n" \
+           "mkdir %s\n\n" % qcdir
 
 # --------------- tshift ---------------
 
