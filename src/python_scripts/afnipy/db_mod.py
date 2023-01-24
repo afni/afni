@@ -1640,7 +1640,6 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
           '#           - across runs: catenate regressors across runs\n'\
           % block_header('ricor')
 
-    # rcr - come back to across runs
     # create QC directory for variance ratios
     qcdir = 'ricor_QC'
     cmd = cmd + ricor_qc_mkdir(qcdir)
