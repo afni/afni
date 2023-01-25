@@ -258,35 +258,35 @@ def getSliceOffsets(offsetDict):
     
 
 def retro_ts(
-    resp_file=None,
-    card_file=None,
-    phys_fs=None,
-    number_of_slices=None,
-    volume_tr=None,
-    start_time=None,
-    num_time_pts=None,
-    OutDir=now_str,
-    prefix=None,
-    slice_offset=0,
-    fir_order=40,
-    quiet=1,
-    demo=0,
-    dev=False,
-    verbose=False,
-    show_graphs=0,
-    save_graphs=1,
-    font_size=10,
-    rvt_out=0,
-    card_out=1,
-    resp_out=1,
-    slice_order="alt+z",
-    zero_phase_offset=0,
-    phys_file=None,
-    phys_json=None,
-    abt=False,
-    aby=False,
-    niml = False,
-    args=None
+    resp_file         = None,
+    card_file         = None,
+    phys_fs           = None,
+    number_of_slices  = None,
+    volume_tr         = None,
+    start_time        = None,
+    num_time_pts      = None,
+    OutDir            = now_str,
+    prefix            = None,
+    slice_offset      = 0,
+    fir_order         = 40,
+    quiet             = 1,
+    demo              = 0,
+    dev               = False,
+    verbose           = False,
+    show_graphs       = 0,
+    save_graphs       = 1,
+    font_size         = 10,
+    rvt_out           = 0,
+    card_out          = 1,
+    resp_out          = 1,
+    slice_order       = "alt+z",
+    zero_phase_offset = 0,
+    phys_file         = None,
+    phys_json         = None,
+    abt               = False,
+    aby               = False,
+    niml              =  False,
+    args              = None
 ):
     """
     NAME
@@ -426,7 +426,8 @@ def retro_ts(
         slice_offset = np.zeros((1, number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
-    print('Update slice offsets.  Note that this is done before the data is read')
+    print('Update slice offsets.  '
+          'Note that this is done before the data is read')
     offsetDict = dict()
     offsetDict["slice_offset"] = slice_offset
     offsetDict["volume_tr"] = volume_tr
@@ -457,22 +458,23 @@ def retro_ts(
         
     # Set paremeters
     parameters = dict()
-    parameters['cardFile'] = card_file
-    parameters['respFile'] = resp_file
-    parameters['s'] = number_of_slices
-    parameters['TR'] = volume_tr
-    parameters['StartTime'] = start_time
-    parameters['num_time_pts'] = int(num_time_pts)
-    parameters['phys_fs'] = phys_fs
-    parameters['abt'] = abt
-    parameters['aby'] = aby
-    parameters['niml'] = niml
+    parameters['cardFile']      = card_file
+    parameters['respFile']      = resp_file
+    parameters['s']             = number_of_slices
+    parameters['TR']            = volume_tr
+    parameters['StartTime']     = start_time
+    parameters['num_time_pts']  = int(num_time_pts)
+    parameters['phys_fs']       = phys_fs
+    parameters['abt']           = abt
+    parameters['aby']           = aby
+    parameters['niml']          = niml
     parameters['phys_resp_dat'] = phys_resp_dat
     parameters['phys_card_dat'] = phys_card_dat
-    parameters['dev'] = dev
-    parameters['verbose'] = verbose
-    parameters['rvt_out'] = rvt_out
-    parameters['slice_offset'] = slice_offset
+    parameters['dev']           = dev
+    parameters['verbose']       = verbose
+    parameters['rvt_out']       = rvt_out
+    parameters['slice_offset']  = slice_offset
+
     if prefix: parameters['prefix'] = prefix
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
     elif  parameters['cardFile']: 
@@ -482,14 +484,17 @@ def retro_ts(
     else: 
         print('Error: Could not determine output file prefix')
         return 1
+
     if cardiac_info['phys_fs']: parameters['phys_fs'] = cardiac_info['phys_fs']
     else: parameters['phys_fs'] = resp_info['phys_fs']    
+
     if not parameters['phys_fs']:
         print('Error: Sampling frequency in Hz (phys_fs) required')
         return 1
-    parameters['show_graphs']=show_graphs
-    parameters['save_graphs']=save_graphs
-    parameters['font_size']=font_size
+
+    parameters['show_graphs'] = show_graphs
+    parameters['save_graphs'] = save_graphs
+    parameters['font_size']   = font_size
 
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
@@ -679,35 +684,35 @@ Output:
         directory, including respiratory regressors and cardiac regressors.
 
         """,
-        "-resp_file": None,
-        "-card_file": None,
-        "-freq": None,
-        "-num_slices": None,
-        "-volume_tr": None,
-        "-start_time": None,
-        "-num_time_pts": None,
-        "-out_dir": now_str,
-        "-prefix": None,
-        "-slice_offset": 0,
-        "-fir_order": 40,
-        "-quiet": 1,
-        "-demo": 0,
-        "-dev": False,
-        "-verbose": False,
-        "-debug": False,
-        "-rvt_out": 0,
-        "-card_out": 1,
-        "-resp_out": 1,
-        "-slice_order": "alt+z",
-        "-show_graphs": 0,
-        "-save_graphs": 1,
-        "-font_size": 10,
-        "-zero_phase_offset": 0,
-        "-phys_file":None,
-        "-phys_json":None,
-        "-abt": False,
-        "-aby": False,
-        "-niml": False
+        "-resp_file"         : None,
+        "-card_file"         : None,
+        "-freq"              : None,
+        "-num_slices"        : None,
+        "-volume_tr"         : None,
+        "-start_time"        : None,
+        "-num_time_pts"      : None,
+        "-out_dir"           : now_str,
+        "-prefix"            : None,
+        "-slice_offset"      : 0,
+        "-fir_order"         : 40,
+        "-quiet"             : 1,
+        "-demo"              : 0,
+        "-dev"               : False,
+        "-verbose"           : False,
+        "-debug"             : False,
+        "-rvt_out"           : 0,
+        "-card_out"          : 1,
+        "-resp_out"          : 1,
+        "-slice_order"       : "alt+z",
+        "-show_graphs"       : 0,
+        "-save_graphs"       : 1,
+        "-font_size"         : 10,
+        "-zero_phase_offset" : 0,
+        "-phys_file"         : None,
+        "-phys_json"         : None,
+        "-abt"               : False,
+        "-aby"               : False,
+        "-niml"              : False
     }
 
     if len(sys.argv) < 2:
@@ -748,35 +753,35 @@ Output:
         
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]
     return_status = retro_ts(
-        resp_file=opt_dict["-resp_file"],
-        card_file=opt_dict["-card_file"],
-        phys_fs=opt_dict["-freq"],
-        number_of_slices=int(opt_dict["-num_slices"]),
-        volume_tr=float(opt_dict["-volume_tr"]),
-        start_time=float(opt_dict["-start_time"]),
-        num_time_pts=int(opt_dict["-num_time_pts"]),
-        OutDir=opt_dict["-out_dir"],
-        prefix=opt_dict["-prefix"],
-        slice_offset=opt_dict["-slice_offset"],
-        fir_order=opt_dict["-fir_order"],
-        quiet=opt_dict["-quiet"],
-        demo=opt_dict["-demo"],
-        dev=opt_dict["-dev"],
-        verbose=opt_dict["-verbose"],
-        rvt_out= (int(opt_dict["-rvt_out"]) ),
-        card_out= (int(opt_dict["-card_out"])),
-        resp_out= (int(opt_dict["-resp_out"])),
-        slice_order=opt_dict["-slice_order"],
-        show_graphs=int(opt_dict["-show_graphs"]),
-        save_graphs=int(opt_dict["-save_graphs"]),
-        font_size=int(opt_dict["-font_size"]),
-        zero_phase_offset=opt_dict["-zero_phase_offset"],
-        phys_file=opt_dict["-phys_file"],
-        phys_json=opt_dict["-phys_json"],
-        abt=opt_dict["-abt"],
-        aby=opt_dict["-aby"],
-        niml=opt_dict["-niml"],
-        args = sys.argv[1:]
+        resp_file         = opt_dict["-resp_file"],
+        card_file         = opt_dict["-card_file"],
+        phys_fs           = opt_dict["-freq"],
+        number_of_slices  = int(opt_dict["-num_slices"]),
+        volume_tr         = float(opt_dict["-volume_tr"]),
+        start_time        = float(opt_dict["-start_time"]),
+        num_time_pts      = int(opt_dict["-num_time_pts"]),
+        OutDir            = opt_dict["-out_dir"],
+        prefix            = opt_dict["-prefix"],
+        slice_offset      = opt_dict["-slice_offset"],
+        fir_order         = opt_dict["-fir_order"],
+        quiet             = opt_dict["-quiet"],
+        demo              = opt_dict["-demo"],
+        dev               = opt_dict["-dev"],
+        verbose           = opt_dict["-verbose"],
+        rvt_out           = int(opt_dict["-rvt_out"]),
+        card_out          = int(opt_dict["-card_out"]),
+        resp_out          = int(opt_dict["-resp_out"]),
+        slice_order       = opt_dict["-slice_order"],
+        show_graphs       = int(opt_dict["-show_graphs"]),
+        save_graphs       = int(opt_dict["-save_graphs"]),
+        font_size         = int(opt_dict["-font_size"]),
+        zero_phase_offset = opt_dict["-zero_phase_offset"],
+        phys_file         = opt_dict["-phys_file"],
+        phys_json         = opt_dict["-phys_json"],
+        abt               = opt_dict["-abt"],
+        aby               = opt_dict["-aby"],
+        niml              = opt_dict["-niml"],
+        args              = sys.argv[1:]
     )
     
     if return_status == 0:
