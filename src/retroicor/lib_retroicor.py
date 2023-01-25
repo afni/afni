@@ -892,7 +892,7 @@ def getPhysiologicalNoiseComponents(parameters):
     rawDataParams["phys_fs"] = parameters["phys_fs"]
     
     # Process cardiac data if any
-    if parameters["cardFile"] or len(parameters["phys_card_dat"]) > 0:           
+    if parameters["cardFile"] or len(parameters["phys_card_dat"]) > 0:
         # rawData = readArray(parameters, 'cardFile')
         rawData = readRawInputData(rawDataParams, parameters["cardFile"], 
                                    parameters["phys_card_dat"])
@@ -1368,10 +1368,10 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
         card_info["rvtrs_slc"] = np.zeros((len(card_info["rvt_shifts"]), 
                         len(card_info["time_series_time"])))
 
-    n_n = 0
+    n_n   = 0
     n_r_v = 0
     n_r_p = 0
-    n_e = 0
+    n_e   = 0
 
     if len(physiologicalNoiseComponents['resp_phases']) > 0:
         if "time_series_time" in resp_info:
@@ -1418,7 +1418,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     label = head
 
     main_info["slice_major"] = 1
-    main_info["reml_out"] = []
+    main_info["reml_out"]    = []
     if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
         # RVT
         if main_info["rvt_out"] != 0:
