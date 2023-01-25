@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jan, 2023, RCR, "3dvolreg", MINOR, TYPE_ENHANCE,
+   "add error message for trimming weight set to empty",
+   "For now, still let it crash.  Try to trap in startup_lsqfit later."
+ } ,
+
  { 24, Jan, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add QC output to ricor block",
    NULL
