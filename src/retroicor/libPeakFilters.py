@@ -46,7 +46,10 @@ The following steps are subsequently done for the respiratory data.
 
 import numpy as np
 # import math
-import matplotlib as mpl
+### [PT] this is not standard import, and leads to lots of mpl.plot.*,
+### rather than terser and more common plt.*;  have replaced everywhere
+#import matplotlib as mpl
+import matplotlib.pyplot as plt
 # from matplotlib import figure as mplf
 # import matplotlib.pyplot as plt
 import bisect
@@ -939,30 +942,30 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         filteredrawData1 = filterArray
         end = len(rawData1)
         for i in range(0,end): x.append(i*F0)
-        fig, ax_left = mpl.pyplot.subplots()
-        mpl.pyplot.xlabel("Frequency (Hz)")
-        mpl.pyplot.ylabel('Fourier Spectral Value',color='g')
+        fig, ax_left = plt.subplots()
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel('Fourier Spectral Value',color='g')
         ax_right = ax_left.twinx()
         ax_right.plot(x[3:end//20], filteredrawData1[3:end//20], color='red')
         ax_left.plot(x[3:end//20],rawData1[3:end//20], color='green')
-        mpl.pyplot.ylabel('Filter',color='r')
-        mpl.pyplot.title("Selected part of the Fourier Spectrum", 
+        plt.ylabel('Filter',color='r')
+        plt.title("Selected part of the Fourier Spectrum", 
                          fontdict={'fontsize': font_size})
         
         # Save plot to file
         if save_graph:
             prefix = dataType + 'SelectedFourierTransformPart'
-            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            mpl.pyplot.show(block=False)
-            if not show_graph: mpl.pyplot.close()  # Close graph after saving
+            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            plt.show(block=False)
+            if not show_graph: plt.close()  # Close graph after saving
     
         # Plot filtered signal agains raw data
         x = []    
         end = len(filteredRawData)
         for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = mpl.pyplot.subplots()
-        mpl.pyplot.xlabel("Time (s)")
-        mpl.pyplot.ylabel('Raw input data value',color='g')
+        fig, ax_left = plt.subplots()
+        plt.xlabel("Time (s)")
+        plt.ylabel('Raw input data value',color='g')
         ax_right = ax_left.twinx()
         upperLimit = round(len(filteredRawData)/4)
         ax_right.plot(x[0:upperLimit], filteredRawData[0:upperLimit], 
@@ -970,18 +973,18 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         ax_left.plot(x[0:upperLimit],rawData[0:upperLimit], color='green')
         # ax_right.plot(x, filteredRawData, color='red')
         # ax_left.plot(x,rawData, color='green')
-        mpl.pyplot.ylabel('Filtered Data Value',color='r')
-        mpl.pyplot.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
+        plt.ylabel('Filtered Data Value',color='r')
+        plt.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
             str(round(F0*lowerMax)) + "] (red) and raw input data (green)", 
             fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
             prefix = dataType + 'BPF_VRawInput'
-            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
             
-        mpl.pyplot.show(block=False)
-        if not show_graph: mpl.pyplot.close()  # Close graph after saving
+        plt.show(block=False)
+        if not show_graph: plt.close()  # Close graph after saving
         
     return filteredRawData
 
@@ -1309,16 +1312,16 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     x = []    
     end = len(rawData)
     for i in range(0,end): x.append(i/phys_fs)
-    mpl.pyplot.subplot(211)
-    mpl.pyplot.plot(x, rawData, "g") #Lines connecting peaks and troughs
+    plt.subplot(211)
+    plt.plot(x, rawData, "g") #Lines connecting peaks and troughs
     if len(peaks) > 0:
         peakVals = []
         for i in peaks: peakVals.append(rawData[i])
-        mpl.pyplot.plot(peaks/phys_fs, peakVals, "ro") # Peaks
+        plt.plot(peaks/phys_fs, peakVals, "ro") # Peaks
     if len(troughs) > 0:
         troughVals = []
         for i in troughs: troughVals.append(rawData[i])
-        mpl.pyplot.plot(troughs/phys_fs, troughVals, "bo") # troughs
+        plt.plot(troughs/phys_fs, troughVals, "bo") # troughs
         if len(peaks) > 0:
             title = peakType +\
                 " peaks (red), troughs (blue) and raw input data (green)"
@@ -1327,24 +1330,27 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     else:
         title = peakType + " peaks (red) and raw input data (green)"
     title += '\n' + caption
-    mpl.pyplot.xlabel("Time (s)")
-    mpl.pyplot.ylabel("Input data value")
-    mpl.pyplot.title(title, fontdict={'fontsize': font_size})
-    mpl.text.Text(.5, .05, caption, ha='center')
-         
+    plt.xlabel("Time (s)")
+    plt.ylabel("Input data value")
+    plt.title(title, fontdict={'fontsize': font_size})
+    plt.text(.5, .05, caption, ha='center')
+    ### [PT] the above should replace this code, so we can avoid the
+    ### nonstandard mpl import
+    # mpl.text.Text(.5, .05, caption, ha='center')
+
     # Save plot to file
     if save_graph:
         if not OutDir:
             print('**WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
                   '  No output directory specified')
-            if not show_graph: mpl.pyplot.close()  # Close graph after saving
+            if not show_graph: plt.close()  # Close graph after saving
             return 1
         else:
-            mpl.pyplot.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            mpl.pyplot.show(block=False)  # If this is left out, output file is 
+            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
+            plt.show(block=False)  # If this is left out, output file is 
                                           # blank
         
-    if not show_graph: mpl.pyplot.close()  # Close graph after saving
+    if not show_graph: plt.close()  # Close graph after saving
     
     return 0
 
