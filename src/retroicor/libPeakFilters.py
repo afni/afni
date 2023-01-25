@@ -53,7 +53,7 @@ import bisect
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False, 
         phys_fs = None, dataType = "Cardiac", show_graph = False, 
-        save_graph = True, OutDir = None):
+        save_graph = True, OutDir = None, font_size = 10):
     """
     NAME
         percentileFilter
@@ -118,18 +118,21 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
                 phys_fs, dataType, troughs = peaks,
                 OutDir = OutDir, prefix = dataType + 
                     'AdjustTroughsAfterPctlFilt', 
-                caption = 'Filter troughs based on percentile of raw data.')
+                caption = 'Filter troughs based on percentile of raw data.',
+                font_size = font_size)
         else:
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, 
                 OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterPctlFilt', 
-                caption = 'Filter peaks based on percentile of raw data.')
+                caption = 'Filter peaks based on percentile of raw data.',
+                font_size = font_size)
 
     return peaks
 
 def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, 
             upperThreshold=False, show_graph = False, save_graph = True, 
-            phys_fs = None, dataType = "Cardiac", OutDir = None):
+            phys_fs = None, dataType = "Cardiac", OutDir = None, 
+            font_size = 10):
     """
     NAME
         localPercentileFilter
@@ -213,7 +216,8 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Filter peaks based on local percentile of raw data.')
+            caption = 'Filter peaks based on local percentile of raw data.',
+            font_size = font_size)
        
     return peaks
 
@@ -253,7 +257,7 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
  
 def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
         portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None):
+        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removePeaksCloseToHigherPointInRawData
@@ -341,13 +345,13 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
                 'quarter of a period on left side.'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, prefix = prefix, 
-            caption = caption)
+            caption = caption, font_size = font_size)
     
     return peaks
 
 def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', 
         portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None):
+        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removeTroughsCloseToLowerPointInRawData
@@ -418,13 +422,13 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
             prefix = dataType + 'RemoveUpstrokeFalseTroughsFilt'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], phys_fs, 
             dataType, troughs = troughs, OutDir = OutDir, prefix = prefix, 
-            caption = caption)
+            caption = caption, font_size = font_size)
     
     return troughs
 
 def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
         denominator=4.0, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None):
+        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removePeaksCloserToLocalMinsThanToAdjacentPeaks
@@ -490,13 +494,14 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'RemovePeaksCloseToMinimum', 
             caption = 'Remove peaks that are less than a quarter as far' + 
-                ' from the local minimum to the adjacent peaks.')
+                ' from the local minimum to the adjacent peaks.',
+                font_size = font_size)
     
     return peaks
 
 def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
         denominator=4.0, show_graph = False, save_graph = True, phys_fs = None,
-        dataType = "Cardiac", OutDir = None):
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removeTroughsCloserToLocalMaxsThanToAdjacentTroughs
@@ -562,7 +567,8 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
                 prefix = dataType + 
                     'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
                 caption = 'Remove troughs closer to local max than to' + 
-                    ' adjacent troughs.')
+                    ' adjacent troughs.',
+                font_size = font_size)
     
     return troughs
 
@@ -589,7 +595,7 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
 
 def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
         show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None):
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removeOverlappingPeaksAndTroughs
@@ -657,7 +663,8 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
              phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
              prefix = dataType + 'removeOverlappingPeaksAndTroughs', 
-             caption = 'Remove overlapping peaks and troughs.')
+             caption = 'Remove overlapping peaks and troughs.',
+             font_size = font_size)
                 
     return peaks, troughs
 
@@ -733,7 +740,7 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
 
 def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
                      show_graph = 0, save_graph = 1, phys_fs = None, 
-                     dataType = "Cardiac", OutDir = None):
+                     dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         removeClosePeaks
@@ -801,14 +808,14 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
             peaks = refinePeakLocations(peaks, rawData, period = period, 
                 Troughs = True, show_graph = max(show_graph-1,0), 
                 save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
-                                                            OutDir = OutDir)
+                OutDir = OutDir, font_size = font_size)
     else:   # Processing peaks
         peaks = np.array(peaks)
         for i in range(0,2):
             peaks = refinePeakLocations(peaks, rawData, period = period, 
                     show_graph = max(show_graph-1,0), 
                     save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
-                                                               OutDir = OutDir)
+                    OutDir = OutDir, font_size = font_size)
             
     # Convert peaks back to numpy array and remove duplicates that may result
     # from refining the locations
@@ -824,19 +831,21 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
                 phys_fs, dataType, troughs = peaks, OutDir = OutDir, 
                 prefix = dataType + 'MergeCloseTroughs', 
                 caption = 'Merge troughs that are closer than one quarter' + 
-                                ' of the overall typical period.')
+                                ' of the overall typical period.',
+                font_size = font_size)
         else:
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, OutDir = OutDir, 
                 prefix = dataType + 'MergeClosePeaks', 
                 caption = 'Merge peaks that are closer than one quarter' + 
-                                             ' of the overall typical period.')
+                                             ' of the overall typical period.',
+                font_size = font_size)
     
     return peaks
 
 def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
         phys_fs, dataType = "Cardiac", show_graph = False, save_graph = True, 
-        OutDir = None, graphIndex = None) :
+        OutDir = None, graphIndex = None, font_size = 10) :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -937,7 +946,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         ax_right.plot(x[3:end//20], filteredrawData1[3:end//20], color='red')
         ax_left.plot(x[3:end//20],rawData1[3:end//20], color='green')
         mpl.pyplot.ylabel('Filter',color='r')
-        mpl.pyplot.title("Selected part of the Fourier Spectrum")
+        mpl.pyplot.title("Selected part of the Fourier Spectrum", 
+                         fontdict={'fontsize': font_size})
         
         # Save plot to file
         if save_graph:
@@ -962,7 +972,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         # ax_left.plot(x,rawData, color='green')
         mpl.pyplot.ylabel('Filtered Data Value',color='r')
         mpl.pyplot.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
-            str(round(F0*lowerMax)) + "] (red) and raw input data (green)")
+            str(round(F0*lowerMax)) + "] (red) and raw input data (green)", 
+            fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
@@ -976,7 +987,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
 
 def refinePeakLocations(peaks, rawData, period = None, Troughs = False, 
         show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None):
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         refinePeakLocations
@@ -1063,13 +1074,15 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, Peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AdjustPeaksFromUniformSpacing', 
-            caption = Caption, troughs = Troughs)
+            caption = Caption, troughs = Troughs,
+            font_size = font_size)
            
     # Apply offsets
     return peaks
 
 def addMissingPeaks(peaks, rawData, period=None, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None):
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         addMissingPeaks
@@ -1129,21 +1142,22 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     # Adjust peaks from uniform spacing
     peaks = refinePeakLocations(peaks, rawData, period = period, 
                 show_graph = show_graph, 
-                save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir)
+                save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir,
+                font_size = font_size)
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Add missing peaks.')
+            caption = 'Add missing peaks.', font_size = font_size)
     
     return peaks
 
 
 def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
         show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None):
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         addMissingPeaksAndTroughs
@@ -1249,13 +1263,14 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
             prefix = dataType + 'addMissingPeaksAndTroughs', 
-            caption = 'Add missing peaks and troughs.')
+            caption = 'Add missing peaks and troughs.',
+            font_size = font_size)
     
     return peaks, troughs
 
 def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs, 
         peakType, troughs = [], OutDir = None, prefix = 'cardiacPeaks', 
-        caption = []):
+        caption = [], font_size = 10):
     '''
     NAME
         graphPeaksAgainstRawInput
@@ -1314,7 +1329,7 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     title += '\n' + caption
     mpl.pyplot.xlabel("Time (s)")
     mpl.pyplot.ylabel("Input data value")
-    mpl.pyplot.title(title, fontdict={'fontsize': 10})
+    mpl.pyplot.title(title, fontdict={'fontsize': font_size})
     mpl.text.Text(.5, .05, caption, ha='center')
          
     # Save plot to file

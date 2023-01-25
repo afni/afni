@@ -275,6 +275,7 @@ def retro_ts(
     verbose=False,
     show_graphs=0,
     save_graphs=1,
+    font_size=10,
     rvt_out=0,
     card_out=1,
     resp_out=1,
@@ -318,6 +319,7 @@ def retro_ts(
             slice_order="alt+z",
             show_graphs=0,
             save_graphs=1,
+            font_size=10,
             zero_phase_offset=0,
             phys_file=None,
             phys_json=None,
@@ -386,6 +388,8 @@ def retro_ts(
         show_graphs: (dType = int) Whether to show graphs
         
         save_graphs: (dType = int) Whether to save graphs
+        
+        font_size:    (dType = int) Font size to use with graphs
         
         zero_phase_offset: (dType = int) Phase offset added to the location of 
                            each peak. Default is 0.0
@@ -485,6 +489,7 @@ def retro_ts(
         return 1
     parameters['show_graphs']=show_graphs
     parameters['save_graphs']=save_graphs
+    parameters['font_size']=font_size
 
     physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
@@ -610,6 +615,7 @@ Input
             1: Save end results (cardiac peaks, respiratory peaks and final RVT)
             2: Save end, and intermediate results results (band-pass filter, 
                 cardiac peaks, respiratory peaks and final RVT)
+    font_size: Font size used for graphics.  Default = 10
     debug Drop into pdb upon an exception
             (default is False)
     ============================================================================
@@ -695,6 +701,7 @@ Output:
         "-slice_order": "alt+z",
         "-show_graphs": 0,
         "-save_graphs": 1,
+        "-font_size": 10,
         "-zero_phase_offset": 0,
         "-phys_file":None,
         "-phys_json":None,
@@ -762,6 +769,7 @@ Output:
         slice_order=opt_dict["-slice_order"],
         show_graphs=int(opt_dict["-show_graphs"]),
         save_graphs=int(opt_dict["-save_graphs"]),
+        font_size=int(opt_dict["-font_size"]),
         zero_phase_offset=opt_dict["-zero_phase_offset"],
         phys_file=opt_dict["-phys_file"],
         phys_json=opt_dict["-phys_json"],

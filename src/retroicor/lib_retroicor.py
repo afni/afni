@@ -171,7 +171,7 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
          minBeatsPerSecond,parameters["phys_fs"],\
          show_graph = parameters['show_graphs']>1,\
          save_graph = parameters["save_graphs"]>1, OutDir=OutDir,\
-         graphIndex = graphIndex)
+         graphIndex = graphIndex,  font_size = parameters['font_size'])
    if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -184,19 +184,22 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>1, 
         parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"],  
         "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFromBPFInput', 
-        caption = 'Cardiac peaks from band-pass filtered input.')
+        caption = 'Cardiac peaks from band-pass filtered input.',
+        font_size = parameters['font_size'])
    
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, 
              dataType = "Cardiac",  phys_fs = parameters["phys_fs"], 
             show_graph = parameters['show_graphs']>1, 
-            save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+            save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+            font_size = parameters['font_size'])
     
    # Remove peaks less than the required percentile of the local input signal
    peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, 
             numPeriods=3, show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-            phys_fs = parameters["phys_fs"], OutDir = OutDir)
+            phys_fs = parameters["phys_fs"], OutDir = OutDir,
+            font_size = parameters['font_size'])
    if len(peaks) == 0:
         print('*** ERROR: Failure to local percentile filter cardiac peaks')
         return [], 0
@@ -211,7 +214,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
    
    # Remove "peaks" that are less than the raw input a quarter of a period on 
    #    right side
@@ -220,7 +224,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData,  
         period=period, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
@@ -230,20 +235,23 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         direction='left', period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
     
    # Remove peaks that are less than a quarter as far from the local minimum to 
    #  the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
 
    # Add missing peaks
    peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
                 show_graph = max(parameters['show_graphs']-1,0), 
                 save_graph = max(parameters["save_graphs"]-1,0), 
-                phys_fs = parameters["phys_fs"], OutDir = OutDir)   
+                phys_fs = parameters["phys_fs"], OutDir = OutDir,
+                font_size = parameters['font_size'])   
    
    # Remove "peaks" that are less than the raw input a quarter of a period on 
    #  right side
@@ -252,7 +260,8 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
         period=period, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
@@ -262,13 +271,15 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
         direction='left', period=period, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Cardiac",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
       
    # Graph cardiac peaks against respiratory time series
    lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
          parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], 
          "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
-         caption = 'Cardiac peaks after all filtering.')
+         caption = 'Cardiac peaks after all filtering.',
+         font_size = parameters['font_size'])
     
    return peaks, len(rawData)
 
@@ -311,7 +322,7 @@ def getRespiratoryPeaks(parameters, rawData):
         minBreathsPerSecond,
         parameters["phys_fs"], show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, OutDir=OutDir, 
-        dataType = "Respiratory")
+        dataType = "Respiratory", font_size = parameters['font_size'])
     if len(filterData) == 0:
        print('Failed to band-pass filter cardiac data')   
        return []
@@ -325,13 +336,15 @@ def getRespiratoryPeaks(parameters, rawData):
         parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], 
         "Respiratory", 
          OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
-         caption = 'Respiratory peaks from band-pass filtered input.')
+         caption = 'Respiratory peaks from band-pass filtered input.',
+         font_size = parameters['font_size'])
    
     # Adjust peaks from uniform spacing
     peaks = lpf.refinePeakLocations(peaks, rawData, 
              dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
             show_graph = parameters['show_graphs']>1, 
-            save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+            save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+            font_size = parameters['font_size'])
     
     # Get period from filtered input data 
     period = lpf.getTimeSeriesPeriod(filterData)
@@ -345,7 +358,8 @@ def getRespiratoryPeaks(parameters, rawData):
              dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     if len(peaks) == 0:
         print('*** ERROR: Failure to percentile filter respiratory peaks')
         return [], [], 0
@@ -356,14 +370,16 @@ def getRespiratoryPeaks(parameters, rawData):
              period=period, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
              direction='left', period=period, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Remove peaks that are less than a quarter as far from the local minimum to 
     #  the adjacent peaks
@@ -371,21 +387,24 @@ def getRespiratoryPeaks(parameters, rawData):
              dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Merge peaks that are closer than one quarter of the overall typical period
     peaks = lpf.removeClosePeaks(peaks, period, rawData, 
              dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
 
     # Add missing peaks
     peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
              dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)   
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])   
     
     # Remove "peaks" that are less than the raw input a quarter of a period on 
     # right side.  This is tomove false peaks on the upstroke
@@ -393,14 +412,16 @@ def getRespiratoryPeaks(parameters, rawData):
              period=period, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, rawData, 
              direction='left', period=period, dataType = "Respiratory",  
              phys_fs = parameters["phys_fs"], 
              show_graph = parameters['show_graphs']>1, 
-             save_graph = parameters["save_graphs"]>1, OutDir = OutDir)
+             save_graph = parameters["save_graphs"]>1, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     troughs, _ = sps.find_peaks(-np.array(filterData), 
                                 width=int(parameters["phys_fs"]/8))
@@ -410,13 +431,15 @@ def getRespiratoryPeaks(parameters, rawData):
         parameters["save_graphs"]>1, rawData, peaks, parameters["phys_fs"], 
         "Respiratory", troughs = troughs, OutDir = OutDir, 
          prefix = 'respiratoryPeaksFromBPFInput', 
-         caption = 'Respiratory troughs from band-pass filtered input.')
+         caption = 'Respiratory troughs from band-pass filtered input.',
+         font_size = parameters['font_size'])
     
     # Remove troughs that are more than the 90th percentile of the input signal
     troughs = lpf.percentileFilter(troughs, rawData, percentile=90.0, 
              upperThreshold=True, show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], OutDir = OutDir)
+             phys_fs = parameters["phys_fs"], OutDir = OutDir,
+             font_size = parameters['font_size'])
     if len(troughs) == 0:
         print('*** ERROR: Failure to percentile filter respiratory troughs')
         return [], [], 0
@@ -426,58 +449,67 @@ def getRespiratoryPeaks(parameters, rawData):
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData, 
              period=period, show_graph = parameters['show_graphs']>1, 
              save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-             phys_fs = parameters["phys_fs"], OutDir = OutDir)
+             phys_fs = parameters["phys_fs"], OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Remove false troughs on the uptroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, rawData,\
             period=period, direction = 'left', 
             show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-            phys_fs = parameters["phys_fs"], OutDir = OutDir)
+            phys_fs = parameters["phys_fs"], OutDir = OutDir,
+            font_size = parameters['font_size'])
     
     # Remove troughs that are less than a quarter as far from the local maximum 
     # to the adjacent troughs
     troughs = lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, 
         rawData, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
     
     # Merge troughs that are closer than a quarter of the overall typical period
     troughs = lpf.removeClosePeaks(troughs, period, rawData, Troughs = True, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
     
     # Remove peaks/troughs that are also troughs/peaks
     peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
         show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
     
     # Add missing peaks and troughs
     peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, 
         rawData, period=None, show_graph = parameters['show_graphs']>1, 
         save_graph = parameters["save_graphs"]>1, dataType = "Respiratory",  
-        phys_fs = parameters["phys_fs"], OutDir = OutDir)
+        phys_fs = parameters["phys_fs"], OutDir = OutDir,
+        font_size = parameters['font_size'])
    
     # Adjust troughs from uniform spacing
     troughs = lpf.refinePeakLocations(troughs, rawData, 
             show_graph = parameters['show_graphs']>1, 
             save_graph = parameters["save_graphs"]>1, 
              dataType = "Respiratory",  phys_fs = parameters["phys_fs"], 
-             Troughs = True, OutDir = OutDir)
+             Troughs = True, OutDir = OutDir,
+             font_size = parameters['font_size'])
     
     # Graph respiratory peaks and troughs against respiratory time series
     lpf.graphPeaksAgainstRawInput(parameters['show_graphs']>0, 
         parameters["save_graphs"]>0, rawData, peaks, parameters["phys_fs"], 
         "Respiratory", troughs = troughs, 
         caption = 'Respiratory peaks after all filtering.', OutDir = OutDir,
-        prefix = 'respiratoryPeaksAndTroughsFinal')
+        prefix = 'respiratoryPeaksAndTroughsFinal',
+        font_size = parameters['font_size'])
      
     return peaks, troughs, len(rawData)
 
 def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, 
-                           show_graph = False, save_graph = True):
+                           show_graph = False, save_graph = True,
+                           font_size = 10):
     """
     NAME
        determineCardiacPhases
@@ -550,7 +582,8 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
         mpl.pyplot.ylabel('Phase (Radians)',color='r')
-        mpl.pyplot.title("Cardiac phase (red) and raw input data (green)")
+        mpl.pyplot.title("Cardiac phase (red) and raw input data (green)",
+                         fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
@@ -636,7 +669,8 @@ def getBCoeffs(parameters, key, phases):
             
 
 def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs, 
-                    phys_fs, rawData, show_graph = False, save_graph = True):
+                    phys_fs, rawData, show_graph = False, save_graph = True,
+                    font_size = 10):
     """
     NAME
         determineRespiratoryPhases
@@ -803,7 +837,8 @@ def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs,
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
         mpl.pyplot.ylabel('Phase (Radians)',color='r')
-        mpl.pyplot.title("Respiratory phase (red) and raw input data (green)")
+        mpl.pyplot.title("Respiratory phase (red) and raw input data (green)",
+                         fontdict={'fontsize': font_size})
             
         # Save plot to file
         mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
@@ -874,7 +909,8 @@ def getPhysiologicalNoiseComponents(parameters):
             card_phases = determineCardiacPhases(card_peaks, fullLength,\
                     parameters['phys_fs'], rawData,  
                     show_graph = parameters['show_graphs']>0, 
-                    save_graph = parameters['save_graphs']>0)
+                    save_graph = parameters['save_graphs']>0,
+                    font_size = parameters['font_size'])
         
         # Ensure number of output time points not too high
         parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, 
@@ -900,7 +936,8 @@ def getPhysiologicalNoiseComponents(parameters):
                 resp_peaks, resp_troughs, parameters['phys_fs'], \
                     [x for x in rawData if math.isnan(x) == False], 
                     show_graph = parameters['show_graphs']>0, 
-                    save_graph = parameters['save_graphs']>0)
+                    save_graph = parameters['save_graphs']>0,
+                    font_size = parameters['font_size'])
         
         # Ensure number of output time points not too high
         parameters['num_time_pts'] = limitNumOutputTimepoints(rawData, 
@@ -2137,7 +2174,7 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
     TitleStr = "Phase sampled at slice acquisition time\n"
     TitleStr = TitleStr +\
         'Original Phase (yellow), slice 0 (red) and slice 1 (blue)'
-    plt.title(TitleStr)
+    plt.title(TitleStr, fontdict={'fontsize': parameters['font_size']})
             
     # Save plot to file
     if parameters['save_graphs']:
