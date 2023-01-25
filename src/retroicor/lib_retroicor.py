@@ -21,7 +21,8 @@ __authors__ = "Joshua Zosky and Peter Lauren"
 """
 
 import numpy as np
-import matplotlib as mpl
+#import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.pyplot import(
     figure as mplf,
     plot,
@@ -575,21 +576,21 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         x = []    
         end = min(len(phases),round(len(phases)*50.0/len(peaks)))
         for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = mpl.pyplot.subplots()
-        mpl.pyplot.xlabel("Time (s)")
-        mpl.pyplot.ylabel('Input data input value',color='g')
+        fig, ax_left = plt.subplots()
+        plt.xlabel("Time (s)")
+        plt.ylabel('Input data input value',color='g')
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
-        mpl.pyplot.ylabel('Phase (Radians)',color='r')
-        mpl.pyplot.title("Cardiac phase (red) and raw input data (green)",
+        plt.ylabel('Phase (Radians)',color='r')
+        plt.title("Cardiac phase (red) and raw input data (green)",
                          fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
-            mpl.pyplot.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-            mpl.pyplot.show(block=False)
-            if not show_graph: mpl.pyplot.close()  # Close graph after saving
+            plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            plt.show(block=False)
+            if not show_graph: plt.close()  # Close graph after saving
             
     return phases
 
@@ -830,20 +831,20 @@ def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs,
         x = []    
         end = min(len(phases),round(len(phases)*50.0/len(resp_peaks)))
         for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = mpl.pyplot.subplots()
-        mpl.pyplot.xlabel("Time (s)")
-        mpl.pyplot.ylabel('Input data input value',color='g')
+        fig, ax_left = plt.subplots()
+        plt.xlabel("Time (s)")
+        plt.ylabel('Input data input value',color='g')
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
-        mpl.pyplot.ylabel('Phase (Radians)',color='r')
-        mpl.pyplot.title("Respiratory phase (red) and raw input data (green)",
+        plt.ylabel('Phase (Radians)',color='r')
+        plt.title("Respiratory phase (red) and raw input data (green)",
                          fontdict={'fontsize': font_size})
             
         # Save plot to file
-        mpl.pyplot.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-        mpl.pyplot.show(block=False)
-        if not show_graph: mpl.pyplot.close()  # Close graph after saving
+        plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+        plt.show(block=False)
+        if not show_graph: plt.close()  # Close graph after saving
     
         
     return phases
@@ -1803,7 +1804,7 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0,
          if save_graph:
              plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
              plt.show(block=False)
-             if not show_graph: mpl.pyplot.close()  # Close graph after saving
+             if not show_graph: plt.close()  # Close graph after saving
 
     
     return rawRVT
@@ -2181,7 +2182,7 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
         plt.savefig('%s/RvtPeak.pdf' % (OutDir)) 
         plt.show(block=False)
         if parameters['show_graphs']: show()
-        else: mpl.pyplot.close()  # Close graph after saving
+        else: plt.close()  # Close graph after saving
         
     return 0
     
