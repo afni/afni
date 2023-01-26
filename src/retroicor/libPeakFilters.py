@@ -1333,9 +1333,11 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     plt.xlabel("Time (s)")
     plt.ylabel("Input data value")
     plt.title(title, fontdict={'fontsize': font_size})
-    plt.text(.5, .05, caption, ha='center')
+    # plt.text(.5, .05, caption, ha='center') # PSL: This puts an unneeded  
+                                              # caption in an unwated place.
     ### [PT] the above should replace this code, so we can avoid the
     ### nonstandard mpl import
+    ### PDL: It seems this was not doing anything
     # mpl.text.Text(.5, .05, caption, ha='center')
 
     # Save plot to file
