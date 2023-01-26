@@ -950,7 +950,8 @@ def getPhysiologicalNoiseComponents(parameters):
                          parameters['num_time_pts'], parameters['TR'], 
                          show_graph = parameters['show_graphs']>0, 
                          save_graph = parameters['save_graphs']>0, 
-                         interpolationOrder = 'linear')
+                         interpolationOrder = 'linear', 
+                         font_size = parameters['font_size'])
     else:
         if parameters['rvt_out']: 
             print('WARNING: Cannot determine RVT.  No respiratory data')
@@ -1602,7 +1603,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
 
 def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts, 
            TR, show_graph = False, save_graph = True, 
-           interpolationOrder = 'linear'):
+           interpolationOrder = 'linear', font_size = 10):
     """
     NAME
         getRVT 
@@ -1641,8 +1642,8 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
        
     # Get raw RVT values
     rawRVT = getRawRVT(rawData, resp_peaks, resp_troughs, freq,
-                       show_graph = False, save_graph = True, 
-                       interpolationOrder = interpolationOrder)
+       show_graph = False, save_graph = True, 
+       interpolationOrder = interpolationOrder, font_size = font_size)
     
     # Get RVT regressors
     NUM_RVT = 5
@@ -1723,7 +1724,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     return output 
       
 def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0, 
-              save_graph = 1, interpolationOrder = 'linear'):
+              save_graph = 1, interpolationOrder = 'linear', font_size = 10):
     """
     NAME
         getRawRVT 
@@ -1796,9 +1797,9 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0,
          plt.ylabel('Period (s)',color='magenta', fontweight='bold')
          ax_left.plot(x, rawRVT, color='darkgoldenrod')
          TitleStr = "Raw RVT (dark goldenrod) and raw input data (green).\n"
-         TitleStr = TitleStr + "Red = peak layer. Blue = trough layer. '+\
-                                                       'Magenta = period layer"
-         plt.title(TitleStr)
+         TitleStr = TitleStr + 'Red = peak layer. Blue = trough layer. '+\
+                                                       'Magenta = period layer'
+         plt.title(TitleStr, fontdict={'fontsize': font_size})
              
          # Save plot to file
          if save_graph:
