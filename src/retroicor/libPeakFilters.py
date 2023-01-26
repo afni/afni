@@ -62,12 +62,8 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
         percentileFilter
             Filter peaks based on percentile of raw data
             
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        percentileFilter(peaks, rawData, percentile, upperThreshold=False, 
-            phys_fs = None, dataType = "Cardiac", show_graph = False, 
-            save_graph = True, OutDir = None)
     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                  indices.
@@ -141,14 +137,9 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         localPercentileFilter
             Filter peaks based on local percentile of raw data
             
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        localPercentileFilter(peaks, rawData, percentile, period=None, 
-                numPeriods=4, upperThreshold=False, show_graph = False, 
-                save_graph = True, phys_fs = None, dataType = "Cardiac", 
-                OutDir = None)
-        ARGUMENTS
+    ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                                        indices.
         
@@ -231,10 +222,8 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
          getTimeSeriesPeriod
              Get overall typical period (s) of raw data in time series index 
              units          
-      TYPE
+     TYPE
           <class 'numpy.float64'>
-     SYNOPSIS
-         getTimeSeriesPeriod(rawData, minFrequency=1)
      ARGUMENTS
          rawData: (array dType = float64) Raw cardiac data
          
@@ -269,12 +258,7 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
             peak, in the specified direction            
      TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        removePeaksCloseToHigherPointInRawData(peaks, rawData, 
-            direction='right', portion=0.25, period=None, show_graph = False, 
-            save_graph = True, phys_fs = None, dataType = "Cardiac", 
-            OutDir = None)
-    ARGUMENTS
+     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                                        indices.
         
@@ -363,12 +347,7 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
             the peak, in the specified direction            
      TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        removeTroughsCloseToLowerPointInRawData(troughs, rawData, 
-            direction='right', portion=0.25, period=None, show_graph = False, 
-            save_graph = True, phys_fs = None, dataType = "Cardiac", 
-            OutDir = None)
-    ARGUMENTS
+     ARGUMENTS
         troughs:   (array dType = numpy.int64) Array of trough locations in raw
                                                data indices.
         
@@ -440,11 +419,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
             peak, in the specified direction            
      TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-                denominator=4.0, show_graph = False, save_graph = True, 
-                phys_fs = None, dataType = "Cardiac", OutDir = None)
-    ARGUMENTS
+     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                                        indices.
         
@@ -513,11 +488,7 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
             from the trough, in the specified direction            
      TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-            denominator=4.0, show_graph = False, save_graph = True, 
-            phys_fs = None, dataType = "Cardiac", OutDir = None)
-    ARGUMENTS
+     ARGUMENTS
         troughs:   (array dType = numpy.int64) Array of trough locations in raw
                                                data indices.
         
@@ -581,10 +552,8 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
         estimateSamplingFrequencyFromRawData
             Estimate sampling frequency (Hz) from raw data based on expected 
             cycles per minute            
-     TYPE
+    TYPE
        <class 'numpy.float64'>
-    SYNOPSIS
-       estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70)
     ARGUMENTS
        peaks: (array dType = int64) Array of peak locations in raw data indices.
         
@@ -606,11 +575,7 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
             be (one or the other).
      TYPE
          <class 'numpy.float64'>, <class 'numpy.float64'>
-    SYNOPSIS
-        removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
-            show_graph = False, save_graph = True, phys_fs = None, 
-            dataType = "Cardiac", OutDir = None)
-    ARGUMENTS
+     ARGUMENTS
         peaks: (array dType = int64) Array of peak locations in raw data indices
         
         troughs:   (array dType = numpy.int64) Array of trough locations in raw 
@@ -677,10 +642,8 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
         removeExtraInterveningPeaksAndTroughs
             Ensure there is only one peak between each pair of troughs and only 
             one trough between each pair of peaks
-     TYPE
+    TYPE
          <class 'numpy.float64'>, <class 'numpy.float64'>
-    SYNOPSIS
-        removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData)
     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                                        indices.
@@ -748,12 +711,8 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     NAME
         removeClosePeaks
             Remove peaks (or troughs) that are closer than period/demonominator
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
-                        show_graph = False, save_graph = True, phys_fs = None, 
-                        dataType = "Cardiac", OutDir = None)
     ARGUMENTS
         peaks:   (array dType = int64) Array of peak locations in raw data 
                                        indices.
@@ -854,12 +813,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         bandPassFilterRawDataAroundDominantFrequency
             Band pass filter raw data based on overall typical period of raw 
             data in time series index units.            
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
-           phys_fs, dataType = "Cardiac", show_graph = False, save_graph = True, 
-           OutDir = None, graphIndex = None) 
     ARGUMENTS
         rawData: (array, dType = float) Raw input data
         
@@ -998,12 +953,8 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
             necessary if the peaks were.Determined from a band-pass filtered 
             version of the inut raw data where the peaks are uniformly spaced 
             based on the overall typical period of raw data
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        refinePeakLocations(peaks, rawData, period = None, Troughs = False, 
-            show_graph = False, save_graph = True, phys_fs = None, 
-            dataType = "Cardiac", OutDir = None)
     ARGUMENTS
         peaks: (array dType = int64) Array of peaks to be refined
         
@@ -1090,12 +1041,8 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     NAME
         addMissingPeaks
             Find and fill gaps in period series of peaks
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        addMissingPeaks(peaks, rawData, period=None, show_graph = False, 
-            save_graph = True, phys_fs = None, dataType = "Cardiac", 
-            OutDir = None) 
     ARGUMENTS
         peaks: (array dType = int64) Array of peaks to be refined
         
@@ -1165,12 +1112,8 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
     NAME
         addMissingPeaksAndTroughs
             Find and fill gaps in period series of peaks and troughs
-     TYPE
+    TYPE
          <class 'numpy.ndarray'>
-    SYNOPSIS
-        addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
-            show_graph = False, save_graph = True, phys_fs = None, 
-            dataType = "Cardiac", OutDir = None) 
     ARGUMENTS
         peaks: (array dType = int64) Array of peaks to be refined
         
@@ -1278,12 +1221,8 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     NAME
         graphPeaksAgainstRawInput
         Graph graph raw input data along with peaks and optionally troughs
-     TYPE
+    TYPE
          <void>
-    SYNOPSIS
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, peakType, troughs = [], OutDir = None, 
-            prefix = 'cardiacPeaks', caption = []) 
     ARGUMENTS
         show_graph:   (dType = bool) Whether to graph the results
         
@@ -1361,10 +1300,8 @@ def checkForNans(rawData, dataType, failureThreshold = 100):
     NAME
         checkForNans
         Check for NaN entries, in numeric data, and replace them
-     TYPE
+    TYPE
          <void>
-    SYNOPSIS
-        checkForNans(rawData, dataType, failureThreshold = 100) 
     ARGUMENTS
         rawData: (array, dType = float) Raw input data
         

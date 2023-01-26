@@ -100,8 +100,6 @@ def setup_exceptionhook():
             
     TYPE
         void
-    SYNOPSIS
-      setup_exceptionhook()
     AUTHOR
        Joshua Zosky (Documentation by Peter Lauren)
        """
@@ -114,9 +112,6 @@ def setup_exceptionhook():
                 
         TYPE
             void
-            
-        SYNOPSIS
-            _pdb_excepthook(type, value, tb)
             
         ARGUMENTS
             type: (dType = sys.exc_type) Exception type being handled (a 
@@ -148,8 +143,6 @@ def getSliceOffsets(offsetDict):
             Return phase offsets among slices
     TYPE
         <class 'list'>
-    SYNOPSIS
-       getSliceOffsets(offsetDict)
     ARGUMENTS
         offsetDict:   Dictionary with the following fields.
         
@@ -295,35 +288,6 @@ def retro_ts(
         
     TYPE
         <class 'int'>
-        
-    SYNOPSIS
-        retro_ts(
-            resp_file=None,
-            card_file=None,
-            phys_fs=None,
-            number_of_slices=None,
-            volume_tr=None,
-            start_time=None,
-            num_time_pts=None,
-            OutDir=now_str,
-            prefix=None,
-            slice_offset=0,
-            fir_order=40,
-            quiet=1,
-            demo=False,
-            dev=0,
-            verbose=False,
-            rvt_out=0,
-            card_out=1,
-            resp_out=1,
-            slice_order="alt+z",
-            show_graphs=0,
-            save_graphs=1,
-            font_size=10,
-            zero_phase_offset=0,
-            phys_file=None,
-            phys_json=None,
-            args=None)
         
     ARGUMENTS
         resp_file: (dType = str) String giving name of ASCII file with 

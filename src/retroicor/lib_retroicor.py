@@ -66,11 +66,7 @@ def setOutputDirectory(directory):
             Set directory to which all files are written
         
     TYPE
-        void
-        
-    SYNOPSIS
-        setOutputDirectory(directory)
-        
+        void        
     ARGUMENTS
         directory:   string variable specifying the output directory
     AUTHOR
@@ -85,18 +81,13 @@ def readArray(parameters, key):
         readArray
             Read an array from an input file specified by the key in the 
             parameters field
-            
     TYPE
         <class 'list'>
-        
-    SYNOPSIS
-        readArray(parameters, key)
-        
     ARGUMENTS
         parameters:   dictionary of input parameters which includes a 'key' field.
         
         key       :   (dType = str) key to file of interest
-   AUTHOR
+    AUTHOR
        Peter Lauren
     """
 
@@ -119,8 +110,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
            
     TYPE
         <class 'numpy.ndarray'>, int
-   SYNOPSIS
-       getCardiacPeaks(parameters, rawData, filterPercentile=70.0)
    ARGUMENTS
        parameters:   dictionary of input parameters which includes the following 
                      fields.
@@ -293,8 +282,6 @@ def getRespiratoryPeaks(parameters, rawData):
         file with one time series entry per line
     TYPE
         <class 'numpy.ndarray'>, int
-    SYNOPSIS
-        respFile(parameters, rawData)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes the 
                       following fields.
@@ -517,9 +504,6 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
          Determine phases, in the cardiac cycle based on the Glover (2000) paper
     TYPE
         <class 'list'>
-    SYNOPSIS
-       determineCardiacPhases(peaks, fullLength, phys_fs, rawData, 
-                              show_graph = False, save_graph = True)
     ARGUMENTS
         peaks:   (dType int64 array) Peaks in input cardiac time series.
         
@@ -602,8 +586,6 @@ def getACoeffs(parameters, key, phases):
            (equation 4)
     TYPE
         <class 'list'>
-    SYNOPSIS
-       getACoeffs(parameters, key, phases)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes a 'key' field.
         
@@ -639,8 +621,6 @@ def getBCoeffs(parameters, key, phases):
            (equation 4)
     TYPE
         <class 'list'>
-    SYNOPSIS
-       getBCoeffs(parameters, key, phases)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes a 'key' field.
         
@@ -679,9 +659,6 @@ def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs,
             (equation 3)
     TYPE
         <class 'list'>
-    SYNOPSIS
-       determineRespiratoryPhases(parameters, resp_peaks, resp_troughs, 
-                    phys_fs, rawData, show_graph = False, save_graph = True)
     ARGUMENTS
         parameters:   dictionary of input parameters which includes the 
           following fields.
@@ -857,8 +834,6 @@ def getPhysiologicalNoiseComponents(parameters):
             components of BOLD signal
     TYPE
         Dictionary with the following fields
-    SYNOPSIS
-       getPhysiologicalNoiseComponents(parameters)
     ARGUMENTS
         parameters:   Dictionary with the following fields.
         
@@ -1031,8 +1006,6 @@ def limitNumOutputTimepoints(rawData, parameters):
             Ensure number of output time points not too high
      TYPE
         <class 'int'>
-    SYNOPSIS
-        limitNumOutputTimepoints(rawData, parameters) 
     ARGUMENTS
         rawData: (array, dType = float) Raw input data
         
@@ -1080,8 +1053,6 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
             arguments. Outputs raw data.
     TYPE
         <class 'numpy.ndarray'> 
-    SYNOPSIS
-       readRawInputData(respcard_info, filename=None, phys_dat=None)
     ARGUMENTS
         respcard_info:   Dictionary with the following fields.
         
@@ -1135,8 +1106,6 @@ def runAnalysis(parameters):
             by Peter Lauren
     TYPE
         void
-    SYNOPSIS
-       runAnalysis(parameters)
     ARGUMENTS
     
         parameters:   Dictionary with the following fields.
@@ -1187,9 +1156,6 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
     TYPE
         <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, 
         <class 'numpy.ndarray'>
-    SYNOPSIS
-       getInputFileParameters(resp_info, card_info, phys_file,
-       phys_json_arg, resp_out, card_out, rvt_out)
     ARGUMENTS
         resp_info:   Dictionary with the following fields.
         
@@ -1318,8 +1284,6 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
             Language (NIML) format
     TYPE
         <class void>
-    SYNOPSIS
-       ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the following fields.
         
@@ -1504,9 +1468,6 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             (2000).  Also make time vector
     TYPE
         <class 'dict'>
-    SYNOPSIS
-       makeRegressorsForEachSlice(physiologicalNoiseComponents, 
-                                  dataType, parameters)
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the following fields.
         
@@ -1613,8 +1574,6 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
             Monica A. Smith, and Peter A. Bandettini
     TYPE
         <class 'list'>
-    SYNOPSIS
-       getRVT(rawData, resp_peaks, resp_troughs, freq, interpolationOrder)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -1665,9 +1624,6 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
             NeuroImage 31 (2006) p. 1537
     TYPE
         <class 'numpy.ndarray'>
-    SYNOPSIS
-       getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, 
-                        interpolationOrder = 'linear')
     ARGUMENTS
         rawRVT:     <class 'numpy.ndarray'> RVT at each input time point
         
@@ -1735,9 +1691,6 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0,
             is, get RVT for each input time point.
     TYPE
         <class 'numpy.ndarray'>
-    SYNOPSIS
-       getRawRVT(rawData, resp_peaks, resp_troughs, freq, dev = True,
-                     interpolationOrder = 'linear')
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -1819,9 +1772,6 @@ def getPeriodLayer(resp_peaks, fullLength, freq, interpolationOrder = 'linear'):
             respiratory or cardiac interval.
     TYPE
         <class 'numpy.ndarray'>
-    SYNOPSIS
-       getPeriodLayer(resp_peaks, fullLength, freq, 
-                      interpolationOrder = 'linear')
     ARGUMENTS
         resp_peaks:  <class 'numpy.ndarray'> Peaks in input respiratory time 
                                                                         series.
@@ -1878,8 +1828,6 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
             points'' (which may be peaks or troughs).
     TYPE
         <class 'numpy.ndarray'>
-    SYNOPSIS
-       getLayer(rawData, criticalPoints, interpolationOrder = 'linear')
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -1932,9 +1880,6 @@ def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True)
                                                               used.)
     TYPE
         <class 'list'>
-    SYNOPSIS
-       getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, 
-                               dev = True)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -2000,8 +1945,6 @@ def connectTroughRVTs(resp_troughs, troughRVTs, fullLength):
             period around the trough. (Not currently used.)
     TYPE
         <class 'list'>
-    SYNOPSIS
-       connectTroughRVTs(resp_troughs, troughRVTs, fullLength)
     ARGUMENTS
         resp_troughs:    <class 'numpy.ndarray'> Troughs in input respiratory 
                                                  time series.
@@ -2053,8 +1996,6 @@ def getTroughRVTs(rawData, resp_peaks, resp_troughs, freq):
             trough.  (Not currently used.)
     TYPE
        <class 'list'>
-    SYNOPSIS
-       getTroughRVTs(rawData, resp_peaks, resp_troughs, freq)
     ARGUMENTS
         rawData:     <class 'numpy.ndarray'> Raw respiratory data
         
@@ -2115,8 +2056,6 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
             Show RVT peaks and phase sampled at different acquisition times.
     TYPE
        <class 'int'>
-    SYNOPSIS
-       show_rvt_peak(physiologicalNoiseComponents, parameters)
     ARGUMENTS
         physiologicalNoiseComponents: <class 'dict'> Dictionary with the
                                                             following field:
