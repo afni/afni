@@ -561,8 +561,9 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         end = min(len(phases),round(len(phases)*50.0/len(peaks)))
         for i in range(0,end): x.append(i/phys_fs)
         fig, ax_left = plt.subplots()
-        plt.xlabel("Time (s)")
-        plt.ylabel('Input data input value',color='g')
+        plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
+        plt.ylabel('Input data input value',color='g', 
+                   fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
@@ -809,8 +810,9 @@ def determineRespiratoryPhases(parameters, resp_peaks, resp_troughs,
         end = min(len(phases),round(len(phases)*50.0/len(resp_peaks)))
         for i in range(0,end): x.append(i/phys_fs)
         fig, ax_left = plt.subplots()
-        plt.xlabel("Time (s)")
-        plt.ylabel('Input data input value',color='g')
+        plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
+        plt.ylabel('Input data input value',color='g', 
+                   fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
@@ -1739,15 +1741,17 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq, show_graph = 0,
          end = len(rawData)
          for i in range(0,end): x.append(i/freq)
          fig, ax_left = plt.subplots()
-         plt.xlabel("Time (s)")
-         plt.ylabel('Input data and RVT value',color='black')
+         plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
+         plt.ylabel('Input data and RVT value',color='black', 
+                    fontdict={'fontsize': font_size})
          ax_left.plot(x, rawData, color='green')
          ax_left.plot(x, peakLayer, color='red')
          ax_left.plot(x, troughLayer, color='blue')
          ax_right = ax_left.twinx()
          ax_right.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
          ax_right.plot(x, periodLayer, color='magenta')
-         plt.ylabel('Period (s)',color='magenta', fontweight='bold')
+         plt.ylabel('Period (s)',color='magenta', fontweight='bold', 
+                    fontdict={'fontsize': font_size})
          ax_left.plot(x, rawRVT, color='darkgoldenrod')
          TitleStr = "Raw RVT (dark goldenrod) and raw input data (green).\n"
          TitleStr = TitleStr + 'Red = peak layer. Blue = trough layer. '+\
@@ -2110,7 +2114,7 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
     plot(time1, resp_info["phase_slice"][:, 1], "bo")
     plot(time1, resp_info["phase_slice"][:, 1], "b-")
     grid("on", color = "gray")
-    xlabel("time (sec)")
+    xlabel("time (sec)", fontdict={'fontsize': parameters['font_size']})
     
     TitleStr = "Phase sampled at slice acquisition time\n"
     TitleStr = TitleStr +\

@@ -898,8 +898,9 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         end = len(rawData1)
         for i in range(0,end): x.append(i*F0)
         fig, ax_left = plt.subplots()
-        plt.xlabel("Frequency (Hz)")
-        plt.ylabel('Fourier Spectral Value',color='g')
+        plt.xlabel("Frequency (Hz)", fontdict={'fontsize': font_size})
+        plt.ylabel('Fourier Spectral Value',color='g', 
+                   fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         ax_right.plot(x[3:end//20], filteredrawData1[3:end//20], color='red')
         ax_left.plot(x[3:end//20],rawData1[3:end//20], color='green')
@@ -919,8 +920,9 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         end = len(filteredRawData)
         for i in range(0,end): x.append(i/phys_fs)
         fig, ax_left = plt.subplots()
-        plt.xlabel("Time (s)")
-        plt.ylabel('Raw input data value',color='g')
+        plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
+        plt.ylabel('Raw input data value',color='g', 
+                   fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         upperLimit = round(len(filteredRawData)/4)
         ax_right.plot(x[0:upperLimit], filteredRawData[0:upperLimit], 
@@ -928,7 +930,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         ax_left.plot(x[0:upperLimit],rawData[0:upperLimit], color='green')
         # ax_right.plot(x, filteredRawData, color='red')
         # ax_left.plot(x,rawData, color='green')
-        plt.ylabel('Filtered Data Value',color='r')
+        plt.ylabel('Filtered Data Value',color='r', 
+                   fontdict={'fontsize': font_size})
         plt.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
             str(round(F0*lowerMax)) + "] (red) and raw input data (green)", 
             fontdict={'fontsize': font_size})
@@ -1269,8 +1272,8 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     else:
         title = peakType + " peaks (red) and raw input data (green)"
     title += '\n' + caption
-    plt.xlabel("Time (s)")
-    plt.ylabel("Input data value")
+    plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
+    plt.ylabel("Input data value", fontdict={'fontsize': font_size})
     plt.title(title, fontdict={'fontsize': font_size})
     # plt.text(.5, .05, caption, ha='center') # PSL: This puts an unneeded  
                                               # caption in an unwated place.
