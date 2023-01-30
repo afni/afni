@@ -5262,6 +5262,9 @@ printf(
 "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
 "    %s -infile_prefix   s8912345/i  -debug 2\n"
 "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
+"  basic sorting example, and save optional sorting details\n"
+"    %s -infile_prefix '*.dcm' -gert_create_dataset -dicom_org \\\n"
+"          -save_details D\n"
 "\n"
 "  A2. investigate a list of files: \n"
 "\n"
@@ -5494,7 +5497,7 @@ printf(
 "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
 "\n"
 "  ---------------------------------------------------------------\n",
-prog, prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
