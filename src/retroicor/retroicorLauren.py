@@ -21,9 +21,6 @@ __author__ = "Peter Lauren"
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Test start time via TR shift
-        - Align names of variables
-        - Add plot font size as command line option
         - quiet switch?
         - Offset for every slice relative to TR
         - alt-Z (alternating positive and megative z-direction)
@@ -50,6 +47,9 @@ __author__ = "Peter Lauren"
             - Determining final output
     
     DONE:
+        - Test start time via TR shift
+        - Align names of variables
+        - Add plot font size as command line option
         - Make demo scripts
         - Add to box:
             - Samples (input files)
@@ -256,7 +256,7 @@ def retro_ts(
     phys_fs           = None,
     number_of_slices  = None,
     volume_tr         = None,
-    start_time        = None,
+    start_time        = -1,
     num_time_pts      = None,
     OutDir            = now_str,
     prefix            = None,
@@ -653,7 +653,7 @@ Output:
         "-freq"              : None,
         "-num_slices"        : None,
         "-volume_tr"         : None,
-        "-start_time"        : None,
+        "-start_time"        : -1,
         "-num_time_pts"      : None,
         "-out_dir"           : now_str,
         "-prefix"            : None,
