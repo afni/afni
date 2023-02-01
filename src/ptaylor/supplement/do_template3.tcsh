@@ -15,7 +15,7 @@ set here      = $PWD
 set adir      = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (?!)."
+    echo "** Cannot find 'afni' (?)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -110,15 +110,15 @@ if ( "${wdir}" = "" ) then
 endif
 
 # check output directory, use input one if nothing given
-if ( ! -e ${odir} ) then
+if ( ! -e "${odir}" ) then
     echo "++ Making new output directory: $odir"
-    \mkdir -p ${odir}
+    \mkdir -p "${odir}"
 endif
 
 # make the working directory
-if ( ! -e ${odir}/${wdir} ) then
+if ( ! -e "${odir}/${wdir}" ) then
     echo "++ Making working directory: ${odir}/${wdir}"
-    \mkdir -p ${odir}/${wdir}
+    \mkdir -p "${odir}/${wdir}"
 else
     echo "+* WARNING:  Somehow found a premade working directory (?):"
     echo "      ${odir}/${wdir}"
@@ -148,7 +148,7 @@ else
 endif
 
 echo ""
-echo "++ DONE! View the finished, axialized product:"
+echo "++ DONE.  View the finished, axialized product:"
 echo "     $whereout/$fout"
 echo ""
 
@@ -177,7 +177,7 @@ SHOW_VERSION:
    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
-    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:
