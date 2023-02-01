@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "get SurfSmooth params from smrec dset",
+   "Thanks to Erin G for bringing up the issue."
+ } ,
+
  { 24, Jan, 2023, RCR, "3dvolreg", MINOR, TYPE_ENHANCE,
    "add error message for trimming weight set to empty",
    "For now, still let it crash.  Try to trap in startup_lsqfit later."

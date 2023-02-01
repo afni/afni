@@ -4500,6 +4500,9 @@ def cmd_blur_surf(proc, block):
     prefix = proc.prefix_form_run(block)
     param_file = 'surf.smooth.params.1D'
 
+    # get later params from smrec rather than stdout  30 Jan 2023 [rickr]
+    blur_hist = '%s.1D.smrec' % prefix
+
     cmd +='%s'                                                          \
           '    foreach run ( $runs )\n'                                 \
           '        # to save time, estimate blur parameters only once\n'\
@@ -4512,23 +4515,25 @@ def cmd_blur_surf(proc, block):
           '                       -blurmaster %s \\\n'                  \
           '                       -detrend_master \\\n'                 \
           '                       -output %s \\\n'                      \
-          '                       | tee %s \n'                          \
+          '                       | tee %s\n'                           \
+          '            set bfile  = %s\n'                               \
+          '            set params = ( `1dcat $bfile | tail -n 1` )\n'   \
           '        else\n'                                              \
-          '            set params = `1dcat %s`\n'                       \
+          '            # get blur params from smrec file\n'             \
           '            SurfSmooth -spec %s \\\n'                        \
           '                       -surf_A %s \\\n'                      \
           '                       -input %s \\\n'                       \
           '                       -met HEAT_07 \\\n'                    \
           '                       -Niter $params[1] \\\n'               \
-          '                       -sigma $params[2] \\\n'               \
-          '                       -output %s \n'                        \
+          '                       -sigma $params[3] \\\n'               \
+          '                       -output %s\n'                         \
           '        endif\n'                                             \
           '    end\n'                                                   \
           'end\n\n'                                                     \
           % (feh_str,
              param_file, spec_str, proc.surf_A, prev,
              proc.surf_blur_fwhm, prev, prefix, param_file,
-             param_file, spec_str, proc.surf_A, prev, prefix)
+             blur_hist, spec_str, proc.surf_A, prev, prefix)
 
     return cmd
 
