@@ -462,11 +462,14 @@ examples (very basic for now): ~1~
 
        b. show rank order of slice times piped directly from 3dinfo
 
-         3dinfo -slice_timing epi+orig | 1d_tool.py -infile - -rank -write -
+          Note: input should be space separated, not '|' separated.
+
+         3dinfo -slice_timing epi+orig -sb_delim ' ' \\
+                | 1d_tool.py -infile - -rank -write -
 
        c. show rank order using 'competition' rank, instead of default 'dense'
 
-         3dinfo -slice_timing epi+orig \\
+         3dinfo -slice_timing epi+orig -sb_delim ' ' \\
                 | 1d_tool.py -infile - -rank_style competition -write -
 
    Example 22. Guess volreg base index from motion parameters. ~2~
