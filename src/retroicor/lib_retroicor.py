@@ -1373,6 +1373,11 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     )
     main_info["reml_out"] = zeros((n_n, temp_y_axis))
 
+    # Check number of time points
+    if size(main_info["reml_out"], 0) != parameters['num_time_pts']:
+        print('***ERROR: Mismatch between ni_dimen' +
+              ' (',size(main_info["reml_out"], 0), ') and user supplied ' +
+              'num_time_pts (', parameters['num_time_pts'], ')')
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
