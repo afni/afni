@@ -21,8 +21,12 @@ __author__ = "Peter Lauren"
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - quiet switch?
         - Offset for every slice relative to TR
+            - afnipy/afni_util.py:slice_pattern_to_timing() gets the actual timing
+        - Implement slice pattern.  Required option 
+        - Allow dataset, as input, to determine TR, # slices, # time points and
+            slice pattern.  Command line options could overwrite that. JSON file
+        - EPI data set (Being used in afniproc command)
         - alt-Z (alternating positive and megative z-direction)
         - Multiband (multiple slices at same point)
         - RVT without shifts
@@ -45,6 +49,8 @@ __author__ = "Peter Lauren"
             - Findging peaks
             - Determining phase
             - Determining final output
+        - See what quiet option does and determine if it is still necessary,
+            given that verbose is available.
     
     DONE:
         - Test start time via TR shift
@@ -157,7 +163,7 @@ def getSliceOffsets(offsetDict):
             slice_offset:   (2D array dType = numpy.float64) Vector of slice 
                             acquisition time offsets in seconds.
         
-            slice_order:   (dType = str) Order of slices 
+            slice_pattern:   (dType = str) Pettern of slices 
                            (alt+z, alt-z, etc).  Default is "alt+z".
         
             quiet:   (dType = int) 0 if show graphs. 1 if do not show graphs
@@ -168,7 +174,7 @@ def getSliceOffsets(offsetDict):
         
     slice_offset = offsetDict["slice_offset"]
     
-    # Determining slice_offset based upon slice_order, volume_tr,
+    # Determining slice_offset based upon slice_pattern, volume_tr,
     #  and number_of_slices.
     tt = 0.0  # Default float value to start iterations
     dtt = float(offsetDict["volume_tr"]) / float(
@@ -177,7 +183,7 @@ def getSliceOffsets(offsetDict):
     # init slice_offsets, unless Custom order
     # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
     if (
-        (offsetDict["slice_order"] not in ["Custom", "custom"])
+        (offsetDict["slice_pattern"] not in ["Custom", "custom"])
         or len(slice_offset) != offsetDict["number_of_slices"]
     ):
         slice_offsets = [0] * offsetDict[
@@ -187,21 +193,21 @@ def getSliceOffsets(offsetDict):
         []
     )  # List for using external file for slice_offset values/
     # Indicates if using external file in last loop
-    if offsetDict["slice_order"][0:3] == "alt":  # Alternating?
+    if offsetDict["slice_pattern"][0:3] == "alt":  # Alternating?
         for i in range(0, offsetDict["number_of_slices"], 2):
             slice_offsets[i] = tt
             tt += dtt
         for i in range(1, offsetDict["number_of_slices"], 2):
             slice_offsets[i] = tt
             tt += dtt
-    elif offsetDict["slice_order"][0:3] == "seq":  # Sequential?
+    elif offsetDict["slice_pattern"][0:3] == "seq":  # Sequential?
         for i in range(0, offsetDict["number_of_slices"]):
             slice_offsets[i] = tt
             tt += dtt
-    elif offsetDict["slice_order"] in ["Custom", "custom"] \
+    elif offsetDict["slice_pattern"] in ["Custom", "custom"] \
         and type(slice_offset) == str:
 
-        # If slice_order is custom, parse from slice_offset string.
+        # If slice_pattern is custom, parse from slice_offset string.
         # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
         try:
            offlist = eval(slice_offset)
@@ -226,7 +232,7 @@ def getSliceOffsets(offsetDict):
 
     else:  # Open external file specified in argument line,
         # fill SliceFileList with values, then load into slice_offset
-        with open(offsetDict["slice_order"], "r") as f:
+        with open(offsetDict["slice_pattern"], "r") as f:
             for i in f.readlines():
                 # read times, in seconds
                 slice_file_list.append(float(i))
@@ -238,7 +244,7 @@ def getSliceOffsets(offsetDict):
                 sys.exit(1)
             slice_offsets = slice_file_list
     if (
-        offsetDict["slice_order"][3] == "-" and slice_file_list == []
+        offsetDict["slice_pattern"][3] == "-" and slice_file_list == []
     ):  # Check for a minus to indicate
         #  a reversed offset list
         slice_offsets.reverse()
@@ -256,7 +262,7 @@ def retro_ts(
     phys_fs           = None,
     number_of_slices  = None,
     volume_tr         = None,
-    start_time        = -1,
+    start_time        = 0,
     num_time_pts      = None,
     OutDir            = now_str,
     prefix            = None,
@@ -272,7 +278,7 @@ def retro_ts(
     rvt_out           = 0,
     card_out          = 1,
     resp_out          = 1,
-    slice_order       = "alt+z",
+    slice_pattern       = "alt+z",
     zero_phase_offset = 0,
     phys_file         = None,
     phys_json         = None,
@@ -336,7 +342,7 @@ def retro_ts(
         
         resp_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
         
-        slice_order: (dType = str) Slice timing information in seconds. The 
+        slice_pattern: (dType = str) Slice timing information in seconds. The 
                      default is alt+z. See 3dTshift help for more info.
             alt+z    = alternating in the plus direction
             alt-z    = alternating in the minus direction
@@ -397,7 +403,7 @@ def retro_ts(
     offsetDict["volume_tr"] = volume_tr
     offsetDict["num_time_pts"] = int(num_time_pts)
     offsetDict["number_of_slices"] = number_of_slices
-    offsetDict["slice_order"] = slice_order
+    offsetDict["slice_pattern"] = slice_pattern
     offsetDict["quiet"] = quiet
     offsetDict["dev"] = dev
     offsetDict["verbose"] = verbose
@@ -590,7 +596,7 @@ Input
     ============================================================================
     slice_offset: Vector of slice acquisition time offsets in seconds.
             (default is equivalent of alt+z)
-    slice_order: Slice timing information in seconds. The default is
+    slice_pattern: Slice timing information in seconds. The default is
            alt+z. See 3dTshift help for more info.
                alt+z    = alternating in the plus direction
                alt-z    = alternating in the minus direction
@@ -604,29 +610,29 @@ Input
                             each slice in seconds)
 
             For example, the following 4 commands would produce identical
-            output, based on 10 slices using a (non-default) alt-z slice order:
+            output, based on 10 slices using a (non-default) alt-z slice pattern:
 
                retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
                           -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_order alt-z -Nt 220
+                          -slice_pattern alt-z -Nt 220
 
                set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
                retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
                           -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_order custom              \\
+                          -slice_pattern custom              \\
                           -slice_offset "$offlist" -Nt 220
 
                set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
                retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
                           -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_order custom              \\
+                          -slice_pattern custom              \\
                           -slice_offset "$offlist" -Nt 220
 
                # put those same offsets into a text file (vertically)
                echo $offlist | tr ' ' '\\n' > slice_offsets.txt
                retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
                           -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_order slice_offsets.txt -Nt 220
+                          -slice_pattern slice_offsets.txt -Nt 220
 
 
     ============================================================================
@@ -653,7 +659,7 @@ Output:
         "-freq"              : None,
         "-num_slices"        : None,
         "-volume_tr"         : None,
-        "-start_time"        : -1,
+        "-start_time"        : 0,
         "-num_time_pts"      : None,
         "-out_dir"           : now_str,
         "-prefix"            : None,
@@ -667,7 +673,7 @@ Output:
         "-rvt_out"           : 0,
         "-card_out"          : 1,
         "-resp_out"          : 1,
-        "-slice_order"       : "alt+z",
+        "-slice_pattern"       : "alt+z",
         "-show_graphs"       : 0,
         "-save_graphs"       : 1,
         "-font_size"         : 10,
@@ -735,7 +741,7 @@ Output:
         rvt_out           = int(opt_dict["-rvt_out"]),
         card_out          = int(opt_dict["-card_out"]),
         resp_out          = int(opt_dict["-resp_out"]),
-        slice_order       = opt_dict["-slice_order"],
+        slice_pattern       = opt_dict["-slice_pattern"],
         show_graphs       = int(opt_dict["-show_graphs"]),
         save_graphs       = int(opt_dict["-save_graphs"]),
         font_size         = int(opt_dict["-font_size"]),
