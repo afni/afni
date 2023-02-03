@@ -755,6 +755,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dDiff 3dDiff.o $(LFLAGS) $(LLIBS)
 
+3dSqueakyToy: 3dSqueakyToy.o
+	$(RM) $@
+	$(CC) -o 3dSqueakyToy 3dSqueakyToy.o $(LFLAGS) $(LLIBS)
+
 3dSynthesize:3dSynthesize.o
 	$(RM) $@
 	$(CC) -o 3dSynthesize 3dSynthesize.o $(LFLAGS) $(LLIBS)
