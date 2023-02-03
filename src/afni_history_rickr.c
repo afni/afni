@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "actually fail (not just warn) on inconsistent num echoes",
+   "Thanks to T Weiss bringing up the issue."
+ } ,
+
  {  1, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "get SurfSmooth params from smrec dset",
    "Thanks to Erin G for bringing up the issue."
