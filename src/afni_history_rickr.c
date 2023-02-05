@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2023, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add timing_to_slice_pattern() - to determine known slice time patterns",
+   NULL
+ } ,
+
  {  3, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "actually fail (not just warn) on inconsistent num echoes",
    "Thanks to T Weiss bringing up the issue."
