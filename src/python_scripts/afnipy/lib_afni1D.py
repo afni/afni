@@ -2564,6 +2564,17 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
+   def show_tpattern(self, mesg='', verb=1):
+      """display the multiband level and to3d-style tpattern
+
+         mesg: if set print before output
+         verb: if 0, no text"""
+
+      if mesg:     print('%s' % mesg, end='')
+      nb, tpat = UTIL.timing_to_slice_pattern([v[0] for v in self.mat])
+      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
+      else:        print('%d %s' % (nb, tpat))
+
    def get_tr_counts(self):
       """return status, self.run_len, self.run_len_nc
 

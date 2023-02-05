@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_pattern",
+   NULL
+ } ,
+
  {  4, Feb, 2023, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "add timing_to_slice_pattern() - to determine known slice time patterns",
    NULL
