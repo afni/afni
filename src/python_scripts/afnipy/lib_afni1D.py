@@ -2572,6 +2572,8 @@ class Afni1D:
 
       if mesg:     print('%s' % mesg, end='')
       nb, tpat = UTIL.timing_to_slice_pattern([v[0] for v in self.mat])
+      if nb < 0:
+         tpat = 'INVALID'
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
       else:        print('%d %s' % (nb, tpat))
 

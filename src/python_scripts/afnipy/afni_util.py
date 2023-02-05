@@ -1493,7 +1493,7 @@ def attr_equals_val(object, attr, val):
     return rv
 
 def timing_to_slice_pattern(timing, nplaces=3):
-   """given an arrah of slice times, try to return a value
+   """given an array of slice times, try to return a value
       in g_valid_slice_patterns
 
            TR = max(timing) + min(non-zero timing)
