@@ -1082,6 +1082,8 @@ static char *gby[] = {
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
      "If you need me, I'll be in my van"                             ,
+     "I get up so early, I'm out of bed by noon the day before!"     ,
+     "We don't just drip with sarcasm, we are a class-4 hurricane"   ,
 
      /* Mistakes? in AFNI? */
 
@@ -1128,6 +1130,7 @@ static char *gby[] = {
      "Brain-ology at the cutting edge since 1994"                    ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
      "Confusing neuroscientists successfully since 1994"             ,
+     "Overwhelming users with options since 1994"                    ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
