@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Feb, 2023, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "show multiband level and timing patternn in basic output",
+   NULL
+ } ,
+
  {  4, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_slice_timing_pattern",
    NULL
