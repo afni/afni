@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  6, Feb, 2023, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+ {  6, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "propagate slice_pattern from any -tshift_opts_ts -tpatttern",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "show multiband level and timing patternn in basic output",
    NULL
  } ,
