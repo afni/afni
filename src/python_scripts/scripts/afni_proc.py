@@ -748,9 +748,10 @@ g_history = """
     7.51 Jan 24, 2023: add QC to ricor block
     7.52 Feb  1, 2023: get SurfSmooth params from smrec file
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
+    7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
 """
 
-g_version = "version 7.53, February 3, 2023"
+g_version = "version 7.54, February 6, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

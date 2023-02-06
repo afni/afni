@@ -2003,8 +2003,17 @@ def db_cmd_tshift(proc, block):
 
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
-    if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
+    if not opt or not opt.parlist:
+       other_opts = ''
+    else:
+       other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
+       # if -tpattern is in this list, apply it is a uvar
+       oname = '-tpattern'
+       if oname in opt.parlist:
+          tind = opt.parlist.index(oname)
+          if tind < len(opt.parlist) - 1:
+             # propagate as a valid uvar
+             proc.uvars.set_var('slice_pattern', [opt.parlist[tind+1]])
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
