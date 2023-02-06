@@ -1189,7 +1189,7 @@ class MyInterface:
       ndfo = len(self.dfobjs)
       ntot = self.count_needed_mods()
       if ntot == 0:
-         MESG("no modifications needed across %d files" % ndfo)
+         MESG("no modifications needed across %d dot files" % ndfo)
       else:
          if self.verb > 0:
             MESG("%swant %d modifications across %d files:\n" \
