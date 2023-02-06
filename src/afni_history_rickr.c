@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Feb, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "include output from init_user_dotfiles.py -test",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_ENHANCE,
+   "add -shell_list and prep for possible librification",
+   NULL
+ } ,
+
  {  6, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "propagate slice_pattern from any -tshift_opts_ts -tpatttern",
    NULL
