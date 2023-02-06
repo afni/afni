@@ -93,6 +93,10 @@ examples: ~1~
         init_user_dotfiles.py -do_updates ALL -dir_dot DDIR \\
             -dflist .bashrc .cshrc
 
+        # only consider shells bash and tcsh
+        init_user_dotfiles.py -do_updates ALL -dir_dot DDIR \\
+            -shell_list bash tcsh
+
 ------------------------------------------
 terminal options: ~1~
 
@@ -199,6 +203,27 @@ other options:
 
          Use this option to turn off the default behavior.
 
+      -shell_list S1 S2 ...     : specify shells instead of using -dflist
+
+         e.g.,    -shell_list bash tcsh
+         default: -shell_list ALL
+
+         This is an optional alternative to -dflist.  The user can specify
+         a list of known shells which would imply the dot file list given by
+         -dflist.  The same special cases of ALL and MOD apply.
+
+         For example,
+
+            -shell_list bash tcsh
+
+         would have the same effect as:
+
+            -dflist .bashrc .cshrc .tcshrc
+
+         This is merely a convenience option.
+
+            See also -dflist.
+
       -test                     : just test the files for potential changes
 
           e.g., -test
@@ -228,7 +253,7 @@ g_history = """
                        encased in a block of ice... zillagod
    1.0  Dec 23, 2022 - initial release
    1.1  Jan  6, 2023 - always output something in test mode
-   1.2  Feb  6, 2023 - no effect, but prep for potential librification
+   1.2  Feb  6, 2023 - add -shell_list
 """
 
 g_prog = "init_user_dotfiles.py"
@@ -562,7 +587,7 @@ class MyInterface:
                       acplist=['yes','no'],
                       helpstr='back up each edited file (yes/no, def=yes)')
       self.valid_opts.add_opt('-shell_list', -1, [], 
-                      helpstr='alternative to -dflist')
+                      helpstr='shell alternative to -dflist dot files')
       self.valid_opts.add_opt('-test', 0, [], 
                       helpstr='run without making any updates')
 
@@ -1144,8 +1169,6 @@ class MyInterface:
       else:               tstr = 'applying - '
 
       if self.verb > 0:
-          MESG("")
-
           # report what operations would actually be performed here
           olist = []
           if self.do_path: olist.append('path')
