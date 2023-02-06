@@ -1164,9 +1164,9 @@ class MyInterface:
          return
 
       # if testing or dry run, report full test table
-      if self.test:       tstr = 'testing - '
-      elif self.dry_run:  tstr = 'dry_run - '
-      else:               tstr = 'applying - '
+      if self.test:       tstr = 'dot file test : '
+      elif self.dry_run:  tstr = 'dot file dry_run : '
+      else:               tstr = 'dot file mods : '
 
       if self.verb > 0:
           # report what operations would actually be performed here
