@@ -21,27 +21,13 @@ __authors__ = "Joshua Zosky and Peter Lauren"
 """
 
 import numpy as np
-#import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import(
-    figure as mplf,
-    plot,
-    subplot,
-    text,
-    xlabel,
-    title,
-    legend,
-    grid,
-    show
-    )
-import matplotlib.pyplot as plt
-import math
+import math                        # possible to remove this, use all numpy
 import scipy
-from scipy import signal as sps
+from   scipy import signal as sps
 import gzip
 import json
-import statistics
-from matplotlib.ticker import FormatStrFormatter
+from   matplotlib.ticker import FormatStrFormatter
 
 # Local libraries
 import libPeakFilters as lpf
@@ -2112,14 +2098,14 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
     time2 = np.zeros(numTimeSteps)
     for i in range(1,numTimeSteps): time2[i] = timeStepIncrement * i
        
-    plot(time2, physiologicalNoiseComponents["resp_phases"], "y")
-    plot(
+    plt.plot(time2, physiologicalNoiseComponents["resp_phases"], "y")
+    plt.plot(
         time1, resp_info["phase_slice"][:, 0], "ro"
     )  
-    plot(time1, resp_info["phase_slice"][:, 1], "bo")
-    plot(time1, resp_info["phase_slice"][:, 1], "b-")
-    grid("on", color = "gray")
-    xlabel("time (sec)", fontdict={'fontsize': parameters['font_size']})
+    plt.plot(time1, resp_info["phase_slice"][:, 1], "bo")
+    plt.plot(time1, resp_info["phase_slice"][:, 1], "b-")
+    plt.grid("on", color = "gray")
+    plt.xlabel("time (sec)", fontdict={'fontsize': parameters['font_size']})
     
     TitleStr = "Phase sampled at slice acquisition time\n"
     TitleStr = TitleStr +\
@@ -2130,7 +2116,7 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
     if parameters['save_graphs']:
         plt.savefig('%s/RvtPeak.pdf' % (OutDir)) 
         plt.show(block=False)
-        if parameters['show_graphs']: show()
+        if parameters['show_graphs']: plt.show()
         else: plt.close()  # Close graph after saving
         
     return 0

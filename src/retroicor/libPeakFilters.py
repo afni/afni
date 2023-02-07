@@ -44,14 +44,8 @@ The following steps are subsequently done for the respiratory data.
 
 """
 
-import numpy as np
-# import math
-### [PT] this is not standard import, and leads to lots of mpl.plot.*,
-### rather than terser and more common plt.*;  have replaced everywhere
-#import matplotlib as mpl
+import numpy             as np
 import matplotlib.pyplot as plt
-# from matplotlib import figure as mplf
-# import matplotlib.pyplot as plt
 import bisect
 
 def percentileFilter(peaks, rawData, percentile, upperThreshold=False, 
