@@ -26,6 +26,10 @@ init_user_dotfiles.py - initialize user dot files (.cshrc, .bashrc, ...)
       - (optionally) sourcing apsearch tab completion setup file
            .afni/help/all_progs.COMP (depending on shell)
 
+      - also, detect follower files
+        For example if .tcshrc sources .cshrc, then .tcshrc is a follower
+        and does not need be edited (though .cshrc might need editing).
+
    For some background, please see:
 
       afni_system_check.py -help_dot_files
@@ -1185,6 +1189,12 @@ class MyInterface:
              MESGi("(not on a mac, should skip flatdir)")
           MESG("")
 
+          nf = sum( [fo.follow for n, fo in self.dfobjs.items() ] )
+          MESGm("note: followers should not need edits," \
+                " so edit flags should be 0")
+          MESG("   (have %d follower(s), which can be ignored)" % nf)
+          MESG("")
+
       # and report the modification table
       ndfo = len(self.dfobjs)
       ntot = self.count_needed_mods()
@@ -1194,11 +1204,11 @@ class MyInterface:
          if self.verb > 0:
             MESG("%swant %d modifications across %d files:\n" \
                  % (tstr,ntot,ndfo))
-         MESG("   file             path  flatdir  apsearch  follow\n" \
-              "   ---------------  ----  -------  --------  ------")
+         MESG("   file             path  flatdir  apsearch        follower\n" \
+              "   ---------------  ----  -------  --------        --------")
          for name, fo in self.dfobjs.items():
             ml = []
-            MESG("   %-15s  %-4d  %-7d  %-8d  %-6d" % \
+            MESG("   %-15s  %-4d  %-7d  %-8d        %-6d" % \
                  (name, fo.m_path, fo.m_flat, fo.m_aps, fo.follow))
 
       if self.verb > 0:
