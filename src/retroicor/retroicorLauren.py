@@ -83,16 +83,11 @@ Major blocks of calculation:
 """
 
 import sys
-import numpy as np
-import lib_retroicor
-from lib_retroicor import (
-    getPhysiologicalNoiseComponents, 
-    getInputFileParameters,
-    show_rvt_peak
-    )
+import numpy         as np
+import lib_retroicor as RET
 import os
+from   datetime      import datetime
 
-from datetime import datetime
 now     = datetime.now() # current date and time
 now_str = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 
@@ -390,7 +385,7 @@ def retro_ts(
     fid.close()
     
     # Set output directory for lib_retroicor
-    lib_retroicor.setOutputDirectory(OutDir)
+    RET.setOutputDirectory(OutDir)
 
     if not slice_offset:
         slice_offset = np.zeros((1, number_of_slices))
@@ -423,8 +418,8 @@ def retro_ts(
     print('Get input file parameters')
 
     resp_file, phys_resp_dat, card_file, phys_card_dat =\
-        getInputFileParameters(resp_info, cardiac_info, phys_file,\
-                            phys_json, resp_out, card_out, rvt_out) 
+        RET.getInputFileParameters(resp_info, cardiac_info, phys_file, \
+                                   phys_json, resp_out, card_out, rvt_out) 
         
     # Set paremeters
     parameters = dict()
@@ -466,7 +461,7 @@ def retro_ts(
     parameters['save_graphs'] = save_graphs
     parameters['font_size']   = font_size
 
-    physiologicalNoiseComponents = getPhysiologicalNoiseComponents(parameters)
+    physiologicalNoiseComponents = RET.getPhysiologicalNoiseComponents(parameters)
     if len(physiologicalNoiseComponents) == 0:
         print('*** Error in retro_ts.  Failure to get physiological noise\
               components')
@@ -474,11 +469,11 @@ def retro_ts(
     if parameters['niml']:
         return 0
     parameters['OutDir'] = OutDir
-    lib_retroicor.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
+    RET.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
     
     if len(physiologicalNoiseComponents['resp_phases']) > 0 and\
         (parameters['save_graphs'] or parameters['show_graphs']):
-        status = show_rvt_peak(physiologicalNoiseComponents, parameters)
+        status = RET.show_rvt_peak(physiologicalNoiseComponents, parameters)
         if status == 1:
             print('*** Error in retro_ts')
             print('Failure to show RVT peak')
