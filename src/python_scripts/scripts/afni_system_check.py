@@ -77,12 +77,28 @@ details displayed via -check_all (just run to see):
       - which afni, python, R and tcsh, along with versions
       - check for multiple afni packages in PATH
       - check that various AFNI programs run
+      - check for AFNI $HOME dot files (.afnirc, .sumarc, etc.)
 
    python libs:
       - check that various python libraries are found and loaded
 
-   path vars:
-      - show some environment variables related to the PATH
+   environment vars:
+      - show PATH, PYTHONPATH, R_LIBS, LD_LIBRARY_PATH, DYLD_LIBRARY_PATH, etc.
+
+   evaluation of dot files:
+      - show the output of "init_user_dotfiles -test", restricted
+        to shells of interest (user shells plus tcsh)
+
+   data checks:
+      - check for AFNI bootcamp data directories and atlases
+
+   OS specific:
+      - on linux, check for programs and version of dnf, yum
+      - on macs, check for homebrew, fink, flat_namespace, etc.
+
+   final overview:
+      - report anything that seems to need fixing for a bootcamp
+        (details shown earlier)
 
 -----------------------------------------------------------------------------
 R Reynolds    July, 2013
