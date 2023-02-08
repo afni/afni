@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
+   "as with afni_proc.py, get SurfSmooth parms from smrec file",
+   NULL
+ } ,
+
  {  6, Feb, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "include output from init_user_dotfiles.py -test",
    NULL
