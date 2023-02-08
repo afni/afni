@@ -1744,7 +1744,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0):
            - this is the order the given slice was acquired in
          - scale all by TR/nslices
 
-      return a list of slice times
+      return a list of slice times, or an empty list on error
    """
    if nslices <= 0 or TR < 0.0:
       return []
@@ -1753,7 +1753,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0):
 
    if pattern not in g_valid_slice_patterns:
       print("** slice_pattern_to_timing, invalid pattern", pattern)
-      return None
+      return []
 
    # if there is no time to partition or slices are simulaneous, return zeros
    if pattern in ['zero', 'simult']:
