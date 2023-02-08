@@ -433,7 +433,8 @@ ENTRY("mri_write_jpg") ;
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg == NULL ){
-     ERROR_message("missing program cjpeg, cannot write %s",fname) ;
+     ERROR_message("missing program cjpeg, cannot write %s",
+                    fname ? fname : "NULL") ;
      if( qim != im ) mri_free(qim) ;
      RETURN(0) ;
    }
@@ -493,7 +494,8 @@ ENTRY("mri_write_png") ;
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg == NULL ) {
-      ERROR_message("missing program pnmtopng, cannot write %s",fname) ;
+      ERROR_message("missing program pnmtopng, cannot write %s",
+                    fname ? fname : "NULL") ;
       RETURN(0) ;
    }
    pgfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
