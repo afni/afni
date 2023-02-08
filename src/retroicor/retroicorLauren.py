@@ -155,7 +155,7 @@ def getSliceOffsets(offsetDict):
             
             num_time_pts:  (dType = int) Number of time points in the output
             
-            slice_offset:   (2D array dType = numpy.float64) Vector of slice 
+            slice_times:   (2D array dType = numpy.float64) Vector of slice 
                             acquisition time offsets in seconds.
         
             slice_pattern:   (dType = str) Pettern of slices 
@@ -167,26 +167,27 @@ def getSliceOffsets(offsetDict):
        Joshua Zosky (Documentation and comments by Peter Lauren)
     """
         
-    slice_offset = offsetDict["slice_offset"]
+    slice_times = offsetDict["slice_times"]
     
-    # Determining slice_offset based upon slice_pattern, volume_tr,
+    # Determining slice_offsets based upon slice_pattern, volume_tr,
     #  and number_of_slices.
     tt = 0.0  # Default float value to start iterations
     dtt = float(offsetDict["volume_tr"]) / float(
         offsetDict["number_of_slices"]
     )  # Increments for iteration
-    # init slice_offsets, unless Custom order
+    # init slice_timess, unless Custom order
     # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
     if (
         (offsetDict["slice_pattern"] not in ["Custom", "custom"])
-        or len(slice_offset) != offsetDict["number_of_slices"]
+        # (Not) individual offset for each slice
+        or len(slice_times) != offsetDict["number_of_slices"]
     ):
         slice_offsets = [0] * offsetDict[
             "number_of_slices"
-        ]  # Initial value for slice_offset
+        ]  # Initial values for slice_times
     slice_file_list = (
         []
-    )  # List for using external file for slice_offset values/
+    )  # List for using external file for slice_times values/
     # Indicates if using external file in last loop
     if offsetDict["slice_pattern"][0:3] == "alt":  # Alternating?
         for i in range(0, offsetDict["number_of_slices"], 2):
@@ -200,33 +201,33 @@ def getSliceOffsets(offsetDict):
             slice_offsets[i] = tt
             tt += dtt
     elif offsetDict["slice_pattern"] in ["Custom", "custom"] \
-        and type(slice_offset) == str:
+        and type(slice_times) == str:
 
-        # If slice_pattern is custom, parse from slice_offset string.
+        # If slice_pattern is custom, parse from slice_times string.
         # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
         try:
-           offlist = eval(slice_offset)
+           offlist = eval(slice_times)
            # noff = len(offlist)
         except:
            try:
-              offlist = [float(v) for v in slice_offset.split()]
+              offlist = [float(v) for v in slice_times.split()]
            except:
               print("** failed to apply custom slice timing from: %s" \
-                    % slice_offset)
+                    % slice_times)
               return
         if len(offlist) != offsetDict["number_of_slices"]:
-           print("** error: slice_offset len = %d, but %d slices" \
+           print("** error: slice_times len = %d, but %d slices" \
               % (len(offlist), offsetDict["number_of_slices"]))
            return
 
         # success, report and apply
         print("applying custom slice timing, min = %g, max = %g" \
               % (min(offlist), max(offlist)))
-        slice_offset = offlist
+        slice_times = offlist
         slice_offsets = offlist
 
     else:  # Open external file specified in argument line,
-        # fill SliceFileList with values, then load into slice_offset
+        # fill SliceFileList with values, then load into slice_times
         with open(offsetDict["slice_pattern"], "r") as f:
             for i in f.readlines():
                 # read times, in seconds
@@ -261,7 +262,7 @@ def retro_ts(
     num_time_pts      = None,
     OutDir            = now_str,
     prefix            = None,
-    slice_offset      = 0,
+    slice_times      = 0,
     fir_order         = 40,
     quiet             = 1,
     demo              = 0,
@@ -315,7 +316,7 @@ def retro_ts(
         
         prefix: (dType = str) Prefix for output filename.  Default = None
         
-        slice_offset: (dType = int) Vector of slice acquisition time offsets in 
+        slice_times: (dType = int) Vector of slice acquisition time offsets in 
                       seconds.
         
         fir_order: (dType = int) Order of Finite Impulse Response (FIR) filter
@@ -338,13 +339,13 @@ def retro_ts(
         resp_out: (dType = int) Flag for writing Respiratory regressors (default is 1)
         
         slice_pattern: (dType = str) Slice timing information in seconds. The 
-                     default is alt+z. See 3dTshift help for more info.
+                     default is alt+z. See to3d help for more info.
             alt+z    = alternating in the plus direction
             alt-z    = alternating in the minus direction
             seq+z    = sequential in the plus direction
             seq-z    = sequential in the minus direction
             custom   = allows the program to use the values stored in the
-            -slice_offset list
+            -slice_times list
             filename = read temporal offsets from 'filename', including file
             extension; e.g. slice_file.dat
             (expecting a 1D / text file containing the times for
@@ -387,14 +388,14 @@ def retro_ts(
     # Set output directory for lib_retroicor
     RET.setOutputDirectory(OutDir)
 
-    if not slice_offset:
-        slice_offset = np.zeros((1, number_of_slices))
+    if not slice_times:
+        slice_times = np.zeros((1, number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
     print('Update slice offsets.  '
           'Note that this is done before the data is read')
     offsetDict = dict()
-    offsetDict["slice_offset"] = slice_offset
+    offsetDict["slice_times"] = slice_times
     offsetDict["volume_tr"] = volume_tr
     offsetDict["num_time_pts"] = int(num_time_pts)
     offsetDict["number_of_slices"] = number_of_slices
@@ -402,7 +403,7 @@ def retro_ts(
     offsetDict["quiet"] = quiet
     offsetDict["dev"] = dev
     offsetDict["verbose"] = verbose
-    slice_offset = getSliceOffsets(offsetDict)
+    slice_offsets = getSliceOffsets(offsetDict)
 
     # Create information dictionary for each type of signal
     # Note that this is done by reading the relevant input parameters
@@ -438,7 +439,7 @@ def retro_ts(
     parameters['dev']           = dev
     parameters['verbose']       = verbose
     parameters['rvt_out']       = rvt_out
-    parameters['slice_offset']  = slice_offset
+    parameters['slice_times']  = slice_times
 
     if prefix: parameters['prefix'] = prefix
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
@@ -585,7 +586,7 @@ USAGE ~1~
 
     -font_size   FS    : Font size used for graphics (def: FS = 10)
 
-   -slice_offset SLOFF : Vector of slice acquisition time offsets (in sec)
+   -slice_times SLOFF : Vector of slice acquisition time offsets (in sec)
                          (default is equivalent of alt+z)
 
    -slice_pattern SLPAT : Slice timing pattern code (def: SLPAT = alt+z). The
@@ -595,14 +596,14 @@ USAGE ~1~
                             seq+z    = sequential in the plus direction
                             seq-z    = sequential in the minus direction
                             custom   = allows the program to use the
-                                       values stored in the '-slice_offset ..'
+                                       values stored in the '-slice_times ..'
                                        list
                             filename = read temporal offsets from 'filename', 
                                        including file extension; e.g. 
                                        "slice_file.dat" (expecting a 1D text 
                                        file containing the times for each slice,
                                        in seconds)
-                          See 3dTshift help for more info.
+                          See to3d help for more info.
 
     -zero_phase_offset ZPO : ***does something, needs description***
 
@@ -649,7 +650,7 @@ EXAMPLES ~1~
         -num_slices     10                                        \\
         -prefix         fred                                      \\
         -slice_pattern  custom                                    \\
-        -slice_offset   "$offlist"                                \\
+        -slice_times   "$offlist"                                \\
         -Nt             220
 
     3) Same as Ex 1, with 'text format' of slice offset list (that
@@ -663,7 +664,7 @@ EXAMPLES ~1~
         -num_slices     10                                        \\
         -prefix         fred                                      \\
         -slice_pattern  custom                                    \\
-        -slice_offset   "$offlist"                                \\
+        -slice_times   "$offlist"                                \\
         -Nt             220
 
     4) Same as Ex 1, with '1D file format' of slice offset list (that
@@ -702,7 +703,7 @@ regressors and cardiac regressors.
         "-num_time_pts"      : None,
         "-out_dir"           : now_str,
         "-prefix"            : None,
-        "-slice_offset"      : 0,
+        "-slice_times"      : 0,
         "-fir_order"         : 40,
         "-quiet"             : 1,
         "-demo"              : 0,
@@ -771,7 +772,7 @@ regressors and cardiac regressors.
         num_time_pts      = int(opt_dict["-num_time_pts"]),
         OutDir            = opt_dict["-out_dir"],
         prefix            = opt_dict["-prefix"],
-        slice_offset      = opt_dict["-slice_offset"],
+        slice_times      = opt_dict["-slice_times"],
         fir_order         = opt_dict["-fir_order"],
         quiet             = opt_dict["-quiet"],
         demo              = opt_dict["-demo"],
