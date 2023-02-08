@@ -509,144 +509,188 @@ if __name__ == "__main__":
 
     opt_dict = {
         "-help": """
+
+OVERVIEW ~1~
+
 This function creates slice-based regressors for regressing out components of
-    heart rate, resp and respiration volume per time.
+heart rate, resp and respiration volume per time.
 
-Windows Example:
-C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat 
-    -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
 
-Mac/Linux Example:
-/usr/afni/python retroicorLauren.py -resp_file resp_file.dat 
-    -card_file card_file.dat -freq 50 -num_slices 20 -volume_tr 2 -Nt 220
+USAGE ~1~
 
-Input
-================================================================================
     retroicorLauren.py can be run with independent respiration and cardiac data 
     files (Method 1), or with a BIDS formatted physio file and json (Method 2).
 
     Method 1:
     ---------
-    respFile: (respiration_file) Respiration data file
-    caesFile: (card_file) Cardiac data file
-    freq: (phys_fs) Physiological signal sampling frequency in Hz.
-    numSlices: (number_of_slices) Number of slices
-    volume_tr: (volume_tr) Volume repetition time (TR) which defines the length 
-    of time between the acquisition of consecutive frames/volumes; in seconds
-    num_time_pts: (dType = int) Number of time points in the output
+    -resp_file RFILE   : Respiration data file
+    -card_file CFILE   : Cardiac data file
+    -freq      PHYS_FS : Physiological signal sampling frequency (in Hz)
+    -num_slices NS     : Integer number of slices
+    -volume_tr  TR     : MRI volume's repetition time (TR), which defines 
+                         the time interval between consecutive volumes (in s)
+    -Nt         NT     : Integer number of time points to have in the output
+                         (should likely match MRI time series length)
 
     Method 2:
     ---------
-    phys_file: BIDS formatted physio file in tab separated format. May
-            be gzipped.
-    phys_json: BIDS formatted physio metadata json file. If not specified
-            the json corresponding to the phys_file will be loaded.
-    numSlices: (number_of_slices) Number of slices
-    volume_tr: Volume TR in seconds
-    num_time_pts: (dType = int) Number of time points in the output
+    -phys_file  PFILE  : BIDS-formatted physio file in tab-separated format. 
+                         May be gzipped
+    -phys_json  PJSON  : BIDS-formatted physio metadata JSON file. If not 
+                         specified, the JSON corresponding to the 
+                         '-phys_file ..' will be loaded
+    -num_slices NS     : Integer number of slices
+    -volume_tr  TR     : MRI volume's repetition time (TR), which defines 
+                         the time interval between consecutive volumes (in s)
+    -Nt         NT     : Integer number of time points to have in the output
+                         (should likely match MRI time series length)
 
     Optional:
     ---------
-    abt 0|1                  : Output a and b coefficients to terminal 
-                               (Default = false)
-    aby 0|1                  : Output time series based on a,b coefficients 
-                               (Default = false) 
-    niml 0|1                 : Output in NIML format instead of CSV format 
-                               (Default = false) 
-    ============================================================================
-    OutDir: Output directory
-    ============================================================================
-    prefix: Prefix of output file
-    ============================================================================
-    card_out: Flag for writing Cardiac regressors
-            (default is 1)
-    resp_out: Flag for writing Respiratory regressors
-            (default is 1)
-    rvt_out: Flag for writing RVT regressors
-            (default is 0)
-    ============================================================================
-    quiet: Show talkative progress as the program runs
-            (default is 1)
-    demo: Run demonstration of retroicorLauren
-            (default is 0)
-    dev: Run development mode for retroicorLauren
-            (default is 0)
-    verbose: Run verbose mode for retroicorLauren
-            (default is 0)
-    show_graphs:
-            (default is unset; set with any parameter to view)
-            0: Do not show graphs
-            1: Show end results (cardiac peaks, respiratory peaks and final RVT)
-            2: Show end, and intermediate results results (band-pass filter, 
-                cardiac peaks, respiratory peaks and final RVT)
-    save_graphs:
-            (default is set to 1; set with any parameter to save)
-            0: Do not save graphs
-            1: Save end results (cardiac peaks, respiratory peaks and final RVT)
-            2: Save end, and intermediate results results (band-pass filter, 
-                cardiac peaks, respiratory peaks and final RVT)
-    font_size: Font size used for graphics.  Default = 10
-    debug Drop into pdb upon an exception
-            (default is False)
-    ============================================================================
-    slice_offset: Vector of slice acquisition time offsets in seconds.
-            (default is equivalent of alt+z)
-    slice_pattern: Slice timing information in seconds. The default is
-           alt+z. See 3dTshift help for more info.
-               alt+z    = alternating in the plus direction
-               alt-z    = alternating in the minus direction
-               seq+z    = sequential in the plus direction
-               seq-z    = sequential in the minus direction
-               custom   = allows the program to use the values stored in the
-                            -slice_offset list
-               filename = read temporal offsets from 'filename', including file
-                            extension; e.g. slice_file.dat
-                            (expecting a 1D / text file containing the times for
-                            each slice in seconds)
+    -abt        ABT    : Output a and b coefficients to terminal (ABT = 1) or 
+                         don't (ABT = 0, the default)
+    -aby        ABY    : Output the time series based on a,b coefficients 
+                         (ABY = 1) or don't (ABY = 0, the default)
+    -niml       NIML   : Output in NIML format (if NIML = 1) instead of 
+                         CSV format (if NIML = 0, the default)
+        
+    -out_dir    ODIR   : Output directory
 
-            For example, the following 4 commands would produce identical
-            output, based on 10 slices using a (non-default) alt-z slice pattern:
+    -prefix     PREF   : Prefix of output file
 
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_pattern alt-z -Nt 220
+    -card_out   CCC    : Write out cardiac regressors (CCC = 1, the default) 
+                         or not (CCC = 0)
+    -resp_out   RRR    : Write out respiratory regressors (RRR = 1, the 
+                         default) or not (RRR = 0)
+    -rvt_out    RVT    : Write out RVT regressors (RVT = 1, the default) 
+                         or not (RVT = 0)
 
-               set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_pattern custom              \\
-                          -slice_offset "$offlist" -Nt 220
+    -show_graphs SHOWG : Integer value for one of the following behaviors:
+                           0 - Do not show graphs
+                           1 - Show end results (cardiac peaks, respiratory 
+                               peaks and final RVT)
+                           2 - Show intermediate and end results (band-pass 
+                               filter, cardiac peaks, respiratory peaks and 
+                               final RVT)
+                         (def: SHOWG = 0)
 
-               set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_pattern custom              \\
-                          -slice_offset "$offlist" -Nt 220
+    -save_graphs SAVEG : Integer value for one of the following behaviors:
+                           0 - Do not save graphs
+                           1 - Save end results (cardiac peaks, respiratory 
+                               peaks and final RVT)
+                           2 - Save intermediate and end results (band-pass 
+                               filter, cardiac peaks, respiratory peaks and 
+                               final RVT)
+                         (def: SAVEG = 1)
 
-               # put those same offsets into a text file (vertically)
-               echo $offlist | tr ' ' '\\n' > slice_offsets.txt
-               retroicorLauren.py -card_file ECG.1D -resp_file Resp.1D        \\
-                          -volume_tr 2 -freq 50 -num_slices 10 -prefix fred   \\
-                          -slice_pattern slice_offsets.txt -Nt 220
+    -font_size   FS    : Font size used for graphics (def: FS = 10)
+
+   -slice_offset SLOFF : Vector of slice acquisition time offsets (in sec)
+                         (default is equivalent of alt+z)
+
+   -slice_pattern SLPAT : Slice timing pattern code (def: SLPAT = alt+z). The
+                          following codes are allowed:
+                            alt+z    = alternating in the plus direction
+                            alt-z    = alternating in the minus direction
+                            seq+z    = sequential in the plus direction
+                            seq-z    = sequential in the minus direction
+                            custom   = allows the program to use the
+                                       values stored in the '-slice_offset ..'
+                                       list
+                            filename = read temporal offsets from 'filename', 
+                                       including file extension; e.g. 
+                                       "slice_file.dat" (expecting a 1D text 
+                                       file containing the times for each slice,
+                                       in seconds)
+                          See 3dTshift help for more info.
+
+    -zero_phase_offset ZPO : ***does something, needs description***
+
+    -demo       DDD    : Run demonstration of this program (DDD = 1) 
+                         or not (DDD = 0, the default)
+
+    -dev        DEV    : Run development mode for this program (DDD = 1) 
+                         or not (DDD = 0, the default)
+
+    -verbose           : Integer values to control verbosity level
+                         (default is 0)
+
+    -quiet      QQQ    : Show talkative progress as the program runs (QQQ = 1,
+                         the default) or not (QQQ = 0)
+
+    -debug       DBG   : Drop into pdb upon an exception (DBG = 1) or not
+                         (DBG = 0, default)
 
 
-    ============================================================================
-    zero_phase_offset:
+EXAMPLES ~1~
 
-Output:
-================================================================================
-    The output data will be written
-    to a single output file based on the file root-name assigned to the
-    option "-prefix".
+  The following 4 commands would produce identical output, based on 10
+  slices using a (non-default) alt-z slice pattern:
 
-    Example:
-    C:\\afni\\python retroicorLauren.py -resp_file resp_file.dat 
-        -card_file card_file.dat -freq 50 -num_slices 20
-        -volume_tr 2 -prefix subject12_regressors -resp_out 1 -card_out 1 -Nt 220
+    1) 
+    retroicorLauren.py                                            \\
+        -card_file      ECG.1D                                    \\
+        -resp_file      Resp.1D                                   \\
+        -volume_tr      2                                         \\
+        -freq           50                                        \\
+        -num_slices     10                                        \\
+        -prefix         fred                                      \\
+        -slice_pattern  alt-z                                     \\
+        -Nt             220
 
-        Output:
-        The file "subject12_regressors.slibase.1D" will be saved to current
-        directory, including respiratory regressors and cardiac regressors.
+    2) Same as Ex 1, with 'list format' of slice offset list (that
+       happens to correspond to 'alt+z' pattern)
+    set offlist = "[1.8, 0.8, 1.6, 0.6, 1.4, 0.4, 1.2, 0.2, 1.0, 0]"
+    retroicorLauren.py                                            \\
+        -card_file      ECG.1D                                    \\
+        -resp_file      Resp.1D                                   \\
+        -volume_tr      2                                         \\
+        -freq           50                                        \\
+        -num_slices     10                                        \\
+        -prefix         fred                                      \\
+        -slice_pattern  custom                                    \\
+        -slice_offset   "$offlist"                                \\
+        -Nt             220
+
+    3) Same as Ex 1, with 'text format' of slice offset list (that
+       happens to correspond to 'alt+z' pattern)
+    set offlist = "1.8  0.8  1.6  0.6  1.4  0.4  1.2  0.2  1.0  0"
+    retroicorLauren.py                                            \\
+        -card_file      ECG.1D                                    \\
+        -resp_file      Resp.1D                                   \\
+        -volume_tr      2                                         \\
+        -freq           50                                        \\
+        -num_slices     10                                        \\
+        -prefix         fred                                      \\
+        -slice_pattern  custom                                    \\
+        -slice_offset   "$offlist"                                \\
+        -Nt             220
+
+    4) Same as Ex 1, with '1D file format' of slice offset list (that
+       happens to correspond to 'alt+z' pattern)
+    # put those same offsets into a text file (vertically)
+    echo $offlist | tr ' ' '\\n' > slice_offsets.txt
+    retroicorLauren.py                                            \\
+        -card_file      ECG.1D                                    \\
+        -resp_file      Resp.1D                                   \\
+        -volume_tr      2                                         \\
+        -freq           50                                        \\
+        -num_slices     10                                        \\
+        -prefix         fred                                      \\
+        -slice_pattern  slice_offsets.txt                         \\
+        -Nt             220
+
+OUTPUT FORMAT ~1~
+
+The output data will be written to a single output file based on the
+file root-name assigned to the option "-prefix ..".
+
+For example, from Ex. 1 above, the file "fred_regressors.slibase.1D"
+would be saved to current working directory, including respiratory
+regressors and cardiac regressors.
+
+***describe more about each file output (including saved images)***
+
 
         """,
         "-resp_file"         : None,
