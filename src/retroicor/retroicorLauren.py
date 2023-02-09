@@ -49,8 +49,6 @@ __author__ = "Peter Lauren"
             - Findging peaks
             - Determining phase
             - Determining final output
-        - See what quiet option does and determine if it is still necessary,
-            given that verbose is available.
     
     DONE:
         - Test start time via TR shift
@@ -61,6 +59,8 @@ __author__ = "Peter Lauren"
             - Samples (input files)
             - Scripts that run samples with options we want
             - Physio measure files
+        - See what quiet option does and determine if it is still necessary,
+            given that verbose is available.  Removed quiet option.
         
 """
 
@@ -160,8 +160,6 @@ def getSliceOffsets(offsetDict):
         
             slice_pattern:   (dType = str) Pettern of slices 
                            (alt+z, alt-z, etc).  Default is "alt+z".
-        
-            quiet:   (dType = int) 0 if show graphs. 1 if do not show graphs
             
     AUTHOR
        Joshua Zosky (Documentation and comments by Peter Lauren)
@@ -245,7 +243,7 @@ def getSliceOffsets(offsetDict):
         #  a reversed offset list
         slice_offsets.reverse()
     if (
-        offsetDict["quiet"] != 1
+        offsetDict["verbose"] == 1
     ):  # Show the slice timing (P.S. Printing is very time consuming in python)
         print("Slice timing: %s" % slice_offsets)
         
@@ -264,7 +262,6 @@ def retro_ts(
     prefix            = None,
     slice_times      = 0,
     fir_order         = 40,
-    quiet             = 1,
     demo              = 0,
     dev               = False,
     verbose           = False,
@@ -274,8 +271,8 @@ def retro_ts(
     rvt_out           = 0,
     card_out          = 1,
     resp_out          = 1,
-    slice_pattern       = "alt+z",
-    zero_phase_offset = 0,
+    slice_pattern     = "alt+z",
+    phase_offset      = 0,
     phys_file         = None,
     phys_json         = None,
     abt               = False,
@@ -321,8 +318,6 @@ def retro_ts(
         
         fir_order: (dType = int) Order of Finite Impulse Response (FIR) filter
         
-        quiet: (dType = int) 0 if show graphs. 1 if do not show graphs
-        
         demo: (dType = int) Whether running in demo mode.  (Show graphs and 
                             pause between graphs.)
         
@@ -357,7 +352,7 @@ def retro_ts(
         
         font_size:    (dType = int) Font size to use with graphs
         
-        zero_phase_offset: (dType = int) Phase offset added to the location of 
+        phase_offset: (dType = int) Phase offset added to the location of 
                            each peak. Default is 0.0
         
         phys_file: (dType = NoneType) BIDS formatted physio file in tab separated 
@@ -389,7 +384,7 @@ def retro_ts(
     RET.setOutputDirectory(OutDir)
 
     if not slice_times:
-        slice_times = np.zeros((1, number_of_slices))
+        slice_times = np.zeros((number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
     print('Update slice offsets.  '
@@ -400,7 +395,6 @@ def retro_ts(
     offsetDict["num_time_pts"] = int(num_time_pts)
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_pattern"] = slice_pattern
-    offsetDict["quiet"] = quiet
     offsetDict["dev"] = dev
     offsetDict["verbose"] = verbose
     slice_offsets = getSliceOffsets(offsetDict)
@@ -605,7 +599,7 @@ USAGE ~1~
                                        in seconds)
                           See to3d help for more info.
 
-    -zero_phase_offset ZPO : ***does something, needs description***
+    -phase_offset ZPO : ***does something, needs description***
 
     -demo       DDD    : Run demonstration of this program (DDD = 1) 
                          or not (DDD = 0, the default)
@@ -615,9 +609,6 @@ USAGE ~1~
 
     -verbose           : Integer values to control verbosity level
                          (default is 0)
-
-    -quiet      QQQ    : Show talkative progress as the program runs (QQQ = 1,
-                         the default) or not (QQQ = 0)
 
     -debug       DBG   : Drop into pdb upon an exception (DBG = 1) or not
                          (DBG = 0, default)
@@ -703,9 +694,8 @@ regressors and cardiac regressors.
         "-num_time_pts"      : None,
         "-out_dir"           : now_str,
         "-prefix"            : None,
-        "-slice_times"      : 0,
+        "-slice_times"       : None,
         "-fir_order"         : 40,
-        "-quiet"             : 1,
         "-demo"              : 0,
         "-dev"               : False,
         "-verbose"           : False,
@@ -717,7 +707,7 @@ regressors and cardiac regressors.
         "-show_graphs"       : 0,
         "-save_graphs"       : 1,
         "-font_size"         : 10,
-        "-zero_phase_offset" : 0,
+        "-phase_offset"      : 0,
         "-phys_file"         : None,
         "-phys_json"         : None,
         "-abt"               : False,
@@ -772,9 +762,8 @@ regressors and cardiac regressors.
         num_time_pts      = int(opt_dict["-num_time_pts"]),
         OutDir            = opt_dict["-out_dir"],
         prefix            = opt_dict["-prefix"],
-        slice_times      = opt_dict["-slice_times"],
+        slice_times       = opt_dict["-slice_times"],
         fir_order         = opt_dict["-fir_order"],
-        quiet             = opt_dict["-quiet"],
         demo              = opt_dict["-demo"],
         dev               = opt_dict["-dev"],
         verbose           = opt_dict["-verbose"],
@@ -785,7 +774,7 @@ regressors and cardiac regressors.
         show_graphs       = int(opt_dict["-show_graphs"]),
         save_graphs       = int(opt_dict["-save_graphs"]),
         font_size         = int(opt_dict["-font_size"]),
-        zero_phase_offset = opt_dict["-zero_phase_offset"],
+        phase_offset      = opt_dict["-phase_offset"],
         phys_file         = opt_dict["-phys_file"],
         phys_json         = opt_dict["-phys_json"],
         abt               = opt_dict["-abt"],
