@@ -2957,11 +2957,12 @@ class RegWrap:
    def resample_epi(  self, e=None, resample_opt="", prefix="temp_rs", \
         subbrick=""):
       o = afni_name(prefix)
+      o.view = ps.anat_ns.view
+
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          self.info_msg( "resampling %s to match %s data" % \
            (ps.dset2_generic_name, ps.dset1_generic_name ))
-
          if (subbrick == ""):
              sb = ""
          else:
@@ -2988,6 +2989,7 @@ class RegWrap:
       self.info_msg( "removing skull or area outside brain")
       if (use_ss == '3dSkullStrip'):     #skullstrip epi
          n = afni_name(prefix)
+         n.view = e.view
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
@@ -3001,7 +3003,9 @@ class RegWrap:
             self.exists_msg(n.input())
       elif use_ss == '3dAutomask': #Automask epi
          n = afni_name(prefix)
+         n.view = e.view
          j = afni_name("%s__tt_am_%s" % (n.p(),n.pve()))
+
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
@@ -3026,7 +3030,7 @@ class RegWrap:
    # box, bin and fat mask are not used
       a = ps.anat_ns
       
-      o = afni_name("%s%s%s%s" % (ps.output_dir,e.out_prefix(), suf,e.view))            
+      o = afni_name("%s%s%s%s" % (ps.output_dir,e.out_prefix(), suf,e.view))
       if perci < 0:
          perci = 90.0;
       self.info_msg( "Computing weight mask")
