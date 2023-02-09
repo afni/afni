@@ -309,8 +309,8 @@ class OptionList:
         try:
             tlist = list(map(otype,opt.parlist))
         except:
-            if verb: print("** %s takes only %ss, have: %s"  \
-                           % (opt_name,otype,opt.parlist))
+            if verb: print("** %s takes only %s's, have params: %s"  \
+                           % (opt_name, otype, opt.parlist))
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
