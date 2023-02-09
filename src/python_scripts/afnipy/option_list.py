@@ -273,7 +273,8 @@ class OptionList:
             return default, 1
         try: val = otype(opt.parlist[0])
         except:
-            print("** cannot convert '%s' to %s" % (opt.parlist[0], otype))
+            print("** cannot convert '%s' to %s for option %s" \
+                  % (opt.parlist[0], otype, opt_name))
             return default, 1
 
         return val, 0
