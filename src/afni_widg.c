@@ -4709,9 +4709,10 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
 #endif
 
-   /* 25 Jul 2001: a toggle box to show the TT Atlas */
+   /* 25 Jul 2001: a toggle box to show the Atlas regions set by 
+    * AFNI_ATLAS_COLORS */
 
-   { char *see_ttatlas_label[1] = { "See TT Atlas Regions" } ;
+   { char *see_ttatlas_label[1] = { "See Atlas Regions" } ;
      func->see_ttatlas_bbox =
       new_MCW_bbox( func->options_rowcol ,
                     1 , see_ttatlas_label ,
@@ -4726,7 +4727,7 @@ STATUS("making func->rowcol") ;
 
      MCW_reghelp_children( func->see_ttatlas_bbox->wrowcol ,
                            "This button determines whether to show\n"
-                           "the Talairach-Tournoux Atlas regions,\n"
+                           "the Show Atlas regions,(set by AFNI_ATLAS_COLORS)\n"
                            "which are controlled by the 'Atlas Colors'\n"
                            "item on the image viewing window popup menu."
                          ) ;
