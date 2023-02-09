@@ -389,7 +389,7 @@ def retro_ts(
     RET.setOutputDirectory(OutDir)
 
     if not slice_times:
-        slice_times = np.zeros((1, number_of_slices))
+        slice_times = np.zeros((number_of_slices))
      
     # Update slice offsets.  Note that this is done before the data is read
     print('Update slice offsets.  '
@@ -703,7 +703,7 @@ regressors and cardiac regressors.
         "-num_time_pts"      : None,
         "-out_dir"           : now_str,
         "-prefix"            : None,
-        "-slice_times"      : 0,
+        "-slice_times"       : None,
         "-fir_order"         : 40,
         "-quiet"             : 1,
         "-demo"              : 0,

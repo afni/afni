@@ -1483,7 +1483,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             phys_fs:   (dType = float) Physiological signal sampling frequency 
                                        in Hz.
         
-            slice_offset: Vector of slice acquisition time offsets in seconds.
+            slice_times: Vector of slice acquisition time offsets in seconds.
                           (default is equivalent of alt+z)
                        
     AUTHOR
@@ -1492,7 +1492,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
     
     phasee = dict()
     phasee["number_of_slices"] = parameters['s']
-    phasee['slice_offset'] = parameters['slice_offset']
+    phasee['slice_times'] = parameters['slice_times']
     timeStepIncrement = 1.0/parameters['phys_fs']
     
     if dataType == 'c':
@@ -1535,7 +1535,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
         (len(phasee["time_series_time"]), 4, phasee["number_of_slices"])
     )
     for i_slice in range(phasee["number_of_slices"]):
-        tslc = phasee["time_series_time"] + phasee["slice_offset"][i_slice]
+        tslc = phasee["time_series_time"] + phasee["slice_times"][i_slice]
         for i in range(len(phasee["time_series_time"])):
             imin = np.argmin(abs(tslc[i] - phasee["t"]))
             phasee["phase_slice"][i, i_slice] = phasee["phase"][imin]
