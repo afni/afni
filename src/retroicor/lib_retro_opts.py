@@ -43,7 +43,7 @@ DEF = {
     'num_slices'        : None,      # (int) number of MRI vol slices
     'volume_tr'         : None,      # (float) TR of MRI
     'start_time'        : 0,         # (float) 
-    'num_time_pts'      : None,      # (int) Ntps (e.g., len MRI time series)
+    'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : None,      # (str) output filename prefix
     'slice_times'       : 0,         # (list) slice times
@@ -564,8 +564,8 @@ if not(args_dict['num_slices']
     print("** ERROR: must provide '-num_slices ..' information")
     sys.exit(4)
 
-if not(args_dict['Nt'] 
-    print("** ERROR: must provide '-Nt ..' information")
+if not(args_dict['num_time_points'] 
+    print("** ERROR: must provide '-num_time_points ..' information")
     sys.exit(4)
 
 if not(args_dict['volume_tr'] 
