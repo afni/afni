@@ -64,6 +64,7 @@ DEF = {
     'dev'               : False,     # (bool) work in dev mode?
     'debug'             : False,     # (bool) debug mode
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
+    'disp_all_opts'     : False,     # (bool) display opts for this prog
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
@@ -237,12 +238,21 @@ ver, disp all slice patterns, etc.
         print(version)
         return 1
 
-    # if nothing or help opt, show help
+    # slice patterns, from list somewhere
     if args_dict['disp_all_slice_patterns'] :
         lll = BAU.g_valid_slice_patterns
         lll.sort()
         print("{}".format('\n'.join(lll)))
         return 1
+
+    # all opts for this program, via DEF list
+    if args_dict['disp_all_opts'] :
+        lll = list(args_dict.keys())
+        lll.sort()
+        print("-{}".format('\n-'.join(lll)))
+        return 1
+
+
 
     return 0
 
@@ -571,6 +581,12 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
+opt = '''disp_all_opts'''
+hlp = '''Display all options for this program'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
 opt = '''ver'''
 hlp = '''Display program version number'''.format(dopt=DEF[opt])
 odict[opt] = hlp
@@ -654,17 +670,15 @@ if args_dict['slice_times'] and args_dict['slice_pattern'] :
     print("** ERROR: must use only one of either slice_times or slice_pattern")
     sys.exit(4)
 
+# for any filename that was provided, check if it actually exists
+all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
+for fopt in all_fopt:
+    if args_dict[fopt] :
+        if not(os.path.isfile(args_dict[fopt])) :
+            print("** ERROR: no {} '{}'".format(fopt, args_dict[fopt]))
+            sys.exit(5)
+
 # ---- do interpretations of things ----
-
-if args_dict['card_file'] :
-    if not(os.path.isfile(args_dict['card_file'])) :
-        print("** ERROR: no card_file '{}'".format(args_dict['card_file']))
-        sys.exit(5)
-
-if args_dict['resp_file'] :
-    if not(os.path.isfile(args_dict['resp_file'])) :
-        print("** ERROR: no resp_file '{}'".format(args_dict['resp_file']))
-        sys.exit(5)
 
 if args_dict['slice_times'] :
     # interpret string to be list of floats
