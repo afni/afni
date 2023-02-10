@@ -16,6 +16,7 @@ import subprocess as     SP
 import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
+import borrow_afni_util  as BAU
 
 # ==========================================================================
 # default parameter settings
@@ -62,6 +63,7 @@ DEF = {
     'demo'              : False,     # (bool) show demo?
     'dev'               : False,     # (bool) work in dev mode?
     'debug'             : False,     # (bool) debug mode
+    'disp_slice_patterns' : False,   # (bool) display known sli patterns
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
@@ -231,6 +233,13 @@ ver etc.
     # display program version
     if args_dict['ver'] :
         print(version)
+        return 1
+
+    # if nothing or help opt, show help
+    if args_dict['disp_slice_patterns'] :
+        lll = BAU.g_valid_slice_patterns
+        lll.sort()
+        print("{}".format('\n'.join(lll)))
         return 1
 
     return 0
@@ -482,6 +491,12 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 # ---- help-y stuff
 
+opt = '''disp_slice_patterns'''
+hlp = '''Display allowed slice pattern names'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
 opt = '''ver'''
 hlp = '''Display program version number'''.format(dopt=DEF[opt])
 odict[opt] = hlp
@@ -553,6 +568,26 @@ if args_dict['slice_times'] :
     if IS_BAD :
         sys.exit(1)
         
+
+if args_dict['slice_pattern'] :
+    # if pattern, check if it is allowed; elif if is a file, check if
+    # it exists; else, whine
+
+    pat = args_dict['slice_pattern']
+    if pat in BAU.g_valid_slice_patterns :
+        print("++ Found slice_pattern '{}' in allowed list".format(pat))
+    elif os.path.isfile("pat") :
+        print("++ Found slice_pattern '{}' exists as a file".format(pat))
+    else:
+        print("** ERROR: could not match slice_pattern '{}' as "
+              "either a recognized pattern or file".format(pat))
+        sys.exit(3)
+
+
+
+
+
+
 
 # ================================ main =====================================
 
