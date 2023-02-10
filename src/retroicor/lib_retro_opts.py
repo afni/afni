@@ -51,7 +51,7 @@ DEF = {
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
-    'slice_pattern'     : 'alt+z',   # (str) code for slice timing
+    'slice_pattern'     : None,      # (str) code or file for slice timing
     'font_size'         : 10,        # (float) font size for plots 
     'phase_offset'      : 0.0,       # (float) offset added to initial phase
     'ab_disp'           : False,     # (bool) 
@@ -63,7 +63,7 @@ DEF = {
     'demo'              : False,     # (bool) show demo?
     'dev'               : False,     # (bool) work in dev mode?
     'debug'             : False,     # (bool) debug mode
-    'disp_slice_patterns' : False,   # (bool) display known sli patterns
+    'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
@@ -71,6 +71,8 @@ DEF = {
 
 # ==========================================================================
 # sundry other items
+
+verb = 0
 
 dent = '\n' + 5*' '
 
@@ -192,7 +194,7 @@ have names nameA and nameB, when referring to them in output text).
 
 def check_simple_opts_to_exit(args_dict):
     """Check for simple options, after which to exit, such as help/hview,
-ver etc.
+ver, disp all slice patterns, etc.
 
     Parameters
     ----------
@@ -236,13 +238,85 @@ ver etc.
         return 1
 
     # if nothing or help opt, show help
-    if args_dict['disp_slice_patterns'] :
+    if args_dict['disp_all_slice_patterns'] :
         lll = BAU.g_valid_slice_patterns
         lll.sort()
         print("{}".format('\n'.join(lll)))
         return 1
 
     return 0
+
+def read_slice_pattern_file(fname, verb=0):
+    """Read in a text file fname that contains a slice timing pattern.
+That pattern must be either a single row or column of (floating point)
+numbers.
+
+    Parameters
+    ----------
+    fname     : str
+                filename of slice timing info to be read in
+
+    Return
+    ------
+    slice_times : list (of floats)
+                a list of floats, the slice times
+
+    """
+
+    BAD_RETURN = []
+
+    if not(os.path.isfile(fname)) :
+        print("** ERROR: {} is not a file (to read for slice timing)"
+              "".format(fname))
+        return BAD_RETURN
+
+    try:
+        fff = open(fname, 'r')
+        X   = fff.readlines()
+        fff.close()
+    except:
+        print("** ERROR opening {} (to read for slice timing)"
+              "".format(fname))
+        return BAD_RETURN
+
+    # get list of floats, and length of each row when reading
+    N = 0
+    all_num = []
+    all_len = []
+    for ii in range(len(X)):
+        row = X[ii]
+        rlist = row.split()
+        if rlist :
+            N+= 1
+            try:
+                # use extend so all_num stays 1D
+                all_num.extend([float(rr) for rr in rlist])
+                all_len.append(len(rlist))
+            except:
+                print("** ERROR: badness in float conversion within "
+                      "slice timing file {}".format(fname))
+                print("   Bad line {} is: '{}'".format(ii+1, row))
+                return BAD_RETURN
+    
+    if not(N) :
+        print("** ERROR: no data in slice timing file {}?".format(fname))
+        return BAD_RETURN
+
+    M = max(all_len)  # (max) number of cols
+
+    if verb :
+        print("++ Slice timing file {} has {} rows and {} columns"
+              "".format(fname, N, M))
+
+    if not(N==1 or M==1) :
+        print("** ERROR: slice_pattern file {} is not Nx1 or 1xN.\n"
+              "   Its dims of data are: nrow={},  max_ncol={}"
+              .format(fname, N, M))
+        return BAD_RETURN
+
+    # finally, after more work than we thought...
+    return all_num
+
 
 
 # ========================================================================== 
@@ -491,8 +565,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 # ---- help-y stuff
 
-opt = '''disp_slice_patterns'''
-hlp = '''Display allowed slice pattern names'''
+opt = '''disp_all_slice_patterns'''
+hlp = '''Display all allowed slice pattern names'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
@@ -553,31 +627,44 @@ if have_simple_opt :
 # ---------------------------------------------------------------------------
 # process opts slightly: case by case basis
 
+verb = args_dict['verbose']
+
+# ---- check that required things are there ----
+
 if not(args_dict['card_file'] or args_dict['resp_file']) and \
-   not(args_dict['phys_file'] and args_dict['phys_json']:
+   not(args_dict['phys_file'] and args_dict['phys_json']) :
     print("** ERROR: no physio inputs provided. Allowed physio inputs are:\n"
-          "   A) '-card_file ..', '-resp_file ..' or both.")
+          "   A) '-card_file ..', '-resp_file ..' or both."
           "   B) '-phys_file ..' and '-phys_json ..'.")
     sys.exit(4)
 
-if not(args_dict['num_slices'] 
+if not(args_dict['num_slices']) :
     print("** ERROR: must provide '-num_slices ..' information")
     sys.exit(4)
 
-if not(args_dict['num_time_points'] 
-    print("** ERROR: must provide '-num_time_points ..' information")
+if not(args_dict['num_time_pts']) :
+    print("** ERROR: must provide '-num_time_pts ..' information")
     sys.exit(4)
 
-if not(args_dict['volume_tr'] 
+if not(args_dict['volume_tr']) :
     print("** ERROR: must provide '-volume_tr ..' information")
     sys.exit(4)
 
-# [PT] Q: should we check whether both slice_times and slice_pattern
-# have been entered?  Tricky to do if we default slice_pattern to
-# non-None 'alt+z'
-#if args_dict['slice_times'] and args_dict['slice_pattern'] :
-#    print("** ERROR: must use only one of either slice_times or slice_pattern")
-#    sys.exit(4)
+if args_dict['slice_times'] and args_dict['slice_pattern'] :
+    print("** ERROR: must use only one of either slice_times or slice_pattern")
+    sys.exit(4)
+
+# ---- do interpretations of things ----
+
+if args_dict['card_file'] :
+    if not(os.path.isfile(args_dict['card_file'])) :
+        print("** ERROR: no card_file '{}'".format(args_dict['card_file']))
+        sys.exit(5)
+
+if args_dict['resp_file'] :
+    if not(os.path.isfile(args_dict['resp_file'])) :
+        print("** ERROR: no resp_file '{}'".format(args_dict['resp_file']))
+        sys.exit(5)
 
 if args_dict['slice_times'] :
     # interpret string to be list of floats
@@ -593,17 +680,21 @@ if args_dict['slice_times'] :
 
     if IS_BAD :
         sys.exit(1)
-        
 
 if args_dict['slice_pattern'] :
     # if pattern, check if it is allowed; elif if is a file, check if
-    # it exists; else, whine
+    # it exists *and* use it to fill in args_dict['slice_times'];
+    # else, whine
 
     pat = args_dict['slice_pattern']
     if pat in BAU.g_valid_slice_patterns :
         print("++ Found slice_pattern '{}' in allowed list".format(pat))
-    elif os.path.isfile("pat") :
+    elif os.path.isfile(pat) :
         print("++ Found slice_pattern '{}' exists as a file".format(pat))
+        slice_times = read_slice_pattern_file(pat, verb=verb)
+        if not(slice_times) :
+            sys.exit(7)
+        args_dict['slice_times'] = slice_times
     else:
         print("** ERROR: could not match slice_pattern '{}' as "
               "either a recognized pattern or file".format(pat))
