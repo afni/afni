@@ -80,6 +80,8 @@ g_prog = "build_afni.py"
 g_version = "%s, version 0.0, February 8, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
+g_afni_site = "https://afni.nimh.nih.gov"
+g_atlas_html = "%s/pub/dist/atlases/afni_atlases_dist.tgz" % g_afni_site
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +378,7 @@ class MyInterface:
 
    def check_progs(self):
       errs = 0
-      plist = ['git', 'make']
+      plist = ['git', 'make', 'curl']
       if self.run_cmake: plist.append('cmake')
 
       for prog in ['git', 'make']:
@@ -475,7 +477,30 @@ class MyInterface:
       if st: return st
 
       # if git exists, do a git pull, else do a clone
-      gitd = 'git/afni'
+      if self.f_update_git():
+         return 1
+
+      # get atlases...
+      if self.f_get_atlases():
+         return 1
+
+      # st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      # if st: return st
+
+      return 0
+
+   def f_get_atlases(self):
+      """if no afni_atlases_dist dir, download
+
+         return 0 on success
+      """
+      aname = 'afni_atlases_dist'
+      return 0
+
+   def f_update_git(self, gitd='git/afni'):
+      """if git exists, do a git pull (if desired), else do a clone
+         return 0 on success
+      """
       if os.path.exists(gitd):
          if self.update_git:
             st, ot = self.run_cmd('cd', gitd, pc=1)
@@ -497,15 +522,6 @@ class MyInterface:
          MESGm("running 'git clone' on afni repo ...")
          MESGi("(please be patient)")
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
-         # MESGw("RCR ---- replace echo with git command")
-
-         st, ot = self.run_cmd('echo', 'git clone %s' % g_git_html)
-         if st: return st
-
-      # get atlases...
-
-      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
-      if st: return st
 
       return 0
 
