@@ -553,6 +553,32 @@ if have_simple_opt :
 # ---------------------------------------------------------------------------
 # process opts slightly: case by case basis
 
+if not(args_dict['card_file'] or args_dict['resp_file']) and \
+   not(args_dict['phys_file'] and args_dict['phys_json']:
+    print("** ERROR: no physio inputs provided. Allowed physio inputs are:\n"
+          "   A) '-card_file ..', '-resp_file ..' or both.")
+          "   B) '-phys_file ..' and '-phys_json ..'.")
+    sys.exit(4)
+
+if not(args_dict['num_slices'] 
+    print("** ERROR: must provide '-num_slices ..' information")
+    sys.exit(4)
+
+if not(args_dict['Nt'] 
+    print("** ERROR: must provide '-Nt ..' information")
+    sys.exit(4)
+
+if not(args_dict['volume_tr'] 
+    print("** ERROR: must provide '-volume_tr ..' information")
+    sys.exit(4)
+
+# [PT] Q: should we check whether both slice_times and slice_pattern
+# have been entered?  Tricky to do if we default slice_pattern to
+# non-None 'alt+z'
+#if args_dict['slice_times'] and args_dict['slice_pattern'] :
+#    print("** ERROR: must use only one of either slice_times or slice_pattern")
+#    sys.exit(4)
+
 if args_dict['slice_times'] :
     # interpret string to be list of floats
     IS_BAD = 0
