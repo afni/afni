@@ -20,8 +20,7 @@ build_afni.py - more plans for world dominance
 
 ------------------------------------------
 todo:
-  - opts for run_cmake, run_make, update_git
-             package, build_label
+  - opts for run_cmake, run_make
   - remove echo from git clone
   - if no -package, try to guess
   - save history in root_dir
@@ -251,7 +250,7 @@ class MyInterface:
       self.valid_opts.add_opt('-build_label', 1, [], 
                       helpstr='the git label to build')
       self.valid_opts.add_opt('-update_git', 1, [], 
-                      acpopts=['yes','no'],
+                      acplist=['yes','no'],
                       helpstr='should we update the local git repo')
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
@@ -328,7 +327,7 @@ class MyInterface:
             self.package = val
 
          elif opt.name == '-update_git':
-            if OLD.opt_is_no(opt):
+            if OL.opt_is_no(opt):
                self.update_git = 0
             else:
                self.update_git = 1
@@ -409,13 +408,31 @@ class MyInterface:
          UTIL.write_text_to_file('-', hstr)
 
       if save:
-         if sdir:
-            cwd = os.path.abspath(os.path.curdir)
-            os.chdir(sdir)
-            UTIL.write_text_to_file('cmd_history.txt', hstr)
-            os.chdir(cwd)
-         else:
-            UTIL.write_text_to_file('cmd_history.txt', hstr)
+         self.write_history_file(hstr, sdir)
+
+   def write_history_file(self, hstr, sdir, fname='cmd_history.txt'):
+      """cd sdir ; write ; cd -
+         return 0 on success, 1 on error
+      """
+      # if no save dir, just write to current one
+      if not sdir:
+        return UTIL.write_text_to_file(fname, hstr)
+
+      if os.path.isdir(sdir):
+          cwd = os.path.abspath(os.path.curdir)
+          rv, ot = self.run_cmd('cd', sdir, pc=1)
+          if rv: return rv
+
+          # possibly make a backue
+          if os.path.exists(fname):
+             newf = '%s%s' % (self.pold, fname)
+             rv, ot = self.run_cmd('mv', [fname, newf], pc=1)
+          UTIL.write_text_to_file('cmd_history.txt', hstr)
+
+          rv, ot = self.run_cmd('cd', cwd, pc=1)
+          if rv: return rv
+      else:
+          MESGw("no root dir to write history to: %s" % sdir)
 
    def run_main_build(self):
       """do the main building and such under do_root
@@ -432,7 +449,7 @@ class MyInterface:
       rv = self.prepare_root()
 
       # cd back to orig dir for consistency
-      # rv, ot = self.run_command('cd', self.do_orig_dir.abspath, pc=1)
+      # rv, ot = self.run_cmd('cd', self.do_orig_dir.abspath, pc=1)
 
       return 0
 
@@ -447,40 +464,47 @@ class MyInterface:
       if self.verb:
          MESGm("preparing root dir, %s" % self.do_root.dname)
 
-      st, ot = self.run_command('cd', self.do_root.abspath, pc=1)
+      # if there is no root dir yet, make it
+      if not os.path.isdir(self.do_root.abspath):
+         if self.verb:
+            MESGm("creating root dir, %s" % self.do_root.dname)
+         st, ot = self.run_cmd('mkdir', self.do_root.abspath, pc=1)
+         if st: return st
+
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if git exists, do a git pull, else do a clone
       gitd = 'git/afni'
       if os.path.exists(gitd):
-         st, ot = self.run_command('cd', gitd, pc=1)
-         if st: return st
-         st, ot = self.run_command('git checkout master')
-         if st: return st
-         if self.self.date_git:
-             MESGm("running 'git pull' in afni repo...")
-             st, ot = self.run_command('git pull')
-             if st: return st
+         if self.update_git:
+            st, ot = self.run_cmd('cd', gitd, pc=1)
+            if st: return st
+            st, ot = self.run_cmd('git checkout master')
+            if st: return st
+            MESGm("running 'git pull' in afni repo...")
+            st, ot = self.run_cmd('git pull')
+            if st: return st
          else:
-             MESGm("skipping 'git pull', using current repo")
+            MESGm("skipping 'git pull', using current repo")
       else:
          if not os.path.exists('git'):
-            st, ot = self.run_command('mkdir', 'git')
+            st, ot = self.run_cmd('mkdir', 'git', pc=1)
             if st: return st
-         st, ot = self.run_command('cd', 'git', pc=1)
+         st, ot = self.run_cmd('cd', 'git', pc=1)
          if st: return st
 
          MESGm("running 'git clone' on afni repo ...")
          MESGi("(please be patient)")
-         # st, ot = self.run_command('git', 'clone %s' % g_git_html)
-         MESGw("RCR ---- replace echo with git command")
+         st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
+         # MESGw("RCR ---- replace echo with git command")
 
-         st, ot = self.run_command('echo', 'git clone %s' % g_git_html)
+         st, ot = self.run_cmd('echo', 'git clone %s' % g_git_html)
          if st: return st
 
       # get atlases...
 
-      st, ot = self.run_command('cd', self.do_root.abspath, pc=1)
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       return 0
@@ -504,7 +528,7 @@ class MyInterface:
       if self.verb:
          MESGm("cleaning old root dir, %s" % self.do_root.dname)
 
-      st, ot = self.run_command('cd', self.do_root.abspath, pc=1)
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if build dirs exist, rename to prev.*
@@ -516,15 +540,15 @@ class MyInterface:
 
              # remove old prev
              if os.path.exists(prev):
-                st, ot = self.run_command('rmtree', prev, pc=1)
+                st, ot = self.run_cmd('rmtree', prev, pc=1)
                 if st: return st
              # mv current to prev
-             st, ot = self.run_command('mv', [sdir, prev], pc=1)
+             st, ot = self.run_cmd('mv', [sdir, prev], pc=1)
              if st: return st
 
       return 0
 
-   def run_command(self, cmd, params='', pc=0):
+   def run_cmd(self, cmd, params='', pc=0):
       """main purpose is to store commands in history
             cmd     : a simple command or a full one
             params  : can be a simple string or a list of them
@@ -540,7 +564,7 @@ class MyInterface:
          # if a list, we probably need to proess the list anyway
          pstr = ', '.join(params)
       else:
-         MESGe("run_command: invalid param type for %s" % params)
+         MESGe("run_cmd: invalid param type for %s" % params)
          return 1, ''
 
       if self.verb > 2:
@@ -576,14 +600,14 @@ class MyInterface:
             cstr = "shutil.rmtree('%s')" % pstr
          self.history.append(cstr)
       else:
-         MESGe("unknown run_command: %s %s" % (cmd, pstr))
+         MESGe("unknown run_cmd: %s %s" % (cmd, pstr))
          return 1, ''
 
       # ready to run it
       try:
          eval(cstr)
       except:
-         MESGe("failed run_command: %s %s" % (cmd, pstr))
+         MESGe("failed run_cmd: %s %s" % (cmd, pstr))
          rv = 1
 
       return rv, ''
