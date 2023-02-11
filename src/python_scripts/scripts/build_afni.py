@@ -24,6 +24,8 @@ todo:
   - remove echo from git clone
   - if no -package, try to guess
   - save history in root_dir
+  - back up and update g_atlas_pack dir
+    - how to tell if it needs update
 
 later:
   - get atlases
@@ -81,7 +83,8 @@ g_version = "%s, version 0.0, February 8, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
-g_atlas_html = "%s/pub/dist/atlases/afni_atlases_dist.tgz" % g_afni_site
+g_atlas_pack = "afni_atlases_dist"      # package name
+g_atlas_html = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
 
 
 # ---------------------------------------------------------------------------
@@ -356,11 +359,8 @@ class MyInterface:
                  1 on non-fatal termination error
                 -1 on fatal error
       """
-      # note where we are starting from
-      self.do_orig_dir = dirobj('orig_dir', '.')
-
-      # do we have a current abin?
-      rv = self.set_orig_abin()
+      # note where we are starting from, and any current abin
+      rv = self.set_orig_dirs()
       if rv: return rv
 
       rv = self.check_progs()
@@ -473,9 +473,6 @@ class MyInterface:
          st, ot = self.run_cmd('mkdir', self.do_root.abspath, pc=1)
          if st: return st
 
-      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
-      if st: return st
-
       # if git exists, do a git pull, else do a clone
       if self.f_update_git():
          return 1
@@ -492,15 +489,53 @@ class MyInterface:
    def f_get_atlases(self):
       """if no afni_atlases_dist dir, download
 
+         - download g_atlas_pack (package) from g_atlas_html
+
          return 0 on success
       """
-      aname = 'afni_atlases_dist'
+      # be sure to start from the root dir
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
+      if os.path.exists(g_atlas_pack):
+         if not os.path.isdir(g_atlas_pack):
+            MESGe("** have root_dir/%s, but it is not a directory??" \
+                  % g_atlas_pack)
+            return 1
+
+         # consider updating g_atlas_pack dir
+         # - or let user delete since we currently have no versioning
+
+         MESGm("will reuse existing atlas directory, %s" % g_atlas_pack)
+         return 0
+
+      # make sure there is no previous download
+      tgzfile = '%s.tgz' % g_atlas_pack
+      if os.path.exists(tgzfile):
+         st, ot = self.run_cmd('rm', tgzfile)
+         if st: return st
+
+      # download and unpack atlas package
+      MESGm("downloading atlases from %s" % g_atlas_html)
+      st, ot = self.run_cmd('curl -O', g_atlas_html)
+      if st: return st
+
+      MESGm("unpacking atlas package, %s" % g_atlas_pack)
+      st, ot = self.run_cmd('tar xfz %s.tgz' % g_atlas_pack)
+      if st: return st
+      st, ot = self.run_cmd('rm', tgzfile)
+      if st: return st
+
       return 0
 
    def f_update_git(self, gitd='git/afni'):
       """if git exists, do a git pull (if desired), else do a clone
          return 0 on success
       """
+      # be sure to start from the root dir
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
       if os.path.exists(gitd):
          if self.update_git:
             st, ot = self.run_cmd('cd', gitd, pc=1)
@@ -628,12 +663,17 @@ class MyInterface:
 
       return rv, ''
 
-   def set_orig_abin(self):
-      """try to set an abin directory from the shell PATH
+   def set_orig_dirs(self):
+      """note starting dir, and any abin in PATH
+
+         try to set an abin directory from the shell PATH
+
          return 0 on success, -1 on fatal error
       """
-      prog = 'afni_proc.py' # since 'afni' might not be in text distribution
+      # note where we are starting from
+      self.do_orig_dir = dirobj('orig_dir', '.')
 
+      prog = 'afni_proc.py' # since 'afni' might not be in text distribution
       wp = UTIL.which(prog)
       if wp != '':
          self.do_orig_abin = dirobj('orig_abin_dir', wp)
