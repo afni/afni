@@ -20,7 +20,7 @@ build_afni.py - more plans for world dominance
 
 ------------------------------------------
 todo:
-  - opts for git_branch, make_label
+  - opts for git branch and label
   - if no -package, try to guess
   - allow choice of make target
   - allow source rebuild?
@@ -185,6 +185,7 @@ class MyInterface:
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
+      self.hist_file       = 'cmd_history.txt' # final history file
 
       self.pold            = 'prev.'        # prefix for old version
       self.dcbuild         = 'build_cmake'
@@ -373,6 +374,10 @@ class MyInterface:
             MESGe("unhandled option '%s'" % opt.name)
             return -1
 
+      # for now, require self.package
+      if self.package == '':
+         MESGe("option -package is currently required")
+
       return 0
 
    def execute(self):
@@ -455,13 +460,16 @@ class MyInterface:
       if save:
          self.write_history_file(hstr, sdir)
 
-   def write_history_file(self, hstr, sdir, fname='cmd_history.txt'):
+   def write_history_file(self, hstr, sdir):
       """cd sdir ; write ; cd -
          return 0 on success, 1 on error
       """
+      # convenience
+      hfile = self.hist_file
+
       # if no save dir, just write to current one
       if not sdir:
-        return UTIL.write_text_to_file(fname, hstr)
+        return UTIL.write_text_to_file(hfile, hstr)
 
       if os.path.isdir(sdir):
           cwd = os.path.abspath(os.path.curdir)
@@ -469,10 +477,14 @@ class MyInterface:
           if rv: return rv
 
           # possibly make a backue
-          if os.path.exists(fname):
-             newf = '%s%s' % (self.pold, fname)
-             rv, ot = self.run_cmd('mv', [fname, newf], pc=1)
-          UTIL.write_text_to_file('cmd_history.txt', hstr)
+          if os.path.exists(hfile):
+             newf = '%s%s' % (self.pold, hfile)
+             rv, ot = self.run_cmd('mv', [hfile, newf], pc=1)
+          UTIL.write_text_to_file(hfile, hstr)
+
+          self.final_mesg.append("------------------------------")
+          self.final_mesg.append("shell/sytem command history is in:")
+          self.final_mesg.append("   %s/%s" % (sdir, hfile))
 
           rv, ot = self.run_cmd('cd', cwd, pc=1)
           if rv: return rv
@@ -536,10 +548,6 @@ class MyInterface:
             - run build
       """
 
-      # for now, require self.package
-      if self.package == '':
-         MESGe("option -package is currently required")
-
       MESGm("will run 'make' build of package %s" % self.package)
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
@@ -575,6 +583,7 @@ class MyInterface:
          if st: return st
 
       # run the build (this is why we are here!)
+      self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   make itall")
@@ -583,6 +592,7 @@ class MyInterface:
       target = 'itall'
       MESGm("building ...")
       MESGi("consider monitoring the build in a separate window with:")
+      MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
       MESGi("    (use ctrl-c to terminate 'tail' command (not the build))")
       st, ot = self.run_cmd('make %s >& %s' % (target, logfile))
@@ -593,13 +603,13 @@ class MyInterface:
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
-
       # test the build
       logfile = 'log.test.txt'
       binopt = '-bin_dir %s' % self.package
       MESGm("testing the build results ...")
 
       cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
+      self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun test of make build:")
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   %s" % cmd)
@@ -646,12 +656,12 @@ class MyInterface:
          if st: return st
 
       # download and unpack atlas package
-      MESGm("downloading atlases from %s" % g_atlas_html)
+      MESGm("downloading AFNI atlas package, %s" % tgzfile)
       st, ot = self.run_cmd('curl -O', g_atlas_html)
       if st: return st
 
       MESGm("unpacking atlas package, %s" % g_atlas_pack)
-      st, ot = self.run_cmd('tar xfz %s.tgz' % g_atlas_pack)
+      st, ot = self.run_cmd('tar xfz %s' % tgzfile)
       if st: return st
       st, ot = self.run_cmd('rm', tgzfile)
       if st: return st
