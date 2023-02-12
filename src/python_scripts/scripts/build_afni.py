@@ -20,15 +20,12 @@ build_afni.py - more plans for world dominance
 
 ------------------------------------------
 todo:
-  - opts for run_cmake, run_make
-  - remove echo from git clone
+  - opts for git_branch, make_label
   - if no -package, try to guess
-  - save history in root_dir
-  - back up and update g_atlas_pack dir
-    - how to tell if it needs update
+  - allow choice of make target
+  - allow source rebuild?
 
 later:
-  - get atlases
   - worry about sync to abin
   - help
 
@@ -169,7 +166,7 @@ class MyInterface:
       self.package         = ''     # to imply Makefile and build dir
 
       self.run_cmake       = 0      # actually run camke?
-      self.run_make        = 0      # actually run make?
+      self.run_make        = 1      # actually run make?
       self.update_git      = 1      # do git clone or pull
 
       self.verb            = verb   # verbosity level
@@ -254,6 +251,12 @@ class MyInterface:
       # general options
       self.valid_opts.add_opt('-build_label', 1, [], 
                       helpstr='the git label to build')
+      self.valid_opts.add_opt('-run_cmake', 1, [], 
+                      acplist=['yes','no'],
+                      helpstr="should we run a 'cmake' build?")
+      self.valid_opts.add_opt('-run_make', 1, [], 
+                      acplist=['yes','no'],
+                      helpstr="should we run a 'make' build? (def=y)")
       self.valid_opts.add_opt('-update_git', 1, [], 
                       acplist=['yes','no'],
                       helpstr='should we update the local git repo')
@@ -331,11 +334,23 @@ class MyInterface:
             if val == None or err: return -1
             self.package = val
 
-         elif opt.name == '-update_git':
-            if OL.opt_is_no(opt):
-               self.update_git = 0
+         elif opt.name == '-run_make':
+            if OL.opt_is_yes(opt):
+               self.run_make = 1
             else:
+               self.run_make = 0
+
+         elif opt.name == '-run_cmake':
+            if OL.opt_is_yes(opt):
+               self.run_cmake = 1
+            else:
+               self.run_cmake = 0
+
+         elif opt.name == '-update_git':
+            if OL.opt_is_yes(opt):
                self.update_git = 1
+            else:
+               self.update_git = 0
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -450,8 +465,10 @@ class MyInterface:
 
       rv = self.prepare_root()
 
-      # cd back to orig dir for consistency
-      # rv, ot = self.run_cmd('cd', self.do_orig_dir.abspath, pc=1)
+      # build source - the main purpose of this program
+      if self.run_make:
+         if self.f_build_via_make():
+            return 1
 
       return 0
 
@@ -477,12 +494,66 @@ class MyInterface:
       if self.f_update_git():
          return 1
 
-      # get atlases...
+      # get atlases
       if self.f_get_atlases():
          return 1
 
-      # st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
-      # if st: return st
+      return 0
+
+   def f_build_via_make(self):
+      """run a make build
+            - have or try to choose a suitable package
+            - copy git/afni/src tree
+            - find corresponding Makefile
+            - run build
+      """
+
+      # for now, require self.package
+      if self.package == '':
+         MESGe("option -package is currently required")
+
+      MESGm("will run 'make' build of package %s" % self.package)
+
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
+      st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
+      if st: return st
+
+      st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
+      if st: return st
+
+      # copy package Makefile
+      mfile = 'Makefile.%s' % self.package
+      mtmp = mfile
+      if not os.path.isfile(mfile):
+         mtmp = 'other_builds/%s' % mfile
+         if not os.path.isfile(mtmp):
+            MESGe("failed to find suitable Makefile for package %s" \
+                  % self.package)
+            return 1
+
+      MESGm("copying %s to %s" % (mtmp, "Makefile"))
+      st, ot = self.run_cmd('cp', [mtmp, 'Makefile'], pc=1)
+      if st: return st
+
+      # run the build (this is why we are here!)
+      logfile = 'out.make.txt'
+      target = 'itall'
+      MESGm("building ...")
+      MESGi("consider: tail -f %s/%s/%s" \
+            % (self.do_root.dname, self.dsbuild, logfile))
+      MESGi("(use ctrl-c to terminate 'tail' command)")
+      st, ot = self.run_cmd('make %s >& tee %s' % (target, logfile))
+      if st: return st
+
+      MESGp("build was successful!  testing...")
+
+      # test the build
+      logfile = 'out.test.txt'
+      cmd = "tcsh -x scripts_src/test.afni.prog.help >& %s" % logfile
+      st, ot = self.run_cmd(cmd)
+      if st: return st
 
       return 0
 
@@ -613,7 +684,7 @@ class MyInterface:
          pstr = params
       elif isinstance(params, list):
          # if a list, we probably need to proess the list anyway
-         pstr = ', '.join(params)
+         pstr = ' '.join(params)
       else:
          MESGe("run_cmd: invalid param type for %s" % params)
          return 1, ''
@@ -634,6 +705,9 @@ class MyInterface:
          self.history.append(cstr)
       elif cmd == 'mkdir':
          cstr = "os.makedirs('%s')" % pstr
+         self.history.append(cstr)
+      elif cmd == 'cp':
+         cstr = "shutil.copy('%s', '%s')" % (params[0], params[1])
          self.history.append(cstr)
       elif cmd == 'mv':
          # fail here for a list of params
