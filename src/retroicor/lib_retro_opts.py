@@ -615,8 +615,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
 
 opt = '''slice_pattern'''
-hlp = '''Slice timing pattern code (def: {dopt}). The following codes are
-allowed *** list? ***'''.format(dopt=DEF[opt])
+hlp = '''Slice timing pattern code (def: {dopt}). Use
+'-disp_all_slice_patterns' to see all allowed patterns.'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
