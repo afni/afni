@@ -37,13 +37,13 @@ DEF = {
     'card_file'         : None,      # (str) fname for card data
     'phys_file'         : None,      # (str) fname of physio input data
     'phys_json'         : None,      # (str) fname of json file
+    'slice_times'       : None,      # (list) slice times
+    'slice_pattern'     : None,      # (str) code or file for slice timing
     'freq'              : None,      # (float) freq, in Hz
     'num_slices'        : None,      # (int) number of MRI vol slices
     'volume_tr'         : None,      # (float) TR of MRI
     'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
-    'start_time'        : None,      # (float) 
-    'slice_times'       : None,      # (list) slice times
-    'slice_pattern'     : None,      # (str) code or file for slice timing
+    'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
     'fir_order'         : 40,        # (int?) FIR order 
@@ -70,20 +70,21 @@ DEF = {
 
 # ---- sublists to check for properties ----
 
-# list of lists of corresponding phys_json and args_dict entries,
+# list of lists of corresponding args_dict and phys_json entries,
 # respectively; for each, there is also an EPS value for how to
 # compare them if needing to reconcile command line opt values with a
 # read-in value; more can be added over time
-ALL_JA_MATCH = [
-    ['SamplingFrequency', 'freq', EPS_TH],
-    ['StartTime', 'start_time', EPS_TH],
+ALL_AJ_MATCH = [
+    ['freq', 'SamplingFrequency', EPS_TH],
+    ['start_time', 'StartTime', EPS_TH],
 ]
 
-AJM_str = "{:20s}   {:15s}   {:9s}\n".format('JSON KEY', 'ARG OPT', 'EPS VAL')
-for ii in range(len(ALL_JA_MATCH)):
-    sss = "{:20s}   {:15s}   {:.3e}\n".format(ALL_JA_MATCH[ii][0],
-                                              ALL_JA_MATCH[ii][1],
-                                              ALL_JA_MATCH[ii][2])
+AJM_str = "    {:15s}   {:20s}   {:9s}\n".format('ARG/OPT', 'JSON KEY', 
+                                                 'EPS VAL')
+for ii in range(len(ALL_AJ_MATCH)):
+    sss = "    {:15s}   {:20s}   {:.3e}\n".format(ALL_AJ_MATCH[ii][0],
+                                                  ALL_AJ_MATCH[ii][1],
+                                                  ALL_AJ_MATCH[ii][2])
     AJM_str+= sss
 
 # quantities that must be >= 0
@@ -107,6 +108,7 @@ dent = '\n' + 5*' '
 help_dict = {
     'ddashline' : '='*76,
     'ver'       : version,
+    'AJM_str'   : AJM_str,
 }
 
 # ========================================================================== 
@@ -415,10 +417,10 @@ args_dict2 : dict
     args_dict2 = copy.deepcopy(args_dict)
 
     # add known items that might be present
-    for ja_match in ALL_JA_MATCH:
-        jname   = ja_match[0]
-        aname   = ja_match[1]
-        eps_val = ja_match[2]
+    for aj_match in ALL_AJ_MATCH:
+        aname   = aj_match[0]
+        jname   = aj_match[1]
+        eps_val = aj_match[2]
         if jname in jdict :
             val_json = jdict[jname]
             val_args = args_dict2[aname]
@@ -461,9 +463,8 @@ Much of the calculations are based on the following paper (GLR00):
 
   Glover GH, Li TQ, Ress D (2000). Image-based method for
   retrospective correction of physiological motion effects in fMRI:
-  RETROICOR. Magn Reson Med 44(1):162-7. doi:
-  10.1002/1522-2594(200007)44:1<162::aid-mrm23>3.0.co;2-e. PMID:
-  10893535.
+  RETROICOR. Magn Reson Med 44(1):162-7. PMID: 10893535. 
+  doi: 10.1002/1522-2594(200007)44:1<162::aid-mrm23>3.0.co;2-e. 
 
 
 {ddashline}
@@ -475,9 +476,28 @@ Options ~1~
 help_str_epi = '''
 {ddashline}
 
-Notes on usage ~1~
+Notes on usage and inputs ~1~
 
-***
+* At least one of the following input option sets must be used:
+  - '-card_file ..'
+  - '-resp_file ..'
+  - '-card_file ..' and '-resp_file ..'
+  - '-phys_file ..' and '-phys_json'
+
+* Exactly one of the following input option must be used:
+  - '-slice_times ..'
+  - '-slice_patterns ..'
+
+* Each of the following input options must be provided through some
+  combination of command line input and phys_json file:
+  - '-freq ..'        
+  - '-volume_tr ..'   
+  - '-num_slices ..'  
+  - '-num_time_pts ..'
+
+* The following table shows which keys from 'phys_json' can be used to
+  set (= replace) certain command line argument/option usage:
+{AJM_str}
 
 {ddashline}
 
