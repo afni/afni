@@ -30,7 +30,7 @@ now      = datetime.now() # current date and time
 odir_def = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 
 # Each key in DEF should have an opt listing below in argparse, and
-# vice versa.
+# vice versa. 
 
 DEF = {
     'resp_file'         : None,      # (str) fname for resp data
@@ -203,7 +203,7 @@ DIFF_KEYS : int
 
     return DIFF_KEYS
 
-def check_simple_opts_to_exit(args_dict):
+def check_simple_opts_to_exit(args_dict, parser):
     """Check for simple options, after which to exit, such as help/hview,
 ver, disp all slice patterns, etc.
 
@@ -229,7 +229,7 @@ int : int
     if args_dict['hview'] :
         print("hview on")
 
-        prog = str(sys.argv[0]).split('/')[-1]
+        prog = parser.prog 
         acmd = 'apsearch -view_prog_help {}'.format( prog )
         check_info = SP.Popen(acmd, shell=True, 
                               stdout=SP.PIPE, stderr=SP.PIPE,
@@ -369,10 +369,13 @@ def reconcile_phys_json_with_args(jdict, args_dict, verb=None):
 and pull out any pieces of information like sampling freq, etc. that
 should be added to the args_dict (dict of all command line opts
 used). These pieces of info can get added to the args_dict, but they
-also have to be checked against possible conflict from command line opts
+also have to be checked against possible conflict from command line opts.
 
 Matched partners include:
 {AJM_str}
+
+The jdict itself gets added to the output args_dict2 as a value for
+a new key 'phys_json_dict', for possible later use.
 
 Parameters
 ----------
@@ -413,11 +416,16 @@ args_dict2 : dict
                     return BAD_RETURN
                 else:
                     print("+* WARN: start time provided in two ways, but "
-                          " it may be OK because they are consistent:\n"
+                          " it may be OK because they are consistent (at "
+                          "eps={}):\n"
                           "   JSON '{}' = {} and input arg '{}' = {}"
-                          "".format(jname, val_json, aname, val_args))
+                          "".format(eps_val, jname, val_json, aname, val_args))
             else:
                 args_dict2[aname] = val_json
+
+    # and add in this JSON to the args dict, so it is only ever read
+    # in once
+    args_dict2['phys_json_dict'] = copy.deepcopy(jdict)
 
     return 0, args_dict2
 
@@ -552,7 +560,6 @@ match MRI time series length)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
-
 
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''
@@ -728,6 +735,179 @@ if have_diff_keys :
     print("** ERROR: exiting because of opt name setup failure")
     sys.exit(1)
 
+# =========================================================================
+# PART_04: process opts slightly, checking if all required ones are
+# present (~things with None for def), and also note that some pieces
+# of info can come from the phys_json, so open and interpret that (and
+# check against conflicts!)
+
+def check_required_args(args_dict):
+    """A primary check of the user provided arguments (as well as the
+potential update of some).  
+
+This first checks whether everything that *should* have been provided
+actually *was* provided, namely for each opt that has a default None
+value (as well as some strings that could have been set to '').  In
+many cases, a failure here will lead to a direct exit.
+
+This also might read in a JSON of info and use that to populate
+args_dict items, updating them.  It will also then save that JSON to a
+new field, phys_json_dict.
+
+Parameters
+----------
+args_dict : dict
+    The dictionary of arguments and option values.
+
+Returns
+-------
+args_dict2 : dict
+    A potentially updated args_dict (if no updates happen, then just
+    a copy of the original).
+
+    """
+
+    verb = args_dict['verbose']
+
+    args_dict2 = copy.deepcopy(args_dict)
+
+    if not(args_dict2['card_file'] or args_dict2['resp_file']) and \
+       not(args_dict2['phys_file'] and args_dict2['phys_json']) :
+        print("** ERROR: no physio inputs provided. Allowed physio inputs:\n"
+              "   A) '-card_file ..', '-resp_file ..' or both."
+              "   B) '-phys_file ..' and '-phys_json ..'.")
+        sys.exit(4)
+
+    # for any filename that was provided, check if it actually exists
+    # (slice_pattern possible filename checked below)
+    all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
+    for fopt in all_fopt:
+        if args_dict2[fopt] != None :
+            if not(os.path.isfile(args_dict2[fopt])) :
+                print("** ERROR: no {} '{}'".format(fopt, args_dict2[fopt]))
+                sys.exit(5)
+
+    # deal with json for a couple facets: getting args_dict2 info, and
+    # making sure there are no inconsistencies (in case both JSON and opt
+    # provide the same info)
+    if args_dict2['phys_json'] :
+        jdict = read_json_to_dict(args_dict2['phys_json'])
+        if not(jdict) :
+            print("** ERROR: JSON unreadable or empty")
+            sys.exit(5)
+
+        # jdict info can get added to args_dict; also want to make sure it
+        # does not conflict, if items were entered with other opts
+        check_fail, args_dict2 = reconcile_phys_json_with_args(jdict, 
+                                                               args_dict2)
+        if check_fail :
+            print("** ERROR: issue using the JSON")
+            sys.exit(5)
+
+    if not(args_dict2['num_slices']) :
+        print("** ERROR: must provide '-num_slices ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['num_time_pts']) :
+        print("** ERROR: must provide '-num_time_pts ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['volume_tr']) :
+        print("** ERROR: must provide '-volume_tr ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['freq']) :
+        print("** ERROR: must provide '-freq ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['prefix']) :
+        print("** ERROR: must provide '-prefix ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['out_dir']) :
+        print("** ERROR: must provide '-out_dir ..' information")
+        sys.exit(4)
+
+    if not(args_dict2['slice_times']) and not(args_dict2['slice_pattern']) :
+        print("** ERROR: must exactly one of either slice_times or "
+              "slice_pattern")
+        sys.exit(4)
+
+    if args_dict2['slice_times'] and args_dict2['slice_pattern'] :
+        print("** ERROR: must use only one of either slice_times or "
+              "slice_pattern")
+        sys.exit(4)
+
+    return args_dict2
+
+
+def interpret_args(args_dict):
+    """Interpret the user provided arguments (and potentially update
+some).  This also checks that entered values are valid, and in some
+cases a failure here will lead to a direct exit.
+
+Parameters
+----------
+args_dict : dict
+    The dictionary of arguments and option values.
+
+Returns
+-------
+args_dict2 : dict
+    A potentially updated args_dict (if no updates happen, then just
+    a copy of the original).
+
+    """
+
+    args_dict2 = copy.deepcopy(args_dict)
+
+    if args_dict2['start_time'] == None :
+        print("++ No start time provided; will assume it is 0.0.")
+        args_dict2['start_time'] = 0.0
+
+    if args_dict2['slice_times'] :
+        # interpret string to be list of floats
+        IS_BAD = 0
+
+        L = args_dict2['slice_times'].split()
+        try:
+            slice_times = [float(ll) for ll in L]
+            args_dict2['slice_times'] = copy.deepcopy(slice_times)
+        except:
+            print("** ERROR interpreting slice times")
+            IS_BAD = 1
+
+        if IS_BAD :
+            sys.exit(1)
+
+    if args_dict2['slice_pattern'] :
+        # if pattern, check if it is allowed; elif if is a file, check if
+        # it exists *and* use it to fill in args_dict2['slice_times'];
+        # else, whine
+
+        pat = args_dict2['slice_pattern']
+        if pat in BAU.g_valid_slice_patterns :
+            print("++ Found slice_pattern '{}' in allowed list".format(pat))
+        elif os.path.isfile(pat) :
+            print("++ Found slice_pattern '{}' exists as a file".format(pat))
+            slice_times = read_slice_pattern_file(pat, verb=verb)
+            if not(slice_times) :
+                sys.exit(7)
+            args_dict2['slice_times'] = slice_times
+        else:
+            print("** ERROR: could not match slice_pattern '{}' as "
+                  "either a recognized pattern or file".format(pat))
+            sys.exit(3)
+
+    if '/' in args_dict2['prefix'] :
+        print("** ERROR: Cannot have path information in '-prefix ..'\n"
+              "   Use '-out_dir ..' for path info instead")
+        sys.exit(4)
+
+    # successful navigation
+    return args_dict2
+
+# *** temporary way of calling, like a main prog, here
 # --------------------------------------------------------------------------
 # null case of no opts: just show help and quit
 
@@ -747,118 +927,12 @@ if len(sys.argv) == 1 :
 args_dict = parser_to_dict( parser )
 
 # check for simple-simple cases with a quick exit: ver, help, etc.
-have_simple_opt = check_simple_opts_to_exit(args_dict)
+have_simple_opt = check_simple_opts_to_exit(args_dict, parser)
 if have_simple_opt :
     sys.exit(0)
 
-# =========================================================================
-# PART_04: process opts slightly, checking if all required ones are
-# present (~things with None for def), and also note that some pieces
-# of info can come from the phys_json, so open and interpret that (and
-# check against conflicts!)
-
-verb = args_dict['verbose']
-
-# ---- check required opts (anything that is has a None for default) ----
-
-if not(args_dict['card_file'] or args_dict['resp_file']) and \
-   not(args_dict['phys_file'] and args_dict['phys_json']) :
-    print("** ERROR: no physio inputs provided. Allowed physio inputs are:\n"
-          "   A) '-card_file ..', '-resp_file ..' or both."
-          "   B) '-phys_file ..' and '-phys_json ..'.")
-    sys.exit(4)
-
-# for any filename that was provided, check if it actually exists
-# (slice_pattern possible filename checked below)
-all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
-for fopt in all_fopt:
-    if args_dict[fopt] :
-        if not(os.path.isfile(args_dict[fopt])) :
-            print("** ERROR: no {} '{}'".format(fopt, args_dict[fopt]))
-            sys.exit(5)
-
-# deal with json for a couple facets: getting args_dict info, and
-# making sure there are no inconsistencies (in case both JSON and opt
-# provide the same info)
-if args_dict['phys_json'] :
-    jdict = read_json_to_dict(args_dict['phys_json'])
-
-    # jdict info can get added to args_dict; also want to make sure it
-    # does not conflict, if items were entered with other opts
-    check, args_dict = reconcile_phys_json_with_args(jdict, args_dict)
-    if check :
-        print("** ERROR: issue using the JSON")
-        sys.exit(5)
-
-if not(args_dict['num_slices']) :
-    print("** ERROR: must provide '-num_slices ..' information")
-    sys.exit(4)
-
-if not(args_dict['num_time_pts']) :
-    print("** ERROR: must provide '-num_time_pts ..' information")
-    sys.exit(4)
-
-if not(args_dict['volume_tr']) :
-    print("** ERROR: must provide '-volume_tr ..' information")
-    sys.exit(4)
-
-if not(args_dict['freq']) :
-    print("** ERROR: must provide '-freq ..' information")
-    sys.exit(4)
-
-if not(args_dict['prefix']) :
-    print("** ERROR: must provide '-prefix ..' information")
-    sys.exit(4)
-
-if args_dict['slice_times'] and args_dict['slice_pattern'] :
-    print("** ERROR: must use only one of either slice_times or slice_pattern")
-    sys.exit(4)
-
-# ---- do interpretations of things ----
-
-if not(args_dict['start_time']) :
-    print("++ No start time provided; will assume it is 0.0.")
-    args_dict['start_time'] = 0.0
-
-if args_dict['slice_times'] :
-    # interpret string to be list of floats
-    IS_BAD = 0
-
-    L = args_dict['slice_times'].split()
-    try:
-        slice_times = [float(ll) for ll in L]
-        args_dict['slice_times'] = copy.deepcopy(slice_times)
-    except:
-        print("** ERROR interpreting slice times")
-        IS_BAD = 1
-
-    if IS_BAD :
-        sys.exit(1)
-
-if args_dict['slice_pattern'] :
-    # if pattern, check if it is allowed; elif if is a file, check if
-    # it exists *and* use it to fill in args_dict['slice_times'];
-    # else, whine
-
-    pat = args_dict['slice_pattern']
-    if pat in BAU.g_valid_slice_patterns :
-        print("++ Found slice_pattern '{}' in allowed list".format(pat))
-    elif os.path.isfile(pat) :
-        print("++ Found slice_pattern '{}' exists as a file".format(pat))
-        slice_times = read_slice_pattern_file(pat, verb=verb)
-        if not(slice_times) :
-            sys.exit(7)
-        args_dict['slice_times'] = slice_times
-    else:
-        print("** ERROR: could not match slice_pattern '{}' as "
-              "either a recognized pattern or file".format(pat))
-        sys.exit(3)
-
-if '/' in args_dict['prefix'] :
-    print("** ERROR: Cannot have path information in '-prefix ..'\n"
-          "   Use '-out_dir ..' for that instead")
-    sys.exit(4)
-
+args_dict = check_required_args(args_dict)
+args_dict = interpret_args(args_dict)
 
 
 
