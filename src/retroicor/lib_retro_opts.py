@@ -426,7 +426,7 @@ reconcile_phys_json_with_args.__doc__ = \
     reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
 
 # ========================================================================== 
-# setup help and options
+# PART_3: setup argparse help and arguments/options
 
 help_str_top = '''
 Overview ~1~
@@ -479,10 +479,18 @@ written by: Peter Lauren (SSCC, NIMH, NIH, USA)
 # keep track of all opts over time, make sure it matches default list 
 odict = {}
 
+# unused right now, but could be used to control spacing
+formatter = lambda prog: argp.HelpFormatter(prog, 
+                                            indent_increment=2,
+                                            max_help_position=12,
+                                            width=80)
+
 # get args
 parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               add_help=False,
-                              formatter_class=argp.RawDescriptionHelpFormatter,
+                              #formatter_class=argp.RawDescriptionHelpFormatter,
+                              formatter_class=argp.RawTextHelpFormatter,
+                              #formatter_class=formatter,
                               description=textwrap.dedent(help_str_top),
                               epilog=textwrap.dedent(help_str_epi) )
 
@@ -499,7 +507,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
 opt = '''phys_file'''
-hlp = '''BIDS-formatted physio file in tab-separated format. May be gzipped'''
+hlp = '''BIDS-formatted physio file in tab-separated format. May be
+gzipped'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
@@ -524,14 +533,15 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
 opt = '''volume_tr'''
-hlp = '''MRI volume's repetition time (TR), which defines 
-the time interval between consecutive volumes (in s)'''
+hlp = '''MRI volume's repetition time (TR), which defines the time interval
+between consecutive volumes (in s) '''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
 opt = '''start_time'''
-hlp = '''*** add *** (in s)'''
+hlp = '''*** add *** (in s)
+'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -571,14 +581,15 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
 
 opt = '''fir_order'''
-hlp = '''*** add *** (def: {dopt})'''.format(dopt=DEF[opt])
+hlp = '''*** add *** (def: {dopt})
+'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
 opt = '''phase_offset'''
 hlp = '''Time added to initial offset, in sec (def: {dopt})
-      '''.format(dopt=DEF[opt])
+'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -596,13 +607,15 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''no_rvt_out'''
-hlp = '''Turn off output of RVT regressors'''
+hlp = '''Turn off output of RVT regressors
+'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''font_size'''
-hlp = '''Font size used for graphics (def: {dopt})'''.format(dopt=DEF[opt])
+hlp = '''Font size used for graphics (def: {dopt})
+'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -634,7 +647,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''ab_out'''
-hlp = '''Output the time series based on the a and b coefficients from GLR00'''
+hlp = '''Output the time series based on the a and b coefficients from
+GLR00'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
