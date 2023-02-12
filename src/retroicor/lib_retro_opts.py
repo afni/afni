@@ -11,6 +11,7 @@ version = '1.0'
 import sys
 import os
 import copy
+import json
 import textwrap
 import subprocess as     SP
 import argparse   as     argp
@@ -40,11 +41,11 @@ DEF = {
     'num_slices'        : None,      # (int) number of MRI vol slices
     'volume_tr'         : None,      # (float) TR of MRI
     'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
+    'start_time'        : None,      # (float) 
     'slice_times'       : None,      # (list) slice times
     'slice_pattern'     : None,      # (str) code or file for slice timing
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
-    'start_time'        : 0,         # (float) 
     'fir_order'         : 40,        # (int?) FIR order 
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
@@ -404,14 +405,14 @@ exit\                a non-problematic one (= 0)
             val_args = args_dict2[aname]
             if val_args != None :
                 if abs(val_json - val_args) > eps_val :
-                    print("** ERROR: inconsistent JSON '{}' {} and "
-                          " input arg '{}' {}"
+                    print("** ERROR: inconsistent JSON '{}' = {} and "
+                          " input arg '{}' = {}"
                           "".format(jname, val_json, aname, val_args))
                     return BAD_RETURN
                 else:
                     print("+* WARN: start time provided in two ways, but "
                           " it may be OK because they are consistent:\n"
-                          "   JSON '{}' {} and input arg '{}' {}"
+                          "   JSON '{}' = {} and input arg '{}' = {}"
                           "".format(jname, val_json, aname, val_args))
             else:
                 args_dict2[aname] = val_json
@@ -757,13 +758,18 @@ for fopt in all_fopt:
             print("** ERROR: no {} '{}'".format(fopt, args_dict[fopt]))
             sys.exit(5)
 
+# deal with json for a couple facets: getting args_dict info, and
+# making sure there are no inconsistencies (in case both JSON and opt
+# provide the same info)
 if args_dict['phys_json'] :
     jdict = read_json_to_dict(args_dict['phys_json'])
 
     # jdict info can get added to args_dict; also want to make sure it
     # does not conflict, if items were entered with other opts
-    args_dict = reconcile_phys_json_with_args(jdict, args_dict)
-
+    check, args_dict = reconcile_phys_json_with_args(jdict, args_dict)
+    if check :
+        print("** ERROR: issue using the JSON")
+        sys.exit(5)
 
 if not(args_dict['num_slices']) :
     print("** ERROR: must provide '-num_slices ..' information")
@@ -786,6 +792,11 @@ if args_dict['slice_times'] and args_dict['slice_pattern'] :
     sys.exit(4)
 
 # ---- do interpretations of things ----
+
+if not(args_dict['start_time']) :
+    print("++ No start time provided; will assume it is 0.0.")
+    args_dict['start_time'] = 0.0
+    sys.exit(4)
 
 if args_dict['slice_times'] :
     # interpret string to be list of floats
