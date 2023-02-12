@@ -23,7 +23,7 @@ import borrow_afni_util  as BAU
 EPS_TH = 1.e-3
 
 # ==========================================================================
-# default parameter settings
+# PART_01: default parameter settings
 
 # default outdir name
 now      = datetime.now() # current date and time
@@ -68,16 +68,22 @@ DEF = {
     'hview'             : False,     # (bool) do show help in text ed?
 }
 
-# list of phys_json and args_dict entries, respectively, that are
-# really the same thing, as well as an EPS value for how to compare
-# them if needing to reconcile command line opt values with a read-in
-# value
+# list of lists of corresponding phys_json and args_dict entries,
+# respectively; for each, there is also an EPS value for how to
+# compare them if needing to reconcile command line opt values with a
+# read-in value; more can be added over time
 ALL_JA_MATCH = [
     ['SamplingFrequency', 'freq', EPS_TH],
     ['StartTime', 'start_time', EPS_TH],
 ]
 
-# ==========================================================================
+AJM_str = "{:20s}   {:15s}   {:9s}\n".format('JSON KEY', 'ARG OPT', 'EPS VAL')
+for ii in range(len(ALL_JA_MATCH)):
+    sss = "{:20s}   {:15s}   {:.3e}\n".format(ALL_JA_MATCH[ii][0],
+                                              ALL_JA_MATCH[ii][1],
+                                              ALL_JA_MATCH[ii][2])
+    AJM_str+= sss
+# --------------------------------------------------------------------------
 # sundry other items
 
 verb = 0
@@ -90,26 +96,26 @@ help_dict = {
 }
 
 # ========================================================================== 
-# helper functions
+# PART_02: helper functions
 
 def parser_to_dict(parser, verb=0):
     """Convert an argparse parser object to a dictionary of key (=opt) and
 value pairs.  
     
-    Parameters
-    ----------
-    parser    : argparse.ArgumentParser
-                object from parsing program options
+Parameters
+----------
+parser : argparse.ArgumentParser
+    object from parsing program options
+verb : int
+    verbosity level whilst working
 
-    verb      : int
-                verbosity level whilst working
+Returns
+-------
+args_dict : dict
+    dictionary whose keys are option names and values are the
+    user-entered values (which might still need separate interpreting
+    later)
 
-    Return
-    ------
-    args_dict : dict
-                dictionary whose keys are option names and values are the 
-                user-entered values (which might still need separate 
-                interpreting later)
     """
 
     # get args obj, and make a dict out of it
@@ -137,28 +143,28 @@ def compare_keys_in_two_dicts(A, B, nameA=None, nameB=None):
     """Compare sets of keys between two dictionaries A and B (which could
 have names nameA and nameB, when referring to them in output text).
 
-    Parameters
-    ----------
-    A         : dict
-                a dictionary
-    B         : dict
-                a dictionary
-    nameA     : str
-                optional name for referring to dict A when reporting
-    nameB     : str
-                optional name for referring to dict B when reporting
+Parameters
+----------
+A : dict
+    a dictionary
+B : dict
+    a dictionary
+nameA : str
+    optional name for referring to dict A when reporting
+nameB : str
+    optional name for referring to dict B when reporting
 
-    Return
-    ------
-    HAVE_DIFF_KEYS : int
-                integer encoding whether there is a difference in the 
-                set of keys in A and B:
-                  0 -> no difference
-                  1 -> difference
+Returns
+-------
+DIFF_KEYS : int
+    integer encoding whether there is a difference in the set of keys
+    in A and B:
+      0 -> no difference
+      1 -> difference
 
     """
 
-    HAVE_DIFF_KEYS = 0
+    DIFF_KEYS = 0
 
     if not(nameA) :    nameA = 'A'
     if not(nameB) :    nameA = 'B'
@@ -168,7 +174,7 @@ have names nameA and nameB, when referring to them in output text).
     nb = len(B)
 
     if na != nb :
-        HAVE_DIFF_KEYS = 1
+        DIFF_KEYS = 1
         print("** ERROR: number of keys in {} '{}' and in {} '{}' "
               "do not match.\n"
               "          This is a programming/dev issue."
@@ -182,37 +188,37 @@ have names nameA and nameB, when referring to them in output text).
     missB = list(setA.difference(setB))
 
     if len(missA) :
-        HAVE_DIFF_KEYS = 1
+        DIFF_KEYS = 1
         missA.sort()
         str_missA = ', '.join(missA)
         print("** ERROR: keys in {} that are missing in {}:\n"
               "          {}".format(nameB, nameA, str_missA))
 
     if len(missB) :
-        HAVE_DIFF_KEYS = 1
+        DIFF_KEYS = 1
         missB.sort()
         str_missB = ', '.join(missB)
         print("** ERROR: keys in {} that are missing in {}:\n"
               "          {}".format(nameA, nameB, str_missB))
 
-    return HAVE_DIFF_KEYS
+    return DIFF_KEYS
 
 def check_simple_opts_to_exit(args_dict):
     """Check for simple options, after which to exit, such as help/hview,
 ver, disp all slice patterns, etc.
 
-    Parameters
-    ----------
-    args_dict : dict
-                a dictionary of input options (=keys) and their values
+Parameters
+----------
+args_dict : dict
+    a dictionary of input options (=keys) and their values
 
-    Return
-    ------
-    int       : int
-                return 1 on the first instance of a simple opt being
-                found, else return 0.
+Returns
+-------
+int : int
+    return 1 on the first instance of a simple opt being
+    found, else return 0.
 
-    """
+"""
 
     # if nothing or help opt, show help
     if args_dict['help'] :
@@ -265,15 +271,15 @@ def read_slice_pattern_file(fname, verb=0):
 That pattern must be either a single row or column of (floating point)
 numbers.
 
-    Parameters
-    ----------
-    fname     : str
-                filename of slice timing info to be read in
+Parameters
+----------
+fname : str
+    filename of slice timing info to be read in
 
-    Return
-    ------
-    slice_times : list (of floats)
-                a list of floats, the slice times
+Returns
+-------
+slice_times : list (of floats)
+    a list of floats, the slice times
 
     """
 
@@ -335,15 +341,15 @@ def read_json_to_dict(fname):
     """Read in a text file fname that is supposed to be a JSON file and
 output a dictionary.
 
-    Parameters
-    ----------
-    fname     : str
-                JSON filename
+Parameters
+----------
+fname : str
+    JSON filename
 
-    Return
-    ------
-    jdict     : dict
-                dictionary form of the JSON
+Returns
+-------
+jdict : dict
+    dictionary form of the JSON
 
     """
     
@@ -366,28 +372,24 @@ used). These pieces of info can get added to the args_dict, but they
 also have to be checked against possible conflict from command line opts
 
 Matched partners include:
-  JSON                    ARGS
-  ----                    ----
-  StartTime          ->   start_time
-  SamplingFrequency  ->   freq
+{AJM_str}
 
-    Parameters
-    ----------
-    jdict     : dict
-                a dictionary from the phys_json input from the user
-    args_dict : dict
-                the args_dict of input opts.
+Parameters
+----------
+jdict : dict
+    a dictionary from the phys_json input from the user
+args_dict : dict
+    the args_dict of input opts.
 
-    Return
-    ------
-    BAD_RECON : int
-                integer signifying bad reconiliation of files (> 1) or 
-                a non-problematic one (= 0)
-    args_dict2 : dict
-                copy of input args_dict, that may be augmented with other
-                info.
+Returns
+-------
+BAD_RECON : int
+    integer signifying bad reconiliation of files (> 1) or a
+    non-problematic one (= 0)
+args_dict2 : dict
+    copy of input args_dict, that may be augmented with other info.
 
-    """
+    """ 
 
     BAD_RETURN = 1, {}
 
@@ -419,6 +421,9 @@ Matched partners include:
 
     return 0, args_dict2
 
+# ... and needed with the above to insert a variable into the docstring
+reconcile_phys_json_with_args.__doc__ = \
+    reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
 
 # ========================================================================== 
 # setup help and options

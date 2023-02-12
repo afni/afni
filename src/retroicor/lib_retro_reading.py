@@ -11,16 +11,15 @@ def float_or_nan(x):
 it ain't.  Leading and trailing whitespace within the string should
 not have any effect.
 
+Parameters
+----------
+x : str
+    possibly floatable str
 
-    Parameters
-    ----------
-    x         : str
-                possibly floatable str
-
-    Return
-    ------
-    xfl       : float
-                a floatized version of x, either float(x) or NAN
+Returns
+-------
+xfl : float
+    a floatized version of x, either float(x) or NAN
 
     """
 
@@ -35,16 +34,15 @@ then float(x) if possible, or a numpy.nan if it ain't either.  Leading and
 trailing whitespace within the string should not have any effect.
 
 
-    Parameters
-    ----------
-    x         : str
-                possibly floatable str
+Parameters
+----------
+x : str
+    possibly floatable str
 
-    Return
-    ------
-    xfl       : float or null str ('')
-                a floatized version of x, either float(x) or NAN,
-                or ''
+Returns
+-------
+xfl : float or null str ('')
+    a floatized version of x, either float(x) or NAN, or ''
 
     """
 
@@ -62,18 +60,18 @@ def check_raggedness_of_lines(L, verb=0):
     """For a given list of line lengths L (= simple list of integers),
 determine and report on the raggedness of the lines it summarizes.
 
-    Parameters
-    ----------
-    L         : list 
-                list of integer values, here corresponding to the line
-                lengths of an input array
-    verb      : int
-                verbosity level whilst processing
+Parameters
+----------
+L : list 
+    list of integer values, here corresponding to the line lengths of
+    an input array
+verb : int
+    verbosity level whilst processing
 
-    Return
-    ------
-    dict_of_len : dict
-                dictionary of the list of lengths
+Returns
+-------
+dict_of_len : dict
+    dictionary of the list of lengths
 
     """
 
@@ -152,36 +150,35 @@ Additionally, raggedness is checked for in the file
 If empty and/or whitespace-only rows occur at the end of fname, that
 is not considered a warning/error.
 
-    Parameters
-    ----------
-    fname     : str
-                text file, assumed to be columnar
-    verb      : int
-                verbosity level whilst processing
+Parameters
+----------
+fname : str
+    text file, assumed to be columnar
+verb : int
+    verbosity level whilst processing
 
-    Return
-    ------
-    tlist     : list
-                list form of text file, all numbers converted to floats
-                (including NaNs) or empty strings (''s).
-                If fname has 1 column, tlist is a list of floats and ''s;
-                elif fname has multiple columns, tlist is a list of ''s and 
-                lists of floats.  The idea is ''s will be flagged to be 
-                dealt with later, not just left as they are!
-    bad_nanlist : list (of lists)
-                list of NaNs occuring; each element of nanlist is a
-                sublist, with elements: 
-                  [0] zerobase index of row with the NaN
-                  [1] the full string of the NaN-causing row
-    bad_nulllist : list (of lists)
-                list of ''s occuring; each element of nulllist is a
-                sublist, with elements: 
-                  [0] zerobase index of row which led to ''
-                  [1] the full string of the ''-causing row
-    dict_of_len : dict
-                  a dictionary summarizing the lengths of each line in fname.
-                Each key is a length of line occuring in the file, and each
-                value is how many times that line length occurred.
+Returns
+-------
+tlist : list
+    list form of text file, all numbers converted to floats (including
+    NaNs) or empty strings (''s).  If fname has 1 column, tlist is a
+    list of floats and ''s; elif fname has multiple columns, tlist is
+    a list of ''s and lists of floats.  The idea is ''s will be
+    flagged to be dealt with later, not just left as they are!
+bad_nanlist : list (of lists)
+    list of NaNs occuring; each element of nanlist is a sublist, with
+    elements:
+      [0] zerobase index of row with the NaN
+      [1] the full string of the NaN-causing row
+bad_nulllist : list (of lists)
+    list of ''s occuring; each element of nulllist is a sublist, with
+    elements:
+      [0] zerobase index of row which led to ''
+      [1] the full string of the ''-causing row
+dict_of_len : dict
+    a dictionary summarizing the lengths of each line in fname.  Each
+    key is a length of line occuring in the file, and each value is
+    how many times that line length occurred.
 
     """
 
