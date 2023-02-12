@@ -426,7 +426,7 @@ reconcile_phys_json_with_args.__doc__ = \
     reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
 
 # ========================================================================== 
-# PART_3: setup argparse help and arguments/options
+# PART_03: setup argparse help and arguments/options
 
 help_str_top = '''
 Overview ~1~
@@ -437,11 +437,11 @@ respiration volume per time (RVT).
 
 Much of the calculations are based on the following paper (GLR00):
 
-   Glover GH, Li TQ, Ress D (2000). Image-based method for
-   retrospective correction of physiological motion effects in fMRI:
-   RETROICOR. Magn Reson Med 44(1):162-7. doi:
-   10.1002/1522-2594(200007)44:1<162::aid-mrm23>3.0.co;2-e. PMID:
-   10893535.
+  Glover GH, Li TQ, Ress D (2000). Image-based method for
+  retrospective correction of physiological motion effects in fMRI:
+  RETROICOR. Magn Reson Med 44(1):162-7. doi:
+  10.1002/1522-2594(200007)44:1<162::aid-mrm23>3.0.co;2-e. PMID:
+  10893535.
 
 
 {ddashline}
@@ -565,7 +565,7 @@ hlp = '''Prefix of output filenames, without path (def: {dopt})
 '''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+                    nargs=1, type=str)
 
 opt = '''slice_times'''
 hlp = '''Slice time values (space separated list of numbers)'''
@@ -717,7 +717,7 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-# =========================================================================
+# --------------------------------------------------------------------------
 # programming check: are all opts and defaults accounted for?
 
 have_diff_keys = compare_keys_in_two_dicts( odict, DEF,
@@ -751,11 +751,11 @@ have_simple_opt = check_simple_opts_to_exit(args_dict)
 if have_simple_opt :
     sys.exit(0)
 
-# ---------------------------------------------------------------------------
-# process opts slightly: check if all required ones are present
-# (~things with None for def), and also note that some pieces of info
-# can come from the phys_json, so open and interpret that (and check
-# against conflicts!)
+# =========================================================================
+# PART_04: process opts slightly, checking if all required ones are
+# present (~things with None for def), and also note that some pieces
+# of info can come from the phys_json, so open and interpret that (and
+# check against conflicts!)
 
 verb = args_dict['verbose']
 
@@ -806,6 +806,10 @@ if not(args_dict['freq']) :
     print("** ERROR: must provide '-freq ..' information")
     sys.exit(4)
 
+if not(args_dict['prefix']) :
+    print("** ERROR: must provide '-prefix ..' information")
+    sys.exit(4)
+
 if args_dict['slice_times'] and args_dict['slice_pattern'] :
     print("** ERROR: must use only one of either slice_times or slice_pattern")
     sys.exit(4)
@@ -815,7 +819,6 @@ if args_dict['slice_times'] and args_dict['slice_pattern'] :
 if not(args_dict['start_time']) :
     print("++ No start time provided; will assume it is 0.0.")
     args_dict['start_time'] = 0.0
-    sys.exit(4)
 
 if args_dict['slice_times'] :
     # interpret string to be list of floats
@@ -851,8 +854,10 @@ if args_dict['slice_pattern'] :
               "either a recognized pattern or file".format(pat))
         sys.exit(3)
 
-
-
+if '/' in args_dict['prefix'] :
+    print("** ERROR: Cannot have path information in '-prefix ..'\n"
+          "   Use '-out_dir ..' for that instead")
+    sys.exit(4)
 
 
 
