@@ -382,7 +382,7 @@ Matched partners include:
     ------
     BAD_RECON : int
                 integer signifying bad reconiliation of files (> 1) or 
-exit\                a non-problematic one (= 0)
+                a non-problematic one (= 0)
     args_dict2 : dict
                 copy of input args_dict, that may be augmented with other
                 info.
