@@ -18,6 +18,9 @@ from   datetime   import datetime
 from   platform   import python_version_tuple
 import borrow_afni_util  as BAU
 
+# threshold values for some floating point comparisons
+EPS_TH = 1.e-3
+
 # ==========================================================================
 # default parameter settings
 
@@ -28,30 +31,24 @@ odir_def = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 # Each key in DEF should have an opt listing below in argparse, and
 # vice versa.
 
-### [PT] Q: do we want a default slice_pattern, or always have user
-###         enter it?
-##  [PT] Q: how do quiet and verbose opts interact? just use one?
-### [PT] Q: initialize more with null of types?
 DEF = {
     'resp_file'         : None,      # (str) fname for resp data
     'card_file'         : None,      # (str) fname for card data
     'phys_file'         : None,      # (str) fname of physio input data
     'phys_json'         : None,      # (str) fname of json file
-    'phys_file'         : None,      # (str) fname of physio input data
-    'phys_json'         : None,      # (str) fname of json file
     'freq'              : None,      # (float) freq, in Hz
     'num_slices'        : None,      # (int) number of MRI vol slices
     'volume_tr'         : None,      # (float) TR of MRI
-    'start_time'        : 0,         # (float) 
     'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
+    'slice_times'       : None,      # (list) slice times
+    'slice_pattern'     : None,      # (str) code or file for slice timing
     'out_dir'           : odir_def,  # (str) output dir name
-    'prefix'            : None,      # (str) output filename prefix
-    'slice_times'       : 0,         # (list) slice times
+    'prefix'            : 'physio',  # (str) output filename prefix
+    'start_time'        : 0,         # (float) 
     'fir_order'         : 40,        # (int?) FIR order 
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
-    'slice_pattern'     : None,      # (str) code or file for slice timing
     'font_size'         : 10,        # (float) font size for plots 
     'phase_offset'      : 0.0,       # (float) offset added to initial phase
     'ab_disp'           : False,     # (bool) 
@@ -70,6 +67,15 @@ DEF = {
     'hview'             : False,     # (bool) do show help in text ed?
 }
 
+# list of phys_json and args_dict entries, respectively, that are
+# really the same thing, as well as an EPS value for how to compare
+# them if needing to reconcile command line opt values with a read-in
+# value
+ALL_JA_MATCH = [
+    ['SamplingFrequency', 'freq', EPS_TH],
+    ['StartTime', 'start_time', EPS_TH],
+]
+
 # ==========================================================================
 # sundry other items
 
@@ -81,9 +87,6 @@ help_dict = {
     'ddashline' : '='*76,
     'ver'       : version,
 }
-
-## determine if captured subprocess encoding is needed; requiring after 3.6.0
-REQ_ENCODE = python_version_tuple() >= ('3', '6', '0')
 
 # ========================================================================== 
 # helper functions
@@ -327,6 +330,93 @@ numbers.
     # finally, after more work than we thought...
     return all_num
 
+def read_json_to_dict(fname):
+    """Read in a text file fname that is supposed to be a JSON file and
+output a dictionary.
+
+    Parameters
+    ----------
+    fname     : str
+                JSON filename
+
+    Return
+    ------
+    jdict     : dict
+                dictionary form of the JSON
+
+    """
+    
+    BAD_RETURN = {}
+
+    if not(os.path.isfile(fname)) :
+        print("** ERROR: cannot read file: {}".format(fname))
+        return BAD_RETURN
+
+    with open(fname, 'rt') as fff:
+        jdict = json.load(fff)
+
+    return jdict
+
+def reconcile_phys_json_with_args(jdict, args_dict, verb=None):
+    """Go through the jdict created from the command-line given phys_json,
+and pull out any pieces of information like sampling freq, etc. that
+should be added to the args_dict (dict of all command line opts
+used). These pieces of info can get added to the args_dict, but they
+also have to be checked against possible conflict from command line opts
+
+Matched partners include:
+  JSON                    ARGS
+  ----                    ----
+  StartTime          ->   start_time
+  SamplingFrequency  ->   freq
+
+    Parameters
+    ----------
+    jdict     : dict
+                a dictionary from the phys_json input from the user
+    args_dict : dict
+                the args_dict of input opts.
+
+    Return
+    ------
+    BAD_RECON : int
+                integer signifying bad reconiliation of files (> 1) or 
+exit\                a non-problematic one (= 0)
+    args_dict2 : dict
+                copy of input args_dict, that may be augmented with other
+                info.
+
+    """
+
+    BAD_RETURN = 1, {}
+
+    if not(jdict) :    return BAD_RETURN
+
+    args_dict2 = copy.deepcopy(args_dict)
+
+    # add known items that might be present
+    for ja_match in ALL_JA_MATCH:
+        jname   = ja_match[0]
+        aname   = ja_match[1]
+        eps_val = ja_match[2]
+        if jname in jdict :
+            val_json = jdict[jname]
+            val_args = args_dict2[aname]
+            if val_args != None :
+                if abs(val_json - val_args) > eps_val :
+                    print("** ERROR: inconsistent JSON '{}' {} and "
+                          " input arg '{}' {}"
+                          "".format(jname, val_json, aname, val_args))
+                    return BAD_RETURN
+                else:
+                    print("+* WARN: start time provided in two ways, but "
+                          " it may be OK because they are consistent:\n"
+                          "   JSON '{}' {} and input arg '{}' {}"
+                          "".format(jname, val_json, aname, val_args))
+            else:
+                args_dict2[aname] = val_json
+
+    return 0, args_dict2
 
 
 # ========================================================================== 
@@ -455,7 +545,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
 opt = '''prefix'''
-hlp = '''Prefix of output filenames (no path)'''
+hlp = '''Prefix of output filenames, without path (def: {dopt})
+'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -641,11 +732,14 @@ if have_simple_opt :
     sys.exit(0)
 
 # ---------------------------------------------------------------------------
-# process opts slightly: case by case basis
+# process opts slightly: check if all required ones are present
+# (~things with None for def), and also note that some pieces of info
+# can come from the phys_json, so open and interpret that (and check
+# against conflicts!)
 
 verb = args_dict['verbose']
 
-# ---- check that required things are there ----
+# ---- check required opts (anything that is has a None for default) ----
 
 if not(args_dict['card_file'] or args_dict['resp_file']) and \
    not(args_dict['phys_file'] and args_dict['phys_json']) :
@@ -653,6 +747,23 @@ if not(args_dict['card_file'] or args_dict['resp_file']) and \
           "   A) '-card_file ..', '-resp_file ..' or both."
           "   B) '-phys_file ..' and '-phys_json ..'.")
     sys.exit(4)
+
+# for any filename that was provided, check if it actually exists
+# (slice_pattern possible filename checked below)
+all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
+for fopt in all_fopt:
+    if args_dict[fopt] :
+        if not(os.path.isfile(args_dict[fopt])) :
+            print("** ERROR: no {} '{}'".format(fopt, args_dict[fopt]))
+            sys.exit(5)
+
+if args_dict['phys_json'] :
+    jdict = read_json_to_dict(args_dict['phys_json'])
+
+    # jdict info can get added to args_dict; also want to make sure it
+    # does not conflict, if items were entered with other opts
+    args_dict = reconcile_phys_json_with_args(jdict, args_dict)
+
 
 if not(args_dict['num_slices']) :
     print("** ERROR: must provide '-num_slices ..' information")
@@ -666,17 +777,13 @@ if not(args_dict['volume_tr']) :
     print("** ERROR: must provide '-volume_tr ..' information")
     sys.exit(4)
 
+if not(args_dict['freq']) :
+    print("** ERROR: must provide '-freq ..' information")
+    sys.exit(4)
+
 if args_dict['slice_times'] and args_dict['slice_pattern'] :
     print("** ERROR: must use only one of either slice_times or slice_pattern")
     sys.exit(4)
-
-# for any filename that was provided, check if it actually exists
-all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
-for fopt in all_fopt:
-    if args_dict[fopt] :
-        if not(os.path.isfile(args_dict[fopt])) :
-            print("** ERROR: no {} '{}'".format(fopt, args_dict[fopt]))
-            sys.exit(5)
 
 # ---- do interpretations of things ----
 

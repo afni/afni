@@ -6,33 +6,6 @@ import json
 import gzip
 import numpy as np
 
-def read_json_to_dict(fname):
-    """Read in a text file fname that is supposed to be a JSON file and
-output a dictionary.
-
-    Parameters
-    ----------
-    fname     : str
-                JSON filename
-
-    Return
-    ------
-    jdict     : dict
-                dictionary form of the JSON
-
-    """
-    
-    BAD_RETURN = {}
-
-    if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file: {}".format(fname))
-        return BAD_RETURN
-
-    with open(fname, 'rt') as fff:
-        jdict = json.load(fff)
-
-    return jdict
-
 def float_or_nan(x):
     """Take a number x and return float(x) if possible, or a numpy.nan if
 it ain't.  Leading and trailing whitespace within the string should
