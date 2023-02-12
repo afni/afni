@@ -165,6 +165,7 @@ class MyInterface:
                                     # (e.g. LAST_LAB, LAST_COMMIT, AFNI_23...)
       self.package         = ''     # to imply Makefile and build dir
 
+      self.clean_root      = 1      # clean old root dirs?
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
       self.update_git      = 1      # do git clone or pull
@@ -182,6 +183,7 @@ class MyInterface:
       self.do_abin         = None   # abin dirobj
       self.do_root         = None   # build root dirobj
 
+      self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
 
       self.pold            = 'prev.'        # prefix for old version
@@ -251,6 +253,8 @@ class MyInterface:
       # general options
       self.valid_opts.add_opt('-build_label', 1, [], 
                       helpstr='the git label to build')
+      self.valid_opts.add_opt('-clean_root', 1, [], 
+                      helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-run_cmake', 1, [], 
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
@@ -329,6 +333,14 @@ class MyInterface:
             if val == None or err: return -1
             self.build_label = val
 
+         elif opt.name == '-clean_root':
+            if OL.opt_is_yes(opt):
+               self.clean_root = 1
+            else:
+               # do not clean, do not update git
+               self.clean_root = 0
+               self.update_git = 0
+
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
@@ -389,7 +401,23 @@ class MyInterface:
 
       self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
+      if self.verb:
+         self.show_final_messages()
+
       return rv
+
+   def show_final_messages(self):
+      """display contents of self.final_mesg"""
+      if len(self.final_mesg) == 0:
+         return 0
+
+      ind = '    '
+      MESG("")
+      for mesg in self.final_mesg:
+         MESGi("%s%s" % (ind, mesg))
+      MESG("")
+
+      return 0
 
    def check_progs(self):
       errs = 0
@@ -459,7 +487,7 @@ class MyInterface:
       if self.do_root is None:
          return 0
 
-      if self.do_root.exists:
+      if self.do_root.exists and self.clean_root:
          if self.clean_old_root():
             return 1
 
@@ -517,42 +545,73 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
-      st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
-      if st: return st
+      # if we already have a build dir, the user requested not to clean
+      if os.path.isdir(self.dsbuild):
+         MESGm("will reuse existing src director, %s" % self.dsbuild)
+      else:
+         st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
+         if st: return st
+
+      # for convenience:
+      buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
 
       st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
       if st: return st
 
       # copy package Makefile
-      mfile = 'Makefile.%s' % self.package
-      mtmp = mfile
-      if not os.path.isfile(mfile):
-         mtmp = 'other_builds/%s' % mfile
-         if not os.path.isfile(mtmp):
-            MESGe("failed to find suitable Makefile for package %s" \
-                  % self.package)
-            return 1
+      # if we already have one, the user requested not to clean
+      if not os.path.isfile('Makefile'):
+         mfile = 'Makefile.%s' % self.package
+         mtmp = mfile
+         if not os.path.isfile(mfile):
+            mtmp = 'other_builds/%s' % mfile
+            if not os.path.isfile(mtmp):
+               MESGe("failed to find suitable Makefile for package %s" \
+                     % self.package)
+               return 1
 
-      MESGm("copying %s to %s" % (mtmp, "Makefile"))
-      st, ot = self.run_cmd('cp', [mtmp, 'Makefile'], pc=1)
-      if st: return st
+         MESGm("copying %s to %s" % (mtmp, "Makefile"))
+         st, ot = self.run_cmd('cp', [mtmp, 'Makefile'], pc=1)
+         if st: return st
 
       # run the build (this is why we are here!)
-      logfile = 'out.make.txt'
+      self.final_mesg.append("to rerun make build:")
+      self.final_mesg.append("   cd %s" % buildpath)
+      self.final_mesg.append("   make itall")
+
+      logfile = 'log.make.txt'
       target = 'itall'
       MESGm("building ...")
-      MESGi("consider: tail -f %s/%s/%s" \
-            % (self.do_root.dname, self.dsbuild, logfile))
-      MESGi("(use ctrl-c to terminate 'tail' command)")
-      st, ot = self.run_cmd('make %s >& tee %s' % (target, logfile))
+      MESGi("consider monitoring the build in a separate window with:")
+      MESGi("    tail -f %s/%s" % (buildpath, logfile))
+      MESGi("    (use ctrl-c to terminate 'tail' command (not the build))")
+      st, ot = self.run_cmd('make %s >& %s' % (target, logfile))
+
+      if st: tmesg = 'FAILED'
+      else:  tmesg = 'SUCCEEDED'
+      MESGp("building %s" % tmesg)
+      MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
-      MESGp("build was successful!  testing...")
 
       # test the build
-      logfile = 'out.test.txt'
-      cmd = "tcsh -x scripts_src/test.afni.prog.help >& %s" % logfile
+      logfile = 'log.test.txt'
+      binopt = '-bin_dir %s' % self.package
+      MESGm("testing the build results ...")
+
+      cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
+      self.final_mesg.append("to rerun test of make build:")
+      self.final_mesg.append("   cd %s" % buildpath)
+      self.final_mesg.append("   %s" % cmd)
+
+      # append redirect to cmd after saving sample command for user
+      cmd += " >& %s" % logfile
       st, ot = self.run_cmd(cmd)
+
+      if st: tmesg = 'FAILED'
+      else:  tmesg = 'SUCCEEDED'
+      MESGp("testing %s" % tmesg)
+      MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
       return 0
@@ -603,6 +662,7 @@ class MyInterface:
       """if git exists, do a git pull (if desired), else do a clone
          return 0 on success
       """
+
       # be sure to start from the root dir
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
