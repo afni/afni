@@ -114,7 +114,7 @@ help_dict = {
 # ========================================================================== 
 # PART_02: helper functions
 
-def parser_to_dict(parser, verb=0):
+def parser_to_dict(parser, argv, verb=0):
     """Convert an argparse parser object to a dictionary of key (=opt) and
 value pairs.  
     
@@ -135,7 +135,7 @@ args_dict : dict
     """
 
     # get args obj, and make a dict out of it
-    args      = parser.parse_args()
+    args      = parser.parse_args(argv)
     args_dict = vars(args)
 
     # each value in the args_dict is a list of something---extract that
@@ -498,6 +498,9 @@ Notes on usage and inputs ~1~
 * The following table shows which keys from 'phys_json' can be used to
   set (= replace) certain command line argument/option usage:
 {AJM_str}
+  The 'EPS VAL' shows the maximum difference tolerated between a
+  JSON-provided key and an option-provided one, in case both exist in
+  a command line call.  It would be better to avoid such dual-calling.
 
 {ddashline}
 
@@ -516,7 +519,7 @@ written by: Peter Lauren (SSCC, NIMH, NIH, USA)
 '''.format(**help_dict)
 
 # ========================================================================== 
-# ============================== input stuff ===============================
+# ============================ the args/opts ===============================
 
 # keep track of all opts over time, make sure it matches default list 
 odict = {}
@@ -788,6 +791,9 @@ This also might read in a JSON of info and use that to populate
 args_dict items, updating them.  It will also then save that JSON to a
 new field, phys_json_dict.
 
+This function might likely grow over time as more options get added or
+usage changes.
+
 Parameters
 ----------
 args_dict : dict
@@ -880,6 +886,9 @@ def interpret_args(args_dict):
 some).  This also checks that entered values are valid, and in some
 cases a failure here will lead to a direct exit.
 
+This function might likely grow over time as more options get added or
+usage changes.
+
 Parameters
 ----------
 args_dict : dict
@@ -949,39 +958,77 @@ args_dict2 : dict
     # successful navigation
     return args_dict2
 
-# *** temporary way of calling, like a main prog, here
-# --------------------------------------------------------------------------
-# null case of no opts: just show help and quit
+def main_option_processing(argv):
+    """This is the main function for running the physio processing
+program.  It executes the first round of option processing: 
+1) Make sure that all necessary inputs are present and accounted for.
+2) Check all entered files exist.
+3) Check many of the option values for validity (e.g., being >0, if
+   appropriate).
 
-# We do this check separately, because in this case, each item in
-# args_dict is *not* a list containing what we want, but just is that
-# thing itself.  That confuses the means for checking it, so treat
-# that differently.
+This does not do the main physio processing itself, just is the first
+step/gateway for doing so.
 
-if len(sys.argv) == 1 :
-    parser.print_help()
-    sys.exit(0)
+In some 'simple option' use cases, running this program simply
+displays terminal text (or opens a text editor for displaying the
+help) and then quits.  Otherwise, it returns a dictionary of checked
+argument values.
 
-# -------------------------------------------------------------------------
-# case of >=1 opt being used: parse!
+Typically call this from another main program like:
+    args_dict = lib_retro_opts.main_option_processing(sys.argv[1:])
 
-# get all opts and values as a dict
-args_dict = parser_to_dict( parser )
+Parameters
+----------
+argv : list
+    The list of strings that defines the command line input.
 
-# check for simple-simple cases with a quick exit: ver, help, etc.
-have_simple_opt = check_simple_opts_to_exit(args_dict, parser)
-if have_simple_opt :
-    sys.exit(0)
+Returns
+-------
+args_dict : dict
+    Dictionary of arg values from the command line. *Or* nothing might
+    be returned, and some text is simply displayed (depending on the
+    options used).
 
-args_dict = check_required_args(args_dict)
-args_dict = interpret_args(args_dict)
+    """
 
+    # ---------------------------------------------------------------------
+    # simple/null case: no opt on command line, so just show help and quit
+
+    # We do this check separately, because in this case, each item in
+    # args_dict is *not* a list containing what we want, but just is that
+    # thing itself.  That confuses the means for checking it, so treat
+    # that differently.
+
+    if len(sys.argv) == 1 :
+        parser.print_help()
+        sys.exit(0)
+
+    # ---------------------------------------------------------------------
+    # case of >=1 opt being used: parse!
+
+    # get all opts and values as a dict
+    args_dict = parser_to_dict( parser, argv )
+
+    # check for simple-simple cases with a quick exit: ver, help, etc.
+    have_simple_opt = check_simple_opts_to_exit(args_dict, parser)
+    if have_simple_opt :
+        sys.exit(0)
+
+    # functions that do the main work for non-quick-exit cases: check
+    # all required inputs were provided, and do a bit of verification
+    # of some of their attributes (e.g., that files exist, values that
+    # should be >=0 are, etc.)
+    args_dict = check_required_args(args_dict)
+    args_dict = interpret_args(args_dict)
+
+    return args_dict
 
 
 # ================================ main =====================================
 
 if __name__ == "__main__":
 
+    args_dict = main_func(sys.argv[1:])
     print("++ DONE.  Goodbye.")
 
     sys.exit(0)
