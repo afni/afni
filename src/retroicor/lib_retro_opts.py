@@ -68,6 +68,8 @@ DEF = {
     'hview'             : False,     # (bool) do show help in text ed?
 }
 
+# ---- sublists to check for properties ----
+
 # list of lists of corresponding phys_json and args_dict entries,
 # respectively; for each, there is also an EPS value for how to
 # compare them if needing to reconcile command line opt values with a
@@ -83,6 +85,18 @@ for ii in range(len(ALL_JA_MATCH)):
                                               ALL_JA_MATCH[ii][1],
                                               ALL_JA_MATCH[ii][2])
     AJM_str+= sss
+
+# quantities that must be >= 0
+all_quant_ge_zero = [
+    'fir_order',
+    'font_size',
+    'freq',
+    'num_slices',
+    'volume_tr',
+    'num_time_pts',
+]
+
+
 # --------------------------------------------------------------------------
 # sundry other items
 
@@ -903,6 +917,14 @@ args_dict2 : dict
         print("** ERROR: Cannot have path information in '-prefix ..'\n"
               "   Use '-out_dir ..' for path info instead")
         sys.exit(4)
+
+    # check many numerical inputs for being >0
+    for quant in all_quant_ge_zero:
+        if args_dict2[quant] <= 0 :
+            print("** ERROR: Provided '{}' value ({}) not allowed to be <=0.\n"
+                  "".format(quant, args_dict2[quant]))
+            sys.exit(4)
+
 
     # successful navigation
     return args_dict2
