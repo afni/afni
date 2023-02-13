@@ -56,7 +56,7 @@ other options:
                 atlases         - atlases to go in abin
                 cmake_build     - location of any cmake build
                 src_build       - location of any src build
-            
+
       -verb LEVEL               : set the verbosity level (default 1)
 
           e.g., -verb 2
@@ -153,7 +153,7 @@ def dirobj(vname, dname, verb=1):
 
 class MyInterface:
    """interface class for MyLibrary (whatever that is)
-     
+
       This uses lib_1D.py as an example."""
    def __init__(self, verb=1):
       # main control variables
@@ -178,6 +178,7 @@ class MyInterface:
       # for dirs git, build_src, build_cmake, atlases:
       #   name, exists, backup
       self.do_orig_abin    = None   # will be set automatically
+      self.do_orig_aver    = ''     # try to set a current AFNI version
       self.do_orig_dir     = None   # will be set automatically
 
       self.do_abin         = None   # abin dirobj
@@ -243,29 +244,29 @@ class MyInterface:
                       helpstr='display the current version number')
 
       # main options
-      self.valid_opts.add_opt('-abin', 1, [], 
+      self.valid_opts.add_opt('-abin', 1, [],
                       helpstr='dir to put compiled AFNI binaries in')
-      self.valid_opts.add_opt('-root_dir', 1, [], 
+      self.valid_opts.add_opt('-root_dir', 1, [],
                       helpstr='the root of the building tree')
 
-      self.valid_opts.add_opt('-package', 1, [], 
+      self.valid_opts.add_opt('-package', 1, [],
                       helpstr='the binary package to build')
 
       # general options
-      self.valid_opts.add_opt('-build_label', 1, [], 
+      self.valid_opts.add_opt('-build_label', 1, [],
                       helpstr='the git label to build')
-      self.valid_opts.add_opt('-clean_root', 1, [], 
+      self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
-      self.valid_opts.add_opt('-run_cmake', 1, [], 
+      self.valid_opts.add_opt('-run_cmake', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
-      self.valid_opts.add_opt('-run_make', 1, [], 
+      self.valid_opts.add_opt('-run_make', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'make' build? (def=y)")
-      self.valid_opts.add_opt('-update_git', 1, [], 
+      self.valid_opts.add_opt('-update_git', 1, [],
                       acplist=['yes','no'],
                       helpstr='should we update the local git repo')
-      self.valid_opts.add_opt('-verb', 1, [], 
+      self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
       return 0
@@ -373,10 +374,6 @@ class MyInterface:
          else:
             MESGe("unhandled option '%s'" % opt.name)
             return -1
-
-      # for now, require self.package
-      if self.package == '':
-         MESGe("option -package is currently required")
 
       return 0
 
@@ -499,6 +496,10 @@ class MyInterface:
       if self.do_root is None:
          return 0
 
+      if self.package == '':
+         MESGe("-package unspecified and not implied by current version")
+         return 1
+
       if self.do_root.exists and self.clean_root:
          if self.clean_old_root():
             return 1
@@ -568,7 +569,9 @@ class MyInterface:
 
       # copy package Makefile
       # if we already have one, the user requested not to clean
-      if not os.path.isfile('Makefile'):
+      if os.path.isfile('Makefile'):
+         MESGm("have Makefile, ignoring -package %s" % self.package)
+      else:
          mfile = 'Makefile.%s' % self.package
          mtmp = mfile
          if not os.path.isfile(mfile):
@@ -594,7 +597,7 @@ class MyInterface:
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
-      MESGi("    (use ctrl-c to terminate 'tail' command (not the build))")
+      MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
       st, ot = self.run_cmd('make %s >& %s' % (target, logfile))
 
       if st: tmesg = 'FAILED'
@@ -821,13 +824,43 @@ class MyInterface:
       wp = UTIL.which(prog)
       if wp != '':
          self.do_orig_abin = dirobj('orig_abin_dir', wp)
-         if self.verb > 1:
-            MESGp("have original abin %s" % self.do_orig_abin.abspath)
+         self.get_orig_abin_info(self.do_orig_abin)
       else:
          if self.verb > 1:
             MESGm("no %s in original PATH to set orig_abin from" % prog)
 
       return 0
+
+   def get_orig_abin_info(self, do_abin):
+      """if possible, add to do_orig_abin: version, package, date
+         read from AFNI_version.txt
+      """
+      # init to unknown
+      do_abin.version = ''
+      do_abin.package = ''
+      do_abin.date = ''
+
+      if self.verb > 1:
+         MESGp("have original abin %s" % self.do_orig_abin.abspath)
+
+      vfile = '%s/AFNI_version.txt' % do_abin.head
+
+      tdata = UTIL.read_text_file(vfile, lines=1, strip=1, verb=0)
+      if len(tdata) < 3:
+         if self.verb > 1:
+            MESGw("failed to read version info from %s" % vfile)
+         return 1
+
+      do_abin.version = tdata[0]
+      do_abin.package = tdata[1]
+      do_abin.date    = tdata[2]
+      if self.verb > 0:
+         MESGm("current AFNI: %s, %s, %s" % (tdata[0], tdata[1], tdata[2]))
+
+      # if package is empty, set from current version
+      if self.package == '':
+         MESGm("will init unset -package with current '%s'" % do_abin.package)
+         self.package = do_abin.package
 
 def main(argv):
    me = MyInterface()
@@ -849,5 +882,4 @@ def main(argv):
 
 if __name__ == '__main__':
    sys.exit(main(sys.argv))
-
 
