@@ -1622,7 +1622,7 @@ while(is.null(fm)) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
          #if(all(is.na(lop$gltList[[n]]))) {  # Covariate testing only without factors involved
-         if(identical(lop$gltList[[ii]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1
+         if(identical(lop$gltList[[n]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1 # 02/13/2023 (NMM): fix indexing variable
             gltRes[[n]] <- tryCatch(testInteractions(gltIn, pairwise=NULL,
                covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = iData),
                error=function(e) NA) } else {     # Involving factors
