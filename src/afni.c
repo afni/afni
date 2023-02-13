@@ -952,6 +952,8 @@ void AFNI_syntax(void)
      "\n"
      "   -no_detach   Do not detach from the terminal.\n"
      "\n"
+     "   -no_frivolities  Turn of all frivolities/fun stuff.\n"
+     "\n"
      "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
