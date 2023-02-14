@@ -86,6 +86,7 @@ import sys
 import numpy         as np
 import lib_retroicor as RET
 import os
+import shutil
 from   datetime      import datetime
 
 now     = datetime.now() # current date and time
@@ -372,6 +373,8 @@ def retro_ts(
 
     # Make output directory
     path = os.path.join(os.getcwd(), OutDir)
+    if os.path.exists(path) and os.path.isdir(path):
+        shutil.rmtree(path)
     os.mkdir(path)
     
     # Output args to file in new directory
@@ -433,7 +436,7 @@ def retro_ts(
     parameters['dev']           = dev
     parameters['verbose']       = verbose
     parameters['rvt_out']       = rvt_out
-    parameters['slice_times']  = slice_times
+    parameters['slice_times']  = slice_offsets
 
     if prefix: parameters['prefix'] = prefix
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
