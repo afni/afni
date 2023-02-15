@@ -24,15 +24,22 @@ build_afni.py - build an AFNI package ~1~
       - create working tree from the specified -root_dir
       - prepare git
          - clone AFNI's git repository
-         - possibly checkout a branch and tag
+         - possibly checkout a branch (master) and tag (most recent)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
-      - prepare src
+      - prepare src build
          - copy git/afni/src to build_src
-         - copy requested Makefile
+         - copy specified Makefile
+         - run build
+      - prepare cmake build (optional)
          - run build
 
-      ...
+   The will show final comments about:
+
+      - how to rerun the make build
+      - how to rerun the make build test
+      - where a command (shell/system) history file is stored
+        (cmd_history.txt is generally stored in the -root_dir)
 
 ------------------------------------------
 examples: ~1~
@@ -442,6 +449,7 @@ class MyInterface:
       if self.do_root is not None:
          rv = self.run_main_build()
 
+      # save history, either way
       self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
       if self.verb:
@@ -546,7 +554,8 @@ class MyInterface:
          if self.clean_old_root():
             return 1
 
-      rv = self.prepare_root()
+      if self.prepare_root():
+         return 1
 
       # build source - the main purpose of this program
       if self.run_make:
@@ -831,6 +840,7 @@ class MyInterface:
          MESGm("running 'git clone' on afni repo ...")
          MESGi("(please be patient)")
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
+         if st: return st
 
       return 0
 
@@ -860,16 +870,16 @@ class MyInterface:
       for sdir in [self.dsbuild, self.dcbuild]:
          prev = '%s%s' % (self.pold, sdir)
          if os.path.exists(sdir):
-             if self.verb:
-                MESGm("backing up dir %s" % sdir)
+            if self.verb:
+               MESGm("backing up dir %s" % sdir)
 
-             # remove old prev
-             if os.path.exists(prev):
-                st, ot = self.run_cmd('rmtree', prev, pc=1)
-                if st: return st
-             # mv current to prev
-             st, ot = self.run_cmd('mv', [sdir, prev], pc=1)
-             if st: return st
+            # remove old prev
+            if os.path.exists(prev):
+               st, ot = self.run_cmd('rmtree', prev, pc=1)
+               if st: return st
+            # mv current to prev
+            st, ot = self.run_cmd('mv', [sdir, prev], pc=1)
+            if st: return st
 
       return 0
 
@@ -900,7 +910,10 @@ class MyInterface:
          if pstr != '': cmd += " %s" % pstr
          self.history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
-         return st, otext
+         if st:
+             MESGe("failed run_cmd: %s" % cmd)
+             MESGe(otext)
+             return st, otext
 
       # now python commands
       if cmd == 'cd':
@@ -935,7 +948,7 @@ class MyInterface:
       try:
          eval(cstr)
       except:
-         MESGe("failed run_cmd: %s %s" % (cmd, pstr))
+         MESGe("failed run_cmd(p): %s %s" % (cmd, pstr))
          rv = 1
 
       return rv, ''
