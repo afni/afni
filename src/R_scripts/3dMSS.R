@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.19, Jan 20, 2023
+Version 1.0.0, Feb 15, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -214,6 +214,58 @@ Introduction
           -dataTable  @data.txt
    \n"
 
+ex4 <-
+ "Example 4 --- modeling hemodynamic response: this 3dMSS script is
+  intended to compares HRF between the two groups of patients (PT)
+  and healthy volunteer (HV) at the population level. Each HRF at 
+  the indiividual level is characterized at 14 time points with a time 
+  resolution TR = 1.25s. Two covariates are considered: sex and age. 
+
+  3dMSS -prefix output -jobs 16             \
+        -lme 'sex+age+s(TR)+s(TR,by=group)' \
+        -ranEff 'list(subject=~1)'          \
+        -qVars 'sex,age,TR,group'           \
+        -prediction @HRF.table              \
+        -dataTable  @smooth-HRF.table
+
+  The output filename and number of CPUs for parallelization are
+  specified through -prefix and -jobs, respectively. The expression
+  s() in the model specification indicator '-lme' represents the
+  smooth function, and the two terms 's(TR)' and 's(TR,by=group)' code
+  the overall HRF profile and the HRF difference between the two
+  groups. The term 'list(subject=~1)' under the option '-ranEff'
+  indicates the random effects for the cross-individual variability in
+  intercept. The number of thin plate spline bases was set to the
+  default K = 10. The option '-qVars' identifies quantitative
+  variables (TR and age in this case plus dummy-coded sex and
+  group). The last two specifiers -prediction and -dataTable list one
+  table for HRF prediction and another for input data information,
+  respectively. The input file 'smooth-HRF.table' is structured in a
+  long data frame format:
+
+  subject age sex group TR  InputFile
+  s1      29   1    1   0   s1.Inc.b0.nii
+  s1      29   1    1   1   s1.Inc.b1.nii
+  s1      29   1    1   2   s1.Inc.b2.nii
+  s1      29   1    1   3   s1.Inc.b3.nii
+  s1      29   1    1   4   s1.Inc.b4.nii
+  ...
+  
+  Both 'group' and 'sex' are dummy-coded with 1s and -1s. The following 
+  table as the input file 'HRF.table' provides the specifications for 
+  predicted HRFs:
+  
+  label   age   sex   group   TR
+  s1      6.2     1      1    0.00
+  s1      6.2     1      1    0.25
+  s1      6.2     1      1    0.50
+  ...
+  s72     3.5    -1     -1    0.00
+  s72     3.5    -1     -1    0.25
+  s72     3.5    -1     -1    0.50
+  ...   
+   \n"
+
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
@@ -227,7 +279,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
