@@ -181,6 +181,8 @@ def getSliceOffsets(offsetDict):
         elif offsetDict["slice_pattern"].__contains__(','): # List
             # List input
             slice_offsets = [float(i) for i in offsetDict["slice_pattern"].split(',')] 
+        else:   # slice pattern string invalid
+            raise TypeError("Slice pattern string invalid")
                 
     except TypeError:
         print('Unsupported operand type for slice offset')
