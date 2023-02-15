@@ -88,6 +88,7 @@ import lib_retroicor as RET
 import os
 import shutil
 from   datetime      import datetime
+import borrow_afni_util as bau
 
 now     = datetime.now() # current date and time
 now_str = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
@@ -139,6 +140,63 @@ def setup_exceptionhook():
     sys.excepthook = _pdb_excepthook
     
 def getSliceOffsets(offsetDict):
+    """
+    NAME
+        getSliceOffsets 
+            Return phase offsets among slices
+    TYPE
+        <class 'list'>
+    ARGUMENTS
+        offsetDict:   Dictionary with the following fields.
+        
+            number_of_slices:   (dType = int) Number of slices
+            
+            volume_tr:   (dType = float) Volume repetition time (TR) which 
+            defines the length of time between the acquisition of consecutive 
+            frames/volumes; in seconds
+            
+            num_time_pts:  (dType = int) Number of time points in the output
+            
+            slice_times:   (2D array dType = numpy.float64) Vector of slice 
+                            acquisition time offsets in seconds.
+        
+            slice_pattern:   (dType = str) Pettern of slices 
+                           (alt+z, alt-z, etc).  Default is "alt+z".
+            
+    AUTHOR
+       Peter Lauren
+    """
+    
+    try:
+        if type(offsetDict["slice_pattern"]) == str:
+            if offsetDict["slice_pattern"][0:3] == "alt":
+                # alt pattern
+                slice_offsets = \
+                    bau.slice_pattern_to_timing(offsetDict["slice_pattern"], 
+                        offsetDict["number_of_slices"], offsetDict["volume_tr"])                
+            else:
+                # Read pattern from file
+                with open(offsetDict["slice_pattern"]) as f:
+                    first_line = f.readline()
+                    slice_offsets = [float(i) for i in first_line.split(',')]                  
+        else:
+            if type(offsetDict["slice_pattern"]) == list:
+                # List input
+                print('Add code for list')
+                
+            else:
+                # Number 
+                if not offsetDict["slice_pattern"].isnumeric():
+                    raise TypeError('Slice pattern must be alt*, zero, ' +
+                                   'filename, list or numeric value')
+                
+    except TypeError:
+        print('Unsupported operand type for slice offset')
+        
+    return slice_offsets
+        
+    
+def getSliceOffsetsOld(offsetDict):
     """
     NAME
         getSliceOffsets 
