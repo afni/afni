@@ -16,11 +16,37 @@ from afnipy import lib_vars_object as VO
 
 g_help_string = """
 =============================================================================
-build_afni.py - more plans for world dominance
+build_afni.py - build an AFNI package ~1~
+
+   This program is meant to compile AFNI from the git repository.
+   The main process (for a new directory) might be something like:
+
+      - create working tree from the specified -root_dir
+      - prepare git
+         - clone AFNI's git repository
+         - possibly checkout a branch and tag
+      - prepare atlases
+         - download and extract afni_atlases_dist.tgz package
+      - prepare src
+         - copy git/afni/src to build_src
+         - copy requested Makefile
+         - run build
+
+      ...
+
+------------------------------------------
+examples: ~1~
+
+   0. basic, start fresh or with updates ~2~
+      (only specify required -root_dir)
+
+        build_afni.py -root_dir my/build/dir
+
 
 ------------------------------------------
 todo:
-  - opts for git branch and label
+  - opts for git branch and label/tag
+  - opts to pass to cmake
   - if no -package, try to guess
   - allow choice of make target
   - allow source rebuild?
@@ -161,11 +187,12 @@ class MyInterface:
       self.user_opts       = None
 
       # command-line controlled variables
-      self.build_label     = ''     # most recent label, given one or commit
-                                    # (e.g. LAST_LAB, LAST_COMMIT, AFNI_23...)
+      self.clean_root      = 1      # clean old root dirs?
+      self.git_branch      = 'master' # branch to check out
+      self.git_tag         = 'LAST_TAG' # branch to check out
+                                    # (e.g. LAST_TAG, NONE, AFNI_23...)
       self.package         = ''     # to imply Makefile and build dir
 
-      self.clean_root      = 1      # clean old root dirs?
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
       self.update_git      = 1      # do git clone or pull
@@ -233,6 +260,10 @@ class MyInterface:
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
+
+      self.valid_opts.add_opt('-jello', 0, [], helpstr='')
+
+
       # short, terminal options
       self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
@@ -253,8 +284,11 @@ class MyInterface:
                       helpstr='the binary package to build')
 
       # general options
-      self.valid_opts.add_opt('-build_label', 1, [],
-                      helpstr='the git label to build')
+      self.valid_opts.add_opt('-git_branch', 1, [],
+                      helpstr='the git branch to checkout (def=%s)' \
+                              % self.git_branch)
+      self.valid_opts.add_opt('-git_tag', 1, [],
+                      helpstr='the git tag to use (def=%s)'%self.git_tag)
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-run_cmake', 1, [],
@@ -314,6 +348,8 @@ class MyInterface:
 
       for opt in uopts.olist:
 
+         if opt.name == '-jello': continue
+
          # TERMINAL help options that might need -verb
 
          # main options
@@ -330,11 +366,6 @@ class MyInterface:
 
          # general options
 
-         elif opt.name == '-build_label':
-            val, err = uopts.get_string_opt('', opt=opt)
-            if val == None or err: return -1
-            self.build_label = val
-
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
                self.clean_root = 1
@@ -342,6 +373,16 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.update_git = 0
+
+         elif opt.name == '-git_branch':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.git_branch = val
+
+         elif opt.name == '-git_tag':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.git_tag = val
 
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -424,9 +465,10 @@ class MyInterface:
    def check_progs(self):
       errs = 0
       plist = ['git', 'make', 'curl']
-      if self.run_cmake: plist.append('cmake')
+      if self.run_cmake:
+         plist.extend(['cmake', 'gcc', 'g++'])
 
-      for prog in ['git', 'make']:
+      for prog in plist:
          wp = UTIL.which(prog)
          if wp == '':
             MESGe("missing system program: %s" % prog)
@@ -511,6 +553,11 @@ class MyInterface:
          if self.f_build_via_make():
             return 1
 
+      # run the build via cmake
+      if self.run_cmake:
+         if self.f_build_via_cmake():
+            return 1
+
       return 0
 
    def prepare_root(self):
@@ -538,6 +585,69 @@ class MyInterface:
       # get atlases
       if self.f_get_atlases():
          return 1
+
+      return 0
+
+   def f_build_via_cmake(self):
+      """run a cmake build
+
+         run cmake from shell script (to not affect current environment)
+            - set CC and CCX to which gcc, g++
+            - cmake ../git/afni |& tee log_1_cmake.txt
+            - make VERBOSE=1 |& tee log_2_make.txt
+      """
+
+      MESGm("will run 'cmake' build")
+
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
+      # if we already have a build dir, the user requested not to clean
+      if os.path.isdir(self.dcbuild):
+         MESGm("will reuse existing src director, %s" % self.dcbuild)
+      else:
+         st, ot = self.run_cmd('mkdir', self.dcbuild, pc=1)
+         if st: return st
+
+      # for convenience:
+      buildpath = '%s/%s' % (self.do_root.dname, self.dcbuild)
+
+      st, ot = self.run_cmd('cd', self.dcbuild, pc=1)
+      if st: return st
+
+      # create cmake script
+      sfile = 'run_cmake.txt'
+      logc = 'log_1_cmake.txt'
+      logm = 'log_2_make.txt'
+      stext = '# cmake script\n'                                        \
+              '# (to set env vars without affecting current shell)\n'   \
+              '\n'                                                      \
+              'setenv CC `which gcc`\n'                                 \
+              'setenv CCX `which g++`\n'                                \
+              'cmake ../git/afni |& tee %s\n'                           \
+              '\n'                                                      \
+              'make VERBOSE=1 |& tee %s\n'                              \
+              '\n'                                                      \
+              % (logc, logm)
+
+      if UTIL.write_text_to_file(sfile, stext):
+         return 1
+
+      # run the build (this is why we are here!)
+      self.final_mesg.append("------------------------------")
+      self.final_mesg.append("to rerun cake build:")
+      self.final_mesg.append("   cd %s" % buildpath)
+      self.final_mesg.append("   make VERBOSE=1")
+      self.final_mesg.append("   (or run %s script)" % sfile)
+
+      MESGm("building (cmake) ...")
+      MESGi("consider monitoring the build in a separate window with:")
+      MESGi("    cd %s" % self.do_orig_dir.abspath)
+      MESGi("    tail -f %s/%s" % (buildpath, logm))
+      MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+
+      st, ot = self.run_cmd('tcsh', '-x %s' % sfile)
+      if st: return st
 
       return 0
 
@@ -591,7 +701,7 @@ class MyInterface:
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   make itall")
 
-      logfile = 'log.make.txt'
+      logfile = 'log_make.txt'
       target = 'itall'
       MESGm("building ...")
       MESGi("consider monitoring the build in a separate window with:")
@@ -607,7 +717,7 @@ class MyInterface:
       if st: return st
 
       # test the build
-      logfile = 'log.test.txt'
+      logfile = 'log_test.txt'
       binopt = '-bin_dir %s' % self.package
       MESGm("testing the build results ...")
 
@@ -684,13 +794,33 @@ class MyInterface:
          if self.update_git:
             st, ot = self.run_cmd('cd', gitd, pc=1)
             if st: return st
-            st, ot = self.run_cmd('git checkout master')
+            st, ot = self.run_cmd('git fetch --all')
             if st: return st
-            MESGm("running 'git pull' in afni repo...")
-            st, ot = self.run_cmd('git pull')
+            st, ot = self.run_cmd('git checkout %s' % self.git_branch)
             if st: return st
+
+            # pick a tag
+            if self.git_tag == 'LAST_TAG':
+               # some commands have non-zero status, so ignore
+               st, ot = self.run_cmd("git describe --tags")
+               if not ot.startswith('AFNI_'):
+                  MESGe("failed to find recent AFNI tags")
+                  return 1
+               MESGm("have default git tag LAST_TAG, will checkout %s" % ot)
+               tag = ot
+            else:
+               tag = self.git_tag
+
+            # and check it out (if not NONE)
+            if self.git_tag != '' and self.git_tag != 'NONE':
+               st, ot = self.run_cmd('git checkout %s' % tag)
+               if st: return st
          else:
+            st, otext = UTIL.exec_tcsh_command('git describe')
+            #if not st and otext != '':
+            
             MESGm("skipping 'git pull', using current repo")
+               
       else:
          if not os.path.exists('git'):
             st, ot = self.run_cmd('mkdir', 'git', pc=1)
@@ -863,6 +993,12 @@ class MyInterface:
          self.package = do_abin.package
 
 def main(argv):
+   if '-jello' not in argv:
+      print("")
+      print("  this program is not yet ready for consumption")
+      print("")
+      sys.exit()
+
    me = MyInterface()
    if not me: return 1
 
