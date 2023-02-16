@@ -16,15 +16,21 @@ from afnipy import lib_vars_object as VO
 
 g_help_string = """
 =============================================================================
-build_afni.py - build an AFNI package ~1~
+build_afni.py - compile an AFNI package ~1~
 
    This program is meant to compile AFNI from the git repository.
+   It is intended as a passive way to compile.
+
+ * This is NOT intended as a platform for developers.
+   This is only for compiling, not for making updates to the code.
+
    The main process (for a new directory) might be something like:
 
       - create working tree from the specified -root_dir
       - prepare git
          - clone AFNI's git repository
-         - possibly checkout a branch (master) and tag (most recent)
+         - possibly checkout a branch (master)
+         - possibly checkout the most recent tag (AFNI_XX.X.XX)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
       - prepare src build
@@ -34,7 +40,7 @@ build_afni.py - build an AFNI package ~1~
       - prepare cmake build (optional)
          - run build
 
-   The will show final comments about:
+   Final comments will be shown about:
 
       - how to rerun the make build
       - how to rerun the make build test
@@ -45,18 +51,35 @@ build_afni.py - build an AFNI package ~1~
 examples: ~1~
 
    0. basic, start fresh or with updates ~2~
-      (only specify required -root_dir)
+
+      Either start from nothing from a clean and updated version.
 
         build_afni.py -root_dir my/build/dir
 
+      notes:
+        - if there is an existing git tree, pull any updates
+        - if there is an existing build_src tree, rename it and start clean
+
+   1. simple, but continue where we left off ~2~
+
+      Use this method to :
+        - continue a previously terminated build
+        - to rebuild after making updates to the build_src tree
+        - to rebuild after installing additional system libraries
+
+        build_afni.py -root_dir my/build/dir -clean_root no
+
+      notes:
+        - if there is an existing git tree, use it (with no updates)
+        - if there is an existing build_src directory, keep and use it
+
+   2. basic, but specify an existing build package (Makefile)
 
 ------------------------------------------
 todo:
-  - opts for git branch and label/tag
   - opts to pass to cmake
-  - if no -package, try to guess
   - allow choice of make target
-  - allow source rebuild?
+  - allow passing a Makefile (might not exist in src tree)
 
 later:
   - worry about sync to abin
@@ -799,37 +822,24 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
+      # if the user does not want any udpates, we are done
+      # (but note what is being used)
+      if not self.update_git:
+         MESGm("skipping any git updates")
+         return self.report_branch_tag(gitd)
+
+      # if git/afni exists, cd there and update if requested
       if os.path.exists(gitd):
+         st, ot = self.run_cmd('cd', gitd, pc=1)
+         if st: return st
          if self.update_git:
-            st, ot = self.run_cmd('cd', gitd, pc=1)
-            if st: return st
             st, ot = self.run_cmd('git fetch --all')
             if st: return st
             st, ot = self.run_cmd('git checkout %s' % self.git_branch)
             if st: return st
-
-            # pick a tag
-            if self.git_tag == 'LAST_TAG':
-               # some commands have non-zero status, so ignore
-               st, ot = self.run_cmd("git describe --tags")
-               if not ot.startswith('AFNI_'):
-                  MESGe("failed to find recent AFNI tags")
-                  return 1
-               MESGm("have default git tag LAST_TAG, will checkout %s" % ot)
-               tag = ot
-            else:
-               tag = self.git_tag
-
-            # and check it out (if not NONE)
-            if self.git_tag != '' and self.git_tag != 'NONE':
-               st, ot = self.run_cmd('git checkout %s' % tag)
-               if st: return st
-         else:
-            st, otext = UTIL.exec_tcsh_command('git describe')
-            #if not st and otext != '':
-            
-            MESGm("skipping 'git pull', using current repo")
-               
+            st, ot = self.run_cmd('git pull origin %s' % self.git_branch)
+            if st: return st
+      # otherwise, initialize the git tree
       else:
          if not os.path.exists('git'):
             st, ot = self.run_cmd('mkdir', 'git', pc=1)
@@ -841,8 +851,55 @@ class MyInterface:
          MESGi("(please be patient)")
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
          if st: return st
+         st, ot = self.run_cmd('git checkout %s' % self.git_branch)
+         if st: return st
+
+      # now possibly checkout a tag
+      if self.git_tag == 'LAST_TAG':
+         tag = self.most_recent_tag()
+      else:
+         tag = self.git_tag
+
+      if tag != '' and tag != 'NONE':
+         MESGm("checking out git tag %s" % tag)
+         st, ot = self.run_cmd('git checkout %s' % tag)
+         if st: return st
+      else:
+         MESGm("not checking out any git tag")
+
+      # report the branch and tag that we are working with
+      self.report_branch_tag()
 
       return 0
+
+   def report_branch_tag(self, cdpath=''):
+      """report the current branch and tag
+          if cdpath is set, change directory first
+          return 0 on success
+      """
+      if cdpath != '':
+         st, ot = self.run_cmd('cd', cdpath, pc=1)
+         if st: return st
+
+      st, obr = UTIL.exec_tcsh_command('git branch --show-current')
+      st, otag = UTIL.exec_tcsh_command('git describe')
+      if obr == '':
+         obr = '(detached)'
+      MESGm("using repo branch %s, tag %s" % (obr, otag))
+
+      return 0
+
+   def most_recent_tag(self):
+      """just return the most recent AFNI_* tag (a clean one of length 12)
+         return an empty string on failure
+      """
+      st, tag = self.run_cmd("git describe --tags --abbrev=0")
+      if not tag.startswith('AFNI_') or len(tag) != 12:
+         MESGe("failed to find recent AFNI build tag, have %s" % tag)
+         return ''
+      MESGm("have default git tag LAST_TAG, will checkout %s" % tag)
+
+      return tag
 
    def clean_old_root(self):
       """an old root_dir exists, clean up or back up
@@ -883,13 +940,14 @@ class MyInterface:
 
       return 0
 
-   def run_cmd(self, cmd, params='', pc=0):
+   def run_cmd(self, cmd, params='', pc=0, strip=1):
       """main purpose is to store commands in history
             cmd     : a simple command or a full one
             params  : can be a simple string or a list of them
             pc      : denotes python command
                         - cmd is a single word ('cd', 'mkdir' ...)
                         - params are separate (we will see how it goes)
+            strip   : strip any non-pc text (in rare case that we want text)
          return status, text output
       """
       rv = 0
@@ -911,9 +969,11 @@ class MyInterface:
          self.history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
          if st:
-             MESGe("failed run_cmd: %s" % cmd)
-             MESGe(otext)
-             return st, otext
+            MESGe("failed run_cmd: %s" % cmd)
+            MESGe(otext)
+         if strip:
+            otext = otext.strip()
+         return st, otext
 
       # now python commands
       if cmd == 'cd':
