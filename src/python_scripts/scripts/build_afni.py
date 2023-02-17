@@ -73,18 +73,22 @@ examples: ~1~
         - if there is an existing git tree, use it (with no updates)
         - if there is an existing build_src directory, keep and use it
 
-   2. basic, but specify an existing build package
+   2. basic, but specify an existing build package ~2~
 
       This implies a Makefile to use for the build.
 
         build_afni.py -root_dir my/build/dir -package linux_centos_7_64
 
+   3. use an alternate Makefile, but do not update git repo ~2~
+
+        build_afni.py -root_dir my/build/dir -git_update no \\
+                      -makefile my_better_makefile
+
 
 ------------------------------------------
 todo:
   - opts to pass to cmake
-  - allow passing a Makefile (might not exist in src tree)
-    - given a Makefile, will want to detect output package name
+  - given a Makefile, will want to detect output package name
   - pick a method for guessing an appropriate Makefile
     Ubuntu vs Fedora vs RedHat vs other vs macos (12+?)
 
@@ -167,6 +171,16 @@ other options:
 
           The package will imply a Makefile to use, Makefile.PACKAGE.
           It will also be the name of the output binary directory.
+
+      -prep_only                : prepare to but do not run (c)make
+
+          e.g. -prep_only
+
+          This is for testing or for practice.
+
+          Do everything leading up to running cmake or make commands,
+          but do not actually run them (make/cmake).  This still requires a
+          git tree, but using "-git_update no" is okay.
 
       -run_cmake yes/no         : choose whether to run a cmake build
 
@@ -293,6 +307,7 @@ class MyInterface:
       self.git_update      = 1      # do git clone or pull
       self.package         = ''     # to imply Makefile and build dir
 
+      self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
       self.make_target     = 'itall' # target in "make" command
@@ -397,6 +412,8 @@ class MyInterface:
                       helpstr="specify target for make (def=itall)")
       self.valid_opts.add_opt('-makefile', 1, [],
                       helpstr="specify an alternate Makefile to build from")
+      self.valid_opts.add_opt('-prep_only', 0, [],
+                      helpstr="only prepare for (c)make, do not run it")
       self.valid_opts.add_opt('-run_cmake', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
@@ -506,6 +523,9 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.package = val
+
+         elif opt.name == '-prep_only':
+            self.prep_only = 1
 
          elif opt.name == '-run_make':
             if OL.opt_is_yes(opt):
@@ -775,6 +795,11 @@ class MyInterface:
       self.final_mesg.append("   make VERBOSE=1")
       self.final_mesg.append("   (or run %s script)" % sfile)
 
+      # if -prep_only, we are done
+      if self.prep_only:
+         MESGp("have -prep_only, skipping actual cmake and make")
+         return 0
+
       MESGm("building (cmake) ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
@@ -847,6 +872,11 @@ class MyInterface:
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   make %s" % target)
       MESGm("building make target '%s'" % target)
+
+      # if -prep_only, we are done
+      if self.prep_only:
+         MESGp("have -prep_only, skipping make and test")
+         return 0
 
       logfile = 'log_make.txt'
       MESGp("building ...")
