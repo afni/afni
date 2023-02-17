@@ -147,7 +147,20 @@ other options:
           e.g.    -make_target totality
           e.g.    -make_target afni
 
-          If 'no' is specified, the git/afni/src tree must already exist, and
+          When the 'make' command is run under build_src, use the given target.
+          Since an individual program make would probably be done directly on
+          the command line (rather than using this program), the most typical
+          reason to do this might be to save disk space.  Using totality
+          (instead of itall) would clean up after the make.
+
+      -makefile MAKEFILE        : specify an alternate Makefile to build from
+
+          default -makefile Makefile.PACKAGE (for the given PACKAGE)
+          e.g.    -makefile my.better.makefile
+
+          This option is a mechanism for specifying a Makefile that is not
+          (currently) part of the AFNI distribution.
+
       -package PACKAGE          : specify the desired package to build
 
           e.g. -package linux_centos_7_64
@@ -283,6 +296,7 @@ class MyInterface:
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
       self.make_target     = 'itall' # target in "make" command
+      self.makefile        = ''     # an alternate Makefile to build from
 
       self.verb            = verb   # verbosity level
 
@@ -301,6 +315,7 @@ class MyInterface:
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
       self.hist_file       = 'cmd_history.txt' # final history file
+      self.makefile_path   = ''     # abspath to -makefile
 
       self.pold            = 'prev.'        # prefix for old version
       self.dcbuild         = 'build_cmake'
@@ -380,6 +395,8 @@ class MyInterface:
 
       self.valid_opts.add_opt('-make_target', 1, [],
                       helpstr="specify target for make (def=itall)")
+      self.valid_opts.add_opt('-makefile', 1, [],
+                      helpstr="specify an alternate Makefile to build from")
       self.valid_opts.add_opt('-run_cmake', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
@@ -480,6 +497,11 @@ class MyInterface:
             if val == None or err: return -1
             self.make_target = val
 
+         elif opt.name == '-makefile':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.makefile = val
+
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
@@ -510,6 +532,14 @@ class MyInterface:
       if self.git_update == 0 and (self.git_branch or self.git_tag):
          MESGe("cannot use -git_branch or -git_tag without -git_update yes")
          return -1
+
+      # if we have a makefile, make sure it exists
+      if self.makefile:
+         if not os.path.isfile(self.makefile):
+            MESGe("cannot find given -makefile '%s'" % self.makefile)
+            return -1
+         # note the full path before any 'cd'
+         self.makefile_path = os.path.abspath(self.makefile)
 
       # assign any needed defaults - usually corresponding to 'misc checks'
       if self.git_branch == '':
@@ -641,8 +671,9 @@ class MyInterface:
       if self.do_root is None:
          return 0
 
-      if self.package == '':
+      if self.package == '' and self.makefile == '':
          MESGe("-package unspecified and not implied by current version")
+         MESGi("(and no -makefile specified)")
          return 1
 
       if self.do_root.exists and self.clean_root:
@@ -760,6 +791,7 @@ class MyInterface:
             - have or try to choose a suitable package
             - copy git/afni/src tree
             - find corresponding Makefile
+              (or try to copy given one)
             - run build
       """
 
@@ -785,6 +817,14 @@ class MyInterface:
       # if we already have one, the user requested not to clean
       if os.path.isfile('Makefile'):
          MESGm("have Makefile, ignoring -package %s" % self.package)
+         if self.makefile:
+            MESGi("also ignoring -makefile %s" % self.makefile)
+      # else if one was specified, copy it here
+      elif self.makefile:
+         MESGm("copying %s to %s" % (self.makefile, "Makefile"))
+         st, ot = self.run_cmd('cp', [self.makefile_path, 'Makefile'], pc=1)
+         if st: return st
+      # else use what is implied from package
       else:
          mfile = 'Makefile.%s' % self.package
          mtmp = mfile
