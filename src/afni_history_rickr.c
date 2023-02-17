@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Feb, 2023, RCR, "3dDeconvolve", MINOR, TYPE_BUG_FIX,
+   "when counting events, default (with GUESS) to GLOBAL",
+   "Previously, when the user did not specify either -local_times or\n"
+   "-global_times, the number of events (and therefore IM regressors)\n"
+   "was based on local time run length, so many event regressors might\n"
+   "not be included.\n"
+   "Change the default to be based on -global_times.\n"
+   "If IM, warn if the user did not specify the timing type.\n"
+   "Thanks to M Hoptman for letting us know of the problem."
+ } ,
+
  {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
    "as with afni_proc.py, get SurfSmooth parms from smrec file",
    NULL

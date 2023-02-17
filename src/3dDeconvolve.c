@@ -2985,11 +2985,12 @@ void get_options
 
         /* check number of reasonable times */
 
-        /* allow for global timing    19 Jul 2017 [rickr] */
-        if( basis_timetype == GLOBAL_TIMES )
-           nc = mri_counter( tim , 0.0f , gtmax ) ;
-        else
+        /* allow for global timing (or guess)   19 Jul 2017 [rickr] */
+        /* have GUESS_TIMES default to GLOBAL   17 Feb 2023 [rickr] */
+        if( basis_timetype == LOCAL_TIMES )
            nc = mri_counter( tim , 0.0f , ttmax ) ;
+        else
+           nc = mri_counter( tim , 0.0f , gtmax ) ;
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 
@@ -3142,7 +3143,13 @@ void get_options
           basis_stim[k]->type = BASIS_SINGLE ;  /* simplest possible case */
 
         } else if( strcmp(suf,"_IM") == 0 ){          /* 16 Jul 2007 */
-
+          /* give the user a single heads-up             17 Feb 2023 [rickr] */
+          if( basis_timetype == GUESS_TIMES ) {
+             static int stupid_IM_timetype_warn = 1;
+             if( stupid_IM_timetype_warn )
+                WARNING_message("have IM timing without -local/global_times");
+             stupid_IM_timetype_warn = 0;
+          }
           basis_stim[k]->type = BASIS_MODULATED_INDV;
           basis_stim[k]->nparm *= nc ;  /* nc = number of time points */
           INFO_message("'%s %d %s' will have %d regressors",
