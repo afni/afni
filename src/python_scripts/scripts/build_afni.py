@@ -73,7 +73,12 @@ examples: ~1~
         - if there is an existing git tree, use it (with no updates)
         - if there is an existing build_src directory, keep and use it
 
-   2. basic, but specify an existing build package (Makefile)
+   2. basic, but specify an existing build package
+
+      This implies a Makefile to use for the build.
+
+        build_afni.py -root_dir my/build/dir -package linux_centos_7_64
+
 
 ------------------------------------------
 todo:
@@ -86,11 +91,6 @@ later:
   - help
 
 ------------------------------------------
-examples: ~1~
-
-    0.
-
-------------------------------------------
 terminal options: ~1~
 
       -help                     : show this help
@@ -98,24 +98,72 @@ terminal options: ~1~
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
+required:
+
+      -root_dir                 : root directory to use for git and building
+
 other options:
 
-      -build_dir                : root for AFNI build
+      -clean_root yes/no        : specify whether to clean up the root_dir
 
-          This is the root directory that building takes place under.  It
-          will contain (if it exists):
+          default -clean_root yes
+          e.g.    -clean_root no
 
-                git             - contains 'afni' git repo
+          If 'no' is specified, the git directory will not be updated and the
+          build_src directory will not be remade.
 
-          and optionally any of:
+      -git_branch BRANCH        : specify a branch to checkout in git
 
-                atlases         - atlases to go in abin
-                cmake_build     - location of any cmake build
-                src_build       - location of any src build
+          default -git_branch master
+          e.g.    -git_branch some_stupid_branch
+
+          This will just lead to 'git checkout BRANCH'.
+
+      -git_tag TAG              : specify a tag to checkout in git
+
+          default -git_tag LAST_TAG
+          e.g.    -git_tag NONE
+
+          This will lead to 'git checkout TAG', of some sort, depending:
+
+             LAST_TAG   : checkout most recent (annotated) AFNI_XX.X.XX tag.
+                          (annotated tags come from official AFNI builds)
+             NONE       : do not checkout any specific tag
+
+      -git_update yes/no        : specify whether to update git repo
+
+          default -git_update yes
+          e.g.    -git_update no
+
+          If 'no' is specified, the git/afni/src tree must already exist, and
+          nothing will be done to it.  This option cannot be used with
+          -git_branch or -git_tag.
+
+      -package PACKAGE          : specify the desired package to build
+
+          e.g. -package linux_centos_7_64
+
+          The package will imply a Makefile to use, Makefile.PACKAGE.
+          It will also be the name of the output binary directory.
+
+      -run_cmake yes/no         : choose whether to run a cmake build
+
+          default: -run_cmake no
+          e.g.   : -run_cmake yes
+
+          If requested, run a cmake build under the build_cmake directory.
+
+      -run_make yes/no          : choose whether to run a make build
+
+          default: -run_cmake yes
+          e.g.   : -run_cmake no
+
+          By default, a make build will be run.  Use this option to specify
+          not to.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
-          e.g., -verb 2
+          e.g. -verb 2
 
           Specify how verbose the program should be, from 0=quiet to 4=max.
           As is typical, the default level is 1.
@@ -218,14 +266,13 @@ class MyInterface:
 
       # command-line controlled variables
       self.clean_root      = 1      # clean old root dirs?
-      self.git_branch      = 'master' # branch to check out
-      self.git_tag         = 'LAST_TAG' # branch to check out
-                                    # (e.g. LAST_TAG, NONE, AFNI_23...)
+      self.git_branch      = ''     # branch to check out (def master)
+      self.git_tag         = ''     # tag to check out (def LAST_TAG)
       self.package         = ''     # to imply Makefile and build dir
 
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
-      self.update_git      = 1      # do git clone or pull
+      self.git_update      = 1      # do git clone or pull
 
       self.verb            = verb   # verbosity level
 
@@ -290,10 +337,6 @@ class MyInterface:
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
-
-      self.valid_opts.add_opt('-jello', 0, [], helpstr='')
-
-
       # short, terminal options
       self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
@@ -319,6 +362,9 @@ class MyInterface:
                               % self.git_branch)
       self.valid_opts.add_opt('-git_tag', 1, [],
                       helpstr='the git tag to use (def=%s)'%self.git_tag)
+      self.valid_opts.add_opt('-git_update', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='should we update the local git repo')
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-run_cmake', 1, [],
@@ -327,9 +373,6 @@ class MyInterface:
       self.valid_opts.add_opt('-run_make', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'make' build? (def=y)")
-      self.valid_opts.add_opt('-update_git', 1, [],
-                      acplist=['yes','no'],
-                      helpstr='should we update the local git repo')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -378,8 +421,6 @@ class MyInterface:
 
       for opt in uopts.olist:
 
-         if opt.name == '-jello': continue
-
          # TERMINAL help options that might need -verb
 
          # main options
@@ -388,6 +429,7 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.do_abin = dirobj('abin_dir', val)
+            MESGe("-abin not yet implemented")
 
          elif opt.name == '-root_dir':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -402,7 +444,7 @@ class MyInterface:
             else:
                # do not clean, do not update git
                self.clean_root = 0
-               self.update_git = 0
+               self.git_update = 0
 
          elif opt.name == '-git_branch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -413,6 +455,12 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.git_tag = val
+
+         elif opt.name == '-git_update':
+            if OL.opt_is_yes(opt):
+               self.git_update = 1
+            else:
+               self.git_update = 0
 
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -431,12 +479,6 @@ class MyInterface:
             else:
                self.run_cmake = 0
 
-         elif opt.name == '-update_git':
-            if OL.opt_is_yes(opt):
-               self.update_git = 1
-            else:
-               self.update_git = 0
-
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val == None or err: return -1
@@ -445,6 +487,18 @@ class MyInterface:
          else:
             MESGe("unhandled option '%s'" % opt.name)
             return -1
+
+      # misc checks
+      if self.git_update == 0 and (self.git_branch or self.git_tag):
+         MESGe("cannot use -git_branch or -git_tag without -git_update yes")
+         return -1
+
+      # assign any needed defaults - usually corresponding to 'misc checks'
+      if self.git_branch == '':
+         self.git_branch = 'master'
+
+      if self.git_tag == '':
+         self.git_tag = 'LAST_TAG'
 
       return 0
 
@@ -735,7 +789,7 @@ class MyInterface:
 
       logfile = 'log_make.txt'
       target = 'itall'
-      MESGm("building ...")
+      MESGp("building ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
@@ -744,14 +798,14 @@ class MyInterface:
 
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
-      MESGp("building %s" % tmesg)
+      MESGm("building %s" % tmesg)
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
       # test the build
       logfile = 'log_test.txt'
       binopt = '-bin_dir %s' % self.package
-      MESGm("testing the build results ...")
+      MESGp("testing the build results ...")
 
       cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
       self.final_mesg.append("------------------------------")
@@ -765,7 +819,7 @@ class MyInterface:
 
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
-      MESGp("testing %s" % tmesg)
+      MESGm("testing %s" % tmesg)
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
@@ -824,21 +878,20 @@ class MyInterface:
 
       # if the user does not want any udpates, we are done
       # (but note what is being used)
-      if not self.update_git:
+      if not self.git_update:
          MESGm("skipping any git updates")
          return self.report_branch_tag(gitd)
 
-      # if git/afni exists, cd there and update if requested
+      # if git/afni exists, cd there and update
       if os.path.exists(gitd):
          st, ot = self.run_cmd('cd', gitd, pc=1)
          if st: return st
-         if self.update_git:
-            st, ot = self.run_cmd('git fetch --all')
-            if st: return st
-            st, ot = self.run_cmd('git checkout %s' % self.git_branch)
-            if st: return st
-            st, ot = self.run_cmd('git pull origin %s' % self.git_branch)
-            if st: return st
+         st, ot = self.run_cmd('git fetch --all')
+         if st: return st
+         st, ot = self.run_cmd('git checkout %s' % self.git_branch)
+         if st: return st
+         st, ot = self.run_cmd('git pull origin %s' % self.git_branch)
+         if st: return st
       # otherwise, initialize the git tree
       else:
          if not os.path.exists('git'):
@@ -854,7 +907,7 @@ class MyInterface:
          st, ot = self.run_cmd('git checkout %s' % self.git_branch)
          if st: return st
 
-      # now possibly checkout a tag
+      # now possibly checkout a tag ('' means unset)
       if self.git_tag == 'LAST_TAG':
          tag = self.most_recent_tag()
       else:
@@ -881,8 +934,8 @@ class MyInterface:
          st, ot = self.run_cmd('cd', cdpath, pc=1)
          if st: return st
 
-      st, obr = UTIL.exec_tcsh_command('git branch --show-current')
-      st, otag = UTIL.exec_tcsh_command('git describe')
+      st, obr = self.run_cmd('git branch --show-current')
+      st, otag = self.run_cmd('git describe')
       if obr == '':
          obr = '(detached)'
       MESGm("using repo branch %s, tag %s" % (obr, otag))
@@ -1066,11 +1119,6 @@ class MyInterface:
          self.package = do_abin.package
 
 def main(argv):
-   if '-jello' not in argv:
-      print("")
-      print("  this program is not yet ready for consumption")
-      print("")
-      sys.exit()
 
    me = MyInterface()
    if not me: return 1
