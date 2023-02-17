@@ -19,10 +19,10 @@ g_help_string = """
 build_afni.py - compile an AFNI package ~1~
 
    This program is meant to compile AFNI from the git repository.
-   It is intended as a passive way to compile.
+   It is intended as a quick and convenient way to compile.
 
  * This is NOT intended as a platform for developers.
-   This is only for compiling, not for making updates to the code.
+   This is meant only for compiling, not for making updates to the code.
 
    The main process (for a new directory) might be something like:
 
@@ -176,7 +176,7 @@ R Reynolds    sometime 2023
 g_history = """
    build_afni.py history:
 
-   0.0  Dec  8, 2022 -
+   0.0  Feb  8, 2022 - getting started
 """
 
 g_prog = "build_afni.py"
