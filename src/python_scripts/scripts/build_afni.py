@@ -83,8 +83,10 @@ examples: ~1~
 ------------------------------------------
 todo:
   - opts to pass to cmake
-  - allow choice of make target
   - allow passing a Makefile (might not exist in src tree)
+    - given a Makefile, will want to detect output package name
+  - pick a method for guessing an appropriate Makefile
+    Ubuntu vs Fedora vs RedHat vs other vs macos (12+?)
 
 later:
   - worry about sync to abin
@@ -139,6 +141,13 @@ other options:
           nothing will be done to it.  This option cannot be used with
           -git_branch or -git_tag.
 
+      -make_target TARGET       : specify target for make command
+
+          default -make_target itall
+          e.g.    -make_target totality
+          e.g.    -make_target afni
+
+          If 'no' is specified, the git/afni/src tree must already exist, and
       -package PACKAGE          : specify the desired package to build
 
           e.g. -package linux_centos_7_64
@@ -268,11 +277,12 @@ class MyInterface:
       self.clean_root      = 1      # clean old root dirs?
       self.git_branch      = ''     # branch to check out (def master)
       self.git_tag         = ''     # tag to check out (def LAST_TAG)
+      self.git_update      = 1      # do git clone or pull
       self.package         = ''     # to imply Makefile and build dir
 
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
-      self.git_update      = 1      # do git clone or pull
+      self.make_target     = 'itall' # target in "make" command
 
       self.verb            = verb   # verbosity level
 
@@ -357,6 +367,8 @@ class MyInterface:
                       helpstr='the binary package to build')
 
       # general options
+      self.valid_opts.add_opt('-clean_root', 1, [],
+                      helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-git_branch', 1, [],
                       helpstr='the git branch to checkout (def=%s)' \
                               % self.git_branch)
@@ -365,8 +377,9 @@ class MyInterface:
       self.valid_opts.add_opt('-git_update', 1, [],
                       acplist=['yes','no'],
                       helpstr='should we update the local git repo')
-      self.valid_opts.add_opt('-clean_root', 1, [],
-                      helpstr='clean up from old work? (def=y)')
+
+      self.valid_opts.add_opt('-make_target', 1, [],
+                      helpstr="specify target for make (def=itall)")
       self.valid_opts.add_opt('-run_cmake', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
@@ -461,6 +474,11 @@ class MyInterface:
                self.git_update = 1
             else:
                self.git_update = 0
+
+         elif opt.name == '-make_target':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.make_target = val
 
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -782,13 +800,15 @@ class MyInterface:
          if st: return st
 
       # run the build (this is why we are here!)
+      target = self.make_target
+
       self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make itall")
+      self.final_mesg.append("   make %s" % target)
+      MESGm("building make target '%s'" % target)
 
       logfile = 'log_make.txt'
-      target = 'itall'
       MESGp("building ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
