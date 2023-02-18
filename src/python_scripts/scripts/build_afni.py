@@ -84,6 +84,11 @@ examples: ~1~
         build_afni.py -root_dir my/build/dir -git_update no \\
                       -makefile my_better_makefile
 
+   4. test the setup, but do not run any make (using -prep_only) ~2~
+
+        build_afni.py -root_dir my/build/dir -prep_only \\
+                      -git_update no -makefile my_better_makefile 
+
 
 ------------------------------------------
 todo:
@@ -94,7 +99,6 @@ todo:
 
 later:
   - worry about sync to abin
-  - help
 
 ------------------------------------------
 terminal options: ~1~
@@ -867,10 +871,24 @@ class MyInterface:
       # run the build (this is why we are here!)
       target = self.make_target
 
+      # final messages
       self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   make %s" % target)
+      # if there is some known abin, mention possibly rsync
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      if do is not None:
+         full_bpath = '%s/%s' % (self.do_root.abspath, self.dsbuild)
+         self.final_mesg.append("------------------------------")
+         self.final_mesg.append("to possibly rsync make output:")
+         self.final_mesg.append("   rsync -av %s/%s/ %s/" \
+             % (full_bpath, self.package, do.abspath))
+
       MESGm("building make target '%s'" % target)
 
       # if -prep_only, we are done
@@ -1169,7 +1187,7 @@ class MyInterface:
       prog = 'afni_proc.py' # since 'afni' might not be in text distribution
       wp = UTIL.which(prog)
       if wp != '':
-         self.do_orig_abin = dirobj('orig_abin_dir', wp)
+         self.do_orig_abin = dirobj('orig_abin_dir', path_head(wp))
          self.get_orig_abin_info(self.do_orig_abin)
       else:
          if self.verb > 1:
@@ -1187,9 +1205,9 @@ class MyInterface:
       do_abin.date = ''
 
       if self.verb > 1:
-         MESGp("have original abin %s" % self.do_orig_abin.abspath)
+         MESGp("have original abin %s" % do_abin.abspath)
 
-      vfile = '%s/AFNI_version.txt' % do_abin.head
+      vfile = '%s/AFNI_version.txt' % do_abin.abspath
 
       tdata = UTIL.read_text_file(vfile, lines=1, strip=1, verb=0)
       if len(tdata) < 3:
