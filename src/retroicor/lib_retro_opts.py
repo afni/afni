@@ -116,7 +116,8 @@ help_dict = {
 
 def parser_to_dict(parser, argv, verb=0):
     """Convert an argparse parser object to a dictionary of key (=opt) and
-value pairs.  
+value pairs.  Also store the argv as a value of returned dict (key =
+'argv').
     
 Parameters
 ----------
@@ -135,7 +136,7 @@ args_dict : dict
     """
 
     # get args obj, and make a dict out of it
-    args      = parser.parse_args(argv)
+    args      = parser.parse_args(argv[1:])
     args_dict = vars(args)
 
     # each value in the args_dict is a list of something---extract that
@@ -153,6 +154,8 @@ args_dict : dict
                 print("++ non-list option key -> value: ", 
                       key, '->', args_dict[key])
 
+    args_dict['argv'] = copy.deepcopy(argv)
+
     return args_dict
 
 def compare_keys_in_two_dicts(A, B, nameA=None, nameB=None):
@@ -162,9 +165,9 @@ have names nameA and nameB, when referring to them in output text).
 Parameters
 ----------
 A : dict
-    a dictionary
+    some dictionary
 B : dict
-    a dictionary
+    some dictionary
 nameA : str
     optional name for referring to dict A when reporting
 nameB : str
@@ -221,20 +224,23 @@ DIFF_KEYS : int
 
 def check_simple_opts_to_exit(args_dict, parser):
     """Check for simple options, after which to exit, such as help/hview,
-ver, disp all slice patterns, etc.
+ver, disp all slice patterns, etc.  The parser is an included arg
+because it has the help info to display, if called for.
 
 Parameters
 ----------
 args_dict : dict
     a dictionary of input options (=keys) and their values
+parser : argparse.ArgumentParser
+    object from parsing program options
 
 Returns
 -------
 int : int
-    return 1 on the first instance of a simple opt being
-    found, else return 0.
+    return 1 on the first instance of a simple opt being found, else
+    return 0
 
-"""
+    """
 
     # if nothing or help opt, show help
     if args_dict['help'] :
@@ -273,14 +279,62 @@ int : int
 
     # all opts for this program, via DEF list
     if args_dict['disp_all_opts'] :
-        lll = list(args_dict.keys())
-        lll.sort()
-        print("-{}".format('\n-'.join(lll)))
-        return 1
+        tmp = disp_keys_sorted(DEF, pref='-')
+        if not(tmp) :
+            return 1
 
+    # getting here means a mistake happened
+    return 0
 
+def disp_keys_sorted(D, pref=''):
+    """Display a list of sorted keys from dict D, one per line.  Can
+include a prefix (left-concatenated string) for each.
+
+Parameters
+----------
+D : dict
+    some dictionary
+pref : str
+    some string to be left-concatenated to each key
+
+Returns
+-------
+SF : int
+    return 0 if successful
+    """
+
+    if type(D) != dict :
+        print("** ERROR: input D must be dict")
+        sys.exit(13)
+    
+    all_key = [pref+str(x) for x in get_keys_sorted(D)]
+    print('{}'.format('\n'.join(all_key)))
 
     return 0
+
+def get_keys_sorted(D):
+    """Return a list of sorted keys from dict D.
+
+Parameters
+----------
+D : dict
+    some dictionary
+
+Returns
+-------
+L : list
+    a sorted list (of keys from D)
+
+    """
+
+    if type(D) != dict :
+        print("** ERROR: input D must be dict")
+        sys.exit(13)
+
+    L = list(D.keys())
+    L.sort()
+    return L
+
 
 def read_slice_pattern_file(fname, verb=0):
     """Read in a text file fname that contains a slice timing pattern.
@@ -931,12 +985,20 @@ args_dict2 : dict
         pat = args_dict2['slice_pattern']
         if pat in BAU.g_valid_slice_patterns :
             print("++ Found slice_pattern '{}' in allowed list".format(pat))
+            slice_times = BAU.slice_pattern_to_timing(pat, 
+                                                      args_dict2['num_slices'],
+                                                      args_dict2['volume_tr'])
+            if not(slice_times) :
+                print("** ERROR: could not convert slice pattern to timing")
+                sys.exit(8)
+            args_dict2['slice_times'] = copy.deepcopy(slice_times)
         elif os.path.isfile(pat) :
             print("++ Found slice_pattern '{}' exists as a file".format(pat))
             slice_times = read_slice_pattern_file(pat, verb=verb)
             if not(slice_times) :
+                print("** ERROR: translate slice pattern file to timing")
                 sys.exit(7)
-            args_dict2['slice_times'] = slice_times
+            args_dict2['slice_times'] = copy.deepcopy(slice_times)
         else:
             print("** ERROR: could not match slice_pattern '{}' as "
                   "either a recognized pattern or file".format(pat))
@@ -975,7 +1037,7 @@ help) and then quits.  Otherwise, it returns a dictionary of checked
 argument values.
 
 Typically call this from another main program like:
-    args_dict = lib_retro_opts.main_option_processing(sys.argv[1:])
+    args_dict = lib_retro_opts.main_option_processing(sys.argv)
 
 Parameters
 ----------
@@ -992,14 +1054,14 @@ args_dict : dict
     """
 
     # ---------------------------------------------------------------------
-    # simple/null case: no opt on command line, so just show help and quit
+    # case of 0 opt used: just show help and quit
 
     # We do this check separately, because in this case, each item in
     # args_dict is *not* a list containing what we want, but just is that
     # thing itself.  That confuses the means for checking it, so treat
     # that differently.
 
-    if len(sys.argv) == 1 :
+    if len(argv) == 1 :
         parser.print_help()
         sys.exit(0)
 
@@ -1014,10 +1076,10 @@ args_dict : dict
     if have_simple_opt :
         sys.exit(0)
 
-    # functions that do the main work for non-quick-exit cases: check
-    # all required inputs were provided, and do a bit of verification
-    # of some of their attributes (e.g., that files exist, values that
-    # should be >=0 are, etc.)
+    # real work to be done now: check that all required inputs were
+    # provided, and do a bit of verification of some of their
+    # attributes (e.g., that files exist, values that should be >=0
+    # are, etc.)
     args_dict = check_required_args(args_dict)
     args_dict = interpret_args(args_dict)
 
@@ -1028,7 +1090,7 @@ args_dict : dict
 
 if __name__ == "__main__":
 
-    args_dict = main_func(sys.argv[1:])
+    args_dict = main_option_processing(sys.argv)
     print("++ DONE.  Goodbye.")
 
     sys.exit(0)
