@@ -155,11 +155,6 @@ def getSliceOffsets(offsetDict):
             defines the length of time between the acquisition of consecutive 
             frames/volumes; in seconds
             
-            num_time_pts:  (dType = int) Number of time points in the output
-            
-            slice_times:   (2D array dType = numpy.float64) Vector of slice 
-                            acquisition time offsets in seconds.
-        
             slice_pattern:   (dType = str) Pettern of slices 
                            (alt+z, alt-z, etc).  Default is "alt+z".
             
@@ -168,7 +163,7 @@ def getSliceOffsets(offsetDict):
     """
     
     try:
-        if offsetDict["slice_pattern"][0:3] == "alt": # Standard pattern
+        if offsetDict["slice_pattern"] in bau.g_valid_slice_patterns:
             # alt pattern
             slice_offsets = \
                 bau.slice_pattern_to_timing(offsetDict["slice_pattern"], 
@@ -188,120 +183,6 @@ def getSliceOffsets(offsetDict):
         print('Unsupported operand type for slice offset')
         
     return slice_offsets
-        
-    
-def getSliceOffsetsOld(offsetDict):
-    """
-    NAME
-        getSliceOffsets 
-            Return phase offsets among slices
-    TYPE
-        <class 'list'>
-    ARGUMENTS
-        offsetDict:   Dictionary with the following fields.
-        
-            number_of_slices:   (dType = int) Number of slices
-            
-            volume_tr:   (dType = float) Volume repetition time (TR) which 
-            defines the length of time between the acquisition of consecutive 
-            frames/volumes; in seconds
-            
-            num_time_pts:  (dType = int) Number of time points in the output
-            
-            slice_times:   (2D array dType = numpy.float64) Vector of slice 
-                            acquisition time offsets in seconds.
-        
-            slice_pattern:   (dType = str) Pettern of slices 
-                           (alt+z, alt-z, etc).  Default is "alt+z".
-            
-    AUTHOR
-       Joshua Zosky (Documentation and comments by Peter Lauren)
-    """
-        
-    slice_times = offsetDict["slice_times"]
-    
-    # Determining slice_offsets based upon slice_pattern, volume_tr,
-    #  and number_of_slices.
-    tt = 0.0  # Default float value to start iterations
-    dtt = float(offsetDict["volume_tr"]) / float(
-        offsetDict["number_of_slices"]
-    )  # Increments for iteration
-    # init slice_timess, unless Custom order
-    # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
-    if (
-        (offsetDict["slice_pattern"] not in ["Custom", "custom"])
-        # (Not) individual offset for each slice
-        or len(slice_times) != offsetDict["number_of_slices"]
-    ):
-        slice_offsets = [0] * offsetDict[
-            "number_of_slices"
-        ]  # Initial values for slice_times
-    slice_file_list = (
-        []
-    )  # List for using external file for slice_times values/
-    # Indicates if using external file in last loop
-    if offsetDict["slice_pattern"][0:3] == "alt":  # Alternating?
-        for i in range(0, offsetDict["number_of_slices"], 2):
-            slice_offsets[i] = tt
-            tt += dtt
-        for i in range(1, offsetDict["number_of_slices"], 2):
-            slice_offsets[i] = tt
-            tt += dtt
-    elif offsetDict["slice_pattern"][0:3] == "seq":  # Sequential?
-        for i in range(0, offsetDict["number_of_slices"]):
-            slice_offsets[i] = tt
-            tt += dtt
-    elif offsetDict["slice_pattern"] in ["Custom", "custom"] \
-        and type(slice_times) == str:
-
-        # If slice_pattern is custom, parse from slice_times string.
-        # Allow simple or pythonic array form.   1 Dec 2020 [rickr]
-        try:
-           offlist = eval(slice_times)
-           # noff = len(offlist)
-        except:
-           try:
-              offlist = [float(v) for v in slice_times.split()]
-           except:
-              print("** failed to apply custom slice timing from: %s" \
-                    % slice_times)
-              return
-        if len(offlist) != offsetDict["number_of_slices"]:
-           print("** error: slice_times len = %d, but %d slices" \
-              % (len(offlist), offsetDict["number_of_slices"]))
-           return
-
-        # success, report and apply
-        print("applying custom slice timing, min = %g, max = %g" \
-              % (min(offlist), max(offlist)))
-        slice_times = offlist
-        slice_offsets = offlist
-
-    else:  # Open external file specified in argument line,
-        # fill SliceFileList with values, then load into slice_times
-        with open(offsetDict["slice_pattern"], "r") as f:
-            for i in f.readlines():
-                # read times, in seconds
-                slice_file_list.append(float(i))
-
-            # Check that slice acquisition times match the number of slices
-            if len(slice_file_list) != offsetDict["number_of_slices"]:
-                print("Could not read enough slice offsets from file")
-                print("File should have as many offsets as number_of_slices")
-                sys.exit(1)
-            slice_offsets = slice_file_list
-    if (
-        offsetDict["slice_pattern"][3] == "-" and slice_file_list == []
-    ):  # Check for a minus to indicate
-        #  a reversed offset list
-        slice_offsets.reverse()
-    if (
-        offsetDict["verbose"] == 1
-    ):  # Show the slice timing (P.S. Printing is very time consuming in python)
-        print("Slice timing: %s" % slice_offsets)
-        
-    return slice_offsets
-    
 
 def retro_ts(
     resp_file         = None,
@@ -475,7 +356,7 @@ def retro_ts(
     parameters = dict()
     parameters['cardFile']      = card_file
     parameters['respFile']      = resp_file
-    parameters['s']             = number_of_slices
+    parameters['num_slices']    = number_of_slices
     parameters['TR']            = volume_tr
     parameters['StartTime']     = start_time
     parameters['num_time_pts']  = int(num_time_pts)
@@ -519,7 +400,9 @@ def retro_ts(
     if parameters['niml']:
         return 0
     parameters['OutDir'] = OutDir
-    RET.ouputInNimlFormat(physiologicalNoiseComponents, parameters)
+    if RET.ouputInNimlFormat(physiologicalNoiseComponents, parameters):
+        print('ERROR outputting SliBase file')
+        return 1
     
     if len(physiologicalNoiseComponents['resp_phases']) > 0 and\
         (parameters['save_graphs'] or parameters['show_graphs']):

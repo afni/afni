@@ -116,11 +116,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
        Peter Lauren
    """
    
-   #DEBUG
-   oldArray = rawData
-   # # Debug
-   # array = oldArray[0:200000]
-   
    global OutDir
    
    # Check for nan's
@@ -1271,7 +1266,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
             Output physiological noise components to NeuroImaging Markup 
             Language (NIML) format
     TYPE
-        <class void>
+        <class int>
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the following fields.
         
@@ -1283,7 +1278,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
             
         parameters:   Dictionary with the following fields.
         
-            s:        (dtype = class 'int') Number of slices
+            num_slices:        (dtype = class 'int') Number of slices
             
             TR:       (dtype = class 'float') (volume_tr) Volume repetition 
                        time (TR) which defines the length of time 
@@ -1304,7 +1299,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     
     main_info = dict()
     main_info["rvt_out"] = parameters["rvt_out"]
-    main_info["number_of_slices"] = parameters['s']
+    main_info["number_of_slices"] = parameters['num_slices']
     main_info["prefix"] = parameters["prefix"]
     main_info["resp_out"] = len(physiologicalNoiseComponents['resp_phases']) > 0
     main_info["card_out"] = len(physiologicalNoiseComponents['card_phases']) > 0
@@ -1312,12 +1307,18 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     if len(physiologicalNoiseComponents['resp_phases']) > 0:
         resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
                         'r', parameters)
+        if resp_info == None:
+            print('ERROR getting respiratory regressors')
+            return 1
         resp_info["rvt_shifts"] = list(range(0, 21, 5))
         resp_info["rvtrs_slc"] = np.zeros((len(resp_info["rvt_shifts"]), 
                         len(resp_info["time_series_time"])))
     if len(physiologicalNoiseComponents['card_phases']) > 0:
         card_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
                         'c', parameters)
+        if card_info == None:
+            print('ERROR getting cardiac regressors')
+            return 1
         card_info["rvt_shifts"] = list(range(0, 21, 5))
         card_info["rvtrs_slc"] = np.zeros((len(card_info["rvt_shifts"]), 
                         len(card_info["time_series_time"])))
@@ -1450,6 +1451,203 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
         footer=("%s" % tailclose),
     )
     
+    return 0
+    
+def selectPhaseListAndNumTimeSteps(dataType, physiologicalNoiseComponents):
+    """
+    NAME
+        selectPhaseListAndNumTimeSteps 
+            Select the phase list, of the required type, from the physiological
+            noise components determined per the Glover (2000) paper and 
+            detected peaks and troughs.  Also returns the number of time steps
+            which is the length of the phase list
+    TYPE
+        <class 'list'>, <class 'int'>
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in time points 
+                                                (not seconds)
+            
+        dataType:     (dtype = class 'str') Type of data to be processed.  'c' 
+                                            for cardiac.'r' for respiratory
+                           (default is equivalent of alt+z)                      
+    AUTHOR
+       Peter Lauren 
+    """
+        
+    if dataType == 'c':
+        numTimeSteps = len(physiologicalNoiseComponents['card_phases'])
+        if numTimeSteps == 0:
+            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Cardiac phases required but none available')
+            return None, None
+        phaseList = physiologicalNoiseComponents['card_phases']
+    else:
+        numTimeSteps = len(physiologicalNoiseComponents['resp_phases'])
+        if numTimeSteps == 0:
+            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Respiratory phases required but none available')
+            return None, None
+        phaseList = physiologicalNoiseComponents['resp_phases']
+     
+    return phaseList, numTimeSteps
+
+def setUpTimeSeries(phasee, parameters, numTimeSteps):
+    """
+    NAME
+        setUpTimeSeries 
+            Set up time series which would be the rows of the output SliBase file
+    TYPE
+        <class 'dict'>
+    ARGUMENTS
+        phasee:   Dictionary that has already been initialized and may already contain fields.
+            
+        parameters:   Dictionary with the following fields.
+        
+            num_slices:        (dtype = class 'int') Number of slices
+            
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                        time (TR) which defines the length of time 
+            
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                       in Hz.
+        
+            slice_times: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+
+    #initialize output from input parameters
+    phasee['slice_times'] = parameters['slice_times']
+    timeStepIncrement = 1.0/parameters['phys_fs']
+    
+    phasee["t"] = np.zeros(numTimeSteps)
+    for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
+
+    phasee["volume_tr"] = parameters['TR']
+    phasee["time_series_time"] = np.arange(
+        0, (max(phasee["t"]) - 0.5 * phasee["volume_tr"]), phasee["volume_tr"]
+    )
+    
+    # Reduce number of output time points to user-specified value if required.
+    if parameters['num_time_pts']:
+        phasee["time_series_time"] = \
+        phasee["time_series_time"][0:parameters['num_time_pts']]  
+    
+    if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
+        phasee["time_series_time"] = np.append(
+            phasee["time_series_time"],
+            [phasee["time_series_time"][-1] + phasee["volume_tr"]],
+        )
+        
+    return phasee
+
+def initializePhaseSlices(phasee, parameters):
+    """
+    NAME
+        initializePhaseSlices 
+            Initialize phase coefficient output matrix where the number or rows
+            are the number pf time points and the number of columns four times
+            the number of slices
+    TYPE
+        <class 'dict'>
+    ARGUMENTS
+        phasee:   Dictionary with the following fields.
+        
+            time_series_time: (dType = class 'list') List of float which are 
+                              integral multiples of TR, starting at 0
+                        
+        parameters:   Dictionary with the following fields.
+        
+            num_slices:        (dtype = class 'int') Number of slices
+    AUTHOR
+       Peter Lauren 
+    """
+
+    phasee["number_of_slices"] = parameters['num_slices']
+    phasee["phase_slice_reg"] = zeros(
+        (len(phasee["time_series_time"]), 4, phasee["number_of_slices"])
+    )
+
+    phasee["phase_slice"] = zeros(
+        (len(phasee["time_series_time"]), phasee["number_of_slices"])
+    )
+    
+    return phasee
+
+def fillSliceRegressorArray(phasee):
+    """
+    NAME
+        fillSliceRegressorArray 
+            Fill phase regression matrix with regressors for each lice as per 
+            "Image-Based Method for 
+            Retrospective Correction of Physiological Motion Effects in 
+            fMRI: RETROICOR" by Gary H. Glover, Tie-Qiang Li, and David Ress 
+            (2000).  
+    TYPE
+        <class 'dict'>
+    ARGUMENTS
+        phasee:   Partly filled ictionary with the following fields.
+        
+            number_of_slices:        (dtype = class 'int') Number of slices
+            
+            time_series_time: (dType = class 'list') List of float which are 
+                              integral multiples of TR, starting at 0
+                              
+            slice_times: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                          
+            t: (dtype = <class 'numpy.ndarray'>) Progressive multiples of time step increment
+            
+            phase: (dtype = <class 'list'>)  List of phases for a given type (cardiac or
+                    respiratory).  derived using Glover's algorithm after peaks and troughs have
+                    been identified'
+            
+            phase_slice: (dtype = <class 'numpy.ndarray'>)  2D array with # columns = # output
+                        time points and # columns  = # slices
+                        
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>)  3D array with first dimension =
+                                # output time points, the second dimension 4 and the third
+                                dimension the number of slices
+            
+                       
+    AUTHOR
+       Peter Lauren 
+    """
+    # phasee["time_series_time"] are TR * index.  I.e. integral multiples of TR, starting at zero
+    for i_slice in range(phasee["number_of_slices"]):
+        # To the TR multiples, add the determined slice pattern time for the current index
+        tslc = phasee["time_series_time"] + phasee["slice_times"][i_slice]
+        
+        
+        for i in range(len(phasee["time_series_time"])): # For each multiple of TR (time point)
+            imin = np.argmin(abs(tslc[i] - phasee["t"]))
+            phasee["phase_slice"][i, i_slice] = phasee["phase"][imin]
+            
+        # Make four regressors for each slice.  First dimension is the time and the last is the
+        # slice.  Regressors as defined in Glover paper.
+        phasee["phase_slice_reg"][:, 0, i_slice] = np.sin(
+            phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 1, i_slice] = np.cos(
+            phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 2, i_slice] = np.sin(
+            2 * phasee["phase_slice"][:, i_slice]
+        )
+        phasee["phase_slice_reg"][:, 3, i_slice] = np.cos(
+            2 * phasee["phase_slice"][:, i_slice]
+        )
+    
+    return phasee
+    
+    
 def makeRegressorsForEachSlice(physiologicalNoiseComponents, 
                                dataType, parameters):
     """
@@ -1475,7 +1673,7 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             
         parameters:   Dictionary with the following fields.
         
-            s:        (dtype = class 'int') Number of slices
+            num_slices:        (dtype = class 'int') Number of slices
             
             TR:       (dtype = class 'float') (volume_tr) Volume repetition 
                         time (TR) which defines the length of time 
@@ -1487,71 +1685,22 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
                           (default is equivalent of alt+z)
                        
     AUTHOR
-       Peter Lauren and Josh Zosky 
+       Peter Lauren 
     """
-    
-    phasee = dict()
-    phasee["number_of_slices"] = parameters['s']
-    phasee['slice_times'] = parameters['slice_times']
-    timeStepIncrement = 1.0/parameters['phys_fs']
-    
-    if dataType == 'c':
-        numTimeSteps = len(physiologicalNoiseComponents['card_phases'])
-        if numTimeSteps == 0:
-            print('*** Error in makeRegressorsForEachSlice')
-            print('*** Cardiac phases required but none available')
-            return None
-        phasee["phase"] = physiologicalNoiseComponents['card_phases']
-    else:
-        numTimeSteps = len(physiologicalNoiseComponents['resp_phases'])
-        if numTimeSteps == 0:
-            print('*** Error in makeRegressorsForEachSlice')
-            print('*** Respiratory phases required but none available')
-            return None
-        phasee["phase"] = physiologicalNoiseComponents['resp_phases']
 
-    phasee["t"] = np.zeros(numTimeSteps)
-    for i in range(1,numTimeSteps): phasee["t"][i] = timeStepIncrement * i
-
-    phasee["volume_tr"] = parameters['TR']
-    phasee["time_series_time"] = np.arange(
-        0, (max(phasee["t"]) - 0.5 * phasee["volume_tr"]), phasee["volume_tr"]
-    )
+    phasee = dict() # Initialize output
     
-    # Reduce number of output time points to user-specified value if required.
-    if parameters['num_time_pts']:
-        phasee["time_series_time"] = \
-        phasee["time_series_time"][0:parameters['num_time_pts']]  
+    # Select phase list and get number of time steps
+    phasee["phase"], numTimeSteps = selectPhaseListAndNumTimeSteps(dataType, 
+                                        physiologicalNoiseComponents)
+    if numTimeSteps == None: return None
     
-    if (max(phasee["t"]) - 0.5 * phasee["volume_tr"]) % phasee["volume_tr"] == 0:
-        phasee["time_series_time"] = np.append(
-            phasee["time_series_time"],
-            [phasee["time_series_time"][-1] + phasee["volume_tr"]],
-        )
-    phasee["phase_slice"] = zeros(
-        (len(phasee["time_series_time"]), phasee["number_of_slices"])
-    )
-    phasee["phase_slice_reg"] = zeros(
-        (len(phasee["time_series_time"]), 4, phasee["number_of_slices"])
-    )
-    for i_slice in range(phasee["number_of_slices"]):
-        tslc = phasee["time_series_time"] + phasee["slice_times"][i_slice]
-        for i in range(len(phasee["time_series_time"])):
-            imin = np.argmin(abs(tslc[i] - phasee["t"]))
-            phasee["phase_slice"][i, i_slice] = phasee["phase"][imin]
-        # Make regressors for each slice
-        phasee["phase_slice_reg"][:, 0, i_slice] = np.sin(
-            phasee["phase_slice"][:, i_slice]
-        )
-        phasee["phase_slice_reg"][:, 1, i_slice] = np.cos(
-            phasee["phase_slice"][:, i_slice]
-        )
-        phasee["phase_slice_reg"][:, 2, i_slice] = np.sin(
-            2 * phasee["phase_slice"][:, i_slice]
-        )
-        phasee["phase_slice_reg"][:, 3, i_slice] = np.cos(
-            2 * phasee["phase_slice"][:, i_slice]
-        )
+    # Set up time series
+    phasee = setUpTimeSeries(phasee, parameters, numTimeSteps)
+    
+    phasee = initializePhaseSlices(phasee, parameters)
+    
+    phasee = fillSliceRegressorArray(phasee)
     
     return  phasee
 
@@ -2061,7 +2210,7 @@ def show_rvt_peak(physiologicalNoiseComponents, parameters):
                 
         parameters:       <class 'float'> Time point sampling frequency in Hz
         
-            s:        (dtype = class 'int') Number of slices
+            num_slices:   (dtype = class 'int') Number of slices
             
             TR:       (dtype = class 'float') (volume_tr) Volume repetition 
                         time (TR) which defines the length of time 
