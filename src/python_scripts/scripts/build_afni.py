@@ -216,11 +216,12 @@ R Reynolds    sometime 2023
 g_history = """
    build_afni.py history:
 
-   0.0  Feb  8, 2022 - getting started
+   0.0  Feb  8, 2023 - getting started
+   0.1  Feb 18, 2023 - initial release, but have features to add
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.0, February 8, 2023" % g_prog
+g_version = "%s, version 0.1, February 18, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
