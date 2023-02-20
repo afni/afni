@@ -16,49 +16,89 @@ from afnipy import lib_vars_object as VO
 
 g_help_string = """
 =============================================================================
-build_afni.py - build an AFNI package ~1~
+build_afni.py - compile an AFNI package ~1~
 
    This program is meant to compile AFNI from the git repository.
+   It is intended as a quick and convenient way to compile.
+
+ * This is NOT intended as a platform for developers.
+   This is meant only for compiling, not for making updates to the code.
+
    The main process (for a new directory) might be something like:
 
       - create working tree from the specified -root_dir
       - prepare git
          - clone AFNI's git repository
-         - possibly checkout a branch and tag
+         - possibly checkout a branch (master)
+         - possibly checkout the most recent tag (AFNI_XX.X.XX)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
-      - prepare src
+      - prepare src build
          - copy git/afni/src to build_src
-         - copy requested Makefile
+         - copy specified Makefile
+         - run build
+      - prepare cmake build (optional)
          - run build
 
-      ...
+   Final comments will be shown about:
+
+      - how to rerun the make build
+      - how to rerun the make build test
+      - where a command (shell/system) history file is stored
+        (cmd_history.txt is generally stored in the -root_dir)
 
 ------------------------------------------
 examples: ~1~
 
    0. basic, start fresh or with updates ~2~
-      (only specify required -root_dir)
+
+      Either start from nothing from a clean and updated version.
 
         build_afni.py -root_dir my/build/dir
+
+      notes:
+        - if there is an existing git tree, pull any updates
+        - if there is an existing build_src tree, rename it and start clean
+
+   1. simple, but continue where we left off ~2~
+
+      Use this method to :
+        - continue a previously terminated build
+        - to rebuild after making updates to the build_src tree
+        - to rebuild after installing additional system libraries
+
+        build_afni.py -root_dir my/build/dir -clean_root no
+
+      notes:
+        - if there is an existing git tree, use it (with no updates)
+        - if there is an existing build_src directory, keep and use it
+
+   2. basic, but specify an existing build package ~2~
+
+      This implies a Makefile to use for the build.
+
+        build_afni.py -root_dir my/build/dir -package linux_centos_7_64
+
+   3. use an alternate Makefile, but do not update git repo ~2~
+
+        build_afni.py -root_dir my/build/dir -git_update no \\
+                      -makefile my_better_makefile
+
+   4. test the setup, but do not run any make (using -prep_only) ~2~
+
+        build_afni.py -root_dir my/build/dir -prep_only \\
+                      -git_update no -makefile my_better_makefile 
 
 
 ------------------------------------------
 todo:
-  - opts for git branch and label/tag
   - opts to pass to cmake
-  - if no -package, try to guess
-  - allow choice of make target
-  - allow source rebuild?
+  - given a Makefile, will want to detect output package name
+  - pick a method for guessing an appropriate Makefile
+    Ubuntu vs Fedora vs RedHat vs other vs macos (12+?)
 
 later:
   - worry about sync to abin
-  - help
-
-------------------------------------------
-examples: ~1~
-
-    0.
 
 ------------------------------------------
 terminal options: ~1~
@@ -68,24 +108,102 @@ terminal options: ~1~
       -show_valid_opts          : list valid options
       -ver                      : show current version
 
+required:
+
+      -root_dir                 : root directory to use for git and building
+
 other options:
 
-      -build_dir                : root for AFNI build
+      -clean_root yes/no        : specify whether to clean up the root_dir
 
-          This is the root directory that building takes place under.  It
-          will contain (if it exists):
+          default -clean_root yes
+          e.g.    -clean_root no
 
-                git             - contains 'afni' git repo
+          If 'no' is specified, the git directory will not be updated and the
+          build_src directory will not be remade.
 
-          and optionally any of:
+      -git_branch BRANCH        : specify a branch to checkout in git
 
-                atlases         - atlases to go in abin
-                cmake_build     - location of any cmake build
-                src_build       - location of any src build
+          default -git_branch master
+          e.g.    -git_branch some_stupid_branch
+
+          This will just lead to 'git checkout BRANCH'.
+
+      -git_tag TAG              : specify a tag to checkout in git
+
+          default -git_tag LAST_TAG
+          e.g.    -git_tag NONE
+
+          This will lead to 'git checkout TAG', of some sort, depending:
+
+             LAST_TAG   : checkout most recent (annotated) AFNI_XX.X.XX tag.
+                          (annotated tags come from official AFNI builds)
+             NONE       : do not checkout any specific tag
+
+      -git_update yes/no        : specify whether to update git repo
+
+          default -git_update yes
+          e.g.    -git_update no
+
+          If 'no' is specified, the git/afni/src tree must already exist, and
+          nothing will be done to it.  This option cannot be used with
+          -git_branch or -git_tag.
+
+      -make_target TARGET       : specify target for make command
+
+          default -make_target itall
+          e.g.    -make_target totality
+          e.g.    -make_target afni
+
+          When the 'make' command is run under build_src, use the given target.
+          Since an individual program make would probably be done directly on
+          the command line (rather than using this program), the most typical
+          reason to do this might be to save disk space.  Using totality
+          (instead of itall) would clean up after the make.
+
+      -makefile MAKEFILE        : specify an alternate Makefile to build from
+
+          default -makefile Makefile.PACKAGE (for the given PACKAGE)
+          e.g.    -makefile my.better.makefile
+
+          This option is a mechanism for specifying a Makefile that is not
+          (currently) part of the AFNI distribution.
+
+      -package PACKAGE          : specify the desired package to build
+
+          e.g. -package linux_centos_7_64
+
+          The package will imply a Makefile to use, Makefile.PACKAGE.
+          It will also be the name of the output binary directory.
+
+      -prep_only                : prepare to but do not run (c)make
+
+          e.g. -prep_only
+
+          This is for testing or for practice.
+
+          Do everything leading up to running cmake or make commands,
+          but do not actually run them (make/cmake).  This still requires a
+          git tree, but using "-git_update no" is okay.
+
+      -run_cmake yes/no         : choose whether to run a cmake build
+
+          default: -run_cmake no
+          e.g.   : -run_cmake yes
+
+          If requested, run a cmake build under the build_cmake directory.
+
+      -run_make yes/no          : choose whether to run a make build
+
+          default: -run_cmake yes
+          e.g.   : -run_cmake no
+
+          By default, a make build will be run.  Use this option to specify
+          not to.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
-          e.g., -verb 2
+          e.g. -verb 2
 
           Specify how verbose the program should be, from 0=quiet to 4=max.
           As is typical, the default level is 1.
@@ -98,11 +216,12 @@ R Reynolds    sometime 2023
 g_history = """
    build_afni.py history:
 
-   0.0  Dec  8, 2022 -
+   0.0  Feb  8, 2023 - getting started
+   0.1  Feb 18, 2023 - initial release, but have features to add
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.0, February 8, 2023" % g_prog
+g_version = "%s, version 0.1, February 18, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -188,14 +307,16 @@ class MyInterface:
 
       # command-line controlled variables
       self.clean_root      = 1      # clean old root dirs?
-      self.git_branch      = 'master' # branch to check out
-      self.git_tag         = 'LAST_TAG' # branch to check out
-                                    # (e.g. LAST_TAG, NONE, AFNI_23...)
+      self.git_branch      = ''     # branch to check out (def master)
+      self.git_tag         = ''     # tag to check out (def LAST_TAG)
+      self.git_update      = 1      # do git clone or pull
       self.package         = ''     # to imply Makefile and build dir
 
+      self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
-      self.update_git      = 1      # do git clone or pull
+      self.make_target     = 'itall' # target in "make" command
+      self.makefile        = ''     # an alternate Makefile to build from
 
       self.verb            = verb   # verbosity level
 
@@ -214,6 +335,7 @@ class MyInterface:
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
       self.hist_file       = 'cmd_history.txt' # final history file
+      self.makefile_path   = ''     # abspath to -makefile
 
       self.pold            = 'prev.'        # prefix for old version
       self.dcbuild         = 'build_cmake'
@@ -260,10 +382,6 @@ class MyInterface:
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
 
-
-      self.valid_opts.add_opt('-jello', 0, [], helpstr='')
-
-
       # short, terminal options
       self.valid_opts.add_opt('-help', 0, [],
                       helpstr='display program help')
@@ -284,22 +402,29 @@ class MyInterface:
                       helpstr='the binary package to build')
 
       # general options
+      self.valid_opts.add_opt('-clean_root', 1, [],
+                      helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-git_branch', 1, [],
                       helpstr='the git branch to checkout (def=%s)' \
                               % self.git_branch)
       self.valid_opts.add_opt('-git_tag', 1, [],
                       helpstr='the git tag to use (def=%s)'%self.git_tag)
-      self.valid_opts.add_opt('-clean_root', 1, [],
-                      helpstr='clean up from old work? (def=y)')
+      self.valid_opts.add_opt('-git_update', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='should we update the local git repo')
+
+      self.valid_opts.add_opt('-make_target', 1, [],
+                      helpstr="specify target for make (def=itall)")
+      self.valid_opts.add_opt('-makefile', 1, [],
+                      helpstr="specify an alternate Makefile to build from")
+      self.valid_opts.add_opt('-prep_only', 0, [],
+                      helpstr="only prepare for (c)make, do not run it")
       self.valid_opts.add_opt('-run_cmake', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'cmake' build?")
       self.valid_opts.add_opt('-run_make', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'make' build? (def=y)")
-      self.valid_opts.add_opt('-update_git', 1, [],
-                      acplist=['yes','no'],
-                      helpstr='should we update the local git repo')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -348,8 +473,6 @@ class MyInterface:
 
       for opt in uopts.olist:
 
-         if opt.name == '-jello': continue
-
          # TERMINAL help options that might need -verb
 
          # main options
@@ -358,6 +481,7 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.do_abin = dirobj('abin_dir', val)
+            MESGe("-abin not yet implemented")
 
          elif opt.name == '-root_dir':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -372,7 +496,7 @@ class MyInterface:
             else:
                # do not clean, do not update git
                self.clean_root = 0
-               self.update_git = 0
+               self.git_update = 0
 
          elif opt.name == '-git_branch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -384,10 +508,29 @@ class MyInterface:
             if val == None or err: return -1
             self.git_tag = val
 
+         elif opt.name == '-git_update':
+            if OL.opt_is_yes(opt):
+               self.git_update = 1
+            else:
+               self.git_update = 0
+
+         elif opt.name == '-make_target':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.make_target = val
+
+         elif opt.name == '-makefile':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.makefile = val
+
          elif opt.name == '-package':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.package = val
+
+         elif opt.name == '-prep_only':
+            self.prep_only = 1
 
          elif opt.name == '-run_make':
             if OL.opt_is_yes(opt):
@@ -401,12 +544,6 @@ class MyInterface:
             else:
                self.run_cmake = 0
 
-         elif opt.name == '-update_git':
-            if OL.opt_is_yes(opt):
-               self.update_git = 1
-            else:
-               self.update_git = 0
-
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val == None or err: return -1
@@ -415,6 +552,26 @@ class MyInterface:
          else:
             MESGe("unhandled option '%s'" % opt.name)
             return -1
+
+      # misc checks
+      if self.git_update == 0 and (self.git_branch or self.git_tag):
+         MESGe("cannot use -git_branch or -git_tag without -git_update yes")
+         return -1
+
+      # if we have a makefile, make sure it exists
+      if self.makefile:
+         if not os.path.isfile(self.makefile):
+            MESGe("cannot find given -makefile '%s'" % self.makefile)
+            return -1
+         # note the full path before any 'cd'
+         self.makefile_path = os.path.abspath(self.makefile)
+
+      # assign any needed defaults - usually corresponding to 'misc checks'
+      if self.git_branch == '':
+         self.git_branch = 'master'
+
+      if self.git_tag == '':
+         self.git_tag = 'LAST_TAG'
 
       return 0
 
@@ -442,6 +599,7 @@ class MyInterface:
       if self.do_root is not None:
          rv = self.run_main_build()
 
+      # save history, either way
       self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
       if self.verb:
@@ -538,15 +696,17 @@ class MyInterface:
       if self.do_root is None:
          return 0
 
-      if self.package == '':
+      if self.package == '' and self.makefile == '':
          MESGe("-package unspecified and not implied by current version")
+         MESGi("(and no -makefile specified)")
          return 1
 
       if self.do_root.exists and self.clean_root:
          if self.clean_old_root():
             return 1
 
-      rv = self.prepare_root()
+      if self.prepare_root():
+         return 1
 
       # build source - the main purpose of this program
       if self.run_make:
@@ -640,6 +800,11 @@ class MyInterface:
       self.final_mesg.append("   make VERBOSE=1")
       self.final_mesg.append("   (or run %s script)" % sfile)
 
+      # if -prep_only, we are done
+      if self.prep_only:
+         MESGp("have -prep_only, skipping actual cmake and make")
+         return 0
+
       MESGm("building (cmake) ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
@@ -656,6 +821,7 @@ class MyInterface:
             - have or try to choose a suitable package
             - copy git/afni/src tree
             - find corresponding Makefile
+              (or try to copy given one)
             - run build
       """
 
@@ -681,6 +847,14 @@ class MyInterface:
       # if we already have one, the user requested not to clean
       if os.path.isfile('Makefile'):
          MESGm("have Makefile, ignoring -package %s" % self.package)
+         if self.makefile:
+            MESGi("also ignoring -makefile %s" % self.makefile)
+      # else if one was specified, copy it here
+      elif self.makefile:
+         MESGm("copying %s to %s" % (self.makefile, "Makefile"))
+         st, ot = self.run_cmd('cp', [self.makefile_path, 'Makefile'], pc=1)
+         if st: return st
+      # else use what is implied from package
       else:
          mfile = 'Makefile.%s' % self.package
          mtmp = mfile
@@ -696,14 +870,35 @@ class MyInterface:
          if st: return st
 
       # run the build (this is why we are here!)
+      target = self.make_target
+
+      # final messages
       self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make itall")
+      self.final_mesg.append("   make %s" % target)
+      # if there is some known abin, mention possibly rsync
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      if do is not None:
+         full_bpath = '%s/%s' % (self.do_root.abspath, self.dsbuild)
+         self.final_mesg.append("------------------------------")
+         self.final_mesg.append("to possibly rsync make output:")
+         self.final_mesg.append("   rsync -av %s/%s/ %s/" \
+             % (full_bpath, self.package, do.abspath))
+
+      MESGm("building make target '%s'" % target)
+
+      # if -prep_only, we are done
+      if self.prep_only:
+         MESGp("have -prep_only, skipping make and test")
+         return 0
 
       logfile = 'log_make.txt'
-      target = 'itall'
-      MESGm("building ...")
+      MESGp("building ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
@@ -712,14 +907,14 @@ class MyInterface:
 
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
-      MESGp("building %s" % tmesg)
+      MESGm("building %s" % tmesg)
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
       # test the build
       logfile = 'log_test.txt'
       binopt = '-bin_dir %s' % self.package
-      MESGm("testing the build results ...")
+      MESGp("testing the build results ...")
 
       cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
       self.final_mesg.append("------------------------------")
@@ -733,7 +928,7 @@ class MyInterface:
 
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
-      MESGp("testing %s" % tmesg)
+      MESGm("testing %s" % tmesg)
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
@@ -790,37 +985,23 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
+      # if the user does not want any udpates, we are done
+      # (but note what is being used)
+      if not self.git_update:
+         MESGm("skipping any git updates")
+         return self.report_branch_tag(gitd)
+
+      # if git/afni exists, cd there and update
       if os.path.exists(gitd):
-         if self.update_git:
-            st, ot = self.run_cmd('cd', gitd, pc=1)
-            if st: return st
-            st, ot = self.run_cmd('git fetch --all')
-            if st: return st
-            st, ot = self.run_cmd('git checkout %s' % self.git_branch)
-            if st: return st
-
-            # pick a tag
-            if self.git_tag == 'LAST_TAG':
-               # some commands have non-zero status, so ignore
-               st, ot = self.run_cmd("git describe --tags")
-               if not ot.startswith('AFNI_'):
-                  MESGe("failed to find recent AFNI tags")
-                  return 1
-               MESGm("have default git tag LAST_TAG, will checkout %s" % ot)
-               tag = ot
-            else:
-               tag = self.git_tag
-
-            # and check it out (if not NONE)
-            if self.git_tag != '' and self.git_tag != 'NONE':
-               st, ot = self.run_cmd('git checkout %s' % tag)
-               if st: return st
-         else:
-            st, otext = UTIL.exec_tcsh_command('git describe')
-            #if not st and otext != '':
-            
-            MESGm("skipping 'git pull', using current repo")
-               
+         st, ot = self.run_cmd('cd', gitd, pc=1)
+         if st: return st
+         st, ot = self.run_cmd('git fetch --all')
+         if st: return st
+         st, ot = self.run_cmd('git checkout %s' % self.git_branch)
+         if st: return st
+         st, ot = self.run_cmd('git pull origin %s' % self.git_branch)
+         if st: return st
+      # otherwise, initialize the git tree
       else:
          if not os.path.exists('git'):
             st, ot = self.run_cmd('mkdir', 'git', pc=1)
@@ -831,8 +1012,56 @@ class MyInterface:
          MESGm("running 'git clone' on afni repo ...")
          MESGi("(please be patient)")
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
+         if st: return st
+         st, ot = self.run_cmd('git checkout %s' % self.git_branch)
+         if st: return st
+
+      # now possibly checkout a tag ('' means unset)
+      if self.git_tag == 'LAST_TAG':
+         tag = self.most_recent_tag()
+      else:
+         tag = self.git_tag
+
+      if tag != '' and tag != 'NONE':
+         MESGm("checking out git tag %s" % tag)
+         st, ot = self.run_cmd('git checkout %s' % tag)
+         if st: return st
+      else:
+         MESGm("not checking out any git tag")
+
+      # report the branch and tag that we are working with
+      self.report_branch_tag()
 
       return 0
+
+   def report_branch_tag(self, cdpath=''):
+      """report the current branch and tag
+          if cdpath is set, change directory first
+          return 0 on success
+      """
+      if cdpath != '':
+         st, ot = self.run_cmd('cd', cdpath, pc=1)
+         if st: return st
+
+      st, obr = self.run_cmd('git branch --show-current')
+      st, otag = self.run_cmd('git describe')
+      if obr == '':
+         obr = '(detached)'
+      MESGm("using repo branch %s, tag %s" % (obr, otag))
+
+      return 0
+
+   def most_recent_tag(self):
+      """just return the most recent AFNI_* tag (a clean one of length 12)
+         return an empty string on failure
+      """
+      st, tag = self.run_cmd("git describe --tags --abbrev=0")
+      if not tag.startswith('AFNI_') or len(tag) != 12:
+         MESGe("failed to find recent AFNI build tag, have %s" % tag)
+         return ''
+      MESGm("have default git tag LAST_TAG, will checkout %s" % tag)
+
+      return tag
 
    def clean_old_root(self):
       """an old root_dir exists, clean up or back up
@@ -860,26 +1089,27 @@ class MyInterface:
       for sdir in [self.dsbuild, self.dcbuild]:
          prev = '%s%s' % (self.pold, sdir)
          if os.path.exists(sdir):
-             if self.verb:
-                MESGm("backing up dir %s" % sdir)
+            if self.verb:
+               MESGm("backing up dir %s" % sdir)
 
-             # remove old prev
-             if os.path.exists(prev):
-                st, ot = self.run_cmd('rmtree', prev, pc=1)
-                if st: return st
-             # mv current to prev
-             st, ot = self.run_cmd('mv', [sdir, prev], pc=1)
-             if st: return st
+            # remove old prev
+            if os.path.exists(prev):
+               st, ot = self.run_cmd('rmtree', prev, pc=1)
+               if st: return st
+            # mv current to prev
+            st, ot = self.run_cmd('mv', [sdir, prev], pc=1)
+            if st: return st
 
       return 0
 
-   def run_cmd(self, cmd, params='', pc=0):
+   def run_cmd(self, cmd, params='', pc=0, strip=1):
       """main purpose is to store commands in history
             cmd     : a simple command or a full one
             params  : can be a simple string or a list of them
             pc      : denotes python command
                         - cmd is a single word ('cd', 'mkdir' ...)
                         - params are separate (we will see how it goes)
+            strip   : strip any non-pc text (in rare case that we want text)
          return status, text output
       """
       rv = 0
@@ -900,6 +1130,11 @@ class MyInterface:
          if pstr != '': cmd += " %s" % pstr
          self.history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
+         if st:
+            MESGe("failed run_cmd: %s" % cmd)
+            MESGe(otext)
+         if strip:
+            otext = otext.strip()
          return st, otext
 
       # now python commands
@@ -935,7 +1170,7 @@ class MyInterface:
       try:
          eval(cstr)
       except:
-         MESGe("failed run_cmd: %s %s" % (cmd, pstr))
+         MESGe("failed run_cmd(p): %s %s" % (cmd, pstr))
          rv = 1
 
       return rv, ''
@@ -953,7 +1188,7 @@ class MyInterface:
       prog = 'afni_proc.py' # since 'afni' might not be in text distribution
       wp = UTIL.which(prog)
       if wp != '':
-         self.do_orig_abin = dirobj('orig_abin_dir', wp)
+         self.do_orig_abin = dirobj('orig_abin_dir', path_head(wp))
          self.get_orig_abin_info(self.do_orig_abin)
       else:
          if self.verb > 1:
@@ -971,9 +1206,9 @@ class MyInterface:
       do_abin.date = ''
 
       if self.verb > 1:
-         MESGp("have original abin %s" % self.do_orig_abin.abspath)
+         MESGp("have original abin %s" % do_abin.abspath)
 
-      vfile = '%s/AFNI_version.txt' % do_abin.head
+      vfile = '%s/AFNI_version.txt' % do_abin.abspath
 
       tdata = UTIL.read_text_file(vfile, lines=1, strip=1, verb=0)
       if len(tdata) < 3:
@@ -993,11 +1228,6 @@ class MyInterface:
          self.package = do_abin.package
 
 def main(argv):
-   if '-jello' not in argv:
-      print("")
-      print("  this program is not yet ready for consumption")
-      print("")
-      sys.exit()
 
    me = MyInterface()
    if not me: return 1

@@ -53,6 +53,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
+   "compile AFNI",
+   "  - download from github\n"
+   "  - download AFNI atlases\n"
+   "  - compile\n"
+   "  - suggest rsync (will apply with some options, later)"
+ } ,
+
  { 17, Feb, 2023, RCR, "3dDeconvolve", MINOR, TYPE_BUG_FIX,
    "when counting events, default (with GUESS) to GLOBAL",
    "Previously, when the user did not specify either -local_times or\n"
