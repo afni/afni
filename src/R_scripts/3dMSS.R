@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Feb 15, 2023
+Version 1.0.0, Feb 16, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -45,6 +45,10 @@ Introduction
 
  Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
  in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
+
+ Chen et al. (2023). BOLD response is more than just magnitude: improving
+ detection sensitivity through capturing hemodynamic profiles.
+ https://t.co/vLNYOhb6Jl
 
  To be able to run 3dMSS, one needs to have the following R packaages 
  installed: "gamm4" and "snow". To install these R packages, run the
@@ -216,10 +220,66 @@ Introduction
 
 ex4 <-
  "Example 4 --- modeling hemodynamic response: this 3dMSS script is
-  intended to compares HRF between the two groups of patients (PT)
-  and healthy volunteer (HV) at the population level. Each HRF at 
+  intended to (1) assess the presence of HRF for one group or (2) compare
+  HRFs between two conditions for one group. For first case, each HRF at 
   the indiividual level is characterized at 14 time points with a time 
-  resolution TR = 1.25s. Two covariates are considered: sex and age. 
+  resolution TR = 1.25s. In the second case, obtain the HRF contrast 
+  between the two conditions. For either case, each individual should have 
+  14 input files. Two covariates are considered: sex and age.
+
+    3dMSS -prefix output -jobs 16             \
+        -lme 'sex+age+s(TR)' \
+        -ranEff 'list(subject=~1)'          \
+        -qVars 'sex,age,TR'           \
+        -prediction @HRF.table              \
+        -dataTable  @smooth-HRF.table
+
+  The output filename and number of CPUs for parallelization are
+  specified through -prefix and -jobs, respectively. The expression
+  s() in the model specification indicator '-lme' represents the
+  smooth function, and the term 's(TR)' codes the overall HRF profile groups. 
+  The term 'list(subject=~1)' under the option '-ranEff'
+  indicates the random effects for the cross-individual variability in
+  intercept. The number of thin plate spline bases was set to the
+  default K = 10. The option '-qVars' identifies quantitative
+  variables (TR and age in this case plus dummy-coded sex and
+  group). The last two specifiers -prediction and -dataTable list one
+  table for HRF prediction and another for input data information,
+  respectively. The input file 'smooth-HRF.table' is structured in a
+  long data frame format:
+
+  subject age sex    TR  InputFile
+  s1      29   1     0   s1.Inc.b0.nii
+  s1      29   1     1   s1.Inc.b1.nii
+  s1      29   1     2   s1.Inc.b2.nii
+  s1      29   1     3   s1.Inc.b3.nii
+  s1      29   1     4   s1.Inc.b4.nii
+  ...
+
+  The factor 'sex' is dummy-coded with 1s and -1s. The following
+  table as the input file 'HRF.table' provides the specifications for
+  predicted HRFs:
+
+  label   age   sex      TR
+  s1      6.2     1      0.00
+  s1      6.2     1      0.25
+  s1      6.2     1      0.50
+  ...
+  s72     3.5    -1      0.00
+  s72     3.5    -1      0.25
+  s72     3.5    -1      0.50
+  ...
+   \n"
+
+ex5 <-
+ "Example 5 --- modeling hemodynamic response: this 3dMSS script is
+  intended to (1) compares HRFs under one task condition between the 
+  two groups of patients (PT) and healthy volunteer (HV) at the 
+  population level, or (2) assess the interaction between group and
+  task condition (2 levels). For the second case, obtain the HRF 
+  contrast at each time point. In either case, if the HRF is represented
+  with 14 time points with a time resolution TR = 1.25s, each individual
+  should have 14 input files. Two covariates are considered: sex and age.
 
   3dMSS -prefix output -jobs 16             \
         -lme 'sex+age+s(TR)+s(TR,by=group)' \
@@ -279,7 +339,7 @@ ex4 <-
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ex5, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
