@@ -10,6 +10,43 @@ import lib_retro_opts as lro
 
 # ==========================================================================
 
+class phys_ts_obj:
+    """An object for holding physio time series (e.g., card and resp) and
+derived data.
+
+    """
+
+    def __init__(self, ts_orig, phys_freq = 0.0,
+                 label=None, verb=0):
+        """Create object holding a physio time series data.
+
+        """
+
+        self.verb    = verb              # verbosity level
+        self.label   = label             # str, label like 'card', 'resp', etc.
+
+        self.ts_orig   = np.array(ts_orig)   # arr, original time series
+        self.phys_freq = float(phys_freq)    # float, same freq (in Hz)
+
+    @property
+    def n_ts_orig(self):
+        """The number of time points in original time series."""
+        return len(self.ts_orig)
+
+    @property
+    def phys_samp(self):
+        """The physical sampling rate (in sec)."""
+        try:
+            rate = 1.0/self.phys_freq
+        except:
+            print("** WARNING: undefined sampling rate")
+            rate = np.nan
+        return rate
+
+
+
+# -------------------------------------------------------------------------
+
 class retro_obj:
     """An object for starting the retroicor process for making physio
 regressors for MRI data.
@@ -35,15 +72,15 @@ regressors for MRI data.
         self.exit_on_null = True       # exit if null values in data files?
         self.exit_on_zero = False      # exit if zero values in data files?
 
-        # physio info
-        self.phys_freq   = None        # float, physio samp freq (in Hz)
-        self.phys_samp   = None        # float, = 1/phys_freq (in s)
+        # physio info (-> some now in resp_data and card_data objs)
+        #self.phys_freq   = None        # float, physio samp freq (in Hz)
+        #self.phys_samp   = None        # float, = 1/phys_freq (in s)
         self.start_time  = None        # float, time offset from start of MRI
 
-        # MRI EPI info
-        self.slice_times  = []         # list of floats for slice timing
-        self.volume_tr    = None       # float, TR of MRI EPI
-        self.num_time_pts = None       # int, Nvol MRI EPI
+        # MRI EPI volumetric info
+        self.vol_slice_times = []         # list of floats for slice timing
+        self.vol_tr          = None       # float, TR of MRI EPI
+        self.vol_ntps        = None       # int, Nvol MRI EPI
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -63,6 +100,28 @@ regressors for MRI data.
         # TBD
         self.fir_order    = None       # int, FIR order
         # phase offset, aby and abt
+
+
+
+    @property
+    def n_slice_times(self):
+        """Length of volumetric slice times list."""
+        return len(self.vol_slice_times)
+
+    @property
+    def have_card(self):
+        """Do we appear to have a card obj?"""
+        return self.card_data != None
+
+    @property
+    def have_resp(self):
+        """Do we appear to have a resp obj?"""
+        return self.resp_data != None
+
+
+
+
+
 
 # ==========================================================================
 
