@@ -120,8 +120,198 @@ regressors for MRI data.
 
 
 
+def find_bad_vals(x, bad_nums=None, verb=0):
+    """For a 1D array x of length N, check for NaNs as well as any list of
+possibly bad (finite) values to report, such as 0s.  Output a
+True/False array of length N, where True highlights a bad value.
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array
+bad_nums : list
+    list of integer or float values that will be considered bad
+verb : int
+    verbosity level
+
+Returns
+-------
+arr_bad : np.ndarray (1D)
+    array of dtype=bool and len(x), with True values pointing out bad
+    values in x.    
+
+    """
+    N = len(x)
+
+    # find nans
+    arr_bad = np.isnan(x)
+
+    # ... and check for additional bad values, if listed
+    if not(bad_nums is None) :
+        for ii in range(N):
+            if x[ii] in bad_nums :
+                arr_bad[ii] = True
+
+    if verb:
+        nbad = np.sum(arr_bad)
+        print("++ Number of bad values found: {}".format(nbad))
+
+    return arr_bad
+
+def find_out_vals(x, arr_bad=None, out_perc=[25, 75], verb=0):
+    """For a 1D array x of length N, check for outliers to report.  Output
+a True/False array of length N, where True highlights an outlier
+value.
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array 
+bad_arr : array
+    boolean array of len(x), where True values are bad values to be
+    avoided in the outlier estimation; if not provided, all values are used
+out_perc : list
+    a list of 2 numbers, for calculating an interquartile range (or
+    analogue, when the values are changed). Outliers are defined to be
+    + when > (value at upper perc ran) + 1.5 * (perc ran interval)
+    + when < (value at lower perc ran) - 1.5 * (perc ran interval)
+verb : int
+    verbosity level
+
+Returns
+-------
+arr_out : np.ndarray (1D)
+    array of dtype=bool and len(x), with True values pointing out outlier
+    values in x.
+
+    """
+
+    if len(out_perc) != 2:
+        sys.exit("** ERROR: out_perc must have 2 values, not {}"
+                 "".format(len(out_perc)))
+    if out_perc[1] <= out_perc[0]:
+        sys.exit("** ERROR: must have out_perc[1] > out_perc[0]")
+
+    N = len(x)
+
+    # make array of good values; kind of waste in some cases, but
+    # simplifies later lines
+    if not(arr_bad is None) :
+        if len(arr_bad) != N:
+            sys.exit("** ERROR: mismatched length arrays: {} and {}"
+                     "".format(N, len(arr_bad)))
+        arr_good = np.invert(arr_bad)
+    else:
+        arr_good = np.ones(N, dtype=bool)
+
+    median      = np.percentile(x[arr_good], 50)
+    ran_bot, ran_top = np.percentile(x[arr_good], out_perc)
+    ran_magn    = ran_top - ran_bot
+    out_bnd_top = ran_top + 1.5*ran_magn
+    out_bnd_bot = ran_bot - 1.5*ran_magn
+
+    # make outlier array of len=N, where True points to outlier
+    arr_out = x > out_bnd_top
+    arr_out+= x < out_bnd_bot
+
+    if verb:
+        nout = np.sum(arr_out)
+        print("++ Outlier check info:")
+        print("   median        = {:.3f}".format(median))
+        print("   [{:5.2f} %ile]  = {:.3f}".format(out_perc[0], ran_bot))
+        print("   [{:5.2f} %ile]  = {:.3f}".format(out_perc[1], ran_top))
+        print("   inlier range  = [{:.3f}, {:.3f}]"
+              "".format(out_bnd_bot, out_bnd_top))
+        print("++ Number of outliers found: {}".format(nout))
+
+    return arr_out
+
+def calc_max_streak_true(B):
+    """For a 1D array of bools B, calculate the max streak of True values.
+That is, what is the maximum number of times True occurs in a row.
+
+Parameters
+----------
+B : np.ndarray
+    1D array of boolean values
+
+Returns
+-------
+L : int
+    integer value of max streak
+
+    """
+
+    N = len(B)
+
+    all_ind  = np.arange(N)        # all indices
+    true_ind = all_ind[B]          # indices where True appears
+    diff_ind = np.diff(true_ind)   # dist bt neighboring True indices
+    # make a string of 1s where diffs are 1 and 0s elsewhere
+    all_strk = "".join([str(int(x == 1)) for x in diff_ind]).split("0")
+    # turn previous string into list of lengths of True streaks
+    all_len  = [len(x)+1 for x in all_strk]
+    L = max(all_len)               # get max streak value
+
+    ### STILL IN PROGRESS
+
+    return 0
+
+def check_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
+                          out_perc = [25, 75], verb=0):
+    """For a 1D array x, check for NaNs as well as any list of possibly
+bad (finite) values to report, such as 0s.  The output list of bad
+indices will point to values that might be replaced later with
+interpolation or some other procedure.
+
+Also check for outliers (estimated from arr elements that are not NaNs
+or bad_nums).
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array
+bad_nums : list
+    list of integer or float values that will be considered bad
+outliers_bad : bool
+    control whether outlier values will be added to the output list
+    of bad indices
+out_perc : list
+    a list of 2 numbers, for calculating an interquartile range (or
+    analogue, when the values are changed). Outliers are defined to be
+    + when > (value at upper perc ran) + 1.5 * (perc ran interval)
+    + when < (value at lower perc ran) - 1.5 * (perc ran interval)
+verb : int
+    verbosity level
+
+Returns
+-------
+all_bad_idx : list
+    list of all bad indices
+
+    """
+
+    if type(x) != np.ndarray :
+        sys.exit("** ERROR: input must be numpy array")
+    if len(np.shape(x)) != 1 :
+        sys.exit("** ERROR: input must be 1D array")
+
+    N = len(x)
+
+    # point out bad values
+    arr_bad = find_bad_vals(x, bad_nums=bad_nums, verb=verb)
+    # find outliers
+    arr_out = find_out_vals(x, arr_bad=arr_bad,
+                            out_perc=out_perc, verb=verb)
+
+    # outliers can become part of the bad list
+    if outliers_bad : 
+        nout = np.sum(arr_out)
+        print("++ Adding {} outliers to the bad list".format(nout))
+        arr_bad += arr_out
 
 
+    return 0
 
 # ==========================================================================
 
