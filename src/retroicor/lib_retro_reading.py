@@ -229,6 +229,7 @@ arr_out : np.ndarray (1D)
 def calc_max_streak_true(B):
     """For a 1D array of bools B, calculate the max streak of True values.
 That is, what is the maximum number of times True occurs in a row.
+Also output the array index at which the first max-length streak occured.
 
 Parameters
 ----------
@@ -237,25 +238,50 @@ B : np.ndarray
 
 Returns
 -------
-L : int
+len_strk_max : int
     integer value of max streak
+true_ind_strk_max : int
+    index in array where (first) max-length streak started
 
     """
 
     N = len(B)
 
+    if not(N) :    return 0, -1
+
     all_ind  = np.arange(N)        # all indices
     true_ind = all_ind[B]          # indices where True appears
-    diff_ind = np.diff(true_ind)   # dist bt neighboring True indices
-    # make a string of 1s where diffs are 1 and 0s elsewhere
-    all_strk = "".join([str(int(x == 1)) for x in diff_ind]).split("0")
-    # turn previous string into list of lengths of True streaks
-    all_len  = [len(x)+1 for x in all_strk]
-    L = max(all_len)               # get max streak value
+    Ntrue    = len(true_ind)
 
-    ### STILL IN PROGRESS
+    # special cases: Ntrue <=1
+    if not(Ntrue) :    return 0, -1
+    elif Ntrue == 1 :    return 1, true_ind[0]
+    
+    # general cases: Ntrue >1
+    idx_strk_max = 0
+    len_strk_max = 0
 
-    return 0
+    idx_strk = 0
+    len_strk = 1
+    ii = 0
+    while ii < Ntrue-1 :
+        jj = ii+1
+        if true_ind[ii]+1 == true_ind[jj] :
+            # increase streak
+            len_strk+= 1
+            if len_strk > len_strk_max :
+                len_strk_max = len_strk
+                idx_strk_max = idx_strk
+        else:
+            # reset
+            idx_strk = jj
+            len_strk = 1
+
+        ii+= 1
+    
+    true_ind_strk_max = true_ind[idx_strk_max]
+
+    return len_strk_max, true_ind_strk_max
 
 def check_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
                           out_perc = [25, 75], verb=0):
