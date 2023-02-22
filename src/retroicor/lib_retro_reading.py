@@ -242,7 +242,7 @@ verb : int
 
 Returns
 -------
-len_strk_max : int
+max_len : int
     integer value of the length of the max streak
 true_ind_strk_max : int
     index in array where (first) max-length streak started
@@ -270,40 +270,288 @@ true_ind_strk_max : int
         return 1, true_ind[0]
     
     # general cases: Ntrue >1
-    idx_strk_max = 0
-    len_strk_max = 1
-    idx_strk = 0
-    len_strk = 1
-    ii = 0
-    while ii < Ntrue-1 :
-        jj = ii+1
-        if true_ind[ii]+1 == true_ind[jj] :
-            # increase streak
-            len_strk+= 1
-            if len_strk > len_strk_max :
-                len_strk_max = len_strk
-                idx_strk_max = idx_strk
-        else:
-            # reset
-            idx_strk = jj
-            len_strk = 1
-
-        ii+= 1
+    all_strk, all_slen = make_list_of_streaks(B, verb=verb)
     
-    true_ind_strk_max = true_ind[idx_strk_max]
+    # get max and loc of max, to report
+    max_len = -1
+    max_ind = -1
+    for ii in range(len(all_slen)) :
+        if all_slen[ii] > max_len :
+            max_len = all_slen[ii]
+            max_ind = ii
+    true_ind_strk_max = all_strk[ii][0]
 
     if verb :
-        print("++ Max streak of 'bad' values : {}".format(len_strk_max))
+        print("++ Max streak of 'bad' values : {}".format(max_len))
         print("   First occurred at index    : {}".format(true_ind_strk_max))
 
-    return len_strk_max, true_ind_strk_max
+    return max_len, true_ind_strk_max
 
-def check_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
-                          out_perc = [25, 75], verb=0):
-    """For a 1D array x, check for NaNs as well as any list of possibly
-bad (finite) values to report, such as 0s.  The output list of bad
-indices will point to values that might be replaced later with
-interpolation or some other procedure.
+def make_list_of_streaks(B, verb=0):
+    """For a 1D array of bools B, calculate where streaks of consecutive
+True values occur (creating a list of streak lists).  Also output a
+list of the lengths of each streak.
+
+Parameters
+----------
+B : np.ndarray
+    1D array of boolean values
+verb : int
+    verbosity level
+
+Returns
+-------
+all_strk : list
+    list of all streaks, where each streak is a list of consecutive
+    indices (so, a list of lists of ints)
+all_slen: list
+    list of the lengths of each streak (so, a list of ints of same len
+    as all_strk)
+
+    """
+
+    N        = len(B)
+
+    if not(N) :    return [], []
+
+    all_ind  = np.arange(N)        # all indices
+    true_ind = all_ind[B]          # indices where True appears
+    Ntrue    = len(true_ind)
+
+    # simple cases: Ntrue <=1
+    if not(Ntrue) :    
+        return [], []
+    elif Ntrue == 1 :  
+        return [[true_ind[0]]], [1]
+
+    # general cases: Ntrue >1
+    all_strk = []                  # hold each streak list
+    all_slen = []                  # len of each streak list
+    strk = [true_ind[0]]
+    diff_ind = np.diff(true_ind)   # diffs of consec true_ind elements
+    for ii in range(Ntrue-1):
+        if diff_ind[ii] == 1:
+            strk.append(true_ind[ii+1])
+        else:
+            # end streak...
+            all_slen.append(len(strk))
+            all_strk.append(copy.deepcopy(strk))
+            # ... and start a new one
+            strk = [true_ind[ii+1]]
+    if strk:
+        all_slen.append(len(strk))
+        all_strk.append(copy.deepcopy(strk))
+
+    if verb:
+        nstrk = len(all_strk)
+        maxlen = max(all_slen)
+        print("++ Found {} streaks, with max length : {}"
+              "".format(nstrk, maxlen))
+
+    return all_strk, all_slen
+
+
+ALL_fix_method = [ 'interp_linear',
+]
+
+def check_and_fix_arr_badness(x, thr_nbad=None, thr_bad_strk=None,
+                              fix_method='interp_linear',
+                              bad_nums=[], outliers_bad=False,
+                              out_perc = [25, 75], verb=0):
+    """Check 1D array x for badness (with some options/flexibility about
+what 'badness' can mean), and either fix it or exit.  'Fixing' means
+applying the fix method, such as linear interpolation.  The user can
+set thr_nbad to be a threshold number of bad elements that x can have
+before just exiting; thr_bad_strk can be set as a max number of
+consecutive bad elements to allow before just exiting.  
+
+If all values are bad, exit regardless of anything else.
+
+By default, only NaN values are bad. The user can supply a list of
+elements that will be flagged as bad (e.g., 0), or can turn on the
+ability to flag outliers as bad (based on percentiles, which can also
+be controlled).
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array
+thr_nbad : int
+    threshold value for proceeeding/fixing: if there are thr_nbad or
+    more bad elements in x, then exit
+thr_bad_strk : int
+    threshold value for proceeeding/fixing: if there is a streak of
+    thr_bad_strk or more *consecutive* bad elements in x, then exit
+fix_method : str
+    the fix method to apply, from a list of: 'interp_linear'.
+bad_nums : list
+    list of integer or float values that will be considered bad
+outliers_bad : bool
+    control whether outlier values will be added to the output list
+    of bad indices
+out_perc : list
+    a list of 2 numbers, for calculating an interquartile range (or
+    analogue, when the values are changed). Outliers are defined to be
+    + when > (value at upper perc ran) + 1.5 * (perc ran interval)
+    + when < (value at lower perc ran) - 1.5 * (perc ran interval)
+verb : int
+    verbosity level
+
+Returns
+-------
+x_fixed : np.ndarray
+    the input array x with any bad values 'fixed' or replaced by the
+    applied fix method.
+
+    """
+
+    if not(fix_method in ALL_fix_method) :
+        print("** ERROR: {} is not in allowed list of fix_methods:"
+              "   {}".format(fix_method, ','.join(ALL_fix_method)))
+        sys.exit(10)
+
+    # get the information on where badness occurs
+    arr_bad, len_strk_bad, idx_strk_bad = \
+        find_arr_bad_and_out( x, bad_nums=bad_nums, 
+                              outliers_bad=outliers_bad,
+                              out_perc=out_perc, verb=verb )
+    tot_nbad = np.sum(arr_bad)
+
+    # automatic check: tooo much badness
+    if tot_nbad >= len(x) :
+        print("** ERROR: all time points appeared to be bad :(")
+        sys.exit(4)
+
+    # apply any thresholds, if doing so
+    if thr_nbad != None :
+        print("++ Check for total num of bad points (threshold = {})"
+              "".format(thr_nbad))
+        if tot_nbad >= thr_nbad :
+            print("** ERROR: exiting, too many bad points found : {}"
+                  "".format(tot_nbad))
+            sys.exit(9)
+        else:
+            print("++ OK, continuing since fewer bad points found : {}"
+                  "".format(tot_nbad))
+    if thr_bad_strk != None :
+        print("++ Check for streak length of bad points (threshold = {})"
+              "".format(thr_bad_strk))
+        if len_strk_bad >= thr_bad_strk :
+            print("** ERROR: exiting, bad point streak too long : {}"
+                  "".format(len_strk_bad))
+            sys.exit(9)
+        else:
+            print("++ OK, continuing since bad point streak is shorter : {}"
+                  "".format(len_strk_bad))
+
+    # simple case of fixing: no bad points!
+    if not(tot_nbad) :
+        x_fixed = copy.deepcopy(x)
+        return x_fixed
+
+    # if this point is reached, there are fixes to be made
+    if fix_method == 'interp_linear' :
+        x_fixed = calc_linear_interp(x, arr_bad, verb=verb)
+
+    return x_fixed
+
+
+def calc_linear_interp(x, arr_bad, verb=0):
+    """Perform linear interpolation over streaks of bad points in a 1D
+array x.  The 'bad points' are highlighted by the True values in the
+1D array of bools arr_bad (which has same len as x).  Streaks of
+badness that hit either endpoint are replaced with the closest,
+non-bad value.
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array
+arr_bad : np.ndarray (1D)
+    array with dtype=bool, where True marks bad points to be
+    interpolated
+verb : int
+    verbosity level
+
+Returns
+-------
+x_fixed : np.ndarray
+    the input array x with any bad values 'fixed' or replaced by the
+    applied fix method.
+
+    """
+
+    N = len(x)
+    if N != len(arr_bad) :
+        print("** ERROR: inconsistent array lengths: {} and {}"
+              "".format(N, len(arr_bad)))
+        sys.exit(3)
+    
+    nbad    = np.sum(arr_bad)
+    x_fixed = copy.deepcopy(x)
+
+    # simple case
+    if nbad == 0 :    return x_fixed
+
+    # general case: nbad > 0
+
+    # get list of streaks of indices where interp will happen (and
+    # don't use second output from here, because we might alter
+    # all_strk)
+    all_strk, tmp_ignore = make_list_of_streaks(arr_bad, verb=verb)
+
+    # deal with possible streaks at either end of time series, special
+    # case: just replace with closest non-bad element, and remove
+    # streak from list
+    if all_strk[0][0] == 0 :            # first streak, starting index
+        if verb :
+            nnn = len(all_strk[0])
+            print("+* WARN: replace badness at start with simple fill, N : {}"
+                  "".format(nnn))
+        good_ind = all_strk[0][-1]+1    # first index value after streak
+        if good_ind >= N-1 :
+            print("** ERROR: can't interpolate if whole time series is bad")
+            sys.exit(5)
+        val      = x_fixed[good_ind]
+        for ii in range(good_ind):
+            x_fixed[ii] = val
+        tmp = all_strk.pop(0)
+    if all_strk[-1][-1] == N-1 :         # last streak, ending index
+        if verb :
+            nnn = len(all_strk[-1])
+            print("+* WARN: replace badness at end with simple fill, N : {}"
+                  "".format(nnn))
+        good_ind = all_strk[-1][0]-1    # first index value after streak
+        if good_ind <= 0 :
+            print("** ERROR: can't interpolate if whole time series is bad")
+            sys.exit(5)
+        val      = x_fixed[good_ind]
+        for ii in range(good_ind, N):
+            x_fixed[ii] = val
+        tmp = all_strk.pop(-1)
+
+    # ... and interp the rest/remainder of streaks now
+    nstrk = len(all_strk)
+    for ii in range(nstrk):
+        strk = all_strk[ii]   # don't need to copy
+        A = strk[0] - 1
+        B = strk[-1] + 1
+        delta_x = (x_fixed[B] - x_fixed[A])/(B-A)
+        for nn in range(len(strk)):
+            idx = strk[nn]
+            x_fixed[idx] = x_fixed[A] + (1+nn)*delta_x
+
+    return x_fixed
+
+
+
+def find_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
+                         out_perc = [25, 75], verb=0):
+    """Provide information (not decision making) about badness in a 1D
+array x. Check for NaNs as well as any list of possibly bad (finite)
+values to report, such as 0s.  The output list of bad indices will
+point to values that might be replaced later with interpolation or
+some other procedure.
 
 Also check for outliers (estimated from arr elements that are not NaNs
 or bad_nums).
@@ -327,8 +575,14 @@ verb : int
 
 Returns
 -------
-all_bad_idx : list
-    list of all bad indices
+arr_bad : np.ndarray
+    1D array of bools: True marks bad elements, and False are OK ones;
+    np.sum(arr_bad) gives the total number of bad elements
+len_strk_bad: int
+    count of longest streak of consecutive bad values
+idx_strk_bad: int
+    index in the array that starts the (first) longest streak of 
+    consecutive bad values
 
     """
 
@@ -357,9 +611,7 @@ all_bad_idx : list
     # here) elements 
     len_strk_bad, idx_strk_bad = calc_max_streak_true(arr_bad, verb=verb)
 
-    # *** STILL IN PROGRESS ***
-
-    return arr_bad
+    return arr_bad, len_strk_bad, idx_strk_bad
 
 # ==========================================================================
 
