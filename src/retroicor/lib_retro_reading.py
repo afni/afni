@@ -91,14 +91,12 @@ regressors for MRI data.
         self.font_size    = 10         # float, FS for output images
         self.niml         = False      # bool, use niml in output ***
         self.demo         = False      # bool, show demo?
-        self.dev          = False      # bool, run in development mode?
         self.debug        = False      # bool, do debugging?
         self.no_rvt_out   = False      # bool, flag
         self.no_card_out  = False      # bool, flag
         self.no_resp_out  = False      # bool, flag
 
         # TBD
-        self.fir_order    = None       # int, FIR order
         # phase offset, aby and abt
 
 

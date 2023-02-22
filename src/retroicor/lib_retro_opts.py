@@ -46,7 +46,6 @@ DEF = {
     'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
-    'fir_order'         : 40,        # (int?) FIR order 
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
@@ -59,7 +58,6 @@ DEF = {
     'save_graph_level'  : 1,         # (int) amount of graphs to save
     'verbose'           : 0,         # (int) verbosity level
     'demo'              : False,     # (bool) show demo?
-    'dev'               : False,     # (bool) work in dev mode?
     'debug'             : False,     # (bool) debug mode
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'disp_all_opts'     : False,     # (bool) display opts for this prog
@@ -89,7 +87,6 @@ for ii in range(len(ALL_AJ_MATCH)):
 
 # quantities that must be >= 0
 all_quant_ge_zero = [
-    'fir_order',
     'font_size',
     'freq',
     'num_slices',
@@ -678,13 +675,6 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
 
-opt = '''fir_order'''
-hlp = '''*** add *** (def: {dopt})
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
 opt = '''phase_offset'''
 hlp = '''Time added to initial offset, in sec (def: {dopt})
 '''.format(dopt=DEF[opt])
@@ -766,12 +756,6 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''demo'''
 hlp = '''Enter 'demonstration mode': run example'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''dev'''
-hlp = '''Enter 'development mode': *** describe'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
