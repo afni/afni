@@ -50,13 +50,12 @@ DEF = {
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
     'font_size'         : 10,        # (float) font size for plots 
-    'phase_offset'      : 0.0,       # (float) offset added to initial phase
     'ab_disp'           : False,     # (bool) 
     'ab_out'            : False,     # (bool)
     'niml'              : False,     # (bool)
     'show_graph_level'  : 0,         # (int) amount of graphs to show
     'save_graph_level'  : 1,         # (int) amount of graphs to save
-    'verbose'           : 0,         # (int) verbosity level
+    'verb'              : 0,         # (int) verbosity level
     'demo'              : False,     # (bool) show demo?
     'debug'             : False,     # (bool) debug mode
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
@@ -675,13 +674,6 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
 
-opt = '''phase_offset'''
-hlp = '''Time added to initial offset, in sec (def: {dopt})
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
 odict[opt] = hlp
@@ -747,7 +739,7 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-opt = '''verbose'''
+opt = '''verb'''
 hlp = '''Integer values to control verbosity level 
 (def: {dopt})'''.format(dopt=DEF[opt])
 odict[opt] = hlp
@@ -845,7 +837,7 @@ args_dict2 : dict
 
     """
 
-    verb = args_dict['verbose']
+    verb = args_dict['verb']
 
     args_dict2 = copy.deepcopy(args_dict)
 

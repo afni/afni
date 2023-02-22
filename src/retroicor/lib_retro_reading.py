@@ -16,17 +16,20 @@ derived data.
 
     """
 
-    def __init__(self, ts_orig, phys_freq = 0.0,
-                 label=None, verb=0):
+    def __init__(self, ts_orig, samp_freq = 0.0,
+                 label=None, fname=None, verb=0):
         """Create object holding a physio time series data.
 
         """
 
-        self.verb    = verb              # verbosity level
-        self.label   = label             # str, label like 'card', 'resp', etc.
+        self.verb      = verb                # verbosity level
+        self.label     = label               # str, e.g., 'card', 'resp', ...
+        self.fname     = fname               # str, fname, just for info
 
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
-        self.phys_freq = float(phys_freq)    # float, same freq (in Hz)
+        self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
+
+
 
     @property
     def n_ts_orig(self):
@@ -34,10 +37,10 @@ derived data.
         return len(self.ts_orig)
 
     @property
-    def phys_samp(self):
+    def samp_rate(self):
         """The physical sampling rate (in sec)."""
         try:
-            rate = 1.0/self.phys_freq
+            rate = 1.0/self.samp_freq
         except:
             print("** WARNING: undefined sampling rate")
             rate = np.nan
@@ -53,7 +56,7 @@ regressors for MRI data.
 
     """
 
-    def __init__(self, verb=0):
+    def __init__(self, args_dict=None, verb=0):
         """Create object holding all retro info
 
         """
@@ -67,8 +70,8 @@ regressors for MRI data.
         self.phys_jdict = None         # dict from JSON file, maybe col labels
         self.phys_file  = None         # phys file, might contain cardio/resp
 
-        self.exit_on_rag = True        # exit if raggedness in data files?
-        self.exit_on_nan = True        # exit if NaN values in data files?
+        self.exit_on_rag  = True       # exit if raggedness in data files?
+        self.exit_on_nan  = False # !!!!True       # exit if NaN values in data files?
         self.exit_on_null = True       # exit if null values in data files?
         self.exit_on_zero = False      # exit if zero values in data files?
 
@@ -79,6 +82,7 @@ regressors for MRI data.
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
+        self.vol_slice_pat   = None       # str, name of slice pat (for ref)
         self.vol_tr          = None       # float, TR of MRI EPI
         self.vol_ntps        = None       # int, Nvol MRI EPI
 
@@ -92,14 +96,190 @@ regressors for MRI data.
         self.niml         = False      # bool, use niml in output ***
         self.demo         = False      # bool, show demo?
         self.debug        = False      # bool, do debugging?
-        self.no_rvt_out   = False      # bool, flag
-        self.no_card_out  = False      # bool, flag
-        self.no_resp_out  = False      # bool, flag
+        self.do_out_rvt   = True       # bool, flag
+        self.do_out_card  = True       # bool, flag
+        self.do_out_resp  = True       # bool, flag
 
         # TBD
         # phase offset, aby and abt
 
+        # -----------------------------------------------------------------
 
+        if args_dict != None :
+            self.apply_cmd_line_args(args_dict)
+
+        
+    def apply_cmd_line_args(self, args_dict):
+        """The main way to populate object fields at present.  The input
+        args_dict should be a dictionary from lib_retro_opts of
+        checked+verified items input from the command line.
+        """
+
+        # *** this method is in progress ***
+
+        self.vol_slice_times = args_dict['slice_times']
+        self.vol_slice_pat   = args_dict['slice_pattern']
+        self.vol_tr          = args_dict['volume_tr']
+        self.vol_ntps        = args_dict['num_time_pts']
+
+        self.start_time      = args_dict['start_time']
+
+        self.verb      = args_dict['verb']
+        self.out_dir   = args_dict['out_dir']
+        self.prefix    = args_dict['prefix']
+        self.show_graph_level = args_dict['show_graph_level']
+        self.save_graph_level = args_dict['save_graph_level']
+        self.font_size = args_dict['font_size']
+        self.niml      = args_dict['niml']
+        self.demo      = args_dict['demo']
+        self.debug     = args_dict['debug']
+        self.do_out_rvt  = not(args_dict['no_rvt_out'])
+        self.do_out_card = not(args_dict['no_card_out'])
+        self.do_out_resp = not(args_dict['no_resp_out'])
+
+        ### no cmd line arg for these yet
+        #self.exit_on_rag  = True       # exit if raggedness in data files?
+        #self.exit_on_nan  = True       # exit if NaN values in data files?
+        #self.exit_on_null = True       # exit if null values in data files?
+        #self.exit_on_zero = False      # exit if zero values in data files?
+
+        if args_dict['phys_file'] and args_dict['phys_json_dict'] :
+            self.get_data_from_phys_file_and_json(args_dict)
+
+        if args_dict['resp_file'] :
+            self.get_data_from_solo_file(args_dict, label='resp')
+
+        if args_dict['card_file'] :
+            self.get_data_from_solo_file(args_dict, label='card')
+
+
+
+    def get_data_from_solo_file(self, args_dict, label=''):
+        """Using information stored in args_dict, try opening and reading
+        either the resp_file or card_file.  Use this to populate one
+        or more data objs.
+
+        The 'label' is required, and must be one of:
+        'resp'
+        'card'
+
+        Does not return anything, just populate one of: 
+        resp_data
+        card_data
+
+        """
+
+        if label == 'resp' :
+            fname = args_dict['resp_file']
+        elif label == 'card' :
+            fname = args_dict['card_file']
+        else:
+            print("** ERROR: need a recognized label, not '{}'"
+                  "".format(label))
+
+        all_col = self.read_and_check_data_file(fname)
+        arr     = self.extract_list_col(all_col, 0) 
+
+        self.resp_data = phys_ts_obj(arr, 
+                                     samp_freq = args_dict['freq'],
+                                     label=label, fname=fname, 
+                                     verb=self.verb)
+
+
+    def get_data_from_phys_file_and_json(self, args_dict):
+        """Using information stored in args_dict, try opening and reading the
+        phys_file, using a dictionary made from its accompanying JSON.
+        Use this to populate one or more data objs.
+
+        Does not return anything, just populate one or more of:
+        resp_data
+        card_data
+
+        """
+
+        fname      = args_dict['phys_file']
+        D          = args_dict['phys_json_dict']
+        samp_freq  = args_dict['freq']
+        all_col    = self.read_and_check_data_file(fname)
+        USE_COL    = 0
+
+        if 'respiratory' in D['Columns'] :
+            if self.verb:
+                print("++ Reading _resp_ data from {}".format(fname))
+            USE_COL+= 1
+            idx = D["Columns"].index('respiratory')
+            arr = self.extract_list_col(all_col, idx) # add checks!
+            self.resp_data = phys_ts_obj(arr, 
+                                         samp_freq = samp_freq,
+                                         label='resp', fname=fname, 
+                                         verb=self.verb)
+        if 'cardiac' in D['Columns'] :
+            if self.verb:
+                print("++ Reading _card_ data from {}".format(fname))
+            USE_COL+= 1
+            idx = D["Columns"].index('cardiac')
+            arr = self.extract_list_col(all_col, idx) # add checks!
+            self.card_data = phys_ts_obj(arr, 
+                                         samp_freq = samp_freq,
+                                         label='card', fname=fname, 
+                                         verb=self.verb)
+        if not(USE_COL) :
+            print("** ERROR: could not find any columns in {} that were "
+                  "labelled like data".format(fname))
+            sys.exit(7)
+
+
+    def extract_list_col(self, all_col, idx):
+        """For data that has been read in as a list of lists, extract the
+        [idx] column.
+
+        Return that column as an array of floats.
+
+        """
+
+        ncol = len(all_col[0])
+        if idx >= ncol :
+            print("** ERROR: index {} cannot be used, since ncol = {}"
+                  "".format(idx, ncol))
+
+        N = len(all_col)
+        
+        arr = np.zeros(N, dtype=float)
+        for ii in range(N):
+            arr[ii] = all_col[ii][idx]
+
+        return arr
+
+    def read_and_check_data_file(self, fname):
+        """Try to read in datafile fname (which has 1 or more columns of
+        numbers), and put it through The Gauntlet of basic checks for
+        badness.  Fail (or not) according to the user's whims.
+
+        Return a list of the data, one list per row.
+
+        """
+
+        HAVE_BADNESS = 0
+        all_col, bad_nanlist, bad_nulllist, dict_of_len = \
+            read_column_text_to_float_list(fname, verb=self.verb)
+
+        if self.exit_on_null and len(bad_nulllist) :
+            print("** ERROR: exit due to null values present in {}"
+                  "".format(fname))
+            HAVE_BADNESS+= 1
+        if self.exit_on_nan and len(bad_nanlist) :
+            print("** ERROR: exit due to nan values present in {}"
+                  "".format(fname))
+            HAVE_BADNESS+= 1
+        if self.exit_on_rag and len(dict_of_len)>1 :
+            print("** ERROR: exit due to raggedness present in {}"
+                  "".format(fname))
+            HAVE_BADNESS+= 1
+        if HAVE_BADNESS :
+            sys.exit(3)
+
+        return all_col
+            
 
     @property
     def n_slice_times(self):
