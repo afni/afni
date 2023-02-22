@@ -105,9 +105,6 @@ def getCardiacPeaks(parameters, rawData, filterPercentile=70.0):
            verbose: (dtype = bool) Whether running in verbose mode.  (Save graphs, 
                     of intermediate steps, to disk.)
            
-           dev:     (dType = bool) Whether running in development mode.  (Show 
-                                            graphs and pause between graphs.)
-       
        rawData: (dType = float, array) Raw cardiac data
        
        filterPercentile: (dType = float) Minimum percentile of raw data for a 
@@ -2010,7 +2007,8 @@ def getLayer(rawData, criticalPoints, interpolationOrder = 'linear'):
     return layer
     
     
-def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True):
+def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, 
+                            show_graph = 0, save_graph = 1):
     """
     NAME
         getRawRVTBasedOnTroughs 
@@ -2035,7 +2033,9 @@ def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True)
         
         freq:       <class 'float'> Time point sampling frequency in Hz
         
-        dev:   <class 'bool'> Whether runnung in development mode
+        show_graph:   (dType = bool) Whether to graph the results
+        
+        save_graph: (dType = bool) Whether to save graoh to disk
                        
     AUTHOR
        Peter Lauren 
@@ -2048,7 +2048,7 @@ def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True)
     rawRVTs = connectTroughRVTs(resp_troughs, troughRVTs, len(rawData))
     
     # Display raw RVTs with peaks, troughs and raw data
-    if dev:
+    if show_graph or save_graph:
          x = []    
          end = min(len(rawRVTs),round(len(rawRVTs)*50.0/len(resp_peaks)))
          for i in range(0,end): x.append(i/freq)
@@ -2070,8 +2070,10 @@ def getRawRVTBasedOnTroughs(rawData, resp_peaks, resp_troughs, freq, dev = True)
          plt.title("Raw RVT (orange) and raw input data (green)")
              
          # Save plot to file
-         plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
-         plt.show()
+         if save_graph:
+             plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
+             plt.show()
+             if not show_graph: plt.close()  # Close graph after saving
    
     return rawRVTs
     

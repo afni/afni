@@ -197,7 +197,6 @@ def retro_ts(
     slice_times      = 0,
     fir_order         = 40,
     demo              = 0,
-    dev               = False,
     verbose           = False,
     show_graphs       = 0,
     save_graphs       = 1,
@@ -254,9 +253,6 @@ def retro_ts(
         
         demo: (dType = int) Whether running in demo mode.  (Show graphs and 
                             pause between graphs.)
-        
-        dev: (dType = bool) Whether running in dev(elopment) mode.   (Show 
-                            graphs and pause between graphs.)
         
         verbose: (dType = bool) Whether runnung in verbose mode.  Save graphs, 
                                 of each filtering step, to disk.
@@ -331,7 +327,6 @@ def retro_ts(
     offsetDict["num_time_pts"] = int(num_time_pts)
     offsetDict["number_of_slices"] = number_of_slices
     offsetDict["slice_pattern"] = slice_pattern
-    offsetDict["dev"] = dev
     offsetDict["verbose"] = verbose
     slice_offsets = getSliceOffsets(offsetDict)
 
@@ -366,7 +361,6 @@ def retro_ts(
     parameters['niml']          = niml
     parameters['phys_resp_dat'] = phys_resp_dat
     parameters['phys_card_dat'] = phys_card_dat
-    parameters['dev']           = dev
     parameters['verbose']       = verbose
     parameters['rvt_out']       = rvt_out
     parameters['slice_times']  = slice_offsets
@@ -542,9 +536,6 @@ USAGE ~1~
     -demo       DDD    : Run demonstration of this program (DDD = 1) 
                          or not (DDD = 0, the default)
 
-    -dev        DEV    : Run development mode for this program (DDD = 1) 
-                         or not (DDD = 0, the default)
-
     -verbose           : Integer values to control verbosity level
                          (default is 0)
 
@@ -635,7 +626,6 @@ regressors and cardiac regressors.
         "-slice_times"       : None,
         "-fir_order"         : 40,
         "-demo"              : 0,
-        "-dev"               : False,
         "-verbose"           : False,
         "-debug"             : False,
         "-rvt_out"           : 0,
@@ -672,8 +662,6 @@ regressors and cardiac regressors.
                     setup_exceptionhook()
                 elif opt == "-verbose":
                     opt_dict["-verbose"] = True
-                elif opt == "-dev":
-                    opt_dict["-dev"] = True
 
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
@@ -703,7 +691,6 @@ regressors and cardiac regressors.
         slice_times       = opt_dict["-slice_times"],
         fir_order         = opt_dict["-fir_order"],
         demo              = opt_dict["-demo"],
-        dev               = opt_dict["-dev"],
         verbose           = opt_dict["-verbose"],
         rvt_out           = int(opt_dict["-rvt_out"]),
         card_out          = int(opt_dict["-card_out"]),
