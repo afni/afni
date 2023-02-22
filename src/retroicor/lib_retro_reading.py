@@ -226,20 +226,24 @@ arr_out : np.ndarray (1D)
 
     return arr_out
 
-def calc_max_streak_true(B):
+def calc_max_streak_true(B, verb=0):
     """For a 1D array of bools B, calculate the max streak of True values.
 That is, what is the maximum number of times True occurs in a row.
-Also output the array index at which the first max-length streak occured.
+Also output the array index at which the first max-length streak occurred.
+
+If there are no True (= bad) values, then return: 0, -1.
 
 Parameters
 ----------
 B : np.ndarray
     1D array of boolean values
+verb : int
+    verbosity level
 
 Returns
 -------
 len_strk_max : int
-    integer value of max streak
+    integer value of the length of the max streak
 true_ind_strk_max : int
     index in array where (first) max-length streak started
 
@@ -253,14 +257,21 @@ true_ind_strk_max : int
     true_ind = all_ind[B]          # indices where True appears
     Ntrue    = len(true_ind)
 
+    if verb :
+        print("++ Total num of 'bad' values  : {}".format(Ntrue))
+
     # special cases: Ntrue <=1
-    if not(Ntrue) :    return 0, -1
-    elif Ntrue == 1 :    return 1, true_ind[0]
+    if not(Ntrue) :    
+        return 0, -1
+    elif Ntrue == 1 :  
+        if verb :
+            print("++ Max streak of 'bad' values : {}".format(1))
+            print("   First occurred at index    : {}".format(true_ind[0]))
+        return 1, true_ind[0]
     
     # general cases: Ntrue >1
     idx_strk_max = 0
-    len_strk_max = 0
-
+    len_strk_max = 1
     idx_strk = 0
     len_strk = 1
     ii = 0
@@ -280,6 +291,10 @@ true_ind_strk_max : int
         ii+= 1
     
     true_ind_strk_max = true_ind[idx_strk_max]
+
+    if verb :
+        print("++ Max streak of 'bad' values : {}".format(len_strk_max))
+        print("   First occurred at index    : {}".format(true_ind_strk_max))
 
     return len_strk_max, true_ind_strk_max
 
@@ -326,18 +341,25 @@ all_bad_idx : list
 
     # point out bad values
     arr_bad = find_bad_vals(x, bad_nums=bad_nums, verb=verb)
-    # find outliers
+
+    # find outliers: makes output to terminal, and the array can be
+    # combined with arr_bad, below
     arr_out = find_out_vals(x, arr_bad=arr_bad,
                             out_perc=out_perc, verb=verb)
 
     # outliers can become part of the bad list
     if outliers_bad : 
         nout = np.sum(arr_out)
-        print("++ Adding {} outliers to the bad list".format(nout))
+        print("++ Add any outliers to the bad list, N = {}".format(nout))
         arr_bad += arr_out
 
+    # find bad streaks: calc max number of consecutive bad (= True
+    # here) elements 
+    len_strk_bad, idx_strk_bad = calc_max_streak_true(arr_bad, verb=verb)
 
-    return 0
+    # *** STILL IN PROGRESS ***
+
+    return arr_bad
 
 # ==========================================================================
 
