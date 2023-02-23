@@ -1,4 +1,4 @@
-__authors__ = "Joshua Zosky and Peter Lauren"
+__authors__ = "Peter Lauren and Josh Zosky"
 
 """
     2022 Peter Lauren
@@ -1123,6 +1123,111 @@ def runAnalysis(parameters):
     # Send output to terminal
     if (parameters['abt']): print(repr(physiologicalNoiseComponents))
     
+def getPhysJsonPair(phys_json_arg, phys_file, resp_info, card_info, 
+                    resp_out, card_out, rvt_out):
+    """
+    NAME
+        getPhysJsonPair 
+            Returns the respiration file data, and cardiac file data.  Requires
+            phys file and JSON file.
+    TYPE
+        <class 'str'>, <class 'numpy.ndarray'>, <class 'str'>, 
+        <class 'numpy.ndarray'>
+    ARGUMENTS
+        resp_info:   Dictionary with the following fields.
+        
+            phys_fs: (dType = float) Physiological signal sampling 
+                                     frequency (Hz)
+            
+        card_info:   Dictionary with the following fields.
+            
+            phys_fs:   (dType = float) Physiological signal sampling 
+                                       frequency (Hz)
+        
+        phys_file: (dType = NoneType) BIDS formatted physio file in tab 
+                    separated format. May be gzipped.
+                
+        phys_json_arg: (dType = NoneType) File metadata in JSON format
+        
+        resp_out: (dType = int) Whether to have respiratory output
+        
+        card_out:  (dType = int) Whether to have cardiac output
+        
+        rvt_out:  (dType = int) Whether to have RVT output
+            
+    AUTHOR
+       Peter Lauren
+    """
+    
+    phys_resp_dat = []
+    phys_card_dat = []
+
+    if not phys_file or not phys_json_arg:
+        print("*** ERROR.  getPhysJsonPair called without phys file or JSON"\
+              " file!")
+        return phys_resp_dat, phys_card_dat
+
+    # Use json reader to read file data into phys_meta
+    with open(phys_json_arg, 'rt') as h:
+        phys_meta = json.load(h)
+    # phys_ending is last element following a period
+    phys_ending = phys_file.split(".")[-1]
+    
+    # Choose file opening function on the basis of whether file is gzippped
+    if phys_ending == 'gz':
+        opener = gzip.open 
+    else:
+        opener = open
+        
+    # Read Columns field of JSON file
+    phys_dat = {k:[] for k in phys_meta['Columns']}
+    
+    # Append tab delimited phys_file to phys_dat
+    with opener(phys_file, 'rt') as h:
+        # for pl in h.readlines():
+        for pl in h:
+            pls = pl.split("\t")
+            for k,v in zip(phys_meta['Columns'], pls):
+                phys_dat[k].append(float(v))
+                
+    # Process StartTime is in JSON file
+    if ('StartTime' in phys_meta and "StartTime" not in resp_info):
+        startTime = float(phys_meta["StartTime"])
+        if (startTime > 0):
+            print('***** WARNING: JSON file gives positive start time'+
+                  ' which is not currently handled')
+            print('    Start time must be <= 0')
+        else:
+            resp_info["StartTime"] = startTime            
+            card_info["StartTime"] = startTime            
+                
+    print('phys_meta = ', phys_meta)
+    # Read columns field from JSON data
+    print('Read columns field from JSON data')
+    for k in phys_meta['Columns']:
+        phys_dat[k] = np.array(phys_dat[k])
+        
+        # Read respiratory component
+        if k.lower() == 'respiratory' or k.lower() == 'respiration':
+            # create peaks only if asked for    25 May 2021 [rickr]
+            if resp_out or rvt_out:
+               if not resp_info["phys_fs"]:
+                   resp_info['phys_fs'] = phys_meta['SamplingFrequency']
+               phys_resp_dat = phys_dat[k]
+        
+        # Read cardiac component
+        elif k.lower() == 'cardiac':
+            # create peaks only if asked for    25 May 2021 [rickr]
+            if card_out != 0:
+               if not card_info["phys_fs"]:
+                   card_info['phys_fs'] = phys_meta['SamplingFrequency']
+               phys_card_dat = phys_dat[k]
+        else:
+            print("** warning phys data contains column '%s', but\n" \
+                  "   retroicor only handles cardiac or respiratory data" % k)
+    
+    return phys_resp_dat, phys_card_dat
+    
 
 def getInputFileParameters(resp_info, card_info, phys_file,\
                         phys_json_arg, resp_out, card_out, rvt_out):
@@ -1165,7 +1270,7 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
         rvt_out:  (dType = int) Whether to have RVT output
             
     AUTHOR
-       Josh Zosky and Peter Lauren
+       Peter Lauren
     """
     
     # Initialize outputs
@@ -1183,74 +1288,14 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
         
     # Get the peaks for resp_info and card_info
     # init dicts, may need -card_out 0, for example   [16 Nov 2021 rickr]
-    if phys_file:
-        # Use json reader to read file data into phys_meta
-        with open(phys_json_arg, 'rt') as h:
-            phys_meta = json.load(h)
-        # phys_ending is last element following a period
-        phys_ending = phys_file.split(".")[-1]
-        
-        # Choose file opening function on the basis of whether file is gzippped
-        if phys_ending == 'gz':
-            opener = gzip.open 
-        else:
-            opener = open
-            
-        # Read Columns field of JSON file
-        phys_dat = {k:[] for k in phys_meta['Columns']}
-        
-        # Append tab delimited phys_file to phys_dat
-        with opener(phys_file, 'rt') as h:
-            # for pl in h.readlines():
-            for pl in h:
-                pls = pl.split("\t")
-                for k,v in zip(phys_meta['Columns'], pls):
-                    phys_dat[k].append(float(v))
-                    
-        # Process StartTime is in JSON file
-        if ('StartTime' in phys_meta and "StartTime" not in resp_info):
-            startTime = float(phys_meta["StartTime"])
-            if (startTime > 0):
-                print('***** WARNING: JSON file gives positive start time'+
-                      ' which is not currently handled')
-                print('    Start time must be <= 0')
-            else:
-                resp_info["StartTime"] = startTime            
-                card_info["StartTime"] = startTime            
-                    
-        print('phys_meta = ', phys_meta)
-        # Read columns field from JSON data
-        print('Read columns field from JSON data')
-        for k in phys_meta['Columns']:
-            phys_dat[k] = np.array(phys_dat[k])
-            
-            # Read respiratory component
-            if k.lower() == 'respiratory' or k.lower() == 'respiration':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if resp_out or rvt_out:
-                   if not resp_info["phys_fs"]:
-                       resp_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   resp_file = None
-                   phys_resp_dat = phys_dat[k]
-            
-            # Read cardiac component
-            elif k.lower() == 'cardiac':
-                # create peaks only if asked for    25 May 2021 [rickr]
-                if card_out != 0:
-                   if not card_info["phys_fs"]:
-                       card_info['phys_fs'] = phys_meta['SamplingFrequency']
-                   card_file = None
-                   phys_card_dat = phys_dat[k]
-            else:
-                print("** warning phys data contains column '%s', but\n" \
-                      "   RetroTS only handles cardiac or respiratory data" % k)
+    if phys_file:   # JSON file
+        phys_resp_dat, phys_card_dat = getPhysJsonPair(phys_json_arg, phys_file,
+                            resp_info, card_info, resp_out, card_out, rvt_out)
     else:   # Not a JSON file
         if resp_info["resp_file"]:
             resp_file = resp_info["resp_file"]
-            phys_resp_dat = []
         if card_info["card_file"]:
             card_file = card_info["card_file"]
-            phys_card_dat = []
             
     return resp_file, phys_resp_dat, card_file, phys_card_dat
 
