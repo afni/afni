@@ -10,6 +10,10 @@ import lib_retro_opts as lro
 
 # ==========================================================================
 
+DEF_outlier_perc = [10, 90]
+
+# ==========================================================================
+
 class phys_ts_obj:
     """An object for holding physio time series (e.g., card and resp) and
 derived data.
@@ -30,7 +34,7 @@ derived data.
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
 
-        self.ts_unfilt = None                # arr, for comp to clean orig
+        self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig
 
 
     @property
@@ -75,6 +79,7 @@ regressors for MRI data.
         self.exit_on_rag  = True       # exit if raggedness in data files?
         self.exit_on_nan  = True       # exit if NaN values in data files?
         self.exit_on_null = True       # exit if null values in data files?
+        self.do_fix_outliers = False   # exit if null values in data files?
         self.extra_fix_list = []       # list of to-be-bad values
 
         # physio info (-> some now in resp_data and card_data objs)
@@ -139,9 +144,10 @@ regressors for MRI data.
         self.do_out_resp = not(args_dict['no_resp_out'])
 
         #self.exit_on_rag -> NB: prob never try to fix
-        self.exit_on_nan    = not(args_dict['do_fix_nan'])
-        self.exit_on_null   = not(args_dict['do_fix_null'])
-        self.extra_fix_list = copy.deepcopy(args_dict['extra_fix_list'])
+        self.exit_on_nan     = not(args_dict['do_fix_nan'])
+        self.exit_on_null    = not(args_dict['do_fix_null'])
+        self.do_fix_outliers = args_dict['do_fix_outliers']
+        self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
 
         # run these file reads+checks last, because they use option
         # items from above
@@ -183,15 +189,24 @@ regressors for MRI data.
         arr_fixed, nfix = \
             check_and_fix_arr_badness(arr, 
                                       bad_nums=self.extra_fix_list,
+                                      outliers_bad=self.do_fix_outliers,
                                       verb=self.verb)
         # if fixing is needed, put copy of orig as ts_unfilt
         if nfix :    ts_unfilt = copy.deepcopy(arr)
         else:        ts_unfilt = None
-        self.resp_data = phys_ts_obj(arr_fixed,
-                                     samp_freq = args_dict['freq'],
-                                     label=label, fname=fname, 
-                                     ts_unfilt = ts_unfilt,
-                                     verb=self.verb)
+
+        if label == 'resp' :
+            self.resp_data = phys_ts_obj(arr_fixed,
+                                         samp_freq = args_dict['freq'],
+                                         label=label, fname=fname, 
+                                         ts_unfilt = ts_unfilt,
+                                         verb=self.verb)
+        elif label == 'card' :
+            self.card_data = phys_ts_obj(arr_fixed,
+                                         samp_freq = args_dict['freq'],
+                                         label=label, fname=fname, 
+                                         ts_unfilt = ts_unfilt,
+                                         verb=self.verb)
 
 
     def set_data_from_phys_file_and_json(self, args_dict):
@@ -220,10 +235,12 @@ regressors for MRI data.
             arr_fixed, nfix = \
                 check_and_fix_arr_badness(arr, 
                                           bad_nums=self.extra_fix_list,
+                                          outliers_bad=self.do_fix_outliers,
                                           verb=self.verb)
             # if fixing is needed, put copy of orig as ts_unfilt
             if nfix :    ts_unfilt = copy.deepcopy(arr)
             else:        ts_unfilt = None
+
             self.resp_data = phys_ts_obj(arr_fixed, 
                                          samp_freq = samp_freq,
                                          label='resp', fname=fname, 
@@ -238,10 +255,12 @@ regressors for MRI data.
             arr_fixed, nfix = \
                 check_and_fix_arr_badness(arr, 
                                           bad_nums=self.extra_fix_list,
+                                          outliers_bad=self.do_fix_outliers,
                                           verb=self.verb)
             # if fixing is needed, put copy of orig as ts_unfilt
             if nfix :    ts_unfilt = copy.deepcopy(arr)
             else:        ts_unfilt = None
+
             self.card_data = phys_ts_obj(arr_fixed, 
                                          samp_freq = samp_freq,
                                          label='card', fname=fname, 
@@ -363,7 +382,7 @@ arr_bad : np.ndarray (1D)
 
     return arr_bad
 
-def find_out_vals(x, arr_bad=None, out_perc=[25, 75], verb=0):
+def find_out_vals(x, arr_bad=None, out_perc=DEF_outlier_perc, verb=0):
     """For a 1D array x of length N, check for outliers to report.  Output
 a True/False array of length N, where True highlights an outlier
 value.
@@ -562,7 +581,7 @@ ALL_fix_method = [ 'interp_linear',
 def check_and_fix_arr_badness(x, thr_nbad=None, thr_bad_strk=None,
                               fix_method='interp_linear',
                               bad_nums=[], outliers_bad=False,
-                              out_perc = [25, 75], verb=0):
+                              out_perc=DEF_outlier_perc, verb=0):
     """Check 1D array x for badness (with some options/flexibility about
 what 'badness' can mean), and either fix it or exit.  'Fixing' means
 applying the fix method, such as linear interpolation.  The user can
@@ -753,7 +772,7 @@ x_fixed : np.ndarray
 
 
 def find_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
-                         out_perc = [25, 75], verb=0):
+                         out_perc=DEF_outlier_perc, verb=0):
     """Provide information (not decision making) about badness in a 1D
 array x. Check for NaNs as well as any list of possibly bad (finite)
 values to report, such as 0s.  The output list of bad indices will

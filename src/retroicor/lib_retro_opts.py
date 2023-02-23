@@ -48,6 +48,7 @@ DEF = {
     'prefix'            : 'physio',  # (str) output filename prefix
     'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
     'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
+    'do_fix_outliers'   : False,     # (list) fix/interp outliers
     'extra_fix_list'    : [],        # (list) extra values to fix
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
@@ -682,15 +683,22 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
 
 opt = '''do_fix_nan'''
-hlp = '''Fix (= replace with interpolation) any NaN values in physio time
-series (def: exit if any appears)'''
+hlp = '''Fix (= replace with interpolation) any NaN values in the physio
+time series (def: exit if any appears)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''do_fix_null'''
 hlp = '''Fix (= replace with interpolation) any null or missing values in
-physio time series (def: exit if any appears)'''
+the physio time series (def: exit if any appears)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''do_fix_outliers'''
+hlp = '''Fix (= replace with interpolation) any outliers in the physio time
+series (def: don't change them and continue)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
