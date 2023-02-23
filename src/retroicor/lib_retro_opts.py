@@ -147,7 +147,11 @@ args_dict : dict
         # value will NOT be a list, magically, but everything else
         # appears to be
         if type(args_dict[key]) == list :
-            args_dict[key] = args_dict[key][0]
+            if len(args_dict[key]) == 1 :
+                args_dict[key] = args_dict[key][0]
+            else:
+                # list-> str with space sep, to be split later
+                args_dict[key] = ' '.join(args_dict[key])
         else:
             if verb:
                 print("++ non-list option key -> value: ", 
@@ -694,7 +698,7 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''extra_fix_list'''
 hlp = '''List of one or more values that will also be considered 'bad' if
 they appear in the physio time series, and replaced with interpolated
-values ***right now list must be in quotes, but this will change***'''
+values'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
