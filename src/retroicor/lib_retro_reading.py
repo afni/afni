@@ -17,7 +17,8 @@ derived data.
     """
 
     def __init__(self, ts_orig, samp_freq = 0.0,
-                 label=None, fname=None, verb=0):
+                 label=None, fname=None, ts_unfilt = None,
+                 verb=0):
         """Create object holding a physio time series data.
 
         """
@@ -29,6 +30,7 @@ derived data.
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
 
+        self.ts_unfilt = None                # arr, for comp to clean orig
 
 
     @property
@@ -179,10 +181,14 @@ regressors for MRI data.
 
         all_col = self.read_and_check_data_file(fname)
         arr     = self.extract_list_col(all_col, 0) 
-
-        self.resp_data = phys_ts_obj(arr, 
+        arr_fixed, nfix = check_and_fix_arr_badness(arr)
+        # if fixing is needed, put copy of orig as ts_unfilt
+        if nfix :    ts_unfilt = copy.deepcopy(arr)
+        else:        ts_unfilt = None
+        self.resp_data = phys_ts_obj(arr_fixed,
                                      samp_freq = args_dict['freq'],
                                      label=label, fname=fname, 
+                                     ts_unfilt = ts_unfilt,
                                      verb=self.verb)
 
 
@@ -208,10 +214,15 @@ regressors for MRI data.
                 print("++ Reading _resp_ data from {}".format(fname))
             USE_COL+= 1
             idx = D["Columns"].index('respiratory')
-            arr = self.extract_list_col(all_col, idx) # add checks!
-            self.resp_data = phys_ts_obj(arr, 
+            arr = self.extract_list_col(all_col, idx)
+            arr_fixed, nfix = check_and_fix_arr_badness(arr)
+            # if fixing is needed, put copy of orig as ts_unfilt
+            if nfix :    ts_unfilt = copy.deepcopy(arr)
+            else:        ts_unfilt = None
+            self.resp_data = phys_ts_obj(arr_fixed, 
                                          samp_freq = samp_freq,
                                          label='resp', fname=fname, 
+                                         ts_unfilt = ts_unfilt,
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
             if self.verb:
@@ -219,9 +230,14 @@ regressors for MRI data.
             USE_COL+= 1
             idx = D["Columns"].index('cardiac')
             arr = self.extract_list_col(all_col, idx) # add checks!
-            self.card_data = phys_ts_obj(arr, 
+            arr_fixed, nfix = check_and_fix_arr_badness(arr)
+            # if fixing is needed, put copy of orig as ts_unfilt
+            if nfix :    ts_unfilt = copy.deepcopy(arr)
+            else:        ts_unfilt = None
+            self.card_data = phys_ts_obj(arr_fixed, 
                                          samp_freq = samp_freq,
                                          label='card', fname=fname, 
+                                         ts_unfilt = ts_unfilt,
                                          verb=self.verb)
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "
@@ -234,7 +250,6 @@ regressors for MRI data.
         [idx] column.
 
         Return that column as an array of floats.
-
         """
 
         ncol = len(all_col[0])
@@ -242,8 +257,7 @@ regressors for MRI data.
             print("** ERROR: index {} cannot be used, since ncol = {}"
                   "".format(idx, ncol))
 
-        N = len(all_col)
-        
+        N   = len(all_col)
         arr = np.zeros(N, dtype=float)
         for ii in range(N):
             arr[ii] = all_col[ii][idx]
@@ -256,7 +270,6 @@ regressors for MRI data.
         badness.  Fail (or not) according to the user's whims.
 
         Return a list of the data, one list per row.
-
         """
 
         HAVE_BADNESS = 0
@@ -580,6 +593,8 @@ Returns
 x_fixed : np.ndarray
     the input array x with any bad values 'fixed' or replaced by the
     applied fix method.
+nfix : int
+    number of points fixed
 
     """
 
@@ -625,13 +640,13 @@ x_fixed : np.ndarray
     # simple case of fixing: no bad points!
     if not(tot_nbad) :
         x_fixed = copy.deepcopy(x)
-        return x_fixed
+        return x_fixed, 0
 
     # if this point is reached, there are fixes to be made
     if fix_method == 'interp_linear' :
         x_fixed = calc_linear_interp(x, arr_bad, verb=verb)
 
-    return x_fixed
+    return x_fixed, tot_nbad
 
 
 def calc_linear_interp(x, arr_bad, verb=0):
