@@ -46,6 +46,9 @@ DEF = {
     'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
+    'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
+    'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
+    'extra_fix_list'    : [],        # (list) extra values to fix
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
@@ -674,6 +677,28 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str)
 
+opt = '''do_fix_nan'''
+hlp = '''Fix (= replace with interpolation) any NaN values in physio time
+series (def: exit if any appears)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''do_fix_null'''
+hlp = '''Fix (= replace with interpolation) any null or missing values in
+physio time series (def: exit if any appears)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''extra_fix_list'''
+hlp = '''List of one or more values that will also be considered 'bad' if
+they appear in the physio time series, and replaced with interpolated
+values ***right now list must be in quotes, but this will change***'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs='+', type=str) # parse later
+
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
 odict[opt] = hlp
@@ -979,6 +1004,21 @@ args_dict2 : dict
             print("** ERROR: could not match slice_pattern '{}' as "
                   "either a recognized pattern or file".format(pat))
             sys.exit(3)
+
+    if args_dict2['extra_fix_list'] :
+        # interpret string to be list of floats
+        IS_BAD = 0
+
+        L = args_dict2['extra_fix_list'].split()
+        try:
+            efl = [float(ll) for ll in L]
+            args_dict2['extra_fix_list'] = copy.deepcopy(efl)
+        except:
+            print("** ERROR interpreting extra_fix_list")
+            IS_BAD = 1
+
+        if IS_BAD :
+            sys.exit(1)
 
     if '/' in args_dict2['prefix'] :
         print("** ERROR: Cannot have path information in '-prefix ..'\n"

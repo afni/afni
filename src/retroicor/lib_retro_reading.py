@@ -73,20 +73,18 @@ regressors for MRI data.
         self.phys_file  = None         # phys file, might contain cardio/resp
 
         self.exit_on_rag  = True       # exit if raggedness in data files?
-        self.exit_on_nan  = False # !!!!True       # exit if NaN values in data files?
+        self.exit_on_nan  = True       # exit if NaN values in data files?
         self.exit_on_null = True       # exit if null values in data files?
-        self.exit_on_zero = False      # exit if zero values in data files?
+        self.extra_fix_list = []       # list of to-be-bad values
 
         # physio info (-> some now in resp_data and card_data objs)
-        #self.phys_freq   = None        # float, physio samp freq (in Hz)
-        #self.phys_samp   = None        # float, = 1/phys_freq (in s)
         self.start_time  = None        # float, time offset from start of MRI
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
         self.vol_slice_pat   = None       # str, name of slice pat (for ref)
         self.vol_tr          = None       # float, TR of MRI EPI
-        self.vol_ntps        = None       # int, Nvol MRI EPI
+        self.vol_nv          = None       # int, Nvol MRI EPI
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -119,44 +117,45 @@ regressors for MRI data.
 
         # *** this method is in progress ***
 
-        self.vol_slice_times = args_dict['slice_times']
+        self.verb            = args_dict['verb']
+
+        self.vol_slice_times = copy.deepcopy(args_dict['slice_times'])
         self.vol_slice_pat   = args_dict['slice_pattern']
         self.vol_tr          = args_dict['volume_tr']
-        self.vol_ntps        = args_dict['num_time_pts']
+        self.vol_nv          = args_dict['num_time_pts']
 
         self.start_time      = args_dict['start_time']
 
-        self.verb      = args_dict['verb']
-        self.out_dir   = args_dict['out_dir']
-        self.prefix    = args_dict['prefix']
+        self.out_dir     = args_dict['out_dir']
+        self.prefix      = args_dict['prefix']
         self.show_graph_level = args_dict['show_graph_level']
         self.save_graph_level = args_dict['save_graph_level']
-        self.font_size = args_dict['font_size']
-        self.niml      = args_dict['niml']
-        self.demo      = args_dict['demo']
-        self.debug     = args_dict['debug']
+        self.font_size   = args_dict['font_size']
+        self.niml        = args_dict['niml']
+        self.demo        = args_dict['demo']
+        self.debug       = args_dict['debug']
         self.do_out_rvt  = not(args_dict['no_rvt_out'])
         self.do_out_card = not(args_dict['no_card_out'])
         self.do_out_resp = not(args_dict['no_resp_out'])
 
-        ### no cmd line arg for these yet
-        #self.exit_on_rag  = True       # exit if raggedness in data files?
-        #self.exit_on_nan  = True       # exit if NaN values in data files?
-        #self.exit_on_null = True       # exit if null values in data files?
-        #self.exit_on_zero = False      # exit if zero values in data files?
+        #self.exit_on_rag -> NB: prob never try to fix
+        self.exit_on_nan    = not(args_dict['do_fix_nan'])
+        self.exit_on_null   = not(args_dict['do_fix_null'])
+        self.extra_fix_list = copy.deepcopy(args_dict['extra_fix_list'])
 
+        # run these file reads+checks last, because they use option
+        # items from above
         if args_dict['phys_file'] and args_dict['phys_json_dict'] :
-            self.get_data_from_phys_file_and_json(args_dict)
-
+            self.set_data_from_phys_file_and_json(args_dict)
         if args_dict['resp_file'] :
-            self.get_data_from_solo_file(args_dict, label='resp')
-
+            self.set_data_from_solo_file(args_dict, label='resp')
         if args_dict['card_file'] :
-            self.get_data_from_solo_file(args_dict, label='card')
+            self.set_data_from_solo_file(args_dict, label='card')
 
 
+    # -----------------------
 
-    def get_data_from_solo_file(self, args_dict, label=''):
+    def set_data_from_solo_file(self, args_dict, label=''):
         """Using information stored in args_dict, try opening and reading
         either the resp_file or card_file.  Use this to populate one
         or more data objs.
@@ -181,7 +180,10 @@ regressors for MRI data.
 
         all_col = self.read_and_check_data_file(fname)
         arr     = self.extract_list_col(all_col, 0) 
-        arr_fixed, nfix = check_and_fix_arr_badness(arr)
+        arr_fixed, nfix = \
+            check_and_fix_arr_badness(arr, 
+                                      bad_nums=self.extra_fix_list,
+                                      verb=self.verb)
         # if fixing is needed, put copy of orig as ts_unfilt
         if nfix :    ts_unfilt = copy.deepcopy(arr)
         else:        ts_unfilt = None
@@ -192,7 +194,7 @@ regressors for MRI data.
                                      verb=self.verb)
 
 
-    def get_data_from_phys_file_and_json(self, args_dict):
+    def set_data_from_phys_file_and_json(self, args_dict):
         """Using information stored in args_dict, try opening and reading the
         phys_file, using a dictionary made from its accompanying JSON.
         Use this to populate one or more data objs.
@@ -215,7 +217,10 @@ regressors for MRI data.
             USE_COL+= 1
             idx = D["Columns"].index('respiratory')
             arr = self.extract_list_col(all_col, idx)
-            arr_fixed, nfix = check_and_fix_arr_badness(arr)
+            arr_fixed, nfix = \
+                check_and_fix_arr_badness(arr, 
+                                          bad_nums=self.extra_fix_list,
+                                          verb=self.verb)
             # if fixing is needed, put copy of orig as ts_unfilt
             if nfix :    ts_unfilt = copy.deepcopy(arr)
             else:        ts_unfilt = None
@@ -229,8 +234,11 @@ regressors for MRI data.
                 print("++ Reading _card_ data from {}".format(fname))
             USE_COL+= 1
             idx = D["Columns"].index('cardiac')
-            arr = self.extract_list_col(all_col, idx) # add checks!
-            arr_fixed, nfix = check_and_fix_arr_badness(arr)
+            arr = self.extract_list_col(all_col, idx) 
+            arr_fixed, nfix = \
+                check_and_fix_arr_badness(arr, 
+                                          bad_nums=self.extra_fix_list,
+                                          verb=self.verb)
             # if fixing is needed, put copy of orig as ts_unfilt
             if nfix :    ts_unfilt = copy.deepcopy(arr)
             else:        ts_unfilt = None
@@ -337,15 +345,21 @@ arr_bad : np.ndarray (1D)
     # find nans
     arr_bad = np.isnan(x)
 
+    if verb and len(bad_nums) :
+        print("++ List of bad 'extra fix' numbers: [{}]"
+              "".format(', '.join([str(x) for x in bad_nums])))
+
     # ... and check for additional bad values, if listed
+    nbadnum = 0
     if not(bad_nums is None) :
         for ii in range(N):
             if x[ii] in bad_nums :
                 arr_bad[ii] = True
+                nbadnum+= 1
 
     if verb:
         nbad = np.sum(arr_bad)
-        print("++ Number of bad values found: {}".format(nbad))
+        print("++ Number of bad 'extra fix' values found: {}".format(nbadnum))
 
     return arr_bad
 
@@ -888,7 +902,7 @@ dict_of_len : dict
     ndlen = len(dict_of_len)
 
     if verb and ndlen==1 :
-        print("++ No apparent raggedness in the data columns")
+        print("   No apparent raggedness in the data columns")
 
     if ndlen > 1 :
         print("+* WARN: apparent raggedness in the file")
@@ -1103,6 +1117,32 @@ dict_of_len : dict
     # additionally, if len(dict_of_len)>1, then there is badness in
     # the form of raggedness in the input file.
 
+    tmp = report_on_bad_list(bad_nanlist, label='nan', verb=verb)
+    tmp = report_on_bad_list(bad_nulllist, label='null', verb=verb)
+
     if verb:    print("++ End reporting.")
 
     return tlist, bad_nanlist, bad_nulllist, dict_of_len
+
+def report_on_bad_list(L, label='', verb=0):
+    """Print information to terminal about a bad list.  Recall that it is
+the zero-based array index stored, and we generally want to report the
+one-based line number."""
+
+    N = len(L)
+    if label[-1] != ' ':
+        label = label + ' '
+
+    # nothing to do
+    if not(N): 
+        print("   No items found in bad {}list".format(label))
+        return 0
+
+    print("+* WARN: Found items in bad {}list, N = {}".format(label, N))
+    if verb:
+        for x in L:
+            idx = x[0] + 1
+            txt = repr(x[1]) # raw/canonical string 
+            print("   [line: {:5d}] {}".format(idx, txt))
+        
+    return 0
