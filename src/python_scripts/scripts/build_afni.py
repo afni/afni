@@ -331,6 +331,7 @@ class MyInterface:
 
       self.do_abin         = None   # abin dirobj
       self.do_root         = None   # build root dirobj
+      self.do_mb_abin      = None   # make build install dir object
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
@@ -877,18 +878,6 @@ class MyInterface:
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   make %s" % target)
-      # if there is some known abin, mention possibly rsync
-      do = None
-      if self.do_abin is not None:
-         do = self.do_abin
-      elif self.do_orig_abin is not None:
-         do = self.do_orig_abin
-      if do is not None:
-         full_bpath = '%s/%s' % (self.do_root.abspath, self.dsbuild)
-         self.final_mesg.append("------------------------------")
-         self.final_mesg.append("to possibly rsync make output:")
-         self.final_mesg.append("   rsync -av %s/%s/ %s/" \
-             % (full_bpath, self.package, do.abspath))
 
       MESGm("building make target '%s'" % target)
 
@@ -897,6 +886,7 @@ class MyInterface:
          MESGp("have -prep_only, skipping make and test")
          return 0
 
+      # actually run the main build
       logfile = 'log_make.txt'
       MESGp("building ...")
       MESGi("consider monitoring the build in a separate window with:")
@@ -910,6 +900,30 @@ class MyInterface:
       MESGm("building %s" % tmesg)
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
+
+      # finished with build, try to capture version info
+      # (first with local version, then from install_dir)
+      do = dirobj('mb_abin', '.')
+      self.set_afni_version_info(do)
+      if do.package and os.path.isdir(do.package):
+         do = dirobj('mb_abin', do.package)
+         self.set_afni_version_info(do)
+         self.do_mb_abin = do
+      if self.verb > 1:
+         MESGp("have make build abin %s" % do.abspath)
+      MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
+
+      # if there is some known abin, mention possibly rsync
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      if do is not None and self.do_mb_abin is not None:
+         self.final_mesg.append("------------------------------")
+         self.final_mesg.append("to possibly rsync make output:")
+         self.final_mesg.append("   rsync -av %s/ %s/" \
+             % (self.do_mb_abin.abspath, do.abspath))
 
       # test the build
       logfile = 'log_test.txt'
@@ -1189,24 +1203,30 @@ class MyInterface:
       wp = UTIL.which(prog)
       if wp != '':
          self.do_orig_abin = dirobj('orig_abin_dir', path_head(wp))
-         self.get_orig_abin_info(self.do_orig_abin)
+         do = self.do_orig_abin # convenience
+         # try to init orig version info from AFNI_version.txt
+         self.set_afni_version_info(do)
+         if self.verb > 1:
+            MESGp("have original abin %s" % do.abspath)
+         MESGm("current AFNI: %s, %s, %s" % (do.version, do.package, do.date))
+         # if package is empty, set from current version
+         if self.package == '':
+            MESGm("will init unset -package with current '%s'" % do.package)
+            self.package = do.package
       else:
          if self.verb > 1:
             MESGm("no %s in original PATH to set orig_abin from" % prog)
 
       return 0
 
-   def get_orig_abin_info(self, do_abin):
+   def set_afni_version_info(self, do_abin):
       """if possible, add to do_orig_abin: version, package, date
-         read from AFNI_version.txt
+         read from AFNI_version.txt into do_abin
       """
       # init to unknown
       do_abin.version = ''
       do_abin.package = ''
       do_abin.date = ''
-
-      if self.verb > 1:
-         MESGp("have original abin %s" % do_abin.abspath)
 
       vfile = '%s/AFNI_version.txt' % do_abin.abspath
 
@@ -1219,13 +1239,6 @@ class MyInterface:
       do_abin.version = tdata[0]
       do_abin.package = tdata[1]
       do_abin.date    = tdata[2]
-      if self.verb > 0:
-         MESGm("current AFNI: %s, %s, %s" % (tdata[0], tdata[1], tdata[2]))
-
-      # if package is empty, set from current version
-      if self.package == '':
-         MESGm("will init unset -package with current '%s'" % do_abin.package)
-         self.package = do_abin.package
 
 def main(argv):
 
