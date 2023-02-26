@@ -3522,7 +3522,7 @@ parseHTML(Parser *parser)
 						case '/':
 							/*
 							* only handle shorttags when requested. 
-							* We have a short tag if this / is preceeded by
+							* We have a short tag if this / is preceded by
 							* a valid character.
 							*/
 							if(isalnum(*(chPtr-1)))

@@ -25,7 +25,7 @@ int main( int argc , char **argv )
             "    3.6   21.6   14.2\n"
             "\n"
             "* Non-numeric characters are replaced with blanks.\n"
-            "* The letter 'e' is preserved if it is preceeded\n"
+            "* The letter 'e' is preserved if it is preceded\n"
             "  or followed by a numeric character.  This is\n"
             "  to allow for numbers like '1.2e-3'.\n"
             "* Numeric characters, for the purpose of this\n"
