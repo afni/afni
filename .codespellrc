@@ -1,0 +1,3 @@
+[codespell]
+skip = .git,*.pdf,*.svg,*.BRIK
+# ignore-words-list = 
