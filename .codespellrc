@@ -1,6 +1,7 @@
 [codespell]
-skip = .git,*.pdf,*.svg,*.BRIK,meica.libs
+skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset
 # file with ignores (ATM all shorts found by codespell)
 ignore-words = .codespell-ignores
 # Individual words if so desired to be added
-# ignore-words-list = 
+# some variable names or due to '\nnumber'
+ignore-words-list = slient,nnumber,merget,reqiure
