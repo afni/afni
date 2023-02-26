@@ -7295,7 +7295,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  9, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
-   "added $hemi to rm.mean dset during scaling; added -overwrite_resp to SATE",
+   "added $hemi to rm.mean dset during scaling; added -overwrite_resp to @SUMA_AlignToExperiement",
    "Surface analysis would fail on 2nd hemi, as rm.mean dset would exist."
    "Also, added new '-overwrite_resp S' to @SUMA_AlignToExperiement command."
  } ,
