@@ -8007,7 +8007,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
       ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
       PR->iAltSel[SUMA_NET_BUN], PR->iAltSel[SUMA_BUN_TRC],
       PR->iAltSel[SUMA_TRC_PNT]);
-   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "Selection coordinates:\n");
    fprintf(SUMA_STDOUT, "%f, %f, %f\n",
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
    fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
@@ -8016,7 +8016,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
    fprintf(SUMA_STDOUT, "Selected mask %s (Focus_DO_ID # %d).\n",
       ADO_LABEL(ado), sv->Focus_DO_ID);
-   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "Selection coordinates:\n");
    fprintf(SUMA_STDOUT, "%f, %f, %f\n",
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
    fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
@@ -8027,7 +8027,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
                         "Edge %ld, (P0 %ld, P1 %ld)\n",
       ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
       PR->iAltSel[SUMA_ENODE_0], PR->iAltSel[SUMA_ENODE_1]);
-   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "Selection coordinates:\n");
    fprintf(SUMA_STDOUT, "%f, %f, %f\n",
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
    fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
