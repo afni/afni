@@ -2974,37 +2974,37 @@ class SubjProcSream:
         if self.find_block('align'):
             if not self.blocks_ordered('align', 'volreg'):
                 errs += 1
-                print("** warning: 'align' should preceed 'volreg'")
+                print("** warning: 'align' should precede 'volreg'")
             if not self.blocks_ordered('align', 'tlrc'):
                 errs += 1
-                print("** warning: 'align' should preceed 'tlrc'")
+                print("** warning: 'align' should precede 'tlrc'")
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
                 errs += 1
-                print("** warning: 'despike' should preceed 'ricor'")
+                print("** warning: 'despike' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'tshift'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'ricor'")
+                print("** warning: 'tshift' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'volreg'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'ricor'")
+                print("** warning: 'volreg' should precede 'ricor'")
         if self.find_block('blur'):
             if not self.blocks_ordered('blur', 'scale'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'scale'")
+                print("** warning: 'blur' should precede 'scale'")
         if self.find_block('regress'):
             if not self.blocks_ordered('tshift', 'regress'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'regress'")
+                print("** warning: 'tshift' should precede 'regress'")
             if not self.blocks_ordered('volreg', 'regress'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'regress'")
+                print("** warning: 'volreg' should precede 'regress'")
             if not self.blocks_ordered('blur', 'regress'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'regress'")
+                print("** warning: 'blur' should precede 'regress'")
             if not self.blocks_ordered('scale', 'regress'):
                 errs += 1
-                print("** warning: 'scale' should preceed 'regress'")
+                print("** warning: 'scale' should precede 'regress'")
 
         return errs
 
@@ -3022,7 +3022,7 @@ class SubjProcSream:
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
                 print('** warning: missing block', end='')
-                if bind0 < 0: print("'%s' (to preceed '%s')" % (name0,name1))
+                if bind0 < 0: print("'%s' (to precede '%s')" % (name0,name1))
                 if bind1 < 0: print("'%s' (to follow '%s')" % (name1,name0))
             return 1
         elif bind0 < bind1: return 1
