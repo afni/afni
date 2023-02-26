@@ -5,4 +5,4 @@ skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c
 ignore-words = .codespell-ignores
 # Individual words if so desired to be added
 # some variable names or due to '\nnumber'
-ignore-words-list = slient,nnumber,merget,reqiure,pinter
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs
