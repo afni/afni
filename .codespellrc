@@ -1,3 +1,6 @@
 [codespell]
 skip = .git,*.pdf,*.svg,*.BRIK,meica.libs
+# file with ignores (ATM all shorts found by codespell)
+ignore-words = .codespell-ignores
+# Individual words if so desired to be added
 # ignore-words-list = 
