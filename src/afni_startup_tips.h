@@ -1847,16 +1847,6 @@ static char *gby[] = {
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
      "      in the simple fact that there is life" ,
 
-     /* John 5:2-4 (KJV) */
-
-     "Remember -- the NIH is in Bethesda (John 5:2-4 KJV):\n"
-     "  Now there is at Jerusalem by the sheep market a pool, which is called in\n"
-     "  the Hebrew tongue Bethesda, having five porches. In these lay a great\n"
-     "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
-     "  moving of the water. For an angel went down at a certain season into the\n"
-     "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had" ,
-
      /* From https://www.thesaurus.com/browse/wonderful */
 
      "If anyone asks you about your experiences with AFNI,\n"
