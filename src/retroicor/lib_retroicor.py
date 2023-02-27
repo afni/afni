@@ -1159,9 +1159,11 @@ def getPhysJsonPair(phys_json_arg, phys_file, resp_info, card_info,
        Peter Lauren
     """
     
+    # Initialize output
     phys_resp_dat = []
     phys_card_dat = []
 
+    # Ensure required files are provided.
     if not phys_file or not phys_json_arg:
         print("*** ERROR.  getPhysJsonPair called without phys file or JSON"\
               " file!")
@@ -1184,7 +1186,6 @@ def getPhysJsonPair(phys_json_arg, phys_file, resp_info, card_info,
     
     # Append tab delimited phys_file to phys_dat
     with opener(phys_file, 'rt') as h:
-        # for pl in h.readlines():
         for pl in h:
             pls = pl.split("\t")
             for k,v in zip(phys_meta['Columns'], pls):
@@ -1301,23 +1302,16 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
 
 from numpy import zeros, size
 
-def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
+def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
+                        n_e, n_n, resp_info, card_info):
     """
     NAME
-        ouputInNimlFormat 
-            Output physiological noise components to NeuroImaging Markup 
-            Language (NIML) format
+        getMainInfoAndLabel 
+            Get main info. and labels to output physiological noise components 
+            in NeuroImaging Markup Language (NIML) format
     TYPE
-        <class int>
+        <class 'dict'>, <class 'str'>
     ARGUMENTS
-        physiologicalNoiseComponents:   Dictionary with the following fields.
-        
-            resp_phases: (dType = class 'list') Respiratory phases in time 
-                                                points (not seconds)
-            
-            card_phases: (dType = class 'list') Cardiac phases in time points
-                                                (not seconds)
-            
         parameters:   Dictionary with the following fields.
         
             num_slices:        (dtype = class 'int') Number of slices
@@ -1335,64 +1329,47 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                           
             prefix: (dType = str) Prefix for output filename.
                        
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in time points
+                                                (not seconds)
+            
+        n_r_v: (dtype = <class 'int'>) Number of RVT slices
+        
+        n_r_p: (dtype = <class 'int'>) Number of phase slices
+                                
+        n_e: (dtype = <class 'int'>) Number of phase slices
+        
+        n_n: (dtype = <class 'int'>) Number of time steps
+        
+        resp_info: (dtype = <class 'dict'>) Dictonary with the following fields
+                    for respiratory data
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) Registered phase 
+                                slices
+        
+        card_info: (dtype = <class 'dict'>)
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) Registered phase 
+                            slices
+            
     AUTHOR
-       Peter Lauren and Josh Zosky 
+       Peter Lauren
     """
-    
+
     main_info = dict()
     main_info["rvt_out"] = parameters["rvt_out"]
     main_info["number_of_slices"] = parameters['num_slices']
     main_info["prefix"] = parameters["prefix"]
     main_info["resp_out"] = len(physiologicalNoiseComponents['resp_phases']) > 0
     main_info["card_out"] = len(physiologicalNoiseComponents['card_phases']) > 0
-    
-    if len(physiologicalNoiseComponents['resp_phases']) > 0:
-        resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
-                        'r', parameters)
-        if resp_info == None:
-            print('ERROR getting respiratory regressors')
-            return 1
-        resp_info["rvt_shifts"] = list(range(0, 21, 5))
-        resp_info["rvtrs_slc"] = np.zeros((len(resp_info["rvt_shifts"]), 
-                        len(resp_info["time_series_time"])))
-    if len(physiologicalNoiseComponents['card_phases']) > 0:
-        card_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
-                        'c', parameters)
-        if card_info == None:
-            print('ERROR getting cardiac regressors')
-            return 1
-        card_info["rvt_shifts"] = list(range(0, 21, 5))
-        card_info["rvtrs_slc"] = np.zeros((len(card_info["rvt_shifts"]), 
-                        len(card_info["time_series_time"])))
-
-    n_n   = 0
-    n_r_v = 0
-    n_r_p = 0
-    n_e   = 0
-
-    if len(physiologicalNoiseComponents['resp_phases']) > 0:
-        if "time_series_time" in resp_info:
-            n_n = len(resp_info["time_series_time"])
-            n_r_p = size(resp_info["phase_slice_reg"], 1)
-            n_r_v = size(resp_info["rvtrs_slc"], 0)
-    if len(physiologicalNoiseComponents['card_phases']) > 0:
-        if "time_series_time" in card_info:
-            n_n = len(card_info["time_series_time"])
-            n_r_p = size(card_info["phase_slice_reg"], 1)
-            n_r_v = size(card_info["rvtrs_slc"], 0)
-
-    if 'card_info' in locals() and "time_series_time" in card_info:  
-              # must have card_info
-        n_n = len(
-            card_info["time_series_time"]
-        )  # ok to overwrite len(resp_info.tst), should be same.
-        n_e = size(card_info["phase_slice_reg"], 1)
-    elif 'resp_info' in locals() and "time_series_time" in resp_info:  
-                                                # must have card_info
-        n_n = len(
-            resp_info["time_series_time"]
-        )  # ok to overwrite len(resp_info.tst), should be same.
-        n_e = size(resp_info["phase_slice_reg"], 1)
     
     cnt = 0
     temp_y_axis = main_info["number_of_slices"] * (
@@ -1414,8 +1391,6 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
         'ColumnLabels = "'
         % (size(main_info["reml_out"], 1), size(main_info["reml_out"], 0))
     )
-    tail = '"\n>'
-    tailclose = "</RetroTSout>"
 
     label = head
 
@@ -1478,11 +1453,198 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
                         card_info["phase_slice_reg"][:, j, i]
                     )
                     label = "%s s%d.Card%d ;" % (label, i, j)
-        # fid = open(("%s.slibase.1D" % main_info["prefix"]), "w")
-
+    
     # remove very last ';'
     label = label[1:-2]
+    
+    return main_info, label
 
+def getNimlDimensions(physiologicalNoiseComponents, resp_info, card_info):
+    """
+    NAME
+        getNimlDimensions 
+            Get number of RVT slices (n_r_v), phase slices (n_r_p and n_e), and 
+            time steps (n_n). 
+    TYPE
+        <class 'int'>, <class 'int'>, <class 'int'>, <class 'int'>
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in time points
+                                                (not seconds)
+            
+       
+        resp_info: (dtype = <class 'dict'>) Dictonary with the following fields
+                    for respiratory data
+                    
+            time_series_time: <class 'numpy.ndarray'>) List of float 
+                            which are integral multiples of TR, starting at 0 
+                    
+            rvtrs_slc:  (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>)Registered phase 
+                                slices
+        
+        card_info: (dtype = <class 'dict'>)
+                    
+            time_series_time: (dType = <class 'numpy.ndarray'>) List of float 
+                            which are integral multiples of TR, starting at 0 
+                    
+            rvtrs_slc:  (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>)Registered phase 
+                                slices
+            
+    AUTHOR
+       Peter Lauren
+    """
+
+    n_n   = 0
+    n_r_v = 0
+    n_r_p = 0
+    n_e   = 0
+
+    if len(physiologicalNoiseComponents['resp_phases']) > 0:
+        if "time_series_time" in resp_info:
+            n_n = len(resp_info["time_series_time"])
+            n_r_p = size(resp_info["phase_slice_reg"], 1)
+            n_r_v = size(resp_info["rvtrs_slc"], 0)
+    if len(physiologicalNoiseComponents['card_phases']) > 0:
+        if "time_series_time" in card_info:
+            n_n = len(card_info["time_series_time"])
+            n_r_p = size(card_info["phase_slice_reg"], 1)
+            n_r_v = size(card_info["rvtrs_slc"], 0)
+
+    if 'card_info' in locals() and "time_series_time" in card_info:  
+              # must have card_info
+        n_n = len(
+            card_info["time_series_time"]
+        )  # ok to overwrite len(resp_info.tst), should be same.
+        n_e = size(card_info["phase_slice_reg"], 1)
+    elif 'resp_info' in locals() and "time_series_time" in resp_info:  
+                                                # must have card_info
+        n_n = len(
+            resp_info["time_series_time"]
+        )  # ok to overwrite len(resp_info.tst), should be same.
+        n_e = size(resp_info["phase_slice_reg"], 1)
+        
+    return n_n, n_r_v, n_r_p, n_e
+
+def getPhysiologicalInfo(physiologicalNoiseComponents, parameters):
+    """
+    NAME
+        getPhysiologicalInfo 
+            Get cardiac and respirator slice, and time series, info. to output 
+                to NIML file
+    TYPE
+        <class 'dict'>, <class 'dict'>
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in time points 
+                                                (not seconds)
+            
+        parameters:   Dictionary with the following fields.
+        
+            num_slices:        (dtype = class 'int') Number of slices
+            
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                        time (TR) which defines the length of time 
+            
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                       in Hz.
+        
+            slice_times: (dtype = <class 'list'>) Vector of slice acquisition 
+                      time offsets in seconds. (default is equivalent of alt+z)
+                       
+    AUTHOR
+       Peter Lauren  
+    """
+    
+    # Initialize respiratory and cardiac dictionaries
+    resp_info = dict()
+    card_info = dict()
+    
+    if len(physiologicalNoiseComponents['resp_phases']) > 0:
+        resp_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                        'r', parameters)
+        if resp_info == None:
+            print('ERROR getting respiratory regressors')
+            return 1
+        resp_info["rvt_shifts"] = list(range(0, 21, 5))
+        resp_info["rvtrs_slc"] = np.zeros((len(resp_info["rvt_shifts"]), 
+                        len(resp_info["time_series_time"])))
+    if len(physiologicalNoiseComponents['card_phases']) > 0:
+        card_info = makeRegressorsForEachSlice(physiologicalNoiseComponents, 
+                        'c', parameters)
+        if card_info == None:
+            print('ERROR getting cardiac regressors')
+            return 1
+        card_info["rvt_shifts"] = list(range(0, 21, 5))
+        card_info["rvtrs_slc"] = np.zeros((len(card_info["rvt_shifts"]), 
+                        len(card_info["time_series_time"])))
+    
+    return resp_info, card_info
+
+def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
+    """
+    NAME
+        ouputInNimlFormat 
+            Output physiological noise components to NeuroImaging Markup 
+            Language (NIML) format
+    TYPE
+        <class int>
+    ARGUMENTS
+        physiologicalNoiseComponents:   Dictionary with the following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases in time 
+                                                points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in time points
+                                                (not seconds)
+            
+        parameters:   Dictionary with the following fields.
+        
+            num_slices:        (dtype = class 'int') Number of slices
+            
+            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
+                       time (TR) which defines the length of time 
+            
+            phys_fs:   (dType = float) Physiological signal sampling frequency 
+                                        in Hz.
+        
+            rvt_out:   (dType = int) Whether to have RVT output
+            
+            slice_offset: Vector of slice acquisition time offsets in seconds.
+                          (default is equivalent of alt+z)
+                          
+            prefix: (dType = str) Prefix for output filename.
+                       
+    AUTHOR
+       Peter Lauren  
+    """
+    
+    resp_info, card_info = getPhysiologicalInfo(physiologicalNoiseComponents,
+                                                parameters)
+    
+    # Get number of slices and time points
+    n_n, n_r_v, n_r_p, n_e = getNimlDimensions(physiologicalNoiseComponents,
+                                               resp_info, card_info)
+    
+    # Get main info and label
+    main_info, label = getMainInfoAndLabel(parameters, 
+        physiologicalNoiseComponents, n_r_v, n_r_p, n_e, n_n, 
+        resp_info, card_info)
+
+    # Output file
+    tail = '"\n>'
+    tailclose = "</RetroTSout>"
     np.savetxt(
         "./%s/%s.slibase.1D" % (parameters['OutDir'], main_info["prefix"]),
         np.column_stack(main_info["reml_out"]),
@@ -1723,8 +1885,8 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             phys_fs:   (dType = float) Physiological signal sampling frequency 
                                        in Hz.
         
-            slice_times: Vector of slice acquisition time offsets in seconds.
-                          (default is equivalent of alt+z)
+            slice_times: (dtype = <class 'list'>) Vector of slice acquisition 
+                      time offsets in seconds. (default is equivalent of alt+z)
                        
     AUTHOR
        Peter Lauren 
