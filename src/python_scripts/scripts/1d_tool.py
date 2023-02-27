@@ -162,6 +162,11 @@ examples (very basic for now): ~1~
          1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols ALL \\
                     -show_regs_style encoded
 
+       g. Display X-matrix column index list for all-zero regressors.
+          Display regressor labels or in encoded column index format.
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols AM IM
+
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
        This option does not include warnings from baseline regressors,
@@ -1011,8 +1016,9 @@ general options: ~2~
    -show_gcor_doc               : display descriptions of those ways
    -show_group_labels           : display group and label, per column
    -show_indices_baseline       : display column indices for baseline
-   -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
+   -show_indices_motion         : display column indices for motion regressors
+   -show_indices_zero           : display column indices for all-zero columns
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
    -show_max_displace           : display max displacement (from motion params)
@@ -1703,6 +1709,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_indices_motion', 0, [], 
                       helpstr='display index list for motion regressors')
 
+      self.valid_opts.add_opt('-show_indices_allzero', 0, [], 
+                      helpstr='display index list for all-zero regressors')
+
       self.valid_opts.add_opt('-show_label_ordering', 0, [], 
                       helpstr='show whether labels are in slice-major order')
 
@@ -2184,6 +2193,9 @@ class A1DInterface:
 
          elif opt.name == '-show_indices_interest':
             self.show_indices |= 4
+
+         elif opt.name == '-show_indices_allzero':
+            self.show_indices |= 8
 
          elif opt.name == '-show_label_ordering':
             self.show_label_ord = 1

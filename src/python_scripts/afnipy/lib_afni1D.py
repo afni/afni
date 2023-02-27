@@ -258,6 +258,22 @@ class Afni1D:
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
 
+   def list_allzero_cols(self):
+      """return an array of indices where the matrix column is all-zero
+      """
+
+      if not self.ready:
+         print('** list_allzero_cols: Afni1D is not ready')
+         return 1
+
+      zlist = []
+
+      for vind, vec in enumerate(self.mat):
+         if UTIL.vals_are_constant(vec, cval=0):
+            zlist.append(vind)
+
+      return zlist
+
    def show_header(self):
       print('\n'.join(self.header))
 
@@ -3042,17 +3058,19 @@ class Afni1D:
             1: baseline (group  -1)
             2: motion   (group   0)
             4: interest (group > 0)
+            8: allzero
 
-         Do not return an empty list.  If the groups do not exist or are
-         not found, return '0..$'."""
+         Do not return an empty list, unless allzero is given.
+         If the groups do not exist or are not found, return '0..$'."""
 
       default = '0..$'
 
       if self.verb > 1: print('-- show indices, types = %d, groups = %s' \
                               % (ind_types, self.groups))
 
-      bmask = ind_types & 7
+      bmask = ind_types & 15
       if not self.ready:           return default
+      # treat no groups and all groups the same
       if bmask == 0 or bmask == 7: return default
       if len(self.groups) < 1:     return default
 
@@ -3064,10 +3082,13 @@ class Afni1D:
          ilist += [ind for ind in allind if self.groups[ind] == 0]
       if ind_types & 4:
          ilist += [ind for ind in allind if self.groups[ind] > 0]
+      # all-zero is more work
+      if ind_types & 8:
+         ilist += self.list_allzero_cols()
       ilist.sort()
 
       elist = UTIL.encode_1D_ints(ilist)
-      if elist == '':
+      if elist == '' and not (ind_types & 8):
          if self.verb > 1: print('-- replacing empty encode list with full')
          elist = default
       return elist

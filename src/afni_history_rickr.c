@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_indices_allzero",
+   "List indices of all-zero coluns."
+ } ,
+
  { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "add -choose_nonzero_cols",
    "This is for excluding all-zero columns for conditon number of chosen cols."
