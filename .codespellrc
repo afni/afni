@@ -5,5 +5,6 @@ skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c
 ignore-words = .codespell-ignores
 # Individual words if so desired to be added
 # some variable names or due to '\nnumber'
-# ATLEAST -- macro
-ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast
+# ATLEAST,STATUSs -- macros
+# DoubleClick
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick
