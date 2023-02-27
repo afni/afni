@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -choose_nonzero_cols",
+   "This is for excluding all-zero columns for conditon number of chosen cols."
+ } ,
+
  { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
    "compile AFNI",
    "  - download from github\n"
