@@ -749,9 +749,10 @@ g_history = """
     7.52 Feb  1, 2023: get SurfSmooth params from smrec file
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
     7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
+    7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
 """
 
-g_version = "version 7.54, February 6, 2023"
+g_version = "version 7.55, March 1, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1269,6 +1270,8 @@ class SubjProcSream:
                         helpstr="show given help example by NAME")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
+        self.valid_opts.add_opt('-show_pretty_command', 0, [],
+                        helpstr="display afni_proc.py command in a nice format")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1919,6 +1922,11 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_process_changes'):
             print(g_process_changes_str)
+            return 0
+        
+        if opt_list.find_opt('-show_pretty_command'):
+            tstr = self.get_ap_command_str(style='pretty', lstart='')
+            print(tstr)
             return 0
         
         if opt_list.find_opt('-show_tracked_files'):
@@ -3516,8 +3524,12 @@ class SubjProcSream:
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
 
-    def get_ap_command_str(self, style='compact'):
-       """return a commented command string, depending on the desired form"""
+    def get_ap_command_str(self, style='compact', lstart='# '):
+       """return a commented command string, depending on the desired style
+
+            style   : either 'compact' or 'pretty'
+            cstart  : line start string, usually comment '# ', else ''
+       """
        if style == 'none':
           return ''
 
@@ -3529,7 +3541,7 @@ class SubjProcSream:
                                       preamble=0, comment=0, wrap=0)
           # and run PT's niceify on it
           allopts = self.valid_opts.all_opt_names()
-          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start=lstart,
                                               list_cmd_args=allopts)
        else:
           tstr = UTIL.get_command_str(args=self.argv)

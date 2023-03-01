@@ -588,9 +588,9 @@ def afni_niceify_cmd_str( sss, big_list=None,
                                      quote_pair_list=quote_pair_list,
                                      maxcount=maxcount )
         do_check = True
-        print('-'*80)
-        print(big_list)
-        print('-'*80)
+        # print('-'*80)
+        # print(big_list)
+        # print('-'*80)
     else:
         if verb :
             print("++ A parsed list of options has already been created.")

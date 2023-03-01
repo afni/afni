@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2023, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -show_pretty_command, to print a more readable one",
+   "Append this to a current command to generate a prettier one, not to run it."
+ } ,
+
  { 27, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_indices_allzero",
    "List indices of all-zero coluns."
