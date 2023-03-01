@@ -747,6 +747,8 @@ class MyInterface:
       if self.f_get_atlases():
          return 1
 
+      if self.verb: MESG("")
+
       return 0
 
    def f_build_via_cmake(self):
@@ -770,12 +772,10 @@ class MyInterface:
          st, ot = self.run_cmd('mkdir', self.dcbuild, pc=1)
          if st: return st
 
-      # for convenience:
-      buildpath = '%s/%s' % (self.do_root.dname, self.dcbuild)
-
       st, ot = self.run_cmd('cd', self.dcbuild, pc=1)
       if st: return st
 
+      # -----------------------------------------------------------------
       # create cmake script
       sfile = 'run_cmake.txt'
       logc = 'log_1_cmake.txt'
@@ -794,7 +794,12 @@ class MyInterface:
       if UTIL.write_text_to_file(sfile, stext):
          return 1
 
-      # run the build (this is why we are here!)
+      # -----------------------------------------------------------------
+      # some instructive messages
+
+      # for convenience
+      buildpath = '%s/%s' % (self.do_root.dname, self.dcbuild)
+
       self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun cake build:")
       self.final_mesg.append("   cd %s" % buildpath)
@@ -812,6 +817,8 @@ class MyInterface:
       MESGi("    tail -f %s/%s" % (buildpath, logm))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
 
+      # -----------------------------------------------------------------
+      # actually run the build (this is why we are here!)
       st, ot = self.run_cmd('tcsh', '-x %s' % sfile)
       if st: return st
 
@@ -838,12 +845,10 @@ class MyInterface:
          st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
          if st: return st
 
-      # for convenience:
-      buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
-
       st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
       if st: return st
 
+      # -----------------------------------------------------------------
       # copy package Makefile
       # if we already have one, the user requested not to clean
       if os.path.isfile('Makefile'):
@@ -870,30 +875,35 @@ class MyInterface:
          st, ot = self.run_cmd('cp', [mtmp, 'Makefile'], pc=1)
          if st: return st
 
-      # run the build (this is why we are here!)
-      target = self.make_target
+      # -----------------------------------------------------------------
+      # lots of messages before running the build
+
+      # for convenience:
+      buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
 
       # final messages
       self.final_mesg.append("------------------------------")
       self.final_mesg.append("to rerun make build:")
       self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make %s" % target)
+      self.final_mesg.append("   make %s" % self.make_target)
 
-      MESGm("building make target '%s'" % target)
+      MESGm("building make target '%s'" % self.make_target)
 
       # if -prep_only, we are done
       if self.prep_only:
          MESGp("have -prep_only, skipping make and test")
          return 0
 
-      # actually run the main build
       logfile = 'log_make.txt'
       MESGp("building ...")
       MESGi("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
-      st, ot = self.run_cmd('make %s >& %s' % (target, logfile))
+
+      # -----------------------------------------------------------------
+      # actually run the main build
+      st, ot = self.run_cmd('make %s >& %s' % (self.make_target, logfile))
 
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
@@ -901,6 +911,7 @@ class MyInterface:
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
+      # -----------------------------------------------------------------
       # finished with build, try to capture version info
       # (first with local version, then from install_dir)
       do = dirobj('mb_abin', '.')
