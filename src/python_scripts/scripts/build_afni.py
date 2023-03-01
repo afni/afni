@@ -1027,6 +1027,8 @@ class MyInterface:
          MESGi("(please be patient)")
          st, ot = self.run_cmd('git', 'clone %s' % g_git_html)
          if st: return st
+         st, ot = self.run_cmd('cd', 'afni', pc=1)
+         if st: return st
          st, ot = self.run_cmd('git checkout %s' % self.git_branch)
          if st: return st
 
