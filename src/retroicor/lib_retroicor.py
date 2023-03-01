@@ -1302,40 +1302,44 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
 
 from numpy import zeros, size
 
-def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
-                        n_e, n_n, resp_info, card_info):
+def initializeMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v,
+                               n_r_p, n_e, n_n):
     """
     NAME
-        getMainInfoAndLabel 
-            Get main info. and labels to output physiological noise components 
-            in NeuroImaging Markup Language (NIML) format
+        initializeMainInfoAndLabel 
+            Initialize main info. and labels to output 
+            physiological noise components in NeuroImaging Markup 
+            Language (NIML) format
     TYPE
         <class 'dict'>, <class 'str'>
     ARGUMENTS
         parameters:   Dictionary with the following fields.
         
-            num_slices:        (dtype = class 'int') Number of slices
+            num_slices:     (dtype = class 'int') Number of slices
             
-            TR:       (dtype = class 'float') (volume_tr) Volume repetition 
-                       time (TR) which defines the length of time 
+            TR: (dtype = class 'float') (volume_tr) Volume 
+                repetition time (TR) which defines the length of 
+                time 
             
-            phys_fs:   (dType = float) Physiological signal sampling frequency 
-                                        in Hz.
+            phys_fs:   (dType = float) Physiological signal 
+                        sampling frequency in Hz.
         
             rvt_out:   (dType = int) Whether to have RVT output
             
-            slice_offset: Vector of slice acquisition time offsets in seconds.
-                          (default is equivalent of alt+z)
+            slice_offset: Vector of slice acquisition time offsets 
+                            in seconds. (default is equivalent of 
+                                         alt+z)
                           
             prefix: (dType = str) Prefix for output filename.
                        
-        physiologicalNoiseComponents:   Dictionary with the following fields.
+        physiologicalNoiseComponents:   Dictionary with the 
+                                        following fields.
         
-            resp_phases: (dType = class 'list') Respiratory phases in time 
-                                                points (not seconds)
+            resp_phases: (dType = class 'list') Respiratory phases 
+                in time points (not seconds)
             
-            card_phases: (dType = class 'list') Cardiac phases in time points
-                                                (not seconds)
+            card_phases: (dType = class 'list') Cardiac phases in 
+                        time points (not seconds)
             
         n_r_v: (dtype = <class 'int'>) Number of RVT slices
         
@@ -1345,20 +1349,20 @@ def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
         
         n_n: (dtype = <class 'int'>) Number of time steps
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the following fields
-                    for respiratory data
+        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+                    following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
             
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) Registered phase 
-                                slices
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                            Registered phase slices
         
         card_info: (dtype = <class 'dict'>)
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
             
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) Registered phase 
-                            slices
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                        Registered phase slices
             
     AUTHOR
        Peter Lauren
@@ -1371,7 +1375,7 @@ def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
     main_info["resp_out"] = len(physiologicalNoiseComponents['resp_phases']) > 0
     main_info["card_out"] = len(physiologicalNoiseComponents['card_phases']) > 0
     
-    cnt = 0
+    # cnt = 0
     temp_y_axis = main_info["number_of_slices"] * (
         (main_info["rvt_out"]) * int(n_r_v)
         + (main_info["resp_out"]) * int(n_r_p)
@@ -1384,6 +1388,8 @@ def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
         print('***ERROR: Mismatch between ni_dimen' +
               ' (',size(main_info["reml_out"], 0), ') and user supplied ' +
               'num_time_pts (', parameters['num_time_pts'], ')')
+        return None, None
+
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
@@ -1396,63 +1402,245 @@ def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, n_r_v, n_r_p,
 
     main_info["slice_major"] = 1
     main_info["reml_out"]    = []
-    if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
-        # RVT
+    
+    return main_info, label
+
+def getSliceMinorMainInfoAndLabel(main_info, label, resp_info, card_info):
+    """
+    NAME
+        getMainInfoAndLabel 
+            Update initialized main info. and labels for
+            slice-based physiological noise components in slice
+            minor format.
+    TYPE
+        <class 'dict'>, <class 'str'>
+    ARGUMENTS
+    
+        main_info: (dtype = <class 'dict'>) Dictonary with the 
+            following fields
+            
+            rvt_out: (dtype = <class 'int'>) Whether to calculate
+                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                
+            resp_out: (dtype = <class 'bool'>) Whether to calculate
+                and output respiratory noise. (Defautl = True)
+                
+            Card_out: (dtype = <class 'bool'>) Whether to calculate
+                and output cardiac noise. (Defautl = True)
+                
+            num_slices:   (dtype = class 'int') Number of slices
+        
+        label: (dtype = <class 'str'>) Header, for the output
+            NIML file, giving the names of the output slice
+            components
+        
+        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+            following fields for respiratory data
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                                        Registered phase slices
+        
+        card_info: (dtype = <class 'dict'>)
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                Registered phase slices
+            
+    AUTHOR
+       Peter Lauren
+    """
+
+    cnt = 0
+    
+    # RVT
+    if main_info["rvt_out"] != 0:
+        for j in range(0, size(resp_info["rvtrs_slc"], 2)):
+            for i in range(0, main_info["number_of_slices"]):
+                cnt += 1
+                main_info["reml_out"][:, cnt] = \
+                resp_info["rvtrs_slc"][
+                    :, j
+                ]  # same for each slice
+                label = "%s s%d.RVT%d ;" % (label, i, j)
+    # Resp
+    if main_info["resp_out"] != 0:
+        for j in range(0, size(resp_info["phase_slice_reg"], 2)):
+            for i in range(0, main_info["number_of_slices"]):
+                cnt += 1
+                main_info["reml_out"][:, cnt] = \
+                    resp_info["phase_slice_reg"][:, j, i
+                ]
+                label = "%s s%d.Resp%d ;" % (label, i, j)
+    # Card
+    if main_info["Card_out"] != 0:
+        for j in range(0, size(card_info["phase_slice_reg"], 2)):
+            for i in range(0, main_info["number_of_slices"]):
+                cnt += 1
+                main_info["reml_out"][:, cnt] = \
+                card_info["phase_slice_reg"][:, j, i]
+                label = "%s s%d.Card%d ;" % (label, i, j)
+    
+    return main_info, label
+
+def getSliceMajorMainInfoAndLabel(main_info, label, resp_info, 
+        card_info, physiologicalNoiseComponents):
+    """
+    NAME
+        getSliceMajorMainInfoAndLabel 
+            Update initialized main info. and labels for
+            slice-based physiological noise components in slice
+            major format.
+    TYPE
+        <class 'dict'>, <class 'str'>
+    ARGUMENTS
+    
+        main_info: (dtype = <class 'dict'>) Dictonary with the 
+            following fields
+            
+            rvt_out: (dtype = <class 'int'>) Whether to calculate
+                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                
+            resp_out: (dtype = <class 'bool'>) Whether to calculate
+                and output respiratory noise. (Defautl = True)
+                
+            Card_out: (dtype = <class 'bool'>) Whether to calculate
+                and output cardiac noise. (Defautl = True)
+                
+            num_slices:   (dtype = class 'int') Number of slices
+        
+        label: (dtype = <class 'str'>) Header, for the output
+            NIML file, giving the names of the output slice
+            components
+        
+        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+            following fields for respiratory data
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                                        Registered phase slices
+        
+        card_info: (dtype = <class 'dict'>)
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                Registered phase slices
+            
+    AUTHOR
+       Peter Lauren
+    """
+
+    cnt = 0
+    
+    if main_info['rvt_out']: resp_info["rvtrs_slc"] =\
+                    physiologicalNoiseComponents['rvt_coeffs']
+    for i in range(0, main_info["number_of_slices"]):
         if main_info["rvt_out"] != 0:
-            for j in range(0, size(resp_info["rvtrs_slc"], 2)):
-                for i in range(0, main_info["number_of_slices"]):
-                    cnt += 1
-                    main_info["reml_out"][:, cnt] = resp_info["rvtrs_slc"][
-                        :, j
-                    ]  # same for each slice
-                    label = "%s s%d.RVT%d ;" % (label, i, j)
-        # Resp
+            # RVT
+            for j in range(0, np.shape(resp_info["rvtrs_slc"])[0]):
+                cnt += 1
+                main_info["reml_out"].append(
+                    resp_info["rvtrs_slc"][j]
+                )  # same regressor for each slice
+                label = "%s s%d.RVT%d ;" % (label, i, j)
         if main_info["resp_out"] != 0:
-            for j in range(0, size(resp_info["phase_slice_reg"], 2)):
-                for i in range(0, main_info["number_of_slices"]):
-                    cnt += 1
-                    main_info["reml_out"][:, cnt] = resp_info["phase_slice_reg"][
-                        :, j, i
-                    ]
-                    label = "%s s%d.Resp%d ;" % (label, i, j)
-        # Card
-        if main_info["Card_out"] != 0:
-            for j in range(0, size(card_info["phase_slice_reg"], 2)):
-                for i in range(0, main_info["number_of_slices"]):
-                    cnt += 1
-                    main_info["reml_out"][:, cnt] = card_info["phase_slice_reg"][
-                        :, j, i
-                    ]
-                    label = "%s s%d.Card%d ;" % (label, i, j)
+            # Resp
+            for j in range(0, np.shape(resp_info["phase_slice_reg"])[1]):
+                cnt += 1
+                main_info["reml_out"].append(
+                    resp_info["phase_slice_reg"][:, j, i]
+                )
+                label = "%s s%d.Resp%d ;" % (label, i, j)
+        if main_info["card_out"] != 0:
+            # Card
+            for j in range(0, np.shape(card_info["phase_slice_reg"])[1]):
+                cnt += 1
+                main_info["reml_out"].append(
+                    card_info["phase_slice_reg"][:, j, i]
+                )
+                label = "%s s%d.Card%d ;" % (label, i, j)
+                
+    return main_info, label
+
+def getMainInfoAndLabel(parameters, physiologicalNoiseComponents, 
+                    n_r_v, n_r_p, n_e, n_n, resp_info, card_info):
+    """
+    NAME
+        getMainInfoAndLabel 
+            Get main info. and labels to output physiological noise 
+            components in NeuroImaging Markup Language (NIML) format
+    TYPE
+        <class 'dict'>, <class 'str'>
+    ARGUMENTS
+        parameters:   Dictionary with the following fields.
+        
+            num_slices:        (dtype = class 'int') Number of 
+            slices
+            
+            TR:       (dtype = class 'float') (volume_tr) Volume 
+                repetition time (TR) which defines the length of 
+                time 
+            
+            phys_fs:   (dType = float) Physiological signal 
+                sampling frequency in Hz.
+        
+            rvt_out:   (dType = int) Whether to have RVT output
+            
+            slice_offset: Vector of slice acquisition time offsets 
+                in seconds. (default is equivalent of alt+z)
+                          
+            prefix: (dType = str) Prefix for output filename.
+                       
+        physiologicalNoiseComponents:   Dictionary with the 
+            following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases 
+                in time points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in 
+                time points (not seconds)
+            
+        n_r_v: (dtype = <class 'int'>) Number of RVT slices
+        
+        n_r_p: (dtype = <class 'int'>) Number of phase slices
+                                
+        n_e: (dtype = <class 'int'>) Number of phase slices
+        
+        n_n: (dtype = <class 'int'>) Number of time steps
+        
+        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+            following fields for respiratory data
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                Registered phase slices
+        
+        card_info: (dtype = <class 'dict'>)
+                    
+            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
+                Registered phase slices
+            
+    AUTHOR
+       Peter Lauren
+    """
+    
+    main_info, label = initializeMainInfoAndLabel(parameters, 
+            physiologicalNoiseComponents, n_r_v, n_r_p, n_e, n_n)
+
+    if main_info["slice_major"] == 0:  # old approach, not handy for 3dREMLfit
+        main_info, label = getSliceMinorMainInfoAndLabel(main_info, 
+                label, resp_info, card_info)
     else:
-        # main_info["rvt_out"] = 0
-        if main_info['rvt_out']: resp_info["rvtrs_slc"] =\
-                                     physiologicalNoiseComponents['rvt_coeffs']
-        for i in range(0, main_info["number_of_slices"]):
-            if main_info["rvt_out"] != 0:
-                # RVT
-                for j in range(0, np.shape(resp_info["rvtrs_slc"])[0]):
-                    cnt += 1
-                    main_info["reml_out"].append(
-                        resp_info["rvtrs_slc"][j]
-                    )  # same regressor for each slice
-                    label = "%s s%d.RVT%d ;" % (label, i, j)
-            if main_info["resp_out"] != 0:
-                # Resp
-                for j in range(0, np.shape(resp_info["phase_slice_reg"])[1]):
-                    cnt += 1
-                    main_info["reml_out"].append(
-                        resp_info["phase_slice_reg"][:, j, i]
-                    )
-                    label = "%s s%d.Resp%d ;" % (label, i, j)
-            if main_info["card_out"] != 0:
-                # Card
-                for j in range(0, np.shape(card_info["phase_slice_reg"])[1]):
-                    cnt += 1
-                    main_info["reml_out"].append(
-                        card_info["phase_slice_reg"][:, j, i]
-                    )
-                    label = "%s s%d.Card%d ;" % (label, i, j)
+        main_info, label = getSliceMajorMainInfoAndLabel(main_info, 
+                            label, resp_info, card_info, 
+                            physiologicalNoiseComponents)
     
     # remove very last ';'
     label = label[1:-2]
@@ -1641,6 +1829,9 @@ def ouputInNimlFormat(physiologicalNoiseComponents, parameters):
     main_info, label = getMainInfoAndLabel(parameters, 
         physiologicalNoiseComponents, n_r_v, n_r_p, n_e, n_n, 
         resp_info, card_info)
+    if not main_info:
+        print('ERROR getting main info and label for NIML File')
+        return 1
 
     # Output file
     tail = '"\n>'
@@ -1756,20 +1947,20 @@ def initializePhaseSlices(phasee, parameters):
     """
     NAME
         initializePhaseSlices 
-            Initialize phase coefficient output matrix where the number or rows
-            are the number pf time points and the number of columns four times
-            the number of slices
+            Initialize phase coefficient output matrix where the 
+            number or rows are the number pf time points and the 
+            number of columns four times the number of slices
     TYPE
         <class 'dict'>
     ARGUMENTS
         phasee:   Dictionary with the following fields.
         
-            time_series_time: (dType = class 'list') List of float which are 
-                              integral multiples of TR, starting at 0
+            time_series_time: (dType = class 'list') List of float 
+                which are integral multiples of TR, starting at 0
                         
         parameters:   Dictionary with the following fields.
         
-            num_slices:        (dtype = class 'int') Number of slices
+            num_slices:   (dtype = class 'int') Number of slices
     AUTHOR
        Peter Lauren 
     """
@@ -1789,36 +1980,42 @@ def fillSliceRegressorArray(phasee):
     """
     NAME
         fillSliceRegressorArray 
-            Fill phase regression matrix with regressors for each lice as per 
-            "Image-Based Method for 
-            Retrospective Correction of Physiological Motion Effects in 
-            fMRI: RETROICOR" by Gary H. Glover, Tie-Qiang Li, and David Ress 
-            (2000).  
+            Fill phase regression matrix with regressors for each 
+            slice as per "Image-Based Method for Retrospective 
+            Correction of Physiological Motion Effects in fMRI: 
+            RETROICOR" by Gary H. Glover, Tie-Qiang Li, and David 
+            Ress (2000).  
     TYPE
         <class 'dict'>
     ARGUMENTS
-        phasee:   Partly filled ictionary with the following fields.
+        phasee:   Partly filled ictionary with the following 
+        fields.
         
-            number_of_slices:        (dtype = class 'int') Number of slices
+            number_of_slices: (dtype = class 'int') Number 
+            of slices
             
-            time_series_time: (dType = class 'list') List of float which are 
-                              integral multiples of TR, starting at 0
+            time_series_time: (dType = class 'list') List of float 
+                which are integral multiples of TR, starting at 0
                               
-            slice_times: Vector of slice acquisition time offsets in seconds.
-                          (default is equivalent of alt+z)
+            slice_times: Vector of slice acquisition time offsets 
+                in seconds. (default is equivalent of alt+z)
                           
-            t: (dtype = <class 'numpy.ndarray'>) Progressive multiples of time step increment
+            t: (dtype = <class 'numpy.ndarray'>) Progressive 
+                multiples of time step increment
             
-            phase: (dtype = <class 'list'>)  List of phases for a given type (cardiac or
-                    respiratory).  derived using Glover's algorithm after peaks and troughs have
-                    been identified'
+            phase: (dtype = <class 'list'>)  List of phases for a 
+                given type (cardiac or respiratory).  derived 
+                using Glover's algorithm after peaks and troughs 
+                have been identified'
             
-            phase_slice: (dtype = <class 'numpy.ndarray'>)  2D array with # columns = # output
-                        time points and # columns  = # slices
+            phase_slice: (dtype = <class 'numpy.ndarray'>)  2D 
+                array with # columns = # output time points and # 
+                columns  = # slices
                         
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>)  3D array with first dimension =
-                                # output time points, the second dimension 4 and the third
-                                dimension the number of slices
+            phase_slice_reg: (dtype = <class 'numpy.ndarray'>)  3D 
+                array with first dimension = output time points, 
+                the second dimension 4 and the third dimension the 
+                number of slices
             
                        
     AUTHOR
