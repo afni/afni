@@ -1083,11 +1083,11 @@ else
      -input    "${src_dset0}"                        \
      -orient   RAI                                   \
      -prefix   "${outdir}/${src_dset}"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cp src)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (cp src)"
+       exit 1
+   endif
 endif
 
 # -------------------- setup BASE dset
@@ -1136,31 +1136,31 @@ else
    # original ${base_dset}, for gen_ss_review.py to get info via
    # afni_proc.py-generated script
    3dcopy "${base_dset}" ${outdir}/
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (copy base)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (copy base)"
+       exit 1
+   endif
 endif
 
 # ------------------ copy atlas followers
 
 if ( ${#atlas_followers} != 0 ) then
    foreach ff ( ${atlas_followers} )
-     if ( ($ok_to_exist == 1) && \
-          (-f ${outdir}/`basename "${ff}"`) ) then
-         echo "++ Reusing ${outdir}/${ff}"
-     else
-         # Use 3dcopy here to tables/atlas_points/subbrick labels wd
-         # copy over
-         3dcopy "${ff}" ${outdir}/
-     endif
+      if ( ($ok_to_exist == 1) && \
+           (-f ${outdir}/`basename "${ff}"`) ) then
+          echo "++ Reusing ${outdir}/${ff}"
+      else
+          # Use 3dcopy here to tables/atlas_points/subbrick labels wd
+          # copy over
+          3dcopy "${ff}" ${outdir}/
 
-     if ( ${status} ) then
-        echo "** ERROR: program failed (copy atlas foll)"
-        exit 1
-     endif
-   end
+          if ( ${status} ) then
+             echo "** ERROR: program failed (copy atlas foll)"
+             exit 1
+          endif
+      endif
+    end
 endif
 
 # ----- SHOULD ALL FOLLOWERS BE COPIED HERE AS WELL ??? 
@@ -1280,13 +1280,15 @@ if ( ($ok_to_exist == 1) && \
      (-f ${animal_outs}) ) then
     set backup_ao = ${animal_outs:gas/.txt//}_mvd_${thedate}.txt
     \mv ${animal_outs} ${backup_ao}
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed (cp backup rep)"
+        exit 1
+    endif
+
     echo "++ Moved old ${animal_outs} to: ${backup_ao}"
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cp backup rep)"
-    exit 1
-endif
 
 if ( ($ok_to_exist == 1) && \
      (-f ${animal_ints}) ) then
@@ -1442,11 +1444,11 @@ else
     cat_matvec                                     \
           ${imed}/${srcsh_shft} -I                 \
         > ${imed}/${srcsh_shft_inv}
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (al cent inv)"
-    exit 1
+    if ( ${status} ) then
+        echo "** ERROR: program failed (al cent inv)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                             \
@@ -1601,15 +1603,16 @@ else
         -dzorigin ${inv_transl[12]}              \
         ${imed}/${srcsh2_dset}
 
+    if ( ${status} ) then
+        echo "** ERROR: program failed (combine shifts)"
+        exit 1
+    endif
+
     # *** From this point onward, the shft2 space is the more important
     # jumping point between the original native space and the
     # base/template space***
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (combine shifts)"
-    exit 1
-endif
 
 printf "%-37s : %s\n"                                               \
         "Dset, 2nd-shifted to base"                                 \
@@ -1634,6 +1637,11 @@ if ( "$align_type" == "rigid_equiv" ) then
         ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -P             \
         > ${imed}/${affmat}
 
+    if ( ${status} ) then
+        echo "** ERROR: program failed (cat_matvec, affmat)"
+        exit 1
+    endif
+
     printf "%-37s : %s\n"                                           \
             "Matrix, rigid equiv xform"                             \
             "${affmat}"                                     \
@@ -1642,24 +1650,24 @@ else
     set affmat = ${srcsh2_prefix}_al2std_mat.aff12.1D
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cat_matvec, affmat)"
-    exit 1
-endif
-
 ## put affine aligned data on template grid
 # similar to al2std dataset but with exactly same grid as the template
 if (($ok_to_exist == "1") && \
     (-f ${imed}/${srcsh2_prefix}_aff.nii.gz)) then
-   echo "++ Reusing affine transformed dataset"
+    echo "++ Reusing affine transformed dataset"
 else
-   3dAllineate -overwrite                                       \
-        -1Dmatrix_apply ${imed}/${affmat}                       \
-        -prefix ${imed}/${srcsh2_prefix}_aff.nii.gz             \
-        -base   "${base_dset}"                                  \
-        -master BASE                                            \
-        -source "${imed}/${srcsh2_dset}"
-        
+    3dAllineate -overwrite                                       \
+         -1Dmatrix_apply ${imed}/${affmat}                       \
+         -prefix ${imed}/${srcsh2_prefix}_aff.nii.gz             \
+         -base   "${base_dset}"                                  \
+         -master BASE                                            \
+         -source "${imed}/${srcsh2_dset}"
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dAllineate)"
+        exit 1
+    endif
+
     set opref = QC/${iqc02}${src_add}
     @djunct_overlap_check                             \
         -ulay   "${imed}/${srcsh2_prefix}_aff.nii.gz" \
@@ -1668,10 +1676,6 @@ else
         -prefix  ${opref}
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dAllineate)"
-    exit 1
-endif
 
 printf "%-37s : %s\n"                                      \
         "Input, aff-xformed to base"                       \
@@ -1814,11 +1818,11 @@ else
    3dcopy -overwrite                                \
         ${awpy_dir}/anat.*.qw_WARPINV.nii*          \
         ${srcsh2_prefix}_WARPINV.nii.gz
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (autowarp cp)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (autowarp cp)"
+       exit 1
+   endif
 endif
 
 # THIS is what should be given to afni_proc.py
@@ -1848,11 +1852,11 @@ else
         -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
         -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
         -prefix "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat, osh2base)"
-    exit 1
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dNwarpCat, osh2base)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                                             \
@@ -1881,11 +1885,11 @@ else
         -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
         -space  "${space}"                                         \
         -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat, base2osh)"
-    exit 1
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dNwarpCat, base2osh)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                                             \
@@ -2282,11 +2286,12 @@ else
                 exit 1
              endif
          else 
-             3dAllineate -overwrite                                                 \
-                 -final   NN                                                        \
-                 -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
-                 -source ${brainmask}                                               \
-                 -master ${imed}/${srcsh2_dset}                                     \
+             set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+             3dAllineate -overwrite                                          \
+                 -final   NN                                                 \
+                 -1Dmatrix_apply "${amat}"                                   \
+                 -source ${brainmask}                                        \
+                 -master ${imed}/${srcsh2_dset}                              \
                  -prefix ${src_abbrev}_mask.nii.gz
 
              if ( ${status} ) then
@@ -2423,11 +2428,11 @@ else
       -Urad   14                          \
       -input  ${src_abbrev}_ns.nii.gz     \
       -prefix ${src_abbrev}_nsu.nii.gz
-endif
 
-if ( ${status} ) then
-   echo "** ERROR: program failed (nsu)"
-   exit 1
+   if ( ${status} ) then
+      echo "** ERROR: program failed (nsu)"
+      exit 1
+   endif
 endif
 
 printf "%-37s : %s\n"                      \
@@ -2468,9 +2473,10 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
              exit 1
           endif
       else 
-          3dAllineate -overwrite                                                 \
-              -final   wsinc5                                                    \
-              -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+          set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+          3dAllineate -overwrite                                     \
+              -final   wsinc5                                        \
+              -1Dmatrix_apply "${amat}"                              \
               -source ${template_dset}                               \
               -master ${imed}/${srcsh2_dset}                         \
               -prefix ${template_in_orig}
@@ -2576,9 +2582,10 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
               exit 1
            endif
        else 
-           3dAllineate -overwrite                                                 \
-               -final   NN                                                        \
-               -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+           set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+           3dAllineate -overwrite                                     \
+               -final   NN                                            \
+               -1Dmatrix_apply "${amat}"                              \
                -source ${segm_dset}                                   \
                -master ${imed}/${srcsh2_dset}                         \
                -prefix ${segm_in_orig}
@@ -2634,13 +2641,14 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
           3dcopy -overwrite         \
               ${segm_in_orig}       \
               ${imed}/${segm_in_orig_pre}
-          \rm ${segm_in_orig}
 
           if ( ${status} ) then
              echo "** ERROR: program failed (base2osh atl/seg foll, cp)"
              echo "   ... for dset: ${segm_dset}"
              exit 1
           endif
+
+          \rm ${segm_in_orig}
 
           # this extra step done here to make sure the space is
           # correct (should be, from 3dNwarp*?)
@@ -2879,10 +2887,10 @@ if ( $make_orig_surfaces == "1" ) then
         -iters 6                                                  \
         -matchorig                                                \
         ${templ_in_orig}
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, anisosmoo)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, anisosmoo)"
+      endif
    endif
 
    # also remove any  small clusters for surface generation
@@ -2918,10 +2926,10 @@ if ( $make_orig_surfaces == "1" ) then
         -inset    ${imed}/${templ_in_origA}                     \
         -NN 2                                                   \
         -clust_nvox  ${minbrainvolume}
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, clust)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, clust)"
+      endif
    endif
 
    if ( ($ok_to_exist == "1") && \
@@ -2934,10 +2942,10 @@ if ( $make_orig_surfaces == "1" ) then
         -o        surfaces/${templ_in_origG}                 \
         -noxform                                             \
         -Tsmooth 0.01 6
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, isosurf)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, isosurf)"
+      endif
    endif
 
    printf "%-37s : %s\n"                                     \
