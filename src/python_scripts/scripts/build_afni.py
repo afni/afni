@@ -46,7 +46,8 @@ build_afni.py - compile an AFNI package ~1~
       - how to rerun the make build
       - how to rerun the make build test
       - where a command (shell/system) history file is stored
-        (cmd_history.txt is generally stored in the -build_root)
+        (hist_commands.txt is generally stored in the -build_root)
+      - where the screen output history is stored
 
 ------------------------------------------
 examples: ~1~
@@ -231,33 +232,77 @@ g_afni_site = "https://afni.nimh.nih.gov"
 g_atlas_pack = "afni_atlases_dist"      # package name
 g_atlas_html = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
 
+g_mesg_log   = []   # message history/log (if None, do not log)
+
 
 # ---------------------------------------------------------------------------
 # general functions
 
 # message functions leaving room for control
-def MESG(mstr):
-  print(mstr)
+def MESG(mstr, disp=1):
+  """(possibly) display and log the message
+  """
+  if disp: print(mstr)
+  if g_mesg_log is not None:
+     g_mesg_log.append(mstr)
 
-def MESGg(mstr, pre=''):
-  """general message func"""
-  if pre: pre += ' '
-  print("%s%s", (pre, mstr))
+def MESGe(mstr, disp=1):
+  """(possibly) display and log the message
+     - display as an error
+  """
+  pmesg = "** error: %s" % mstr
+  if disp: print(pmesg)
+  if g_mesg_log is not None:
+     g_mesg_log.append(pmesg)
 
-def MESGe(mstr):
-  print("** error: %s" % mstr)
+def MESGw(mstr, disp=1):
+  """(possibly) display and log the message
+     - display as a warning
+  """
+  pmesg = "** warning: %s" % mstr
+  if disp: print(pmesg)
+  if g_mesg_log is not None:
+     g_mesg_log.append(pmesg)
 
-def MESGw(mstr):
-  print("** warning: %s" % mstr)
+def MESGm(mstr, disp=1):
+  """(possibly) display and log the message
+     - display with a 'minus' prefix (--)
+  """
+  pmesg = "-- %s" % mstr
+  if disp: print(pmesg)
+  if g_mesg_log is not None:
+     g_mesg_log.append(pmesg)
 
-def MESGm(mstr):
-  print("-- %s" % mstr)
+def MESGp(mstr, disp=1):
+  """(possibly) display and log the message
+     - display with a 'plus' prefix (++)
+  """
+  pmesg = "++ %s" % mstr
+  if disp: print(pmesg)
+  if g_mesg_log is not None:
+     g_mesg_log.append(pmesg)
 
-def MESGp(mstr):
-  print("++ %s" % mstr)
+def MESGi(mstr, disp=1):
+  """(possibly) display and log the message
+     - display with a 'space' indentation prefix (  )
+  """
+  pmesg = "   %s" % mstr
+  if disp: print(pmesg)
+  if g_mesg_log is not None:
+     g_mesg_log.append(pmesg)
 
-def MESGi(mstr):
-  print("   %s" % mstr)
+def MESG_write_log(fname, verb=1):
+   """write the stored message log to the given text file
+   """
+   if verb:
+      ind = '      '
+      MESG(ind+"------------------------------")
+      MESG(ind+"screen text history is in:")
+      MESG(ind+"   %s" % fname)
+      MESG("")
+
+   if g_mesg_log is not None:
+      return UTIL.write_text_to_file(fname, '\n'.join(g_mesg_log) + '\n')
 
 # basic path functions
 def path_head(somepath):
@@ -338,7 +383,8 @@ class MyInterface:
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
-      self.hist_file       = 'cmd_history.txt' # final history file
+      self.hist_file       = 'hist_commands.txt' # final history file
+      self.mesg_file       = 'hist_messages.txt' # message history file
       self.makefile_path   = ''     # abspath to -makefile
 
       self.pold            = 'prev.'        # prefix for old version
@@ -603,24 +649,36 @@ class MyInterface:
       if self.do_root is not None:
          rv = self.run_main_build()
 
+      # -----------------------------------------------------------------
+      # histories and logs
+      # (first history, then final messages, then MESG_write_log)
+
       # save history, either way
       self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
+      # show final messages (history and logging should come after)
       if self.verb:
          self.show_final_messages()
 
+      # also save the message log text (screen text)
+      MESG_write_log('%s/%s' % (self.do_root.abspath, self.mesg_file))
+
       return rv
+
+   def add_final_mesg(self, mesg, ind='    '):
+      """append the (indented) message to self.final_mesg
+         (for later display and possible logging)
+      """
+      self.final_mesg.append(ind+mesg)
 
    def show_final_messages(self):
       """display contents of self.final_mesg"""
       if len(self.final_mesg) == 0:
          return 0
 
-      ind = '    '
       MESG("")
       for mesg in self.final_mesg:
-         MESGi("%s%s" % (ind, mesg))
-      MESG("")
+         MESGi(mesg)
 
       return 0
 
@@ -683,9 +741,10 @@ class MyInterface:
              rv, ot = self.run_cmd('mv', [hfile, newf], pc=1)
           UTIL.write_text_to_file(hfile, hstr)
 
-          self.final_mesg.append("------------------------------")
-          self.final_mesg.append("shell/sytem command history is in:")
-          self.final_mesg.append("   %s/%s" % (sdir, hfile))
+          self.add_final_mesg("")
+          self.add_final_mesg("------------------------------")
+          self.add_final_mesg("shell/sytem command history is in:")
+          self.add_final_mesg("   %s/%s" % (sdir, hfile))
 
           rv, ot = self.run_cmd('cd', cwd, pc=1)
           if rv: return rv
@@ -750,8 +809,6 @@ class MyInterface:
       if self.f_get_atlases():
          return 1
 
-      if self.verb: MESG("")
-
       return 0
 
    def f_build_via_cmake(self):
@@ -763,6 +820,7 @@ class MyInterface:
             - make VERBOSE=1 |& tee log_2_make.txt
       """
 
+      if self.verb: MESG("")
       MESGm("will run 'cmake' build")
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
@@ -803,11 +861,11 @@ class MyInterface:
       # for convenience
       buildpath = '%s/%s' % (self.do_root.dname, self.dcbuild)
 
-      self.final_mesg.append("------------------------------")
-      self.final_mesg.append("to rerun cake build:")
-      self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make VERBOSE=1")
-      self.final_mesg.append("   (or run %s script)" % sfile)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("to rerun cake build:")
+      self.add_final_mesg("   cd %s" % buildpath)
+      self.add_final_mesg("   make VERBOSE=1")
+      self.add_final_mesg("   (or run %s script)" % sfile)
 
       # if -prep_only, we are done
       if self.prep_only:
@@ -825,8 +883,6 @@ class MyInterface:
       st, ot = self.run_cmd('tcsh', '-x %s' % sfile)
       if st: return st
 
-      if self.verb: MESG("")
-
       return 0
 
    def f_build_via_make(self):
@@ -838,6 +894,7 @@ class MyInterface:
             - run build
       """
 
+      if self.verb: MESG("")
       MESGm("will run 'make' build of package %s" % self.package)
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
@@ -907,7 +964,7 @@ class MyInterface:
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
       MESGm("building %s" % tmesg)
-      MESGi("see log file %s/%s" % (buildpath, logfile))
+      MESGi("see 'make' log file %s/%s" % (buildpath, logfile))
       if st: return st
 
       # -----------------------------------------------------------------
@@ -931,16 +988,16 @@ class MyInterface:
       elif self.do_orig_abin is not None:
          do = self.do_orig_abin
       if do is not None and self.do_mb_abin is not None:
-         self.final_mesg.append("------------------------------")
-         self.final_mesg.append("to possibly rsync make output:")
-         self.final_mesg.append("   rsync -av %s/ %s/" \
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("to possibly rsync make output:")
+         self.add_final_mesg("   rsync -av %s/ %s/" \
              % (self.do_mb_abin.abspath, do.abspath))
 
       # final messages: how to rerun make
-      self.final_mesg.append("------------------------------")
-      self.final_mesg.append("to rerun make build:")
-      self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make %s" % self.make_target)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("to rerun make build:")
+      self.add_final_mesg("   cd %s" % buildpath)
+      self.add_final_mesg("   make %s" % self.make_target)
 
       # prepare to test the build, and final messages on testing
       logfile = 'log_test.txt'
@@ -948,10 +1005,10 @@ class MyInterface:
       MESGp("testing the build results ...")
 
       cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
-      self.final_mesg.append("------------------------------")
-      self.final_mesg.append("to rerun test of make build:")
-      self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   %s" % cmd)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("to rerun test of make build:")
+      self.add_final_mesg("   cd %s" % buildpath)
+      self.add_final_mesg("   %s" % cmd)
 
       # -----------------------------------------------------------------
       # append redirect to cmd after saving sample command for user
@@ -961,10 +1018,8 @@ class MyInterface:
       if st: tmesg = 'FAILED'
       else:  tmesg = 'SUCCEEDED'
       MESGm("testing %s" % tmesg)
-      MESGi("see log file %s/%s" % (buildpath, logfile))
+      MESGi("see 'testing' log file %s/%s" % (buildpath, logfile))
       if st: return st
-
-      if self.verb: MESG("")
 
       return 0
 
@@ -1020,9 +1075,9 @@ class MyInterface:
       elif self.do_orig_abin is not None:
          do = self.do_orig_abin
       if do is not None:
-         self.final_mesg.append("------------------------------")
-         self.final_mesg.append("to possibly rsync atlases:")
-         self.final_mesg.append("   rsync -av %s/%s/ %s/" \
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("to possibly rsync atlases:")
+         self.add_final_mesg("   rsync -av %s/%s/ %s/" \
              % (self.do_root.abspath, atlas_pack, do.abspath))
 
       return 0
@@ -1238,6 +1293,7 @@ class MyInterface:
       # note where we are starting from
       self.do_orig_dir = dirobj('orig_dir', '.')
 
+      MESG("")
       prog = 'afni_proc.py' # since 'afni' might not be in text distribution
       wp = UTIL.which(prog)
       if wp != '':
