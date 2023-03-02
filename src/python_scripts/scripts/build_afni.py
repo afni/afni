@@ -98,6 +98,7 @@ todo:
     Ubuntu vs Fedora vs RedHat vs other vs macos (12+?)
 
 later:
+  - sync atlases and build
   - worry about sync to abin
 
 ------------------------------------------
@@ -730,12 +731,12 @@ class MyInterface:
       """
 
       if self.verb:
-         MESGm("preparing root dir, %s" % self.do_root.dname)
+         MESGm("preparing build root dir, %s" % self.do_root.dname)
 
       # if there is no root dir yet, make it
       if not os.path.isdir(self.do_root.abspath):
          if self.verb:
-            MESGm("creating root dir, %s" % self.do_root.dname)
+            MESGm("creating build root dir, %s" % self.do_root.dname)
          st, ot = self.run_cmd('mkdir', self.do_root.abspath, pc=1)
          if st: return st
 
@@ -883,12 +884,6 @@ class MyInterface:
       # for convenience:
       buildpath = '%s/%s' % (self.do_root.dname, self.dsbuild)
 
-      # final messages
-      self.final_mesg.append("------------------------------")
-      self.final_mesg.append("to rerun make build:")
-      self.final_mesg.append("   cd %s" % buildpath)
-      self.final_mesg.append("   make %s" % self.make_target)
-
       MESGm("building make target '%s'" % self.make_target)
 
       # if -prep_only, we are done
@@ -926,7 +921,8 @@ class MyInterface:
          MESGp("have make build abin %s" % do.abspath)
       MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
 
-      # if there is some known abin, mention possibly rsync
+      # -----------------------------------------------------------------
+      # final messages: mention possibly rsync
       do = None
       if self.do_abin is not None:
          do = self.do_abin
@@ -938,7 +934,13 @@ class MyInterface:
          self.final_mesg.append("   rsync -av %s/ %s/" \
              % (self.do_mb_abin.abspath, do.abspath))
 
-      # test the build
+      # final messages: how to rerun make
+      self.final_mesg.append("------------------------------")
+      self.final_mesg.append("to rerun make build:")
+      self.final_mesg.append("   cd %s" % buildpath)
+      self.final_mesg.append("   make %s" % self.make_target)
+
+      # prepare to test the build, and final messages on testing
       logfile = 'log_test.txt'
       binopt = '-bin_dir %s' % self.package
       MESGp("testing the build results ...")
@@ -949,6 +951,7 @@ class MyInterface:
       self.final_mesg.append("   cd %s" % buildpath)
       self.final_mesg.append("   %s" % cmd)
 
+      # -----------------------------------------------------------------
       # append redirect to cmd after saving sample command for user
       cmd += " >& %s" % logfile
       st, ot = self.run_cmd(cmd)
@@ -1008,7 +1011,7 @@ class MyInterface:
       if st: return st
 
       # -----------------------------------------------------------------
-      # maybe make a message about rsync (sync this and make later)
+      # final messages: sync atlases (maybe sync this with make later)
       do = None
       if self.do_abin is not None:
          do = self.do_abin
