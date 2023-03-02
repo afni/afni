@@ -295,7 +295,7 @@ def MESG_write_log(fname, verb=1):
    """write the stored message log to the given text file
    """
    if verb:
-      ind = '      '
+      ind = '       '
       MESG(ind+"------------------------------")
       MESG(ind+"screen text history is in:")
       MESG(ind+"   %s" % fname)
