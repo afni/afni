@@ -822,6 +822,8 @@ class MyInterface:
       st, ot = self.run_cmd('tcsh', '-x %s' % sfile)
       if st: return st
 
+      if self.verb: MESG("")
+
       return 0
 
    def f_build_via_make(self):
@@ -957,6 +959,8 @@ class MyInterface:
       MESGi("see log file %s/%s" % (buildpath, logfile))
       if st: return st
 
+      if self.verb: MESG("")
+
       return 0
 
    def f_get_atlases(self):
@@ -970,20 +974,24 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
-      if os.path.exists(g_atlas_pack):
-         if not os.path.isdir(g_atlas_pack):
+      # note the atlas package
+      # (use a local varible in case it later comes from elsewhere)
+      atlas_pack = g_atlas_pack
+
+      if os.path.exists(atlas_pack):
+         if not os.path.isdir(atlas_pack):
             MESGe("** have root_dir/%s, but it is not a directory??" \
-                  % g_atlas_pack)
+                  % atlas_pack)
             return 1
 
-         # consider updating g_atlas_pack dir
+         # consider updating atlas_pack dir
          # - or let user delete since we currently have no versioning
 
-         MESGm("will reuse existing atlas directory, %s" % g_atlas_pack)
+         MESGm("will reuse existing atlas directory, %s" % atlas_pack)
          return 0
 
       # make sure there is no previous download
-      tgzfile = '%s.tgz' % g_atlas_pack
+      tgzfile = '%s.tgz' % atlas_pack
       if os.path.exists(tgzfile):
          st, ot = self.run_cmd('rm', tgzfile)
          if st: return st
@@ -993,11 +1001,24 @@ class MyInterface:
       st, ot = self.run_cmd('curl -O', g_atlas_html)
       if st: return st
 
-      MESGm("unpacking atlas package, %s" % g_atlas_pack)
+      MESGm("unpacking atlas package, %s" % atlas_pack)
       st, ot = self.run_cmd('tar xfz %s' % tgzfile)
       if st: return st
       st, ot = self.run_cmd('rm', tgzfile)
       if st: return st
+
+      # -----------------------------------------------------------------
+      # maybe make a message about rsync (sync this and make later)
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      if do is not None:
+         self.final_mesg.append("------------------------------")
+         self.final_mesg.append("to possibly rsync atlases:")
+         self.final_mesg.append("   rsync -av %s/%s/ %s/" \
+             % (self.do_root.abspath, atlas_pack, do.abspath))
 
       return 0
 
