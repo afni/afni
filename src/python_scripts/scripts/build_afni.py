@@ -26,9 +26,10 @@ build_afni.py - compile an AFNI package ~1~
 
    The main process (for a new directory) might be something like:
 
-      - create working tree from the specified -root_dir
-      - prepare git
-         - clone AFNI's git repository
+      - create main working tree from the specified -build_root
+         - and 'cd' to it
+      - prepare git directory tree
+         - clone AFNI's git repository under new 'git' directory
          - possibly checkout a branch (master)
          - possibly checkout the most recent tag (AFNI_XX.X.XX)
       - prepare atlases
@@ -45,7 +46,7 @@ build_afni.py - compile an AFNI package ~1~
       - how to rerun the make build
       - how to rerun the make build test
       - where a command (shell/system) history file is stored
-        (cmd_history.txt is generally stored in the -root_dir)
+        (cmd_history.txt is generally stored in the -build_root)
 
 ------------------------------------------
 examples: ~1~
@@ -54,7 +55,7 @@ examples: ~1~
 
       Either start from nothing from a clean and updated version.
 
-        build_afni.py -root_dir my/build/dir
+        build_afni.py -build_root my/build/dir
 
       notes:
         - if there is an existing git tree, pull any updates
@@ -67,7 +68,7 @@ examples: ~1~
         - to rebuild after making updates to the build_src tree
         - to rebuild after installing additional system libraries
 
-        build_afni.py -root_dir my/build/dir -clean_root no
+        build_afni.py -build_root my/build/dir -clean_root no
 
       notes:
         - if there is an existing git tree, use it (with no updates)
@@ -77,16 +78,16 @@ examples: ~1~
 
       This implies a Makefile to use for the build.
 
-        build_afni.py -root_dir my/build/dir -package linux_centos_7_64
+        build_afni.py -build_root my/build/dir -package linux_centos_7_64
 
    3. use an alternate Makefile, but do not update git repo ~2~
 
-        build_afni.py -root_dir my/build/dir -git_update no \\
+        build_afni.py -build_root my/build/dir -git_update no \\
                       -makefile my_better_makefile
 
    4. test the setup, but do not run any make (using -prep_only) ~2~
 
-        build_afni.py -root_dir my/build/dir -prep_only \\
+        build_afni.py -build_root my/build/dir -prep_only \\
                       -git_update no -makefile my_better_makefile 
 
 
@@ -111,11 +112,11 @@ terminal options: ~1~
 
 required:
 
-      -root_dir                 : root directory to use for git and building
+      -build_root               : root directory to use for git and building
 
 other options:
 
-      -clean_root yes/no        : specify whether to clean up the root_dir
+      -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
           e.g.    -clean_root no
@@ -219,10 +220,11 @@ g_history = """
 
    0.0  Feb  8, 2023 - getting started
    0.1  Feb 18, 2023 - initial release, but have features to add
+   0.2  Mar  2, 2023 - rename -root_dir to -build_root (as ordered by PT)
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.1, February 18, 2023" % g_prog
+g_version = "%s, version 0.2, March 2, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -397,7 +399,7 @@ class MyInterface:
       # main options
       self.valid_opts.add_opt('-abin', 1, [],
                       helpstr='dir to put compiled AFNI binaries in')
-      self.valid_opts.add_opt('-root_dir', 1, [],
+      self.valid_opts.add_opt('-build_root', 1, [],
                       helpstr='the root of the building tree')
 
       self.valid_opts.add_opt('-package', 1, [],
@@ -485,10 +487,10 @@ class MyInterface:
             self.do_abin = dirobj('abin_dir', val)
             MESGe("-abin not yet implemented")
 
-         elif opt.name == '-root_dir':
+         elif opt.name == '-build_root':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
-            self.do_root = dirobj('root_dir', val)
+            self.do_root = dirobj('build_root', val)
 
          # general options
 
@@ -688,7 +690,7 @@ class MyInterface:
           rv, ot = self.run_cmd('cd', cwd, pc=1)
           if rv: return rv
       else:
-          MESGw("no root dir to write history to: %s" % sdir)
+          MESGw("no build_root dir to write history to: %s" % sdir)
 
    def run_main_build(self):
       """do the main building and such under do_root
@@ -723,7 +725,7 @@ class MyInterface:
       return 0
 
    def prepare_root(self):
-      """under root_dir, make sure we have current:
+      """under build_root, make sure we have current:
             git
             atlases
 
@@ -731,12 +733,12 @@ class MyInterface:
       """
 
       if self.verb:
-         MESGm("preparing build root dir, %s" % self.do_root.dname)
+         MESGm("preparing build_root dir, %s" % self.do_root.dname)
 
       # if there is no root dir yet, make it
       if not os.path.isdir(self.do_root.abspath):
          if self.verb:
-            MESGm("creating build root dir, %s" % self.do_root.dname)
+            MESGm("creating build_root dir, %s" % self.do_root.dname)
          st, ot = self.run_cmd('mkdir', self.do_root.abspath, pc=1)
          if st: return st
 
@@ -983,7 +985,7 @@ class MyInterface:
 
       if os.path.exists(atlas_pack):
          if not os.path.isdir(atlas_pack):
-            MESGe("** have root_dir/%s, but it is not a directory??" \
+            MESGe("** have build_root/%s, but it is not a directory??" \
                   % atlas_pack)
             return 1
 
@@ -1115,7 +1117,7 @@ class MyInterface:
       return tag
 
    def clean_old_root(self):
-      """an old root_dir exists, clean up or back up
+      """an old build_root exists, clean up or back up
 
             atlases     : okay, ignore (add opt to update)
             build_cmake : for now, move to prev.build_cmake
@@ -1131,7 +1133,7 @@ class MyInterface:
       """
 
       if self.verb:
-         MESGm("cleaning old root dir, %s" % self.do_root.dname)
+         MESGm("cleaning old build root dir, %s" % self.do_root.dname)
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
