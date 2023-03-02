@@ -1038,6 +1038,7 @@ class MyInterface:
       # (use a local varible in case it later comes from elsewhere)
       atlas_pack = g_atlas_pack
 
+      # if atlases already exist, use them
       if os.path.exists(atlas_pack):
          if not os.path.isdir(atlas_pack):
             MESGe("** have build_root/%s, but it is not a directory??" \
@@ -1048,24 +1049,25 @@ class MyInterface:
          # - or let user delete since we currently have no versioning
 
          MESGm("will reuse existing atlas directory, %s" % atlas_pack)
-         return 0
 
-      # make sure there is no previous download
-      tgzfile = '%s.tgz' % atlas_pack
-      if os.path.exists(tgzfile):
-         st, ot = self.run_cmd('rm', tgzfile)
+      # otherwise, download and unpack
+      else:
+         # make sure there is no previous download
+         tgzfile = '%s.tgz' % atlas_pack
+         if os.path.exists(tgzfile):
+            st, ot = self.run_cmd('rm', tgzfile)
+            if st: return st
+
+         # download and unpack atlas package
+         MESGm("downloading AFNI atlas package, %s" % tgzfile)
+         st, ot = self.run_cmd('curl -O', g_atlas_html)
          if st: return st
 
-      # download and unpack atlas package
-      MESGm("downloading AFNI atlas package, %s" % tgzfile)
-      st, ot = self.run_cmd('curl -O', g_atlas_html)
-      if st: return st
-
-      MESGm("unpacking atlas package, %s" % atlas_pack)
-      st, ot = self.run_cmd('tar xfz %s' % tgzfile)
-      if st: return st
-      st, ot = self.run_cmd('rm', tgzfile)
-      if st: return st
+         MESGm("unpacking atlas package, %s" % atlas_pack)
+         st, ot = self.run_cmd('tar xfz %s' % tgzfile)
+         if st: return st
+         st, ot = self.run_cmd('rm', tgzfile)
+         if st: return st
 
       # -----------------------------------------------------------------
       # final messages: sync atlases (maybe sync this with make later)
