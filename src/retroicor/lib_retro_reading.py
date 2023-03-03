@@ -34,7 +34,12 @@ derived data.
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
 
-        self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig
+        self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
+
+        # ----------------------------
+
+        #if ts_unfilt != None:
+        #    self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig
 
 
     @property
@@ -95,8 +100,8 @@ regressors for MRI data.
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
-        self.show_graph_lev = 0        # int, amount of graphs to show
-        self.save_graph_lev = 1        # int, amount of graphs to save
+        self.show_graph_level = 0      # int, amount of graphs to show
+        self.save_graph_level = 1      # int, amount of graphs to save
         self.font_size    = 10         # float, FS for output images
         self.niml         = False      # bool, use niml in output ***
         self.demo         = False      # bool, show demo?
