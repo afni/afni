@@ -69,6 +69,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar , 2023 , PT , "auto_warp.py" , MINOR , TYPE_NEW_OPT,
+   "Put in -hview functionality, to show full help.",
+   "Running with no opts will also show FULL help (not annoying short one!).\n"
+},
+
 { 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_ENHANCE,
    "And just like that, update/improve the ijkord functionality and format.",
    "Also explain more clearly what is happening in a help section.\n"
