@@ -109,6 +109,8 @@ regressors for MRI data.
         self.do_out_rvt   = True       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
+        self.do_calc_ab   = False      # bool, calc a,b coeffs and use
+        self.do_save_ab   = False      # bool, save a,b coeffs to file
 
         # TBD
         # phase offset, aby and abt
@@ -147,6 +149,8 @@ regressors for MRI data.
         self.do_out_rvt  = not(args_dict['no_rvt_out'])
         self.do_out_card = not(args_dict['no_card_out'])
         self.do_out_resp = not(args_dict['no_resp_out'])
+        self.do_calc_ab  = not(args_dict['do_calc_ab'])
+        self.do_save_ab  = not(args_dict['do_save_ab'])
 
         #self.exit_on_rag -> NB: prob never try to fix
         self.exit_on_nan     = not(args_dict['do_fix_nan'])

@@ -54,8 +54,8 @@ DEF = {
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
     'font_size'         : 10,        # (float) font size for plots 
-    'ab_disp'           : False,     # (bool) 
-    'ab_out'            : False,     # (bool)
+    'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
+    'do_save_ab'        : False,     # (bool) save a,b coeffs to file
     'niml'              : False,     # (bool)
     'show_graph_level'  : 0,         # (int) amount of graphs to show
     'save_graph_level'  : 1,         # (int) amount of graphs to save
@@ -757,15 +757,16 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
-opt = '''ab_disp'''
-hlp = '''Output the a and b coefficients from GLR00 to terminal'''
+opt = '''do_calc_ab'''
+hlp = '''Calculate the a,b coefficients from GLR00, and use these in the
+output time series (generally not needed)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-opt = '''ab_out'''
-hlp = '''Output the time series based on the a and b coefficients from
-GLR00'''
+opt = '''do_save_ab'''
+hlp = '''Save the a,b coefficients from GLR00 in a file (generally not
+needed'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
