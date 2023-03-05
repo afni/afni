@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.1, Jan 1, 2023
+Version 2.1.3, Jan 19, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -982,7 +982,8 @@ process.LME.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
@@ -1050,7 +1051,8 @@ runLME <- function(inData, dataframe, ModelForm) {
             #try(con <- contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average"),silent=TRUE) 
 	    #if(!is.null(con)) Stat[(lop$nF+2*n-1):(lop$nF+2*n)] <- c(con$Contrast, con$testStat)
             glt <- NULL
-            if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+            #if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], 
+	    if(identical(lop$gltList[[ii]], NA)) glt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], # 01/19/2023: fix the problem w/ length of lop$gltList > 1
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
@@ -1699,7 +1701,8 @@ if(lop$ICC) {  # ICC part
       if(!is.null(fm)) if (lop$num_glt > 0) {
          n <- 1
          while(!is.null(fm) & (n <= lop$num_glt)) {
-            if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+            #if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+	    if(identical(lop$gltList[[n]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,  # 01/19/2023: fix the problem w/ length of lop$gltList > 1
                covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL) else
             gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
                covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NULL)

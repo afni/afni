@@ -30,6 +30,7 @@ g_valid_slice_patterns = [ # synonymous pairs      # z2-types
                            'alt+z', 'altplus',     'alt+z2',    
                            'alt-z', 'altminus',    'alt-z2',    
                          ]
+g_tpattern_irreg = 'irregular'
 
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -1491,49 +1492,182 @@ def attr_equals_val(object, attr, val):
 
     return rv
 
+def timing_to_slice_pattern(timing, nplaces=3):
+   """given an array of slice times, try to return a value
+      in g_valid_slice_patterns
 
-def slice_pattern_to_timing(pattern, nslices, TR):
-   """return a list of slice_times
+           TR = max(timing) + min(non-zero timing)
+         - look for multiband
+         - let nplaces guide rounded precision
+           (nplaces is with respect to a fraction of the TR)
 
-        pattern : slice pattern (based on to3d - e.g. alt+z, simult)
-        nslices : number of slices to apply the pattern to
-        TR      : theoretical time given for all slices
+      method:
+         - copy, sort, get TR, scale by 1/TR
+         - require uniq sorted list to have const diffs
+         - finally, test patterns
 
-      Given nslices and TR, compute an array of slice times equal to
-      slice_index/nslices * TR, where slice_index goes from 0 to nslices-1.
-      Then the question is simply how to order those times, according to the
-      pattern.
-
-      The only special case is really 'simult', in which case:
-         return [0]*nslices .
-
-      return None on error
+      return status (int), tpattern (string)
+        status  -1   invalid timing
+                 0   irregular timing (valid, but no time pattern)
+              >= 1   multiband level of regular timing (usuallly 1)
+        pattern
+                 val in g_valid_slice_patterns
+                     (or 'irregular')
    """
-   if pattern not in g_valid_slice_patterns:
-      print("** slice_pattern_to_timing, invalid pattern", pattern)
-      return None
+   # default pattern and bad ones (to avoid random typos)
+   defpat = 'simult'
 
-   if nslices < 1:
-      return []
+   # estimate TR from the data (0.0, if invalid)
+   # 0.0 includes short length, constant times, neg min, max 0
+   TR = TR_from_timing(timing)
+   if TR < 0.0:
+      return -1, defpat
+   if TR == 0.0:
+      return 1, defpat
 
-   # if there is no time to partition or slices are simulaneous, return zeros
-   if TR <= 0 or pattern in ['zero', 'simult']:
-      return [0] * nslices
+   ntimes = len(timing)
 
-   # now we should have useful, non-trival pattern
-   # get order then permute a sequential scaling pattern
+   # scale timing by TR, to put vals in [0,1)
+   # (verify range, allow exactly 1.0?)
+   tscaled = [t/TR for t in timing]
+   if max(tscaled) > 1.0:
+      return -1, defpat
 
-   # first get the slice order
-   order = slice_pattern_to_order(pattern, nslices)
-   if order is None:
-      return order
+   # require constant first diffs
+   tsorted = tscaled[:]
+   tsorted.sort()
+   tdiffs = get_unique_sublist(tsorted, keep_order=1)
+   nunique = len(tdiffs)
+   tgrid = tdiffs[1] - tdiffs[0]
+   for ind in range(nunique-1):
+      # compare diffs to tgrid
+      if round(tdiffs[ind+1]-tdiffs[ind]-tgrid, ndigits=nplaces) != 0.0:
+         # irregular timing
+         return 0, g_tpattern_irreg
 
-   # then fill timing in the slice order as TR*index/nslices
-   timing = [0]*nslices
-   for ind in range(nslices):
-      timing[order[ind]] = 1.0 * TR * ind / nslices
+   # note multiband level - if this fails, timing is irregular
+   mblevel = _get_MB_level(tsorted, tgrid, len(tdiffs), nplaces)
 
-   return timing
+   # we are done with tsorted and tdiffs
+   del(tsorted)
+   del(tdiffs)
+
+   # at this point, the sorted list has a regular (multiband?) pattern
+   # so now we :
+   #   - choose a pattern based on the first nunique entries
+   #   - verify that the patters repeats mblevel times
+
+   # variables of importance: timing, tgrid, nunique, mblevel
+   # convert timing to ints in range(nunique)
+   #   - and then we can ignore tpattern and tgrid
+   #   - scale by 1/grid to make as ints in range(nunique)
+   # then new vars of importance: tings, nunique, mblevel
+
+   # scale up tgrid to be at original TR, rather than for times in [0,1)
+   tgrid *= TR
+   tints = [round(t/tgrid) for t in timing]
+
+   # finally, the real step:
+   tpat = _uniq_ints_to_tpattern(tints[0:nunique])
+
+   # pattern must match for each other mblevel's
+   for bandind in range(1, mblevel):
+      offset = bandind * nunique
+      if not lists_are_same(tints[0:nunique], tints[offset:offset+nunique]):
+         # failure, not a repeated list
+         return 0, g_tpattern_irreg
+
+   return mblevel, tpat
+
+def _uniq_ints_to_tpattern(tints):
+   """given a list of (unique) ints 0..N-1, try to match a timing pattern
+        since uniq, do not test 'simult'
+        test for : 'seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2'
+        - for each test pattern:
+            - compare with slice_pattern_to_timing()
+        if no match, return 'irregular'
+
+      return something in g_valid_slice_patterns or 'irregular'
+   """
+   nslices = len(tints)
+
+   for tpat in ['seq+z', 'seq-z', 'alt+z', 'alt-z', 'alt+z2', 'alt-z2']:
+      # get the expected list, compare and clean up
+      ttimes = slice_pattern_to_timing(tpat, len(tints))
+      rv = lists_are_same(tints, ttimes)
+      del(ttimes)
+
+      # did it match?
+      if rv:
+         return tpat
+
+   # failure
+   return g_tpattern_irreg
+
+def _get_MB_level(tsorted, tgrid, nunique, nplaces):
+   """timing is on a grid with diffs tgrid and nunique unique values
+      verify whether there are len(tsorted)/nunique sets of unique values
+      return 0         if irregular timing
+             level > 0 for multiband level
+   """
+   nt = len(tsorted)
+   mblevel = int(round(nt/nunique))
+   if nt != mblevel * nunique:
+      return 0
+
+   # if 1, nothing to check, as we are already on a grid
+   if mblevel == 1:
+      return mblevel
+
+   tind = 0 # global index as we walk through list
+   # for each unique value
+   for uind in range(nunique):
+
+      # there should be mblevel repeats
+      # --> so (mvlevel-1) diff==0 
+      for lind in range(mblevel-1):
+         if round(tsorted[tind+1]-tsorted[tind], ndigits=nplaces) != 0:
+            # failure, the frequencies are not even
+            return 0
+         tind += 1
+
+      # on last iteration, don't check next diff
+      if tind == nt-1:
+         break
+
+      # followed by one diff of size tgrid
+      if round(tsorted[tind+1]-tsorted[tind]-tgrid, ndigits=nplaces) != 0:
+         return 0
+
+      tind += 1
+
+   # success!
+   return mblevel
+
+def TR_from_timing(timing):
+   """return an estimated TR, given the timing (nzmin + max (if valid))
+      return:  -1 if invalid
+                0 if short or constnat
+               >0 if valid And knownd
+   """
+   if vals_are_constant(timing):
+      return 0.0
+   if min(timing) < 0.0:
+      return -1.0
+
+   tmax = max(timing)
+   if tmax < 0.0: # already handled, but let's be clear
+      return -1.0
+   if tmax == 0.0:
+      return 0.0
+
+   # compute nzmin
+   nzmin = tmax
+   for t in timing:
+      if t > 0 and t < nzmin:
+         nzmin = t
+
+   return nzmin+tmax
 
 def slice_pattern_to_order(pattern, nslices):
    """return a list of slice order indices
@@ -1593,6 +1727,55 @@ def slice_pattern_to_order(pattern, nslices):
 
    return order
 
+def slice_pattern_to_timing(pattern, nslices, TR=0):
+   """given tpattern, nslices and TR, return a list of slice times
+
+      special case: if TR == 0 (or unspecifiec)
+         - do not scale (so output is int list, as if TR==nslices)
+
+      method:
+         - get slice_pattern_to_order()
+           - this is a list of slice indexes in the order acquired
+         - attach the consecutive index list, range(nslices)
+           - i.e, make list of [ [slice_index, acquisition_index] ]
+         - sort() - i.e. by slice_index
+           - so element [0] values will be the sorted list of slices
+         - grab element [1] from each
+           - this is the order the given slice was acquired in
+         - scale all by TR/nslices
+
+      return a list of slice times, or an empty list on error
+   """
+   if nslices <= 0 or TR < 0.0:
+      return []
+   if nslices == 1:
+      return [0]
+
+   if pattern not in g_valid_slice_patterns:
+      print("** slice_pattern_to_timing, invalid pattern", pattern)
+      return []
+
+   # if there is no time to partition or slices are simulaneous, return zeros
+   if pattern in ['zero', 'simult']:
+      return [0] * nslices
+
+   # first get the slice order
+   order = slice_pattern_to_order(pattern, nslices)
+   if order is None:
+      return []
+
+   # attach index and sort
+   slice_ordering = [ [order[ind], ind] for ind in range(nslices)]
+   slice_ordering.sort()
+
+   # grab each element [1] and scale by TR/nslices
+   # (if TR == 0, do not scale)
+   if TR == 0:
+      stimes = [so[1]            for so in slice_ordering]
+   else:
+      stimes = [so[1]*TR/nslices for so in slice_ordering]
+
+   return stimes
 
 # ----------------------------------------------------------------------
 # begin matrix functions

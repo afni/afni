@@ -53,6 +53,95 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2023, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -show_pretty_command, to print a more readable one",
+   "Append this to a current command to generate a prettier one, not to run it."
+ } ,
+
+ { 27, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_indices_allzero",
+   "List indices of all-zero coluns."
+ } ,
+
+ { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -choose_nonzero_cols",
+   "This is for excluding all-zero columns for conditon number of chosen cols."
+ } ,
+
+ { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
+   "compile AFNI",
+   "  - download from github\n"
+   "  - download AFNI atlases\n"
+   "  - compile\n"
+   "  - suggest rsync (will apply with some options, later)"
+ } ,
+
+ { 17, Feb, 2023, RCR, "3dDeconvolve", MINOR, TYPE_BUG_FIX,
+   "when counting events, default (with GUESS) to GLOBAL",
+   "Previously, when the user did not specify either -local_times or\n"
+   "-global_times, the number of events (and therefore IM regressors)\n"
+   "was based on local time run length, so many event regressors might\n"
+   "not be included.\n"
+   "Change the default to be based on -global_times.\n"
+   "If IM, warn if the user did not specify the timing type.\n"
+   "Thanks to M Hoptman for letting us know of the problem."
+ } ,
+
+ {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
+   "as with afni_proc.py, get SurfSmooth parms from smrec file",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "include output from init_user_dotfiles.py -test",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_ENHANCE,
+   "add -shell_list and prep for possible librification",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "propagate slice_pattern from any -tshift_opts_ts -tpatttern",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "show multiband level and timing patternn in basic output",
+   NULL
+ } ,
+
+ {  4, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_pattern",
+   NULL
+ } ,
+
+ {  4, Feb, 2023, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add timing_to_slice_pattern() - to determine known slice time patterns",
+   NULL
+ } ,
+
+ {  3, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "actually fail (not just warn) on inconsistent num echoes",
+   "Thanks to T Weiss bringing up the issue."
+ } ,
+
+ {  1, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "get SurfSmooth params from smrec dset",
+   "Thanks to Erin G for bringing up the issue."
+ } ,
+
+ { 24, Jan, 2023, RCR, "3dvolreg", MINOR, TYPE_ENHANCE,
+   "add error message for trimming weight set to empty",
+   "For now, still let it crash.  Try to trap in startup_lsqfit later."
+ } ,
+
+ { 24, Jan, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add QC output to ricor block",
+   NULL
+ } ,
+
  {  3, Jan, 2023, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
    "fix -write_tsv_cols_of_interest with -tsv_labels",
    NULL

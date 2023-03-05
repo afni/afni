@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.9, Oct 1, 2022
+Version 1.0.0, Fed 28, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -666,7 +666,8 @@ process.LME.opts <- function (lop, verb = 0) {
                        'format other than BRIK'))
    }
    # assume the quantitative variables are separated by + here
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   #if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   if(!identical(lop$qVars, NA)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!(is.null(lop$bounds))) {
@@ -684,9 +685,8 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$dataStr <- NULL
       for(ii in 1:wd) lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
-      # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
-      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
-      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      if(!identical(lop$qVars, NA)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
@@ -740,7 +740,8 @@ process.LME.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
@@ -779,7 +780,8 @@ runLME <- function(myData, DM, tag) {
 	 #qnorm(anova(fm)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
-            if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
+            #if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
+	    if(identical(lop$gltList[[ii]], NA)) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], # 01/19/2023: fix the problem w/ length of lop$gltList > 1
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
             tt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
@@ -1018,13 +1020,13 @@ cat('is likely inappropriate.\n\n')
 
 # pick up a test voxel
 if(!is.na(lop$maskFN)) {
-  idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- which(lop$maskData == 1, arr.ind = T)
 
   # make sure there was something in the mask
-  if(length(idx)==0L) errex.AFNI(
-   c("Input mask has no voxels == 1!\n",
-     "If your mask has many non-zero values (e.g an atlas),\n",
-     "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
+  #if(length(idx)==0L) errex.AFNI(
+  # c("Input mask has no voxels == 1!\n",
+  #   "If your mask has many non-zero values (e.g an atlas),\n",
+  #   "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
 
   idx <- idx[floor(dim(idx)[1]/2),1:3]
   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
@@ -1064,7 +1066,8 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(is.na(lop$gltList[[n]])[1]) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+         #if(is.na(lop$gltList[[n]])[1]) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+	 if(identical(lop$gltList[[n]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL, # 01/19/2023: fix the problem w/ length of lop$gltList > 1
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)

@@ -1107,6 +1107,67 @@ class SysInfo:
 
       self.check_for_bash_complete_under_zsh()
 
+   def show_dot_file_check(self, header=1):
+      """run init_user_dotfiles.py for shells implied by setup"""
+
+      print(UTIL.section_divider('eval dot files', hchar='-'))
+
+      # start with a minimum list, then append for current and login shells
+      # (is bash needed?)
+      shell_list = ['tcsh']
+
+      if self.cur_shell not in shell_list:
+         shell_list.append(self.cur_shell)
+      if self.login_shell not in shell_list:
+         shell_list.append(self.login_shell)
+      cmd = 'init_user_dotfiles.py -test -shell_list %s' % ' '.join(shell_list)
+      status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
+
+      # report failure or else extract the number of mods needed
+      # need the word ('no' or integer) before 'modifications'
+
+      # first find nmods str
+      mod_search_str = 'modifications'
+      omesg = ''
+      oword = ''
+      for oline in cout:
+        if oline.find(mod_search_str) >= 0:
+           # and get word before search_str
+           wlist = oline.split(' ')
+           for wind, word in enumerate(wlist):
+              # found, save the needed items
+              if wind > 0 and word == mod_search_str:
+                 omesg = oline
+                 oword = wlist[wind-1]
+                 break
+           break
+
+      # then use count to generate any 'fix' message
+      fmesg = ''
+      if omesg == '':
+         fmesg = 'failure running init_user_dotfiles.py -test'
+      else:
+         if oword == 'no':
+            nmods = 0
+         else:
+            try:
+               nmods = int(oword)
+            except:
+               # failure to parse, so report regardless
+               print("** failure to parse %s line" % mod_search_str)
+               nmods = 1
+         # if we have mods to make, report omesg as a fix string
+         if nmods > 0:
+            fmesg = omesg
+
+      # if there is something to fix, report it
+      if fmesg != '':
+         self.comments.append(fmesg)
+
+      # indent the output (good or bad) by a few chars
+      indent = '\n   '
+      print('%s%s' % (indent, indent.join(cout)))
+
    def check_for_bash_complete_under_zsh(self):
       """check for source of all_progs.COMP.bash in .zshrc and similar files
 
@@ -1633,6 +1694,7 @@ class SysInfo:
       self.show_general_afni_info()
       self.show_python_lib_info()
       self.show_env_vars()
+      self.show_dot_file_check()
       self.show_data_info()
       self.show_os_specific()
 

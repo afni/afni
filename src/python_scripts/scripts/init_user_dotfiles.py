@@ -26,6 +26,10 @@ init_user_dotfiles.py - initialize user dot files (.cshrc, .bashrc, ...)
       - (optionally) sourcing apsearch tab completion setup file
            .afni/help/all_progs.COMP (depending on shell)
 
+      - also, detect follower files
+        For example if .tcshrc sources .cshrc, then .tcshrc is a follower
+        and does not need be edited (though .cshrc might need editing).
+
    For some background, please see:
 
       afni_system_check.py -help_dot_files
@@ -70,6 +74,9 @@ examples: ~1~
         # the dot files are under some/other/dir
         init_user_dotfiles.py -test -dir_dot some/other/dir
 
+        # specify which shells to test (implying corresponding dot files)
+        init_user_dotfiles.py -test -shell_list tcsh bash
+
     2. do a dry run, for just the path or ALL updates ~2~
 
         # just PATH
@@ -89,6 +96,10 @@ examples: ~1~
         # only consider .bashrc and .cshrc
         init_user_dotfiles.py -do_updates ALL -dir_dot DDIR \\
             -dflist .bashrc .cshrc
+
+        # only consider shells bash and tcsh
+        init_user_dotfiles.py -do_updates ALL -dir_dot DDIR \\
+            -shell_list bash tcsh
 
 ------------------------------------------
 terminal options: ~1~
@@ -196,6 +207,27 @@ other options:
 
          Use this option to turn off the default behavior.
 
+      -shell_list S1 S2 ...     : specify shells instead of using -dflist
+
+         e.g.,    -shell_list bash tcsh
+         default: -shell_list ALL
+
+         This is an optional alternative to -dflist.  The user can specify
+         a list of known shells which would imply the dot file list given by
+         -dflist.  The same special cases of ALL and MOD apply.
+
+         For example,
+
+            -shell_list bash tcsh
+
+         would have the same effect as:
+
+            -dflist .bashrc .cshrc .tcshrc
+
+         This is merely a convenience option.
+
+            See also -dflist.
+
       -test                     : just test the files for potential changes
 
           e.g., -test
@@ -221,13 +253,15 @@ R Reynolds    December 2022
 g_history = """
    init_user_dotfiles.py history:
 
-   0.0  Dec  8, 2012 - ripped from the heart of @update.afni.binaries...
+   0.0  Dec  8, 2022 - ripped from the heart of @update.afni.binaries...
                        encased in a block of ice... zillagod
-   1.0  Dec 23, 2012 - initial release
+   1.0  Dec 23, 2022 - initial release
+   1.1  Jan  6, 2023 - always output something in test mode
+   1.2  Feb  6, 2023 - add -shell_list
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 1.0, December 23, 2022" % g_prog
+g_version = "%s, version 1.2, February 6, 2023" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -556,6 +590,8 @@ class MyInterface:
       self.valid_opts.add_opt('-make_backup', 1, [], 
                       acplist=['yes','no'],
                       helpstr='back up each edited file (yes/no, def=yes)')
+      self.valid_opts.add_opt('-shell_list', -1, [], 
+                      helpstr='shell alternative to -dflist dot files')
       self.valid_opts.add_opt('-test', 0, [], 
                       helpstr='run without making any updates')
 
@@ -565,41 +601,41 @@ class MyInterface:
 
       return 0
 
-   def process_options(self):
+   def process_options(self, argv):
       """return  1 on valid and exit        (e.g. -help)
          return  0 on valid and continue    (e.g. do main processing)
          return -1 on invalid               (bad things, panic, abort)
       """
 
       # process any optlist_ options
-      self.valid_opts.check_special_opts(sys.argv)
+      self.valid_opts.check_special_opts(argv)
 
       # process terminal options without the option_list interface
       # (so that errors are not reported)
       # return 1 (valid, but terminal)
 
       # if no arguments are given, apply -help
-      if len(sys.argv) <= 1 or '-help' in sys.argv:
+      if len(argv) <= 1 or '-help' in argv:
          MESG(g_help_string)
          return 1
 
       # ** -help_{dot,shells}* are below, to handle -verb
 
-      if '-hist' in sys.argv:
+      if '-hist' in argv:
          MESG(g_history)
          return 1
 
-      if '-show_valid_opts' in sys.argv:
+      if '-show_valid_opts' in argv:
          self.valid_opts.show('', 1)
          return 1
 
-      if '-ver' in sys.argv:
+      if '-ver' in argv:
          MESG(g_version)
          return 1
 
       # ============================================================
       # read options specified by the user
-      self.user_opts = OL.read_options(sys.argv, self.valid_opts)
+      self.user_opts = OL.read_options(argv, self.valid_opts)
       uopts = self.user_opts            # convenience variable
       if not uopts: return -1           # error condition
 
@@ -621,6 +657,10 @@ class MyInterface:
 
          # main options
          elif opt.name == '-dflist':
+            if self.dflist is not None:
+               print("** multiple -dflist/-shell_list opts not allowed")
+               return -1
+
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return -1
             # special options:
@@ -630,6 +670,34 @@ class MyInterface:
                self.dflist = g_rc_mod
             else:
                self.dflist = val
+
+         # ALTERNATIVE to -dflist, -shell_list implies -dflist
+         elif opt.name == '-shell_list':
+            if self.dflist is not None:
+               print("** multiple -dflist/-shell_list opts not allowed")
+               return -1
+
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return -1
+            # special options:
+            if 'ALL' in val:
+               self.dflist = g_rc_all
+            elif 'MOD' in val:
+               self.dflist = g_rc_mod
+            else:
+               # convert shell names to implied dflist
+               self.dflist = []
+               for shell in val:
+                  if   shell == 'bash':  self.dflist.append('.bashrc')
+                  elif shell == 'csh' :  self.dflist.append('.cshrc')
+                  elif shell == 'tcsh':
+                                         self.dflist.append('.cshrc')
+                                         self.dflist.append('.tcshrc')
+                  elif shell == 'sh'  :  self.dflist.append('.profile')
+                  elif shell == 'zsh' :  self.dflist.append('.zshrc')
+                  else:
+                     print("** %s: invalid shell %s" % (opt.name, shell))
+                     return -1
 
          elif opt.name == '-dir_bin':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -687,11 +755,32 @@ class MyInterface:
       return 0
 
    def execute(self):
-      """main processing
-           - dir_abin = `which afni_proc.py`
-           - update dir_bin
-           - cd to dir_dot (usually $HOME)
-           ...
+      """evaluate what needs to be done, report on it, any apply
+
+         return  0 on success
+                 1 on non-fatal termination error
+                -1 on fatal error
+      """
+      rv = self.evaluate_user_dotfiles()
+      if rv:
+         return rv
+
+      # let user know of plans (if test, report even if verb=0)
+      if self.verb > 0 or self.test or self.dry_run:
+         self.report_intentions()
+
+      # if this is just a test, we are done
+      if self.test:
+         return 0
+
+      # and attack dot/rc files
+      rv = self.modify_dotfiles()
+      if rv: return -1
+
+      return rv
+
+   def evaluate_user_dotfiles(self):
+      """main process to determine what updates need to be made
 
          return  0 on success
                  1 on non-fatal termination error
@@ -721,14 +810,6 @@ class MyInterface:
 
       # see what mods might be needed
       if self.evaluate_files_to_modify():
-         return -1
-
-      # if this is just a test, we are done
-      if self.test:
-         return 0
-
-      # and attack dot/rc files
-      if self.modify_dotfiles():
          return -1
 
       return 0
@@ -1076,57 +1157,67 @@ class MyInterface:
       for name, fo in self.dfobjs.items():
          fo.nmods = fo.m_path + fo.m_flat + fo.m_aps
 
-      # let user know of plans (if test, report even if verb=0)
-      if self.verb > 0 or self.test or self.dry_run:
-         self.report_intentions()
-
       return 0
 
    def report_intentions(self):
       """report what modifications might be made"""
 
-      if self.verb == 0:
+      # if neither verb nor testing, do not bother being chatty
+      # (but if testing, we always want output)
+      if self.verb == 0 and not self.test:
          return
 
-      MESG("")
-
       # if testing or dry run, report full test table
-      if self.test:       tstr = 'testing - '
-      elif self.dry_run:  tstr = 'dry_run - '
-      else:               tstr = 'applying - '
+      if self.test:       tstr = 'dot file test : '
+      elif self.dry_run:  tstr = 'dot file dry_run : '
+      else:               tstr = 'dot file mods : '
 
-      # report what operations would actually be performed here
-      olist = []
-      if self.do_path: olist.append('path')
-      if self.do_flatdir: olist.append('flatdir')
-      if self.do_apsearch: olist.append('apsearch')
-      if len(olist) > 0: ostr = ', '.join(olist)
-      else:              ostr = 'NOTHING'
-      MESGp("applying opertaions: %s" % ostr)
+      if self.verb > 0:
+          # report what operations would actually be performed here
+          olist = []
+          if self.do_path: olist.append('path')
+          if self.do_flatdir: olist.append('flatdir')
+          if self.do_apsearch: olist.append('apsearch')
+          if len(olist) > 0: ostr = ', '.join(olist)
+          else:              ostr = 'NOTHING'
+          MESGm("considered opertaions: %s" % ostr)
 
-      # possibly give initial reminder about update peculiarities
-      if self.force:
-         if self.verb > 0:
-            MESGi("(forcing updates)")
-      if self.do_flatdir and not self.is_mac and not self.force:
-         if self.verb > 0:
-            MESGi("(not on a mac, should skip flatdir)")
-      MESG("")
+          # possibly give initial reminder about update peculiarities
+          if self.force:
+             MESGi("(forcing updates)")
+          if self.do_flatdir and not self.is_mac and not self.force:
+             MESGi("(not on a mac, should skip flatdir)")
+          MESG("")
+
+          nf = sum( [fo.follow for n, fo in self.dfobjs.items() ] )
+          MESGm("note: followers should not need edits," \
+                " so edit flags should be 0")
+          MESG("   (have %d follower(s), which can be ignored)" % nf)
+          MESG("")
 
       # and report the modification table
       ndfo = len(self.dfobjs)
-      ntot = sum([fo.nmods for n,fo in self.dfobjs.items()])
+      ntot = self.count_needed_mods()
       if ntot == 0:
-         MESG("no modifications needed across %d files" % ndfo)
+         MESG("no modifications needed across %d dot files" % ndfo)
       else:
-         MESG("%swant %d modifications across %d files:" % (tstr,ntot,ndfo))
-         MESG("   file             path  flatdir  apsearch  follow\n" \
-              "   ---------------  ----  -------  --------  ------")
+         if self.verb > 0:
+            MESG("%swant %d modifications across %d files:\n" \
+                 % (tstr,ntot,ndfo))
+         MESG("   file             path  flatdir  apsearch        follower\n" \
+              "   ---------------  ----  -------  --------        --------")
          for name, fo in self.dfobjs.items():
             ml = []
-            MESG("   %-15s  %-4d  %-7d  %-8d  %-6d" % \
+            MESG("   %-15s  %-4d  %-7d  %-8d        %-6d" % \
                  (name, fo.m_path, fo.m_flat, fo.m_aps, fo.follow))
-      MESG("")
+
+      if self.verb > 0:
+         MESG("")
+
+   def count_needed_mods(self, f2skip=[]):
+      """just sum nmods across dfobjs, but skipping any files in f2skip"""
+      ndfo = len(self.dfobjs)
+      return sum([fo.nmods for n,fo in self.dfobjs.items() if n not in f2skip])
 
    def check_to_add_apsearch(self, fo):
       """try to determine whether file references all_progs.COMP*
@@ -1435,11 +1526,11 @@ class MyInterface:
 
       return ready
 
-def main():
+def main(argv):
    me = MyInterface()
    if not me: return 1
 
-   rv = me.process_options()
+   rv = me.process_options(argv)
    if rv > 0: return 0  # exit with success (e.g. -help)
    if rv < 0:           # exit with error status
       MESGe('failed to process options...')
@@ -1454,6 +1545,6 @@ def main():
    return 0
 
 if __name__ == '__main__':
-   sys.exit(main())
+   sys.exit(main(sys.argv))
 
 

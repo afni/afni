@@ -273,7 +273,8 @@ class OptionList:
             return default, 1
         try: val = otype(opt.parlist[0])
         except:
-            print("** cannot convert '%s' to %s" % (opt.parlist[0], otype))
+            print("** cannot convert '%s' to %s for option %s" \
+                  % (opt.parlist[0], otype, opt_name))
             return default, 1
 
         return val, 0
@@ -308,8 +309,8 @@ class OptionList:
         try:
             tlist = list(map(otype,opt.parlist))
         except:
-            if verb: print("** %s takes only %ss, have: %s"  \
-                           % (opt_name,otype,opt.parlist))
+            if verb: print("** %s takes only %s's, have params: %s"  \
+                           % (opt_name, otype, opt.parlist))
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]

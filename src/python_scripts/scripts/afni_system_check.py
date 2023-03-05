@@ -7,8 +7,8 @@ import sys, os
 
 # AFNI libraries (test first)
 from afnipy import module_test_lib
-g_testlibs = ['afnipy.option_list', 'afnipy.afni_util',
-              'afnipy.lib_system_check']
+g_testlibs = ['afnipy.option_list', 'afnipy.afni_util']
+
 if module_test_lib.num_import_failures(g_testlibs,details=0,verb=1):
    print("\n** failed to load standard AFNI python libraries")
    print("   python version = %s" % sys.version.split()[0])
@@ -77,12 +77,28 @@ details displayed via -check_all (just run to see):
       - which afni, python, R and tcsh, along with versions
       - check for multiple afni packages in PATH
       - check that various AFNI programs run
+      - check for AFNI $HOME dot files (.afnirc, .sumarc, etc.)
 
    python libs:
       - check that various python libraries are found and loaded
 
-   path vars:
-      - show some environment variables related to the PATH
+   environment vars:
+      - show PATH, PYTHONPATH, R_LIBS, LD_LIBRARY_PATH, DYLD_LIBRARY_PATH, etc.
+
+   evaluation of dot files:
+      - show the output of "init_user_dotfiles -test", restricted
+        to shells of interest (user shells plus tcsh)
+
+   data checks:
+      - check for AFNI bootcamp data directories and atlases
+
+   OS specific:
+      - on linux, check for programs and version of dnf, yum
+      - on macs, check for homebrew, fink, flat_namespace, etc.
+
+   final overview:
+      - report anything that seems to need fixing for a bootcamp
+        (details shown earlier)
 
 -----------------------------------------------------------------------------
 R Reynolds    July, 2013
@@ -307,9 +323,10 @@ g_history = """
         - fix .bashrc help, it is not read in non-interactive shell
         - look for .zshrc
    1.19 Dec  9, 2022 - minor update to help_rc_files
+   1.20 Feb  6, 2023 - include output from init_user_dotfiles.py -test
 """
 
-g_version = "afni_system_check.py version 1.19, December 9, 2022"
+g_version = "afni_system_check.py version 1.20, February 6, 2023"
 
 
 class CmdInterface:

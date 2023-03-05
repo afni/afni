@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.2, Oct 1, 2022 
+Version 1.1.3, Jan 15, 2023 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -883,51 +883,50 @@ ptm <- proc.time()
 
 ##### model formulation #####
 
-if(is.na(lop)[1]) { # specfically for ROI-type modeling
-if(is.null(lop$se))  { # model without standard errors
-if(!is.na(lop$distROI) & lop$distROI == 'student') {
- if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-    if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-    modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))  
- } else {
-    if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-    modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
- }
-} else { 
- if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-    if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|', lop$ROI, ')')) else
-    modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|', lop$ROI, ')'))  
- } else {
-    if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|', lop$ROI, ')')) else
-       modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|', lop$ROI, ')'))
- }
-}
-
-} else { # model with standard errors
-
-if(!is.na(lop$distROI) & lop$distROI == 'student') {
- if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-    if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-    modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
- } else {
-    if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-    modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
- }
-} else {
- if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-    if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|', lop$ROI, ')')) else
-    modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|', lop$ROI, ')'))
- } else {
-    if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|', lop$ROI, ')')) else
-       modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|', lop$ROI, ')'))
- }
-}
-
-}
-} else { # user-specified model
-m1 <- as.formula(lop$mean)
-if(!is.na(lop$sigma)) m2 <- as.formula(paste0('sigma~',lop$sigma)) # no user-specified standard deviation
-}
+#if(is.na(lop)[1]) { # specfically for ROI-type modeling
+if(is.na(lop$mean)) {
+  if(is.null(lop$se))  { # model without standard errors
+    if(!is.na(lop$distROI) & lop$distROI == 'student') {
+       if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
+          modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))  
+       } else { # if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
+          modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+       } #if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+    } else { # if(!is.na(lop$distROI) & lop$distROI == 'student')
+       if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|', lop$ROI, ')')) else
+          modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|', lop$ROI, ')'))  
+       } else { # if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|', lop$ROI, ')')) else
+             modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|', lop$ROI, ')'))
+       } # if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+    } # if(!is.na(lop$distROI) & lop$distROI == 'student')
+  
+  } else { # if(is.null(lop$se)): model with standard errors
+    if(!is.na(lop$distROI) & lop$distROI == 'student') {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+      } else {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+      } #if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+    } else {
+      if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|', lop$ROI, ')')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|', lop$ROI, ')'))
+      } else { # if(!is.na(lop$distSubj) & lop$distSubj == 'student')
+        if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|', lop$ROI, ')')) else
+           modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|', lop$ROI, ')'))
+      } # if(!is.na(lop$distSubj) & lop$distSubj == 'student') 
+    } # if(!is.na(lop$distROI) & lop$distROI == 'student') 
+  } # if(is.null(lop$se))
+} else { # if(is.na(lop$mean))
+  m1 <- as.formula(lop$mean)
+  if(!is.na(lop$sigma)) m2 <- as.formula(paste0('sigma~',lop$sigma)) # no user-specified standard deviation
+} # if(is.na(lop$mean))
 
 if(lop$scale!=1) lop$dataTable$Y <- (lop$dataTable$Y)*lop$scale
 
@@ -959,7 +958,7 @@ if(!is.na(lop$WCP)) {
    else
       fm <- brm(bf(m1,m2), data=lop$dataTable, chains = lop$chains, family=lop$distY, init=0,
       iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
-}
+} # if(!is.na(lop$WCP))
 #   fm <- brm(modelForm, data=lop$dataTable,
 #      prior=c(prior(normal(0, 1), class = "Intercept"), prior(gamma(2, 0.5), class = "sd")),
 #      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))

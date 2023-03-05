@@ -69,6 +69,36 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar , 2023 , PT , "auto_warp.py" , MINOR , TYPE_NEW_OPT,
+   "Put in -hview functionality, to show full help.",
+   "Running with no opts will also show FULL help (not annoying short one!).\n"
+},
+
+{ 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_ENHANCE,
+   "And just like that, update/improve the ijkord functionality and format.",
+   "Also explain more clearly what is happening in a help section.\n"
+},
+
+{ 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "More new options, in particular for ijkord (-> useful for 3dcalc expr).",
+   "Also clean up other features/help. Add -npad_safety_on, too.\n"
+},
+
+{ 11, Jan , 2023 , PT , "@chauffeur_afni" , MICRO , TYPE_ENHANCE,
+   "Extra check of a couple of options, that only correct key words are used.",
+   "Done for the '-left_is_* ..' opts.\n"
+},
+
+{ 10, Jan , 2023 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_ENHANCE,
+   "Output more information if the input cdiflist appears to be ragged.",
+   "Help pinpoint the potential problem row for the user.\n"
+},
+
+{ 6, Jan , 2023 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_NEW_OPT,
+   "Add '-vstat_list' opt, so user can enter label bases for vstat in APQC.",
+   "HTML still has up to 5 automatically chosen vols by def in vstat.\n"
+},
+
 { 6, Dec , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Put quotes around (hopefully) every path, so spaces in paths are OK.",
    "This is because of OneDrive.  Grrrr.\n"

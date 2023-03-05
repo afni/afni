@@ -151,6 +151,8 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -subj SID                 : subject ID
       -rm_trs N                 : number of TRs removed per run
       -num_stim N               : number of main stimulus classes
+      -mb_level                 : multiband slice acquisition level (>= 1)
+      -slice_pattern            : slice timing pattern (see 'to3d -help')
       -motion_dset DSET         : motion parameters
       -outlier_dset DSET        : outlier fraction time series
       -enorm_dset DSET          : euclidean norm of motion params
@@ -257,6 +259,8 @@ def update_field_help():
    add_field_help('TRs removed (per run)',
       'num TRs removed at the start of each run',
       ['This is currently just for the case of a constant number across runs.'])
+   add_field_help('mb_level', 'multiband slice acquisition level (>= 1)')
+   add_field_help('slice_pattern', "slice timing pattern (see 'to3d -help')")
    add_field_help('num stim classes provided',
       'basically, the number of -stim_* files')
    add_field_help('final anatomy dset', 'copy of anat aligned with EPI results')
@@ -308,7 +312,9 @@ def update_field_help():
       'SO - This field is worth considering for subject omission.',
       '     A small value suggests over-modeling the data.'])
    add_field_help('final DF fraction', 'DF used / TRs total',
-      ['This is the fraction of DF remaining in the regression.'])
+     ['This is the fraction of DF remaining in the regression.',
+      'SO - This field is worth considering for subject omission.',
+      "     (maybe as an alternate to 'degrees of freedom left')"])
 
    add_field_help('TRs censored', 'total censored across all runs')
    add_field_help('censor fraction', 'fraction of total TRs',
@@ -423,8 +429,6 @@ else
    set value = UNKNOWN
 endif
 echo "TRs removed (per run)     : $value"
-
-echo "num stim classes provided : $num_stim"
 """
 
 # g_mot_n_trs_str = 
@@ -929,9 +933,10 @@ g_history = """
    1.24 Aug 18, 2022: do not cat any pre_ss_warn dset, as output is now a dict
    1.25 Oct 12, 2022: added 'final DF fraction' to basic script
    1.26 Oct 13, 2022: fix 'final DF fraction' to be wrt uncensored TRs
+   1.27 Feb  6, 2023: report mb_level and slice_timing in basic output
 """
 
-g_version = "gen_ss_review_scripts.py version 1.26, October 13, 2022"
+g_version = "gen_ss_review_scripts.py version 1.27, February 6, 2023"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1222,6 +1227,7 @@ class MyInterface:
 
       if self.guess_subject_id():       return -1
       if self.guess_tr():               return -1
+      if self.guess_slice_timing():     return -1
       if self.guess_xmat_nocen():       return -1
       if self.guess_xmat_stim():        return -1
       if self.guess_nt():               return -1
@@ -1426,6 +1432,46 @@ class MyInterface:
          self.uvars.tr = -1 # unknown
 
       if self.cvars.verb > 2: print('-- setting TR = %s' % self.uvars.tr)
+
+      return 0  # success
+
+   def guess_slice_timing(self):
+      """set mb_level and slice_pattern (if possible)"""
+
+      # check if already set
+      if self.uvar_already_set('mb_level') and \
+         self.uvar_already_set('slice_pattern'): return 0
+
+      if self.dsets.is_empty('tcat_dset'):
+         print('** guess slice_timing: no pb00 dset to get timing from')
+         return 0  # non-fatal?
+
+      cmd = "3dinfo -slice_timing -sb_delim ' ' %s"                      \
+            " | 1d_tool.py -show_slice_timing_pattern -infile - -verb 0" \
+            % self.dsets.tcat_dset.pv()
+      st, otext = UTIL.exec_tcsh_command(cmd)
+      # report st failure below
+
+      vals = otext.split()
+
+      try:
+         if not self.uvar_already_set('mb_level'):
+             self.uvars.set_var('mb_level', int(vals[0]))
+         if not self.uvar_already_set('slice_pattern'):
+             self.uvars.set_var('slice_pattern', vals[1])
+      except:
+         st = 1
+
+      # report any failure 
+      if st:
+         print("** failed to extract slice timing\n" \
+               "   cmd: %s\n"                        \
+               "   output: %s\n" % (cmd, otext))
+         return 1
+
+      if self.cvars.verb > 2:
+         print('-- setting mb_level, slice_pattern = %s, %s' \
+               % (self.uvars.mb_level, self.uvars.slice_pattern))
 
       return 0  # success
 
@@ -2700,10 +2746,19 @@ class MyInterface:
       return 0
 
    def basic_overview(self):
+      astr = ''
+      if self.uvars.is_not_empty('mb_level'):
+         astr += 'echo "multiband level           : %d"\n' \
+                 % self.uvars.mb_level
+      if self.uvars.is_not_empty('slice_pattern'):
+         astr += 'echo "slice timing pattern      : %s"\n' \
+                 % self.uvars.slice_pattern
+
+      astr += 'echo "num stim classes provided : $num_stim"\n'
+
       anat = self.uvars.val('final_anat')
       if anat != None:
-         astr = 'echo "final anatomy dset        : $final_anat"\n'
-      else: astr = ''
+         astr += 'echo "final anatomy dset        : $final_anat"\n'
 
       resvar = ''
       sstr = ''

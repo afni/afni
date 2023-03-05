@@ -549,7 +549,8 @@ class AfniXmat:
            print('** missing scipy.linalg, cannot get condition numbers')
            return 0.0
 
-        if len(cols) < 2: return 0.0
+        if len(cols) == 1: return 1.0
+        if len(cols) < 1: return 0.0
         if min(cols) < 0 or max(cols) >= self.ncols:
             print('** column indices ouside range [0,%d]' % (self.ncols-1))
         mat = self.mat[:,cols]
@@ -557,7 +558,11 @@ class AfniXmat:
         except:
            print('** failed to compute condition for selected columns')
            return 0.0
-        return s[0]/s[-1]
+        # ratio of largest to smallest eigenvalue
+        if s[-1] != 0.0:
+           return s[0]/s[-1]
+        else:
+           return N.inf
 
     def eval_xmat(self, cols=[], labs=[], groups=[], mesg=None):
         """evaluate the X matrix (condition number)

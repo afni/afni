@@ -1082,6 +1082,8 @@ static char *gby[] = {
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
      "If you need me, I'll be in my van"                             ,
+     "I get up so early, I'm out of bed by noon the day before!"     ,
+     "We don't just drip with sarcasm, we are a class-4 hurricane"   ,
 
      /* Mistakes? in AFNI? */
 
@@ -1128,6 +1130,7 @@ static char *gby[] = {
      "Brain-ology at the cutting edge since 1994"                    ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
      "Confusing neuroscientists successfully since 1994"             ,
+     "Overwhelming users with options since 1994"                    ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -1843,16 +1846,6 @@ static char *gby[] = {
      "      what it is, it is simply here without reason and rhyme!\n"
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
      "      in the simple fact that there is life" ,
-
-     /* John 5:2-4 (KJV) */
-
-     "Remember -- the NIH is in Bethesda (John 5:2-4 KJV):\n"
-     "  Now there is at Jerusalem by the sheep market a pool, which is called in\n"
-     "  the Hebrew tongue Bethesda, having five porches. In these lay a great\n"
-     "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
-     "  moving of the water. For an angel went down at a certain season into the\n"
-     "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had" ,
 
      /* From https://www.thesaurus.com/browse/wonderful */
 

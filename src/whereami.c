@@ -304,7 +304,7 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "How To See Atlas regions overlaid in the AFNI GUI:\n"
 "--------------------------------------------------\n"
 "   To see specific atlas regions overlaid on underlay and other overlay data,\n"
-"     1. In Overlay control panel, check \"See TT Atlas Regions\" \n"
+"     1. In Overlay control panel, check \"See Atlas Regions\" \n"
 "     2. Switch view to Talairach in View Panel\n"
 "     3. Right-click on image and select \"-Atlas colors\". In the Atlas colors\n"
 "        menu, select the colors you would like and then choose Done.\n"
