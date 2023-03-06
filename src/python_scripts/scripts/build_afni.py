@@ -86,7 +86,16 @@ examples: ~1~
         build_afni.py -build_root my/build/dir -git_update no \\
                       -makefile my_better_makefile
 
-   4. test the setup, but do not run any make (using -prep_only) ~2~
+   4. do not check out any tag ~2~
+
+      Check out and update to the most recent state of the 'current' branch,
+      but do not check out any tag.  Also, specify a build package.
+
+        build_afni.py -build_root my/build/dir          \\
+                      -git_branch master -git_tag NONE  \\
+                      -package linux_centos_7_64
+
+   5. test the setup, but do not run any make (using -prep_only) ~2~
 
         build_afni.py -build_root my/build/dir -prep_only \\
                       -git_update no -makefile my_better_makefile 
@@ -130,7 +139,19 @@ other options:
           default -git_branch master
           e.g.    -git_branch some_stupid_branch
 
-          This will just lead to 'git checkout BRANCH'.
+          This will checkout and pull the branch.  To build of the most recent
+          version of a branch (and not the most recent tag), include:
+
+            -git_tag NONE
+
+          Unless using '-git_update no', the current branch will be updated
+          (default master), to make sure any relevant tag will exist.
+
+          Note that precise tags generally refer to a specific branch.  So it
+          is easy to specify a branch and a tag that is not actually associated
+          with that branch.
+
+          See also -git_tag.
 
       -git_tag TAG              : specify a tag to checkout in git
 
@@ -142,6 +163,14 @@ other options:
              LAST_TAG   : checkout most recent (annotated) AFNI_XX.X.XX tag.
                           (annotated tags come from official AFNI builds)
              NONE       : do not checkout any specific tag
+                          (use this to build from the current branch state)
+
+          By default, the most recent tag is checked out (for the purpose of
+          aligning the build with AFNI releases).  To build off of the most
+          recent state of a branch, use "-git_tag NONE".
+
+          The LAST_TAG option will generally imply the most recent "official"
+          AFNI tag based on the master branch.
 
       -git_update yes/no        : specify whether to update git repo
 
@@ -455,10 +484,9 @@ class MyInterface:
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-git_branch', 1, [],
-                      helpstr='the git branch to checkout (def=%s)' \
-                              % self.git_branch)
+                      helpstr='the git branch to checkout (def=master)')
       self.valid_opts.add_opt('-git_tag', 1, [],
-                      helpstr='the git tag to use (def=%s)'%self.git_tag)
+                      helpstr='the git tag to use (def=LAST_TAG)')
       self.valid_opts.add_opt('-git_update', 1, [],
                       acplist=['yes','no'],
                       helpstr='should we update the local git repo')
@@ -532,6 +560,7 @@ class MyInterface:
             if val == None or err: return -1
             self.do_abin = dirobj('abin_dir', val)
             MESGe("-abin not yet implemented")
+            return -1
 
          elif opt.name == '-build_root':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -869,6 +898,7 @@ class MyInterface:
 
       # if -prep_only, we are done
       if self.prep_only:
+         MESG("")
          MESGp("have -prep_only, skipping actual cmake and make")
          return 0
 
@@ -947,6 +977,7 @@ class MyInterface:
 
       # if -prep_only, we are done
       if self.prep_only:
+         MESG("")
          MESGp("have -prep_only, skipping make and test")
          return 0
 
@@ -1100,6 +1131,7 @@ class MyInterface:
          return self.report_branch_tag(gitd)
 
       # if git/afni exists, cd there and update
+      # (if no git_branch opt, update master to be current)
       if os.path.exists(gitd):
          st, ot = self.run_cmd('cd', gitd, pc=1)
          if st: return st
@@ -1153,10 +1185,16 @@ class MyInterface:
          st, ot = self.run_cmd('cd', cdpath, pc=1)
          if st: return st
 
-      st, obr = self.run_cmd('git branch --show-current')
-      st, otag = self.run_cmd('git describe')
+      st, obr = self.run_cmd('git branch --show-current', quiet=1)
+      if st: 
+         st, obr = self.run_cmd('git rev-parse --abbrev-ref HEAD', quiet=1)
+      if st: 
+         obr = 'UNKNOWN_BRANCH'
       if obr == '':
          obr = '(detached)'
+      st, otag = self.run_cmd('git describe', quiet=1)
+      if st:
+         otag = 'UNKNOWN_TAG'
       MESGm("using repo branch %s, tag %s" % (obr, otag))
 
       return 0
@@ -1165,7 +1203,7 @@ class MyInterface:
       """just return the most recent AFNI_* tag (a clean one of length 12)
          return an empty string on failure
       """
-      st, tag = self.run_cmd("git describe --tags --abbrev=0")
+      st, tag = self.run_cmd("git describe --tags --abbrev=0", quiet=1)
       if not tag.startswith('AFNI_') or len(tag) != 12:
          MESGe("failed to find recent AFNI build tag, have %s" % tag)
          return ''
@@ -1212,7 +1250,7 @@ class MyInterface:
 
       return 0
 
-   def run_cmd(self, cmd, params='', pc=0, strip=1):
+   def run_cmd(self, cmd, params='', pc=0, strip=1, quiet=0):
       """main purpose is to store commands in history
             cmd     : a simple command or a full one
             params  : can be a simple string or a list of them
@@ -1220,6 +1258,7 @@ class MyInterface:
                         - cmd is a single word ('cd', 'mkdir' ...)
                         - params are separate (we will see how it goes)
             strip   : strip any non-pc text (in rare case that we want text)
+            quiet   : if set, be quiet on errors
          return status, text output
       """
       rv = 0
@@ -1241,8 +1280,9 @@ class MyInterface:
          self.history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
          if st:
-            MESGe("failed run_cmd: %s" % cmd)
-            MESGe(otext)
+            if not quiet:
+               MESGe("failed run_cmd: %s" % cmd)
+               MESGe(otext)
          if strip:
             otext = otext.strip()
          return st, otext
@@ -1262,7 +1302,8 @@ class MyInterface:
          try:
             cstr = "os.rename('%s', '%s')" % (params[0], params[1])
          except:
-            MESGe("os.rename(%s) - missing params" % pstr)
+            if not quiet:
+               MESGe("os.rename(%s) - missing params" % pstr)
             return 1, ''
          self.history.append(cstr)
       elif cmd == 'rmtree':
@@ -1280,7 +1321,8 @@ class MyInterface:
       try:
          eval(cstr)
       except:
-         MESGe("failed run_cmd(p): %s %s" % (cmd, pstr))
+         if not quiet:
+            MESGe("failed run_cmd(p): %s %s" % (cmd, pstr))
          rv = 1
 
       return rv, ''
