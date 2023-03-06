@@ -57,6 +57,10 @@ derived data.
             rate = np.nan
         return rate
 
+    @property
+    def duration_ts_orig(self):
+        """The total amount of time (in sec) in the original time series."""
+        return self.n_ts_orig * self.samp_rate
 
 
 # -------------------------------------------------------------------------
