@@ -97,8 +97,8 @@ regressors for MRI data.
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
         self.vol_slice_pat   = None       # str, name of slice pat (for ref)
-        self.vol_tr          = None       # float, TR of MRI EPI
-        self.vol_nv          = None       # int, Nvol MRI EPI
+        self.vol_tr          = 0.0        # float, TR of MRI EPI
+        self.vol_nv          = 0          # int, Nvol MRI EPI
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -334,6 +334,42 @@ regressors for MRI data.
         return all_col
             
 
+    def time_check_phys_ge_vol(self, label):
+        """Check if the 'label' physio time series has duration greater than
+        or equal to the volumetric data (= MRI).
+
+        """
+
+        if label=='resp' :
+            if not(self.have_resp) : return False
+        elif label=='card' :
+            if not(self.have_card) : return False
+        else:
+            print("+* ERROR: Unrecognized label '{}'".format(label))
+            return False
+        rat = self.time_ratio_phys_to_vol(label)
+        if rat < 1.0 :
+            return False
+        else:
+            return True
+
+    def time_ratio_phys_to_vol(self, label):
+        """The ratio of time durations: the 'label' physio time series to
+        the volumetric data (= MRI)."""
+
+        if label=='resp' :
+            if not(self.have_resp) :
+                return 0.0
+            rat = self.resp_data.duration_ts_orig / self.duration_vol
+        elif label=='card' :
+            if not(self.have_card) :
+                return 0.0
+            rat = self.card_data.duration_ts_orig / self.duration_vol
+        else:
+            print("+* ERROR: Unrecognized label '{}'".format(label))
+            return 0.0
+        return rat
+
     @property
     def n_slice_times(self):
         """Length of volumetric slice times list."""
@@ -349,6 +385,11 @@ regressors for MRI data.
         """Do we appear to have a resp obj?"""
         return self.resp_data != None
 
+    @property
+    def duration_vol(self):
+        """The total amount of time (in sec) of the volumetric (= MRI)
+        data, defined as the TR times the number of volumes."""
+        return self.vol_tr * self.vol_nv
 
 
 def find_bad_vals(x, bad_nums=None, verb=0):
