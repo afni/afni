@@ -910,7 +910,10 @@ class MyInterface:
 
       # -----------------------------------------------------------------
       # actually run the build (this is why we are here!)
-      st, ot = self.run_cmd('tcsh', '-x %s' % sfile)
+      st, ot = self.run_cmd('tcsh', '-xe %s' % sfile)
+      if st: tmesg = 'FAILURE'
+      else:  tmesg = 'SUCCESS'
+      MESGm("status: cmake build %s" % tmesg)
       if st: return st
 
       return 0
@@ -992,9 +995,9 @@ class MyInterface:
       # actually run the main build
       st, ot = self.run_cmd('make %s >& %s' % (self.make_target, logfile))
 
-      if st: tmesg = 'FAILED'
-      else:  tmesg = 'SUCCEEDED'
-      MESGm("building %s" % tmesg)
+      if st: tmesg = 'FAILURE'
+      else:  tmesg = 'SUCCESS'
+      MESGm("status: building %s" % tmesg)
       MESGi("see 'make' log file %s/%s" % (buildpath, logfile))
       if st: return st
 
@@ -1046,9 +1049,9 @@ class MyInterface:
       cmd += " >& %s" % logfile
       st, ot = self.run_cmd(cmd)
 
-      if st: tmesg = 'FAILED'
-      else:  tmesg = 'SUCCEEDED'
-      MESGm("testing %s" % tmesg)
+      if st: tmesg = 'FAILURE'
+      else:  tmesg = 'SUCCESS'
+      MESGm("status: build testing %s" % tmesg)
       MESGi("see 'testing' log file %s/%s" % (buildpath, logfile))
       if st: return st
 
