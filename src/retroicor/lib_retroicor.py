@@ -21,6 +21,7 @@ __authors__ = "Peter Lauren and Josh Zosky"
 """
 
 import numpy as np
+from numpy import zeros, size
 import matplotlib.pyplot as plt
 import math               # possible to remove this, use all numpy
 import scipy
@@ -1429,8 +1430,6 @@ def getInputFileParameters(resp_info, card_info, phys_file,\
             
     return resp_file, phys_resp_dat, card_file, phys_card_dat
 
-from numpy import zeros, size
-
 def initializeMainInfoAndLabel(parameters, 
                               physiologicalNoiseComponents, n_r_v,
                                n_r_p, n_e, n_n):
@@ -2044,7 +2043,7 @@ def selectPhaseListAndNumTimeSteps(dataType,
         numTimeSteps = \
             len(physiologicalNoiseComponents['card_phases'])
         if numTimeSteps == 0:
-            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Error in selectPhaseListAndNumTimeSteps')
             print('*** Cardiac phases required but none available')
             return None, None
         phaseList = physiologicalNoiseComponents['card_phases']
@@ -2052,7 +2051,7 @@ def selectPhaseListAndNumTimeSteps(dataType,
         numTimeSteps = \
             len(physiologicalNoiseComponents['resp_phases'])
         if numTimeSteps == 0:
-            print('*** Error in makeRegressorsForEachSlice')
+            print('*** Error in selectPhaseListAndNumTimeSteps')
             print('*** Respiratory phases required but ' + \
                   'none available')
             return None, None

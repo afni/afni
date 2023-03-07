@@ -1246,7 +1246,10 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         shutil.rmtree(OutDir)
     os.mkdir(OutDir)
     OutDir = test_retro_obj.out_dir
-   
+    
+    # Initialise sample frequencies
+    cardiac_sample_frequency = None
+    respiratory_sample_frequency = None   
     
     # Process cardiac data if any
     if test_retro_obj.card_data:
@@ -1259,9 +1262,10 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             return []
         
         rawData = test_retro_obj.card_data.ts_orig
+        cardiac_sample_frequency = test_retro_obj.card_data.samp_freq
         if len(card_peaks) > 0:
             card_phases = determineCardiacPhases(test_retro_obj, card_peaks, 
-                    fullLength,  test_retro_obj.card_data.samp_freq, 
+                    fullLength,  cardiac_sample_frequency, 
                     rawData,  
                     show_graph = test_retro_obj.show_graph_level>0, 
                     save_graph = test_retro_obj.save_graph_level>0,
@@ -1269,7 +1273,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(rawData, test_retro_obj,
-                                     test_retro_obj.card_data.samp_freq)
+                                     cardiac_sample_frequency)
         
     # Process respiratory data if any
     if test_retro_obj.resp_data:
@@ -1282,8 +1286,9 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             return []            
         
         rawData = test_retro_obj.resp_data.ts_orig
+        respiratory_sample_frequency = test_retro_obj.resp_data.samp_freq
         resp_phases = determineRespiratoryPhases(test_retro_obj, resp_peaks,
-                   resp_troughs, test_retro_obj.resp_data.samp_freq,
+                   resp_troughs, respiratory_sample_frequency,
                    rawData, 
                    show_graph = test_retro_obj.show_graph_level>0, 
                    save_graph = test_retro_obj.save_graph_level>0,
@@ -1291,11 +1296,11 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(rawData, test_retro_obj, 
-                                     test_retro_obj.resp_data.samp_freq)
+                                     respiratory_sample_frequency)
             
         if test_retro_obj.do_out_rvt:
             rvt_coeffs = getRVT(rawData, resp_peaks, resp_troughs, 
-                                test_retro_obj.resp_data.samp_freq,
+                         respiratory_sample_frequency,
                          num_time_pts, 
                          test_retro_obj.vol_tr, 
                          show_graph = test_retro_obj.show_graph_level>0, 
@@ -1307,8 +1312,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             print('WARNING: Cannot determine RVT.  No ' + \
                   'respiratory data')
         test_retro_obj.do_out_rvt = False
-        
-                               
+                                      
     # Default: a and b coefficients set to 1.0
     cardiacACoeffs = [1.0]
     respiratoryACoeffs = [1.0]
@@ -1384,10 +1388,16 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     data = np.reshape(data[0:nrow-(nrow%numSections)][:], 
                       (nreg*numSections, -1)).T
         
-    # return df   
+    # return physiological noise parameters  
     physiologicalNoiseComponents = dict()
     physiologicalNoiseComponents['resp_phases'] = resp_phases
     physiologicalNoiseComponents['card_phases'] = card_phases
     if test_retro_obj.do_out_rvt: 
         physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
+    physiologicalNoiseComponents['num_time_pts'] = num_time_pts
+    physiologicalNoiseComponents['card_sample_frequency'] = \
+        cardiac_sample_frequency
+    physiologicalNoiseComponents['repsp_sample_frequency'] = \
+        respiratory_sample_frequency
+        
     return physiologicalNoiseComponents
