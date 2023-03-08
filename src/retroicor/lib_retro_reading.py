@@ -22,7 +22,7 @@ derived data.
 
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
-                 min_bps = 0.0, verb=0):
+                 min_bps = 0.0, start_time = 0.0, verb=0):
         """Create object holding a physio time series data.
 
         """
@@ -33,7 +33,8 @@ derived data.
 
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
-        self.min_bps   = min_bps             # float, min beats/breaths per sec
+        self.start_time = start_time  # float, time offset (<=0, in s) from start of MRI
+        self.min_bps    = min_bps            # float, min beats/breaths per sec
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
 
@@ -63,6 +64,11 @@ derived data.
         """The total amount of time (in sec) in the original time series."""
         return self.n_ts_orig * self.samp_rate
 
+    @property
+    def end_time(self):
+        """The end time (in sec) of the original time series, starting from
+        the start_time."""
+        return self.start_time + self.duration_ts_orig
 
 # -------------------------------------------------------------------------
 
@@ -93,7 +99,7 @@ regressors for MRI data.
         self.extra_fix_list = []       # list of to-be-bad values
 
         # physio info (-> some now in resp_data and card_data objs)
-        self.start_time   = None       # float, time offset from start of MRI
+        self.start_time   = None       # float, time offset (<=0, in s) from start of MRI
         self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats per sec
         self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths per sec
 
@@ -101,7 +107,7 @@ regressors for MRI data.
         self.vol_slice_times = []         # list of floats for slice timing
         self.vol_slice_pat   = None       # str, name of slice pat (for ref)
         self.vol_tr          = 0.0        # float, TR of MRI EPI
-        self.vol_nv          = 0          # int, Nvol MRI EPI
+        self.vol_nv          = 0          # int, Nvol (num_time_pts) MRI EPI 
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -119,15 +125,21 @@ regressors for MRI data.
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
         self.do_save_ab   = False      # bool, save a,b coeffs to file
 
-        # TBD
-        # phase offset, aby and abt
-
         # -----------------------------------------------------------------
 
         if args_dict != None :
             self.apply_cmd_line_args(args_dict)
 
-        
+        # check, please!
+        if self.resp_data :
+            if not(self.check_end_time_phys_ge_vol('resp')) :
+                print("** ERROR: resp physio data too short for MRI data")
+                sys.exit(3)
+        if self.card_data :
+            if not(self.check_end_time_phys_ge_vol('card')) :
+                print("** ERROR: card physio data too short for MRI data")
+                sys.exit(3)
+                
     def apply_cmd_line_args(self, args_dict):
         """The main way to populate object fields at present.  The input
         args_dict should be a dictionary from lib_retro_opts of
@@ -219,6 +231,7 @@ regressors for MRI data.
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_resp']/60.,
+                                         start_time = args_dict['start_time'],
                                          verb=self.verb)
         elif label == 'card' :
             self.card_data = phys_ts_obj(arr_fixed,
@@ -226,6 +239,7 @@ regressors for MRI data.
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_card']/60.,
+                                         start_time = args_dict['start_time'],
                                          verb=self.verb)
 
 
@@ -266,6 +280,7 @@ regressors for MRI data.
                                          label='resp', fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_resp']/60.,
+                                         start_time = args_dict['start_time'],
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
             if self.verb:
@@ -287,6 +302,7 @@ regressors for MRI data.
                                          label='card', fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_card']/60.,
+                                         start_time = args_dict['start_time'],
                                          verb=self.verb)
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "
@@ -343,41 +359,28 @@ regressors for MRI data.
         return all_col
             
 
-    def time_check_phys_ge_vol(self, label):
-        """Check if the 'label' physio time series has duration greater than
-        or equal to the volumetric data (= MRI).
+    def check_end_time_phys_ge_vol(self, label):
+        """Check if the 'label' physio time series's end time (which is offset
+        by the start_time parameter) is greater than or equal to that
+        of the volumetric data (= MRI).  This essentially determines
+        if it makes sense to continue with the calculation.
 
         """
 
         if label=='resp' :
             if not(self.have_resp) : return False
+            phys_end_time = self.resp_data.end_time
         elif label=='card' :
             if not(self.have_card) : return False
+            phys_end_time = self.card_data.end_time
         else:
             print("+* ERROR: Unrecognized label '{}'".format(label))
             return False
-        rat = self.time_ratio_phys_to_vol(label)
-        if rat < 1.0 :
+
+        if phys_end_time < self.duration_vol :
             return False
         else:
             return True
-
-    def time_ratio_phys_to_vol(self, label):
-        """The ratio of time durations: the 'label' physio time series to
-        the volumetric data (= MRI)."""
-
-        if label=='resp' :
-            if not(self.have_resp) :
-                return 0.0
-            rat = self.resp_data.duration_ts_orig / self.duration_vol
-        elif label=='card' :
-            if not(self.have_card) :
-                return 0.0
-            rat = self.card_data.duration_ts_orig / self.duration_vol
-        else:
-            print("+* ERROR: Unrecognized label '{}'".format(label))
-            return 0.0
-        return rat
 
     @property
     def n_slice_times(self):
