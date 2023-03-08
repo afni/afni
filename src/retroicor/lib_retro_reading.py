@@ -22,7 +22,7 @@ derived data.
 
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
-                 verb=0):
+                 min_bps = 0.0, verb=0):
         """Create object holding a physio time series data.
 
         """
@@ -33,6 +33,7 @@ derived data.
 
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
+        self.min_bps   = min_bps             # float, min beats/breaths per sec
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
 
@@ -92,7 +93,9 @@ regressors for MRI data.
         self.extra_fix_list = []       # list of to-be-bad values
 
         # physio info (-> some now in resp_data and card_data objs)
-        self.start_time  = None        # float, time offset from start of MRI
+        self.start_time   = None       # float, time offset from start of MRI
+        self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats per sec
+        self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths per sec
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
@@ -141,6 +144,8 @@ regressors for MRI data.
         self.vol_nv          = args_dict['num_time_pts']
 
         self.start_time      = args_dict['start_time']
+        self.min_bps_card    = args_dict['min_bpm_card']/60.
+        self.min_bps_resp    = args_dict['min_bpm_resp']/60.
 
         self.out_dir     = args_dict['out_dir']
         self.prefix      = args_dict['prefix']
@@ -213,12 +218,14 @@ regressors for MRI data.
                                          samp_freq = args_dict['freq'],
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
+                                         min_bps = args_dict['min_bpm_resp']/60.,
                                          verb=self.verb)
         elif label == 'card' :
             self.card_data = phys_ts_obj(arr_fixed,
                                          samp_freq = args_dict['freq'],
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
+                                         min_bps = args_dict['min_bpm_card']/60.,
                                          verb=self.verb)
 
 
@@ -258,6 +265,7 @@ regressors for MRI data.
                                          samp_freq = samp_freq,
                                          label='resp', fname=fname, 
                                          ts_unfilt = ts_unfilt,
+                                         min_bps = args_dict['min_bpm_resp']/60.,
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
             if self.verb:
@@ -278,6 +286,7 @@ regressors for MRI data.
                                          samp_freq = samp_freq,
                                          label='card', fname=fname, 
                                          ts_unfilt = ts_unfilt,
+                                         min_bps = args_dict['min_bpm_card']/60.,
                                          verb=self.verb)
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "
@@ -1208,7 +1217,7 @@ one-based line number."""
 
     # nothing to do
     if not(N): 
-        print("   No items found in bad {}list".format(label))
+        print("++ Good: No items found in bad {}list".format(label))
         return 0
 
     print("+* WARN: Found items in bad {}list, N = {}".format(label, N))

@@ -22,6 +22,10 @@ import borrow_afni_util  as BAU
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
 
+# min beats or breaths per minute
+DEF_min_bpm_card = 25.0
+DEF_min_bpm_resp = 6.0   
+
 # ==========================================================================
 # PART_01: default parameter settings
 
@@ -53,6 +57,8 @@ DEF = {
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
+    'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
+    'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'font_size'         : 10,        # (float) font size for plots 
     'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
     'do_save_ab'        : False,     # (bool) save a,b coeffs to file
@@ -92,9 +98,11 @@ for ii in range(len(ALL_AJ_MATCH)):
 all_quant_ge_zero = [
     'font_size',
     'freq',
+    'min_bpm_card',
+    'min_bpm_resp',
     'num_slices',
-    'volume_tr',
     'num_time_pts',
+    'volume_tr',
 ]
 
 
@@ -723,6 +731,20 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
+opt = '''min_bpm_resp'''
+hlp = '''Set the minimum breaths per minute for respiratory proc (def: {})
+'''.format(DEF_min_bpm_resp)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''min_bpm_card'''
+hlp = '''Set the minimum beats per minute for cardiac proc (def: {})
+'''.format(DEF_min_bpm_card)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
 opt = '''no_rvt_out'''
 hlp = '''Turn off output of RVT regressors
 '''
@@ -998,7 +1020,7 @@ args_dict2 : dict
 
         pat = args_dict2['slice_pattern']
         if pat in BAU.g_valid_slice_patterns :
-            print("++ Found slice_pattern '{}' in allowed list".format(pat))
+            print("++ Slice pattern: '{}'".format(pat))
             slice_times = BAU.slice_pattern_to_timing(pat, 
                                                       args_dict2['num_slices'],
                                                       args_dict2['volume_tr'])
