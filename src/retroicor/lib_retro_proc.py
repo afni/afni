@@ -57,12 +57,16 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Determine lower bound based based on minimum HR
    # minBeatsPerSecond = MIN_HEART_RATE/60
    
+   # Lower bound, of heartbeats per second based based on minimum HR
+   minBeatsPerSecond = test_retro_obj.card_data.min_bps
+   
    # Initialise graph index
    graphIndex = 0
     
    # Band pass filter raw data
    filterData = \
         lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
+        minBeatsPerSecond,
          test_retro_obj.card_data.samp_freq,\
          show_graph = test_retro_obj.show_graph_level>1,\
          save_graph = test_retro_obj.save_graph_level>1, OutDir=OutDir,\
@@ -217,10 +221,14 @@ def getRespiratoryPeaks(test_retro_obj):
     rawData = test_retro_obj.resp_data.ts_orig
    
     # Set maximum breathing period of 10 seconds
-    MAX_BREATHING_PERIOD_IN_SECONDS = 10
+    # MAX_BREATHING_PERIOD_IN_SECONDS = 10
     
-    # Determine lower bound based based on minimum HR
-    minBreathsPerSecond = 1.0/MAX_BREATHING_PERIOD_IN_SECONDS
+    # # Determine lower bound based based on minimum HR
+    # minBreathsPerSecond = 1.0/MAX_BREATHING_PERIOD_IN_SECONDS
+      
+    # Lower bound, of breaths per second based based on maximum period for 
+    # breath
+    minBreathsPerSecond = test_retro_obj.resp_data.min_bps
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, 
@@ -1264,7 +1272,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         rawData = test_retro_obj.card_data.ts_orig
         cardiac_sample_frequency = test_retro_obj.card_data.samp_freq
         if len(card_peaks) > 0:
-            card_phases = determineCardiacPhases(test_retro_obj, card_peaks, 
+            card_phases = determineCardiacPhases(card_peaks, 
                     fullLength,  cardiac_sample_frequency, 
                     rawData,  
                     show_graph = test_retro_obj.show_graph_level>0, 
