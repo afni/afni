@@ -32,7 +32,7 @@ Purpose :
  	 
  	
  
-Input paramters : 
+Input parameters : 
  
  	IV_filename (char *) a string specifying the name of the inventor file
  	N_NodeList (int *) will give the number of nodes in NodeList / 3 or /4
@@ -82,7 +82,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
    
    cnt3.quot = cnt3.rem = 0;
    
-	/* intialize the number of points read to 0 */
+	/* initialize the number of points read to 0 */
 	*N_NodeList = 0;
 	
 	linv = (float *)SUMA_malloc (MaxAlloc*sizeof(float));
@@ -395,7 +395,7 @@ else
 NodeList = SUMA_IV_XYZextract (argv[1], &N_NodeList, IncludeIndex)	;
 
 if (CountOnly)
-	printf ("%d Nodes XYZ corrdinates read\n",N_NodeList);
+	printf ("%d Nodes XYZ coordinates read\n",N_NodeList);
 
 if (writeout == 1) {
 	FILE *outfid; 

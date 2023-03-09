@@ -301,7 +301,7 @@ static int Hverb = 1 ;
 
       typedef struct {
         int    nx ,  ny ,  nz ;  -- Grid dimensions
-        float *xd , *yd , *zd ;  -- Displacments (in index space)
+        float *xd , *yd , *zd ;  -- Displacements (in index space)
         float *hv , *je , *se ;  -- Various auxiliary volumes
         int use_amat ;           -- Whether to use amat
         mat44 amat , amati ;     -- Affine component of warp (and its inverse)
@@ -358,9 +358,9 @@ static int Hverb = 1 ;
    from an IndexWarp3D struct using function IW3D_to_dataset(), with the
    geomstring component providing the key information about how to lay out
    the 3D dataset grid.  The xd, yd, zd index displacements are converted
-   to DICOM x,y,z displacments in mm using the cmat component.  Note, however,
+   to DICOM x,y,z displacements in mm using the cmat component.  Note, however,
    that the dataset itself may not be stored in DICOM RAI order, but that the
-   displacments always refer to DICOM ordered vectors.  This can be a little
+   displacements always refer to DICOM ordered vectors.  This can be a little
    confusing, so beware.
 
    Incidentally, storing a warp as a set of displacements has a number of
@@ -562,7 +562,7 @@ void IW3D_zero_external_slopes( IndexWarp3D *AA )
    above applied to each face, extracting the vectors from the face's layers.
    Code for deciphering the slope names, where 'Q' is 'x' or 'y' or 'z'
       es = external slope
-      Qd = Q direction displacment
+      Qd = Q direction displacement
       Qm = along the Q face in the minus direction
       Qp = along the Q face in the plus direction
    Note that the slopes are always in the positive direction of the coordinate
@@ -571,7 +571,7 @@ void IW3D_zero_external_slopes( IndexWarp3D *AA )
    x-displacement ('xd') will get a negative addition of es_xd_xm * x-index
    (multiplying the positive slope times the negative index).
 
-   This code is pretty simple, just repetitive (6 faces times 3 displacments).
+   This code is pretty simple, just repetitive (6 faces times 3 displacements).
 *//*--------------------------------------------------------------------------*/
 
 void IW3D_load_external_slopes( IndexWarp3D *AA )
@@ -631,7 +631,7 @@ ENTRY("IW3D_load_external_slopes") ;
    }}
    AA->es_yd_xp = - mean_slope( nvec , veclen , vec ) ; /* x plus face */
 
-   dar = AA->zd ;                   /* z displacments */
+   dar = AA->zd ;                   /* z displacements */
    for( pp=0 ; pp < nvec ; pp++ ){
      for( ss=qq=0 ; qq < ny ; qq++ ){
        for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(pp,qq,rr) ;
@@ -995,7 +995,7 @@ ENTRY("IW3D_destroy") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Fill a warp with zero displacments */
+/* Fill a warp with zero displacements */
 
 void IW3D_zero_fill( IndexWarp3D *AA )
 {
@@ -1481,9 +1481,9 @@ ENTRY("THD_nwarp_extend") ;
 
 /*---------------------------------------------------------------------------*/
 /* Find the bounding box for the warp, which is defined 2 ways:
-    A) the box that includes all displacments > dthr
+    A) the box that includes all displacements > dthr
     B) the box that includes the displaced locations of all voxels
-       with displacment > dthr
+       with displacement > dthr
    It is possible (if unlikely) that the box will actually be bigger
    than the warp grid, due to condition B.
 *//*-------------------------------------------------------------------------*/
@@ -1510,7 +1510,7 @@ int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr )
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
    qim = mri_new_vol( nx,ny,nz , MRI_byte ) ;  /* mask of above threshold */
-   qmm = MRI_BYTE_PTR(qim) ;                   /* displacments */
+   qmm = MRI_BYTE_PTR(qim) ;                   /* displacements */
 
    for( qq=0 ; qq < nxyz ; qq++ ){
 
@@ -1534,12 +1534,12 @@ int_sextet IW3D_warpbox( IndexWarp3D *AA , float fac , float dthr )
      dk = kk + dz ; if( dk > ztop ) ztop = dk ;
    }
 
-   /* box from mask of "big" displacments */
+   /* box from mask of "big" displacements */
 
    MRI_autobbox_byte( qim , &ibot,&itop , &jbot,&jtop , &kbot,&ktop ) ;
    mri_free(qim) ;
 
-   /* extend it if some displacment goes farther than the above box */
+   /* extend it if some displacement goes farther than the above box */
 
    if( xbot < ibot ) ibot = (int)floorf(xbot) ;
    if( ybot < jbot ) jbot = (int)floorf(ybot) ;
@@ -1774,9 +1774,9 @@ void IW3D_7smooth( IndexWarp3D *AA )
 /*===========================================================================*/
 
 /*----------------------------------------------------------------------------*/
-/* Convert a 3D dataset of displacments in mm to an index warp.
+/* Convert a 3D dataset of displacements in mm to an index warp.
      empty != 0 ==> displacements will be all zero
-     ivs   != 0 ==> extract sub-bricks [ivs..ivs+2] for the displacments
+     ivs   != 0 ==> extract sub-bricks [ivs..ivs+2] for the displacements
    Normal usage has empty = ivs = 0.
    See IW3D_to_dataset() for the reverse operation.      ?????
 *//*--------------------------------------------------------------------------*/
@@ -1807,7 +1807,7 @@ ENTRY("IW3D_from_dataset") ;
      THD_daxes_to_mat44(dset->daxes) ;
 
    /* coordinate transformation, needed to take mm displacements
-      in the dataset to voxel index displacments in the index warp */
+      in the dataset to voxel index displacements in the index warp */
 
    cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
    imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
@@ -1830,7 +1830,7 @@ ENTRY("IW3D_from_dataset") ;
      zim = THD_extract_float_brick(ivs+2,dset) ; zar = MRI_FLOAT_PTR(zim) ;
      DSET_unload(dset) ;
 
-     /* convert displacments in DICOM xyz mm to index displacements */
+     /* convert displacements in DICOM xyz mm to index displacements */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 1111 )
@@ -1929,7 +1929,7 @@ STATUS("create dataset") ;
      EDIT_BRICK_LABEL( dset , 5 , "ShearEn" ) ;
    }
 
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;  /* index displacment arrays */
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;  /* index displacement arrays */
    nxyz = AA->nx * AA->ny * AA->nz ;
    cmat = AA->cmat ; imat = AA->imat ;
 
@@ -2596,7 +2596,7 @@ void IW3D_load_hexvol_box( IndexWarp3D *AA ,
 
 /*---------------------------------------------------------------------------*/
 /*! Interpolate displacements using linear method.
-      nxx, nyy, nzz = grid dimensions of displacment arrays
+      nxx, nyy, nzz = grid dimensions of displacement arrays
       aar, bar, car = displacement arrays
       use_es        = flag to use external slope array
       esar          = external slope array
@@ -3307,7 +3307,7 @@ ENTRY("IW3D_compose_w1m2") ;
    In the loops below:
      Step 1 = compute Bx for each x=(ii,jj,kk)
      Step 2 = interpolate delta at the Bx locations = compute delta(Bx)
-     Step 3 = add Bx-x to delta(Bx) to get the final displacments for m1w2
+     Step 3 = add Bx-x to delta(Bx) to get the final displacements for m1w2
 *//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_compose_m1w2( mat44 BB , IndexWarp3D *AA , int icode )
@@ -3357,7 +3357,7 @@ ENTRY("IW3D_compose_m1w2") ;
  }
  AFNI_OMP_END ;
 
-     /* step 2: Interpolate A() warp index displacments at B(x) locations, and
+     /* step 2: Interpolate A() warp index displacements at B(x) locations, and
                 save in output displacement arrays xdc[], ydc[], and zdc[].   */
 
      if( 0 /*AA->use_es*/ ) ES_PACK(AA,esar) ;  /* load external slopes */
@@ -3366,8 +3366,8 @@ ENTRY("IW3D_compose_m1w2") ;
                          qtop-pp  , xq    , yq    , zq       ,
                                     xdc+pp, ydc+pp, zdc+pp    ) ;
 
-     /* step 3: Add in the B(x) displacments to get the total index
-                displacment from each original position: B(x)-x + A(x+B(x)) */
+     /* step 3: Add in the B(x) displacements to get the total index
+                displacement from each original position: B(x)-x + A(x+B(x)) */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
@@ -3435,7 +3435,7 @@ ENTRY("IW3D_compose") ;
  }
  AFNI_OMP_END ;
 
-     /* Interpolate B() warp index displacments at the x+A(x) locations */
+     /* Interpolate B() warp index displacements at the x+A(x) locations */
 
      if( 0 /*BB->use_es*/ ) ES_PACK(BB,esar) ;
      IW3D_interp( icode, nx,ny,nz , BB->xd, BB->yd, BB->zd ,
@@ -3443,8 +3443,8 @@ ENTRY("IW3D_compose") ;
                          qtop-pp  , xq    , yq    , zq     ,
                                     xdc+pp, ydc+pp, zdc+pp  ) ;
 
-     /* Add in the A() displacments to get the total
-        index displacment from each original position: A(x) + B(x+A(x)) */
+     /* Add in the A() displacements to get the total
+        index displacement from each original position: A(x) + B(x+A(x)) */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
@@ -3520,7 +3520,7 @@ ENTRY("IW3D_2pow") ;
  }
  AFNI_OMP_END ;
 
-       /* Interpolate B() warp index displacments,
+       /* Interpolate B() warp index displacements,
           at the B() locations, into the C() warp */
 
        if( 0 /*BB->use_es*/ ) ES_PACK(BB,esar) ;
@@ -3529,8 +3529,8 @@ ENTRY("IW3D_2pow") ;
                            qtop-pp  , xq    , yq    , zq    ,
                                       xdc+pp, ydc+pp, zdc+pp ) ;
 
-        /* Add in the B() displacments to get the total
-           index displacment from each original position: B(x) + B(x+B(x)) */
+        /* Add in the B() displacements to get the total
+           index displacement from each original position: B(x) + B(x+B(x)) */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
@@ -3825,7 +3825,7 @@ ENTRY("IW3D_invert") ;
      }
 
      /* update the damping factor for the next Newton step;
-        make it larger if things got better, make it smaller if worser */
+        make it larger if things got better, make it smaller if worse */
 
      if( !inewtfix ){
        if( nss > 0 && nrat < 0.199f && nrat < orat && inewtfac < 0.678901f ){
@@ -4140,7 +4140,7 @@ ENTRY("IW3D_from_poly") ;
 
      wfunc( npar , NULL , qtop-pp , xq,yq,zq , xda+pp,yda+pp,zda+pp ) ;
 
-     /* subtract off base indexes to make the result just be displacments */
+     /* subtract off base indexes to make the result just be displacements */
 
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
@@ -4600,7 +4600,7 @@ ENTRY("THD_nwarp_im_xyz") ;
      float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
 
      /* loop over input points, transforming them to indexes, interpolating
-        to that location, then adding the displacments to get the outputs  */
+        to that location, then adding the displacements to get the outputs  */
 
 #pragma omp for
      for( pp=0 ; pp < npt ; pp++ ){
@@ -5252,7 +5252,7 @@ ENTRY("THD_nwarp_regrid") ;
 /*----------------------------------------------------------------------------*/
 /* Do the setup to warp images given
      bimar    = array of DICOM (x,y,z) deltas
-                  = 3D warp displacment function in base image space;
+                  = 3D warp displacement function in base image space;
      use_amat = if nonzero, use the amat matrix
      amat     = matrix to transform (x,y,z) AFTER the bimar deltas
      cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb),
@@ -7642,7 +7642,7 @@ if( verb_nww > 1 ) ININFO_message("Open dataset warp %s",cp) ;
 
        dxyz = THD_nwarp_maxdisp(nset) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) ININFO_message("  max displacments = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
+if( verb_nww > 1 ) ININFO_message("  max displacements = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
 #endif
        dxmax += dxyz.a ; dymax += dxyz.b ; dzmax += dxyz.c ;
 
@@ -7673,7 +7673,7 @@ if( verb_nww > 1 ) ININFO_message(" found geometry mismatch: orig=%s new=%s",geo
 
    nwc->xshift = dxmax ; nwc->yshift = dymax ; nwc->zshift = dzmax ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) ININFO_message("--- Totalized max displacments = %g %g %g",dxmax,dymax,dzmax) ;
+if( verb_nww > 1 ) ININFO_message("--- Totalized max displacements = %g %g %g",dxmax,dymax,dzmax) ;
 #endif
 
    /* if all nonlinear warps had same grid, save it in the catlist */
@@ -7720,7 +7720,7 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
                                              called at IW3D_warpomatic() start
          (4) IW3D_load_energy() == compute 'energy' fields for global warp
                                    as it is now, for warp penalty later
-                                   -- if the inital warp (S2BIM_iwarp) is
+                                   -- if the initial warp (S2BIM_iwarp) is
                                       not NULL, then this step is important
         (3b) IW3D_improve_warp() == called many many times over shrinking
                                     patches; this function optimizes the
@@ -7786,13 +7786,13 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
 
 /*--- flag masks for types of displacement allowed (for Hflags, etc.) ---*/
 
-#define NWARP_NOXDIS_FLAG  1  /* no displacment in X direction? */
+#define NWARP_NOXDIS_FLAG  1  /* no displacement in X direction? */
 #define NWARP_NOYDIS_FLAG  2
 #define NWARP_NOZDIS_FLAG  4
 
 #define NWARP_NODISP_FLAG (NWARP_NOXDIS_FLAG | NWARP_NOYDIS_FLAG | NWARP_NOZDIS_FLAG)
 
-#define NWARP_NOXDEP_FLAG  8  /* no functional dependence of displacment on X? */
+#define NWARP_NOXDEP_FLAG  8  /* no functional dependence of displacement on X? */
 #define NWARP_NOYDEP_FLAG 16
 #define NWARP_NOZDEP_FLAG 32
 
@@ -9665,7 +9665,7 @@ AFNI_OMP_START ;
 
      /* linearly interpolate in Haawarp (global warp we are updating)
         to get Haawarp displacements at this Hwarp warped location; later,
-        we then interpolate at THESE displacments to get the warped image value */
+        we then interpolate at THESE displacements to get the warped image value */
 
      wt_00 = 1.0f-fx ; wt_p1 = fx ;   /* x interpolations of Axd, Ayd, Azd */
      f_j00_k00 = XINT(Axd,jy_00,kz_00) ; f_jp1_k00 = XINT(Axd,jy_p1,kz_00) ;
@@ -9690,7 +9690,7 @@ AFNI_OMP_START ;
         Awarp_x(x,y,z) = x + Axd(x,y,z) , so
         Awarp_x( Hwarp(x,y,z) ) = Hwarp(x,y,z) + Axd(interpolated)
                                 = Hibot + ii + hxd + Axd(interpolated)
-        Below, bxd = hxd + Axd(interpolated) = displacment for AHwarp.
+        Below, bxd = hxd + Axd(interpolated) = displacement for AHwarp.
         Later, xq  = bxd + Hibot + ii = actual location of warped point */
 
      wt_00 = 1.0f-fz ;                /* z interpolations */
@@ -10588,7 +10588,7 @@ ENTRY("IW3D_improve_warp") ;
 
    /*-- setup the choice and scale of basis functions for Hwarp-ing --*/
 
-   /*-- The max displacment scales are set from the combination of parameters
+   /*-- The max displacement scales are set from the combination of parameters
         that gave non-singular patch warps with "OK" distortion levels. These
         scales were selected by running program warping_test a number of times.
 

@@ -1047,7 +1047,7 @@ int check_for_opt_in_prog_opts(char *prog, char *opt)
 
 /* 
    Return 1 if program uprog has option option opt
-          0 otherwsise
+          0 otherwise
    
    The function first checks if the program has an
    entry in array poptslist from file prog_opts.c included above.
@@ -1138,7 +1138,7 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
             #endif
             break;
           case -2:
-            ERROR_message("Nonesense here?");
+            ERROR_message("Nonsense here?");
             break;
       }
    

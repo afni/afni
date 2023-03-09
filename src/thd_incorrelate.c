@@ -184,7 +184,7 @@ ENTRY("create_INCORR_BLOK_set") ;
 
      /* balls go on a hexagonal close packed lattice,
         but with lattice spacing reduced to avoid gaps
-        (of course, then the balls overlap -- c'est la geometrie) */
+        (of course, then the balls overlap -- c'est la geometry) */
 
      case GA_BLOK_BALL:{
        float s3=1.73205f ,           /* sqrt(3) */
@@ -1547,7 +1547,7 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
 }
 
 /*----------------------------------------------------------------------------*/
-#else /*--- Parallel-ized verison of the above ----------------------*/
+#else /*--- Parallel-ized version of the above ----------------------*/
 
 void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
                                         float *w, INCOR_pearclp *inpear )

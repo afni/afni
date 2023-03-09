@@ -668,7 +668,7 @@ XmHTMLTextFinderSetPattern(XmHTMLTextFinder finder, String to_find)
 *	direction:	search direction.
 *	ignore_...:	if True, case is ignored when searching
 * Returns:
-*	True when flags have been succesfully changed, False if not.
+*	True when flags have been successfully changed, False if not.
 * Note:
 *	validity checking of the provided flags is rather impossible, so the
 *	caller better be sure that the flags are correct or regcomp will fail

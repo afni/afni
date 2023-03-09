@@ -2400,7 +2400,7 @@ _XmHTMLMakeAnimation(XmHTMLWidget html, XmHTMLImage *image, Dimension width,
 			* dimensions or a frame has a disposal method other than none, we
 			* run the animation on an internal pixmap and blit this pixmap to
 			* screen when all required processing for the current frame has
-			* been done. This is an enormous performance enhancment since we
+			* been done. This is an enormous performance enhancement since we
 			* only need to do one screen update.
 			* Animations of which each frame has the same size and a disposal
 			* method of none are blit to screen directly as they require no
@@ -3098,7 +3098,7 @@ processBodyImage(XmHTMLWidget html, XmHTMLImage *body_image,
 	body_image->options |= IMG_ISBACKGROUND;
 
 	/*
-	* See if the image was loaded succesfully, e.i. is an
+	* See if the image was loaded successfully, e.i. is an
 	* external image.
 	* might seem strange, but this image *will* be freed
 	* when XmHTMLFreeAllImages is called (e.i. destroy() is
@@ -3423,11 +3423,11 @@ _XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width,
 		html_image = defaultImage(html, src, DEFAULT_IMG_UNSUPPORTED, False);
 		image_type = IMG_ISINTERNAL;
 
-		/* This is *definitly* an error */
+		/* This is *definitely* an error */
 		if(html_image == NULL)
 		{
 			_XmHTMLError(__WFUNC__(html, "_XmHTMLNewImage"),
-			    "A fatal error occured in the default image loading "
+			    "A fatal error occurred in the default image loading "
 				"procedure for image\n    %s\n", src);
 		}
 	}
@@ -4296,7 +4296,7 @@ loadIcon(XmHTMLWidget html, IconEntity *icon)
 #ifdef NOTYET
 	/*****
 	* Overriding icon entities not yet possible: there are a few
-	* conditions that need to be fullfilled by the external loader
+	* conditions that need to be fulfilled by the external loader
 	* for this to work properly: dimension *must* be returned!
 	*****/
 	if(html->html.images_enabled && html->html.image_proc)

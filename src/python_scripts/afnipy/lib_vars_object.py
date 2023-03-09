@@ -228,7 +228,7 @@ class VarsObject(object):
          or in the user interface itself.  Since we are setting variables as
          strings.
 
-            requred params:
+            required params:
 
                 vname           : name of variable
                 vlist           : value list (set from vlist[0] or vlist)

@@ -66,7 +66,7 @@ static int wnlit_(real *, integer *, integer *, integer *,
   (But see note below for the case cony == 0!)
 
   The return value of the function is E = size of residuals >= 0.0f,
-  if everything worked, and is a negative number if an error occured.
+  if everything worked, and is a negative number if an error occurred.
 
   ** If cony == 0, there is no real reason to call this function,
      since it will only then do standard least squares fitting,
@@ -1083,7 +1083,7 @@ L200:
 #line 498 "cl2.f"
 	k = kranke + 1 - kk;
 
-/*     APPLY TRANFORMATION TO MATRIX COLS. 1,...,K-1. */
+/*     APPLY TRANSFORMATION TO MATRIX COLS. 1,...,K-1. */
 /*<         CALL H12(1, K, KRANKE+1, ME, W(1,K), 1, UP, W, 1, MDW, K-1) >*/
 #line 501 "cl2.f"
 	i__2 = kranke + 1;

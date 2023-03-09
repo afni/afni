@@ -1112,7 +1112,7 @@ afni_history_struct dglen_history[] = {
 
 { 15 , MAR, 2011 , DRG , "lpc_align.py" , 
     MICRO , TYPE_GENERAL, 
-    "lpc_align.py is superceded by align_epi_anat.py",
+    "lpc_align.py is superseded by align_epi_anat.py",
     "Program now exits with short message to use align_epi_anat.py"
 } ,
 

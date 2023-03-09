@@ -1048,7 +1048,7 @@ class MyInterface:
       """
 
       # ------------------------------------------------------------
-      # check that entires are known (and do not contain '/')
+      # check that entries are known (and do not contain '/')
       errs = 0
       skips = 0
       for fname in self.dflist:
@@ -1180,7 +1180,7 @@ class MyInterface:
           if self.do_apsearch: olist.append('apsearch')
           if len(olist) > 0: ostr = ', '.join(olist)
           else:              ostr = 'NOTHING'
-          MESGm("considered opertaions: %s" % ostr)
+          MESGm("considered operations: %s" % ostr)
 
           # possibly give initial reminder about update peculiarities
           if self.force:

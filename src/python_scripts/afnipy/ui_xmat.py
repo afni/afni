@@ -55,7 +55,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
                 -show_cormat_warnings -show_cosmat_warnings
 
       3. Load an X-matrix and a 1D time series.  Display beta weights for
-         the best fit to all regressors (specifed as columns 0 to the last).
+         the best fit to all regressors (specified as columns 0 to the last).
 
             xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
                 -choose_cols '0..$' -show_fit_betas
@@ -151,7 +151,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
 
           By default, any value in the correlation matrix that is greater
           than or equal to 0.4 generates a warning.  This option can be used
-          to override that minumum cutoff.
+          to override that minimum cutoff.
 
       -cosmat_cutoff CUTOFF           : set min cutoff for cosmat warnings
 
@@ -159,7 +159,7 @@ xmat_tool.py    - a tool for evaluating an AFNI X-matrix
 
           By default, any value in the cosine matrix that is greater than or
           equal to 0.3827 generates a warning.  This option can be used to
-          override that minumum cutoff.
+          override that minimum cutoff.
 
           Note a few cosine values, relative to 90 degrees (PI/2):
 
@@ -949,7 +949,7 @@ class XmatInterface:
       return 0, mstr
 
    def make_cormat_warnings_string(self):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cormat_cut)/2.0, cut2=cormat_cut
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -1028,7 +1028,7 @@ class XmatInterface:
       return 0, mstr
 
    def make_cosmat_warnings_string(self):
-      """make a string for any entires at or above self.cosmat_cut
+      """make a string for any entries at or above self.cosmat_cut
          if self.cosmat_motion is set, check motion against mot/base
 
          note that cos(.50 *PI/2) = .707

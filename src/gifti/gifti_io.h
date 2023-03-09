@@ -27,7 +27,7 @@ extern "C" {
 /* ---------------------------------------------------------------------- */
 /* These must be 0-based and sequential.
         - 0 matches _UNDEF
-        - highest maches _MAX
+        - highest matches _MAX
         - list matches corresponding gifti_*_list
 */
 

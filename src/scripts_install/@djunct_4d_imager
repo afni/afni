@@ -178,7 +178,7 @@ if ( "$odir" == "" ) then
     # because a file is in it
 
     set odir = `dirname "$iset"`
-    echo "\n++ No output directory specificied by the user."
+    echo "\n++ No output directory specified by the user."
     echo "++ Using the input file's directory by default:"
     echo "\t$odir"
 else
@@ -400,7 +400,7 @@ foreach ii ( `seq 1 1 3` )
         -label_mode 1 -label_size 4    \
         -image_label_ijk
 
-    # some images are unuseful, so, bye bye; rename useful one
+    # some images are useless, so, bye bye; rename useful one
     # correctly, and put into odir (out of wdir)
     if ( 1 ) then
         \rm ${opref}_*_${ii}.sag.*

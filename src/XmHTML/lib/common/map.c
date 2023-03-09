@@ -759,7 +759,7 @@ _XmHTMLDrawImagemapSelection(XmHTMLWidget html, XmHTMLImage *image)
 *				relative to upper-left corner of the image.
 *	map:		imagemap to check
 * Returns:
-*	anchor data if successfull, NULL otherwise
+*	anchor data if successful, NULL otherwise
 *****/
 XmHTMLAnchor*
 _XmHTMLGetAnchorFromMap(XmHTMLWidget html, int x, int y,

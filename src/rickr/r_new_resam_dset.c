@@ -164,7 +164,7 @@ THD_3dim_dataset * r_new_resam_dset_eng
     dout = EDIT_empty_copy( dtmp );             /* create new brick */
     if( ! ISVALID_3DIM_DATASET( dout ) )
     {
-        fprintf( stderr, "ERROR: <%s> - failed to duplicate datset at %p\n",
+        fprintf( stderr, "ERROR: <%s> - failed to duplicate dataset at %p\n",
                  this_file, din );
         return NULL;
     }

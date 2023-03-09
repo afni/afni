@@ -87,7 +87,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_coarsen_ParseInput (char *argv[], int arg
    brk = NOPE;
 
    while (kar < argc)
-   { /* loop accross command ine options */
+   { /* loop across command ine options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0)
       {

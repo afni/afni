@@ -18,7 +18,7 @@ ExecName <- '3dMVM'
 # Global variables
 iterPar <- 'matrPar'
 respVar <- c('InputFile', 'Inputfile', 'inputFile', 'inputfile', 'Ausgang_val', 'ausgang_val')
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin MVM Input functions ################################
@@ -1066,7 +1066,7 @@ mvCom5 <- function(fm, nF_mvE5) {
    p_wsmvt <- rep(1, 2*nF_mvE5)
    p_mvt   <- rep(1, nF_mvE5)
    if(!is.null(uvfm)) {
-   #nTerms <- nrow(uvfm$anova)  # totaly number of effect estimates
+   #nTerms <- nrow(uvfm$anova)  # totally number of effect estimates
    #outTerms <- nTerms/2        # half of them
    # UVT p-values
       if(lop$afex_new) uvP <- uvfm$univariate.test[,'Pr(>F)'] else uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT

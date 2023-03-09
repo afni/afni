@@ -892,7 +892,7 @@ _XmHTMLSetCurrentLineNumber(XmHTMLWidget html, int y_pos)
 
 		/*****
 		* If the current element has got more than one word in it, and these 
-		* words span accross a number of lines, adjust the linenumber.
+		* words span across a number of lines, adjust the linenumber.
 		*****/
 		if(tmp->n_words > 1 && tmp->words[0].y != tmp->words[tmp->n_words-1].y)
 		{
@@ -1067,7 +1067,7 @@ _XmHTMLVerticalPosToLine(XmHTMLWidget html, int y)
 
 		/* 
 		* If the current element has got more than one word in it, and these 
-		* words span accross a number of lines, adjust the linenumber.
+		* words span across a number of lines, adjust the linenumber.
 		*/
 		if(tmp->n_words > 1 && tmp->words[0].y != tmp->words[tmp->n_words-1].y)
 		{
@@ -1260,7 +1260,7 @@ _XmHTMLDestroyPhaseZero(XmHTMLWidget html)
 *	html:		XmHTMLWidget
 * Returns:
 *	nothing, but a GC is created and stored in the widget's internal data
-*	structure. If background images are allowed, a seperate GC is created
+*	structure. If background images are allowed, a separate GC is created
 *	which is used in PaintBackground to do tiling of the background with an
 *	image.
 *****/
@@ -1570,7 +1570,7 @@ _XmHTMLCheckXCC(XmHTMLWidget html)
 
 	/*
 	* CheckXCC is called each time an image is loaded, so it's quite
-	* usefull if we have a GC around by the time the widget is being
+	* useful if we have a GC around by the time the widget is being
 	* mapped to the display.
 	* Our SubstructureNotify event handler can fail in some cases leading to
 	* a situation where we don't have a GC when images are about to be

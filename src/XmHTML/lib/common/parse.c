@@ -546,7 +546,7 @@ _ParserOnStack(Parser *parser, htmlEnum id)
 /*****
 * Name:			_ParserCheckElementOccurance
 * Return Type:	Boolean
-* Description:	checks whether the appearence of the current token is 
+* Description:	checks whether the appearance of the current token is 
 *				allowed in the current parser state.
 * In: 
 *	parser:		current parser context
@@ -863,7 +863,7 @@ _ParserCheckElementOccurance(Parser *parser, htmlEnum current,
 /*****
 * Name:			_ParserCheckElementContent
 * Return Type:	Boolean
-* Description:	checks whether the appearence of the current token is valid in
+* Description:	checks whether the appearance of the current token is valid in
 *				the current state.
 * In: 
 *	parser:		current parser context
@@ -2509,7 +2509,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 			if(!(isspace(*elePtr)))
 				break;
 		}
-		/* usefull sanity */
+		/* useful sanity */
 		if(endPtr - elePtr < 1)
 			break;
 
@@ -2845,7 +2845,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 		if(!(isspace(*elePtr)))
 			break;
 	}
-	/* usefull sanity */
+	/* useful sanity */
 	if(endPtr - elePtr < 1)
 		return(end);
 
@@ -3133,7 +3133,7 @@ ParserWriteHTMLOutputToFile(XmHTMLObject *objects, String prefix,
 *	HTML comments are one of the most difficult things to deal with due to
 *	the unlucky definition: a comment starts with a <!, followed by zero or
 *	more comments, followed by >. A comment starts and ends with "--", and does
-*	not contain any occurance of "--". This effectively means that dashes
+*	not contain any occurrence of "--". This effectively means that dashes
 *	*must* occur in a multiple of four. And this is were the problems lies:
 *	_many_ people don't realize this and thus open their comments with <!-- and
 *	end it with --> and put everything they like in it, including any number
@@ -3273,7 +3273,7 @@ _ParserCutComment(Parser *parser, String start)
 }
 
 /*****
-* A very usefull macro for handling shorttags.
+* A very useful macro for handling shorttags.
 * SGML shorttag handling. We use a buffer of a fixed length for storing an
 * encountered token. We can do this safely ;-) since SGML shorttag's may
 * *never* contain any attributes whatsoever. The fixed buffer does include

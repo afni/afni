@@ -27,7 +27,7 @@ static char rcsId[] = "$Header$";
 /* Author's Note
  *  Cookies are currently undergoing standardisation, the current accepted 
  *  practise is based on Netscapes implementation. The IETF has issued 
- *  RFC2109 in Feb97, its been ammended since then, and I'm working from 
+ *  RFC2109 in Feb97, its been amended since then, and I'm working from 
  *  the 21Nov97 version. I expect it to change before its issued. 
  *  
  *  Pending the widespread acceptance of a standard, I've taken a few 

@@ -12,7 +12,7 @@ cd ${OUT_DATA}
 
 pref=$OUT_DATA/c25
 
-# display and comapre datasets with row- and column-major data orders
+# display and compare datasets with row- and column-major data orders
 $GT -show_gifti -infile $DATA/small.col.maj.3.gii > $pref.out.show.cm.txt
 $GT -show_gifti -infile $DATA/small.row.maj.3.gii > $pref.out.show.rm.txt
 

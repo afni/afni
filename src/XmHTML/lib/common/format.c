@@ -311,7 +311,7 @@ static int allocated;
 * Name: 		NewTableElement
 * Return Type: 	MACRO
 * Description: 	creates a XmHTMLObjectTableElement and fills it.
-*				Macro for obvious perfomance reasons.
+*				Macro for obvious performance reasons.
 * In: 
 *	ELEMENT:	element to be allocated
 *	data:		raw data for this element.
@@ -341,7 +341,7 @@ static int allocated;
 * Name: 		InsertTableElement
 * Return Type: 	MACRO
 * Description: 	inserts a given formatted element in the list of elements.
-*				Macro for obvious perfomance reasons.
+*				Macro for obvious performance reasons.
 * In: 
 *	element:	element to add
 *	is_anchor:	true if this element is an anchor.
@@ -614,7 +614,7 @@ CollapseWhiteSpace(String text)
 	_XmHTMLDebug(2, ("format.c: CollapseWhiteSpace, text in is:\n%s\n", text));
 
 	/*
-	* Now collapse each occurance of multiple whitespaces.
+	* Now collapse each occurrence of multiple whitespaces.
 	* This may produce different results on different systems since
 	* isspace() might not produce the same on each and every platform.
 	*/
@@ -2222,7 +2222,7 @@ tableCheckProperties(XmHTMLWidget html, String attributes,
 * In: 
 *	html;		XmHTMLWidget id;
 *	parent:		parent table. Storage for nested tables is always allocated
-*				in this table. It is NULL when a truely new table is needed.
+*				in this table. It is NULL when a truly new table is needed.
 *	start:		start of objects contained in this table.
 *	obj:		XmHTMLObject starting this table.
 * Returns:
@@ -3898,7 +3898,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						list_stack[ident_level].level--;
 					}
 
-					/* see if we have to propage the current index number */
+					/* see if we have to propagate the current index number */
 					list_stack[ident_level].isindex = temp->attributes ?
 						_XmHTMLTagCheck(temp->attributes, "isindex") : False;
 					ol_level++;
@@ -4654,8 +4654,8 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 			element->list_level = list_stack[current_list].level;
 			element->table = table;
 			/* 
-			* <dt> elements have an identation one less than the current.
-			* all identation must use the default font (consistency).
+			* <dt> elements have an indentation one less than the current.
+			* all indentation must use the default font (consistency).
 			*/
 			if(in_dt && ident_level)
 				element->ident = (ident_level-1) * XmHTML_INDENT_SPACES * 

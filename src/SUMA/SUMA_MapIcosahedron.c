@@ -30,11 +30,11 @@ void SUMA_MapIcosahedron_usage ()
 "              inspec   -LRmerge std.LH_SPEC.spec std.RH_SPEC.spec \\\n"
 "                       -prefix std.BOTH_SPEC.spec\n"
 "\n"
-"   -rd recDepth: recursive (binary) tesselation depth for icosahedron.\n"
+"   -rd recDepth: recursive (binary) tessellation depth for icosahedron.\n"
 "        (optional, default:3) See CreateIcosahedron for more info.\n"
 "\n"
-"   -ld linDepth: number of edge divides for linear icosahedron tesselation \n"
-"        (optional, default uses binary tesselation).\n"
+"   -ld linDepth: number of edge divides for linear icosahedron tessellation \n"
+"        (optional, default uses binary tessellation).\n"
 "        See CreateIcosahedron -help for more info.\n"
 "\n"
 "   *Note: Enter -1 for recDepth or linDepth to let program \n"
@@ -163,7 +163,7 @@ void SUMA_MapIcosahedron_usage ()
 "                           -dset_map rh.thickness.gii.dset \\\n"
 "                           -prefix std.60.\n"
 "        Say you want to map another (SOMEDSET) dataset defined on the\n"
-"        orignal mesh onto the std.60 mesh and use the same mapping derived \n"
+"        original mesh onto the std.60 mesh and use the same mapping derived \n"
 "        by MapIcosahedron. The command for that would be:\n"
 "            SurfToSurf -i_fs std.60.rh.smoothwm.asc \\\n"
 "                       -i_fs rh.smoothwm.asc \\\n"
@@ -303,7 +303,7 @@ int main (int argc, char *argv[])
    WriteMI = YUP;
    N_in_name = 0;
    oform = SUMA_ASCII_NIML;
-   while (kar < argc) { /* loop accross command line options */
+   while (kar < argc) { /* loop across command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MapIcosahedron_usage ();
          exit (1);
@@ -551,7 +551,7 @@ int main (int argc, char *argv[])
          kar ++;
       }
       
-   }/* loop accross command line options */
+   }/* loop across command line options */
 
    /* check on output file name */
    if (!THD_ok_overwrite()) {
@@ -594,7 +594,7 @@ int main (int argc, char *argv[])
    }
    if (LocalHead) 
       fprintf (SUMA_STDERR, 
-               "%s: %s contains surfaces, tesselation depth is %d.\n", 
+               "%s: %s contains surfaces, tessellation depth is %d.\n", 
                FuncName, brainSpecFile, depth);
    if (brainSpecFile == NULL) {
       fprintf (SUMA_STDERR,"Error %s: No spec file specified.\n", FuncName);
@@ -616,7 +616,7 @@ int main (int argc, char *argv[])
       ZSS. Aug 06 2013                                              */
    SUMA_RemoveSpecState(&brainSpec, "pial-outer-smoothed", 1, "SAME");     
    
-   /* scan trough spec file and make sure there is one and only one
+   /* scan through spec file and make sure there is one and only one
       LocalDomainParent. Otherwise issue a warning */
    found = 0;
    for (i=0; i<brainSpec.N_Surfs; ++i) {
@@ -856,7 +856,7 @@ int main (int argc, char *argv[])
             ++found; 
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
-               SUMA_S_Err("Could not locate suface!");
+               SUMA_S_Err("Could not locate surface!");
                exit(1);
             }
          }
@@ -880,7 +880,7 @@ int main (int argc, char *argv[])
                      "%s\n", morph_surf, brainSpec.State[i]);
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
-               SUMA_S_Err("Could not locate suface!");
+               SUMA_S_Err("Could not locate surface!");
                exit(1);
             }
          }
@@ -910,7 +910,7 @@ int main (int argc, char *argv[])
             found = 1;
             if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
-               SUMA_S_Err("Could not locate suface!");
+               SUMA_S_Err("Could not locate surface!");
                exit(1);
             }
          }

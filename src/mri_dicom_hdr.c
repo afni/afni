@@ -1724,7 +1724,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag)
 **	of list reached.
 **	If end of list
 **		return DCM_ELEMENTNOTFOUND
-**	If CTX pointer containts NULL
+**	If CTX pointer contains NULL
 **	    Begin copy from beginning of element
 **	else
 **	    Begin copy from address in CTX pointer
@@ -2924,7 +2924,7 @@ DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
 **	of list reached.
 **	If end of list
 **		return DCM_ELEMENTNOTFOUND
-**	If CTX pointer containts NULL
+**	If CTX pointer contains NULL
 **	    Begin copy from beginning of element
 **	else
 **	    Begin copy from address in CTX pointer
@@ -3724,7 +3724,7 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 **	Set ITEM to head of linked list of ACR object
 **	Set CURRENT item in linked list to ITEM
 **	Search sequentially through linked list until:
-**	    - Reach exisiting group that matches caller's group
+**	    - Reach existing group that matches caller's group
 **	    - Reach a group with larger group number than caller's group
 **	    - Reach end of linked list
 **	Each time you move to a new item, update CURRENT to point to that item
@@ -4675,7 +4675,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 	case DCM_US:
 	case DCM_OW:
 	    /*
-	     * Temorary hack by Nilesh to support memory mapping for testing
+	     * Temporary hack by Nilesh to support memory mapping for testing
 	     * purposes.
 	     */
 	    length &= ~1;
@@ -6531,7 +6531,7 @@ ENTRY("readVRLength") ;
 
     e->length = 0;
     if (e->representation == DCM_DLM) {
-	explicitVR = FALSE;	/* Special rule for delimitors */
+	explicitVR = FALSE;	/* Special rule for delimiters */
     }
 
     /* if there is no or no valid vrCode, skip explicitVR */
@@ -8797,9 +8797,9 @@ static DCMDICT ID_dictionary[] = {
     {DCM_IDPRIMARYANATOMICSTRUCTUREMODIFIERSEQ, DCM_SQ,
     "ID Primary Anatomic Structure Modifier Sequence"},
     {DCM_IDTRANSDUCERPOSITIONSEQ, DCM_SQ, "ID Transducer Position Sequence"},
-    {DCM_IDTRANSDUCERPOSITIONMODIFIERSEQ, DCM_SQ, "ID Transducer Position Modifer Sequence"},
+    {DCM_IDTRANSDUCERPOSITIONMODIFIERSEQ, DCM_SQ, "ID Transducer Position Modifier Sequence"},
     {DCM_IDTRANSDUCERORIENTATIONSEQ, DCM_SQ, "ID Transducer Orientation Sequence"},
-    {DCM_IDTRANSDUCERORIENTATIONMODIFIERSEQ, DCM_SQ, "ID Transducer Orientation Modifer Sequence"},
+    {DCM_IDTRANSDUCERORIENTATIONMODIFIERSEQ, DCM_SQ, "ID Transducer Orientation Modifier Sequence"},
     {DCM_IDCOMMENTS, DCM_RET, "ID Comments (RET)"}
 };
 
@@ -8870,7 +8870,7 @@ static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQINTERVENTIONALTHERAPYSEQ, DCM_SQ, "ACQ Interventional Therapy Sequence"},
     {DCM_ACQTHERAPYTYPE, DCM_CS, "ACQ Therapy type"},
     {DCM_ACQINTERVENTIONALSTATUS, DCM_CS, "ACQ Interventional status"},
-    {DCM_ACQTHERAPYDESCRIPTION, DCM_CS, "ACQ Therapy descriptionm"},
+    {DCM_ACQTHERAPYDESCRIPTION, DCM_CS, "ACQ Therapy description"},
     {DCM_ACQCINERATE, DCM_IS, "ACQ Cine Rate"},
     {DCM_ACQSLICETHICKNESS, DCM_DS, "ACQ Slice Thickness"},
     {DCM_ACQKVP, DCM_DS, "ACQ KVP"},
@@ -9495,10 +9495,10 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_PRCGPSPSSTATUS, DCM_CS, "PRC General Purpose Sched Procedure Step Status"},
     {DCM_PRCGPPPSSTATUS, DCM_CS, "PRC Gen. Purpose Perf Procedure Step Status"},
     {DCM_PRCGPSPSPRIORITY, DCM_CS, "PRC Gen. Purpose Sched Procedure Step Priority"},
-    {DCM_PRCSCHEDULEDPROCAPPCODESEQ, DCM_SQ, "PRC Scheduled Proccessing Application Code Seq"},
+    {DCM_PRCSCHEDULEDPROCAPPCODESEQ, DCM_SQ, "PRC Scheduled Processing Application Code Seq"},
     {DCM_PRCGPSPSSTARTDATETIME, DCM_DT, "PRC Sched Procedure Step Start Date and Time"},
     {DCM_PRCGPSPSMULTIPLECOPIESFLAG, DCM_CS, "PRC Multiple Copies Flag"},
-    {DCM_PRCPERFORMEDPROCAPPCODESEQ, DCM_SQ, "PRC Performed Proccessing Applications Code Seq"},
+    {DCM_PRCPERFORMEDPROCAPPCODESEQ, DCM_SQ, "PRC Performed Processing Applications Code Seq"},
     {DCM_PRCHUMANPERFORMERCODESEQ, DCM_SQ, "PRC Human Performer Code Sequence"},
     {DCM_PRCGPSPSEXPECTEDCOMPLETEDATETIME, DCM_DT, "PRC Expected Completion Date and Time"},
     {DCM_PRCRESULTINGGPPERFPROCSTEPSEQ, DCM_SQ, "PRC Resulting Gen Purpose Perf Proc Steps Seq"},
@@ -9558,7 +9558,7 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_MAKETAG(0x0040, 0xa360), DCM_SQ, "PRC Predecessor Documents Sequence"}, /* Sup 23 */
     {DCM_MAKETAG(0x0040, 0xa370), DCM_SQ, "PRC Referenced Request Sequence"}, /* Sup 23 */
     {DCM_MAKETAG(0x0040, 0xa372), DCM_SQ, "PRC Performed Procedure Code Sequence"}, /* Sup 23 */
-    {DCM_MAKETAG(0x0040, 0xa375), DCM_SQ, "PRC Current Reqeusted Procedure Evidence Seq"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa375), DCM_SQ, "PRC Current Requested Procedure Evidence Seq"}, /* Sup 23 */
     {DCM_MAKETAG(0x0040, 0xa385), DCM_SQ, "PRC Pertinent Other Evidence Sequence"}, /* Sup 23 */
     {DCM_MAKETAG(0x0040, 0xa491), DCM_CS, "PRC Completion Flag"}, /* Sup 23 */
     {DCM_MAKETAG(0x0040, 0xa492), DCM_LO, "PRC Completion Flag Description"}, /* Sup 23 */
@@ -9696,7 +9696,7 @@ static DCMDICT NMI_dictionary[] = {
     {DCM_NMITRIGGERVECTOR, DCM_IS, "NMI Trigger Vector"},
     {DCM_NMINUMBEROFTRIGGERSINPHASE, DCM_US, "NMI Number of Triggers in Phase"},
     {DCM_NMIVIEWCODESEQUENCE, DCM_SQ, "NMI View Code Sequence"},
-    {DCM_NMIVIEWANGULATIONMODIFIERCODESEQ, DCM_SQ, "NMI View Angulation Modifer Code Sequence"},
+    {DCM_NMIVIEWANGULATIONMODIFIERCODESEQ, DCM_SQ, "NMI View Angulation Modifier Code Sequence"},
     {DCM_NMIRADIONUCLIDECODESEQUENCE, DCM_SQ, "NMI Radionuclide Code Sequence"},
     {DCM_NMIRADIOPHARMROUTECODESEQUENCE, DCM_SQ, "NMI Radiopharmaceutical Route Code Sequence"},
     {DCM_NMIRADIOPHARMCODESEQUENCE, DCM_SQ, "NMI Radiopahrmaceutical Code Sequence"},
@@ -11461,7 +11461,7 @@ LST_Index(LST_HEAD ** l, int index)
 **
 ** Algorithm:
 **	A simple function to perform a DICOM regular expression match with the
-**	specified  string, stm.  The sematics of the DICOM patterns must be altered
+**	specified  string, stm.  The semantics of the DICOM patterns must be altered
 **	slightly to work correctly with regex under unix...more information may
 **	be found below.
 **
@@ -11666,7 +11666,7 @@ UTL_ConvertRegex(char *regex)
 }
 #endif
 /* UTL_ConvertDatetoLong
-**	Convert a Dicom date to a long for comparision ease.
+**	Convert a Dicom date to a long for comparison ease.
 */
 long
 UTL_ConvertDatetoLong(const char *date)
@@ -11711,7 +11711,7 @@ UTL_ConvertLongtoDate(long ld, char *date)
 }
 
 /* UTL_ConvertTimetoFloat
-**	Convert a Dicom time to a floating point number for comparision ease.
+**	Convert a Dicom time to a floating point number for comparison ease.
 */
 double
 UTL_ConvertTimetoFloat(const char *time)

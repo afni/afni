@@ -235,7 +235,7 @@ PARSE_COMMAND:
 
    set ap = `@GetAfniPrefix $in`
    set av = `@GetAfniView $in`
-   #to deal with cases when input is something like volumne.mnc ...
+   #to deal with cases when input is something like volume.mnc ...
    if ("$av" == '') then 
       set av = "+orig"
    endif

@@ -119,7 +119,7 @@ table_entry opcode_table[] = {
 	/* OPQBITSET 66 */	{ BINARY_OP,   0, "qbit_set(%l,%r)" },
 #endif
 
-/* kludge to imitate (under forcedouble) f77's bizarre treatement of OPNEG... */
+/* kludge to imitate (under forcedouble) f77's bizarre treatment of OPNEG... */
 
 	/* OPNEG KLUDGE */	{ UNARY_OP,  14, "-(doublereal)%l" }
 }; /* opcode_table */
@@ -766,7 +766,7 @@ output_arg_list(FILE *fp, struct Listblock *listp)
 	expr_out (fp, (expptr) arg_list -> datap);
 	if (arg_list -> nextp != (chainp) NULL)
 
-/* Might want to add a hook in here to accomodate the style setting which
+/* Might want to add a hook in here to accommodate the style setting which
    wants spaces after commas */
 
 	    nice_printf (fp, ",");

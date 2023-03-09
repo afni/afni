@@ -329,7 +329,7 @@ _PLC_GIF_Init(PLC *plc)
 						gif->gstream->msg ? gif->gstream->msg :
 						"(unknown error)");
 				}
-				/* external decoder initalization failed, abort and return */
+				/* external decoder initialization failed, abort and return */
 				plc->plc_status = PLC_ABORT;
 				return;
 			}
@@ -413,7 +413,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 	* received.
 	* When an external gif decoder has been installed, we just proceed in the
 	* same way as with the GZF scanline procedure: decode a chunk of data
-	* each time and allow it to be transfered to the display.
+	* each time and allow it to be transferred to the display.
 	*****/
 	if(gif->external_codec == False)
 	{

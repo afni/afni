@@ -401,7 +401,7 @@ gdouble gts_point_in_circle (GtsPoint * p,
  * @p: a #GtsPoint.
  * @s: a #GtsSegment.
  *
- * Returns: the square of the minimun Euclidean distance between @p and @s.
+ * Returns: the square of the minimum Euclidean distance between @p and @s.
  */
 gdouble gts_point_segment_distance2 (GtsPoint * p, GtsSegment * s)
 {
@@ -434,7 +434,7 @@ gdouble gts_point_segment_distance2 (GtsPoint * p, GtsSegment * s)
  * @p: a #GtsPoint.
  * @s: a #GtsSegment.
  *
- * Returns: the minimun Euclidean distance between @p and @s.
+ * Returns: the minimum Euclidean distance between @p and @s.
  */
 gdouble gts_point_segment_distance (GtsPoint * p, GtsSegment * s)
 {
@@ -493,7 +493,7 @@ void gts_point_segment_closest (GtsPoint * p,
  * @p: a #GtsPoint.
  * @t: a #GtsTriangle.
  *
- * Returns: the square of the minimun Euclidean distance between @p and @t.
+ * Returns: the square of the minimum Euclidean distance between @p and @t.
  */
 gdouble gts_point_triangle_distance2 (GtsPoint * p, GtsTriangle * t)
 {
@@ -555,7 +555,7 @@ gdouble gts_point_triangle_distance2 (GtsPoint * p, GtsTriangle * t)
  * @p: a #GtsPoint.
  * @t: a #GtsTriangle.
  *
- * Returns: the minimun Euclidean distance between @p and @t.
+ * Returns: the minimum Euclidean distance between @p and @t.
  */
 gdouble gts_point_triangle_distance (GtsPoint * p, GtsTriangle * t)
 {

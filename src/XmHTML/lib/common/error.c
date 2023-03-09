@@ -330,7 +330,7 @@ _XmHTMLAllocError(Widget w, char *module, char *routine, char *func, int size)
 * In: 
 *	w:			offending Widget id;
 *	src_file:	source file where function is found;
-*	func:		function in which error occured.
+*	func:		function in which error occurred.
 * Returns:
 *	nothing.
 *****/

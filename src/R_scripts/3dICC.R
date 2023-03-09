@@ -10,7 +10,7 @@ source(first.in.path('AFNIio.R'))
 ExecName <- '3dICC'
 
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dICC Input functions ################################
@@ -56,7 +56,7 @@ Usage:
  estimates plus their t-statistic values which are used for weighting based
  on the precision contained in the t-statistic.
  
- In addition to R installtion, the following R packages need to be installed
+ In addition to R installation, the following R packages need to be installed
  in R first before running 3dICC: "lme4", "blme" and "metafor". In addition,
  the "snow" package is also needed if one wants to take advantage of parallel
  computing. To install these packages, run the following command at the terminal:
@@ -249,9 +249,9 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
    "         Suppose that each subject ('subj') has two sessions ('ses'), a model",
    "         ICC(2,1) without any covariate is \"1+(1|ses)+(1|subj)\" while one",
    "         for ICC(3,1) is \"1+ses+(1|subj)\". Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
+   "         specified within parentheses per formula convention in R. Any",
    "         confounding effects (quantitative or categorical variables) can be",
-   "         added as fixed effects without paratheses.\n", sep = '\n'
+   "         added as fixed effects without parentheses.\n", sep = '\n'
              ) ),
 
        '-dbgArgs' = apl(n=0, h = paste(

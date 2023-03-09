@@ -28,7 +28,7 @@ general outline of Dimon main()
                   - p->fim_start += index
          - n2proc = nfim2proc() = num images in TO_PROC state
          - volume_search()
-         - if no vol: think about life and paramaters, nap, try again
+         - if no vol: think about life and parameters, nap, try again
          - have vol, so...
             - update params (now that we know what to look for)
             - send vol to afni -rt

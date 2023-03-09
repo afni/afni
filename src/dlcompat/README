@@ -39,7 +39,7 @@ To enable debugging output, run
   make DEBUG=1
   make install
 
-Combinations of those commands are left as an excercise to the
+Combinations of those commands are left as an exercise to the
 reader. :-)
 
 
@@ -62,7 +62,7 @@ CVS, directory Commands/Apple/cctools/libdyld. The changes made
 thereafter are clearly documented in the ChangeLog, as required by the
 Apple Public Source License.
 
-For release 20010116, I removed an unneccessary include statement from
+For release 20010116, I removed an unnecessary include statement from
 dlopen.c and added the Makefile.
 
 For release 20010123, I added debugging output and library searching.

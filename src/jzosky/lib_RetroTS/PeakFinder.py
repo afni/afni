@@ -46,7 +46,7 @@ g_epsilon = 0.00001
 
 def fftsegs(ww, po, nv):
     """
-    Returns the segements that are to be used for fft calculations.
+    Returns the segments that are to be used for fft calculations.
     Example: (bli, ble, num) = fftsegs (100, 70, 1000);
     :param ww: Segment width (in number of samples)
     :param po: Percent segment overlap

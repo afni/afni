@@ -12,7 +12,7 @@
        - the complex roots model oscillatory decay of correlation
     These restrictions are here because I feel these cover the useful cases
     for the types of data AFNI deals with, and then the programs don't have
-    to waste time/memory trying to optimize over non-useful parameter ranges.
+    to waste time/memory trying to optimize over useless parameter ranges.
 
     RWCox - 01 Jul 2020 - https://rb.gy/9t84mb
 *//****************************************************************************/
@@ -199,7 +199,7 @@ double_quad arma51_gam1234( double p1, double p2, double p3, double p4, double p
 
    imat = generic_dmat44_inverse( amat ) ;
 
-   /* apply inverse to the pj coefficents themselves to get the gammas */
+   /* apply inverse to the pj coefficients themselves to get the gammas */
 
    DMAT44_VEC( imat , p1,p2,p3,p4 ,
                g1234.a , g1234.b , g1234.c , g1234.d ) ;

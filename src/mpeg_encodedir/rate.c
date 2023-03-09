@@ -70,7 +70,7 @@
 
 #define MAX_BIT_RATE 104857600		/* 18 digit number in units of 400 */
 #define MAX_BUFFER_SIZE 16760832        /* 10 digit number in units of 16k */
-#define DEFAULT_BUFFER_SIZE 327680      /* maximun for "constrained" bitstream */
+#define DEFAULT_BUFFER_SIZE 327680      /* maximum for "constrained" bitstream */
 #define DEFAULT_VBV_FULLNESS 3          /* wait till 1/3 full */
 #define DEFAULT_PICT_RATE_CODE 5        /* code for 30 Frames/sec */
 #define DEFAULT_PICT_RATE 30            /* 30 frames per second */
@@ -530,7 +530,7 @@ int type;
  * MB_RateOut
  *
  *      Prints out sampling of MB rate control data.  Every "nth" block
- *	stats are printed, with "n" controled by global RC_MB_SAMPLE_RATE
+ *	stats are printed, with "n" controlled by global RC_MB_SAMPLE_RATE
  *	(NB. "skipped" blocks do not go through this function and thus do not
  *		show up in the sample )
  *
@@ -710,7 +710,7 @@ void checkBufferFullness (oldQScale)
  *
  * void checkSpatialActivity()
  *
- *      Calcualtes the spatial activity for the four luminance blocks of the
+ *      Calculates the spatial activity for the four luminance blocks of the
  *	macroblock.  Along with the normalised reference quantization parameter 
  *  (rc_Q) , it determines the quantization factor for the next macroblock.
  *
@@ -926,7 +926,7 @@ int getBufferSize ()
  *      Update the VBV buffer after each frame.  This theoretical 
  * buffer is being filled at constant rate, given by the bit rate.
  * It is emptied as each frame is grabbed by the decoder.  Exception 
- * is that the deocder will wait until the "delay" is over.
+ * is that the decoder will wait until the "delay" is over.
  *
  * RETURNS:     nothing
  *

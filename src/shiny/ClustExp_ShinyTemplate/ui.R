@@ -85,7 +85,7 @@ sidebar <- dashboardSidebar(width=275,sidebarMenu(
                                          inline=TRUE)
            ),
            ## show color pallet, if ttest add red/blue via update
-           selectInput('col_pal','Color pallete:',
+           selectInput('col_pal','Color palette:',
                        choices=c('Dark2','Set1','Set2','Set3','Accent','Paired',
                                  'Pastel1','Pastel2')),
            br()

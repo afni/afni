@@ -135,7 +135,7 @@ _XmConst char _XmHTMLMessages[] =
 /*  6521 */ "%s: corrupt gif\n    Image contains no %s colormap.\0"
 /*  6572 */ "%s: corrupt gif\n    out of data while reading %s.\0"
 /*  6622 */ "Error while decoding %s\n    inflate%s failed: %s\n\0"
-/*  6672 */ "XmNdecodeGIFProc initalization failed for image\n    %s:\n    %s\0"
+/*  6672 */ "XmNdecodeGIFProc initialization failed for image\n    %s:\n    %s\0"
 /*  6735 */ "external GIF decoder failed: %s\n\0"
 /*  6768 */ "Error: compress failed!\n\0"
 /*  6793 */ "Error: %s is a corrupt GIF file.\n    Cannot convert to GZF format.\0"

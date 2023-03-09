@@ -1349,7 +1349,7 @@ HTTPErrorString(HTTPRequestReturn error)
 		case HTTPPermMoved:
 			return("Document has been permanently removed");
 		case HTTPTempMoved:
-			return("Document has been temporarely moved");
+			return("Document has been temporarily moved");
 		case HTTPSeeOther:
 			return("Site has move");
 		case HTTPNotModified:

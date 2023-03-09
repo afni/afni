@@ -2,7 +2,7 @@
 
 set pref = c25
 
-# display and comapre datasets with row- and column-major data orders
+# display and compare datasets with row- and column-major data orders
 gifti_tool -show_gifti -infile small.col.maj.3.gii >& $pref.out.show.cm.txt
 gifti_tool -show_gifti -infile small.row.maj.3.gii >& $pref.out.show.rm.txt
 echo ===== checking diffs =====

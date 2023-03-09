@@ -61,7 +61,7 @@ MAKEDEPEND= gccmakedep
 CFLAGS   = 
 LDFLAGS  = 
 
-# The following flags are *very* usefull if you are getting unresolved
+# The following flags are *very* useful if you are getting unresolved
 # references to functions in libraries that you *know* to exist.
 # When used, they cause ld to list its search for libraries, the object
 # files it is considering for linking and a bunch of other information.
@@ -92,7 +92,7 @@ LDFLAGS  =
 # a default palette if none has been specified.
 # default: the default algorithm constructs an evenly distributed palette in
 #          RGB space but is not always able to match the requested number of
-#          colors and requires a minumum of 8 colors.
+#          colors and requires a minimum of 8 colors.
 # simple:  this is the alternative, which always creates a palette with the
 #          requested number of colors but does not always succeed in creating
 #          an evenly distributed palette. It is selected by defining

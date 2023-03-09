@@ -575,7 +575,7 @@ if ( $was_censored && $num_stim > 0 ) then
         set sc = `ccalc -i "$st-$sc"`           # change to num censored
         set ff = `ccalc -form '%.3f' "$sc/$st"` # and the fraction censored
 
-        # keep lists of reponse TRs, # censored and fractions censored
+        # keep lists of response TRs, # censored and fractions censored
         # (across all stimulus regressors)
         set stim_trs = ( $stim_trs $st )
         set stim_trs_censor = ( $stim_trs_censor $sc )
@@ -1299,7 +1299,7 @@ class MyInterface:
       list0.sort()
       list1.sort()
 
-      # get unique entires
+      # get unique entries
       only0 = [key for key in list0 if key not in list1]
       only1 = [key for key in list1 if key not in list0]
 
@@ -1845,7 +1845,7 @@ class MyInterface:
 
    def guess_final_anat(self):
       """set uvars.final_anat
-         return 0 on sucess
+         return 0 on success
 
          - look for anat_final*
          - look for *_al_keep+VIEW.HEAD
@@ -1947,7 +1947,7 @@ class MyInterface:
 
    def guess_template(self):
       """set uvars.template and uvars.tempate_warp
-         return 0 on sucess
+         return 0 on success
 
          This variable is non-vital, so return 0 on anything but fatal error.
 
@@ -2025,7 +2025,7 @@ class MyInterface:
 
    def guess_align_anat(self):
       """set uvars.align_anat
-         return 0 on sucess
+         return 0 on success
 
          This variable is non-vital, so return 0 on anything but fatal error.
 
@@ -2059,7 +2059,7 @@ class MyInterface:
 
    def guess_vr_base_dset(self):
       """set uvars.vr_base_dset
-         return 0 on sucess
+         return 0 on success
          - look for vr_base*.HEAD
       """
 
@@ -2107,7 +2107,7 @@ class MyInterface:
 
    def guess_final_epi_dset(self):
       """set uvars.final_epi_dset
-         return 0 on sucess
+         return 0 on success
 
          This variable is non-vital, so return 0 on anything but fatal error.
          - look for final_epi*.HEAD

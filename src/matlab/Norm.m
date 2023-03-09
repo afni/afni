@@ -34,7 +34,7 @@ FuncName = 'Norm';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 [InBrikPrefix, InBrikView, InBrikExt] =  AfniPrefix (InBrik);

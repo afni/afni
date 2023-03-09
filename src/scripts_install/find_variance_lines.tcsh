@@ -309,7 +309,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    3dLocalstat $mask_opt -nbhd "Rect(0,0,-$nk)" -stat mean \
                -prefix $pset $sset
 
-   # now threhold and cluster (slices are equal, so 1-D == 3-D)
+   # now threshold and cluster (slices are equal, so 1-D == 3-D)
    set cfile = bad_clust.r$ind02.txt
    3dClusterize -ithr 0 -idat 0 -NN 3 -inset $pset -2sided -1 $thresh \
                 | tee $cfile
@@ -499,7 +499,7 @@ Look for bars of high variance that might suggest scanner interference.
            - a JPEG image showing locations of high variance
 
 This program takes one or more runs of (presumably) EPI time series data,
-and looks for slice locations with consistenly high temporal variance across
+and looks for slice locations with consistently high temporal variance across
 the (masked) slices.
 
    steps:

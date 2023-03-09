@@ -56,7 +56,7 @@ typedef double             r64;
 
 
 
-/* Typedef Booleen
+/* Typedef Boolean
  */
 #ifdef False
    #undef False

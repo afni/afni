@@ -119,7 +119,7 @@ static int    genv_sigma_nsteps = 100; /* on_grid: number of blur steps */
 
 static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
 
-/* possble values for genv_ram_stats, to show malloc_stats() or ps */
+/* possible values for genv_ram_stats, to show malloc_stats() or ps */
 #define AC_PRF_STAT_NONE        0
 #define AC_PRF_STAT_MALLOC      1
 #define AC_PRF_STAT_PS          2
@@ -628,7 +628,7 @@ static THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din,
 
    if( out_nx != DSET_NX(dout) || out_ny != DSET_NY(dout) || 
        out_nz != DSET_NZ(dout) || out_nt != DSET_NVALS(dout) ) {
-      fprintf(stderr,"** reorg mis-match, crash and burn\n");
+      fprintf(stderr,"** reorg mismatch, crash and burn\n");
    }
 
    EDIT_dset_items(dout, ADN_prefix, "reorg.boots", ADN_none);
@@ -989,7 +989,7 @@ static int get_signal_from_grid(float * fdest, int length,
    nt = DSET_NVALS(dsrc);
 
    if( nx != length ) {
-      fprintf(stderr, "** FSF: nx, len mis-match, %d != %d\n", nx, length);
+      fprintf(stderr, "** FSF: nx, len mismatch, %d != %d\n", nx, length);
       return 1;
    }
 

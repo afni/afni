@@ -82,7 +82,7 @@ typedef struct  /* user options */
     char          ** argv;          /* passed to the program            */
     int              argc;
     float            tr;            /* user input TR, overrides files   */
-    float            ep;            /* epsilon - defaut to IFM_EPSILON  */
+    float            ep;            /* epsilon - default to IFM_EPSILON  */
     int              nt;            /* user input time points per run   */
     int              num_slices;    /* first volume must match          */
     int              max_images;    /* max allowed images per volume    */
@@ -214,7 +214,7 @@ typedef struct
     int              nfim;          /* length of both finfo_t lists  */
     int              nfalloc;       /* number of elements allocated for */
     /* fim_update: -1 = wait, 0 = go, >0 = # first names to ignore      */
-    int              fim_update;    /* flag: any changes to propogate?  */
+    int              fim_update;    /* flag: any changes to propagate?  */
     int              fim_skip;      /* # 2 ignore, from -start_dir/file */
     /* fim_start: all prior images are done with processing             */
     int              fim_start;     /* starting index into fim_sind     */

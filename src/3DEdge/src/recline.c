@@ -278,7 +278,7 @@ RFcoefficientType * InitRecursiveCoefficients( double x,
       break;
     case DERIVATIVE_1_CONTOURS :
       /*--- la somme de 1 a l'infini est egale a 1 : cela introduit
-	un petit biais (reponse un rien superieur a la hauteur du step).
+	un petit biais (response un rien superieur a la hauteur du step).
 	Avec une somme de 0 a l'infini, c'est pire                       ---*/
       sumA  = a1 * exp( b0 ) - a1 * cos0 * cos0 * exp( b0 );
       sumA += a0 * cos0 * sin0 * exp( b0 ) - a0 * sin0;

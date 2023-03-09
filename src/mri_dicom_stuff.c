@@ -15,7 +15,7 @@ static char *manf[] = {
     "Siemens"   , "GE"        , "Philips"   ,
     "Toshiba"   , "Fonar"     , "Hitachi"   ,
     "Magnaserv" , "Odin"      , "ONI"       ,
-    "Bruker"    , "Varian"
+    "Bruker"    , "Variant"
 } ;
 
 #define NUM_MANF (sizeof(manf)/sizeof(char *))

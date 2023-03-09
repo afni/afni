@@ -217,7 +217,7 @@ Main is defined. That was nice and dandy when only afni and whereami
 used them. Now, every main has a use for them since input datasets
 can be a string referring to a particular atlas zone. So they were
 added to libmri.a and accessible without restrictions. libmri.a and other
-binaries are fatter as a result. But you dont' get nothin for nothin.
+binaries are fatter as a result. But you dont' get nothing for nothing.
 ZSS Feb. 2006 with a nod of approval by RickR */
 /* TTatlas by Jack Lancaster and Peter Fox */
 #define TTO_COUNT_HARD 241
@@ -3958,7 +3958,7 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
          ss = s1; sl = s2;
          ns = ns1; /* nl = ns2;*/
       }
-      /* Don't accpet this search if the smallest word is too small.
+      /* Don't accept this search if the smallest word is too small.
       For example Saad and S will get a super high match (0), but
       Saad and Sad will get a 9, given the weight I usually give
       to partial matches, this would hurt a lot with this constraint */
@@ -4206,7 +4206,7 @@ int *sort_str_diffs (APPROX_STR_DIFF **Di, int N_words,
 
    if (!Dw) Dw = init_str_diff_weights(Dw);
 
-   /* combine all distance dimentions, no fancy options yet*/
+   /* combine all distance dimensions, no fancy options yet*/
    d = (float *)calloc(N_words, sizeof(float));
    for (i=0; i<N_words; ++i) {
       d[i] = magnitude_str_diff(D+i, Dw);
@@ -5899,7 +5899,7 @@ char *Atlas_Name(ATLAS *atl)
        atl->name[0] != '\0') RETURN(atl->name);
 
    /* nothing to do now but go via old route */
-   WARNING_message("Reverting to old name nonesense."
+   WARNING_message("Reverting to old name nonsense."
                    " This option should be turned off. Use atlas_name directly");
    strncpy( aname[icall],
             Atlas_Code_to_Atlas_Name(
@@ -6601,7 +6601,7 @@ char *AddLeftRight(char *name, char lr)
    RETURN(namesave);
 }
 
-/* removes one occurence of left or right in name , search is case insensitive*/
+/* removes one occurrence of left or right in name , search is case insensitive*/
 char *NoLeftRight (char *name)
 {
    char *nolr0=NULL, namesave[500];
@@ -8412,7 +8412,7 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar, ATLAS_LIST *atlas_list)
 
    if (!shar) RETURN(maskset);
    if (strlen(shar) < 3) RETURN(maskset);
-   Set_ROI_String_Decode_Verbosity(0); /* must be discreet here */
+   Set_ROI_String_Decode_Verbosity(0); /* must be discrete here */
 
    if (!(aar = ROI_String_Decode(shar, atlas_list))) {
       if (LocalHead) ERROR_message("ROI string decoding failed.");
@@ -9930,7 +9930,7 @@ char * atlas_suppinfo_longname(ATLAS *atlas, char *blab)
     return (longname);
 }
 
-/* set minimum probabilty to use in probabilistic atlases */
+/* set minimum probability to use in probabilistic atlases */
 void set_wami_minprob(float val)
 {
    if((val>0) && (val<=1.0))

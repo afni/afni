@@ -108,7 +108,7 @@ def ask_me_subj_proc(proc):
           "              BLOCK(5,1)   - for 5 second stimuli\n"             \
           "              BLOCK(20,1)  - for 20 second stimuli\n"            \
           "              TENT(0,14,8) - deconvolution, with an expected\n"  \
-          "                             reponse lasting 14 seconds after\n" \
+          "                             response lasting 14 seconds after\n" \
           "                             each stimulus, with beta weights\n" \
           "                             locked to a 2 second TR grid over\n"\
           "                             7 intervals (so 8 tents)\n")

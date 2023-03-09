@@ -112,7 +112,7 @@ rm -f $pr.TriNormSeg.1D
 SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} \
                -face_normals -normals_scale -10 -prefix $pr \
                                                    |& tee -a __testlog.txt
-#get a  random colection
+#get a  random collection
 set nout = `3dnvals -all ${pr}.TriNormSeg.1D`
 set nout = `ccalc -int $nout[1] - 1`
 set rows = `count -commas 0 $nout S50`

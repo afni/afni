@@ -155,7 +155,7 @@ typedef struct _PLC{
 *	this function is called whenever an object-specific function returns.
 *	The purpose of this function is to signal the application that it
 *	can transfer the processed data to its final destination (for images, this
-*	should include transfering the newly decoded scanlines to the screen
+*	should include transferring the newly decoded scanlines to the screen
 *	buffer). It is called whenever the PLC cycler returns from any function
 *	in the obj_funcs array.
 * finalize():

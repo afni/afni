@@ -7,9 +7,9 @@
  * malloc buffer, or touching free memory.
  *
  * It arranges for each malloc buffer to be followed (or preceded)
- * in the address space by an inaccessable virtual memory page,
- * and for free memory to be inaccessable. If software touches the
- * inaccessable page, it will get an immediate segmentation
+ * in the address space by an inaccessible virtual memory page,
+ * and for free memory to be inaccessible. If software touches the
+ * inaccessible page, it will get an immediate segmentation
  * fault. It is then trivial to uncover the offending code using a debugger.
  *
  * An advantage of this product over most malloc debuggers is that this one
@@ -92,9 +92,9 @@ int		EF_ALIGNMENT = -1;
  * memory that is released using free(). It is all-caps so that its name
  * matches the name of the environment variable that is used to set it.
  * If its value is greater non-zero, memory released by free is made
- * inaccessable and never allocated again. Any software that touches free
+ * inaccessible and never allocated again. Any software that touches free
  * memory will then get a segmentation fault. If its value is zero, freed
- * memory will be available for reallocation, but will still be inaccessable
+ * memory will be available for reallocation, but will still be inaccessible
  * until it is reallocated.
  * If the value is -1, it will be set from the environment or to 0 at run-time.
  */
@@ -102,7 +102,7 @@ int		EF_PROTECT_FREE = -1;
 
 /*
  * EF_PROTECT_BELOW is used to modify the behavior of the allocator. When
- * its value is non-zero, the allocator will place an inaccessable page
+ * its value is non-zero, the allocator will place an inaccessible page
  * immediately _before_ the malloc buffer in the address space, instead
  * of _after_ it. Use this to detect malloc buffer under-runs, rather than
  * over-runs. It won't detect both at the same time, so you should test your
@@ -334,14 +334,14 @@ allocateMoreSlots(void)
 
 /*
  * This is the memory allocator. When asked to allocate a buffer, allocate
- * it in such a way that the end of the buffer is followed by an inaccessable
+ * it in such a way that the end of the buffer is followed by an inaccessible
  * memory page. If software overruns that buffer, it will touch the bad page
  * and get an immediate segmentation fault. It's then easy to zero in on the
  * offending code with a debugger.
  *
  * There are a few complications. If the user asks for an odd-sized buffer,
  * we would have to have that buffer start on an odd address if the byte after
- * the end of the buffer was to be on the inaccessable page. Unfortunately,
+ * the end of the buffer was to be on the inaccessible page. Unfortunately,
  * there is lots of software that asks for odd-sized buffers and then
  * requires that the returned address be word-aligned, or the size of the
  * buffer be a multiple of the word size. An example are the string-processing
@@ -383,7 +383,7 @@ memalign(size_t alignment, size_t userSize)
 
 	/*
 	 * The internal size of the buffer is rounded up to the next page-size
-	 * boudary, and then we add another page's worth of memory for the
+	 * boundary, and then we add another page's worth of memory for the
 	 * dead page.
 	 */
 	internalSize = userSize + bytesPerPage;
@@ -400,7 +400,7 @@ memalign(size_t alignment, size_t userSize)
 
 	/*
 	 * The internal memory used by the allocator is currently
-	 * inaccessable, so that errant programs won't scrawl on the
+	 * inaccessible, so that errant programs won't scrawl on the
 	 * allocator's arena. I'll un-protect it here so that I can make
 	 * a new allocation. I'll re-protect it before I return.
  	 */
@@ -504,7 +504,7 @@ memalign(size_t alignment, size_t userSize)
 
 	if ( !EF_PROTECT_BELOW ) {
 		/*
-		 * Arrange the buffer so that it is followed by an inaccessable
+		 * Arrange the buffer so that it is followed by an inaccessible
 		 * memory page. A buffer overrun that touches that page will
 		 * cause a segmentation fault.
 		 */
@@ -528,7 +528,7 @@ memalign(size_t alignment, size_t userSize)
 	}
 	else {	/* EF_PROTECT_BELOW != 0 */
 		/*
-		 * Arrange the buffer so that it is preceded by an inaccessable
+		 * Arrange the buffer so that it is preceded by an inaccessible
 		 * memory page. A buffer underrun that touches that page will
 		 * cause a segmentation fault.
 		 */
@@ -550,7 +550,7 @@ memalign(size_t alignment, size_t userSize)
 	fullSlot->userSize = userSize;
 
 	/*
-	 * Make the pool's internal memory inaccessable, so that the program
+	 * Make the pool's internal memory inaccessible, so that the program
 	 * being debugged can't stomp on it.
 	 */
 	if ( !internalUse )

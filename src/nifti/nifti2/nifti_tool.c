@@ -4193,7 +4193,7 @@ static int convert_NBL_data(nifti_brick_list * NBL, int old_type, int new_type,
  * perform actual data conversion (basic checks are already done)
  *
  * It is not clear how to do this without an NxN set of cases, since 
- * the types must be expicitly noted for each pair, even with macros.
+ * the types must be explicitly noted for each pair, even with macros.
  *
  * So it is all written out, even when in and out types match, so that
  * the case blocks only vary in the I/O types.  If someone wants to
@@ -6417,7 +6417,7 @@ int disp_nifti1_extension( const char *mesg, nifti1_extension * ext, int maxlen)
 
 
 /*----------------------------------------------------------------------
- * return the appropritate pointer into the g_hdr1_fields struct
+ * return the appropriate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
 field_s * get_hdr1_field( const char * fname, int show_fail )
 {
@@ -6441,7 +6441,7 @@ field_s * get_hdr1_field( const char * fname, int show_fail )
 }
 
 /*----------------------------------------------------------------------
- * return the appropritate pointer into the g_hdr1_fields struct
+ * return the appropriate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
 field_s * get_hdr2_field( const char * fname, int show_fail )
 {
@@ -6466,7 +6466,7 @@ field_s * get_hdr2_field( const char * fname, int show_fail )
 
 
 /*----------------------------------------------------------------------
- * return the appropritate pointer into the g_hdr1_fields struct
+ * return the appropriate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
 field_s * get_nim_field( const char * fname, int show_fail )
 {
@@ -7174,7 +7174,7 @@ int act_cbl( nt_opts * opts )
  * 
  * This is a straight NIFTI copy, without cbl (so upper dims are intact).
  *
- * Note: nt_image_read() allows for modificatons, e.g. to the datatype.
+ * Note: nt_image_read() allows for modifications, e.g. to the datatype.
  *----------------------------------------------------------------------*/
 int act_copy( nt_opts * opts )
 {

@@ -87,7 +87,7 @@ void    qh_copyfilename(char *filename, int size, const char* source, int length
 void    qh_countfacets(facetT *facetlist, setT *facets, boolT printall,
               int *numfacetsp, int *numsimplicialp, int *totneighborsp,
               int *numridgesp, int *numcoplanarsp, int *numnumtricoplanarsp);
-pointT *qh_detvnorm(vertexT *vertex, vertexT *vertexA, setT *centers, realT *offsetp);
+pointT *qh_detvnorm(vertexT *vertex, vertexT *vertexA, setT *centers, realT *offset);
 setT   *qh_detvridge(vertexT *vertex);
 setT   *qh_detvridge3 (vertexT *atvertex, vertexT *vertex);
 int     qh_eachvoronoi(FILE *fp, printvridgeT printvridge, vertexT *atvertex, boolT visitall, qh_RIDGE innerouter, boolT inorder);

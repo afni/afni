@@ -75,7 +75,7 @@ void usage_map_TrackID(int detail)
 "                       Have only tested this with the 1D_MATR file coming\n"
 "                       from `3dAllineate -1Dmatrix_save 1D_MATR...' command.\n"
 "                       NB: map_TrackID has been written to just use the\n"
-"                       aformentioned 1D_MATR file spewed out by 3dAllineate,\n"
+"                       aforementioned 1D_MATR file spewed out by 3dAllineate,\n"
 "                       which has a line of text followed by 12 params in a \n"
 "                       single line (see 3dAllineate help for more info):\n"
 "                       u11 u12 u13 v1 u21 u22 u23 v2 u31 u32 u33.\n"

@@ -126,7 +126,7 @@ typedef struct _XmBalloonPart
 	GC			bottom_gc;			/* bottom shadow gc					*/
 	GC			shape_gc;			/* shaped window gc					*/
 	XtIntervalId popup_id;			/* popup timeout id					*/
-	XtIntervalId popdown_id;		/* popdown timout id				*/
+	XtIntervalId popdown_id;		/* popdown timeout id				*/
 	XtAppContext context;			/* application context for timeouts	*/
 	Boolean	popped;					/* True when we are being displayed	*/
 

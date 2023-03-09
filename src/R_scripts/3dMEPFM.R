@@ -244,7 +244,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
     #   "       Otherwise, the program will STOP before starting any calculation. \n",
     #   "     * Only positive integers > 0 are allowed in this option.            \n",
     #   "     * E.g, this dataset can be created by clustering (e.g. 3dKmeans)    \n",
-    #   "       the estimated HRF genereted with option -iresp in 3dDeconvolve.   \n",
+    #   "       the estimated HRF generated with option -iresp in 3dDeconvolve.   \n",
     #   "     * In 3dMEPFM, the HRF response is assumed constant during the run.  \n",
     #   "     * An index equal to 1 will select the first column of the .1D fhrf, \n",
     #   "       which is usually column 0 in AFNI nomenclature.                   \n"

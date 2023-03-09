@@ -335,7 +335,7 @@ int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
    if( gopt.verb > 2 && ax->blen > 1 ) {
       if( ax->btype == NIFTI_TYPE_FLOAT64 ) {
          double * dp = (double *)ax->bdata;
-         if(dp) { /* repetetive checks to appease compilers */
+         if(dp) { /* repetitive checks to appease compilers */
            fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
          }
       } else if( ax->btype == NIFTI_TYPE_INT64 ) {

@@ -25,7 +25,7 @@ import sys, copy
 #                        an opt (even though it starts with -1.
 #                        Also, remove trailing whitespace in final line
 #                        of cmd.
-# 2022-08-19, ver 1.6 :  isnumeric() -> isdigit(), for Py2.7 compatability.
+# 2022-08-19, ver 1.6 :  isnumeric() -> isdigit(), for Py2.7 compatibility.
 # 2022-10-07, ver 1.7 :  afni_niceify_cmd_str() gets new big_list kwarg
 #                        to play nice with AP help examples
 # -------------------------------------------------------------------------

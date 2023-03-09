@@ -599,7 +599,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	/* save current drawable */
 	save = (WINDOW)tka->win;
 
-	/* save all settins that will get altered */
+	/* save all settings that will get altered */
 	scroll_x = HTML_ATTR(scroll_x);
 	scroll_y = HTML_ATTR(scroll_y);
 	paint_y  = HTML_ATTR(paint_y);
@@ -627,7 +627,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	HTML_ATTR(margin_height) = pdef->top_margin;
 	HTML_ATTR(work_width) = pdef->width - pdef->right_margin;
 
-	/* we also will be needing seperate GC's for this */
+	/* we also will be needing separate GC's for this */
 	HTML_ATTR(gc) = tka->CreateGC(tka->dpy, pixmap, 0, NULL);
 	tka->SetFunction(tka->dpy, HTML_ATTR(gc), tka->gc_func[GC_GXcopy]);
 	tka->SetForeground(tka->dpy, HTML_ATTR(gc), HTML_ATTR(body_fg));
@@ -704,7 +704,7 @@ done:
 
 	XmHTMLTkaSetDrawable(tka, save);
 
-	/* Do a redisplay to restore everyting correctly */
+	/* Do a redisplay to restore everything correctly */
 	XmHTMLRedisplay((Widget)html);
 
 	return(ret_val);
@@ -778,7 +778,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	/* save current drawable */
 	save = (WINDOW)tka->win;
 
-	/* save all settins that will get altered */
+	/* save all settings that will get altered */
 	scroll_x = HTML_ATTR(scroll_x);
 	scroll_y = HTML_ATTR(scroll_y);
 	paint_y  = HTML_ATTR(paint_y);
@@ -806,7 +806,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	HTML_ATTR(margin_height) = pdef->top_margin;
 	HTML_ATTR(work_width) = pdef->width - pdef->right_margin;
 
-	/* we also will be needing seperate GC's for this */
+	/* we also will be needing separate GC's for this */
 	HTML_ATTR(gc) = tka->CreateGC(tka->dpy, pixmap, 0, NULL);
 	tka->SetFunction(tka->dpy, HTML_ATTR(gc), tka->gc_func[GC_GXcopy]);
 	tka->SetForeground(tka->dpy, HTML_ATTR(gc), HTML_ATTR(body_fg));
@@ -886,7 +886,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 			* pages. This will result in a multi-image pixmap, which
 			* only few programs support (ImageMagick is one if I'm not
 			* mistaking). Postscript output can be obtained by splitting
-			* the return buffer into seperate pages and then running
+			* the return buffer into separate pages and then running
 			* each page through netpbm
 			* (xpmtoppm image.xpm | pnmtops > page.ps)
 			*****/
@@ -925,7 +925,7 @@ done:
 
 	XmHTMLTkaSetDrawable(tka, save);
 
-	/* Do a redisplay to restore everyting correctly */
+	/* Do a redisplay to restore everything correctly */
 	XmHTMLRedisplay((Widget)html);
 
 	return(ret_val);

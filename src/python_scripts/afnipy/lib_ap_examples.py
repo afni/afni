@@ -5,7 +5,7 @@ from afnipy import lib_format_cmd_str as lfcs
 import copy
 
 # ----------------------------------------------------------------------
-# This is a library for storing basic infomation regarding options and
+# This is a library for storing basic information regarding options and
 # examples for afni_proc.py.
 #
 #    - examples are stored as individual dictionaries

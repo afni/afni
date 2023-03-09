@@ -352,7 +352,7 @@ char *charPtr;
  *
  * SetupLaplace
  *
- *     Setup encoder to find distrubution for I-frames, and use for -snr
+ *     Setup encoder to find distribution for I-frames, and use for -snr
  *
  * RETURNS:	nothing
  *

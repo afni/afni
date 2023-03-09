@@ -533,7 +533,7 @@ def db_cmd_postdata(proc, block):
        if rv: return   # failure (error has been printed)
        cmd = cmd + oc
 
-    # probaby get outlier fractions
+    # probably get outlier fractions
     if proc.user_opts.have_yes_opt('-outlier_count', default=1):
        if min(proc.reps_all) >= 5:
           rv, oc = make_outlier_commands(proc, block)
@@ -900,7 +900,7 @@ def db_mod_blip(block, proc, user_opts):
    # check for alignment to median forward blip base
    val, status = user_opts.get_string_opt('-volreg_align_to')
    if val == 'MEDIAN_BLIP':
-      # matching the same varible in db_cmd_blip
+      # matching the same variable in db_cmd_blip
       for_prefix = 'blip_med_for'
       inset = '%s%s' % (for_prefix, proc.view)
       set_vr_int_name(block, proc, 'vr_base_blip', inset=inset)
@@ -1231,7 +1231,7 @@ def db_cmd_align(proc, block):
           print("++ align anat/epi base %s with epi/epi base %s" \
                 % (basepre, proc.vr_ext_pre))
 
-       # so aea really did anat2inter, compute inter2epi usinng another aea
+       # so aea really did anat2inter, compute inter2epi using another aea
        #  - intermediate was proc.align_ebase, real ebase is proc.vr_ext_pre
        #  - basevol is proc.align_ebase
        #  - use aea to handle potential obliquity difference
@@ -2876,7 +2876,7 @@ def db_cmd_volreg(proc, block):
     # next, see if we want to apply a (manual) warp to tlrc space
     if block.opts.find_opt('-volreg_tlrc_adwarp'):
         if proc.view == '+tlrc':
-            print('** cannot apply -volreg_tlrc_adwarp: alread in tlrc space')
+            print('** cannot apply -volreg_tlrc_adwarp: already in tlrc space')
             return
         if not proc.tlrcanat:
             print('** need -copy_anat with tlrc for -volreg_tlrc_adwarp')
@@ -4255,7 +4255,7 @@ def cmd_surf_align(proc):
         print('** missing final anat to align to as experiment base')
         return None
 
-    # current surf_sv is surely remote, so apply dirctory and variables
+    # current surf_sv is surely remote, so apply directory and variables
     if proc.surf_anat_has_skull == 'yes': sstr = ' -strip_skull surf_anat'
     else: sstr = ''
 
@@ -5535,7 +5535,7 @@ def db_mod_regress(block, proc, user_opts):
                   (nxorts, nxlabs))
             errs += 1
     elif bopt and len(proc.extra_ortvec) > 0:
-        # no ortvec label option, so fasion some
+        # no ortvec label option, so fashion some
         print("-- auto-generating labels for extra ortvec files")
         proc.extra_ortvec_labs = \
               ['xort%02d'%ind for ind in range(len(proc.extra_ortvec))]
@@ -6062,7 +6062,7 @@ def db_cmd_regress(proc, block):
        reg_orts.append('    -ortvec %s %s' % (ort[0], ort[1]))
     if mot_as_ort and len(proc.mot_regs) > 0:
        if len(proc.mot_regs) != len(proc.mot_names):
-           print('** mis-match between mot_regs and mot_names\n' \
+           print('** mismatch between mot_regs and mot_names\n' \
                  '   regs = %s\n'                                \
                  '   names = %s\n\n' % (proc.mot_regs, proc.mot_names))
            return
@@ -6778,7 +6778,7 @@ def db_cmd_regress_anaticor(proc, block):
        print('** -regress_anaticor: not ready for surface analysis')
        return 1, ''
 
-    # maybe we already have such a datset
+    # maybe we already have such a dataset
     if proc.aic_lset != None: return 0, ''
 
     if proc.anaticor == 1:
@@ -6824,7 +6824,7 @@ def db_cmd_regress_anaticor(proc, block):
               % (vall, mset.shortinput(), vmask)
 
        # note the radius fraction to terminate blur at
-       # (match method in @radial_correlate, defaul=0.5)
+       # (match method in @radial_correlate, default=0.5)
        oname = '-regress_anaticor_term_frac'
        merge_frad, err = block.opts.get_type_opt(float, oname, default=0.5)
        if err:
@@ -6978,7 +6978,7 @@ def db_cmd_regress_rsfc(proc, block):
        print("** RSFC: missing -regress_bandpass option")
        return 1, ''
     elif len(proc.bandpass) > 2:
-       print("** RSFC: -regress_bandpass must have exatly 2 frequencies")
+       print("** RSFC: -regress_bandpass must have exactly 2 frequencies")
        return 1, ''
 
     if proc.mask and proc.regmask:
@@ -8182,7 +8182,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
        suffix   : result suffix         [string]
        exopts   : extra options         [list of strings]
 
-       same options as tlrc_cmd_warp, excpet no rmode
+       same options as tlrc_cmd_warp, except no rmode
 
        resulting files under awpy:
           PREFIX.aw.nii           : final NL-warped anat
@@ -8651,7 +8651,7 @@ cat << EOF | afni_python_wrapper.py -eval "data_file_to_json()" \
    mask_dset   :     mask_epi_anat.$subj+tlrc.HEAD
 EOF
 
-       First generate a table, so that we can choose a reasonble column size.
+       First generate a table, so that we can choose a reasonable column size.
 
        return an appropriate string, or ''
     """
@@ -8906,7 +8906,7 @@ SECTIONS: order of sections in the "afni_proc.py -help" output ~1~
         WARP TO TLRC NOTE,
         RETROICOR NOTE, MULTI ECHO NOTE,
         RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
-    OPTIONS                 : desriptions of all program options
+    OPTIONS                 : descriptions of all program options
         informational       : options to get quick info and quit
         general execution   : options not specific to a processing block
         block options       : specific to blocks, in default block order

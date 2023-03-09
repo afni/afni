@@ -12,7 +12,7 @@
 #endif
 
 /* -----------------------START---------------------------------*/
-/* definition and decleration part to suport the main algorithm */
+/* definition and declaration part to support the main algorithm */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -170,7 +170,7 @@ static char helpstring[] =
   "                    The time series written to 'Filename.ts' do not contain the ignored samples,\n"
   "                    they are detrended and have zero mean.\n\n"
   "Random Comments/Advice:\n"
-  "Of course, the longer you time series, the better. It is generally recomended that\n"
+  "Of course, the longer you time series, the better. It is generally recommended that\n"
   "the largest delay be less than N/10, N being the length of the time series.\n"
   "The algorithm does go all the way to N/2, but that's not too good.\n\n"
   "Disclaimer: \n"
@@ -1016,7 +1016,7 @@ static void error_report (hilbert_data_V2* ud, int ncall )
 					fprintf (ud->outlogfile,"Null time series vector ");
 					break;
 				default:
-					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",ud->errcode);
+					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english language ! ",ud->errcode);
 					break;
 			}	
 		fprintf (ud->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );

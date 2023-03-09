@@ -806,7 +806,7 @@ static char * ISQ_but_rig_hint[NBUTTON_RIG] = {
 } ;
 
 static char * ISQ_scale_help =
-  "Moves between images:\nDrag bar, or click in trough" ;
+  "Moves between images:\nDrag bar, or click in through" ;
 
 /* The next 2 helps will be overwritten by AFNI */
 
@@ -832,7 +832,7 @@ static char * ISQ_arrow_label[NARROW] = { "c" , "b" , "r" , "g" , "i" } ;
 #define NARR_FRAC    4
 
 static char * ISQ_arrow_help[NARROW] = {
-   "Change constrast\nin colormap" ,
+   "Change contrast\nin colormap" ,
    "Change brightness\nin colormap" ,
    "Rotate\ncolormap" ,
    "Alter\ndisplay\ngamma" ,
@@ -11106,7 +11106,7 @@ ENTRY("ISQ_graymap_draw") ;
    seq->need_orim |= GRAYMAP_MASK ;
 
    /* make float arrays with grayscales and data range */
-   /* Modifed 12 Jan 2004 to plot in histogram style. */
+   /* Modified 12 Jan 2004 to plot in histogram style. */
 
    nx     = seq->dc->ncol_im ;
    nxx    = 2*nx+2 ;
@@ -12809,7 +12809,7 @@ ENTRY("ISQ_cropper") ;
    if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
    if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
 
-   /*** if dragging occured across sub-images in a montage,
+   /*** if dragging occurred across sub-images in a montage,
         or if rectangle edge is in a Montage's inter-image border */
 
    if( nim1 != nim2 || imx1 < 0 || imy1 < 0 ){

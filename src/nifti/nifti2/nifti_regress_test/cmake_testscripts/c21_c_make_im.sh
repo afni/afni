@@ -166,7 +166,7 @@ echo "=== good: diff_nim 6 showed a diff"
 fi
 
 
-# try swapping (as nifti, analzye, old)
+# try swapping (as nifti, analyze, old)
 # nifti
 if $NT -swap_as_nifti -debug 3 -infiles $tfile11 \
        -prefix $prefix.12.a.swap.nii
@@ -177,7 +177,7 @@ echo === swap_as_nifti 7.a failed
 exit 1
 fi
 
-# try swapping (as nifti, analzye, old)
+# try swapping (as nifti, analyze, old)
 # analyze
 if $NT -swap_as_analyze -debug 3 -infiles $tfile11 \
        -prefix $prefix.12.b.swap.ana.nii
@@ -188,7 +188,7 @@ echo === swap_as_nifti 7.b failed
 exit 1
 fi
 
-# try swapping (as nifti, analzye, old)
+# try swapping (as nifti, analyze, old)
 # old (AND ... make nifti_tool hunt for the input file)
 if $NT -swap_as_old -debug 3 -infiles $prefix.12.b.swap.ana \
        -prefix $prefix.13.c.swap.old.nii

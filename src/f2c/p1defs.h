@@ -1,5 +1,5 @@
 #define P1_UNKNOWN 0
-#define P1_COMMENT 1		/* Fortan comment string */
+#define P1_COMMENT 1		/* Fortran comment string */
 #define P1_EOF 2		/* End of file dummy token */
 #define P1_SET_LINE 3		/* Reset the line counter */
 #define P1_FILENAME 4		/* Name of current input file */

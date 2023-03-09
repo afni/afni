@@ -176,7 +176,7 @@ static arg_info table[] = {
 	/* -ev ==> implement equivalence with initialized pointers */
     f2c_entry ("ev", P_NO_ARGS, P_INT, &def_equivs, NO),
 
-	/* -!it used to be the default when -it was more agressive */
+	/* -!it used to be the default when -it was more aggressive */
 
     f2c_entry ("it", P_NO_ARGS, P_INT, &infertypes, 1),
 

@@ -92,7 +92,7 @@ one's desktop.  The demo processes single- and multi-echo DICOM input
 (and even NIFTI input, just for kicks).  It shows how afni can be used
 to send data (motion params, ROI averages, voxel data) to an external
 program (realtime_receiver.py in this case).  
-To intall, run: @Install_APMULTI_Demo2_realtime.
+To install, run: @Install_APMULTI_Demo2_realtime.
 
 APQC HTML update
 The QC HTML output by afni_proc.py has also expanded a bit. 
@@ -359,7 +359,7 @@ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/fs/main_toc.html
 
 AFNI Digest, week of 2021/04/06.
 
-0)   Sign up for Zoom consultations occuring April 19-23, 2021.
+0)   Sign up for Zoom consultations occurring April 19-23, 2021.
 1-2) Useful programs (3dMSS, PTA) for capturing nonlinearity in stats modeling
 3-4) Useful programs (3dLMEr, TRR) for estimating test-retest reliability 
 5)   The India Brain Templates and Atlases (IBTAs)
@@ -1721,7 +1721,7 @@ AFNI Digest, week of 2018/04/30.
 
 00) Discussion of FMRI processing with AFNI.
 A recently-submitted bioRxiv draft (not by AFNI authors) described
-"default FMRI processing" using various softwares, including AFNI.  In
+"default FMRI processing" using various software, including AFNI.  In
 further dialogue with this work, we comment on many of the steps
 chosen therein with AFNI, and provide several recommendations in the
 forms of both code snippets and philosophical musings.  The AFNI draft
@@ -2115,7 +2115,7 @@ AFNI Digest, week of 2017/07/21.
     then opened again;  something like this often occurs behind the scenes
     when scripts are driving SUMA.
     This new OpenGL behavior on Mac has been affecting many different
-    softwares;  while we are looking into any fixes/workarounds, it is
+    software;  while we are looking into any fixes/workarounds, it is
     likely that a full solution is outside of our hands and will have to
     come from Mac.
 

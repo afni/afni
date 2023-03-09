@@ -329,7 +329,7 @@ L_PARSE_COMMAND:
             breaksw
 
             # ----------------------------------------------------------
-            # [PT: Nov 14, 2019] the *rank* dsets have been superceded
+            # [PT: Nov 14, 2019] the *rank* dsets have been superseded
             # by the safer/more uniform *REN* ones;  now only make the former
             # if users explicitly ask for it
             # usage : -make_rank_dsets 
@@ -1834,7 +1834,7 @@ OPTIONS ~1~
           each would be), we don't recommend using these; the *REN*
           dsets are renumbered in a consistent, mapped way, and so
           those are more useful.  The present option is purely for
-          backward compatability, for Zome Special Scientists out
+          backward compatibility, for Zome Special Scientists out
           there who might still use these dsets.
 
     -use_mgz        : use MGZ volumes even if COR volumes are there

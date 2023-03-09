@@ -62,7 +62,7 @@ static float VL_del  = 0.70;  /* voxels */
 
 static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
 
-static int VL_maxdisp= 1 ;     /* 03 Aug 2006: print out max displacment? */
+static int VL_maxdisp= 1 ;     /* 03 Aug 2006: print out max displacement? */
 static THD_fvec3 *VL_dispvec=NULL ;
 static char *VL_commandline = NULL ;
 
@@ -220,7 +220,7 @@ int main( int argc , char *argv[] )
         exit(1) ;
       }
 
-      /* check for zero padding requirment */
+      /* check for zero padding requirement */
 
       nz_gp = DSET_NZ(VL_gridpar_dset) ; nz_ds = DSET_NZ(VL_dset) ;
 
@@ -1549,7 +1549,7 @@ void VL_syntax(void)
     "                    file with name 'mm_delt'.  This output can let you see\n"
     "                    when there is a sudden head jerk, for example. [22 Jun 2015]\n"
     "\n"
-    "  -savedisp sss = Save 3 3D+time datasets with the x,y,z displacments at each\n"
+    "  -savedisp sss = Save 3 3D+time datasets with the x,y,z displacements at each\n"
     "                  voxel at each time point.  The prefix for the x displacement\n"
     "                  dataset will be the string 'sss' with '_DX' appended, etc.\n"
     "                  This option is intended for use with various processing\n"

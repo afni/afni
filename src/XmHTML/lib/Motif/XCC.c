@@ -654,7 +654,7 @@ retrydirect:
 	}
 	/*
 	* Update allocated color count; original numColors is maxEntry, which
-	* is not necessarly the same as the really allocated number of colors.
+	* is not necessarily the same as the really allocated number of colors.
 	*/
 	_xcc->numColors = count;
 
@@ -872,7 +872,7 @@ XCCInitDither(XCC _xcc)
 		_xcc->fast_dither = (XCCDither*)malloc(sizeof(XCCDither));
 
 	/*
-	* Fill it. We ignore unsuccessfull allocations, they are just mapped
+	* Fill it. We ignore unsuccessful allocations, they are just mapped
 	* to black instead.
 	*/
 	for(rr = 0; rr < 32; rr++)
@@ -927,7 +927,7 @@ XCCFreeDither(XCC _xcc)
 * Returns:
 *	-1 on error, 0 if palette was cleared, no of allocated colors otherwise.
 * Note:
-*	Palette arithmatic is always done in the range 0-255: it's only use
+*	Palette arithmetic is always done in the range 0-255: it's only use
 *	is for Pseudo/Static color visuals, which, by definition, are always
 *	8bit.
 *****/
@@ -1424,7 +1424,7 @@ XCCGetPixels(XCC _xcc, unsigned short *reds, unsigned short *greens,
 			colors[i] = XCCGetPixel(_xcc, defs[i].red, defs[i].green,
 				defs[i].blue, &bad_alloc);
 
-			/* succesfully allocated, store it */
+			/* successfully allocated, store it */
 			if(!bad_alloc)
 			{
 				defs[i].pixel = colors[i];
@@ -1686,7 +1686,7 @@ XCCGetPixelsIncremental(XCC _xcc, unsigned short *reds, unsigned short *greens,
 				colors[i] = XCCGetPixel(_xcc, reds[i], greens[i], blues[i],
 					&bad_alloc);
 
-				/* succesfully allocated, store it */
+				/* successfully allocated, store it */
 				if(!bad_alloc)
 				{
 					defs[i].pixel = colors[i];

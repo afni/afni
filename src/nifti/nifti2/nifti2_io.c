@@ -7804,7 +7804,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
  * \param nim        nifti_image to write to disk
  * \param write_opts flags whether to write data and/or close file (see below)
  * \param opts       file-open options, probably "wb" from nifti_image_write()
- * \param imgfile    pointer to optionaly open znzFile, for writing image data
+ * \param imgfile    pointer to optionally open znzFile, for writing image data
                      (must not be NULL, contents might be NULL)
  * \param NBL        optional nifti_brick_list, containing the image data
                      (may be NULL)

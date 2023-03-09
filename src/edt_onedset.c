@@ -385,7 +385,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                fbot = edit_clip_bot ;
             }
 
-            top = rint(ftop) ;  /* this code was modifed 28 Sep 1998 */
+            top = rint(ftop) ;  /* this code was modified 28 Sep 1998 */
             if( top >=  MRI_maxshort ) top =   MRI_maxshort + 1  ;
             if( top <= -MRI_maxshort ) top = -(MRI_maxshort + 1) ;
 

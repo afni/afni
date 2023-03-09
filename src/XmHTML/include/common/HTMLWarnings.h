@@ -248,7 +248,7 @@ extern _XmConst char _XmHTMLMessages[];
 # define XMHTML_MSG_108 \
  "Error while decoding %s\n    inflate%s failed: %s\n"
 # define XMHTML_MSG_109 \
- "XmNdecodeGIFProc initalization failed for image\n    %s:\n    %s"
+ "XmNdecodeGIFProc initialization failed for image\n    %s:\n    %s"
 # define XMHTML_MSG_110 \
  "external GIF decoder failed: %s\n"
 # define XMHTML_MSG_111 \

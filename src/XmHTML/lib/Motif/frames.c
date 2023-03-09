@@ -94,7 +94,7 @@ static char rcsId[]="$Header$";
 #define COL	2
 #define ROW_COL	4
 
-/* usefull defines */
+/* useful defines */
 #define IS_FRAMESET(F) \
 		((F)->is_frameset)
 #define IS_FRAME_SIZE_RELATIVE(F) \
@@ -233,7 +233,7 @@ doFrameSet(String attributes)
 	{
 		if((chPtr = _XmHTMLTagGetValue(attributes, "cols")) == NULL)
 		{
-			/* useless sanity, should be catched upon entry */
+			/* useless sanity, should be caught upon entry */
 			free(list);
 			return(frame_sets);
 		}
@@ -307,7 +307,7 @@ doFrameSet(String attributes)
 	else
 		list->border = _XmHTMLTagGetNumber(attributes, "border", 5);
 
-	/* insert this new frame in the overal frameset list. */
+	/* insert this new frame in the overall frameset list. */
 	if(frame_sets == NULL)
 		frame_sets = list;
 	else

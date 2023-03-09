@@ -157,7 +157,7 @@ _PLCDataRequest(PLC *plc)
 
 	_XmHTMLDebug(14, ("plc.c: _PLCDataRequest called for %s\n", plc->url));
 
-	/* *very* usefull sanity */
+	/* *very* useful sanity */
 	if(plc->max_in == 0 || plc->max_in < plc->min_in)
 		plc->max_in = plc->input_size;
 
@@ -234,7 +234,7 @@ _PLCDataRequest(PLC *plc)
 		/* we have been requested to resize the buffers */
 		if(plc_context.max_out <= 0)
 		{
-			/* this *is* definitly an error */
+			/* this *is* definitely an error */
 			_XmHTMLWarning(__WFUNC__(plc->object->plc_any.owner,
 				"_PLCDataRequest"), XMHTML_MSG_96);
 			return(False);
@@ -462,7 +462,7 @@ _XmHTMLPLCCreate(XmHTMLWidget html, XtPointer priv_data, String url, Byte type)
 	/* must be updated by caller */
 	plc->user_data   = (XtPointer)NULL;
 
-	/* can be overriden by caller */
+	/* can be overridden by caller */
 	plc->sf.get_data = html->html.get_data;
 	plc->sf.end_data = html->html.end_data;
 
@@ -547,7 +547,7 @@ _PLCInsert(PLC *plc)
 	/*
 	* We already have elements in the plc buffer.
 	* The new plc is inserted as the next element of the current PLC so it
-	* will get activated immediatly.
+	* will get activated immediately.
 	*/
 	tmp = html->html.plc_buffer->next_plc;
 	tmp->prev_plc = plc;
@@ -836,7 +836,7 @@ _PLCSubCycler(XtPointer call_data)
 * Return Type: 	void
 * Description: 	main PLC cycling engine.
 * In: 
-*	call_data:	data registed for this function.
+*	call_data:	data registered for this function.
 *	proc_id:	unused;
 * Returns:
 *	nothing.

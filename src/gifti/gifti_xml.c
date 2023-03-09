@@ -866,7 +866,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         case GXML_ETYPE_MATRIXDATA : return push_xform (xd);
         case GXML_ETYPE_CDATA      : return 0;  /* do nothing */
         default:
-            fprintf(stderr,"** epush, unknow type '%s'\n",enames[etype]);
+            fprintf(stderr,"** epush, unknown type '%s'\n",enames[etype]);
             break;
     }
 
@@ -1469,7 +1469,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
             fprintf(stderr,"-- popping skip element '%s' at depth %d\n",
                     ename, xd->depth);
         xd->skip = 0;  /* clear skip level */
-    } else {    /* may peform pop action for this element */
+    } else {    /* may perform pop action for this element */
         switch( etype ) {
             default: /* do nothing special */
                 break;

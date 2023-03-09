@@ -930,7 +930,7 @@ LZWStreamFillBuffer(LZWStream *lzw, unsigned char *data, int size)
 *	lzw:		current LZWStream
 *	size:		size of data read, filled upon return.
 * Returns:
-*	An allocated buffer when succesfully uncompressed and size is updated to
+*	An allocated buffer when successfully uncompressed and size is updated to
 *	contain the no of characters read. Upon error, NULL is returned and size
 *	is set to 0.
 *****/

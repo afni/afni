@@ -1455,7 +1455,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   GLOBAL_svm_vars.bucket_predict = 0;
 
   /* Cameron cradock to let us now if initializations from the BEGIN
-     phase of the callback have occured */
+     phase of the callback have occurred */
   GLOBAL_svm_vars.initialized = 0;
  
   /* --- setting global afni callback function to be invoked as
@@ -1522,7 +1522,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
         /* first lets open the dataset */
         if(( bucket = THD_open_dataset( options->modelWeightFile )) == NULL )
         {
-            snprintf( errorString, LONG_STRING, "Could not open bucket datset: %s!",
+            snprintf( errorString, LONG_STRING, "Could not open bucket dataset: %s!",
                        options->modelWeightFile );
             free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
             return 1;

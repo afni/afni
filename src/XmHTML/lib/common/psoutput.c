@@ -137,7 +137,7 @@ typedef struct _PSDisplay {
 	XmHTMLPaperSize screen;	/* defined output area					*/
 	float Points_Pixel;		/* Postscript Pointer Per Pixel			*/
 	int Pixels_Page;		/* height of page in pixels				*/
-	int Pixels_This_Page;	/* useable height of page in pixels		*/
+	int Pixels_This_Page;	/* usable height of page in pixels		*/
 
 	/* Output area, positioning */
 	int start_y;			/* current vertical pixel position		*/
@@ -507,7 +507,7 @@ PSfootnotes(PSDisplay *dpy)
 * Returns:
 *	nothing.
 * Note:
-*	This needs some work. Ultimatly, Postscript output should use the
+*	This needs some work. Ultimately, Postscript output should use the
 *	specified document fonts instead of referring to a set of default
 *	fonts. This will require a lot of work as it requires XmHTML to include
 *	font definitions for each font that is used in this document.
@@ -645,7 +645,7 @@ PSwidgetsOnPage(PSDisplay *dpy)
 				* data->x and data->y contain the computed widget's position
 				* relative to the start of the document, so to compute
 				* the widget position relative to the current page we must
-				* substract the region that's already behind us.
+				* subtract the region that's already behind us.
 				*****/
 				xs = entry->data->x - HTML_ATTR(scroll_x);
 				ys = entry->data->y - HTML_ATTR(scroll_y);

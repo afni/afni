@@ -2802,7 +2802,7 @@ The number of clusters to be formed.
 clusterid      (output) int[nelements]
 The number of the cluster to which each element was assigned. Space for this
 array should be allocated before calling the cuttree routine. If a memory
-error occured, all elements in clusterid are set to -1.
+error occurred, all elements in clusterid are set to -1.
 
 ========================================================================
 */

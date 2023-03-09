@@ -106,7 +106,7 @@ typedef struct{
     int     sock_num;
     int     num_extra;          /* number of extra data values per TR */
     int     disp_all;           /* flag to display all results */
-    int     show_times;         /* flag to diplay data times */
+    int     show_times;         /* flag to display data times */
     int     swap;
     int     debug;
 } optiondata;
@@ -684,7 +684,7 @@ int usage( char * prog, int level )
             "\n"
             "        %s -serial_port /dev/ttyS0 -sock_num 53214\n"
             "\n"
-            "    6. same as 5, but specify minmum and maximum bounds on\n"
+            "    6. same as 5, but specify minimum and maximum bounds on\n"
             "       the values :\n"
             "\n"
             "        %s                       \\\n"
@@ -820,7 +820,7 @@ int usage( char * prog, int level )
             "    -show_times      : show communication times\n"
             "                     : e.g. -show_times\n"
             "\n"
-            "        Each time data is recived, display the current time.\n"
+            "        Each time data is received, display the current time.\n"
             "        Time is at millisecond resolution, and wraps per hour.\n"
             "\n"
             "    -sock_num SOCK   : specify socket number to serve\n"
@@ -863,7 +863,7 @@ int usage( char * prog, int level )
             "\n"
             "            index  i  j  k  x  y  z data_value\n"
             "\n"
-            "        Currently, serial_helper will output this inforamtion\n"
+            "        Currently, serial_helper will output this information\n"
             "        simply as 1 row per voxel.\n"
             "\n"
             "        Note that -disp_all cannot be used with -num_extra.\n"

@@ -25,7 +25,7 @@ function [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %          Fiducials is the last color in M. If set to 1, the last
 %          color in M represents the color that would come right
 %          before the last one in Fifucials. This last option is
-%          usefull when you're crating cyclical color maps where
+%          useful when you're crating cyclical color maps where
 %          the last color in Fiduciasl is like the first.
 %     .Showme (0/1) optional parameter to show a display of the map
 %     .Write optional string. If supplied, M is written to the file
@@ -70,7 +70,7 @@ function [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %Define the function name for easy referencing
 FuncName = 'MakeColorMap';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 M = [];
 

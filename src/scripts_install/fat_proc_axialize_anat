@@ -435,7 +435,7 @@ set rout = "REF.nii"    # this name/file gets used a lot later!
     -prefix "$wdir/$rout"      \
     -inset  "$rin"             \
     -overwrite
-# so sets can be overlayed
+# so sets can be overlaid
 3drefit   -echo_edu            \
     -space "$inp_SPACE"        \
     -view  "$inp_VIEW"         \
@@ -461,7 +461,7 @@ else
         -prefix "$wdir/$wtout"     \
         -inset  "$wtin"            \
         -overwrite
-    # so sets can be overlayed
+    # so sets can be overlaid
     3drefit   -echo_edu            \
         -space "$inp_SPACE"        \
         -view  "$inp_VIEW"         \

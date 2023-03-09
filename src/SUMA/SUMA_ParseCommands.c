@@ -87,7 +87,7 @@ Usage :
       Ret = SUMA_GetNextCommand (char *S, char d, char term, char *Scom);
 
 
-Input paramters :
+Input parameters :
 \param  S (char *) : String containing commands like "Initialize|ShowSurf|LightsON~"
 \param  d (char)  : character delimiting multiple commands ('|' in this example)
 \param  term (char) : character terminating entire command ('~' in this example)
@@ -869,7 +869,7 @@ Usage :
       Ret =  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);
 
 
-Input paramters :
+Input parameters :
 \param  S (char *) : String containing commands like "Initialize|ShowSurf~" MUST BE NULL TERMINATED
 \param  d (char)  : character delimiting multiple commands ('|' in this example)
 \param  term (char) : character terminating entire command ('~' in this example)
@@ -1258,7 +1258,7 @@ NewElement = SUMA_RegisterEngineListCommand (   list,  EngineData,
 \param FldValp (void *) pointer to value that is to be placed in FldCode field of EngineData.
 \param SourceCode (SUMA_ENGINE_SOURCE) code of source issuing command.
 \param SourcePointer (void *) pointer to data structure of source issuing command.
-   I use this as a pointer to the calling surface viewer structure, but you can use it for anyting you please as long
+   I use this as a pointer to the calling surface viewer structure, but you can use it for anything you please as long
    as SUMA_Engine knows what to do with it. Send NULL for none.
 \param PassByPointer (SUMA_Boolean) flag (YUP/NOPE), if YUP then assignment is done at the pointer level (EngineData->Fld = FldValp)
        if NOPE then space is allocated for Fld and values are copied from FldValp[i][j] to EngineData->Fld[i][j]
@@ -1283,7 +1283,7 @@ For fields like fv3 or iv15 then assignments are done by value and not pointers.
 -When passing by value for fields requiring allocation, like fm or fi, you must be sure that EngineData->N_cols and
 EngineData->N_rows are set correctly before you call the function.
 
--NOTE: If a Command requires that mutliple fields be filled, you can call this function repeatedly with the same
+-NOTE: If a Command requires that multiple fields be filled, you can call this function repeatedly with the same
 fields except FldCode, FldValp, SourcePointer and InsertAt should be SEI_In and Element should be the pointer
 returned in the previous call for  SUMA_RegisterEngineListCommand.
 
@@ -2256,7 +2256,7 @@ void SUMA_FreeActionStackData(void *asdata)
       /* first you want to free the Action Data */
       AS_data->ActionDataDestructor(AS_data->ActionData);
 
-      /* Now you can free the Action Stucture Data */
+      /* Now you can free the Action Structure Data */
       SUMA_free(AS_data);
    }
 
@@ -2282,7 +2282,7 @@ void SUMA_ReleaseActionStackData (void *asdata)
       /* first you want to free the Action Data */
       if (AS_data->ActionData) SUMA_free(AS_data->ActionData);
 
-      /* Now you can free the Action Stucture Data */
+      /* Now you can free the Action Structure Data */
       SUMA_free(AS_data);
    }
 
@@ -3931,7 +3931,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
    ps->cs = SUMA_Create_CommSrtuct();
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command ine options */
       /* envs */
       if (!brk) {
          if (!strcmp(argv[kar],"-setenv")) {

@@ -691,7 +691,7 @@ int gt_write_dataset(gt_opts * opts, gifti_image * gim)
     if(opts->encoding > GIFTI_ENCODING_UNDEF &&
        opts->encoding <= GIFTI_ENCODING_MAX)
         for( c = 0; c < gim->numDA; c++ ) {
-            /* when modifying enconding, if we are changing _from_ external,
+            /* when modifying encoding, if we are changing _from_ external,
                then clear the external filename and offset */
             if(gim->darray[c]->encoding == GIFTI_ENCODING_EXTBIN &&
                opts->encoding != GIFTI_ENCODING_EXTBIN) {

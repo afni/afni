@@ -3653,7 +3653,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                mm = SUMA_MAX_PAIR(
                      SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aHEIGHT,
                      SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aWIDTH);
-               if (mm > k) { /* too big, find best new dimesnions */
+               if (mm > k) { /* too big, find best new dimensions */
                   rat = (double)mm/(double)k;
                      /*window shrinking factor to allow for stitching*/
                   SUMA_S_Notev(  "%d/%d (H/W) Too big for oversampling\n"
@@ -5208,7 +5208,7 @@ SUMA_EVENT *SUMA_RecordEvent( XEvent *event,
          mButton should not be touched.
          Also, there should be no need for these numerous
          conditions. If swapping is needed, b1m and b3m
-         values should be swaped. Things like SUMA_Button_12_Motion
+         values should be swapped. Things like SUMA_Button_12_Motion
          should be made into functions that return an answer
          based on ev's contents */
          if (  SUMAg_CF->SwapButtons_1_3 ||
@@ -6819,7 +6819,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* Showme the DrawnROI */
                   if (LocalHead) SUMA_ShowDrawnROI (DrawnROI, NULL, NOPE);
 
-                  /* do smething with the BrushStroke, then wipe it clean,
+                  /* do something with the BrushStroke, then wipe it clean,
                      OK to show even if empty*/
                   if (LocalHead) SUMA_ShowBrushStroke (sv, NULL);
 
@@ -7433,7 +7433,7 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    pixels rendered in the output. Consecutive images are numbered with
    a time stamp.
 
-   Note that the 4th chanel (alpha) is not shown or written to disk at
+   Note that the 4th channel (alpha) is not shown or written to disk at
    the moment.
 */
 SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
@@ -8010,7 +8010,7 @@ SUMA_Boolean SUMA_Bundle_Pick_Intersect(void *p, char ptype, int Tmask,
       }
       scrxyz = (float *)SUMA_calloc(ttn->N_pts3, sizeof(float));
       memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
-      /* tranform bundle points to screen space*/
+      /* transform bundle points to screen space*/
       if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3,
                                    ttn->pts, scrxyz, NULL,
                                    YUP, YUP)) {
@@ -8226,7 +8226,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                            if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
                               /* does edge [i1, i0] exist? If so take it*/
                               if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
-                                 SUMA_LHv("Switching primitve to edge %d\n", ir);
+                                 SUMA_LHv("Switching primitive to edge %d\n", ir);
                                  PR->datum_index = ir;
                               } else { /* leave old hit, no opposite edge */
                                  PR->datum_index = datum_index;
@@ -8264,7 +8264,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                      ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nn;
                      scrxyz = (float *)SUMA_calloc(ttn->N_pts3, sizeof(float));
                      memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
-                     /* tranform bundle points to screen space*/
+                     /* transform bundle points to screen space*/
                      if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3,
                                                   ttn->pts, scrxyz, NULL,
                                                   YUP, YUP)) {
@@ -8351,7 +8351,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                            if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
                               /* does edge [i1, i0] exist? If so take it*/
                               if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
-                                 SUMA_LHv("Switching primitve to edge %d\n", ir);
+                                 SUMA_LHv("Switching primitive to edge %d\n", ir);
                                  PR->datum_index = ir;
                               } else { /* leave old hit, no opposite edge */
                                  PR->datum_index = datum_index;
@@ -8431,7 +8431,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                      if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
                         /* does edge [i1, i0] exist? If so take it*/
                         if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
-                           SUMA_LHv("Switching primitve to edge %d\n", ir);
+                           SUMA_LHv("Switching primitive to edge %d\n", ir);
                            PR->datum_index = ir;
                         } else { /* leave old hit, no opposite edge */
                            PR->datum_index = datum_index;
@@ -8698,7 +8698,7 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
       case VO_type: {
          SUMA_VOL_SAUX *Saux = SUMA_ADO_VSaux(ado);
          if (!(*PRP)->primitive) {
-            SUMA_S_Err("NULL primitve not acceptable for VOs");
+            SUMA_S_Err("NULL primitive not acceptable for VOs");
             break;
          }
          if (!strcmp((*PRP)->primitive,"voxel")) {
@@ -10953,7 +10953,7 @@ void SUMA_FreeBSDatum (void *bsd)
    \brief Adds, new point to the brush stroke
    success = SUMA_AddToBrushStroke ( sv,  x,  y, Show);
 
-   \param sv (SUMA_SurfaceViewer *) pointer to surface viewer where stroke is occuring
+   \param sv (SUMA_SurfaceViewer *) pointer to surface viewer where stroke is occurring
    \param x (int) X coordinate of mouse
    \param y (int) Y coordinate of mouse
    \param NP (GLdouble *) vector of XYZ coordinates of Near Plane intersection point
@@ -11575,7 +11575,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
    bsd->SurfTri = SO->SelectedFaceSet;
 
    #ifdef DISASTER_LOOP
-      /* Now as a brute force method, do all the remaing nodes in the path.
+      /* Now as a brute force method, do all the remaining nodes in the path.
       In the future, you want to downsample the path is some clever fashion */
       if (N > 1) {
          if (LocalHead) {
@@ -11717,7 +11717,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
                               "%s: DoesInters = %d, ni = %d\n",
                               FuncName, DoesInters, ni);
                   {
-                     /* for debuging */
+                     /* for debugging */
                      MTI = NULL;MTI =
                         SUMA_MT_intersect_triangle(   bsdn->NP, bsdn->FP,
                                                       SO->NodeList, SO->N_Node,
@@ -11957,7 +11957,7 @@ SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke ( SUMA_SurfaceViewer *sv,
       SUMA_RETURN(NULL);
    }
 
-   /* get the equation of the plane fromed by TailNode,
+   /* get the equation of the plane formed by TailNode,
       FirstNodeinBrushStroke and its NearPlanePoint */
    SUMA_DRAWN_ROI_TAIL_NODE(DrawnROI, Nfrom);
    if (Nfrom < 0) {
@@ -13083,7 +13083,7 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13208,7 +13208,7 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13378,7 +13378,7 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13587,7 +13587,7 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13760,7 +13760,7 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13865,7 +13865,7 @@ void SUMA_JumpXYZ (char *s, void *data)
    }
 
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -13964,7 +13964,7 @@ void SUMA_JumpFocusNode (char *s, void *data)
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -14021,7 +14021,7 @@ void SUMA_JumpFocusFace (char *s, void *data)
       SUMA_RETURNe;
    }
 
-   /* redisplay curent only*/
+   /* redisplay current only*/
    sv->ResetGLStateVariables = YUP;
    SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 

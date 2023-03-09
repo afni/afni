@@ -76,7 +76,7 @@ static char rcsId[]="$Header$";
 
 /*** Private Function Prototype Declarations ****/
 /***
-* Usefull macros
+* Useful macros
 ***/
 #define BALLOON			XmBalloonWidget balloon
 #define ATTR(field)	balloon->balloon.field

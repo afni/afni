@@ -230,7 +230,7 @@ PLUGIN_interface * ICOR_init( char *lab )
    /* only the first 4 of these methods is available to a "normal" user */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                    "BCpearson" , "VCpearson", "Euclidian",
+                                    "BCpearson" , "VCpearson", "Euclidean",
                                     "CityBlock" , "Quantile:9" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
@@ -1246,7 +1246,7 @@ ENTRY("GICOR_setup_func") ;
      ININFO_message("%d datasets in set B",giset->ndset_B) ;
 
    ININFO_message("----------------------------------------------------") ;
-   ININFO_message("----- AFNI is now connnected to 3dGroupInCorr! -----") ;
+   ININFO_message("----- AFNI is now connected to 3dGroupInCorr! -----") ;
    ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
    ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
    ININFO_message("----------------------------------------------------") ;

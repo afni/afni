@@ -147,7 +147,7 @@ endif
 # ----------------------------------------------------------------------
 # create dset_list from din_list, and make sure input datasets have
 # enough TRs for computation (require at least $nfirst + 2)
-@ nneeded = $nfirst + 2
+@ needed = $nfirst + 2
 set dset_list = ()
 set prefix_list = ()    # in case we name output based on input
 foreach dset ( $din_list )
@@ -157,9 +157,9 @@ foreach dset ( $din_list )
       echo "** failed to get NT from dset $dset, skipping..."
       echo ""
       continue
-   else if ( $nvals < $nneeded ) then
+   else if ( $nvals < $needed ) then
       echo ""
-      echo "** require $nneeded TRs, but have $nvals in $dset, skipping..."
+      echo "** require $needed TRs, but have $nvals in $dset, skipping..."
       echo ""
       continue
    endif
@@ -780,7 +780,7 @@ echo "                       where the blurring ends.  So sphere_rad is always"
 echo "                       the applied blur size."
 echo ""
 echo "                       A smaller fraction will yield a flatter curve."
-echo "                       For example, FRAD=0.5 yeilds a 0.84 relative"
+echo "                       For example, FRAD=0.5 yields a 0.84 relative"
 echo "                       contribution at the radial distance, while."
 echo "                       doubling the requested blur."
 echo ""

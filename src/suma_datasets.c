@@ -2858,7 +2858,7 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label,
       SUMA_ShowNel((void*)dset->dnel);
    }
    
-   SUMA_LH("Cheking generic attributes");
+   SUMA_LH("Checking generic attributes");
    
    /* set some generic attributes. 
    You must redo it for all columns from icol 
@@ -3102,7 +3102,7 @@ int SUMA_AddGDsetNelXYZCol ( SUMA_DSET *dset, char *col_label,
    }
       
    
-   SUMA_LH("Cheking generic attributes");
+   SUMA_LH("Checking generic attributes");
    /* set some generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1, 0);
    /* add the attributes of that column */
@@ -6705,7 +6705,7 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             SUMA_isGraphDset(dset), SUMA_isCIFTIDset(dset));
          if ((s = NI_get_attribute(dset->ngr,"MD_parent_ID"))) {
 	    SS = SUMA_StringAppend_va(SS, 
-	          "Elemantary dataset created from multi domain parent:\n"
+	          "Elementary dataset created from multi domain parent:\n"
 		  "   ID: %s\n"
 		  "   Label: %s\n"
 		  "   Domain Index: %s",
@@ -7166,7 +7166,7 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
    
    if (!dset || node < 0 || (Max_Node_Index >=0 && node > Max_Node_Index)) {
       /* turn this warning off once you confirm that Shane's bug is gone */
-      /* Note that -1 is a flag for an unitialized node, so it is benign */
+      /* Note that -1 is a flag for an uninitialized node, so it is benign */
       if (LocalHead) {
          snprintf(mmm,
                  255*sizeof(char),
@@ -8260,7 +8260,7 @@ SUMA_DSET *SUMA_VecArray2Dset(void **resv,
    SUMA_RETURN(dset);
 } 
                                 
-/* returns the value at a paricular column and particular
+/* returns the value at a particular column and particular
    node in double format.
    If you know the maximum number of nodes forming the domain
    of the dset, typically SO->N_Node then pass it for speed.
@@ -9234,7 +9234,7 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
                   N_Node -1 -SDSET_VECFILLED(dset)/3 &&
             SDSET_IS_SORTED(dset)) {   /* likely a full column */
          SUMA_LH( "Fullness established by loose examination \n"
-                  "of node defintion column.");
+                  "of node definition column.");
          SUMA_RETURN(YUP);   
       }
       /* if you get here then you do not have a 
@@ -9340,7 +9340,7 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
                   N_Node -1 -SDSET_VECFILLED(dset)/3 &&
             SDSET_IS_SORTED(dset)) {   /* likely a full column */
          SUMA_LH( "Fullness established by loose examination \n"
-                  "of node defintion column.");
+                  "of node definition column.");
          SUMA_RETURN(YUP);   
       }
       /* if you get here then you do not have a 
@@ -9882,7 +9882,7 @@ char * SUMA_AttrOfDsetColNumb(SUMA_DSET *dset, int ind)
 }
 
 /*!
-   a wrapper to faciliate getting column types from 
+   a wrapper to facilitate getting column types from 
    both SUMA and AFNI formatted niml elements
    \sa SUMA_Col_Type
    NOTE, this function will repeatedly parse the entire string
@@ -10258,7 +10258,7 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
 
 
 /*!
-   a wrapper to faciliate getting column types from 
+   a wrapper to facilitate getting column types from 
    both SUMA and AFNI formatted niml elements
    \sa SUMA_Col_Type
 */
@@ -10342,7 +10342,7 @@ SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind)
                                   to guess. In that case the function
                                   will set the value of form
    \return (SUMA_DSET *) dset 
-   The datset does not get associated with a surface (owner_id[0] = '\0')
+   The dataset does not get associated with a surface (owner_id[0] = '\0')
    You'll have to do this manually later on if you wish
    You typically want to insert that dataset into SUMA's DsetList list...
 */
@@ -15506,7 +15506,7 @@ NULL back.
 If the xyz element is badly formed, N_vals is set to -2 as
 an error flag
 
-If there is an explicit indexing column, it is retured and 
+If there is an explicit indexing column, it is returned and 
 N_vals set to the number of values in the column
 
 If nelxyr is not null, it will contain nelxyz on return.

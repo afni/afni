@@ -67,7 +67,7 @@ typedef struct doc {
 				  for this example is scaled by this factor.
 				  The factors are set by the feature 
 				  'cost:<val>' in the training data. */
-  double  twonorm_sq;          /* The squared euclidian length of the document
+  double  twonorm_sq;          /* The squared euclidean length of the document
                                   vector. */ 
   WORD    *words;              /* The words/values in the document by  
 				  increasing word-number. */
@@ -169,7 +169,7 @@ typedef struct quadratic_program {
 } QP;
 
 typedef struct kernel_cache {
-  long   *index;  /* cache some kernel evalutations */
+  long   *index;  /* cache some kernel evaluations */
   CFLOAT *buffer; /* to improve speed */
   long   *invindex;
   long   *active2totdoc;

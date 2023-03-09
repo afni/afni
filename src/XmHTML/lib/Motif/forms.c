@@ -127,7 +127,7 @@ static Arg args[20];
 static Dimension argc;
 
 /*****
-* We override the following translations, we handle navigation accross form
+* We override the following translations, we handle navigation across form
 * components ourselves.
 ******/
 static char trav_translations[] =
@@ -1635,7 +1635,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 	* Check which components of the current form should be returned.
 	*
 	* Seems time consuming stepping through the link list twice, but this way 
-	* we can guarantee that we malloc the right ammount of memory (there isn't 
+	* we can guarantee that we malloc the right amount of memory (there isn't 
 	* a one-to-one mapping for internal and application views of the
 	* components, _and_ we won't frag memory unlike repeated calls to realloc 
 	* -- rmo 

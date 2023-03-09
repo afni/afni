@@ -564,7 +564,7 @@ typedef struct _XmHTMLImage{
 	String			url;			/* raw src specification */
 	XmImageInfo		*html_image;	/* local image data */
 	Pixmap			pixmap;			/* actual image */
-	Pixmap			clip;			/* for transparant pixmaps */
+	Pixmap			clip;			/* for transparent pixmaps */
 	unsigned long	options;		/* image option bits */
 	int				width;			/* resulting image width */
 	int				height;			/* resulting image height */
@@ -674,7 +674,7 @@ typedef struct _XmHTMLFormData{
 * 0        -> no dimension specified;
 *
 * Each component in a table has a set of core properties. Properties are
-* inherited from top to bottom and can be overriden.
+* inherited from top to bottom and can be overridden.
 *
 * Content containers render the contents of all objects between
 * start (inclusive) and end (exclusive).
@@ -711,7 +711,7 @@ typedef enum{
 
 /*****
 * Properties shared by all table elements. These are inherited from top to
-* bottom and can be overriden by the appropriate tag attributes.
+* bottom and can be overridden by the appropriate tag attributes.
 *****/
 typedef struct _TableProperties{
 	int				border;				/* border width, 0 = noborder	*/

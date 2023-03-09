@@ -67,7 +67,7 @@ def verify_parameters_structure(params, option_key="extra_args"):
         if not all(k == option_key for k in option_keys):
             raise ValueError(
                 "All keys should match. The key is used as a variable "
-                "name to expand paremeters in the test function. Param with "
+                "name to expand parameters in the test function. Param with "
                 f"error {param} "
             )
 

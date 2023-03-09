@@ -211,7 +211,7 @@ void gts_surface_remove_face (GtsSurface * s,
  *
  * Returns: 0 if successful or the line number at which the parsing
  * stopped in case of error (in which case the @error field of @f is
- * set to a description of the error which occured).  
+ * set to a description of the error which occurred).  
  */
 /* Update split.c/surface_read() if modifying this function */
 guint gts_surface_read (GtsSurface * surface, GtsFile * f)

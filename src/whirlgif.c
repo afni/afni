@@ -435,7 +435,7 @@ register int index;
   }
  } while(index>=0);
 
- /* now invert that string since we retreived it backwards */
+ /* now invert that string since we retrieved it backwards */
  i--;
  for(j=i;j>=0;j--)
  {

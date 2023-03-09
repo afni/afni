@@ -809,7 +809,7 @@ argverify(int ftype, Extsym *p)
 			Pbadmsg("differing calling sequences",p);
 			i = t - tfirst + 1;
 			fprintf(stderr,
-				"arg %d: here %s, prevously %s\n",
+				"arg %d: here %s, previously %s\n",
 				i, Argtype(k,buf1), Argtype(j,buf2));
 			return;
 			}

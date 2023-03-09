@@ -929,7 +929,7 @@ int gifti_valid_nbyper(int nbyper, int whine)
  *! check that dimension values are consistent (and with datatype)
  *
  *      - num_dim is in range
- *      - each dims[c] is postive (c < num_dim)
+ *      - each dims[c] is positive (c < num_dim)
  *      - nvals is product of dims
  *      - datatype is valid (required to check nbyper)
  *      - nbyper is correct
@@ -1811,7 +1811,7 @@ void gifti_disp_dtd_url(void)
 }
 
 /*----------------------------------------------------------------------
- *! display data in hexidecimal, on one line
+ *! display data in hexadecimal, on one line
  *
  *  if mesg is set, print the message first
  *  if fp is not set, print to stdout
@@ -1897,7 +1897,7 @@ int gifti_swap_Nbytes(void * data, long long nsets, int swapsize)
     else if( swapsize == 2 ) return gifti_swap_2bytes(data, nsets);
     else if( swapsize == 4 ) return gifti_swap_4bytes(data, nsets);
 
-    /* peform a swap */
+    /* perform a swap */
     cp0 = (char *)data;
     offset = swapsize-1;  /* just for speed */
 
@@ -1977,7 +1977,7 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
  *
  *  Terminate on first DA failure.
  *
- *  return 1 if convertion occurred, 0 if not, -1 on error
+ *  return 1 if conversion occurred, 0 if not, -1 on error
 *//*-------------------------------------------------------------------*/
 int gifti_convert_ind_ord(gifti_image * gim, int new_ord)
 {
@@ -2714,7 +2714,7 @@ giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
 }
 
 /*---------------------------------------------------------------------*/
-/*! dupliate the giiCoordSystem struct (passing NULL is okay)
+/*! duplicate the giiCoordSystem struct (passing NULL is okay)
 *//*-------------------------------------------------------------------*/
 giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem * src)
 {
@@ -2739,7 +2739,7 @@ giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem * src)
 }
 
 /*---------------------------------------------------------------------*/
-/*! dupliate the contents of the giiLabelTable struct
+/*! duplicate the contents of the giiLabelTable struct
 *//*-------------------------------------------------------------------*/
 int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
 {
@@ -2788,7 +2788,7 @@ int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
 }
 
 /*---------------------------------------------------------------------*/
-/*! dupliate the contents of one nvpairs structure into an empty one
+/*! duplicate the contents of one nvpairs structure into an empty one
  *
  *  return 0 on success
 *//*-------------------------------------------------------------------*/
@@ -2818,7 +2818,7 @@ int gifti_copy_nvpairs(nvpairs * dest, const nvpairs * src)
 }
 
 /*---------------------------------------------------------------------*/
-/*! dupliate the list of strings
+/*! duplicate the list of strings
 *//*-------------------------------------------------------------------*/
 char ** gifti_copy_char_list(char ** list, int len)
 {
@@ -3481,7 +3481,7 @@ int gifti_approx_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
                                             d1->datatype);
         if( offset >= 0 ) {
             diffs |= 2;
-            if(lverb > 1) printf("-- approx DA: triange diff at offset %d\n",
+            if(lverb > 1) printf("-- approx DA: triangle diff at offset %d\n",
                                  offset);
             if(lverb < 3) return 0;
         }
@@ -3615,7 +3615,7 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
     }
 
     /* search for mis-matches or non-existence from list 1 into list 2  */
-    /* assume Names are unique (each that is not will show a mis-match) */
+    /* assume Names are unique (each that is not will show a mismatch) */
     for( c = 0; c < p1->length; c++ ) {
         if( ! p1->value[c] ) continue;  /* skip anything that doesn't exist */
         value = gifti_get_meta_value(p2, p1->name[c]);
@@ -3713,7 +3713,7 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
 
     /* so lengths are positive and equal, compare index list and labels */
 
-    /* set limit to 0.0 to compare indicies exactly */
+    /* set limit to 0.0 to compare indices exactly */
     offset = (int)gifti_approx_diff_offset(t1->key, t2->key,
                        t1->length, NIFTI_TYPE_INT32, approx?1.0:0.0);
     if( offset >= 0 ) {
@@ -3825,7 +3825,7 @@ int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
 }
 
 /*---------------------------------------------------------------------*/
-/*! compare raw data, returing the first location difference
+/*! compare raw data, returning the first location difference
  *
  * return byte position of difference, so that < 0 means no difference
 *//*-------------------------------------------------------------------*/
@@ -3859,7 +3859,7 @@ long long gifti_compare_raw_data(const void * p1, const void * p2,
                              / (fabs((double)(a))+fabs((double)(b))))
 
 /*---------------------------------------------------------------------*/
-/*! approximate comparison of raw data, returing the first location difference
+/*! approximate comparison of raw data, returning the first location difference
  *  (>= 0 means difference, -1 means "approximately equal")
  *
  * Compute a symmetric fractional difference:

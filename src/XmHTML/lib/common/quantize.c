@@ -232,7 +232,7 @@ my_bcopy(char *src, char *dst, size_t len)
 /*****
 * Name:			QuickRGB
 * Return Type: 	Boolean
-* Description: 	attemps a quick 24 to 8 bit image conversion
+* Description: 	attempts a quick 24 to 8 bit image conversion
 * In: 
 *	rgb:		raw image data, RGB format;
 *	img_data:	destination;

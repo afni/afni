@@ -307,7 +307,7 @@ _XmHTMLGetPixelByName(XmHTMLWidget html, String color, Pixel def_pixel)
 * Note:
 *	This routine is here for consistency. The standard HTML 3.2 colors are
 *	referred to as the ``standard 16 color Windows VGA pallete''. This
-*	uttermost *dumb*, *stupid* (you name it) pallete does not only contain an
+*	uttermost *dumb*, *stupid* (you name it) palette does not only contain an
 *	absolute minimum of 16 colors, but in addition, most of the color names 
 *	used are unknown to almost all X servers! Can you imagine a greater m$
 *	ignorance!!!! Yuck.
@@ -682,7 +682,7 @@ CreateColormap(XmHTMLWidget html, XCOLOR *cmap)
 	/*****
 	* requested colormap size.
 	* To get an even distribution of the colors, we require this value to be
-	* a triple power, with a minumum of 8 colors. 
+	* a triple power, with a minimum of 8 colors. 
 	*****/
 	max_colors = HTML_ATTR(max_image_colors);
 	if(max_colors < 8)

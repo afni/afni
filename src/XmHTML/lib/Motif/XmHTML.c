@@ -69,7 +69,7 @@ static char rcsId[]="$Header$";
 * Added XmHTMLXYToInfo.
 *
 * Revision 1.11  1997/04/03 05:31:02  newt
-* Modified XmHTMLImageReplace and XmHTMLImageUpdate to immediatly render an
+* Modified XmHTMLImageReplace and XmHTMLImageUpdate to immediately render an
 * image whenever possible. Added the XmHTMLFrameGetChild convenience function.
 *
 * Revision 1.10  1997/03/28 07:05:28  newt
@@ -482,7 +482,7 @@ ClassInitialize(void)
 								XmLOAD_SUSPEND, XmLOAD_SUSPEND,
 								XmLOAD_ABORT, XmLOAD_ABORT};
 
-	/* Usefull sanity: check compile version against current header version */
+	/* Useful sanity: check compile version against current header version */
 	if(XmHTMLVersion != VERSION)
 	{
 		_XmHTMLWarning(__WFUNC__(NULL, "ClassInitialize"),
@@ -2105,7 +2105,7 @@ DrawRedisplay(Widget w, XmHTMLWidget html, XEvent *event)
 	* This happens when some other window is placed over our display area.
 	* So when we get a GraphicsExpose event, we check our visibility state
 	* and only draw something when we are partially obscured: when we are
-	* fully visibile we won't get any GraphicsExpose events, and when we
+	* fully visible we won't get any GraphicsExpose events, and when we
 	* are fully obscured we won't even get Expose Events.
 	* The reason behind all of this are the images & anchor drawing: sometimes
 	* they overlap an already painted area, and drawing will then generate
@@ -4006,7 +4006,7 @@ TrackMotion(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	{
 		/*****
 		* Current anchor. Need to call onMouseMove event if defined.
-		* No need to check return value as we return immediatly after
+		* No need to check return value as we return immediately after
 		* event processing.
 		*****/
 		_XmHTMLEventProcess(html, event, anchor->events->onMouseMove);
@@ -4265,7 +4265,7 @@ CheckAlignment(XmHTMLWidget html, XmHTMLWidget req)
 *	convert..:	data to be passed to the destructor routine. Since this
 *				converter doesn't allocate any data, this argument is ignored.
 * Returns:
-*	True when the conversion was successfull, False if not.
+*	True when the conversion was successful, False if not.
 *****/
 Boolean
 _XmHTMLCvtStringToWarning(Display *dpy, XrmValuePtr args, Cardinal *num_args,

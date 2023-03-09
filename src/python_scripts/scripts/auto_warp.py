@@ -26,7 +26,7 @@ from afnipy import ask_me
 
 g_help_string = """
     ===========================================================================
-    auto_warp.py     - Nonlinear regisration 
+    auto_warp.py     - Nonlinear registration 
     
     Basic Usage:
       auto_warp.py -base TT_N27+tlrc -input anat.nii  \\

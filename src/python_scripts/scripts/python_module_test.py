@@ -13,7 +13,7 @@ g_help_string = """
 python_module_test.py   - test the loading of python modules
 
    The default behavior of this program is to verify whether a 'standard'
-   list of python modules can be loaded.  The 'standard' list amounds to
+   list of python modules can be loaded.  The 'standard' list amounts to
    what is needed for the python programs in AFNI.
 
    The user may specify a list of python modules to test.

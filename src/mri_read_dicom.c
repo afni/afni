@@ -1661,7 +1661,7 @@ ENTRY("mri_imcount_dicom") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Normally we will find the first occurance of each element in the text.
+/*! Normally we will find the first occurrence of each element in the text.
  *  Maybe the user wants to use the last, instead.     10 Apr 2009 [rickr]
 -----------------------------------------------------------------------------*/
 

@@ -7,7 +7,7 @@
 /*	 usage types 		*/
 
 #define	 USENOOP 	0
-#define	 USEFULL 	1
+#define	 USEFUL 	1
 #define	 USEOTHER 	2
 
 /*	 operation values	*/
@@ -143,7 +143,7 @@ Adding a new function to maskcalc:
 - define function_OP, func_ST, USEfunc
 - add F_OP to read_args( )	( check subbricks in read_dataset )
 - add F_OP to check_usage ( )
-- add F_ST usage to usage( )	( and add to USEFULL )
+- add F_ST usage to usage( )	( and add to USEFUL )
 - add F_OP to op_type( )
 - add F_OP to process( )
 - write new function and prototype

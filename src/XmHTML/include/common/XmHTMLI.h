@@ -75,7 +75,7 @@ extern "C" {
 *****/
 #ifndef XmHTML_ERROR_FUNCS
 
-/* usefull macros */
+/* useful macros */
 #define Abs(x)		((x) < 0 ? -(x) : (x))
 #define Max(x,y)	(((x) > (y)) ? (x) : (y))
 #define Min(x,y)	(((x) < (y)) ? (x) : (y))
@@ -501,7 +501,7 @@ extern void _XmHTMLComputeLayout(XmHTMLWidget html);
 * ToRomanUpper             : convert a number to all lowercase roman numerals.
 * stringToToken            : convert a string to a numeric id.
 * _XmHTMLExpandEscapes     : expand all escape sequences in the given text.
-* _XmHTMLTagCheck          : Check the existance of a tag.
+* _XmHTMLTagCheck          : Check the existence of a tag.
 * _XmHTMLTagGetValue       : Get the value of a tag.
 * _XmHTMLTagGetNumber      : Get the numerical value of a tag.
 * _XmHTMLTagCheckNumber    : Get the absolute (positive no returned) or
@@ -962,7 +962,7 @@ extern void _XmHTMLPLCCheckIntervals(XmHTMLWidget html);
 * xmhtml_basefont_sizes : array with basefont sizes.
 * xmhtml_fn_fixed_sizes : array with fixed font sizes.
 * _XmHTMLSelectFontCache: initialize and/or select a font cache
-*                         (each display has a seperate one).
+*                         (each display has a separate one).
 * _XmHTMLaddFontMapping : alias a known font to an unknown font.
 * _XmHTMLLoadFont       : load a font as specified by id and size.
 *                         Properties are inherited from a given

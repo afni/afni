@@ -169,7 +169,7 @@ getOverlayVisualInfoRGB(unsigned int mode)
 
      when an overlay pixel's destination alpha is 0 because this
      allows overlay transparency to be controlled via alpha and
-     all visibile colors are permited, but no hardware I am aware
+     all visible colors are permitted, but no hardware I am aware
      of supports this practice (and it requires destination alpha
      which is typically optional and quite uncommon for overlay
      windows!).  In practice, the choice of  transparent pixel
@@ -178,7 +178,7 @@ getOverlayVisualInfoRGB(unsigned int mode)
      a single pixel value.  SGI hardware uses true black (0,0,0)
      without regard for the destination alpha.  This is far from
      ideal because true black (a common color that is easy to
-     accidently generate) can not be generated in an RGBA overlay. 
+     accidentally generate) can not be generated in an RGBA overlay. 
 
      I am not sure what other vendors do.
 
@@ -200,10 +200,10 @@ getOverlayVisualInfoRGB(unsigned int mode)
      nice for existing SGI hardware, bad for anyone (including
      SGI) who wants to improve upon "true black" RGB transparency. 
 
-     Or TWO: Provide a set of queriable "transparency types" (like 
+     Or TWO: Provide a set of queryable "transparency types" (like 
 
      "true black" or "alpha == 0" or "true white" or even a
-     queriable transparent color).  This is harder for
+     queryable transparent color).  This is harder for
      programmers, OK for existing SGI hardware, and it leaves open 
 
      the issue of what other modes are reasonable.
@@ -228,7 +228,7 @@ getOverlayVisualInfoRGB(unsigned int mode)
 
      I'd be interested.
 
-     For the record, SGI's expiremental Framebufer Configuration
+     For the record, SGI's expiremental Framebuffer Configuration
      experimental GLX extension uses option TWO.  Transparency
      modes for "none" and "RGB" are defined (others could be
      defined later).  What RGB value is the transparent one must be 
@@ -295,7 +295,7 @@ glutEstablishOverlay(void)
 
   window = __glutCurrentWindow;
 
-  /* Allow for an existant overlay to be re-established perhaps
+  /* Allow for an existent overlay to be re-established perhaps
      if you wanted a different display mode. */
   if (window->overlay) {
     addStaleWindow(window, window->overlay->win);

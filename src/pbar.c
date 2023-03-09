@@ -1719,7 +1719,7 @@ STATUS("reset pval_save") ;
 }
 
 /*-------------------------------------------------------------------------
-  user want to programatically alter the pbar:
+  user want to programmatically alter the pbar:
     number of panes, and/or new array of values
 ---------------------------------------------------------------------------*/
 

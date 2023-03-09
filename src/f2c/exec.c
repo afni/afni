@@ -673,7 +673,7 @@ enddo(int here)
 	register expptr e;
 
 /* Many DO's can end at the same statement, so keep looping over all
-   nested indicies */
+   nested indices */
 
 	while(here == dorange)
 	{

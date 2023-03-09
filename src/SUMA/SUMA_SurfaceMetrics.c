@@ -35,7 +35,7 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "            the result is incorrect. \n"
 "            Volume is calculated using Gauss's theorem,\n"
 "            see [Hughes, S.W. et al. 'Application of a new \n"
-"            discreet form of Gauss's theorem for measuring \n"
+"            discrete form of Gauss's theorem for measuring \n"
 "            volume' in Phys. Med. Biol. 1996].\n"
 "      -conv: output surface convexity at each node.\n"
 "         Output file is prefix.conv. Results in two columns:\n"
@@ -289,7 +289,7 @@ int main (int argc,char *argv[])
    for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
    spec_file = NULL;
 
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command ine options */
       /* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);

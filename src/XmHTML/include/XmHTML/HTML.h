@@ -405,7 +405,7 @@ enum{
 * The actual meaning depends on the routine used.
 *****/
 typedef enum{
-	XmIMAGE_ERROR = 0,		/* unknown error occured */
+	XmIMAGE_ERROR = 0,		/* unknown error occurred */
 	XmIMAGE_BAD,			/* bad function call: missing arg or so */
 	XmIMAGE_UNKNOWN,		/* provided XmImage/XmImageInfo unknown/unbound */
 	XmIMAGE_ALMOST,			/* action completed, further response necessary */
@@ -465,7 +465,7 @@ enum{
 *	Indicates XmHTML may free this structure when XmHTML no longer needs it;
 * XmIMAGE_RGB_SINGLE
 *	Indicates that the reds, greens and blues fields are allocated in a single
-*	memory area instead of three seperate memory arrays.
+*	memory area instead of three separate memory arrays.
 * XmIMAGE_ALLOW_SCALE
 *	Indicates that scaling an image is allowed.
 * XmIMAGE_FRAME_IGNORE
@@ -643,13 +643,13 @@ typedef enum{
 	OBJECT_DESTROYED,		/* object has been destroyed		*/
 	OBJECT_EMPTY,			/* object is empty					*/
 	OBJECT_ERROR,			/* unknown error					*/
-	OBJECT_FATAL,			/* fatal object error has occured	*/
+	OBJECT_FATAL,			/* fatal object error has occurred	*/
 	OBJECT_INVALID,			/* invalid object					*/
 	OBJECT_INVALID_LOCATION,/* object has an invalid location	*/
 	OBJECT_INVALID_SIZE,	/* object has an invalid size		*/
 	OBJECT_LOWERED,			/* object is lowered				*/
 	OBJECT_MAPPED,			/* object is mapped to screen		*/
-	OBJECT_OK,				/* action completed succesfully		*/
+	OBJECT_OK,				/* action completed successfully		*/
 	OBJECT_ORPHANED,		/* object has no parent				*/
 	OBJECT_PARENTED,		/* object already has a parent		*/
 	OBJECT_RAISED,			/* object is raised					*/
@@ -674,7 +674,7 @@ typedef enum{
 * XmHTMLTextFind return codes
 *****/
 typedef enum{
-	XmREG_ERROR = 0,		/* An error occured					*/
+	XmREG_ERROR = 0,		/* An error occurred					*/
 	XmREG_NOMATCH,			/* end of text and no match found	*/
 	XmREG_MATCH				/* a match was found				*/
 }XmHTMLRegexStatus;
@@ -908,7 +908,7 @@ typedef struct{
 	String file;				/* originating file							*/
 	unsigned char type;			/* image type, see the IMAGE_ enum below	*/
 	Pixmap pixmap;				/* actual image								*/
-	Pixmap clip;				/* for transparant pixmaps					*/
+	Pixmap clip;				/* for transparent pixmaps					*/
 	unsigned int options;		/* image option bits						*/
 	int width;					/* current image width, in pixels			*/
 	int height;					/* current image height, in pixels			*/
@@ -1348,7 +1348,7 @@ typedef struct{
 							 * Unused by XmHTML.
 							 */
 
-	/* Next two fields are only meaningfull when scrollable == False */
+	/* Next two fields are only meaningful when scrollable == False */
 	int x;					/* suggested upper-left position			*/
 	int y;					/* suggested upper-left position			*/
 

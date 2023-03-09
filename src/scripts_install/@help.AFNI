@@ -131,7 +131,7 @@ HELP:
    echo "   @help.AFNI -match love"
    echo ""
    echo " Options:"
-   echo "   -match 'word1 [word2 word3]' : Looks for occurence of each word in "
+   echo "   -match 'word1 [word2 word3]' : Looks for occurrence of each word in "
    echo "                                  the list in the help file."
    echo "                                  For a match with multiple words, all"
    echo "                                  the words must be on the same line of"

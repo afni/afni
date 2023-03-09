@@ -204,7 +204,7 @@ static escape_data escapes[NUM_ESCAPES] = {
 	{"cedil;",		'\270', 6},
 	{"cent;",		'\242', 5},
 	{"copy;",		'\251', 5},
-	{"curren;",		'\244', 7},
+	{"current;",		'\244', 7},
 	{"deg;",		'\260', 4},
 	{"divide;",		'\367', 7},
 	{"eacute;",		'\351', 7},

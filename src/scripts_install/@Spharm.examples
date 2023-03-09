@@ -179,7 +179,7 @@ SpharmReco               \
 
 
    prompt_user -pause "\
-Now reconstuct data only,  not XYZ of surfaces"
+Now reconstruct data only,  not XYZ of surfaces"
 
 SpharmReco               \
             -i ${surf1}            \

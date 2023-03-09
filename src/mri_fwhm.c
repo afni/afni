@@ -156,7 +156,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
             exp[ -dx^2 / (4 * sx^2) ]
          which is the result of passing a Gaussian exp[-x^2/(2*sx^2)]
          convolution over a white noise field.  Then the covariance of
-         the neigbhors is
+         the neighbors is
             2*V * { 1 - exp[ -dx^2 / (4*sx^2) ] }
          where V = variance of the noise (var).                     -----*/
   /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor -----*/
@@ -751,7 +751,7 @@ THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
 
 /*========================================================================*/
 /*========================================================================*/
-/* Return the cluster of points over which we estimage the ACF.
+/* Return the cluster of points over which we estimate the ACF.
    Use the central NCLU_BASE set of points, and then fill out
    up to NCLU_GOAL from a selection of the outer points,
    so that we don't end up with a vast cluster and slow estimation.

@@ -1,8 +1,8 @@
 function s=unsplit_string(c, sep)
-% 'zips' a cell with strings and a seperator symbol; the inverse of
+% 'zips' a cell with strings and a separator symbol; the inverse of
 % SPLIT_STRING
 %
-% S=UNSPLIT_STRING(C,SEP) takes a cell with strings C and a seperator
+% S=UNSPLIT_STRING(C,SEP) takes a cell with strings C and a separator
 % string SEP, and returns the string [C{1} SEP C{2} SEP ... SEP C{end}].
 %
 % It is assumed that C and SEP are strings with exactly one row.

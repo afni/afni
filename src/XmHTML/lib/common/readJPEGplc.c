@@ -146,7 +146,7 @@ _PLC_JPEG_ErrorExit(j_common_ptr cerr)
 * Return Type: 	void
 * Description: 	jpeg init_buffer method. Allocates the input buffer.
 * In: 
-*	cinfo:		JPEG decompresser info.
+*	cinfo:		JPEG decompressor info.
 * Returns:
 *	nothing.
 * Note:
@@ -196,10 +196,10 @@ _PLC_JPEG_InitSource(j_decompress_ptr cinfo)
 * Description: 	jpeg fill_input_buffer method. We use the Suspended I/O
 *				facility of the jpeg library.
 * In: 
-*	cinfo:		JPEG decompresser info.
+*	cinfo:		JPEG decompressor info.
 * Returns:
 *	False when decompression of the current decompressor should be suspended
-*	(not enough data or data is being skipped), True when the decompresser
+*	(not enough data or data is being skipped), True when the decompressor
 *	should continue.
 * Note:
 *	This is the core of the JPEG PLC object. It updates the JPEG input buffer
@@ -355,7 +355,7 @@ _PLC_JPEG_FillInputBuffer(j_decompress_ptr cinfo)
 	len = src->buf_size - src->pub.bytes_in_buffer;
 
 	/*****
-	* Maximum no of bytes available from input (prevents ReadOK from issueing
+	* Maximum no of bytes available from input (prevents ReadOK from issuing
 	* a data request by itself).
 	*****/
 	if(len > plc->left)

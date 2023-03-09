@@ -25,7 +25,7 @@ Computer Generation, Inc.,
 gary@compgen.com
 www.compgen.com/widgets
 
-Thanks to Contributers:
+Thanks to Contributors:
 J Satchell, Eric Marttila 
 */
 /* Revision History:

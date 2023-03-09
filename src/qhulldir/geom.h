@@ -132,7 +132,7 @@ realT   qh_determinant(realT **rows, int dim, boolT *nearzero);
 realT   qh_detjoggle(pointT *points, int numpoints, int dimension);
 void    qh_detroundoff(void);
 realT   qh_detsimplex(pointT *apex, setT *points, int dim, boolT *nearzero);
-realT   qh_distnorm(int dim, pointT *point, pointT *normal, realT *offsetp);
+realT   qh_distnorm(int dim, pointT *point, pointT *normal, realT *offset);
 realT   qh_distround(int dimension, realT maxabs, realT maxsumabs);
 realT   qh_divzero(realT numer, realT denom, realT mindenom1, boolT *zerodiv);
 realT   qh_facetarea(facetT *facet);

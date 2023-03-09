@@ -888,7 +888,7 @@ DrawFrame(XmHTMLWidget html, XmHTMLImage *image, int xs, int ys)
 	}
 	/*
 	* If DrawFrame was triggered by an exposure, just blit current animation
-	* state to screen and return immediatly.
+	* state to screen and return immediately.
 	*/
 	if(!ImageFrameRefresh(image))
 	{
@@ -1565,7 +1565,7 @@ DrawCellFrame(XmHTMLWidget html, TableCell *cell)
 		return;
 
 	/*****
-	* Translate absolute coordinates to relative ones by substracting
+	* Translate absolute coordinates to relative ones by subtracting
 	* the region that has been scrolled.
 	*****/
 	xs -= HTML_ATTR(scroll_x);

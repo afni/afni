@@ -1231,7 +1231,7 @@ ENTRY("init_node_list");
         RETURN(-1);
     }
 
-#if 0           /* remove requrement of 2 surfaces for functions [v3.0] */
+#if 0           /* remove requirement of 2 surfaces for functions [v3.0] */
 
     if ( sopt->map == E_SMAP_MASK )
         nsurf = 1;
@@ -3104,7 +3104,7 @@ ENTRY("usage");
             "\n"
             "          ave    : average all values\n"
             "\n"
-            "          nzave  : ave, but ignorning any zero values\n"
+            "          nzave  : ave, but ignoring any zero values\n"
             "\n"
             "          count  : count the number of mapped data points\n"
             "\n"

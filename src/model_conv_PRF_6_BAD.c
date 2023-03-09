@@ -887,7 +887,7 @@ static int fill_scaled_farray(float *fdest, int length, THD_3dim_dataset *dsrc,
    nt = DSET_NVALS(dsrc);
 
    if( nx != length ) {
-      fprintf(stderr, "** FSF: nx, len mis-match, %d != %d\n", nx, length);
+      fprintf(stderr, "** FSF: nx, len mismatch, %d != %d\n", nx, length);
       return 1;
    }
 

@@ -9,7 +9,7 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dMSS'
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dMSS Input functions ################################
@@ -386,7 +386,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
    "         should be consistent with the ones used in the header of -dataTable.",
    "         In the MSS context the simplest model is \"list(Subj=~1)\" in which the",
    "         varying or random effect from each subject is incorporated in the model.",
-   "         Each random-effects factor is specified within paratheses per formula",
+   "         Each random-effects factor is specified within parentheses per formula",
    "         convention in R.\n", sep = '\n'
              ) ),
 
@@ -418,7 +418,7 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
 
        '-vt' = apl(n=2, h = paste(
    "-vt var formulation: This option is for specifying varying smoothing terms. Two components",
-   "         are required: the first one 'var' indicates the varaible (e.g., subject) around",
+   "         are required: the first one 'var' indicates the variable (e.g., subject) around",
    "         which the smoothing will vary while the second component specifies the smoothing",
    "         formulation (e.g., s(age,subject)). When there is no varying smoothing terms (e.g.,",
    "         no within-subject variables), do not use this option.\n", sep='\n')),
@@ -1020,7 +1020,7 @@ if(dimy==1 & dimz==1) { # 1D data
    # break input multiple segments for parrel computation
    dim(inData) <- c(dimx_n, nSeg, NoFile)
    Stat <- array(0, dim=c(dimx_n, nSeg, lop$nBrk))
-   if (lop$nNodes==1) { # no parallization
+   if (lop$nNodes==1) { # no parallelization
       if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
          Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
@@ -1031,7 +1031,7 @@ if(dimy==1 & dimz==1) { # 1D data
                   DM=lop$dataStr, tag=0), c(2,3,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
-   } else { # parallization
+   } else { # parallelization
       if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
          Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
@@ -1045,7 +1045,7 @@ if(dimy==1 & dimz==1) { # 1D data
    }
 } else { # volumetric data
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
-   if (lop$nNodes==1) { # no parallization
+   if (lop$nNodes==1) { # no parallelization
       if(!is.null(lop$mrr)) for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runMSS,
                   DM=lop$dataStr, tag=0), c(2,3,1))
@@ -1056,7 +1056,7 @@ if(dimy==1 & dimz==1) { # 1D data
                   DM=lop$dataStr, tag=0), c(2,3,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
-   } else { # parallization
+   } else { # parallelization
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterExport(cl, "lop", envir=environment())

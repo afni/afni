@@ -1267,14 +1267,14 @@ backup(char *fname, char *bname)
 #endif
 {
 	FILE *b, *f;
-	static char couldnt[] = "Couldn't open %.80s";
+	static char couldn't[] = "Couldn't open %.80s";
 
 	if (!(f = fopen(fname, binread))) {
-		warn1(couldnt, fname);
+		warn1(couldn't, fname);
 		return;
 		}
 	if (!(b = fopen(bname, binwrite))) {
-		warn1(couldnt, bname);
+		warn1(couldn't, bname);
 		return;
 		}
 	ffilecopy(f, b);

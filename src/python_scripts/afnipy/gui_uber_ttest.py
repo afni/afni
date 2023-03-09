@@ -1318,7 +1318,7 @@ for the t-stat (if using 3dMEMA).
 
 4. If using 3dMEMA, assign a t-stat index or label
 
-   Specify the sub-brick of the t-statistic that corresonds to the
+   Specify the sub-brick of the t-statistic that corresponds to the
    data index, above (presumably the beta weight).  For example, use
    index '1' or label 'Vrel#0_Tstat' for the REML datasets under the
    AFNI_data6/group_results directory.

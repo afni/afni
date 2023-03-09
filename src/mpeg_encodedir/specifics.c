@@ -97,7 +97,7 @@ version N
   Specify the version of the specifics file format (this is 1)
 frame N T M
   Sets frame number N to type T and Qscale M
-  (type T is I,B,P,other, other means unspec.  I recomend - )
+  (type T is I,B,P,other, other means unspec.  I recommend - )
 slice M Q
   Sets slice M (in frame N as defined by a previous frame command)
   to qscale Q

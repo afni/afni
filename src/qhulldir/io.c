@@ -329,7 +329,7 @@ void qh_countfacets(facetT *facetlist, setT *facets, boolT printall,
       test that Voronoi vertices not in the simplex are still on the hyperplane
     free up temporary memory
 */
-pointT *qh_detvnorm(vertexT *vertex, vertexT *vertexA, setT *centers, realT *offsetp) {
+pointT *qh_detvnorm(vertexT *vertex, vertexT *vertexA, setT *centers, realT *offset) {
   facetT *facet, **facetp;
   int  i, k, pointid, pointidA, point_i, point_n;
   setT *simplex= NULL;
@@ -454,7 +454,7 @@ pointT *qh_detvnorm(vertexT *vertex, vertexT *vertexA, setT *centers, realT *off
       }
     }
   }
-  *offsetp= offset;
+  *offset= offset;
   if (simplex != points)
     qh_settempfree(&simplex);
   qh_settempfree(&points);
@@ -1956,7 +1956,7 @@ void qh_printfacet(FILE *fp, facetT *facet) {
     notes:
       assume precise calculations in io.c with roundoff covered by qh_GEOMepsilon
       mindist is calculated within io.c.  maxoutside is calculated elsewhere
-      so a DISTround error may have occured.
+      so a DISTround error may have occurred.
 */
 void qh_printfacet2geom(FILE *fp, facetT *facet, realT color[3]) {
   pointT *point0, *point1;
@@ -2144,7 +2144,7 @@ void qh_printfacet3geom_points(FILE *fp, setT *points, facetT *facet, realT offs
 
     assume precise calculations in io.c with roundoff covered by qh_GEOMepsilon
     innerplane may be off by qh DISTround.  Maxoutside is calculated elsewhere
-    so a DISTround error may have occured.
+    so a DISTround error may have occurred.
 */
 void qh_printfacet3geom_simplicial(FILE *fp, facetT *facet, realT color[3]) {
   setT *points, *vertices;
@@ -3674,7 +3674,7 @@ int qh_readfeasible(int dim, const char *curline) {
 coordT *qh_readpoints(int *numpoints, int *dimension, boolT *ismalloc) {
   coordT *points, *coords, *infinity= NULL;
   realT paraboloid, maxboloid= -REALmax, value;
-  realT *coordp= NULL, *offsetp= NULL, *normalp= NULL;
+  realT *coordp= NULL, *offset= NULL, *normalp= NULL;
   char *s= 0, *t, firstline[qh_MAXfirst+1];
   int diminput=0, numinput=0, dimfeasible= 0, newnum, k, tempi;
   int firsttext=0, firstshort=0, firstlong=0, firstpoint=0;
@@ -3782,11 +3782,11 @@ coordT *qh_readpoints(int *numpoints, int *dimension, boolT *ismalloc) {
   if (qh HALFspace) {
     qh half_space= coordp= (coordT*)qh_malloc(qh normal_size + sizeof(coordT));
     if (qh CDDinput) {
-      offsetp= qh half_space;
-      normalp= offsetp + 1;
+      offset= qh half_space;
+      normalp= offset + 1;
     }else {
       normalp= qh half_space;
-      offsetp= normalp + *dimension;
+      offset= normalp + *dimension;
     }
   }
   qh maxline= diminput * (qh_REALdigits + 5);
@@ -3869,7 +3869,7 @@ coordT *qh_readpoints(int *numpoints, int *dimension, boolT *ismalloc) {
           maximize_(maxboloid, paraboloid);
           paraboloid= 0.0;
         }else if (qh HALFspace) {
-          if (!qh_sethalfspace(*dimension, coords, &coords, normalp, offsetp, qh feasible_point)) {
+          if (!qh_sethalfspace(*dimension, coords, &coords, normalp, offset, qh feasible_point)) {
             qh_fprintf(qh ferr, 8048, "The halfspace was on line %d\n", linecount);
             if (wasbegin)
               qh_fprintf(qh ferr, 8049, "The input appears to be in cdd format.  If so, you should use option 'Fd'\n");

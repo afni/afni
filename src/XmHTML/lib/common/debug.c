@@ -54,7 +54,7 @@ static char rcsId[]="$Header$";
 * Added support for storing debug output in a file.
 *
 * Revision 1.6  1997/08/01 12:58:10  newt
-* Changed function names to accomdate exclusion of this file when building
+* Changed function names to accommodate exclusion of this file when building
 * the XmHTML library.
 *
 * Revision 1.5  1997/04/29 14:25:07  newt

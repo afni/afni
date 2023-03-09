@@ -38,7 +38,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "           gii:                GIFTI format default .\n"
 "           gii_asc:            GIFTI format with ascii DataArrays.\n"
 "           gii_b64:            GIFTI format with Base 64 encoded DataArrays.\n"
-"           gii_b64gz:          GIFTI format with B64 enconding and gzipping.\n"
+"           gii_b64gz:          GIFTI format with B64 encoding and gzipping.\n"
 "         For stderr and stdout output use one of:\n"
 "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
 "           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
@@ -258,7 +258,7 @@ int main (int argc,char *argv[])
    RAI = 1;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          usage_ConverDset  (ps, strlen(argv[kar]) > 3 ? 2:1);
          exit (0);
@@ -495,7 +495,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop accross command ine options */
+   }/* loop across command ine options */
    if (argc < 3) {
       usage_ConverDset  (ps, 0);
       exit (1);

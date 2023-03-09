@@ -161,13 +161,13 @@ extern int retlabel;
 extern int ret0label;
 extern int dorange;		/* Number of the label which terminates
 				   the innermost DO loop */
-extern int regnum[ ];		/* Numbers of DO indicies named in
+extern int regnum[ ];		/* Numbers of DO indices named in
 				   regnamep   (below) */
-extern Namep regnamep[ ];	/* List of DO indicies in registers */
+extern Namep regnamep[ ];	/* List of DO indices in registers */
 extern int maxregvar;		/* number of elts in   regnamep   */
 extern int highregvar;		/* keeps track of the highest register
 				   number used by DO index allocator */
-extern int nregvar;		/* count of DO indicies in registers */
+extern int nregvar;		/* count of DO indices in registers */
 
 extern chainp templist[];
 extern int maxdim;

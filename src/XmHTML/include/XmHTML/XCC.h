@@ -173,7 +173,7 @@ extern void XCCFreeDither(XCC _xcc);
 * pixel value is returned and the _red, _green and _blue args will contain
 * the difference between the original and used component (which can be
 * negative, hence these args are signed). If they are all equal to 0 a
-* perfect match was found (which I suspect will be seldomly the case).
+* perfect match was found (which I suspect will be seldom the case).
 *
 * The intended use of this routine is dithering. Either using ordered or
 * Floyd-Steinberg.

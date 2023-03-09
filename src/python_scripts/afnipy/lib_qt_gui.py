@@ -1580,7 +1580,7 @@ class TcshCommandWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass
@@ -1743,7 +1743,7 @@ class ProcessWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass

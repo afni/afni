@@ -33,5 +33,5 @@
 
 #define MAXREGVAR 4
 #define TYIREG    TYLONG
-#define MSKIREG   (M(TYSHORT)|M(TYLONG))   /* allowed types of DO indicies
+#define MSKIREG   (M(TYSHORT)|M(TYLONG))   /* allowed types of DO indices
                                               which can be put in registers */

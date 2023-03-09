@@ -999,7 +999,7 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
-      # if the user does not want any udpates, we are done
+      # if the user does not want any updates, we are done
       # (but note what is being used)
       if not self.git_update:
          MESGm("skipping any git updates")

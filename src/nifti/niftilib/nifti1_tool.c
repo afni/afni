@@ -3604,7 +3604,7 @@ int disp_nifti1_extension( const char *mesg, nifti1_extension * ext, int maxlen)
 
 
 /*----------------------------------------------------------------------
- * return the appropritate pointer into the g_hdr_fields struct
+ * return the appropriate pointer into the g_hdr_fields struct
  *----------------------------------------------------------------------*/
 field_s * get_hdr_field( const char * fname, int show_fail )
 {
@@ -3629,7 +3629,7 @@ field_s * get_hdr_field( const char * fname, int show_fail )
 
 
 /*----------------------------------------------------------------------
- * return the appropritate pointer into the g_hdr_fields struct
+ * return the appropriate pointer into the g_hdr_fields struct
  *----------------------------------------------------------------------*/
 field_s * get_nim_field( const char * fname, int show_fail )
 {

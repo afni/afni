@@ -214,7 +214,7 @@ if ( "$odir" == "" ) then
     # because a file is in it
 
     set odir = `dirname "$iset"`
-    echo "\n++ No output directory specificied by the user."
+    echo "\n++ No output directory specified by the user."
     echo "++ Using the input file's directory by default:"
     echo "\t$odir"
 else

@@ -278,7 +278,7 @@ typedef struct {
 
    /*-- Jul 2008 [rickr]: for oblique data                                 --*/
    int           is_oblique ;     /* flag: is the dataset oblique            */
-   float         oblique_mat[16]; /* oblique tranformation matrix            */
+   float         oblique_mat[16]; /* oblique transformation matrix            */
 
    double elapsed , cpu ;         /* times */
    double last_elapsed ;
@@ -456,7 +456,7 @@ static char helpstring[] =
    "                    none         ==> no merge registration\n"
    "                    reg merged   ==> register merged channels\n"
    "                    reg channels ==> apply merge xform to all channels,\n"
-   "                       - register all chanels based on 'Src Chan'\n"
+   "                       - register all channels based on 'Src Chan'\n"
    "                       - apply registration params to all chan/echoes\n"
    "                         i.e. create 'registered' dataset per channel\n"
    "                       - merge the registered channels\n"
@@ -3510,7 +3510,7 @@ static int RT_mp_comm_init_vars( RT_input * rtin )
         return 0;
     }
 
-    cp = strchr(ept, ':');      /* find ':' seperator */
+    cp = strchr(ept, ':');      /* find ':' separator */
 
     if ( cp == NULL || !isdigit(*(cp+1)) )
     {
@@ -5287,7 +5287,7 @@ void RT_process_image( RT_input * rtin )
          fails, or is not initialized, or if real time graphing is turned
          off then go ahead and calculate the mask averages. */
 
-      /*  mask_init == 0 means that the mask isn't intialized */
+      /*  mask_init == 0 means that the mask isn't initialized */
       if(( rtin->mp_tcp_use != 1 ) && ( rtin->mask_init == 0 ))
       {
           RT_mp_check_env_for_mask(); /* possibly set mask based on env var */
@@ -5298,7 +5298,7 @@ void RT_process_image( RT_input * rtin )
       }
 
       /* MP communication is turned off, but the mask is initialized 
-         caluculate mask averages */
+         calculate mask averages */
       if(( rtin->mp_tcp_use != 1 ) && ( rtin->mask_init == 1 ))
       {
           if( RT_mp_get_mask_aves(rtin, rtin->reg_nvol - 1) )
@@ -5743,7 +5743,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
       if( rtin->reg_dset != NULL )
         THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
 
-      /* Cameron modification to support detrended datset, just copying
+      /* Cameron modification to support detrended dataset, just copying
          because we do this to every other dataset */
       if( rtin->detrend_dset != NULL )
         THD_force_malloc_type( rtin->detrend_dset->dblk , DATABLOCK_MEM_ANY ) ;
@@ -5982,7 +5982,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
    }
 
    /* Cameron Craddock modifications to handle real-time detrend,
-      just copied this from the registered datset code above */
+      just copied this from the registered dataset code above */
    /**--- Deal with the detrended dataset, if any ---**/
 
    if( rtin->detrend_dset != NULL && rtin->detrend_nvol > 0 ){
@@ -8301,7 +8301,7 @@ void RT_detrend_getenv( RT_input * rtin )
     /* for AFNI error checking */
     ENTRY( "RT_detrend_getenv" );
 
-    /* get the enviroment variables */
+    /* get the environment variables */
     ept = getenv("AFNI_REALTIME_DETREND_MODE");
     if( ept != NULL )
     {
@@ -8591,7 +8591,7 @@ void RT_detrend( RT_input * rtin, int mode )
             /* more sanity check, verify data pointer is not NULL */
             if( dset_time == NULL )
             {
-                /* datset is NULL? it shouldn't be */
+                /* dataset is NULL? it shouldn't be */
                 snprintf( rt_errorString, RT_LONG_STR_LEN, 
                   "RT Detrend: dset_time == NULL! Turning off detrend.");
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
@@ -8607,7 +8607,7 @@ void RT_detrend( RT_input * rtin, int mode )
             /* more sanity check, verify image pointer is not NULL */
             if( DSET_BRICK(dset_time,it) == NULL )
             {
-                /* datset is NULL? it shouldn't be */
+                /* dataset is NULL? it shouldn't be */
                 snprintf( rt_errorString, RT_LONG_STR_LEN, 
                   "RT Detrend: dset_time[%d] == NULL! Turning off detrend.",it);
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
@@ -9215,7 +9215,7 @@ void RT_detrend( RT_input * rtin, int mode )
 
             if( verbose )
                 fprintf(stderr,
-                    "RT_DETREND finished intialization %d 0x%x %d %d %d\n",
+                    "RT_DETREND finished initialization %d 0x%x %d %d %d\n",
                     it, rtin->detrend_mode, rtin->detrend_polort,
                     detrend_num_ort, nvox);
         }

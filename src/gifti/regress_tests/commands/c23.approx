@@ -37,7 +37,7 @@ gifti_tool -approx_gifti -infiles $f1 $f2
 echo ""
 gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
 
-echo "\n==== test: modify POINTSET and TRIANGE data"
+echo "\n==== test: modify POINTSET and TRIANGLE data"
 sed 's/-65.592651/-65.6/' $f1 | sed 's/141604/141605/' > $f2
 gifti_tool -approx_gifti -infiles $f1 $f2
 echo ""

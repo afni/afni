@@ -1051,7 +1051,7 @@ InflateGZFInternal(ImageBuffer *ib, int dsize, int *nread)
 	}
 	*nread = stream.total_out;
 
-	/* successfull uncompress, return uncompressed image data */
+	/* successful uncompress, return uncompressed image data */
 	return(output_buf);
 #endif
 }
@@ -1187,7 +1187,7 @@ InflateGIFExternal(XmImageGifProc inflate, ImageBuffer *ib,
 	/* call it */
 	(void)inflate(&gstream);
 
-	/* successfull uncompress, return uncompressed image data */
+	/* successful uncompress, return uncompressed image data */
 	return(buffer);
 }
 
@@ -1405,7 +1405,7 @@ writeImage(Byte *image, FILE *fp, int size, int codeSize)
 *	ib:			image memory buffer
 *	file:		output filename
 * Returns:
-*	True when succesfull conversion, False otherwise.
+*	True when successful conversion, False otherwise.
 *****/
 static Boolean
 GifToGzf(ImageBuffer *ib, String file)
@@ -1557,7 +1557,7 @@ GifToGzf(ImageBuffer *ib, String file)
 *	size:		size of buffer (if any);
 *	outfile:	name of destination file;
 * Returns:
-*	True when conversion was successfull, False if something failed.
+*	True when conversion was successful, False if something failed.
 *****/
 Boolean
 XmHTMLGIFtoGZF(String infile, unsigned char *buf, int size, String outfile)

@@ -15,7 +15,7 @@
              signified by new ftype argument.
 
    Coordinates of voxels in clusters are now stored as 3 separate
-   short integers, to correct error due to abiguity in
+   short integers, to correct error due to ambiguity in
    identification of clusters.
    BDW  06 March 1997
 ------------------------------------------------------------------*/
@@ -202,7 +202,7 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
   Write the points stored in a cluster back into a volume
 
    Coordinates of voxels in clusters are now stored as 3 separate
-   short integers, to correct error due to abiguity in
+   short integers, to correct error due to ambiguity in
    identification of clusters.
    BDW  06 March 1997
 -----------------------------------------------------------------*/

@@ -1072,7 +1072,7 @@ putchcmp(register expptr p)
    call to runtime library routine   s_cat()   is inserted.
 
 	This routine generates code which will perform an  (nconc lhs rhs)
-   at runtime.  The runtime funciton does not return a value, the routine
+   at runtime.  The runtime function does not return a value, the routine
    that calls this   putcat   must remember the name of   lhs.
 */
 

@@ -135,7 +135,7 @@ static XmHTMLfont *loadQueryFont(XmHTMLWidget html, String name, String family,
 	int ptsz, Byte style, Boolean *loaded);
 
 #ifdef I18N
-/* allocate a new XmHTMLfont entry containg a set of fonts (I18N support) */
+/* allocate a new XmHTMLfont entry containing a set of fonts (I18N support) */
 static XmHTMLfont *allocFontSet(ToolkitAbstraction *tka, void *lfontset,
 	String name, String family, Byte style);
 #endif
@@ -813,7 +813,7 @@ loadAndCacheFont(ToolkitAbstraction *tka, String name, String family,
 #endif /* I18N */
 		xfont = (void*)tka->LoadQueryFont(tka->dpy, name);
 
-	/* store it if successfull */
+	/* store it if successful */
 	if(xfont != NULL)
 	{
 		_XmHTMLDebug(8,( "found.\n"));
@@ -865,7 +865,7 @@ loadAndCacheFont(ToolkitAbstraction *tka, String name, String family,
 *
 *	This routine goes through *GREAT* lengths to find the requested font, and
 *	it will almost never fail (unless the XmNfontFamily/XmNcharset resources
-*	form an invalid pair, but then XmHTML will give up on startup immediatly).
+*	form an invalid pair, but then XmHTML will give up on startup immediately).
 *****/
 static XmHTMLfont*
 loadQueryFont(XmHTMLWidget html, String name, String family, int ptsz,
@@ -1508,7 +1508,7 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 				new_style|FONT_FIXED, &ok);
 			break;
 
-		/* The <FONT> element is useable in *every* state */
+		/* The <FONT> element is usable in *every* state */
 		case HT_FONT:
 			new_font = loadQueryFont(html, family, NULL, size,
 				new_style, &ok);

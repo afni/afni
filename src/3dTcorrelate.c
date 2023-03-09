@@ -297,7 +297,7 @@ int main( int argc , char *argv[] )
                  argv[nopt],argv[nopt-1]) ;
    }
    if( im_ort != NULL && im_ort->nx < DSET_NVALS(xset) ){
-      ERROR_exit("Input datsets are longer than -ort file") ;
+      ERROR_exit("Input datasets are longer than -ort file") ;
    }
    if( !EQUIV_GRIDS(xset,yset) )
      WARNING_message("Grid mismatch between input datasets!") ;

@@ -653,7 +653,7 @@ static void DEL_tsfunc( double tzero, double tdelta ,
                  "rpud %p, ud %p\n", rpud, ud);
    }
    
-   /* Now intialize */
+   /* Now initialize */
    if( val == NULL ){
       if (rpud->verb > 1) {
          INFO_message("First call npts=%d\n", npts);
@@ -1416,7 +1416,7 @@ Bring them back after testing. */
             }
             rpud.dt = DSET_TR_SEC(old_dset);
             if (rpud.dt > 100) {
-               ERROR_exit("TR of %f sec of %s is very suspicously high.\n"
+               ERROR_exit("TR of %f sec of %s is very suspiciously high.\n"
                        "Program assumes this is a mistake in the header.\n"
                        "You can use 3drefit's -TR option to fix the problem.\n",
                        rpud.dt, in_name[stype]);

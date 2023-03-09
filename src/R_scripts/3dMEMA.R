@@ -569,8 +569,8 @@ Usage:
  Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
  ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
  a few exceptions. For instance, paired-test can be performed through feeding the 
- contrast of the two conditons as input. Multi-way ANOVA can be analyzed under the
- following two scnearios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
+ contrast of the two conditions as input. Multi-way ANOVA can be analyzed under the
+ following two scenarios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
@@ -610,7 +610,7 @@ contrast from each subject in a group):
                -residual_Z     \n"      
    ex2 <- 
 "Example 2 --- Two-sample type (one regression coefficient or general linear
-contrast from each subject in two groups with the constrast being the 2nd group 
+contrast from each subject in two groups with the contrast being the 2nd group 
 subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
 between the two groups), outlier modeling, covariates centering, no payment no 
 interest till Memorial Day next year. Notice that option -groups has to be
@@ -2132,7 +2132,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
 #################################################################################
 
 
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
 #tTop <- 100   # upper bound for t-statistic
 
@@ -2526,7 +2526,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
    #browser()
    if(lop$anaType!=4) for(m in seq(2,(2+4*(lop$nGrp==2)+2*lop$nCov),2)) 
       #outArr[,,,m] <- tConvert(outArr[,,,m], grpDFList[[1]][,,,1], nDF) else {
-      #the line above is more effecient, but gives warning!
+      #the line above is more efficient, but gives warning!
       for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3])
          outArr[i,j,k,m] <- tConvert(outArr[i,j,k,m], grpDFList[[1]][i,j,k,1], nDF) else {    
       # no covariate is involved with type 4
@@ -2564,7 +2564,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
       statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)
       statsym <- c(statsym,list(list(sb=5, typ="fitt", par=nDF)))
    }
-   # doesn't apply to type 4 (invidual group t analyzed separately)
+   # doesn't apply to type 4 (individual group t analyzed separately)
    if(anyCov) {
       for(ii in 1:lop$nCov) {
          statpar <- paste( statpar, " -substatpar ", 

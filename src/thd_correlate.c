@@ -2089,7 +2089,7 @@ void rank_order_float_arrays( int nar , int *nn , float **aa )
 
    for( kk=0 ; kk < ntot ; kk++ ){
      jj = b[kk] / nmax ;  /* which array did it come from? */
-     ii = b[kk] % nmax ;  /* which element in that arrary? */
+     ii = b[kk] % nmax ;  /* which element in that array? */
      aa[jj][ii] = c[kk] ; /* replace data with rank */
    }
 

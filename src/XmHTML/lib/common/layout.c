@@ -279,7 +279,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 
 	/*****
 	* work_width is core width minus one horizontal margin. 
-	* Maximum useable width is core width minus two times the horizontal
+	* Maximum usable width is core width minus two times the horizontal
 	* margin.
 	*****/
 	box.x       = HTML_ATTR(margin_width);		/* initial margin		*/
@@ -735,7 +735,7 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 			}
 		}
 		num_iter++;
-		/* move on to next set of words eligible for space adjustement. */
+		/* move on to next set of words eligible for space adjustment. */
 		word_len = (word_len == 0 ? longest_word : word_len - 1);
 	}
 	if(num_iter == XmHTML_MAX_JUSTIFY_ITERATIONS)
@@ -891,7 +891,7 @@ getWords(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 * Name: 		getWordsRtoL
 * Return Type: 	XmHTMLWord**
 * Description: 	creates an array containing all OBJ_TEXT elements between
-*				start and end but reverses the object to properly accomodate
+*				start and end but reverses the object to properly accommodate
 *				right-to-left layout.
 * In: 
 *	start:		element at which to start collecting words;
@@ -900,7 +900,7 @@ getWords(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 * Returns:
 *	an array of XmHTMLWord.
 * Note:
-*	This is a seperate routine for performance reasons.
+*	This is a separate routine for performance reasons.
 *****/
 static XmHTMLWord**
 getWordsRtoL(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
@@ -1182,7 +1182,7 @@ FinalizeTextLayout(XmHTMLWord **words, int nwords, Boolean in_pre)
 ***** row width that would be required to give each cell it's maximum size.
 ***** When this row width fits in the (total) available width, each cell
 ***** is granted it's maximum size. When it doesn't fit, the caller
-***** distributes the available width accross each cell, using the
+***** distributes the available width across each cell, using the
 ***** maximum cell widths as a weighing factor.
 ***** When each cell has received it's final dimension, the caller calls
 ***** the cell layout routines once more, but this time in final layout
@@ -1287,7 +1287,7 @@ SetText(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement start,
 }
 
 #define UPDATE_WORD(W) { \
-	/* images and forms need to have the font ascent substracted to get a */ \
+	/* images and forms need to have the font ascent subtracted to get a */ \
 	/* proper vertical alignment. */ \
 	(W)->line = line; \
 	(W)->x = x_pos + e_space; \
@@ -1695,7 +1695,7 @@ newline:
 				{
 					if(words[k]->type == OBJ_TEXT)
 						words[k]->y = y_offset + words[k]->owner->y_offset;
-					else	/* non-text objects don't have a usefull font */
+					else	/* non-text objects don't have a useful font */
 						words[k]->y = y_pos + words[k]->owner->y_offset;
 				}
 			}
@@ -2091,7 +2091,7 @@ ComputeTextLayoutPre(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 		* save line, x and y pos for this word.
 		* We don't do any interword spacing for <PRE> objects, they
 		* already have it. Images and forms need to have the font ascent
-		* substracted to get a proper vertical alignment.
+		* subtracted to get a proper vertical alignment.
 		*****/
 		words[i]->line = line;	/* fix 04/26/97-01, kdh */
 		words[i]->x    = x_pos;
@@ -2383,7 +2383,7 @@ SetRule(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	*****/
 
 	/*****
-	* Linefeeds in rules are divided accross the rule: half above and
+	* Linefeeds in rules are divided across the rule: half above and
 	* half below.
 	*****/
 	if(data->linefeed)
@@ -2488,7 +2488,7 @@ SetBreak(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	/* check if this is a real linebreak or just a margin reset */
 	if(linefeed)
 	{
-		/* if we already had a linefeed, we can substract one */
+		/* if we already had a linefeed, we can subtract one */
 		if(had_break && baseline_obj)
 		{
 			linefeed -= baseline_obj->font->lineheight;
@@ -2862,7 +2862,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 
 			/*****
 			* If this cell spans multiple columns, check if the sum of the
-			* next columns can accomodate the minimum width required for
+			* next columns can accommodate the minimum width required for
 			* displaying the contents of this cell.
 			* If it can, skip this cell (ensures all columns do get their
 			* minimum width, looks a lot nicer).
@@ -3026,7 +3026,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	i = (ncols * (2*hpad + hspace)) + hspace;
 
 	/*****
-	* left & right *table* borders use full border width (and substracts
+	* left & right *table* borders use full border width (and subtracts
 	* one for the left & right most cells which was added above)
 	*****/
 	i += 2*(table->props->border - bwidth);
@@ -3288,7 +3288,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	* and then compute the difference between this height and the height of
 	* the spanning cell. If this difference is negative, we can keep the
 	* current row heights. If it's positive however, we distribute this
-	* difference evenly accross the height of all spanned rows.
+	* difference evenly across the height of all spanned rows.
 	*****/
 	if(needs_height_adjustment)
 	{
@@ -3576,7 +3576,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 
 			/*
 			 * FIXME: update for vertical positioning: get content height,
-			 * substract box height and shift down by difference (bottom
+			 * subtract box height and shift down by difference (bottom
 			 * alignment) or by half the difference (middle alignment)
 			 * Should be done in next step!
 			 */

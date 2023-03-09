@@ -212,7 +212,7 @@ XmHTMLAnchorScrollToName(Widget w, String anchor)
 * Name:			XmHTMLAnchorReEvalAnchor
 * Return Type: 	void
 * Description: 	checks an HTML instance against a current href name
-*               alters any matching anchors to 'visited' and causes refesh
+*               alters any matching anchors to 'visited' and causes refresh
 * In: 
 *	w:			html widget
 *	href:		current anchors reference

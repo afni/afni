@@ -286,7 +286,7 @@ void signal_model (
         if( (nbad % nprint) == 0 )
         {
             char mesg[128];
-            sprintf(mesg, "\n** MD3: %d bad results (occurance %d):", rv, nbad);
+            sprintf(mesg, "\n** MD3: %d bad results (occurrence %d):", rv, nbad);
             disp_demri_params(mesg, &P);
             if( nprint < 10e+6 ) nprint <<= 1;  /* slower and slower */
         }

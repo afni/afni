@@ -138,7 +138,7 @@
  * Fixed GOP-missing error message (GOP to GOP_SIZE)
  *
  * Revision 1.10  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.9  1994/11/18  23:19:22  smoot
  * Added USER_DATA parameter

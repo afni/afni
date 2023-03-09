@@ -30,7 +30,7 @@ author    = "PA Taylor (NIMH, NIH)"
 #
 ver = '2.1' ; date = 'May 11, 2020'
 # [PT] replace str.isnumeric() with str.isdigit(), for backward
-#      compatability with Python v2.7.  Grrr.
+#      compatibility with Python v2.7.  Grrr.
 #
 # =================================================================
 

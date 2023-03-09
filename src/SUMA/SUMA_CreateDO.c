@@ -187,7 +187,7 @@ SUMA_SurfaceObject *SUMA_NewSO ( float **NodeList, int N_Node,
       if (!SUMA_SurfaceMetrics_eng( SO, "EdgeList, MemberFace",
                                     NULL, 0, SUMAg_CF->DsetList)) {
          SUMA_SL_Warn(  "Failed to compute metrics\n"
-                        "Returing with whatever is salvageable");
+                        "Returning with whatever is salvageable");
       }
    } else {
       SUMA_LH("Skipping metrics");
@@ -314,7 +314,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       /* Need a new edge list */
       if (!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", NULL)) {
          SUMA_SL_Warn(  "Failed to compute metrics\n"
-                        "Returing with whatever is salvageable");
+                        "Returning with whatever is salvageable");
       }
       RedoNormals = YUP;
    } else {
@@ -337,7 +337,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
          /* Need to inherit edge list */
          if (0 &&!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", SO)) {
             SUMA_SL_Warn(  "Failed to compute metrics\n"
-                           "Returing with whatever is salvageable");
+                           "Returning with whatever is salvageable");
          }
       }
    }
@@ -347,7 +347,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       SUMA_RECOMPUTE_NORMALS(SOn);
       if (0 &&!SUMA_SurfaceMetrics(SOn, "Convexity", SO)) {
          SUMA_SL_Warn("Failed to compute metrics\n"
-                      "Returing with whatever is salvageable");
+                      "Returning with whatever is salvageable");
       }
    }
 
@@ -2165,7 +2165,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -2182,7 +2182,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual thickness */
+      /* fill up individual thickness */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
@@ -2412,7 +2412,7 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -2428,7 +2428,7 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -2446,7 +2446,7 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual thickness */
+      /* fill up individual thickness */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
@@ -2470,7 +2470,7 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual stippliness */
+      /* fill up individual stippliness */
       itmp = 0; same =  1;
       while (itmp < SDO->N_n) {
          SDO->stipv[itmp]     = SUMA_int_to_stipplemask(
@@ -2606,7 +2606,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -2623,7 +2623,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual thickness */
+      /* fill up individual thickness */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
@@ -2636,7 +2636,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual stippliness */
+      /* fill up individual stippliness */
       itmp = 0; same =  1;
       while (itmp < SDO->N_n) {
          SDO->stipv[itmp]     = SUMA_int_to_stipplemask(
@@ -2780,7 +2780,7 @@ SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < MDO->N_obj) {
          itmp2 = 4*itmp;
@@ -2915,7 +2915,7 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -2932,7 +2932,7 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual thickness */
+      /* fill up individual thickness */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
@@ -2946,7 +2946,7 @@ SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual stipness */
+      /* fill up individual stipness */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->stipv[itmp]     = SUMA_int_to_stipplemask(
@@ -3316,7 +3316,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -3333,7 +3333,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
          SUMA_SL_Crit("Failed in to allocate for radv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual radius */
+      /* fill up individual radius */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
@@ -3346,7 +3346,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
          SUMA_SL_Crit("Failed in to allocate for radv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual style */
+      /* fill up individual style */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->stylev[itmp] = SUMA_SphereStyleConvert(
@@ -3448,7 +3448,7 @@ SUMA_SphereDO * SUMA_ReadPntDO (char *s)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -3483,7 +3483,7 @@ SUMA_SphereDO * SUMA_ReadPntDO (char *s)
          SUMA_SL_Crit("Failed in to allocate for radv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual radius */
+      /* fill up individual radius */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
@@ -4751,7 +4751,7 @@ SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual colors */
+      /* fill up individual colors */
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
@@ -4768,7 +4768,7 @@ SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for radv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual radius */
+      /* fill up individual radius */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
@@ -4781,7 +4781,7 @@ SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
          SUMA_SL_Crit("Failed in to allocate for radv.");
          SUMA_RETURN(NULL);
       }
-      /* fill up idividual style */
+      /* fill up individual style */
       itmp = 0;
       while (itmp < SDO->N_n) {
          SDO->stylev[itmp]     = SUMA_SphereStyleConvert((int)far[itmp+(icol_style  )*ncol]);
@@ -5712,7 +5712,7 @@ SUMA_TractDO * SUMA_Alloc_TractDO (  char *Label,
       SUMA_S_Err("Failed to add Tract Saux");
    }
 
-   TDO->N_datum = -2; /* unitialized, -1 means init failed */
+   TDO->N_datum = -2; /* uninitialized, -1 means init failed */
 
    TDO->MaskStateID = -1;
    TDO->N_tmask = 0;
@@ -5848,7 +5848,7 @@ SUMA_Boolean SUMA_CreatePlaneQuads(SUMA_PlaneDO *SDO)
    for (i=0; i<SDO->N_n;++i) {
       i3 = 3*i; n = 4*i;
       if (SDO->boxdimv) boxdimv = &(SDO->boxdimv[i3]);
-      /* calcuate limits of box limiting plane */
+      /* calculate limits of box limiting plane */
       xlim[0] = SDO->cxyz[0] - boxdimv[0];
       xlim[1] = SDO->cxyz[0] + boxdimv[0];
       ylim[0] = SDO->cxyz[1] - boxdimv[1];
@@ -5859,7 +5859,7 @@ SUMA_Boolean SUMA_CreatePlaneQuads(SUMA_PlaneDO *SDO)
       SUMA_LHv("Box dims:\n[%3.2f %3.2f]\n[%3.2f %3.2f]\n[%3.2f %3.2f]\n",
                xlim[0], xlim[1], ylim[0], ylim[1], zlim[0], zlim[1]);
 
-	   /*using the limits, find the corrsponding 4 corners*/
+	   /*using the limits, find the corresponding 4 corners*/
       eq = &(SDO->pleq[4*i]);
       /* recalculate the plane's d parameter to go though center */
       eq[3] = -(eq[0]*SDO->cxyz[0]+eq[1]*SDO->cxyz[1]+eq[2]*SDO->cxyz[2]);
@@ -6369,7 +6369,7 @@ SUMA_Boolean SUMA_DrawTractDO_basic (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                               coplanar with polygons
                               render without stitching, bleeding, or Z fighting.
                               Problem is, that it need to be turned on for proper
-                              rendering of remaing objects, and that brings the
+                              rendering of remaining objects, and that brings the
                               artifact back. */
                glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
             } else {
@@ -7450,7 +7450,7 @@ int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *codf)
          SUMA_RETURN(ido);
          break;
       default:
-         SUMA_S_Errv("Not equiped for type %d (%s) yet\n", codf->ref_do_type,
+         SUMA_S_Errv("Not equipped for type %d (%s) yet\n", codf->ref_do_type,
                      SUMA_ObjectTypeCode2ObjectTypeName(codf->ref_do_type));
          SUMA_RETURN(ido);
          break;
@@ -8150,7 +8150,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    if (dlist_size(GSaux->DisplayUpdates)) {/* GSaux->nido needs updating */
       el = dlist_head(GSaux->DisplayUpdates);
       do {
-         usedel = 1; /* assume will consumate this element */
+         usedel = 1; /* assume will consummate this element */
          if (!strcmp((char *)el->data,"nido_MapColors")) {
             /* blank out all values bb is ROW major, unlike the way
                MAT_full is stored. i* vars are for 1st matrix dim,
@@ -9002,7 +9002,7 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
    if (dlist_size(GSaux->DisplayUpdates)) {/* GSaux->SDO needs updating */
       el = dlist_head(GSaux->DisplayUpdates);
       do {
-         usedel = 1; /* assume will consumate this element */
+         usedel = 1; /* assume will consummate this element */
                 if (!strcmp((char *)el->data,"SDO_NodeList")) {
                SUMA_GDSET_NodeList(dset, NULL, 1, NULL, SUMA_ADO_variant(ado));
          } else if (!strcmp((char *)el->data,"SDO_MapColors")) {
@@ -10800,7 +10800,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
                               coplanar with polygons
                               render without stitching, bleeding, or Z fighting.
                               Problem is, that it need to be turned on for proper
-                              rendering of remaing objects, and that brings the
+                              rendering of remaining objects, and that brings the
                               artifact back. */
             glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
             break;
@@ -11433,7 +11433,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                               coplanar with polygons
                               render without stitching, bleeding, or Z fighting.
                               Problem is, that it need to be turned on for proper
-                              rendering of remaing objects, and that brings the
+                              rendering of remaining objects, and that brings the
                               artifact back. */
             glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
             break;
@@ -11788,7 +11788,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                       between different points (off diagonal)*/
             NodeMask[cn] = 1; NodeMask[cn1] = 1;
          }
-         /* Kill depth test or you could get burried under two way edges
+         /* Kill depth test or you could get buried under two way edges
             There is a problem though in that the edge wil ride over
             other objects that otherwise would obscure it, so that might
             be ugly. To get around that, one would need to avid drawing
@@ -12451,7 +12451,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   0 means a word will be let in if it does not overlap with
                     the boundaries of another
                   1 means all words will be allowed to show.
-                  -1 means no thresholding in applied, get a continous
+                  -1 means no thresholding in applied, get a continuous
                      overlap mask
    \ret mask (byte *) A byte mask with '1' where a word should be shown,
                       0 otherwise. A NULL could signal an error, but also
@@ -12507,7 +12507,7 @@ byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n,
          } else {
             mask[i] = 0.0;
          }
-      } else { /* continous marking */
+      } else { /* continuous marking */
          mask[i] = (byte)(pempt*255.0);
          for (nn=0; nn<offw; ++nn) {
             for (mm=0; mm<offh; ++mm) {
@@ -12755,7 +12755,7 @@ SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel,
 
       glAlphaFunc(GL_GEQUAL, 0.25); /* this only needs to be called
                if it is changed elsewhere. If it is set differently
-               per image, then we'll need to call it everytime.
+               per image, then we'll need to call it every time.
                I think it is easiest to call it repeatedly...
               to set GL_ALPHA_TEST's behaviour. Choose from:
               GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL, GL_GREATER, GL_NOTEQUAL,
@@ -16177,7 +16177,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       } while (NextROIElm != dlist_tail(Plane->ROI_index_lst));
 
       SUMA_LH("Scaling and storing ");
-      /* create a conveninent list of the colors that goes into */
+      /* create a convenient list of the colors that goes into */
       ivect = (int *)SUMA_malloc(N_NewNode * sizeof(int));
       rvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
       gvect = (float *)SUMA_malloc(N_NewNode * sizeof(float));
@@ -16357,7 +16357,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
 
    \param D_ROI (SUMA_DRAWN_ROI *)
    \param N_Nodes (int *) updated with the total number of nodes in Nodes
-   \param Unique (SUMA_Boolean) Remove repeated node occurences
+   \param Unique (SUMA_Boolean) Remove repeated node occurrences
    \return Nodes (int *) N_Nodesx1 vector of nodes forming ROI
 
    - Nodes (and N_Nodes) might have duplicate node entries, unless you set Unique
@@ -16799,7 +16799,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    Ch->Stipple = SUMA_SOLID_LINE;
    Ch->c[0] = Ch->c[1] = Ch->c[2] = 0.0;
 
-   /* Ch->g, and Ch->r setting is currently overriden if SO->EL->AvgLe > 0.0) */
+   /* Ch->g, and Ch->r setting is currently overridden if SO->EL->AvgLe > 0.0) */
    Ch->g = SUMA_CROSS_HAIR_GAP/SUMA_DimSclFac(NULL, NULL);
    Ch->r = SUMA_CROSS_HAIR_RADIUS/SUMA_DimSclFac(NULL, NULL);
 
@@ -16818,7 +16818,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
 
    Ch->sphcol[0] = 1.0; Ch->sphcol[1] = 1.0;
    Ch->sphcol[2] = 0.0; Ch->sphcol[3] = 0.0;
-   /* Ch->sphrad setting is currently overriden if SO->EL->AvgLe > 0.0) */
+   /* Ch->sphrad setting is currently overridden if SO->EL->AvgLe > 0.0) */
    Ch->sphrad = SUMA_CROSS_HAIR_SPHERE_RADIUS/SUMA_DimSclFac(NULL, NULL);
    Ch->slices = 10;
    Ch->stacks = 10;
@@ -17956,7 +17956,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 } /* SUMA_DrawMesh_mask */
 
 
-/*! Create a tesselated mesh */
+/*! Create a tessellated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawMesh"};
@@ -18350,7 +18350,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       GLfloat comcol[4] = {1.0, 0.0, 0.0, 1.0};
 
       if (! (mcall % 20) ) { /* a new slicing */
-         SUMA_S_Note("New prjection");
+         SUMA_S_Note("New projection");
          SUMA_ScreenPlane_WorldSpace(sv, cen, PlEq);
          SUMA_LH("Hit time");
          hits = SUMA_PlaneBoxIntersect(sv->GVS[sv->StdView].ViewFrom,
@@ -18387,7 +18387,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
 
-/*! Create a simple tesselated mesh,
+/*! Create a simple tessellated mesh,
    You don't even need to pass sv for this function
    just simple surface drawing, node colors
    must be passed directly if desired */
@@ -18745,7 +18745,7 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which,
       }
 
       /* job is done */
-      SUMA_LH("Appied xform");
+      SUMA_LH("Applied xform");
       SUMA_RETURN(1);
    } else if (direction == UNDO_XFORM) {
                         /* undo xform, not just apply the reverse  */
@@ -18760,7 +18760,7 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which,
             SUMA_S_Err("Tonnerre de Brest!");
             SUMA_RETURN(0);
          }
-      } else { /*transfrom results were stored in vx->XformedCoords, just kill */
+      } else { /*transform results were stored in vx->XformedCoords, just kill */
          SUMA_free(vx->XformedCoords); vx->XformedCoords = NULL;
       }
 
@@ -18923,7 +18923,7 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
          if (!sv->GVS[sv->StdView].LHlol) {
             sv->GVS[sv->StdView].LHlol = SUMA_SIGN(pr);
          }
-      if (units[0] == 'm') { /* mouse movememt to degrees */
+      if (units[0] == 'm') { /* mouse movement to degrees */
          sv->GVS[sv->StdView].vLHpry[0] = sv->GVS[sv->StdView].vLHpry0[0]+
                      sv->GVS[sv->StdView].LHlol*
                (90*2.5*val[0]/(float)(sv->X->aWIDTH+1.0)) ;
@@ -19004,7 +19004,7 @@ SUMA_Boolean SUMA_RecomputeNormsPrying(SUMA_SurfaceViewer *svu)
             SUMA_VisX_Pointers4Display(SO,1);
             SUMA_RECOMPUTE_NORMALS(SO); /* a little slow, but not much
                                            to do if we're not keeping
-                                           copy of orignal normals */
+                                           copy of original normals */
             SUMA_VisX_Pointers4Display(SO,0);
          }
       }
@@ -19630,7 +19630,7 @@ Usage :
     Ans = SUMA_Free_Surface_Object ( SO)
 
 
-Input paramters :
+Input parameters :
 \param   SO (SUMA_SurfaceObject *) Surface Object pointer
 
 Returns :
@@ -19982,7 +19982,7 @@ char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail)
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
    \param   DsetList (DList *) List of data sets (used to output convexity info)
    \return s (char *) pointer to NULL terminated string containing surface info.
-   It is your responsability to free it.
+   It is your responsibility to free it.
    \sa SUMA_Print_Surface_Object
 
 */
@@ -20640,7 +20640,7 @@ Usage :
     SUMA_Print_Surface_Object ( SO, Out)
 
 
-Input paramters :
+Input parameters :
 \param   SO (SUMA_SurfaceObject *) Surface Object pointer
 \param   Out (FILE *) stream pointer. (can use stdout or stderr)
          If you pass a file pointer, make sure it is open before
@@ -21318,7 +21318,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].EmbedDim = 3;
                /* the zeros in Center, MaxDims, MinDims, */
                /* aMinDims and aMaxDims */
-               /* are used to flag unitialized parameters */
+               /* are used to flag uninitialized parameters */
                /* always keep zero for initialization */
                /* see SUMA_isSODimInitialized */
       SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;
@@ -22473,7 +22473,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI (
                     "f" for "force" reset the initial value of a state
                            if state has not been set yet,
                               set state value per user's request
-                           else modifiy initial state value to user's request
+                           else modify initial state value to user's request
                     "r" for "revert" undo all the state settings in the  list
                              delete list and return NULL
                     "k" for "kill" delete list without reverting to initial

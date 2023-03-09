@@ -41,8 +41,8 @@ void svm_learn_classification(DOC *docs, double *class, long int
                      transduction) */
      /* totdoc:      Number of examples in docs/label */
      /* totwords:    Number of features (i.e. highest feature index) */
-     /* learn_parm:  Learning paramenters */
-     /* kernel_parm: Kernel paramenters */
+     /* learn_parm:  Learning parameters */
+     /* kernel_parm: Kernel parameters */
      /* kernel_cache:Initialized Cache of size 1*totdoc */
      /* model:       Returns learning result (assumed empty before called) */
 {
@@ -425,8 +425,8 @@ void svm_learn_regression(DOC *docs, double *value, long int totdoc,
      /* class:       Training value (y-part) */
      /* totdoc:      Number of examples in docs/label */
      /* totwords:    Number of features (i.e. highest feature index) */
-     /* learn_parm:  Learning paramenters */
-     /* kernel_parm: Kernel paramenters */
+     /* learn_parm:  Learning parameters */
+     /* kernel_parm: Kernel parameters */
      /* kernel_cache:Initialized Cache of size 2*totdoc */
      /* model:       Returns learning result (assumed empty before called) */
 {
@@ -649,8 +649,8 @@ void svm_learn_ranking(DOC *docs, double *rankvalue, long int totdoc,
      /* rankvalue:   Training target values that determine the ranking */
      /* totdoc:      Number of examples in docs/label */
      /* totwords:    Number of features (i.e. highest feature index) */
-     /* learn_parm:  Learning paramenters */
-     /* kernel_parm: Kernel paramenters */
+     /* learn_parm:  Learning parameters */
+     /* kernel_parm: Kernel parameters */
      /* kernel_cache:Initialized Cache of size 1*totdoc */
      /* model:       Returns learning result (assumed empty before called) */
 {
@@ -784,8 +784,8 @@ long optimize_to_convergence(DOC *docs, long int *label, long int totdoc,
 			      transduction) */
      /* totdoc: Number of examples in docs/label */
      /* totwords: Number of features (i.e. highest feature index) */
-     /* laern_parm: Learning paramenters */
-     /* kernel_parm: Kernel paramenters */
+     /* laern_parm: Learning parameters */
+     /* kernel_parm: Kernel parameters */
      /* kernel_cache: Initialized/partly filled Cache */
      /* shrink_state: State of active variables */
      /* model: Returns learning result */
@@ -1476,7 +1476,7 @@ long calculate_svm_model(DOC *docs, long int *label, long int *unlabeled,
     printf("done \n"); fflush(stdout);
   }
 
-  return(model->sv_num-1); /* have to substract one, since element 0 is empty*/
+  return(model->sv_num-1); /* have to subtract one, since element 0 is empty*/
 }
 
 long check_optimality(MODEL *model, long int *label, long int *unlabeled, 

@@ -423,7 +423,7 @@
 23 January 2004
   * modified SUMA_3dVol2Surf.c, SUMA_3dSurf2Vol.c and SUMA_SurfMeasures.c
              ( -> v4.0            -> v3.1              -> v 1.5 )
-      - SUMA_isINHmappable() is depricated, check with AnatCorrect field
+      - SUMA_isINHmappable() is deprecated, check with AnatCorrect field
 
 29 January 2004
   * modified plug_realtime.c :
@@ -582,7 +582,7 @@
   * modified plug_crender.c (-> v1.9) to resample only appropriate sub-bricks
 
 28 July 2004:
-  * modifed SUMA_3dSurf2Vol.c (-> v3.6), fixed bug where a previous change
+  * modified SUMA_3dSurf2Vol.c (-> v3.6), fixed bug where a previous change
     caused the default f_steps to revert from 2 to 1 (discovered by Kuba)
 
 02 August 2004:
@@ -630,7 +630,7 @@
 
 09 September 2004:
   * added plug_vol2surf.c: for setting the internal volume to surface options
-  * modifed afni_plugin.[ch]: added function PLUTO_set_v2s_addrs()
+  * modified afni_plugin.[ch]: added function PLUTO_set_v2s_addrs()
   * modified vol2surf.c
     - in afni_vol2surf(), show options on debug
     - allow first_node > last_node if last is 0 (default to n-1)
@@ -650,7 +650,7 @@
   * added afni_vol2surf.c: for computing SUMA_irgba from v2s_results
   * modified afni_niml.c:
     - if gv2s_plug_opts.ready, call AFNI_vol2surf_func_overlay()
-    - use saved_map in case of calling vol2surf twice, indentically
+    - use saved_map in case of calling vol2surf twice, identically
     - only send nvtot and nvused to suma via AFNI_vnlist_func_overlay()
   * modified Makefile.INCLUDE: added afni_vol2surf.o to AFOBJS
   * modified plug_vol2surf.c:
@@ -955,7 +955,7 @@
 
 14 Jan 2005: nifti_tool v1.1:
   * changed all non-error/non-debug output from stderr to stdout
-      note: creates a mis-match between normal output and debug messages
+      note: creates a mismatch between normal output and debug messages
   * modified act_diff_hdrs and act_diff_nims to do the processing in
       lower-level functions
   * added functions diff_hdrs, diff_hdrs_list, diff_nims, diff_nims_list
@@ -999,7 +999,7 @@
   * removed contents of nifti directory, and re-created it with the source
       tree from sourceforge.net
   * modified Makefile.INCLUDE to deal with the new nifti directories
-  * modifed thd_analyzeread.c and thd_niftiread.c not to use include directories
+  * modified thd_analyzeread.c and thd_niftiread.c not to use include directories
       - they now have explicit targets in Makefile.INCLUDE
 
 07 Mar 2005:
@@ -1234,12 +1234,12 @@
   * added Testing/niftilib/nifti_test.c (Hans)
   * removed tabs from all *.[ch] files
   * modified many Makefiles for SGI test and RANLIB (Hans)
-  * added appropriate const qualifiers for funtion param pointers to const data
-  * modifed nifti_io.c, nifti1_test.c, nifti_tool.c, reducing constant
+  * added appropriate const qualifiers for function param pointers to const data
+  * modified nifti_io.c, nifti1_test.c, nifti_tool.c, reducing constant
     strings below 509 bytes in length (-hist, -help strings)
   * modified nifti_stats.c: replaced strdup with malloc/strcpy for warning
 
-29 Auguest 2005: Dimon (-> v 2.2): added options -rev_org_dir and -rev_sort_dir
+29 August 2005: Dimon (-> v 2.2): added options -rev_org_dir and -rev_sort_dir
 
 01 September 2005:
   * modified 3dANOVA2.c (to properly handle multiple samples)
@@ -1683,7 +1683,7 @@
 
 14 Aug 2006:
   * modified mri_dicom_hdr.c, setting the type for g_readpreamble
-  * modified rickr/Makefile: remove dependancies on an ../*.o, so they are
+  * modified rickr/Makefile: remove dependencies on an ../*.o, so they are
         not removed by the build process (they should not be made from rickr)
 
 15 Aug 2006: added Makefile.linux_xorg7
@@ -1724,7 +1724,7 @@
       - added node_col to ni_globals, and hold the niml node column index
       - modified nsd_string_atr_to_slist() to skip a given index
       - apply node_col to process_ni_sparse_data() and process_ni_sd_attrs()
-      - modifed THD_add_sparse_data() to omit gni.node_col, not col 0
+      - modified THD_add_sparse_data() to omit gni.node_col, not col 0
 
 30 Aug 2006: INDEX_LIST is now a separate attribute element in the group
   * modified thd_niml.c:
@@ -1793,7 +1793,7 @@
 15 Nov 2006: modified serial_helper.c: encode nex into handshake byte
 
 17 Nov 2006:
-  * modifed model_demri_3.c:
+  * modified model_demri_3.c:
       - do not exit on fatal errors, complain and return zero'd data
       - if model parameters are bad (esp. computed), zero data and return
       - if thd_floatscan() on results shows bad floats, zero data and return
@@ -2065,7 +2065,7 @@
 27 Jun 2007:
   * modified afni_base.py, afni_proc.py, afni_util.py, db_mod.py:
         - on error, display failed command
-  * modifed Makefile_linux_xorg7 and xorg7_64 for static linking in SUMA
+  * modified Makefile_linux_xorg7 and xorg7_64 for static linking in SUMA
 
 28 Jun 2007: minor changes from HJ
   * modified CMakeLists.txt, niftilib/CMakeLists.txt, nifti1_io.c
@@ -2102,7 +2102,7 @@
   * modified Makefile.INCLUDE : to copy gifti directory for afni_src.tgz
 
 19 Jul 2007: modified model_demri_3.c: minor tweak to ct(t) equation
-20 Jul 2007: modifed Makefile.INCLUDE, gifti/Makefile, for building gtest
+20 Jul 2007: modified Makefile.INCLUDE, gifti/Makefile, for building gtest
 
 24 Jul 2007:
   * modified rickr/r_new_resam_dset.[ch] rickr/3dresample.c
@@ -2306,7 +2306,7 @@
         - contain -dylib_file option, for resolving 10.5 problem with libGL
 
 28 Dec 2007: gifti_io v0.9 (now, with gifti_tool)
-  * added gifti_tool.[ch]: replacing gifti_test, with added fucntionality
+  * added gifti_tool.[ch]: replacing gifti_test, with added functionality
   * modified gifti_test.[ch]: simplifying the program as a sample
   * modified gifti.get.times, gifti.test.io, Makefile: use tifti_tool
   * modified gifti_io.[ch], gifti_xml.[ch]:

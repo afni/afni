@@ -65,7 +65,7 @@
 *
 * Revision 1.14  1997/05/28 01:41:04  newt
 * Added the XmHTMLImageGZFSupported, XmHTMLGIFtoGZF, XmHTMLGifReadOK and
-* XmHTMLGifGetDataBlock convienience routines to convert GIF images to an
+* XmHTMLGifGetDataBlock convenience routines to convert GIF images to an
 * alternate format. Added the XmHTMLAllocColor and XmHTMLFreeColor protos for
 * easy color allocation. Modified the XmImageCreate routines to use a
 * XmImageConfig structure.
@@ -304,7 +304,7 @@ XmHTML_LIBEXPORT Boolean XmHTMLAnchorVisibleById(Widget w, int anchor_id);
 
 /*****
 * Checks a HTML instance against a current href name and alters any
-* matching anchors to visited and causes a refesh.
+* matching anchors to visited and causes a refresh.
 * If visited is True, the matching anchor is rendered as visited. If it's
 * False, it will be rendered as not visited.
 *****/
@@ -455,7 +455,7 @@ XmHTML_LIBEXPORT XmHTMLElementId XmHTMLObjectGetElement(Widget w,
 	XmHTMLObjectId object_id);
 
 /*****
-* Miscelleneous convenience functions
+* Miscellaneous convenience functions
 *****/
 /* return the library version number */
 XmHTML_LIBEXPORT int XmHTMLGetVersion(void);
@@ -482,7 +482,7 @@ XmHTML_LIBEXPORT void XmHTMLFreeDocumentInfo(XmHTMLDocumentInfo *doc_info);
 * Return the contents of the document head. Returns True when a <head></head>
 * section is present in the current document, False if not. When mask_bits
 * only contains HeadClear, the given attribute structure is wiped clean and
-* this function will return False immediatly.
+* this function will return False immediately.
 * The only exception concerns the <!DOCTYPE> tag and the HeadDocType mask bit:
 * if this bit is set, the value of this tag is returned whether or not a
 * head is present.

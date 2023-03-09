@@ -1,6 +1,6 @@
 
 # RedHat/CentOS 7 Linux setup, 15 Jun, 2017   R Reynolds
-# (this is for a build machine, requring more than for a user)
+# (this is for a build machine, requiring more than for a user)
 
 # vi, tcsh, wget seem to come automatically
 

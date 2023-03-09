@@ -380,7 +380,7 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
       int iii =  (user_inputs.xincode > 0)
                + (user_inputs.yincode > 0)
                + (user_inputs.zincode > 0) ;
-      /* so if somthing is specified, each must be, or be of length 1 */
+      /* so if something is specified, each must be, or be of length 1 */
       /*                                          23 Apr 2020 [rickr] */
       if ( iii > 0 )
           iii =  (user_inputs.xincode > 0 || user_inputs.nx == 1 )
@@ -3420,7 +3420,7 @@ void Syntax()
     "      if you use the 3Di:, 3Df:, or 3Dc: input methods and store the\n"
     "      data as shorts, I suggest you supply a global scaling factor.\n"
     "      Similar remarks apply to '-datum byte' scaling, with even more force.\n"
-    "  * To3d now incoporates POSIX filename 'globbing', which means that\n"
+    "  * To3d now incorporates POSIX filename 'globbing', which means that\n"
     "      you can input filenames using 'escaped wildcards', and then to3d\n"
     "      will internally do the expansion to the list of files.  This is\n"
     "      only desirable because some systems limit the number of command-line\n"
@@ -3604,7 +3604,7 @@ void Syntax()
     "    reverse the input file list.\n"
     "    Convenience for Siemens non-mosaic flipped datasets\n\n"
     "  -use_last_elem\n"
-    "    If present, search DICOM images for the last occurance of each\n"
+    "    If present, search DICOM images for the last occurrence of each\n"
     "    element, not the first.\n"
     "  -use_old_mosaic_code\n"
     "    If present, do not use the Dec 2010 updates to siemens mosaic code.\n"
@@ -4043,7 +4043,7 @@ void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
    if( user_inputs.ntt > 0 && nvals_new != 1 ){
       T3D_poperr("***** DATA TYPE WARNING *****\n",
                  "New data type is not allowed\n"
-                 "with time-dependent datatset!" ,1) ;
+                 "with time-dependent dataset!" ,1) ;
       return ;
    }
 

@@ -46,7 +46,7 @@ sed 's/NIFTI_XFORM_TALAIRACH/NIFTI_XFORM_MNI_152/' $f1  \
 echo $output | grep -q 'dspace diff: NIFTI_XFORM_TALAIRACH vs. NIFTI_XFORM_MNI_152'
 echo $output | grep -q 'diff in DA coordsys'
 
-# test: modify POINTSET and TRIANGE data
+# test: modify POINTSET and TRIANGLE data
 sed 's/-65.592651/-65.6/' $f1 | sed 's/141604/141605/' > $f2
 ! output=$($GT -approx_gifti -infiles $f1 $f2 -compare_verb 3 2>&1)
 echo $output | grep -q 'triange diff'

@@ -35,7 +35,7 @@ FuncName = 'PreProc.m';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 % Don't worry about NaN's at this point.
@@ -307,7 +307,7 @@ if (Contr.do == 1),
    %dmat_mean = dmat(:, (num_col0 + 1):(num_col0 + num_col(1)));
 
    % Get the number in the sum for each mean, which happens to be in the diagonal of X'X.
-   % This can also be otained through the user input variables, but it is generic with
+   % This can also be obtained through the user input variables, but it is generic with
    % the matrix operation, especially for unbalanced design.
    %sum_num = diag(dmat_mean' * dmat_mean);
 

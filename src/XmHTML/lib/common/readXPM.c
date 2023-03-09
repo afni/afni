@@ -161,7 +161,7 @@ doXpm(Widget html, ImageBuffer *ib, XpmImage *xpm_image)
 		/* pick up the name of the current color */
 		col_name = xpm_image->colorTable[i].c_color;
 
-		/* transparancy, these can *all* name a transparent color. */
+		/* transparency, these can *all* name a transparent color. */
 		if(!(strcasecmp(col_name, "none")) ||
 			!(strcasecmp(col_name, "mask")) ||
 			!(strcasecmp(col_name, "background")))

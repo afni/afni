@@ -2,7 +2,7 @@
 
 	All output which is to become C code must be directed through this
    function.  For now, no buffering is done.  Later on, every line of
-   output will be filtered to accomodate the style definitions (e.g. one
+   output will be filtered to accommodate the style definitions (e.g. one
    statement per line, spaces between function names and argument lists,
    etc.)
 */
