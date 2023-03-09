@@ -6,5 +6,7 @@ ignore-words = .codespell-ignores
 # Individual words if so desired to be added
 # some variable names or due to '\nnumber'
 # ATLEAST,STATUSs -- macros
-# DoubleClick
-ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick
+# ForHead,firsth,surviveR,BoundIn,planeD -- vars
+# DoubleClick,LessTiff
+# Algebraical - name (kinda?)
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed
