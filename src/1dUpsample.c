@@ -47,7 +47,7 @@ int main( int argc , char *argv[] )
    if( inim->nx < 2 ) {
      if( inim->ny > 1 )
        ERROR_exit("1dUpsample file '%s' has bad dims %dx%d,"
-                  " consider tranpose", argv[iarg], inim->nx, inim->ny) ;
+                  " consider transpose", argv[iarg], inim->nx, inim->ny) ;
      else
        ERROR_exit("1dUpsample file '%s' has small dims %dx%d",
                   argv[iarg], inim->nx, inim->ny) ;
