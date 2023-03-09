@@ -2526,7 +2526,7 @@ def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr
       (so probably want some space in newstr)"""
    # while oldstr is found
-   #   find last preceeding keep posn (before oldstr and spaces)
+   #   find last preceding keep posn (before oldstr and spaces)
    #   find next following keep posn (after oldstr and spaces)
    #   set result = result[0:first] + newstr + result[last:]
    newlen = len(newstr)
