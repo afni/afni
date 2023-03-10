@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     # parameters['OutDir'] = OutDir
     if RET.ouputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
-        print('ERROR outputting SliBase file')
+        print('** ERROR outputting SliBase file')
         sys.exit()
     
     if len(physiologicalNoiseComponents['resp_phases']) > 0 and\

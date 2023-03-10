@@ -790,6 +790,9 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
     main_info, label = initializeMainInfoAndLabel( 
             physiologicalNoiseComponents, test_retro_obj, 
             n_r_v, n_r_p, n_e, n_n)
+    if not main_info:
+        print('** ERROR: Failure to get main info. for output')
+        return None, None
 
     if main_info["slice_major"] == 0:  # old approach, 
                                        # not handy for 3dREMLfit
@@ -860,7 +863,7 @@ def ouputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         physiologicalNoiseComponents, n_r_v, n_r_p, n_e, n_n, 
         resp_info, card_info)
     if not main_info:
-        print('ERROR getting main info and label for NIML File')
+        print('** ERROR getting main info and label for NIML File')
         return 1
 
     # Output file

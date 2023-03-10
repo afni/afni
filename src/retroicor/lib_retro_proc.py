@@ -842,26 +842,23 @@ def limitNumOutputTimepoints(rawData, test_retro_obj, samp_freq):
     eps_nt = 0.1    # Tolerance for rounding up number of TRs 
                     # (fraction of TR)
     max_numTime_pts = int(max_numTime_float + eps_nt)
+    num_time_pts = test_retro_obj.vol_nv
     
-    # print("++ duration of physio signal:", duration)
-    # print("++ TR (MRI data)            :", test_retro_obj.vol_tr)
-    # print("++ number of TRs from physio:", max_numTime_float)
-    # print("++ number of TRs (as int)   :", max_numTime_pts)
+    print("++ duration of physio signal:", duration)
+    print("++ TR (MRI data)            :", test_retro_obj.vol_tr)
+    print("++ number of TRs from physio:", max_numTime_float)
+    print("++ number of TRs (as int)   :", max_numTime_pts)
     
     # # If the user has supplied the number of output times points, 
     # # it must not be greater than the determined maximum
-    # num_time_pts = phys_ts_obj.n_ts_orig
-    # if phys_ts_obj.n_ts_orig: 
-    #     if num_time_pts > max_numTime_pts:
-    #         print('WARNING: num_time_pts argument too large ' + \
-    #               'for input data')
-    #         print('  Adjusted to maximum allowable value, ', 
-    #               max_numTime_pts)
-    #         num_time_pts = max_numTime_pts
-    # else: 
-    #     num_time_pts = max_numTime_pts
+    if num_time_pts > max_numTime_pts:    
+        print('WARNING: num_time_pts argument too large ' + \
+              'for input data')
+        print('  Adjusted to maximum allowable value, ', 
+              max_numTime_pts)
+        num_time_pts = max_numTime_pts
         
-    return max_numTime_pts
+    return num_time_pts
 
 def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts, 
            TR, show_graph = False, save_graph = True, 
