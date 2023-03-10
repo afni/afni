@@ -201,7 +201,7 @@ class Decon:
                         helpstr='response kernel [GAM])');
 
         self.valid_opts.add_opt('-kernel_file', 1, [],
-                        helpstr='file for reponse kernel [resp_kernel.1D]');
+                        helpstr='file for response kernel [resp_kernel.1D]');
 
         self.valid_opts.add_opt('-mask_dset', 1, [],
                         helpstr='computational mask dataset');

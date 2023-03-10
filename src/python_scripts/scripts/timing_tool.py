@@ -3241,11 +3241,11 @@ class ATInterface:
          L0 = amtlist[0]
          for L in amtlist:
             if len(L) != len(L0):
-               print('** CM1L: length mis-match: %d vs %d' % (len(L0), len(L)))
+               print('** CM1L: length mismatch: %d vs %d' % (len(L0), len(L)))
                return 1, []
             for rind in range(len(L)):
                if len(L[rind]) != len(L0[rind]):
-                  print('** CM1L: row length mis-match at row %d' % rind)
+                  print('** CM1L: row length mismatch at row %d' % rind)
                   return 1, []
          if self.verb > 2:
             print('-- combining event lists per run, %d lists of length %d' \
