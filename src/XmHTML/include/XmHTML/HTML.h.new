@@ -435,7 +435,7 @@ enum{
 * XmIMAGE_SHARED_DATA
 *	This bit is set when images share data. XmHTML sets this bit when the image
 *	in question is an internal image, e.i., one for which the image data may
-*	never be freed. Be carefull setting this bit yourself, since it prevents
+*	never be freed. Be careful setting this bit yourself, since it prevents
 *	XmHTML from freeing the image data present in the XmImageInfo structure.
 *	It can easily lead to memory leaks when an image is *not* an internal
 *	image.

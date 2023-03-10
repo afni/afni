@@ -2863,7 +2863,7 @@ even when the overlay is a 'bucket' dataset without a time axis.
 ----------------------------
 Variable: AFNI_CLICK_MESSAGE
 ----------------------------
-If this veriable is set to NO, then the string
+If this variable is set to NO, then the string
   [---------------]
   [ Click in Text ]
   [ to Pop Down!! ]

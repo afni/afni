@@ -2118,7 +2118,7 @@ def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
       # make a ',' and '..' string listing TR indices
       estr = encode_1D_ints([i for i in range(rlen) if rvals[i]])
 
-      # every ',' separated piece needs to be preceeded by RUN:
+      # every ',' separated piece needs to be preceded by RUN:
       rstr += "%d:%s " % (run+1, estr.replace(',', ',%d:'%(run+1)))
 
    if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
@@ -2526,7 +2526,7 @@ def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr
       (so probably want some space in newstr)"""
    # while oldstr is found
-   #   find last preceeding keep posn (before oldstr and spaces)
+   #   find last preceding keep posn (before oldstr and spaces)
    #   find next following keep posn (after oldstr and spaces)
    #   set result = result[0:first] + newstr + result[last:]
    newlen = len(newstr)
@@ -2747,7 +2747,7 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     return 0        # if we get here, line wrapping is not needed
 
 def find_command_end(command, start=0):
-    """find the next '\n' that is not preceeded by '\\', or return the
+    """find the next '\n' that is not preceded by '\\', or return the
        last valid position (length-1)"""
 
     length = len(command)

@@ -5555,7 +5555,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
          dsmooth = SUMA_Chung_Smooth (SO, wgt, 200, 20, touchup, 1, SUMA_COLUMN_MAJOR, NULL, cs, NULL, 1);   
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* filtering done.\n", FuncName);   
       } else { 
-         dsmooth = touchup; /* carefull at the free business */
+         dsmooth = touchup; /* careful at the free business */
       }  
       /* add the changes */   
       #if 1 /* sudden jump, Fast and furious but that causes intersections */ 

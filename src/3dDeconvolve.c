@@ -3998,7 +3998,7 @@ ENTRY("read_time_series") ;
       MRI_IMAGE *tim = mri_transpose(flim) ;
       mri_free(flim) ; flim = tim ;
       far = MRI_FLOAT_PTR(flim); nx = flim->nx; ny = flim->ny;
-      INFO_message("1D time series file %s has %d rows and %d columns: tranposing it",ts_filename,nx,ny);
+      INFO_message("1D time series file %s has %d rows and %d columns: transposing it",ts_filename,nx,ny);
     } else {
       WARNING_message("1D file %s has %d rows and %d columns: ignoring later columns",ts_filename,nx,ny);
     }

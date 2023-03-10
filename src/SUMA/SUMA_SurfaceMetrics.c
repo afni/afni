@@ -414,7 +414,7 @@ int main (int argc,char *argv[])
          if (0 && iType == SUMA_FT_NOT_SPECIFIED) {
                               /* iType input no longer allowed */
             fprintf (SUMA_STDERR, 
-                     " -sv option must be preceeded by -i_TYPE option.");
+                     " -sv option must be preceded by -i_TYPE option.");
             exit(1);
          }
          kar ++;

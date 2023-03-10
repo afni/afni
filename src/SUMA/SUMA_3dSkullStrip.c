@@ -253,7 +253,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                the values inside the brain as -norm_vol would.\n"
 "     -mask_vol: Output a mask volume instead of a skull-stripped\n"
 "                volume.\n"
-"                The mask volume containes:\n"
+"                The mask volume contains:\n"
 "                 0: Voxel outside surface\n"
 "                 1: Voxel just outside the surface. This means the voxel\n"
 "                    center is outside the surface but inside the \n"

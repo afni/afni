@@ -266,7 +266,7 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func,
             func, file, *line, *io, *level);
                           
    #if 0
-   /* skip the muck until next + or - that is preceeded by new 
+   /* skip the muck until next + or - that is preceded by new 
    line or followed by ENTRY or EXIT on the same line*/
    ss = ss_level;
    while (*ss != '\0') {

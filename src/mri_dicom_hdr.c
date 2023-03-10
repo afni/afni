@@ -11142,7 +11142,7 @@ LST_Insert(LST_HEAD ** list, LST_NODE * node, LST_END where)
 	(*list)->tail = node;	/* new node is now the tail */
 
     } else if (where == LST_K_AFTER) {	/* not a special case       */
-	OLD_NEXT->previous = node;	/* we preceed a node        */
+	OLD_NEXT->previous = node;	/* we precede a node        */
 	node->next = OLD_NEXT;	/* the old next follows us  */
 	node->previous = CURRENT;	/* the current preceeds us  */
 	CURRENT->next = node;	/* we follow current        */
@@ -11151,7 +11151,7 @@ LST_Insert(LST_HEAD ** list, LST_NODE * node, LST_END where)
 	OLD_PREV->next = node;	/* we follow the previous   */
 	node->previous = OLD_PREV;	/* of current            */
 	node->next = CURRENT;	/* current follows us and   */
-	CURRENT->previous = node;	/* we preceed current     */
+	CURRENT->previous = node;	/* we precede current     */
     };
 
     (*list)->count++;		/* bump the counter          */

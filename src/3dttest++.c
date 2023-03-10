@@ -1315,7 +1315,7 @@ void display_help_menu(void)
       "\n"
       " -dupe_ok  = Duplicate dataset labels are OK. Do not generate warnings\n"
       "             for dataset pairs.\n"
-      "            ** This option must preceed the corresponding -setX options.\n"
+      "            ** This option must precede the corresponding -setX options.\n"
       "            ** Such warnings are issued only when '-covariates' is used\n"
       "               -- when the labels are used to extract covariate values\n"
       "               from the covariate table.\n"
