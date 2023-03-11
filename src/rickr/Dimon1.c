@@ -67,7 +67,7 @@ static char * g_history[] =
     " 3.3  Apr 25, 2011 [rickr]\n"
     "      - if Siemens timing: pass TPATTERN explicit to RT plugin\n"
     " 3.4  Aug 30, 2011 [rickr]\n"
-    "      - update volume delta to mean dz, to accomodate truncated initial\n"
+    "      - update volume delta to mean dz, to accommodate truncated initial\n"
     "        values leading to 'volume toasted' (problem noted by B Benson)\n",
     " 3.5  Sep  6, 2011 [rickr]\n"
     "      - added -fast: short for -sleep_init 50 -sleep_vol 50\n"
@@ -76,7 +76,7 @@ static char * g_history[] =
     " 3.7  Jan 17, 2012 [rickr]\n"
     "      - using -gert_create_dataset implies -GERT_Reco and -quit\n"
     " 3.8  Jan 19, 2012 [rickr]\n",
-    "      - made -quit more agressive (never wait for new files)\n"
+    "      - made -quit more aggressive (never wait for new files)\n"
     " 3.7  Jan 25, 2012 [rickr] : back out changes for 3.8 and ponder\n"
     " 3.8  Feb  7, 2012 [rickr] : added -no_wait (more forceful than -quit)\n"
     "      - also, suppress new glob warning\n"
@@ -114,7 +114,7 @@ static char * g_history[] =
 #define DIMON_VERSION "version 3.18 (August 3, 2015)"
 
 /*----------------------------------------------------------------------
- * Dimon - monitor real-time aquisition of Dicom or I-files
+ * Dimon - monitor real-time acquisition of Dicom or I-files
  *
  *     This program is intended to be run during a scanning session
  *     on a GE scanner, to monitor the collection of 2D image files.
@@ -1295,7 +1295,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         if( fp->minfo.nslices != vin->minfo.nslices ||
             fp->minfo.mos_nx  != vin->minfo.mos_nx  ||
             fp->minfo.mos_ny  != vin->minfo.mos_ny  ) {
-            fprintf(stderr, "** volume mis-match, not sure how to proceed!\n");
+            fprintf(stderr, "** volume mismatch, not sure how to proceed!\n");
             fprintf(stderr, "   im_is_volume = %d, %d\n",
                     fp->minfo.im_is_volume, vin->minfo.im_is_volume);
             fprintf(stderr, "   nslices   = %d, %d\n",
@@ -2283,7 +2283,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( (p->opts.nice < IFM_MIN_NICE_INC) ||
                  (p->opts.nice > IFM_MAX_NICE_INC) )
             {
-                fprintf( stderr, "error: nice incrment must be in [%d,%d]\n",
+                fprintf( stderr, "error: nice increment must be in [%d,%d]\n",
                          IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
                 errors++;
             }
@@ -3954,7 +3954,7 @@ static int usage ( char * prog, int level )
       "    except that the real-time plugin will wait until the first new\n"
       "    volume is processed before executing those DRIVE_AFNI commands.\n"
       "    One advantage of this is opening an image window for a dataset\n"
-      "    _after_ it is loaded, allowing afni to approriately set the\n"
+      "    _after_ it is loaded, allowing afni to appropriately set the\n"
       "    window size.\n"
       "\n"
       "    See README.driver for acceptable DRIVE_AFNI commands.\n"
@@ -4941,7 +4941,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     /* maybe use an output directory */
     if( opts->gert_outdir )
         fprintf(fp,
-             "set OutDir       = '%s'     # output directoy for datasets\n"
+             "set OutDir       = '%s'     # output directory for datasets\n"
              "\n\n"
              "#---------- make sure output directory exists ----------\n"
              "test -d $OutDir || mkdir $OutDir\n",
@@ -5292,7 +5292,7 @@ static int nap_time_in_ms( float t1, float t2 )
  *
  * if enough images but we are not finding it, warn user
  *
- * return   index : upon succes         (start <= index <= p->nused)
+ * return   index : upon success        (start <= index <= p->nused)
  *             -1 : not found
  *             -2 : error
  * ----------------------------------------------------------------------
@@ -5360,7 +5360,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int max_naps,
     if ( (((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num)) &&
          ( func_failure == 0 ) )
     {
-        fprintf( stderr, "** warning: CSR - stats inconsistancy!\n" );
+        fprintf( stderr, "** warning: CSR - stats inconsistency!\n" );
         func_failure = 1;
 
         return -1;
@@ -5686,7 +5686,7 @@ static int find_fl_file_index( param_t * p )
 }
 
 /* ----------------------------------------------------------------------
- * return the number of occurances of 'target' in 'str' of length 'len'
+ * return the number of occurrences of 'target' in 'str' of length 'len'
  * ----------------------------------------------------------------------
 */
 static int str_char_count( char * str, int len, char target )

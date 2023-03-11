@@ -104,7 +104,7 @@ class Afni1D:
       if self.verb > 2: self.show()
 
    def reduce_by_tlist(self, tlist):
-      """reduce by time list, similiar to afni's {} selector
+      """reduce by time list, similar to afni's {} selector
          this affects run_len and runs, so try to fix those
 
          return 0 on success"""
@@ -2087,7 +2087,7 @@ class Afni1D:
       """print a distance matrix, to the given number of places
 
          Treating the input as lines of vectors (coordinates), print out an
-         nrows x nrows distance matrix, the Euclidian distance between the
+         nrows x nrows distance matrix, the Euclidean distance between the
          pairs of coordinates.
 
          verb: integral verbosity level (None : use self.verb)
@@ -2141,7 +2141,7 @@ class Afni1D:
 
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -2915,7 +2915,7 @@ class Afni1D:
             IM:     -stim_times_IM
 
       """
-      # make a list of acceptible options
+      # make a list of acceptable options
       if 'ALL' in stypes:
          optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
                     '-stim_times_IM']
@@ -4160,7 +4160,7 @@ class AfniData(object):
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
 
-         return -1 on fatal erros
+         return -1 on fatal errors
                  0 on OK
                  1 on non-fatal errors
       """
@@ -4403,7 +4403,7 @@ class AfniData(object):
          return 1
 
    def file_type_errors_global(self, run_lens=[], tr=0.0, verb=1):
-      """ return -1 on fatal erros
+      """ return -1 on fatal errors
                   0 on OK
                   1 on non-fatal errors
       """
@@ -4787,7 +4787,7 @@ class AfniData(object):
       # self.mdata
       lorig = self.mdata
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding mdata")
             d = []
@@ -4802,7 +4802,7 @@ class AfniData(object):
       # self.alist
       lorig = self.alist
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding alist")
             d = []
@@ -4817,7 +4817,7 @@ class AfniData(object):
       # self.run_lens
       lorig = self.run_lens
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding run_lens")
             d = []

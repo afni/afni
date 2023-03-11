@@ -137,7 +137,7 @@ def _get_mesg(libname):
 
 # function definition string for if we are running pythong 2.5 +
 # (this version produces a syntax error in 2.4.x python)
-# (old string method, forget pyton 2.4) import_find_test_25_def =       \
+# (old string method, forget python 2.4) import_find_test_25_def =     \
 import_find_test_25_def =       \
 """
 def import_find_test_25(libname, details=1, verb=1):

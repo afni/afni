@@ -93,7 +93,7 @@ if ( $status ) then
     set useps = 1
 endif
 
-# if ignore_list, make compund grep expression
+# if ignore_list, make compound grep expression
 set iglist = ( )
 foreach istr ( $ignore_list )
    set iglist = ( $iglist -e $istr )

@@ -2808,7 +2808,7 @@ ENTRY( "RCREND_help_CB" );
        "          crosshairs will show through whatever underlay data\n"
        "          may be in the way.\n"
        "    N.B.: If you want only the crosshairs in color, then set the\n"
-       "          theshold on the overlay dataset so high that no actual\n"
+       "          threshold on the overlay dataset so high that no actual\n"
        "          data will show in color.  The crosshair overlay will\n"
        "          still be visible.\n"
        "    N.B.: If you change the crosshair gap in the AFNI control panel,\n"
@@ -3996,7 +3996,7 @@ ENTRY( "RCREND_accum_lab_EV" );
          accum_lab_replace =
            ( (event->state & ShiftMask) || (event->state & ControlMask) ) ;
 
-         ttl = (accum_lab_replace) ? "Replacment Label"
+         ttl = (accum_lab_replace) ? "Replacement Label"
                                    : "New Overlay Label" ;
          MCW_choose_string( w,ttl,accum_label , RCREND_accum_lab_CB,NULL ) ;
        }
@@ -7746,7 +7746,7 @@ ENTRY( "RCREND_save_this_CB" );
    if( sbuf == NULL ){
       (void) MCW_popup_message( script_cbut ,
                                    "\n"
-                                   "** Some error occured when\n"
+                                   "** Some error occurred when\n"
                                    "** trying to save the state!\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
       free(fname) ; PLUTO_beep() ; EXRETURN ;
@@ -7756,7 +7756,7 @@ ENTRY( "RCREND_save_this_CB" );
    if( fp == NULL ){
       (void) MCW_popup_message( script_cbut ,
                                    "\n"
-                                   "** Some error occured when\n"
+                                   "** Some error occurred when\n"
                                    "** trying to open the file!\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
       free(sbuf) ; free(fname) ; PLUTO_beep() ; EXRETURN ;
@@ -7802,7 +7802,7 @@ ENTRY( "RCREND_read_this_CB" );
 
    if( rsa == NULL || RSA_COUNT(rsa) < 1 ){
       sprintf(buf, "\n"
-                   "** Some error occured when\n"
+                   "** Some error occurred when\n"
                    "** trying to read file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
@@ -7898,7 +7898,7 @@ ENTRY( "RCREND_save_many_CB" );
    fp = fopen( fname , "w" ) ;
    if( fp == NULL ){
       sprintf(buf, " \n"
-                   "** Some error occured when\n"
+                   "** Some error occurred when\n"
                    "** trying to open file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
@@ -7954,7 +7954,7 @@ ENTRY( "RCREND_read_exec_CB" );
 
    if( rsa == NULL || RSA_COUNT(rsa) < 1 ){
       sprintf(buf, "\n"
-                   "** Some error occured when\n"
+                   "** Some error occurred when\n"
                    "** trying to read file %s\n" , fname ) ;
       (void) MCW_popup_message( script_cbut , buf ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
@@ -9615,7 +9615,7 @@ static int rd_disp_debug_help( char * str, CR_debug * d )
         "    d?   - debug help           : display this menu\n"
         "    dh   - history              : display plugin history\n"
         "    dcN  - display color info   : bigmode color info (with step N)\n"
-        "    di   - display image        : display last mri image strcture\n"
+        "    di   - display image        : display last mri image structure\n"
         "    dlN  - debug level          : set debug level to N, {0,1,2}\n"
         "    ddX  - display dataset info : display dataset info for \n"
         "                                  dset, fset, or mset\n"

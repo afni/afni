@@ -225,7 +225,7 @@ def process_one_data_line(line, verb=1):
 
       If any tokens are married, they should all have the same format.
 
-      return result, [time tokens] [acounts] (result = 0 if OK, 1 on error)
+      return result, [time tokens] [acount's] (result = 0 if OK, 1 on error)
    """
 
    if not line:

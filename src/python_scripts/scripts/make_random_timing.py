@@ -1543,7 +1543,7 @@ g_todo = """
    - global "-across_runs" should still apply
 
    - maybe this program should just be a new one?  gen_random_timing.py?
-      - MRT could be forked and depricated, but maybe people want to use it?
+      - MRT could be forked and deprecated, but maybe people want to use it?
       - or perhaps it could be clear by calling it old_MRT.py
       -no, just try to partition options
          - OLD: -num_stim, -num_reps, -stim_dur, -stim_labels, -min_rest
@@ -1661,7 +1661,7 @@ class RandTiming:
         self.osfollow = []
         self.osdict   = {}              # list of followers per leader
 
-        self.max_consec = []            # max consectutive stimuli per type
+        self.max_consec = []            # max consecutive stimuli per type
         self.t_gran   = gDEF_OLD_T_GRAN # time granularity for rest
         self.tgset    = 0               # was this field set?
         self.t_digits = gDEF_OLD_DEC_PLACES # digits after decimal for times
@@ -1747,7 +1747,7 @@ class RandTiming:
         self.valid_opts.add_opt('-make_3dd_contrasts', 0, [],
                         helpstr='add contrasts pairs to 3dDeconvolve script')
         self.valid_opts.add_opt('-max_consec', -1, [], okdash=0,
-                        helpstr='max consecutive occurances of each stim type')
+                        helpstr='max consecutive occurrences of each stim type')
         self.valid_opts.add_opt('-max_rest', 1, [],
                         helpstr='maximum rest time after each stimulus')
         self.valid_opts.add_opt('-min_rest', 1, [],
@@ -3161,7 +3161,7 @@ class RandTiming:
 
     def randomize_limited_events(self, nrest):
         """return a random list of events, where each event type may have a
-           limit on consecutive occurances
+           limit on consecutive occurrences
              - keep list of # remaining for each type (include rest)
              - fraction of # remaining provides probability for next event
              - do not include event type at limit
@@ -3369,10 +3369,10 @@ class RandTiming:
                 # if rind is too big to insert here, move on
                 # (take care if rtype bin is full)
 
-                # if rtype, either no postions or c1+1 postions available
+                # if rtype, either no positions or c1+1 positions available
                 # (consider after last as one more position)
                 if c0 == rtype:
-                   if c1 >= pmax: continue   # no postions
+                   if c1 >= pmax: continue   # no positions
 
                    if rind >= c1+1:
                       rind -= c1+1
@@ -3453,7 +3453,7 @@ class RandTiming:
                if self.verb > 5: print(space, positions)
                continue
     
-            # have ncur postions times emax space, unless prev was eind
+            # have ncur positions times emax space, unless prev was eind
             space += ncur*emax
             positions += ncur
 
@@ -3555,7 +3555,7 @@ class RandTiming:
             print('-- shifting %g seconds of excessive rest (%g available)' \
                   % (ftotal*self.t_gran, etotal*self.t_gran))
             if self.verb > 3:
-                print('== excessive rest exeeds %d events...' % maxnrest)
+                print('== excessive rest exceeds %d events...' % maxnrest)
                 print('   (%s/%s = %s)' % (max_rest, self.t_gran,
                                            max_rest/self.t_gran))
 
@@ -3674,7 +3674,7 @@ class RandTiming:
        for sind, sc in enumerate(self.sclasses):
           if mclist[sind] <= 0: continue
           if sc.max_consec > 0:
-             print('** max_consec alread set for class %s' % sc.name)
+             print('** max_consec already set for class %s' % sc.name)
              return 1
           sc.max_consec = mclist[sind]
           if self.verb > 1:
@@ -4012,7 +4012,7 @@ class RandTiming:
                    "   - new stim class '%s' already defined\n" % nclass)
              return 1
 
-       # since oclass is in labels, it shoud be at same point in sclasses
+       # since oclass is in labels, it should be at same point in sclasses
        ocindex = self.get_stim_class_index(oclass)
        if ocindex < 0:
           print("** rand_post_elist_part: failed to find class %s"%oclass)
@@ -4063,7 +4063,7 @@ class RandTiming:
                 % ', '.join([c.name for c in self.sclasses]))
 
        # -----------------------------------------------------------------
-       # now the real work, modifiy events in full_event_list
+       # now the real work, modify events in full_event_list
 
        # for convenience, and note the form:
        # [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
@@ -4077,7 +4077,7 @@ class RandTiming:
        #             across all runs, or per run
        #      form : [ [run_ind, event_ind], [r, e] ... ]
        #
-       # Run and event indexes desribe all oclass events (to be changed).
+       # Run and event indexes describe all oclass events (to be changed).
        # Then the list can be appropriately shuffled, and assigned in equally
        # sized sets to the new clases.
        nnewe = (osc.nreps * self.num_runs) // nnewc
@@ -4423,7 +4423,7 @@ class RandTiming:
        # -----------------------------------------------------------------
        # now actually distribute into rtimes
 
-       # min time is done, so next distribute postive mean time
+       # min time is done, so next distribute positive mean time
        if tot_mean > 0:
           for rind, rc in enumerate(rtypes):
              offset = rc.mean_dur - rc.min_dur

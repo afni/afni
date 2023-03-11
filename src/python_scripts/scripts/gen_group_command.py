@@ -38,7 +38,7 @@ gen_group_command.py    - generate group analysis command scripts
 
    ** NOTE: this program expects one dataset per subject.  Single condition
             volumes are accessed using sub-brick selectors via -subs_betas 
-            and possbily -subs_tstats.
+            and possibly -subs_tstats.
 
    This program can parse subject IDs from dataset names when the IDs are the
    varying part of dataset names (e.g. stats_subj1234+tlrc.HEAD), as in:
