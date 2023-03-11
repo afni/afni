@@ -2,7 +2,7 @@
 # ===========================================================================
 # This README file shows how to walk through this sample PPI analysis.
 # 
-# This README file is also a script that can be simply run, or perferably
+# This README file is also a script that can be simply run, or preferably
 # cut-and-pasted slowly onto a command line (to review the process).
 #
 # It should be run on the *results* from the AFNI_data6 single subject
