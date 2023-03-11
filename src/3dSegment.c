@@ -130,7 +130,7 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
                            much. The most critical remains a good
                            initialization with the startup masks*/ 
    brk = 0;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Segment_usage();
