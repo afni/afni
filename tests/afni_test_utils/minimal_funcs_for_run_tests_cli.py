@@ -822,7 +822,7 @@ def modify_path_and_env_if_not_using_cmake(**args_dict):
         test_bin_path = Path(shutil.which("3dinfo"))
         if not test_bin_path.parent == Path(args_dict.get("abin")):
             raise EnvironmentError(
-                f"With --abin set to {abin} the expection is that "
+                f"With --abin set to {abin} the exception is that "
                 f"binaries are found there. Instead {test_bin_path} is "
                 "found after an attempt to set up the environment "
                 "correctly for the tests. Perhaps this is not a binary directory?"

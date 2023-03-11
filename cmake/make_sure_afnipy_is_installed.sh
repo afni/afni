@@ -2,7 +2,7 @@
 # This script used as part of AFNI's cmake build is executed from within the
 # root directory of AFNI's python package
 
-#  Get python interpretter
+#  Get python interpreter
 if [ $# -lt 1 ]
  then
      export py_interp=$(which python)
