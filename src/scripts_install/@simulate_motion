@@ -751,7 +751,7 @@ examples with -warp_method ...
 
   3. instead of re-running 3dvolreg, apply the original volreg params
 
-    Note that running 3dvolreg should procude a 1Dfile that is similar to the
+    Note that running 3dvolreg should produce a 1Dfile that is similar to the
     input motion file.
 
     $prog -epi pb01.FT.r01.tshift+orig"[2]" -prefix msim.3.vrp \\

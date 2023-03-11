@@ -52,7 +52,7 @@ history for $prog :
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
-  2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
+  2.4  30 Mar 2016 : possibly update .bashrc after .cshrc
   2.5  07 Apr 2016 : added -proto and -test_protos options
   2.6  08 Apr 2016 : save -test_protos results
   2.7  28 Apr 2016 : added -local_package option
@@ -350,7 +350,7 @@ Install or update the AFNI binaries, either via '-defaults' or by the
 
 examples:
 
-    individual user: initial install or udpate
+    individual user: initial install or update
 
        The default package is linux_openmp_64 (Linux) or macos_10.12_local
        (OS X).  The default binary directory is ~/abin.
@@ -358,7 +358,7 @@ examples:
        @update.afni.binaries -defaults
 
 
-    root user: initial install or udpate
+    root user: initial install or update
 
        @update.afni.binaries -package linux_openmp_64 \\
                              -bindir /usr/local/AFNIbin
@@ -714,7 +714,7 @@ if ( $use_curl || $missing_wget ) then
     set get_prog = ( curl -O -f )
 endif
 
-# do we verify certificates via CA list?  if not, speicify
+# do we verify certificates via CA list?  if not, specify
 if ( ! $cert_verify ) then
    if ( $get_prog[1] == "wget" ) then
       set get_prog = ( $get_prog --no-check-certificate )
@@ -1040,7 +1040,7 @@ if ( $test_protos ) then
 endif
 
 # ----------------------------------------------------------------------
-# revert to previous version, if requrested
+# revert to previous version, if requested
 if ( $revert ) then
    # revert to backup
    if ( ! -d ../$backup_dir ) then
@@ -1234,7 +1234,7 @@ endif
 
 # actually install the new binaries
 if ( $use_rsync ) then
-   echo "++ synching new binaries..."
+   echo "++ syncing new binaries..."
    # either sync package or files
    if ( $#prog_list > 0 ) then
       rsync -av * ..
@@ -1492,7 +1492,7 @@ EOF
 
    endif
 
-   # udpates for zsh
+   # updates for zsh
    set brcfile = ~/.zshrc
    \grep all_progs.COMP.zsh $brcfile >& /dev/null
    set pstatus = $status

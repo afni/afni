@@ -26,7 +26,7 @@
 # New method: solve the same system of equations, but without taking means.
 #             So solve this across all time points.  To be efficient, demean
 #             each time point (across echoes), demean the TEs, and make a
-#             single regressor with the approriate resulting TE values.
+#             single regressor with the appropriate resulting TE values.
 #
 # Then T2* = 1/mean(R2s(x)), and weights come from:
 #
@@ -285,7 +285,7 @@ else
 endif
 
 # create new echo times in working dir and adjust var
-# (echo times may have been converted to ms; times are verticle)
+# (echo times may have been converted to ms; times are vertical)
 set etimes_file = echo_times.1D
 echo $etimes_list | tr ' ' '\n' > $work_dir/$etimes_file
 
