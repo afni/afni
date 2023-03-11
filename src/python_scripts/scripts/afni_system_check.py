@@ -56,7 +56,7 @@ action options:
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
-   -dot_file_pack NAME  : create a NAME.tgz packge containing dot files
+   -dot_file_pack NAME  : create a NAME.tgz package containing dot files
    -find_prog PROG      : search PATH for PROG
                           - default is *PROG*, case-insensitive
                           - see also -casematch, -exact
@@ -130,7 +130,7 @@ as a login shell, and interactive shell, or a non-interactive shell.
       as when running a shell script.
 
 
-This help section focuses on commonly used user controled RC files, omitting
+This help section focuses on commonly used user controlled RC files, omitting
 system files like /etc/csh.cshrc.  It also does not cover every possibility
 of dot files for each shell.  There are often many files that are searched
 for in each case, but we stick to what might be reasonably typical.
@@ -583,7 +583,7 @@ class CmdInterface:
          os.system("tar cfz %s %s" % (pgz, package))
          shutil.rmtree(package)
          if os.path.exists(pgz): print('++ dot file package is in %s' % pgz)
-         else: print('** failed to make dot file packge %s' % pgz)
+         else: print('** failed to make dot file package %s' % pgz)
 
       return 0
 
