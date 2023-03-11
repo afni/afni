@@ -26,7 +26,7 @@
 #define USE_GE             3
 #define USE_HISTORY        4
 
-/* GE diplay bit values */
+/* GE display bit values */
 #define GE_NONE            0
 #define GE_ALL          0xff
 #define GE_HEADER       0x01
