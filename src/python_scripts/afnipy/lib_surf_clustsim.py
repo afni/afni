@@ -205,7 +205,7 @@ class SurfClust(object):
       # try converting to absolute paths
       try: inputs = [ os.path.abspath(fname) for fname in inputs ]
       except:
-         msg = '** cannot convert inputs to absolute path names:\n   %s' 
+         msg = '** cannot convert inputs to absolute path names:\n   %s' \
                % inputs
          self.errors.append(msg)
          return 1
