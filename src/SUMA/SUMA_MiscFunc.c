@@ -9,7 +9,7 @@ extern SUMA_CommonFields *SUMAg_CF;
    /*!
       ptr = SUMA_malloc_fn (const char *CF,  size );
       \purpose a wrapper around malloc function that allows one to keep track of allocated memory.
-      For the tracking to occurr, you need to have SUMA_MEMTRACE_FLAG set to 1 (when compiling) and then turn the flag SUMAg_CF->MemTrace on.
+      For the tracking to occur, you need to have SUMA_MEMTRACE_FLAG set to 1 (when compiling) and then turn the flag SUMAg_CF->MemTrace on.
       ifdef SUMA_MEMTRACE_FLAG and SUMAg_CF->MemTrace then when size bytes are allocated to ptr the following happens:
       SUMAg_CF->Mem->Pointers[SUMAg_CF->Mem->N_alloc] = ptr;
       SUMAg_CF->Mem->Size[SUMAg_CF->Mem->N_alloc] = size;
@@ -286,7 +286,7 @@ double SUMA_factorial (int n)
 
 /*!
    \brief Calculate factorials from [0 to n]
-   results are retuned in a long long vector (n+1) elements long long
+   results are returned in a long long vector (n+1) elements long long
 */
 double *SUMA_factorial_array (int n)
 {
@@ -1468,7 +1468,7 @@ SUMA_MX_VEC *SUMA_MxVecMult_Engine(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC
          #if 0 /* using matrix functions, not much faster */
          if (recycle) {
             /* kill the recycled puppy BAD BAD BAD */
-            SUMA_S_Warn("Carefull, with that one! Caller may not know this happened");
+            SUMA_S_Warn("Careful, with that one! Caller may not know this happened");
             vp = SUMA_FreeMxVec(vp);
          }
          if (!va->m) {
@@ -1607,7 +1607,7 @@ void SUMA_TestMxVecMatOps(void)
    dct = SUMA_MxVecMult(dbt, dat, NULL, 0);
    dc = SUMA_MxVecTranspose(dct, NULL);
    SUMA_etime2(FuncName, "Vector multiplication test 4 (129*129 X 129 * 40962 )", FuncName);
-   SUMA_ShowMxVec(dc, 1, NULL, "\nMult via tranposed MxVec\n");    
+   SUMA_ShowMxVec(dc, 1, NULL, "\nMult via transposed MxVec\n");    
    da = SUMA_FreeMxVec(da);
    db = SUMA_FreeMxVec(db);
    dc = SUMA_FreeMxVec(dc);
@@ -2050,7 +2050,7 @@ Usage :
    n_rows_read = SUMA_Read_2Dfile ( char *f_name, float **x, int n_cols, int n_rows)
  
  
-Input paramters : 
+Input parameters : 
       f_name, (char)* string holding file name.
       x, (float)** array where the values will be stored.
       n_cols, (int) number of columns per line.
@@ -2059,7 +2059,7 @@ Input paramters :
  
 Returns : 
    n_rows_read, (int) number of rows read from file. 
-        -1 if critcial operations fail.
+        -1 if critical operations fail.
         if EOF is reached before n_rows, n_rows_read reflects the 
         number of rows read. 
  
@@ -2231,7 +2231,7 @@ Usage :
    ans = SUMA_Read_2Ddfile (char *f_name, int **x,int n_rows, int n_cols)
  
  
-Input paramters : 
+Input parameters : 
    \param   x, (int)** array where the values will be stored.
    \param   f_name, (char)* string holding file name.
    \param   n_rows, (int) number of rows to be read from file. 
@@ -2860,7 +2860,7 @@ Purpose :
     of characters
  
  
-Input paramters : 
+Input parameters : 
  
        S (char *) : Mother String (character array)
        Ssub (char *) : Subset array
@@ -2959,7 +2959,7 @@ Usage :
        SUMA_disp_dmat (int **v,int nr, int nc, int SpcOpt  )
  
  
-Input paramters : 
+Input parameters : 
     v (int **) the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3020,7 +3020,7 @@ Usage :
        SUMA_disp_mat (float **v,int nr, int nc, int SpcOpt )
  
  
-Input paramters : 
+Input parameters : 
     v (float **) the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3063,7 +3063,7 @@ Usage :
        SUMA_disp_vecdoubmat (double *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
-Input paramters : 
+Input parameters : 
     v (double *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3141,7 +3141,7 @@ Usage :
        SUMA_disp_vecbytemat (byte *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
-Input paramters : 
+Input parameters : 
     v (byte *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3219,7 +3219,7 @@ Usage :
        SUMA_disp_vecshortmat (short *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
-Input paramters : 
+Input parameters : 
     v (short *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3296,7 +3296,7 @@ Usage :
        SUMA_disp_veccompmat (complex *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
-Input paramters : 
+Input parameters : 
     v (complex *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3374,7 +3374,7 @@ Usage :
        SUMA_disp_vecmat (float *v,int nr, int nc, int SpcOpt, d_order, Out )
  
  
-Input paramters : 
+Input parameters : 
     v (float *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3451,7 +3451,7 @@ Usage :
        SUMA_disp_vecdmat (float *v,int nr, int nc, int SpcOpt, d_order, Out,  AddRowInd)
  
  
-Input paramters : 
+Input parameters : 
     v (int *) (nr x nc) vector containing the 2D matrix to display
    nr (int) the number of rows in v
    nc (int) the number of columns
@@ -3798,7 +3798,7 @@ Usage :
 
 Input Parameters:
                 v, (float *) pointer to input  vector or variable 
-                ln, (int) lenght of complex vector, set equal to 1 if vector is a variable
+                ln, (int) length of complex vector, set equal to 1 if vector is a variable
 
 */
 void SUMA_disp_vect (float *v,int l)
@@ -3851,7 +3851,7 @@ Usage :
 
 Input Parameters:
                 v, (int *) pointer to input vector or variable 
-                ln, (int) lenght of complex vector, set equal to 1 if vector is a variable
+                ln, (int) length of complex vector, set equal to 1 if vector is a variable
 
 */
 void SUMA_disp_dvect (int *v,int l)
@@ -3974,7 +3974,7 @@ Usage :
    delta_t = SUMA_etime (tt, Report );
    
    
-Input paramters : 
+Input parameters : 
    tt (struct  timeval *) : a pointer that holds the time stamp structure
    Report (int ) : a (0/1) flag to signal time reporting or the start of a new timer
     
@@ -4071,7 +4071,7 @@ Purpose :
 Usage : 
       Ret =  SUMA_isinsphere (NodeList, nr, S_cent , S_rad , BoundIn)
    
-Input paramters : 
+Input parameters : 
    NodeList (float * ) : Nx3 vector containing the NodeList of the nodes 
                         to consider
    nr  (int )   : that's N, the number of nodes
@@ -4241,12 +4241,12 @@ Usage :
    Ret = SUMA_isinbox (float * XYZ, int nr, S_cent , S_dim ,  BoundIn)
    
    
-Input paramters : 
+Input parameters : 
     XYZ (float * ) : Nx3 vector containing the XYZ of the nodes to consider
    nr  (int )   : that's N, the number of nodes
    S_cent (float *) : a 3x1 vector containing the XYZ coordinates of the center of the box
    S_dim  (float *) : a 3x1 containing the size of the box from side 
-                    to side along the three dimentions
+                    to side along the three dimensions
    BoundIn (int) : 0/1 set to 0 if you want to have exclusive boundary conditions 
    
    
@@ -4726,14 +4726,14 @@ P2 = SUMA_Point_At_Distance (U, P1, d)
    
 Returns the two points that are at a distance d from P1 along the direction of U  
    
-Input paramters : 
+Input parameters : 
 \param U (float *) 3x1 vector specifying directions  along x, y, z axis       
 \param P1 (float *) 3x1 vector containing the XYZ of P1
 \param d (float) distance from P1
 
    
 Returns : 
-\return  P2 (float **) 2x3 matrix containg XYZ of 2 points equidistant from P1 
+\return  P2 (float **) 2x3 matrix containing XYZ of 2 points equidistant from P1 
                along U (first row) and -U (second row)
          NULL if there are problems in the land of chocolate
    
@@ -5063,7 +5063,7 @@ Ret = SUMA_Point_To_Line_Distance (float *NodeList, int N_nodes, float *P1, floa
    
 Calculates the squared distance between the points in NodeList and the line formed by P1-P2  
    
-Input paramters : 
+Input parameters : 
 \param NodeList (float *) N_nodes x 3 vector containing XYZ of N_nodes nodes 
 \param N_nodes (int) Number of nodes in NodeList     
 \param P1 (float *) 3x1 vector containing the XYZ of P1
@@ -5156,7 +5156,7 @@ Ret = SUMA_Point_To_Point_Distance (float *NodeList, int N_nodes, float *P1, flo
    
 Calculates the squared distance between the points in NodeList and  P1-P2  
    
-Input paramters : 
+Input parameters : 
 \param NodeList (float *) N_nodes x 3 vector containing XYZ of N_nodes nodes 
 \param N_nodes (int) Number of nodes in NodeList     
 \param P1 (float *) 3x1 vector containing the XYZ of P1
@@ -5241,7 +5241,7 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
    \param closestp (int **) pointer to array wich will contain for each point i
                                     the index of the triangle itri which
                                     resulted in the value of *distp[i]
-   \param city (byte) 1 == City block distance, 0 == Euclidian distance squared
+   \param city (byte) 1 == City block distance, 0 == Euclidean distance squared
    \return NOPE on FAILURE, YUP on SUCCESS.
    This function is meant to be called repeatedly for each new triangle.
    See SUMA_Shortest_Point_To_Triangles_Distance()         
@@ -5550,7 +5550,7 @@ Usage :
    I = SUMA_z_qsort ( x , nx  );
    I = SUMA_z_dqsort ( x , nx );
    
-Input paramters : 
+Input parameters : 
    x (*float) vector of  floats, sorted array is returned in x
    nx (int) number of elements in x
    
@@ -6069,7 +6069,7 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle
    
    SUMA_ENTRY;
    
-   /* loop accross all 12 edges and find out which pierces the triangle */
+   /* loop across all 12 edges and find out which pierces the triangle */
    for (i=0; i<12; ++i) {
       SUMA_EDGE_OF_VOXEL(center, dxyz, i, P0, P1);
       if (SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, 
@@ -6259,14 +6259,14 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
                isHit (SUMA_Boolean *) N_FaceSet x 1 vector. 
                isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
       t (float *) signed distance to the plane in which the triangle lies
-      u & v(float *) location withing the triangle of the intersection point
+      u & v(float *) location within the triangle of the intersection point
 
 \sa Algorithm from:Moller & Trumbore 97
    Tomas Möller and Ben Trumbore. Fast, minimum storage ray-triangle intersection. 
    Journal of graphics tools, 2(1):21-28, 1997
 
 NOTE: 
-Tue Jan  7 15:07:05 EST 2003 Shruti noted that problems occured when a ray intersected a node. 
+Tue Jan  7 15:07:05 EST 2003 Shruti noted that problems occurred when a ray intersected a node. 
 She is correct, if a ray intersects a node, it may or may not be detected and the results are undetermined. 
 This is only expected to happen with synthesized data and checking for such situations will slow the function down. 
 If you must use such data, I recommend you add a tiny bit of noise to the vertex coordinates
@@ -7248,7 +7248,7 @@ int SUMA_isTriLinked (int*T, int *t, int *cn)
    \param T (int *) a b c nodes forming the reference triangle 
    \param t (int *) d c b (or whatever combination you choose, c b d for example)
    \return 1: Consistent
-       -1: Inconsisten
+       -1: Inconsistent
         0: less than 2 nodes shared
 */
 int SUMA_isConsistent (int *T, int *t)
@@ -7736,7 +7736,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
       }
       SEL->AvgLe = SEL->AvgLe / (float)SEL->N_EL; 
          /* This is an approximate average 
-                   lenght, since some edges may counted more than others */
+                   length, since some edges may counted more than others */
       SUMA_LHv("Average segment length of %f\n", SEL->AvgLe);
    } else {
       SUMA_LH("Null NodeList, no distances computed");
@@ -7765,7 +7765,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
                SEL->EL[i+lu][1] == SEL->EL[i][1]) {/* found matching edge */
             SEL->ELps[i][2] += 1; /* number of triangles hosting edge */
             SEL->ELps[i+lu][2] = -1; 
-               /* flag to mean that this edge is a duplicte in the list */
+               /* flag to mean that this edge is a duplicate in the list */
 
             /* store the location of this edge for the triangle hosting it */
             ht = SEL->ELps[i+lu][1]; /* host triangle index */
@@ -7901,7 +7901,7 @@ int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri)
    /* first location of edge starting with n1 */
    eloc = EL->ELloc[n1];
    
-   /* from there on, look for first occurence of n2 and Tri for hosting triangle*/
+   /* from there on, look for first occurrence of n2 and Tri for hosting triangle*/
    do {
       if (EL->EL[eloc][1] == n2 && EL->ELps[eloc][1] == Tri) SUMA_RETURN (eloc);
       ++eloc;
@@ -7913,12 +7913,12 @@ int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri)
 
 
 /*! 
-   \brief finds the first occurence in EL of an edge formed by nodes n1 n2
+   \brief finds the first occurrence in EL of an edge formed by nodes n1 n2
    eloc = SUMA_FindEdge (EL, int n1, int n2);
    \param EL (SUMA_EDGE_LIST *) Pointer to edge list structure
    \param n1 (int) index of node 1
    \param n2 (int) index of node 2
-   \return eloc (int) index into EL of first occurence of edge formed by nodes n1, n2
+   \return eloc (int) index into EL of first occurrence of edge formed by nodes n1, n2
             -1 if no edge is found.
    \sa SUMA_FIND_EDGE macro
 */
@@ -7943,7 +7943,7 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
       SUMA_RETURN (-1);
    }
    
-   /* from there on, look for first occurence of n2 */
+   /* from there on, look for first occurrence of n2 */
    done = 0;
    do {
       /* if (LocalHead) fprintf (SUMA_STDERR,
@@ -7985,7 +7985,7 @@ SUMA_Boolean SUMA_Get_NodeIncident( int n1, SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
    
    N_max = *N_Incident; 
-   if (N_max < 1 || N_max > 1000) { /* aribtrary upper limit, can be increased if necessary...*/
+   if (N_max < 1 || N_max > 1000) { /* arbitrary upper limit, can be increased if necessary...*/
       SUMA_S_Err("Likely junk (< 0 or > 1000) sent in N_Incident!, Initialize properly");
       SUMA_RETURN(NOPE);
    } 
@@ -8099,7 +8099,7 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL,
       
    }
    if (!quiet && !*N_Incident) {
-      SUMA_S_Warnv(  "No incident triangle found for edge simliar to %d\n"
+      SUMA_S_Warnv(  "No incident triangle found for edge similar to %d\n"
                      "   and formed by nodes %d and %d\n", in1, n1, n2);
    }
    /*fprintf(SUMA_STDERR,"Leaving %s.\n", FuncName);*/
@@ -8914,7 +8914,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
                      " be part of 2 and only 2 triangles. \n"
                      " Neighbor list for node %d will not be ordered as \n"
                      " connected vertices (jj=%d, FN->N_Neighb[%d]=%d). \n"
-                     " Further occurences of this error will not be reported.\n"
+                     " Further occurrences of this error will not be reported.\n"
                                           , i, jj, i, FN->N_Neighb[i]);
                   }
             }
@@ -8929,10 +8929,10 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
    if (TessErr_Cnt && verb) {
       if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {
          if (TessErr_Cnt > 1) fprintf (SUMA_STDERR, 
-            " %d similar occurences were found in this mesh.\n", 
+            " %d similar occurrences were found in this mesh.\n", 
             TessErr_Cnt);
          else  fprintf (SUMA_STDERR, 
-            " %d occurence was found in this mesh.\n", 
+            " %d occurrence was found in this mesh.\n", 
             TessErr_Cnt);
       }
    }
@@ -8976,7 +8976,7 @@ SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
    \param n2 (float *)pointer to vector containing XYZ of node 2
    \param n3 (float *)pointer to vector containing XYZ of node 3
    \param normal (float *)pointer to vector to contain normal of triangle. 
-   \return A (SUMA_Boolean) NOPE if the norm of the normal = 0. In that case, occuring with FreeSurfer surfaces, normal is 1.0 1.0 1.0 
+   \return A (SUMA_Boolean) NOPE if the norm of the normal = 0. In that case, occurring with FreeSurfer surfaces, normal is 1.0 1.0 1.0 
    \sa SUMA_SurfNorm
    
 */
@@ -9206,7 +9206,7 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
    \param N_FaceSet (int) number of triangles making up the mesh
    \param FN (SUMA_NODE_FIRST_NEIGHB *) structure containing Node Neighbors
    \param SEL (SUMA_EDGE_LIST *) structure containing the Edge List
-   \param odbg_name (char *) a name to use for outputing the results. For debugging mostly. NULL if you want no output to disk.
+   \param odbg_name (char *) a name to use for outputting the results. For debugging mostly. NULL if you want no output to disk.
    
    \ret SC (SUMA_SURFACE_CURVATURE *) structure containing the curvature info, see typedef of struct for more info
    
@@ -9842,7 +9842,7 @@ float * SUMA_Convexity (float *NL, int N_N, float *NNL,
 }
 /*!
    \brief float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN, char *DetailFile)
-   This function does the computations for SUMA_Convexity with the additional option of outputing detailed results
+   This function does the computations for SUMA_Convexity with the additional option of outputting detailed results
    to an ASCII file for debugging.
    
    See documentation for SUMA_Convexity for all parameters except DetailFile
@@ -9961,7 +9961,7 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL,
  
        str, (char *) string with the original string
        pad_char, (char )  padding character
-       pad_ln, (int) final padded lenght, 
+       pad_ln, (int) final padded length, 
        opt, (int) 0 if padding occurs to the left of str (00005)
                    1 if padding occurs to the right of str (50000)
    Returns : 
@@ -9994,7 +9994,7 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
    else if (opt == 1) {
       sprintf (strp,"%s%s",str,buf1);
    } else {
-      SUMA_S_Err("Wrong opt paramter, only (0,1) allowed\n");
+      SUMA_S_Err("Wrong opt parameter, only (0,1) allowed\n");
       SUMA_free(strp);
       SUMA_free(buf1);
       SUMA_RETURN (NULL);
@@ -10121,7 +10121,7 @@ Purpose :
  
  
  
-Input paramters : 
+Input parameters : 
    x      int *      :   vector containing integer values
    xsz   int      :   number of elements in x
    val   int      :   value to look for
@@ -10206,7 +10206,7 @@ Purpose :
  
  
  
-Input paramters : 
+Input parameters : 
    x      int *      : a pointer to a vector of integers
    xsz   int       : a scalar indicating the number of elements in x
    kunq  int *      : a pointer to an integer that will tell you the number 

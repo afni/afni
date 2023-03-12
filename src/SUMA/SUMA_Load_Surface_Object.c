@@ -3086,7 +3086,7 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
             Spec->LocalCurvatureParent[i][0] ||
             Spec->OriginatorID[i][0] ||
             Spec->DomainGrandParentID[i][0]) ) {
-         SUMA_SL_Err("You cannont mix MappingRef with\n"
+         SUMA_SL_Err("You cannot mix MappingRef with\n"
                      "newer fields such as:\n"
                      "LocalDomainParent, LocalCurvatureParent\n"
                      "OriginatorID or DomainGrandParentID  ");

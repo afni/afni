@@ -669,7 +669,7 @@ THD_3dim_dataset *SUMA_SurfaceIntersectionVolume(
    vti = SUMA_CreateVTI(SOo->N_FaceSet, NULL);
    vti = SUMA_GetVoxelsIntersectingTriangle(SOo, vp, NULL, vti);
    if (!vti) {
-      SUMA_S_Err("Failed to get interesctions");
+      SUMA_S_Err("Failed to get intersections");
       SUMA_RETURN(NULL);
    }
    odset = EDIT_empty_copy(gdset);
@@ -1485,7 +1485,7 @@ SUMA_Boolean SUMA_getoffsets (int n, SUMA_SurfaceObject *SO, float *Off, float l
                                                 that particular path */
                                              
       Visit = NOPE;
-      if (Off[ni] < 0 || Off_tmp < Off[ni]) { /* Distance improvement, visit/revist that node */
+      if (Off[ni] < 0 || Off_tmp < Off[ni]) { /* Distance improvement, visit/revisit that node */
          if (Off_tmp < lim) { /* only record if less than lim */
             Visit = YUP;
             Off[ni] = Off_tmp;
@@ -9423,7 +9423,7 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
       int Niter_sug = SUMA_MAX_PAIR(1, (int)((float)N_iter*SUMA_POW2(OffsetLim/3.0/(float)SO->EL->AvgLe)));
       fprintf(SUMA_STDERR,"Error %s:%d\n"
                   "********************************************\n"
-                  "Inapropriate values for Niter of %d and/or\n"
+                  "Inappropriate values for Niter of %d and/or\n"
                   "FWHM of %.1f. Per iteration, fwhm is %.4f\n"
                   "and OffsetLim is set to %f.\n"
                   "But the internodal distance of %.3f is\n"
@@ -12391,7 +12391,7 @@ SUMA_Boolean SUMA_Mark_Tri (SUMA_EDGE_LIST  *EL, int E1, int iBranch, int *TriBr
       if (TriBranch[Tri] != iBranch) {
          fprintf (SUMA_STDERR, "\a%s: Branches colliding, Must weld %d to %d.\n", FuncName, iBranch, TriBranch[Tri]);
          
-         /* DO NOT MODIFY THE VALUE OF BRANCH or you will mistakingly link future branches*/ 
+         /* DO NOT MODIFY THE VALUE OF BRANCH or you will mistakenly link future branches*/ 
       }
       /* visited, end of branch return */
       if (LocalHead) fprintf (SUMA_STDERR, "%s: End of branch. Returning.\n", FuncName);

@@ -18350,7 +18350,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       GLfloat comcol[4] = {1.0, 0.0, 0.0, 1.0};
 
       if (! (mcall % 20) ) { /* a new slicing */
-         SUMA_S_Note("New prjection");
+         SUMA_S_Note("New projection");
          SUMA_ScreenPlane_WorldSpace(sv, cen, PlEq);
          SUMA_LH("Hit time");
          hits = SUMA_PlaneBoxIntersect(sv->GVS[sv->StdView].ViewFrom,

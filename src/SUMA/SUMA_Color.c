@@ -616,7 +616,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    // fprintf(stderr, "%s\n", FuncName);
 
 
-   /* initilialize*/
+   /* initialize*/
    N_maps = -1;
    N_cols = -1;
    for (i=0;i<NPANE_MAX+1;++i) { pthr[i] = 0.0; pov[i] = 0;}
@@ -3113,7 +3113,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(Sover->dset_link),
                                     Opt->ColsContMode);
 
-   SUMA_LH("Fetching vetors from dset");
+   SUMA_LH("Fetching vectors from dset");
 
    B = NULL;
    /* Thresholding ? */
@@ -3182,7 +3182,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->Clusterize && Opt->RecomputeClust) {
       if (!(nv = (float *)SUMA_calloc(SDSET_VECFILLED(Sover->dset_link),
                                           sizeof(float)))) {
-         SUMA_S_Crit("Failed to alloc11659ate!");
+         SUMA_S_Crit("Failed to allocate!");
          SUMA_RETURN(NOPE);
       }
    }

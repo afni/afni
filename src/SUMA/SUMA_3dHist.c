@@ -621,7 +621,7 @@ int main(int argc, char **argv)
          if (!strcmp(Opt->feats->str[ii], "upvol")) {
             float vv;
             if (Opt->f1 < 0) {
-               SUMA_S_Err( "Bad news seeding voxvol");
+               SUMA_S_Err( "Bad news setting voxvol");
                exit(1);
             }
             vv = SUMA_hist_value(hh, Opt->wA, "rcdf") / 1.0e6 * Opt->f1;
@@ -678,7 +678,7 @@ int main(int argc, char **argv)
          }
          if (Opt->f1 == 0.0f) Opt->f1 = 1.0;
          if (Opt->f1 < 0) {
-            SUMA_S_Err( "Bad news seeding voxvol");
+            SUMA_S_Err( "Bad news setting voxvol");
             exit(1);
          }
          voxthr = SUMA_val_at_count(hh, Opt->wL*1.0e6/Opt->f1, 0, 1);
