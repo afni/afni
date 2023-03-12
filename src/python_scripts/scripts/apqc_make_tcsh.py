@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 #
 
-#### !!!! TO DO: add in opts for new overwriting/backing up
-#### !!!! functionality; and opt for backup dir name, in some cases
-
-#### !!!! NB: undo the turning off of early opts, for faster running
-#### !!!! while coding
-
-
 auth = 'PA Taylor'
 # ver : 1.33 || date: Oct 15, 2018 
 # + add in new uvar vars (nt_orig, etc.)
