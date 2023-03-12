@@ -1992,7 +1992,7 @@ num : int
         -pbar_for          "dset"                                            \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
-        -blowup            4                                                 \
+        -blowup            2                                                 \
         -opacity           9                                                 \
         -montx             7                                                 \
         -monty             1                                                 \
@@ -2250,6 +2250,7 @@ num : int
         -opacity           4                                                 \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
+        -blowup            1                                                 \
         -montx             7                                                 \
         -monty             1                                                 \
         -montgap           1                                                 \
@@ -2376,6 +2377,7 @@ num : int
         -use_olay_grid     wsinc5                                            \
         -ulay_range_am     "{umin}%" "{umax}%"                               \
         -ulay_min_fac      {umin_fac}                                        \
+        -blowup            2                                                 \
         -no_cor                                                              \
         -prefix            {opref}
     '''.format(olay=olay, focusbox=focusbox, ulay=ulay,
@@ -2495,6 +2497,7 @@ num : int
         -olay              {olay}                                            \
         -box_focus_slices  {focusbox}                                        \
         -ulay              {ulay}                                            \
+        -blowup            2                                                 \
         -no_cor                                                              \
         -prefix            {opref}
     '''.format(olay=olay, focusbox=focusbox, ulay=ulay,
@@ -2637,6 +2640,7 @@ num : int
         -pbar_comm_thr     "{pbar_tr}"                                       \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
+        -blowup            2                                                 \
         -montx             7                                                 \
         -monty             1                                                 \
         -montgap           1                                                 \
@@ -2835,6 +2839,7 @@ num : int
         -pbar_comm_thr     "{pbar_tr}"                                       \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
+        -blowup            2                                                 \
         -montx             7                                                 \
         -monty             1                                                 \
         -montgap           1                                                 \
@@ -3152,6 +3157,7 @@ num : int
         -pbar_comm_thr     "{pbar_comm_thr}"                                 \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
+        -blowup            2                                                 \
         -montx             7                                                 \
         -monty             1                                                 \
         -montgap           1                                                 \
@@ -3322,6 +3328,7 @@ num : int
             -olay         {olay}                                             \
             -focus        {focusbox}                                         \
             -mask         {mask_dset}                                        \
+            -blowup       2                                                  \
             -no_cor                                                          \
             -prefix       {opref}                                            \
             -prefix_cbar  {opbarrt}
@@ -3337,6 +3344,7 @@ num : int
             -ulay         {ulay}                                             \
             -olay         {olay}                                             \
             -focus        {focusbox}                                         \
+            -blowup       2                                                  \
             -no_cor                                                          \
             -prefix       {opref}                                            \
             -prefix_cbar  {opbarrt}
@@ -3485,13 +3493,13 @@ num : int
         -box_focus_slices  AMASK_FOCUS_OLAY                                  \
         -cbar              gray_scale                                        \
         -func_range        {grange}                                          \
-        -blowup            1                                                 \
         -set_subbricks     0 0 0                                             \
         -opacity           9                                                 \
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -pbar_comm_range   "{pbcomm}"                                        \
         -prefix            "{tmpvol_pref}"                                   \
         -save_ftype        JPEG                                              \
+        -blowup            1                                                 \
         -montx             1                                                 \
         -monty             1                                                 \
         -set_xhairs        OFF                                               \
@@ -4441,6 +4449,7 @@ num : int
         -use_olay_grid     wsinc5                                            \
         -ulay_range_am     "1%" "95%"                                        \
         -ulay_min_fac      0.2                                               \
+        -blowup            1                                                 \
         -no_cor -no_sag                                                      \
         -prefix            {opref_o}
     '''.format(olay_o=olay_o, focusbox=focusbox, ulay=ulay,
@@ -4457,6 +4466,7 @@ num : int
         -use_olay_grid     wsinc5                                            \
         -ulay_range_am     "1%" "95%"                                        \
         -ulay_min_fac      0.2                                               \
+        -blowup            1                                                 \
         -no_cor -no_sag                                                      \
         -prefix            {opref_f}
     '''.format(olay_f=olay_f, focusbox=focusbox, ulay=ulay,
@@ -4902,7 +4912,7 @@ num : int
         oname    = '_'.join([obase, qcb, qci]) + "_" + rnum  # output name
         opref    = ap_ssdict['odir_img'] + '/' + oname # prefix = path + name
         otopjson = opref + '.axi.json'
-        osubjson = opref + '.sag.json'
+        #osubjson = opref + '.sag.json'
         opbarrt  = opref + '.pbar'
 
         if 1 :
@@ -4936,7 +4946,6 @@ num : int
             -thr_olay          {thr_val}                                     \
             -olay_alpha        Yes                                           \
             -olay_boxed        No                                            \
-            -blowup            4                                             \
             -set_subbricks     0 0 0                                         \
             -opacity           9                                             \
             -pbar_saveim       "{opbarrt}.jpg"                               \
@@ -4944,6 +4953,7 @@ num : int
             -pbar_comm_thr     "{pbar_tr}"                                   \
             -prefix            "{opref}"                                     \
             -save_ftype        JPEG                                          \
+            -blowup            2                                             \
             -montx             7                                             \
             -monty             1                                             \
             -montgap           1                                             \
@@ -4951,7 +4961,7 @@ num : int
             -set_xhairs        OFF                                           \
             -label_mode        1                                             \
             -label_size        4                                             \
-            -no_cor                                                          \
+            -no_cor -no_sag                                                  \
             -do_clean
         '''.format( **chauff_params, opbarrt=opbarrt, opref=opref )
         com    = ab.shell_com(cmd, capture=do_cap)

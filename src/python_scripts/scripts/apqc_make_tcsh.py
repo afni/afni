@@ -697,7 +697,7 @@ if __name__ == "__main__":
                 ap_ssdict['vstat_dir'] = 'vstat_seedcorr'
                 vdir = ap_ssdict['vstat_dir']
                 if os.path.isdir(vdir) :
-                    print("+* Removing and remaking vstat QC dir:", vdir)
+                    print("+* Removing and remaking vstat-QC dir:", vdir)
                     cmd    = '''\\rm -rf {}'''.format(vdir)
                     com    = BASE.shell_com(cmd, capture=True)
                     stat   = com.run()
@@ -919,7 +919,6 @@ if __name__ == "__main__":
         DO_TSNR_VREG = 1
 
     if HAVE_ULAY and DO_TSNR_VREG :
-        print("++ Will calc vreg TSNR.")
         olay     = tsnr_vreg[0]
         descrip  = '(TSNR, from r01 dset after volreg)'
         obase    = 'qc_{:02d}'.format(idx)
@@ -1112,6 +1111,10 @@ if __name__ == "__main__":
     # ======================================================================
     # ======================================================================
     # finishing text
+
+    # write out log/history of what has been done
+    olog = ap_ssdict['odir_info'] + '/' + 'log_apqc_tcsh.txt'
+    UTIL.write_afni_com_history(olog)
 
     # note where we are in the AP results dir
     pwd_res   = os.getcwd()
