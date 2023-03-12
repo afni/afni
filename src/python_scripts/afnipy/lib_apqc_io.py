@@ -110,7 +110,9 @@ ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
-ok_review_styles = ["none", "basic", "pythonic"]
+list_apqc_review_styles = ["none", "basic", "pythonic"]
+list_apqc_review_styles.sort()
+str_apqc_review_styles  = ', '.join([x for x in list_apqc_review_styles])
 
 DEF_dpi           = 150
 DEF_prefix        = "PREFIX"
@@ -143,6 +145,23 @@ DEF_color_table = [
     [0.737, 0.741, 0.133, 1.0]] # dark yellow
 
 # -------------------------------------------------------------------
+# for tcsh parsing, below
+
+# control overwriting/backing up any existing QC dirs
+dict_apqc_ow_modes = {
+    'shy'         : '(def) make new QC dir only if one does not exist',
+    'overwrite'   : 'purge old QC dir and make new QC/',
+    'backup'      : 'move old QC dir to QC_<time>; make new QC dir',
+}
+
+list_apqc_ow_modes = list(dict_apqc_ow_modes.keys())
+list_apqc_ow_modes.sort()
+str_apqc_ow_modes = ', '.join([x for x in list_apqc_ow_modes])
+
+hstr_apqc_ow_modes = \
+    '\n'.join(['{:12s} -> {}'.format(x, dict_apqc_ow_modes[x]) \
+               for x in list_apqc_ow_modes])
+
 # -------------------------------------------------------------------
 
 # helpfile for the plotting prog
@@ -1795,26 +1814,50 @@ Options:
                    provided in this list. If not used, the program
                    uses default logic to pick up to 5 items to show.
 
-'''.format( ", ".join(ok_review_styles) )
+-ow_mode  OM      :(opt) set overwrite mode; choices are
+                   {}
+                   See also '-bup_dir ..' for additional backup dir 
+                   naming.
+
+-bup_dir  BD      :(opt) if using the '-ow_mode backup' option, then 
+                   you can use this opt to provide the desired name of
+                   the backup QC directory (def: use QC_<time>).
+
+'''.format( str_apqc_review_styles,
+            hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
 
 # -------------------------------------------------------------------
 
 class apqc_tcsh_opts:
 
     def __init__(self):
-        self.json     = ""
-        self.subjdir  = ""
-        self.revstyle = "basic"
-        self.pythonic2basic = 0
+        self.json             = ""
+        self.subjdir          = ""
+        self.revstyle         = "basic"
+        self.pythonic2basic   = 0
 
-        self.do_mot_grayplot = True
+        self.ow_mode          = 'shy'   # overwrite mode (def: don't OW)
+        self.bup_dir          = None
+        self.do_mot_grayplot  = True
         self.vstat_label_list = []
+
+    # -------------------------
 
     def set_json(self, json):
         self.json = json
 
     def set_subjdir(self, subjdir):
         self.subjdir = subjdir
+
+    def set_bup_dir(self, bup_dir):
+        self.bup_dir = bup_dir
+
+    def set_ow_mode(self, ow_mode):
+        if not(ow_mode in list_apqc_ow_modes) :
+            print("** ERROR: illegal ow_mode '{}', not in the list:\n"
+                  "   {}".format(ow_mode, str_apqc_ow_modes))
+            sys.exit(11)
+        self.ow_mode = ow_mode
 
     def set_revstyle(self, revstyle):
         self.revstyle = revstyle
@@ -1845,7 +1888,7 @@ class apqc_tcsh_opts:
         if self.revstyle == "":
             print("missing: revstyle")
             MISS+=1
-        elif not(ok_review_styles.__contains__(self.revstyle)) :
+        elif not(self.revstyle in list_apqc_review_styles) :
             print("revstyle '{}' not in allowed list".format(self.revstyle))
             MISS+=1
         elif self.revstyle == 'pythonic' :
@@ -1868,7 +1911,10 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        '-review_style',
                        '-mot_grayplot_off',
                        '-vstat_list',
+                       '-ow_mode',
+                       '-bup_dir',
                        ]
+
 
 def parse_tcsh_args(argv):
     '''Parse arguments for tcsh scripter.
@@ -1925,6 +1971,18 @@ def parse_tcsh_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_revstyle(argv[i])
+
+        elif argv[i] == "-ow_mode":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_ow_mode(argv[i])
+
+        elif argv[i] == "-bup_dir":
+            if i >= Nargm1 :
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_bup_dir(argv[i])
 
         # --- apres moi, le deluge ---
         ### AP can now pass opts here via '-html_review_opts ..'
