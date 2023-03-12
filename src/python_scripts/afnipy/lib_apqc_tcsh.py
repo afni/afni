@@ -858,7 +858,7 @@ num : int
         elif ow_mode=='overwrite' :
             print("+* WARN: output QC dir exists already: {}\n"
                   "   -> overwriting it".format(ap_ssdict['odir_qc']))
-            cmd     = '''\\rm -rf {}'''.format(ap_ssdict['odir_qc'])
+            cmd    = '''\\rm -rf {}'''.format(ap_ssdict['odir_qc'])
             com    = ab.shell_com(cmd, capture=do_cap)
             stat   = com.run()
 
@@ -2716,6 +2716,10 @@ possible!) information.  These images are made in **highlight** mode,
 using transparent thresholding. Also create text for above/below
 images.
 
+This function creates new datasets and 1D time series (from the seed
+location) in the ap_ssdict['vstat_dir'] directory, which exists in the
+AP results dir.
+
 Parameters
 ----------
 ap_ssdict : dict
@@ -2740,7 +2744,7 @@ Returns
 num : int
     return 0 up on success, or a different int if failure
 
-"""
+    """
 
     # output names/prefixes/etc.
     oname    = '_'.join([obase, qcb, qci])           # output name
@@ -2766,9 +2770,11 @@ num : int
     pbar_cr      = 'Pearson r'
     pbar_tr      = 'alpha+boxed on'
 
-    # tmp files... or no longer temp files? TODO: have AP make these
-    t1dfile      = 'apqc_ave_ts_{}.txt'.format(seed.roi_label)
-    tcorrvol     = 'apqc_corr_vol_{}.nii.gz'.format(seed.roi_label)
+    # Make seedcorr data (ave time series and corr map volume) in new AP dir
+    vdir         = ap_ssdict['vstat_dir']
+    bname        = 'seed_{}_in_{}'.format(seed.roi_label, seed.netw)
+    t1dfile      = vdir + '/' + bname + '_ave_ts.txt'
+    tcorrvol     = vdir + '/' + bname + '_corr_map.nii.gz'
 
     # get ulay prefix (name from arg)
     cmd    = '3dinfo -prefix ' + ulay

@@ -698,6 +698,20 @@ if __name__ == "__main__":
             else:
                 Nseed = 0
 
+            # we want to keep seedcorr vols, so make a dir for them in
+            # the AP results dir
+            if Nseed :
+                ap_ssdict['vstat_dir'] = 'vstat_seedcorr'
+                vdir = ap_ssdict['vstat_dir']
+                if os.path.isdir(vdir) :
+                    print("+* Removing and remaking vstat QC dir:", vdir)
+                    cmd    = '''\\rm -rf {}'''.format(vdir)
+                    com    = BASE.shell_com(cmd, capture=True)
+                    stat   = com.run()
+                cmd    = '''\\mkdir -p {}'''.format(vdir)
+                com    = BASE.shell_com(cmd, capture=True)
+                stat   = com.run()
+
             for ii in range(Nseed):
                 seed  = seed_list[ii]               # obj with nec info
                 sname = 'seed_' + seed.roi_label
