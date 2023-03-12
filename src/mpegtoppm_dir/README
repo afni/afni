@@ -61,11 +61,11 @@ The basic usage is to just type "mpeg2dec file" where file is a
 demultiplexed mpeg video file.
 
 The "-s" option must be used for multiplexed (audio and video) mpeg
-files using the "program stream" format. These files are usualy found
+files using the "program stream" format. These files are usually found
 on the internet or on unencrypted DVDs.
 
 The "-t" option must be used for multiplexed (audio and video) mpeg
-files using the "transport stream" format. These files are usualy
+files using the "transport stream" format. These files are usually
 found in digital TV applications.
 
 The "-o" option is used to select a given output module - for example

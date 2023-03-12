@@ -2604,7 +2604,7 @@ If this variable is NOT set to anything, then it is the same as NO.
 
 MPEG filenames input to AFNI programs (as sources of images or as
 datasets) must end in ".mpg", ".MPG", ".mpeg", or ".MPEG". MPEG
-datasets will be read so that the individal images are displayed in an
+datasets will be read so that the individual images are displayed in an
 Axial image window.
 
 Note that decoding a long .mpg file that happens to be in your
