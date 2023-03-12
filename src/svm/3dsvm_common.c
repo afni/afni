@@ -7315,7 +7315,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   DOC    *docsTrain       = NULL; /* svm-light data structure used for training */
   KERNEL_CACHE kernel_cache;      /* svm-light data structure holding kernel
-                                   * paramters */
+                                   * parameters */
 
 
   long nt                 = 0;   /* number of time points in TRAIN dataset */
