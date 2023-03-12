@@ -764,7 +764,7 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc)
 
    kar = 1;
    brk = 0;
-   while (kar < argc) { /* loop accross tracing and debugging
+   while (kar < argc) { /* loop across tracing and debugging
                            command line options */
       if ((strcmp(argv[kar], "-memdbg") == 0) ||
           (strcmp(argv[kar], "-yesmall") == 0) ) {

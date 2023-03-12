@@ -338,7 +338,7 @@ HELP:
    echo "                   in ROISEL 1D file. The default is to process all"
    echo "                   ROIs in ROIvol."
    echo "                   It is important to use this option when processing"
-   echo "                   data accross subjects with differing ROIVol for "
+   echo "                   data across subjects with differing ROIVol for "
    echo "                   input. If all ROIVol volumes do not have the same"
    echo "                   set of ROI labels then the correlation matrices "
    echo "                   would be of differing sizes."
