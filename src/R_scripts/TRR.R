@@ -604,7 +604,7 @@ outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep
 names(lop$dataTable)[names(lop$dataTable)==lop$subject] <- 'subj'
 names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
 names(lop$dataTable)[names(lop$dataTable)==lop$repetition] <- 'rep'
-names(lop$dataTable)[names(lop$dataTable)==lop$condiiton]  <- 'cond'
+names(lop$dataTable)[names(lop$dataTable)==lop$condition]  <- 'cond'
 
 # make sure sess and subject are treated as factors
 if(!is.factor(lop$dataTable$rep)) lop$dataTable$rep <- as.factor(lop$dataTable$rep)
