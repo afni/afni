@@ -593,7 +593,7 @@ int main (int argc,char *argv[])
    brk = NOPE;
    SurfIn = NOPE;
    Domemtrace = YUP;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -968,7 +968,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
 
-   }/* loop across command ine options */
+   }/* loop across command line options */
    /* -ah option now checked for in ps */
    if (ps->cs->afni_host_name && !AfniHostName) {
       AfniHostName = SUMA_copy_string(ps->cs->afni_host_name);

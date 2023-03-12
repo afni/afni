@@ -317,7 +317,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		SUMA_LH("Parsing command line at %s...\n", argv[kar] );
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);

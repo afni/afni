@@ -86,7 +86,7 @@ int main (int argc,char *argv[])
    val = NULL;
    sep = " "; /* separator for multiple outs */
    brk = NOPE;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usageParseName_Main ();

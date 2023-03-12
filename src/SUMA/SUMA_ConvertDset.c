@@ -258,7 +258,7 @@ int main (int argc,char *argv[])
    RAI = 1;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          usage_ConverDset  (ps, strlen(argv[kar]) > 3 ? 2:1);
          exit (0);
@@ -495,7 +495,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop across command ine options */
+   }/* loop across command line options */
    if (argc < 3) {
       usage_ConverDset  (ps, 0);
       exit (1);

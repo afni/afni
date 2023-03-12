@@ -103,7 +103,7 @@ SUMA_KUBATEST_OPTIONS *SUMA_SampBias_ParseInput(
    Opt->segdo = NULL;
    Opt->ps=ps;
    while (kar < argc) 
-   { /* loop across command ine options */
+   { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0)
       {

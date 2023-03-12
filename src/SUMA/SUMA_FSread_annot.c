@@ -131,7 +131,7 @@ int main (int argc,char *argv[])
    ver = -1;
    FSdefault = 0;
    hemi=0;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_FSread_annot_Main();

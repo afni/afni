@@ -136,7 +136,7 @@ int main (int argc,char *argv[])
    olabel = 0;
    keepsep = 0;
    nodups = 0;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /* SUMA_LH("Parsing command line..."); */
       
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
