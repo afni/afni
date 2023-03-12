@@ -927,7 +927,7 @@ if __name__ == "__main__":
 
     if HAVE_ULAY and DO_TSNR_VREG :
         print("++ Will calc vreg TSNR.")
-        olay     = tsnr_vreg
+        olay     = tsnr_vreg[0]
         descrip  = '(TSNR, from r01 dset after volreg)'
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_regr_tsnr( ap_ssdict, obase, "regr", "tsnr_vreg",
