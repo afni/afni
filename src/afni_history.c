@@ -404,7 +404,7 @@ int restrict_results(global_data * gd, hist_type *** H, int * Hlen)
         if( gd->sort_dir == 1 ) first = hlen - gd->past_entries;
 
         if( gd->verb > 1 )
-            fprintf(stderr,"++ restricting to entires from %d to %d\n",
+            fprintf(stderr,"++ restricting to entries from %d to %d\n",
                     hlen, gd->past_entries);
 
         if( restrict_hlist(&hlist, first, hlen, gd->past_entries) ) return 1;
@@ -532,7 +532,7 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
         if( gd->sort_dir == 1 ) first = len - gd->past_entries;
         else                    len   = gd->past_entries;
         if( gd->verb > 1 )
-            fprintf(stderr,"++ restricting to entires from %d to %d\n",
+            fprintf(stderr,"++ restricting to entries from %d to %d\n",
                     first, len-1);
     }
 #endif
@@ -838,7 +838,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
                 hptr[c] = hptr[c+gap];
         }
     } else
-        nfound = c;     /* no shift requred */
+        nfound = c;     /* no shift required */
 
     if( nfound == 0 ) {         /* death by 'levels' */
         if(gd->verb>0) fprintf(stderr,"-- no history for date restriction\n");
@@ -1434,7 +1434,7 @@ int valid_histstruct(hist_type * hstr, char * author)
     }
 
     if( ! hstr->author || strcmp(author, hstr->author) ) {
-        fprintf(stderr,"** author mis-match: %s != %s\n",
+        fprintf(stderr,"** author mismatch: %s != %s\n",
                 author, CHECK_NULL_STR(hstr->author));
         errs++;
     }

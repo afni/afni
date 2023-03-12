@@ -65,7 +65,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "add -choose_nonzero_cols",
-   "This is for excluding all-zero columns for conditon number of chosen cols."
+   "This is for excluding all-zero columns for condition number of chosen cols."
  } ,
 
  { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
@@ -201,7 +201,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 13, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "fix crash (in afni_base.py) if missing tamplate",
+   "fix crash (in afni_base.py) if missing template",
    "Thanks to R Birn for noting the problem."
  } ,
 
@@ -617,7 +617,7 @@ afni_history_struct rickr_history[] = {
 
  { 24, Jan, 2022, RCR, "suma", MICRO, TYPE_BUG_FIX,
    "fix dupe symbol (clippingPlaneFile) error for mac 12",
-   "As reported by the international man of mistery, P Kundu."
+   "As reported by the international man of mystery, P Kundu."
  } ,
 
  { 24, Jan, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
@@ -805,7 +805,7 @@ afni_history_struct rickr_history[] = {
 
  {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_xmat_stype_cols",
-   "Display xmat columns for speicified -stim_* regressor classes."
+   "Display xmat columns for specified -stim_* regressor classes."
  } ,
 
  {  1, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
@@ -1633,7 +1633,7 @@ afni_history_struct rickr_history[] = {
 
  { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -compare_opts_vs_opts",
-   "One can compare two afni_proc.py commmands sequentially, that are\n"
+   "One can compare two afni_proc.py commands sequentially, that are\n"
    "not part of the stored examples list.  Consider:\n"
    "   afni_proc.py ... first option set ...    \\\n"
    "                -compare_opts_vs_opts       \\\n"
@@ -1669,7 +1669,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
-   "add inital new library for processing example, lib_ap_examples.py",
+   "add initial new library for processing example, lib_ap_examples.py",
    NULL
  } ,
 
@@ -1998,7 +1998,7 @@ afni_history_struct rickr_history[] = {
 
  { 23, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "updates corresponding to Travis CI OS change: Ubuntu 14->16",
-   "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system udpate,\n"
+   "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system update,\n"
    "and update the notes to include fix of GLwDrawA.h.\n"
    "Also, seem to need to enable mysql."
  } ,
@@ -2321,7 +2321,7 @@ afni_history_struct rickr_history[] = {
    "add options -radial_correlate_blocks and -radial_correlate_opts",
    "Run @raidal_correlate at the end of each specified block, creating one\n"
    "correlation volume per run.  Each voxel gets the correlation of its time\n"
-   "series with a local (slighly Gaussian weighted) average."
+   "series with a local (slightly Gaussian weighted) average."
  } ,
 
  { 13, May, 2019, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
@@ -2772,7 +2772,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  4, Oct, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
-   "wget/curl may remove execute permision, so re-add it",
+   "wget/curl may remove execute permission, so re-add it",
    NULL
  } ,
 
@@ -2946,7 +2946,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 21, Jun, 2018, RCR, "model_PRF_6_BAD", MINOR, TYPE_NEW_PROG,
-   "old model_PRF_6, but with version and gauss_file udpates",
+   "old model_PRF_6, but with version and gauss_file updates",
    "This is for result comparison."
  } ,
 
@@ -3126,7 +3126,7 @@ afni_history_struct rickr_history[] = {
  { 18,  Apr, 2018, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -csim_show_clustsize and helper options to report cluster requirements",
    "Given a cluster table output by 3dClustSim, use this option to extract\n"
-   "the mininum cluster size, given uncorrected and corrected p-values.\n"
+   "the minimum cluster size, given uncorrected and corrected p-values.\n"
    "Use -csim_pthr and -csim_alpha to specify those respective p-values."
  } ,
 
@@ -4228,7 +4228,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datasets",
    "User probably forgot -volreg_tlrc_warp, so warn them."
  } ,
 
@@ -4859,7 +4859,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
-   "clarify error about mis-match in number of volumes",
+   "clarify error about mismatch in number of volumes",
    NULL
  } ,
 
@@ -6325,7 +6325,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  9,  Jul, 2013, RCR, "to3d", MINOR, TYPE_NEW_OPT,
-   "added -ushort2float, for converting unsinged shorts to floats",
+   "added -ushort2float, for converting unsigned shorts to floats",
    "Requested by D Handwerker."
  } ,
 
@@ -6656,7 +6656,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 28, Dec, 2012, RCR, "suma-general", MICRO, TYPE_BUG_FIX,
-   "mri_polyfit() now takes exar paramter, pass NULL",
+   "mri_polyfit() now takes exar parameter, pass NULL",
    NULL
  } ,
 
@@ -8105,7 +8105,7 @@ afni_history_struct rickr_history[] = {
  { 12, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
    "many small updates",
    "This set of 3 files was broken off set uber_skel.py, meant to be a\n"
-   "resonable starting point for future uber programs."
+   "reasonable starting point for future uber programs."
  } ,
 
  { 11, MAY, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_ENHANCE,
@@ -8792,7 +8792,7 @@ afni_history_struct rickr_history[] = {
 
  { 7, JUL, 2010, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
    "fixed znzread/write to again return nmembers",
-   "Also, added M Hanke's update to CMakeLists.txt for new realease number."
+   "Also, added M Hanke's update to CMakeLists.txt for new release number."
  } ,
 
  { 7, JUL, 2010, RCR, "nifti_tool", MICRO, TYPE_BUG_FIX,
@@ -8894,7 +8894,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20, MAY, 2010, RCR, "Makefile.NIH.CentOS.5.3_64", MICRO, TYPE_MODIFY,
-   "update CCOLD to compile with gcc verion 3.4",
+   "update CCOLD to compile with gcc version 3.4",
    NULL
  } ,
 

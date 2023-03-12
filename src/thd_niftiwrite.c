@@ -44,7 +44,7 @@ ENTRY("THD_write_nifti") ;
     RETURN(1) ;
   }
 
-  /* if we need a float dataset, make one (insted of failing)
+  /* if we need a float dataset, make one (instead of failing)
    * (wasteful, but simple and effective)  6 Sep 2012 [rickr] */
   if( needs_conversion_to_float(din, 1) ) {
      dset = EDIT_full_copy(din, NULL);
