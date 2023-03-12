@@ -388,7 +388,7 @@ ccc      DIMENSION       Z(MX,NY)   ,CL(NLM)
       DIMENSION       Z(MX,NY)  ,CL(NLM)
       DATA KK/0/
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-C CLSET PUTS THE VALUS OF THE CONTOUR LEVELS IN CL
+C CLSET PUTS THE VALUES OF THE CONTOUR LEVELS IN CL
 C
       ICNST = 0
       GLO = CLO

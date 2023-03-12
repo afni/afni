@@ -794,7 +794,7 @@ L570:
     /* Function Body */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-/* CLSET PUTS THE VALUS OF THE CONTOUR LEVELS IN CL */
+/* CLSET PUTS THE VALUES OF THE CONTOUR LEVELS IN CL */
 
     *icnst = 0;
     glo = *clo;
