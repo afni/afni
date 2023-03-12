@@ -20,7 +20,7 @@ Added ability to use sub-brick selectors on input datasets.
 Modified output to scale each sub-brick to shorts/bytes separately
   [RW Cox, Mar 1999]
 
-Modifed sub-brick selection of type "-b3 name+view" to mangle dataset
+Modified sub-brick selection of type "-b3 name+view" to mangle dataset
 into form "name+view[3]", since that code works better on 3D+time.
 Modified TS_reader to use new mri_read_1D() function, instead of
 mri_read_ascii().
@@ -178,7 +178,7 @@ int remove_isolated_stuff( int nnx, int nny, int nnz, float *far, int maxite ) ;
 
 /*--------------------------------------------------------------------
   Read a time series file into TS variable number ival.
-  Returns -1 if an error occured, 0 otherwise.
+  Returns -1 if an error occurred, 0 otherwise.
 ----------------------------------------------------------------------*/
 
 int TS_reader( int ival , char *fname )
@@ -199,7 +199,7 @@ int TS_reader( int ival , char *fname )
 
 /*--------------------------------------------------------------------
   Read a time series file into IJK variable number ival.
-  Returns -1 if an error occured, 0 otherwise.
+  Returns -1 if an error occurred, 0 otherwise.
 ----------------------------------------------------------------------*/
 
 int IJKAR_reader( int ival , char *fname )  /* 22 Feb 2005 */
@@ -888,7 +888,7 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
    if( CALC_taxis_num > 0 ){  /* 28 Apr 2003 */
      if( ntime_max > 1 ){
-       WARNING_message("-taxis %d overriden by dataset input(s)\n",
+       WARNING_message("-taxis %d overridden by dataset input(s)\n",
                        CALC_taxis_num) ;
      } else {
        ntime_max = CALC_taxis_num ;
@@ -1031,7 +1031,7 @@ void CALC_Syntax(void)
     "   The spatial meaning of (x,y,z) is discussed in the 'COORDINATES'     \n"
     "   section of this help listing (far below).                            \n"
     "\n"
-    "8. Some datsets are 'short' (16 bit) integers with a scalar attached,   \n"
+    "8. Some datasets are 'short' (16 bit) integers with a scalar attached,   \n"
     "   which allow them to be smaller than float datasets and to contain    \n"
     "   fractional values.                                                   \n"
     "\n"
@@ -1305,7 +1305,7 @@ void CALC_Syntax(void)
     "\n"
     " As an example, consider a short dataset with a scalar of 0.0001. This  \n"
     " could represent values between -32.768 and +32.767, at a resolution of \n"
-    " 0.001.  One could represnt the difference between 4.916 and 4.917, for \n"
+    " 0.001.  One could represent the difference between 4.916 and 4.917, for \n"
     " instance, but not 4.9165. Each number has 15 bits of accuracy, plus a  \n"
     " sign bit, which gives 4-5 decimal places of accuracy. If this is not   \n"
     " enough, then it makes sense to use the larger type, float.             \n"

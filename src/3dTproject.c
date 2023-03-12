@@ -136,7 +136,7 @@ void TPR_help_the_pitiful_user(void)
    " -cenmode mode       = 'mode' specifies how censored time points are treated in\n"
    "                       the output dataset:\n"
    "                       ++ mode = ZERO ==> put zero values in their place\n"
-   "                                      ==> output datset is same length as input\n"
+   "                                      ==> output dataset is same length as input\n"
    "                       ++ mode = KILL ==> remove those time points\n"
    "                                      ==> output dataset is shorter than input\n"
    "                       ++ mode = NTRP ==> censored values are replaced by interpolated\n"

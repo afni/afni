@@ -3241,7 +3241,7 @@ static int DWI_Open_NIML_stream()
 
    INFO_message("Trying shared memory...");
    if (!NI_stream_reopen( DWIstreamid, "shm:DWIDT1M:1M" ))
-      INFO_message("Warning: Shared memory communcation failed.");
+      INFO_message("Warning: Shared memory communication failed.");
    else
       INFO_message("Shared memory connection OK.");
    Wait_tot = 0;
@@ -3546,7 +3546,7 @@ static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks)
          x          variable for input and output (elements of D tensor)
          rstart = 0.1*tx size of search region aoround initial value of x
          rend = 0.001*tx size of final search region (desired accuracy)
-         maxcall = 99999 maximum number times to call cost functin
+         maxcall = 99999 maximum number times to call cost function
          ufunc = DT_Powell_optimize_fun cost function 
       */
       i = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 
