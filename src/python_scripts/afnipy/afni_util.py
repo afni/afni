@@ -1555,7 +1555,7 @@ def timing_to_slice_pattern(timing, nplaces=3):
    # at this point, the sorted list has a regular (multiband?) pattern
    # so now we :
    #   - choose a pattern based on the first nunique entries
-   #   - verify that the patters repeats mblevel times
+   #   - verify that the pattern repeats mblevel times
 
    # variables of importance: timing, tgrid, nunique, mblevel
    # convert timing to ints in range(nunique)
@@ -1730,7 +1730,7 @@ def slice_pattern_to_order(pattern, nslices):
 def slice_pattern_to_timing(pattern, nslices, TR=0):
    """given tpattern, nslices and TR, return a list of slice times
 
-      special case: if TR == 0 (or unspecifiec)
+      special case: if TR == 0 (or unspecific)
          - do not scale (so output is int list, as if TR==nslices)
 
       method:

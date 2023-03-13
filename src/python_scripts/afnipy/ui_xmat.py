@@ -501,7 +501,7 @@ g_history = """
    1.4  Feb 17 2023: add option -choose_nonzero_cols
 """
 
-g_version = "xmat_tool.py version 1.4, Februar 17, 2023"
+g_version = "xmat_tool.py version 1.4, February 17, 2023"
 
 g_cormat_cut = 0.4
 g_cosmat_cut = 0.3827

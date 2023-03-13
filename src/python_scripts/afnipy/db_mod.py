@@ -6383,7 +6383,7 @@ def db_cmd_regress(proc, block):
     # if censor file, note the xmat that ignores censoring
     if proc.censor_file: proc.xmat_nocen = newmat
 
-    # possibly run the REML script (run eariler in the case of surfaces)
+    # possibly run the REML script (run earlier in the case of surfaces)
     if block.opts.find_opt('-regress_reml_exec') and not proc.surf_anat:
         rcmd = db_cmd_reml_exec(proc, block)
         if not rcmd: return
@@ -6978,7 +6978,7 @@ def db_cmd_regress_rsfc(proc, block):
        print("** RSFC: missing -regress_bandpass option")
        return 1, ''
     elif len(proc.bandpass) > 2:
-       print("** RSFC: -regress_bandpass must have exatly 2 frequencies")
+       print("** RSFC: -regress_bandpass must have exactly 2 frequencies")
        return 1, ''
 
     if proc.mask and proc.regmask:
