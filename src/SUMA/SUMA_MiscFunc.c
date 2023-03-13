@@ -6262,7 +6262,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
       u & v(float *) location within the triangle of the intersection point
 
 \sa Algorithm from:Moller & Trumbore 97
-   Tomas Möller and Ben Trumbore. Fast, minimum storage ray-triangle intersection. 
+   Tomas Moller and Ben Trumbore. Fast, minimum storage ray-triangle intersection. 
    Journal of graphics tools, 2(1):21-28, 1997
 
 NOTE: 
@@ -6886,8 +6886,8 @@ void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
 }
 
 /*!
-   Code from Tomas Möller, John Hughes 1999:
-   Tomas Möller and John F. Hughes. 
+   Code from Tomas Moller, John Hughes 1999:
+   Tomas Moller and John F. Hughes. 
    Efficiently building a matrix to rotate one vector to another. 
    Journal of graphics tools, 4(4):1-4, 1999
    
