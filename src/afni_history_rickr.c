@@ -86,7 +86,12 @@ afni_history_struct rickr_history[] = {
    "If IM, warn if the user did not specify the timing type.\n"
    "Thanks to M Hoptman for letting us know of the problem."
  } ,
-
+ 
+ {  8, Feb, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "give error message when image writing fails on missing external program",
+   "Warn on missing programs cjpeg and pnmtopng"
+ } ,
+ 
  {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
    "as with afni_proc.py, get SurfSmooth parms from smrec file",
    NULL
