@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.3,  Feb 13, 2023
+Version 4.1.4,  March 13, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1116,7 +1116,8 @@ mvCom5 <- function(fm, nF_mvE5) {
 runAOV <- function(inData, dataframe, ModelForm) {
    out <- lop$outInit
    # when a voxel-wise covariate is included, 2nd half of input data inData stores the covariate
-   if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
+   #if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
+   if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, lop$nResid)
    options(warn = -1)
    if (!all(abs(inData) < 10e-8)) {  # not all 0s
       dataframe$Beta<-inData[1:lop$NoFile]
@@ -1611,6 +1612,7 @@ while(is.null(fm)) {
          } else uvfm <- univ(fm$Anova)  # univariate modeling
           if(!is.na(lop$mVar)) if(is.na(lop$wsVars)) mvfm <- Anova(fm$lm, type=lop$SS_type, test='Pillai')
       }
+      if(!is.null(lop$resid)) lop$nResid <- length(as.vector(t(unname(residuals(fm$lm))))) else lop$nResid <- 0
    }
 
    if(!is.null(fm)) if((lop$num_glt > 0) | (lop$num_glf > 0)) if(lop$robust) {
@@ -1622,7 +1624,7 @@ while(is.null(fm)) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
          #if(all(is.na(lop$gltList[[n]]))) {  # Covariate testing only without factors involved
-         if(identical(lop$gltList[[n]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1 # 02/13/2023 (NMM): fix indexing variable
+         if(identical(lop$gltList[[n]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1
             gltRes[[n]] <- tryCatch(testInteractions(gltIn, pairwise=NULL,
                covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = iData),
                error=function(e) NA) } else {     # Involving factors
@@ -1836,7 +1838,8 @@ if(dimy == 1 & dimz == 1) {
    # pad with extra 0s
    inData <- rbind(inData, array(0, dim=c(fill, lop$NoFile)))
    # declare output receiver
-   out <- array(0, dim=c(dimx_n, nSeg, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+   #out <- array(0, dim=c(dimx_n, nSeg, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+   out <- array(0, dim=c(dimx_n, nSeg, NoBrick+(!is.null(lop$resid))*lop$nResid))
    # break input multiple segments for parrel computation
    # test runAOV(inData[ii,kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
    dim(inData) <- c(dimx_n, nSeg, lop$NoFile)
@@ -1868,13 +1871,15 @@ if(dimy == 1 & dimz == 1) {
    stopCluster(cl)
    }
    # convert to 4D
-   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
+   #dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
+   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick+(!is.null(lop$resid))*lop$nResid)
    # remove the trailers (padded 0s)
    out <- out[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
 } else {
 
 # Initialization
-out <- array(0, dim=c(dimx, dimy, dimz, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+#out <- array(0, dim=c(dimx, dimy, dimz, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+out <- array(0, dim=c(dimx, dimy, dimz, NoBrick+(!is.null(lop$resid))*lop$nResid))
 
 # set up a voxel @ ii jj kk to test
 #runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
@@ -1953,7 +1958,8 @@ if(!is.null(lop$resid)) { # with residuals
    write.AFNI(lop$outFN, out[,,,1:NoBrick, drop=FALSE],
       brickNames, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history,
       statsym=statsym, addFDR=2, type='MRI_float', scale=FALSE)
-   write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
+   #write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
+   write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*lop$nResid), drop=FALSE],
       label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_float', scale=FALSE)
 } else { # residuals are not requested
    write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
