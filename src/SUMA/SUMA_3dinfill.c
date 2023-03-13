@@ -31,7 +31,7 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(strlen(argv[kar])>3 ? 2:1);
@@ -343,7 +343,7 @@ void Infill_usage()
 "                a value of 1 is the least strict criterion, and a value of 3\n"
 "                is the strictest. \n"
 "                This parameter can only be used with -blend SOLID\n"
-"   -ed N V: Erode N times then dialate N times to get rid of hanging chunks.\n"
+"   -ed N V: Erode N times then dilate N times to get rid of hanging chunks.\n"
 "            Values filled in by this process get value V.\n"
 "   -mask MSET: Provide mask dataset to select subset of input.\n"
 "   -mask_range BOT TOP: Specify the range of values to consider from MSET.\n"

@@ -5172,7 +5172,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO,
    Be conservative, DO NO HARM!
    
 */
-int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int agressive) 
+int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int aggressive) 
 {
    static char FuncName[]={"SUMA_PushToEdge"};
    byte *fmask=NULL;
@@ -5208,7 +5208,7 @@ int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Op
          } 
          if (1 || Opt->Stop[in] >= 0) { /* no need to heed the freezd */
             if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
-               if (agressive)  { shft = touchup[in]; }/* if not aggressive, force smoothing */ 
+               if (aggressive)  { shft = touchup[in]; }/* if not aggressive, force smoothing */ 
                else { /* use the mean of the immediate neighbors, no high freq. shifts expected down low */
                   shft = touchup[in];
                   if (Opt->NodeDbg == in) {

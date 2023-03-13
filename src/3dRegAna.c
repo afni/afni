@@ -31,7 +31,7 @@
   Mod:     Restructured matrix calculations to improve execution speed.
   Date:    16 December 1998
 
-  Mod:     Add use of the argument list extenstion routine addto_args
+  Mod:     Add use of the argument list extension routine addto_args
            to allow the last switch '-@' to get further command line
            arguments from stdin
   Date:    22 February 1999 -- RWCox

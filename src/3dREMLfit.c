@@ -1432,7 +1432,7 @@ int main( int argc , char *argv[] )
       "    the function that is minimized in each voxel (over the discrete a,b grid) is\n"
       "      L(a,b) =  log(det(R(a,b))) + log(det(X' inv(R(a,b)) X))\n"
       "              + (n-m)log(y'P(a,b)y)   - log(det(X'X'))\n"
-      "    where R(a,b) = ARMA(1,1) correlation matrix (symetric n X n)\n"
+      "    where R(a,b) = ARMA(1,1) correlation matrix (symmetric n X n)\n"
       "          n      = dimension of data vector = number of rows in X\n"
       "          m      = number of columns in X = number of regressors\n"
       "          y      = data vector for a given voxel\n"
@@ -1812,7 +1812,7 @@ int main( int argc , char *argv[] )
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
-         /* conver the slice-major column order to slice-minor */
+         /* convert the slice-major column order to slice-minor */
          if( (newim = mri_interleave_columns(im, nz) ) == NULL ) exit(1) ;
          mri_free(im) ; im = newim ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;

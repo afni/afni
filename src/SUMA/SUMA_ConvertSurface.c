@@ -233,7 +233,7 @@ int main (int argc,char *argv[])
    Doinv = 0;
    Domergesurfs = 0;
    onemore = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_ConvertSurface(ps, strlen(argv[kar]) > 3 ? 2:1);

@@ -545,7 +545,7 @@ void display_help_menu(void)
       "    label 'Nor-Pat_mean', and the corresponding t-statistic will get\n"
       "    the label 'Nor-Pat_Tstat'.\n"
       " ++ See the section 'STRUCTURE OF THE OUTPUT DATASET' (far below) for\n"
-      "    more infomation on how the results are formatted.\n"
+      "    more information on how the results are formatted.\n"
       "\n"
       "   ** NOTES on the labels above:\n"
       "      ++ The '-setX' label (above: 'Green') will be limited to 12 characters\n"

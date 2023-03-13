@@ -851,7 +851,7 @@ void MRG_Syntax(void)
     "  -gsmax     = Combine datasets by taking max signed intensity\n"
     "                 (e.g., -7 and 2 combine to -7)\n"
     "  -gcount    = Combine datasets by counting number of 'hits' in\n"
-    "                  each voxel (see below for defintion of 'hit')\n"
+    "                  each voxel (see below for definition of 'hit')\n"
     "  -gorder    = Combine datasets in order of input:\n"
     "                * If a voxel is nonzero in dataset #1, then\n"
     "                    that value goes into the voxel.\n"

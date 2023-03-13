@@ -83,7 +83,7 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
    \param IN (SUMA_INODE *) the linked inode
    \param HolderIDcode (const char *) the ID code that holds/contains IN
    \ret NULL if the link was broken or IN == NULL
-      IN if IN is not a link but an actuak Inode (meaning IN->ParentIDcode == HolderIDcode
+      IN if IN is not a link but an actual Inode (meaning IN->ParentIDcode == HolderIDcode
 
 
 */
@@ -2946,7 +2946,7 @@ SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2)
    /* If name is for live dsets from AFNI, make sure you cut after idcode_str */
    /* check for l or r only */
    if (sd[0] != 'l' && sd[0] != 'L' && sd[0] != 'r' && sd[0] != 'R') {
-      /* not begginning with l or r */
+      /* not beginning with l or r */
       SUMA_free(sd); SUMA_RETURN(NOPE);
    } else if (sd[1] == '\0') { /* make sure it is only l or r */
       SUMA_free(sd); SUMA_RETURN(YUP);
@@ -3822,7 +3822,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO,
 \param Mask (int *) pointer to mask vector.
          0 if node belongs to no ROI
          n if node belongs to n ROIs
-      It is the calling function's responsability to make sure enough space is allocated for
+      It is the calling function's responsibility to make sure enough space is allocated for
       Mask and that cleanup is properly handled.
 \return N_added (int *)integer containing the number of nodes found in dROI.
       This variable is set to -1 when trouble occurs.

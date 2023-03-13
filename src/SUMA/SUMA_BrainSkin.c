@@ -42,7 +42,7 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
 "                    PLIM along the surface.\n"
 "                    Default is 50.\n"
 "     -dlimit DLIM: maximum length of euclidean distance in mm.\n"
-"                   Node pairing not considered if nodes have a Euclidian\n"
+"                   Node pairing not considered if nodes have a Euclidean\n"
 "                   distance of more than DLIM.\n"
 "                   Default is 1000 mm. (no limit)\n"
 "     -segdo SEGDO: Output a displayable object file that contains\n"
@@ -94,7 +94,7 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
 "     -vol_skin MASK: Deform an Icosahedron to match the outer \n"
 "                     boundary of a mask volume.\n"
 "     -no_zero_attraction: With vol_skin, the surface will try to shrink\n"
-"                          agressively, even if there is no promise of\n"
+"                          aggressively, even if there is no promise of\n"
 "                          non-zero values below. Use this option if\n"
 "                          you do not want zero values to attract the surface\n"
 "                          inwards. This option is only useful with -vol_skin \n"
@@ -179,13 +179,13 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
    Opt->sform = SUMA_NO_DSET_FORMAT;
    Opt->voxmeth = 0;
    Opt->in_name = NULL;
-   Opt->shrink_mode = 2; /* agressive */
+   Opt->shrink_mode = 2; /* aggressive */
    Opt->smoothskin = 1;
    Opt->infill = 2;
    Opt->node_dbg=-1;
    Opt->ps=ps;
    while (kar < argc) 
-   { /* loop accross command ine options */
+   { /* loop across command ine options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0)
       {
@@ -711,7 +711,7 @@ SUMA_DSET *SUMA_calcWithOffsets_Skin( SUMA_SurfaceObject *SO,
             d2 = sqrt(dx*dx + dy*dy + dz*dz);
             r = d1 / d2;
             /* How many triangles to you intersect sir? */
-            if (  d2 < Opt->dlimit && /* meets Euclidian distance limits*/
+            if (  d2 < Opt->dlimit && /* meets Euclidean distance limits*/
                   d1 < Opt->plimit && /* meets geodesic distance limits*/
                   r > ratio  /* better than the last */)
             {

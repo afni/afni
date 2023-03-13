@@ -498,7 +498,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "* This program is a generalization of and improvement on the older\n"
      "    software 3dWarpDrive.\n"
      "\n"
-     "* For nonlinear transformations, see progam 3dQwarp.\n"
+     "* For nonlinear transformations, see program 3dQwarp.\n"
      "\n"
      "* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
      "  to produce the transformed output. In this mode of operation, it just\n"
@@ -963,7 +963,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
 
       printf(
      "\n"
-     " -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
+     " -cmass        = Use the center-of-mass calculation to determine an initial shift\n"
      "                   [This option is OFF by default]\n"
      "                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
      "                 where +a means to try determine automatically in which\n"
@@ -3633,7 +3633,7 @@ int main( int argc , char *argv[] )
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
-       ERROR_exit("no source datset on command line!?") ;
+       ERROR_exit("no source dataset on command line!?") ;
      dset_targ = THD_open_dataset( argv[iarg] ) ;
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
@@ -4928,7 +4928,7 @@ STATUS("zeropad weight dataset") ;
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      /* do not let time info from master confuse things, we'll go back */
-     /* to ntt > 1 later, if approprate             [1 Jun 2020 rickr] */
+     /* to ntt > 1 later, if appropriate             [1 Jun 2020 rickr] */
      if( DSET_NUM_TIMES(dset_out) > 1 )
          EDIT_dset_items( dset_out ,   ADN_ntt , 1 , ADN_none ) ;
 
@@ -5348,7 +5348,7 @@ STATUS("zeropad weight dataset") ;
 
        if( allcostX1D == NULL ){ /* just do init parameters == the old way */
 
-         PAR_CPY(val_init) ;   /* copy init parameters into the allpar arrary */
+         PAR_CPY(val_init) ;   /* copy init parameters into the allpar array */
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          PARINI("initial") ;
          INFO_message("allcost output: init #%d",kk) ;

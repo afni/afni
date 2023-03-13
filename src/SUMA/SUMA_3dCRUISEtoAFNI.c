@@ -34,7 +34,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dCRUISEtoAFNI_ParseInput(char *argv[], i
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_3dCRUISEtoAFNI(ps);

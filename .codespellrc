@@ -10,4 +10,4 @@ ignore-words = .codespell-ignores
 # DoubleClick,LessTiff
 # Algebraical - name (kinda?)
 # degress - typo which was acknowledged in history etc, fixed some manually
-ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress,normall

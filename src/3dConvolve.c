@@ -1444,7 +1444,7 @@ void calc_response
   vector_initialize (&yhat);
 
 
-  /*----- calculate the system reponse -----*/
+  /*----- calculate the system response -----*/
   vector_multiply (x, b, &yhat);
 
 

@@ -5,7 +5,7 @@
    ++ 2-way case: produce 1-way result sub-bricks as well  -- DONE!
    ++ Rank or other robust analog to t-test (slow)         -- DONE!
    ++ Send sub-brick data as scaled shorts                 -- TBD
-   ++ Fix shm: bug in AFNI libray (but how?)               -- TBD
+   ++ Fix shm: bug in AFNI library (but how?)               -- TBD
    ++ Have non-server modes:
     -- To input a 1D file as the seed vector set           -- DONE!
     -- To input a mask file to define the seed vector set  -- DONE!

@@ -97,7 +97,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        programs.\n"
 "                  Note: The program will infer the format of the input\n"
 "                        file from the extension of inData. \n" 
-"      -fwhm f: Full Width at Half Maximum in surface coordinate units (usuallly mm)\n"
+"      -fwhm f: Full Width at Half Maximum in surface coordinate units (usually mm)\n"
 "               of an equivalent Gaussian filter had the surface been flat.\n"
 "               With curved surfaces, the equation used to estimate FWHM is \n"
 "               an approximation. \n"
@@ -115,7 +115,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        file from the extension of inData. \n" 
 "                        programs.\n"
 "      -fwhm F: Blur by a Gaussian filter that has a Full Width at Half \n"
-"               Maximum in surface coordinate units (usuallly mm) of F.\n"
+"               Maximum in surface coordinate units (usually mm) of F.\n"
 "               For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
 "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
 "               The program first estimates the initial dataset's smoothness\n"
@@ -211,7 +211,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        file from the extension of inData. \n" 
 "                        programs.\n"
 "      -fwhm F: Effective Full Width at Half Maximum in surface \n"
-"               coordinate units (usuallly mm) \n"
+"               coordinate units (usually mm) \n"
 "               of an equivalent Gaussian filter had the surface been flat.\n"
 "               With curved surfaces, the equation used to estimate FWHM is \n"
 "               an approximation. For Gaussian filters, FWHM, SIGMA \n"
@@ -582,7 +582,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
    Opt->bmall = 0;
    Opt->wght_name=NULL;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command ine options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_SurfSmooth(ps, strlen(argv[kar]) > 3 ? 2:1);
@@ -1536,7 +1536,7 @@ int main (int argc,char *argv[])
    if (!SO->EL || !SO->FN) {
       /* normally you'd call SUMA_SurfaceMetrics_eng (SO, "EdgeList", NULL, 0) 
       but that should be done in SUMA_SurfaceMetrics_eng. */
-      SUMA_SLP_Err("Unexpexted NULL SO->EL or SO->FN");
+      SUMA_SLP_Err("Unexpected NULL SO->EL or SO->FN");
       exit(1); 
    }
 
@@ -2113,7 +2113,7 @@ int main (int argc,char *argv[])
                   if (Opt->debug) SUMA_S_Note("Estimating input smoothness");
                   icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
                   if (N_icols <= 0) { 
-                     SUMA_SL_Err("No approriate data columns in dset"); 
+                     SUMA_SL_Err("No appropriate data columns in dset"); 
                      exit(1); 
                   }
                   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, dset, 
@@ -2137,7 +2137,7 @@ int main (int argc,char *argv[])
                   if (Opt->debug) SUMA_S_Note("Estimating master smoothness");
                   icols = SUMA_FindNumericDataDsetCols(master_dset, &N_icols);
                   if (N_icols <= 0) { 
-                     SUMA_SL_Err("No approriate data columns in master dset");
+                     SUMA_SL_Err("No appropriate data columns in master dset");
                      exit(1); 
                   }
                   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, master_dset, 
@@ -2554,7 +2554,7 @@ int main (int argc,char *argv[])
          break;
       
       case SUMA_NN_GEOM:
-         /* brute forcem nearset neighbor interpolation */
+         /* brute forcem nearest neighbor interpolation */
          {
             if (LocalHead) SUMA_etime(&start_time,0);
             
@@ -2578,7 +2578,7 @@ int main (int argc,char *argv[])
          }
          break;
       case SUMA_NN_GEOM2:
-         /* brute force2 nearset neighbor interpolation */
+         /* brute force2 nearest neighbor interpolation */
          {
             SUMA_SurfaceObject *SOenc = 
                   SUMA_Load_Surface_Object (Opt->enclosing_surf, 
@@ -2608,7 +2608,7 @@ int main (int argc,char *argv[])
          }
          break;  
       case SUMA_NN_GEOM3:
-         /* brute force3 nearset neighbor interpolation */
+         /* brute force3 nearest neighbor interpolation */
          {
             SUMA_DSET *danch=NULL;
             float *anch_wght=NULL;
