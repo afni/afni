@@ -3843,7 +3843,7 @@ class AfniData(object):
       return 0
 
    def transpose(self):
-      """the tranpose operation requires rectangular data"""
+      """the transpose operation requires rectangular data"""
       if not self.ready: return 1
 
       # allow transpose if max row length is 1
