@@ -57,7 +57,7 @@ g_ctrl_defs.verb         = 1      # verbose level
 g_ctrl_defs.copy_scripts = 'yes'  # make .orig copies of scripts?
 g_ctrl_defs.results_dir  = 'test.results'  # output directory for results
 
-# control varaible dictionary, for command line options
+# control variable dictionary, for command line options
 g_cvar_dict = {
    'proc_dir'      : 'set processing dir to hold scripts',
    'verb'          : 'set verbose level',
@@ -102,7 +102,7 @@ g_user_defs.tt_zskip       = 'no'
 
 # 3dMEMA specific, todo ...
 
-# control varaible dictionary, for command line options
+# control variable dictionary, for command line options
 g_uvar_dict = {
    'program'            : 'specify stats program: 3dttest++/3dMEMA',
    'script'             : 'set output script name',
@@ -401,9 +401,9 @@ class TTest(object):
    def make_dset_list(self, dsets, sids=[], dirstr='', sel1='', indent='',
                       mema=0, sel2=''):
       """make a list of lines of the form:
-            INDENT SID "DIRSTR/DSET[SELECTON]" \\
+            INDENT SID "DIRSTR/DSET[SELECTION]" \\
          if mema, the list should be of the form:
-            INDENT SID "DIRSTR/DSET[SELECTON] DIRSTR/DSET[S2]" \\
+            INDENT SID "DIRSTR/DSET[SELECTION] DIRSTR/DSET[S2]" \\
       """
 
       ndsets = len(dsets)

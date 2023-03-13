@@ -95,7 +95,7 @@ Boolean toggleClippingPlaneMode(SUMA_SurfaceViewer *sv, Widget w, int *locallySe
                 // if (i>0) clipPlaneTransform(0,0,0,0,i-1, 1, 0);
                 // if (!makeClipIdentificationPlane(SUMAg_CF->N_ClipPlanes-1, w, sv)){
                 if (!makeClipIdentificationPlane(i, w, sv)){
-                    fprintf(stderr, "Error SUMA_input: Failed to make clip plane indentification square.\n");
+                    fprintf(stderr, "Error SUMA_input: Failed to make clip plane identification square.\n");
                     exit(1);
                 }
             }
@@ -432,7 +432,7 @@ Boolean getEquationForClippingPlane(NI_element *nel, char attribute[32], float e
 
 // #include "GL/glcorearb.h"
 /* GL/glcorearb.h is restricted to newer style functionality,
- * and we are dependend on the old.  Hopefully it is not needed.
+ * and we are dependent on the old.  Hopefully it is not needed.
  *                                           [23 Jun 2021 rickr] */
 /* #include "GL/glcorearb.h"                                     */
 
@@ -511,7 +511,7 @@ void getObjectMinMaxForAxes(float objectMinMax[][2]){
     if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
         fprintf(stderr, "### Get object min/max for axes\n");
 
-    // Itialise
+    // Initialise
     for (i=0; i<3; ++i){
         objectMinMax[i][0] = 10000.0;
         objectMinMax[i][1] = -10000.0;
@@ -765,7 +765,7 @@ SUMA_SurfaceObject *makeAxisPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
         SUMA_SetSphereParams(SO, -0.1);
     }  // sets the spheriosity parameters
 
-    // Miscelaneous fields
+    // Miscellaneous fields
     if (SO->isSphere == SUMA_GEOM_NOT_SET) {
         SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
     }
@@ -961,7 +961,7 @@ SUMA_SurfaceObject *drawPlaneFromNodeAndFaceSetList(SUMA_SurfaceViewer *sv,
         SUMA_SetSphereParams(SO, -0.1);
     }  // sets the spheriosity parameters
 
-    // Miscelaneous fields
+    // Miscellaneous fields
     if (SO->isSphere == SUMA_GEOM_NOT_SET) {
         SUMA_SetSphereParams(SO, -0.1);   /* sets the spheriosity parameters */
     }
@@ -1721,7 +1721,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         else  planeIndex = SUMAg_CF->N_ClipPlanes;
     }
     
-    // Set up normal offset loactions s.t. clipping planes just enclose existing objects
+    // Set up normal offset locations s.t. clipping planes just enclose existing objects
     if (firstCall)  {
         // Get ranges of orthogonal axes
         getObjectMinMaxForAxes(objectMinMax);
@@ -1734,7 +1734,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeD[2] = -objectMinMax[0][0];
         planeD[5] = objectMinMax[0][1];
 
-        // Store previous object axes ranges as gloabl for clipping plane functions
+        // Store previous object axes ranges as global for clipping plane functions
         memcpy(clippingPlaneAxisRanges, objectMinMax, 6*sizeof(float));
         firstCall = 0;
         
@@ -1768,7 +1768,7 @@ void clipPlaneTransform(float  deltaTheta, float deltaPhi, float deltaPlaneD, Bo
         planeB[planeIndex] = -sin(planeTheta[planeIndex]*degrees2rad);
         planeC[planeIndex] = cos(planeTheta[planeIndex]*degrees2rad);
 
-        // Rotate arount y axis
+        // Rotate around y axis
         float oldPlaneA = planeA[planeIndex];
         planeA[planeIndex] = planeC[planeIndex]*sin(planePhi[planeIndex]*degrees2rad);
         if (oldPlaneA*planeA[planeIndex] < 0.1) planeA[planeIndex] = -planeA[planeIndex];

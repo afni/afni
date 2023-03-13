@@ -104,7 +104,7 @@ class Afni1D:
       if self.verb > 2: self.show()
 
    def reduce_by_tlist(self, tlist):
-      """reduce by time list, similiar to afni's {} selector
+      """reduce by time list, similar to afni's {} selector
          this affects run_len and runs, so try to fix those
 
          return 0 on success"""
@@ -257,6 +257,22 @@ class Afni1D:
       cols = self.ordered_cols_by_group_list(gnew)
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
+
+   def list_allzero_cols(self):
+      """return an array of indices where the matrix column is all-zero
+      """
+
+      if not self.ready:
+         print('** list_allzero_cols: Afni1D is not ready')
+         return 1
+
+      zlist = []
+
+      for vind, vec in enumerate(self.mat):
+         if UTIL.vals_are_constant(vec, cval=0):
+            zlist.append(vind)
+
+      return zlist
 
    def show_header(self):
       print('\n'.join(self.header))
@@ -2071,7 +2087,7 @@ class Afni1D:
       """print a distance matrix, to the given number of places
 
          Treating the input as lines of vectors (coordinates), print out an
-         nrows x nrows distance matrix, the Euclidian distance between the
+         nrows x nrows distance matrix, the Euclidean distance between the
          pairs of coordinates.
 
          verb: integral verbosity level (None : use self.verb)
@@ -2125,7 +2141,7 @@ class Afni1D:
 
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -2899,7 +2915,7 @@ class Afni1D:
             IM:     -stim_times_IM
 
       """
-      # make a list of acceptible options
+      # make a list of acceptable options
       if 'ALL' in stypes:
          optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
                     '-stim_times_IM']
@@ -3042,17 +3058,19 @@ class Afni1D:
             1: baseline (group  -1)
             2: motion   (group   0)
             4: interest (group > 0)
+            8: allzero
 
-         Do not return an empty list.  If the groups do not exist or are
-         not found, return '0..$'."""
+         Do not return an empty list, unless allzero is given.
+         If the groups do not exist or are not found, return '0..$'."""
 
       default = '0..$'
 
       if self.verb > 1: print('-- show indices, types = %d, groups = %s' \
                               % (ind_types, self.groups))
 
-      bmask = ind_types & 7
+      bmask = ind_types & 15
       if not self.ready:           return default
+      # treat no groups and all groups the same
       if bmask == 0 or bmask == 7: return default
       if len(self.groups) < 1:     return default
 
@@ -3064,10 +3082,13 @@ class Afni1D:
          ilist += [ind for ind in allind if self.groups[ind] == 0]
       if ind_types & 4:
          ilist += [ind for ind in allind if self.groups[ind] > 0]
+      # all-zero is more work
+      if ind_types & 8:
+         ilist += self.list_allzero_cols()
       ilist.sort()
 
       elist = UTIL.encode_1D_ints(ilist)
-      if elist == '':
+      if elist == '' and not (ind_types & 8):
          if self.verb > 1: print('-- replacing empty encode list with full')
          elist = default
       return elist
@@ -4139,7 +4160,7 @@ class AfniData(object):
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
 
-         return -1 on fatal erros
+         return -1 on fatal errors
                  0 on OK
                  1 on non-fatal errors
       """
@@ -4382,7 +4403,7 @@ class AfniData(object):
          return 1
 
    def file_type_errors_global(self, run_lens=[], tr=0.0, verb=1):
-      """ return -1 on fatal erros
+      """ return -1 on fatal errors
                   0 on OK
                   1 on non-fatal errors
       """
@@ -4766,7 +4787,7 @@ class AfniData(object):
       # self.mdata
       lorig = self.mdata
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding mdata")
             d = []
@@ -4781,7 +4802,7 @@ class AfniData(object):
       # self.alist
       lorig = self.alist
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding alist")
             d = []
@@ -4796,7 +4817,7 @@ class AfniData(object):
       # self.run_lens
       lorig = self.run_lens
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding run_lens")
             d = []

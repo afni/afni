@@ -1450,7 +1450,7 @@ class SysInfo:
             # clear on failure
             if vstr == '': dstr = ''
 
-         # some vesions are not considered good
+         # some versions are not considered good
          if self.check_xquartz_version(vstr, warn=1): 
             print("  ** for macos install instructions, see:\n\n    %s\n" \
                   % g_site_install_mac)

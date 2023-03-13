@@ -29,7 +29,7 @@ g_history = """
     1.0  Dec 20, 2006 : initial release
     1.1  Dec 20, 2006 : added -regress_use_stim_files
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
-    1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
+    1.3  Dec 22, 2006 : change help to assume ED's stim_times files exist
     1.4  Dec 25, 2006 : initial -ask_me
     1.5  Dec 27, 2006 : ask_me help
     1.6  Dec 28, 2006 : -gltsym examples, min(a,b) in scale block
@@ -93,7 +93,7 @@ g_history = """
     1.34 Feb 17 2009 : added -regress_reml_exec and -regress_3dD_stop
     1.35 Mar 12 2009 :
         - if despiking and no regression mask, apply -nomask
-        - added 'MASKING NOTE', to suggest no regresion mask until group space
+        - added 'MASKING NOTE', to suggest no regression mask until group space
     1.36 Mar 24 2009 :
         * -regress_no_mask is now the default *
         - added -regress_apply_mask
@@ -265,7 +265,7 @@ g_history = """
     2.53 Jun 02 2011 :
         - added -regress_make_cbucket
         - include view in 3dcopy for single run extents mask
-          (so there are no missing view warnigns, done for J Jarcho)
+          (so there are no missing view warnings, done for J Jarcho)
         - make regress TSNR dataset by default (added option -compute_tsnr)
     2.54 Jun 03 2011: volreg tsnr is not default
         - added -volreg_compute_tsnr (def no), -regress_compute_tsnr (def yes)
@@ -521,7 +521,7 @@ g_history = """
         - added -blip_forward_dset
     4.67 Jun 16, 2016:
         - if NLwarp but EPI in orig space, do not apply (warn user)
-        - fix refit of blip median datsets
+        - fix refit of blip median datasets
     4.68 Jun 22, 2016: do nothing, but work really hard at it
         - apply EPI transformation steps using an array of transformations
           (to make future changes easier)
@@ -733,7 +733,7 @@ g_history = """
        - add -align_unifize_epi local method, -align_opts_eunif
        - create final_epi_unif volume, in case of EPI uniformity correction
     7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
-    7.43 Jul 26, 2022: copy label tabels of anat followers
+    7.43 Jul 26, 2022: copy label tables of anat followers
     7.44 Jul 30, 2022:
        - copy tlrc_base/template to results directory
        - add opt -tlrc_copy_base
@@ -749,9 +749,10 @@ g_history = """
     7.52 Feb  1, 2023: get SurfSmooth params from smrec file
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
     7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
+    7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
 """
 
-g_version = "version 7.54, February 6, 2023"
+g_version = "version 7.55, March 1, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -828,7 +829,7 @@ Miscellaneous older changes:
       - preferable to see all results by default
       - reproduce with: -mask_apply brain
 
-   17 Jun 2009 : EPI extents mask is aplied
+   17 Jun 2009 : EPI extents mask is applied
       - motion could cause strange edge effects
       - require data at every time point
       - reproduce with: -volreg_no_extent_mask
@@ -1269,6 +1270,8 @@ class SubjProcSream:
                         helpstr="show given help example by NAME")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
+        self.valid_opts.add_opt('-show_pretty_command', 0, [],
+                        helpstr="display afni_proc.py command in a nice format")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1786,7 +1789,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_ideals', 0, [],
                         helpstr="do not generate ideal regressors")
         self.valid_opts.add_opt('-regress_no_iresp', 0, [],
-                        helpstr="do not output impulse reponse datasets")
+                        helpstr="do not output impulse response datasets")
         self.valid_opts.add_opt('-regress_no_mask', 0, [],
                         helpstr="do not apply any mask during regression")
         self.valid_opts.add_opt('-regress_no_motion', 0, [],
@@ -1855,7 +1858,7 @@ class SubjProcSream:
             else: print("** have invalid trailing args: %s" % opt.parlist)
             return 1  # failure
 
-        # maybe the users justs wants a complete option list
+        # maybe the users just wants a complete option list
         if self.user_opts.find_opt('-show_valid_opts'):
             self.valid_opts.show('', 1)
             return 0  # gentle termination
@@ -1919,6 +1922,11 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_process_changes'):
             print(g_process_changes_str)
+            return 0
+        
+        if opt_list.find_opt('-show_pretty_command'):
+            tstr = self.get_ap_command_str(style='pretty', lstart='')
+            print(tstr)
             return 0
         
         if opt_list.find_opt('-show_tracked_files'):
@@ -2167,7 +2175,7 @@ class SubjProcSream:
            # already echo-major order, no need to transpose
 
         if o2:
-           # input is run-major order, will conver to echo-major at end
+           # input is run-major order, will convert to echo-major at end
            oname = '-dsets_me_run'
            olist = self.user_opts.find_all_opts(oname)
            necho = len(olist[0].parlist)
@@ -2301,7 +2309,7 @@ class SubjProcSream:
         elif self.surf_anat: blocks = DefSurfLabs  # surface defaults
         else:                blocks = DefLabels    # volume defaults
 
-        # and insert automatic postdata block at postion 1 (after tcat)
+        # and insert automatic postdata block at position 1 (after tcat)
         blocks.insert(1, 'postdata')
 
         # just do a quick check after all of the confusion
@@ -2710,7 +2718,7 @@ class SubjProcSream:
             if self.ricor_nreg > 0 and self.ricor_apply == 'no':
                 if not self.user_opts.find_opt('-regress_apply_ricor'):
                     print('** note: ricor regressors are no longer applied' \
-                              ' in final regresion')
+                              ' in final regression')
 
             if self.runs == 1:
                 print("\n-------------------------------------\n" \
@@ -2919,7 +2927,7 @@ class SubjProcSream:
        return self.find_block(self.prev_lab(rblock), mx=bind)
 
     def blocks_are_unique(self, blocks, exclude_list=['empty'], whine=1):
-        """return whether the blocs are unique
+        """return whether the blocks are unique
                 - ignore blocks in exclude_list
                 - if whine, complain on repeats
            Process one by one, so we know what to complain about.
@@ -2974,37 +2982,37 @@ class SubjProcSream:
         if self.find_block('align'):
             if not self.blocks_ordered('align', 'volreg'):
                 errs += 1
-                print("** warning: 'align' should preceed 'volreg'")
+                print("** warning: 'align' should precede 'volreg'")
             if not self.blocks_ordered('align', 'tlrc'):
                 errs += 1
-                print("** warning: 'align' should preceed 'tlrc'")
+                print("** warning: 'align' should precede 'tlrc'")
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
                 errs += 1
-                print("** warning: 'despike' should preceed 'ricor'")
+                print("** warning: 'despike' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'tshift'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'ricor'")
+                print("** warning: 'tshift' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'volreg'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'ricor'")
+                print("** warning: 'volreg' should precede 'ricor'")
         if self.find_block('blur'):
             if not self.blocks_ordered('blur', 'scale'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'scale'")
+                print("** warning: 'blur' should precede 'scale'")
         if self.find_block('regress'):
             if not self.blocks_ordered('tshift', 'regress'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'regress'")
+                print("** warning: 'tshift' should precede 'regress'")
             if not self.blocks_ordered('volreg', 'regress'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'regress'")
+                print("** warning: 'volreg' should precede 'regress'")
             if not self.blocks_ordered('blur', 'regress'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'regress'")
+                print("** warning: 'blur' should precede 'regress'")
             if not self.blocks_ordered('scale', 'regress'):
                 errs += 1
-                print("** warning: 'scale' should preceed 'regress'")
+                print("** warning: 'scale' should precede 'regress'")
 
         return errs
 
@@ -3022,7 +3030,7 @@ class SubjProcSream:
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
                 print('** warning: missing block', end='')
-                if bind0 < 0: print("'%s' (to preceed '%s')" % (name0,name1))
+                if bind0 < 0: print("'%s' (to precede '%s')" % (name0,name1))
                 if bind1 < 0: print("'%s' (to follow '%s')" % (name1,name0))
             return 1
         elif bind0 < bind1: return 1
@@ -3516,8 +3524,12 @@ class SubjProcSream:
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
 
-    def get_ap_command_str(self, style='compact'):
-       """return a commented command string, depending on the desired form"""
+    def get_ap_command_str(self, style='compact', lstart='# '):
+       """return a commented command string, depending on the desired style
+
+            style   : either 'compact' or 'pretty'
+            cstart  : line start string, usually comment '# ', else ''
+       """
        if style == 'none':
           return ''
 
@@ -3529,7 +3541,7 @@ class SubjProcSream:
                                       preamble=0, comment=0, wrap=0)
           # and run PT's niceify on it
           allopts = self.valid_opts.all_opt_names()
-          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start=lstart,
                                               list_cmd_args=allopts)
        else:
           tstr = UTIL.get_command_str(args=self.argv)
@@ -4614,7 +4626,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
 def run_proc():
 
-    # creat proc script
+    # create proc script
     rv, proc = make_proc()
     if proc == None: return rv
 
@@ -4626,7 +4638,7 @@ def run_proc():
        if ppi_proc == None: return rv
        del(ppi_proc)
 
-       # make PPI regresion script
+       # make PPI regression script
        rv, ppi_proc = make_proc(do_reg_ppi=1)
        if ppi_proc == None: return rv
        del(ppi_proc)

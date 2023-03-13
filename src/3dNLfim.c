@@ -236,7 +236,7 @@ void display_help_menu()
      "                     to indicate which voxels to analyze (a sub-brick \n"
      "                     selector is allowed)  [default = use all voxels] \n"
      "[-ignore num]      num   = skip this number of initial images in the  \n"
-     "                     time series for regresion analysis; default = 0  \n"
+     "                     time series for regression analysis; default = 0  \n"
      "               ****N.B.: default ignore value changed from 3 to 0,    \n"
      "                         on 04 Nov 2008 (BHO day).                    \n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
@@ -419,7 +419,7 @@ void display_help_menu()
     "\n"
     "     * The following convolved functions are generally convolved with\n"
     "       the time series in AFNI_CONVMODEL_REF, allowing one to specify\n"
-    "       multiple event onsets, varying durations and varying resopnse\n"
+    "       multiple event onsets, varying durations and varying response\n"
     "       magnitudes.\n"
     "\n"
     "  ConvGamma                : Gamma Vairate Response Model\n"
@@ -1751,7 +1751,7 @@ void check_for_valid_inputs
       NLfit_error ("Must have minimum constraints <= maximum constraints");
   for (ip = 0;  ip < p;  ip++)
     if (min_sconstr[ip] > max_sconstr[ip])
-      NLfit_error("Must have mininum constraints <= maximum constraints");
+      NLfit_error("Must have minimum constraints <= maximum constraints");
 
 
   /*----- must have nbest <= nrand -----*/

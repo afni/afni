@@ -77,7 +77,7 @@ class afni_name(object):
          this is identically ppve(sel=1), but maybe without quotes
       """
       
-      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
+      # if no selectors, do not include quotes    7 Apr 2015 [rickr]
 
       # if no quotes, clear and reset internal selqute
       if not quotes:

@@ -16,7 +16,7 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [-talk_pause] [-debug DEBUG] [-ouput OUTPUT] [-M_time M_TIME]                     \n"
                "                                                                                               \n"
                "  -ctrl CTRLFILE:   Control nodes 1D file.                                                     \n"
-               "                    Each row is for one node's intial and final XYZ.                           \n" 
+               "                    Each row is for one node's initial and final XYZ.                           \n" 
                "  -dom_dim DOM_DIM: Set domain dimension. Default is 2, a circle.                              \n"
                "                    Must choose dom_dim = 3 for a sphere.                                      \n" 
                "  -dim DIM:         Set the dimension.  Default is 2D. Needed because of -dot option.          \n"
@@ -31,14 +31,14 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "  -sin_kern         Choose to use the expansion factor that includes the sine term.            \n"
                "                    Default is without the sine component of the kernel,  but the default      \n"
                "                       doesn't work. This option is manditory for successful deformations.     \n"
-               "  -dot:             Choose to use a dot product requirment when calculated the weights         \n"
+               "  -dot:             Choose to use a dot product requirement when calculated the weights         \n"
                "                    to ensure tangency.                                                        \n"
                "  -neighb_check:    Will check at each iteration if the distance to each node's nearest        \n"
                "                    neighbor is smaller than the proposed step size.  Will print results       \n"
                "                    to file, but will not make any step size adjustment.                       \n"
                "  -neighb_adjust:   Checks neighbor distances and adjusts step size accordingly.               \n"
                "  -talk_pause:      For use with SUMA and -talk_suma option.  Will pause program after         \n"
-               "                    intial conditions are setting, allowing user to adjust viewing window      \n"
+               "                    initial conditions are setting, allowing user to adjust viewing window      \n"
                "                    before completing the rest of the iterations.                              \n"
                "                    Use -talk_pause -talk_pause (yes, twice) to a pause at each iteration      \n"
                "  -debug DEBUG:     Choose to turn debugging on.  Default is no debugging.                     \n"                        
@@ -1208,7 +1208,7 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
          } while( nbad > 0 );  /* Once there are no more bad facets, dt is small enough and can continue to next iteration. */
                   /* What will dt be now?  Back to original or stick with small dt?  Will need to see how 
                         this loop affects dt for rest of move. */
-                  /* For now, have dt changed permantly by the loop above.  Changed because facets were flipping. */
+                  /* For now, have dt changed permanently by the loop above.  Changed because facets were flipping. */
 
          if (opt->dbg_flag > 1) {
             /* Print Velocity Magnitudes to File. */   

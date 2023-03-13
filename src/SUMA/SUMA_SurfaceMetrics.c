@@ -289,7 +289,7 @@ int main (int argc,char *argv[])
    for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
    spec_file = NULL;
 
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
@@ -414,7 +414,7 @@ int main (int argc,char *argv[])
          if (0 && iType == SUMA_FT_NOT_SPECIFIED) {
                               /* iType input no longer allowed */
             fprintf (SUMA_STDERR, 
-                     " -sv option must be preceeded by -i_TYPE option.");
+                     " -sv option must be preceded by -i_TYPE option.");
             exit(1);
          }
          kar ++;

@@ -41,6 +41,10 @@ sudo apt-get install -y libgdal-dev libopenblas-dev       \
                         libnode-dev libudunits2-dev       \
                         libgfortran4
 
+echo "++ Update matplotlib beyond 3.1.2 (has jpg error)"
+sudo apt-get install -y pip
+sudo apt-get remove  -y python3-matplotlib
+# ... and pip is used to install new matplotlib in part 'b', without sudo
 
 echo "++ Make symlink for package GSL"
 sudo ln -s \

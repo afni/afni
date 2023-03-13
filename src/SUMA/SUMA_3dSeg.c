@@ -64,7 +64,7 @@ NULL
    {  
 "-Bmrf",
 "-Bmrf BMRF: Weighting factor controlling spatial homogeneity of the \n"
-"            classifications. The larger BMRF, the more homogenious the\n"
+"            classifications. The larger BMRF, the more homogeneous the\n"
 "            classifications will be.\n"
 "            See Berthod et al. Image and Vision Computing 14 (1996),\n"
 "            MRFs are also used in FSL's FAST program.\n"

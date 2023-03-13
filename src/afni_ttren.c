@@ -35,7 +35,7 @@ static void TTRR_save_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void TTRR_load_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void fill_str(char * instr, char ch, int maxlength);
 /*----------------------------------------------------------------------------
-  Routine to create widgets for the TT atlas rendering controls
+  Routine to create widgets for the Show atlas rendering controls
 ------------------------------------------------------------------------------*/
 
 /***** definitions for the action area controls *****/
@@ -83,17 +83,16 @@ static char *METHOD_strings[NMETHOD] = {
 static char *HEMI_strings[NHEMI] = { HEMI_LEFT , HEMI_RIGHT , HEMI_BOTH } ;
 
 static char helpstring[] =
- "The default list includes the original Talairach Daemon database\n"
- "(kindly provided by Jack Lancaster and Peter Fox of RIC UTHSCSA,\n"
- "the cytoarchitectonic and macrolabel atlases provided by Simon\n"
- "Eickhoff and Karl Zilles, and the probabilistic atlases provided\n"
- "Rutvik Desai.\n"
+ "The atlas that is used by default for that is still the TT_Daemon\n"
+ "atlas, but it can be reset via the AFNI environment variable, \n"
+ "AFNI_ATLAS_COLORS. That will set the atlas used for that menu item\n"
+ "and for the \"Go to atlas location\".\n" 
  "\n"
- "In the database, voxels may have multiple labels for a particular\n"
- "atlas. For example, the voxels may a larger scale 'gyral' [G] name\n"
- "and a finer scale 'area' [A] name. A list of all the labels for the\n"
- "principal default atlas is presented here or from the command\n"
- "line program, 'whereami -show_atlas_code', for any atlas.\n"
+ "The Talairach daemon atlas with its two sub-bricks defines atlases\n"
+ "either gyral or area names\n"
+ "A list of all the labels for the principal default atlas is\n"
+ "presented here or from the command line program,\n"
+ "  'whereami -show_atlas_code' for all atlases.\n"
   "\n"
   "Method:\n"
   "  To enable display of the selected regions, you must choose the\n"
@@ -122,7 +121,7 @@ static char helpstring[] =
   " * At this time, the Redraw button has no functionality;\n"
   "     after you change the color settings in this window, you must\n"
   "     force an image redisplay to see the changes.  In the 2D image\n"
-  "     viewers, you can do this by turning 'See TT Atlas Regions'\n"
+  "     viewers, you can do this by turning 'See Atlas Regions'\n"
   "     off and on;  in the volume renderer, you must press the 'Reload'\n"
   "     button to force the proper redisplay ('Draw' isn't enough).\n"
   " * The region rendering only works if the dataset being drawn in the\n"
@@ -218,8 +217,8 @@ ENTRY("TTRR_setup_widgets") ;
       XtVaAppCreateShell(
            "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
 
-           XmNtitle             , "TT Atlas Rendering" , /* top of window */
-           XmNiconName          , "TT Atlas"           , /* label on icon */
+           XmNtitle             , "Atlas Rendering" , /* top of window */
+           XmNiconName          , "Show Atlas"           , /* label on icon */
 #if 0
            XmNmappedWhenManaged , False ,                /* must map it manually */
 #endif
@@ -252,7 +251,7 @@ ENTRY("TTRR_setup_widgets") ;
              NULL ) ;
 
    /**** Label to inform the cretinous user what he's looking at ****/
-   sprintf(TTRR_title, "-- Control atlas: %s colors --",Current_Atlas_Default_Name());
+   sprintf(TTRR_title, "-- Show atlas: %s colors --",Current_Atlas_Default_Name());
 
    xstr = XmStringCreateLtoR( TTRR_title, XmFONTLIST_DEFAULT_TAG ) ;
    label = XtVaCreateManagedWidget(
@@ -616,7 +615,7 @@ ENTRY("TTRR_delete_window_CB") ;
 }
 
 /*------------------------------------------------------------------------
-   Return the current state of the TT atlas colors in a static
+   Return the current state of the "show atlas colors" in a static
    struct (i.e., do NOT free() this!).
 --------------------------------------------------------------------------*/
 

@@ -2773,7 +2773,7 @@ void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Find the max FOM value that occured in any given iteration (iar).
+/* Find the max FOM value that occurred in any given iteration (iar).
    * inputs are the sorted-by-iar [xyz]ar arrays;
    * outputs [xyz]out are the largest [xyz]ar values for each
      distinct value of iar;

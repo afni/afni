@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.2,  Jan 19, 2023
+Version 4.1.3,  Feb 13, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1622,7 +1622,7 @@ while(is.null(fm)) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
          #if(all(is.na(lop$gltList[[n]]))) {  # Covariate testing only without factors involved
-         if(identical(lop$gltList[[ii]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1
+         if(identical(lop$gltList[[n]], NA)) {  # Covariate testing only without factors involved # 01/19/2023: fix the problem w/ length of lop$gltList > 1 # 02/13/2023 (NMM): fix indexing variable
             gltRes[[n]] <- tryCatch(testInteractions(gltIn, pairwise=NULL,
                covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = iData),
                error=function(e) NA) } else {     # Involving factors

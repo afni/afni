@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
 "  -set x y z   After computing the CM of the dataset, set the\n"
 "                 origin fields in the header so that the CM\n"
 "                 will be at (x,y,z) in DICOM coords.\n"
-"  -local_ijk   Output values as (i,j,k) in local orienation.\n"
+"  -local_ijk   Output values as (i,j,k) in local orientation.\n"
 "  -roi_vals v0 v1 v2 ... : Compute center of mass for each blob\n"
 "                           with voxel value of v0, v1, v2, etc.\n"
 "                           This option is handy for getting ROI \n"

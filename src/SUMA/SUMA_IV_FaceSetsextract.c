@@ -27,11 +27,11 @@ Purpose :
  	If the starting or ending sequences are not found
  	If the number of points read is not a multiple of three
  	If the first number of the first FaceSets triplet and the last character in the starting sequence 
- 		are not spearated by a space (or tab). You can fix this by manually adding a space.
+ 		are not separated by a space (or tab). You can fix this by manually adding a space.
  	 
  	
  
-Input paramters : 
+Input parameters : 
  
  	IV_filename (char *) a string specifying the name of the inventor file
 	N_FaceSetList (int *) will give the number of rows in FaceSetList
@@ -68,7 +68,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
    
    cnt4.quot = cnt4.rem = 0;
 
-	/* intialize the number of points read to 0 */
+	/* initialize the number of points read to 0 */
 	*N_FaceSetList = 0;
 	
 	linv = (int *)SUMA_malloc (MaxAlloc*sizeof(int));
@@ -287,7 +287,7 @@ void usage ()
 		printf ("\t If the starting or ending sequences are not found\n");
 		printf ("\t If the number of points read is not a multiple of three\n");
 		printf ("\t If the first number of the first FaceSets triplet and the last character in the starting sequence \n");
-		printf ("\t 	are not spearated by a space (or tab). You can fix this by manually adding a space.\n");
+		printf ("\t 	are not separated by a space (or tab). You can fix this by manually adding a space.\n");
 		printf ("\t \n");
 		printf ("\t IV_filename : Filename of the ascii inventor file \n");
 		printf ("\t [-o output-filename] : output file name containing the : NodeNumber X Y Z  \n");
@@ -297,7 +297,7 @@ void usage ()
 		printf ("\t The format of the output on each line is tab delimited:\n");
 		printf ("\t NodeNumber	X	Y	Z\n\n");
 		printf ("\t The older version of this code is called IV-FaceSetsextract\n");
-		printf ("\t  it is left around for backward compatibilty\n\n");
+		printf ("\t  it is left around for backward compatibility\n\n");
 		printf ("\t\t\t Ziad Saad \t Tue Nov 17 19:00:42 CST 1998\n");
 		exit (0);
   }/*Usage*/

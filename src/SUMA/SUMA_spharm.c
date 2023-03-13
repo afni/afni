@@ -414,7 +414,7 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
          /* Now create thems bases a la Y_l.m */
          lc = l;
          if (!(y_l = SUMA_Y_l(&lc, theta, phi, opt->debug))) {
-            SUMA_S_Err("Failed to caluclate y_l!");
+            SUMA_S_Err("Failed to calculate y_l!");
             goto CLEANUP;
          }
          if (lc < l) {

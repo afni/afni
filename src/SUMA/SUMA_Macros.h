@@ -251,7 +251,7 @@
 /*!
    \brief Returns the two points that are at a distance d from P1 along the direction of U  
    SUMA_POINT_AT_DISTANCE(U, P1, d, P2)
-   Input paramters : 
+   Input parameters : 
    \param U (float *) 3x1 vector specifying directions  along x, y, z axis
                       U does not have to be normalized       
    \param P1 (float *) 3x1 vector containing the XYZ of P1
@@ -288,7 +288,7 @@
 /*!
    \brief Returns the two points that are at a distance d from P1 along the direction of U  
    SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2)
-   Input paramters : 
+   Input parameters : 
    \param U (float *) 3x1 vector specifying directions  along x, y, z axis
                       U MUST BE A UNIT VECTOR       
    \param P1 (float *) 3x1 vector containing the XYZ of P1
@@ -598,7 +598,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    \param p1 x y z of point 1
    \param p2 x y z of point 2
    \param Eq equation of plane
-   \param Hit: On exit: 1 segment interects plane
+   \param Hit: On exit: 1 segment intersects plane
                         0 segment does not intersect plane
    \param pinter: On exit:  x y z of intersection point (0,0,0) if no intersection
 
@@ -1030,7 +1030,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       }  \
    }
 
-/*! is 3x4 xform an indentity matrix? */
+/*! is 3x4 xform an identity matrix? */
 #define SUMA_IS_XFORM_IDENTITY(Xform)  \
       (  Xform[0][0] == 1.0 && Xform[1][1] == 1.0 && Xform[2][2] == 1.0 && \
          Xform[0][3] == 0.0 && Xform[1][3] == 0.0 && Xform[2][3] == 0.0 && \
@@ -1066,7 +1066,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 
 /*!
    XYZ: vector of coordinates
-   nrm: unit normal vector of axis of rotaion
+   nrm: unit normal vector of axis of rotation
    phi: angle of rotation, counterclockwise, in radians
    XYZr: vector to contain rotated coordinates
    Equation from: http://mathworld.wolfram.com/RotationFormula.html
@@ -1091,7 +1091,7 @@ SUMA_3D_Rotation_Matrix(P1, P2, M, alpha, nrm)
 Generate the rotation matrix for moving from P1 to P2.
 For rotation about a specified origin and direction.
 Rotation through angle alpha about an axis m_u.  Alpha is always positive and counterclockwise.
-P1, P2: intial and final vector location
+P1, P2: initial and final vector location
 m_alpha: angle between P1 and P2
 m_u: axis of rotation and cross product of P1, P2
 mn_u: magnitude of axis of rotation needed to normalize the axis of rotation
@@ -2166,7 +2166,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_MULT_MAT(a,b,c,rowsa,colsa,colsb,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2205,7 +2205,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_ADD_MAT(a,b,c,rowsa,colsa,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2233,7 +2233,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_SUB_MAT(a,b,c,rowsa,colsa,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2262,7 +2262,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_TRANSP_MAT(a,b,rowsa,colsa,typea,typeb)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to result matrix.
        rowsa   number of rows in matrix a
        colsa   number of columns in matrix a

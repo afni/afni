@@ -6,7 +6,7 @@ ver = 2.0;  date = Nov 29, 2021
 + [PT] this program has been a longtime coming.  This version merges
   P Taylor's Python version in lib_EDT.py with P Lauren's concurrent
   work on a C version (which had been compared/developed in part with 
-  the aformentioned lib_EDT.py).
+  the aforementioned lib_EDT.py).
 
 ver = 2.1;  date = Dec 1, 2021
 + [PT] Rearrange how main run_EDT_3D works, and how calc_EDT_3D() is
@@ -110,7 +110,7 @@ int usage_3dDepthMap()
 "\n"
 "Here, the zero-valued 'background' is also just treated like an ROI,\n"
 "with one difference.  At a FOV boundary, the zero-valued\n"
-"ROI/backgroud is treated as open, so that the EDT value at each\n"
+"ROI/background is treated as open, so that the EDT value at each\n"
 "'zero' voxel is always to one of the shapes within the FOV.  For\n"
 "nonzero ROIs, one can treat the FOV boundary *either* as an ROI edge\n"
 "(EDT value there will be 1 edge length) *or* as being open.\n"

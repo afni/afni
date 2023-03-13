@@ -1164,7 +1164,7 @@ int main( int argc , char *argv[] )
    /* mask dataset grid doesn't match? */
 
    if( maskset != NULL && !EQUIV_GRIDXYZ(dsetB,maskset) ){
-     ERROR_message("-mask and -inset1 datsets are NOT on the same 3D grid :(") ;
+     ERROR_message("-mask and -inset1 datasets are NOT on the same 3D grid :(") ;
      nbad++ ;
    }
 

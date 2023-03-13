@@ -472,7 +472,7 @@ int main( int argc , char *argv[] )
    }
 
    if( demed && corder ){
-     demed = 0 ; WARNING_message("-demed is overriden by -corder") ;
+     demed = 0 ; WARNING_message("-demed is overridden by -corder") ;
    }
 
    if( corder < 0 ){

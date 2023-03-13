@@ -494,7 +494,7 @@ int main( int argc , char * argv[] )
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
             "----------------------\n"
-            "The options below control how the affine tranformations\n"
+            "The options below control how the affine transformations\n"
             "(-shift_rotate, -shift_rotate_scale, -affine_general)\n"
             "are structured in terms of 3x3 matrices:\n"
             "\n"

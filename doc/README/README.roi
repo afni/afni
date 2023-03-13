@@ -80,7 +80,7 @@ series data. AFNI then outputs a text file with the average value at each
 time point (and standard deviation, if desired) which can be graphed in
 Excel or any other plotting program.
   Some difficulties arise when the mask BRIK and the 3d+time BRIK have
-different co-ordinate spaces or voxel dimensions. For instance, when the
+different coordinate spaces or voxel dimensions. For instance, when the
 "Draw Dataset" plug-in is used to define an anatomical region of interest
 (like a specific gyrus) on a high-resolution (e.g. SPGR) anatomical
 dataset. The user then wishes to find the average time-series from all

@@ -439,7 +439,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1,
             M2M->M2pb_M1n[2*j  ] = MTI->u[MTI->ifacemin];
             M2M->M2pb_M1n[2*j+1] = MTI->v[MTI->ifacemin];
 
-            /**determine weights which are the barycetric corrdinates of the 
+            /**determine weights which are the barycetric coordinates of the 
                intersection node.
                The intersected triangle is formed by the 1st three nodes 
                stored in  M2ne_M1n
@@ -798,7 +798,7 @@ SUMA_Boolean SUMA_Save_M2M(char *fname, SUMA_M2M_STRUCT *M2M)
 }
 /*!
    dseto = SUMA_morphDsetToStd (dset, M2M, imode);
-   Funtion to map dsets from one mesh to another per MI
+   Function to map dsets from one mesh to another per MI
    \param dset (SUMA_DSET *) dset to morph
    \param M2M (SUMA_M2M_STRUCT *)structure containing morph information
    \param useclosest (int) 1: Nearest neighbor interpolation
@@ -892,7 +892,7 @@ SUMA_DSET *SUMA_morphDsetToStd (SUMA_DSET *dset, SUMA_M2M_STRUCT *M2M,
       /* stick fout in output */
       SUMA_LHv("Sticking column %d in dset (fout[0]=%f, %d values expected)\n", 
                i, fout[0], SDSET_VECLEN(ndset));
-               /* Do not use bfull in call below. bfull is for orignal array */
+               /* Do not use bfull in call below. bfull is for original array */
       if (!SUMA_Vec2DsetCol (ndset, i, (void *)fout, SUMA_float, 0, NULL)) { 
          SUMA_S_Err("Failed to store output");
          SUMA_free(fin); fin = NULL; SUMA_free(fout); fout = NULL; 

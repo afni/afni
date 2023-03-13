@@ -705,7 +705,7 @@ int main( int argc , char *argv[] )
        angle = dset_obliquity_angle_diff(new_dset, DSUB(iv),OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
-            "dataset %s has an obliquity difference of %f degress with %s\n",
+            "dataset %s has an obliquity difference of %f degrees with %s\n",
             new_dset ,
             angle, DSUB(iv) );
        }

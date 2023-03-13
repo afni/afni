@@ -492,7 +492,7 @@ class TimingClass:
 
       max_dur = tot_time * 2.0 / nevents
 
-      # maximum num t_gran possibile (equates to 0..max_dur in time)
+      # maximum num t_gran possible (equates to 0..max_dur in time)
       # (+0.01 is to avoid a close trunction miss)
       nmax = int(max_dur / self.t_gran + 0.01)
 
@@ -534,7 +534,7 @@ class TimingClass:
       max_dur = tot_time * 2.0 / nevents
       tspace = max_dur / (nevents - 1.0)
 
-      # maximum num t_gran possibile (equates to 0..max_dur in time)
+      # maximum num t_gran possible (equates to 0..max_dur in time)
       # (+0.01 is to avoid a close trunction miss)
       nmax = int(max_dur / self.t_gran + 0.01)
 

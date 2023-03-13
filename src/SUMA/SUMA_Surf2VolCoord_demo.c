@@ -77,7 +77,7 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                        You can use -LPI if you need to.\n"
 "     -closest_node 'X Y Z': An easier way to specify a single node's coords.\n"
 "  Optional Parameters:\n"
-"     -qual STRING: A string of characters that are used to indentify\n"
+"     -qual STRING: A string of characters that are used to identify\n"
 "                   the surface in which the closest node was found.\n"
 "                   This is useful when you have two surfaces specified\n"
 "                   like the left and right hemispheres for example.\n"
@@ -163,7 +163,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
    Opt->n_fvec=0;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_Surf2VolCoord_demo(ps, strlen(argv[kar]) > 3 ? 2:1);
@@ -467,7 +467,7 @@ int main (int argc,char *argv[])
       } else {
          /***********          The demo mode *****************/
          /* By now SO is the surface object whose coordinates have transformed
-         so that it is in register with the surface volume specifed on command 
+         so that it is in register with the surface volume specified on command 
          line.
          */
 

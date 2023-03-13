@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.11, Jan 19, 2023
+Version 1.0.0, Fed 28, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -666,7 +666,8 @@ process.LME.opts <- function (lop, verb = 0) {
                        'format other than BRIK'))
    }
    # assume the quantitative variables are separated by + here
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   #if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   if(!identical(lop$qVars, NA)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!(is.null(lop$bounds))) {
@@ -684,9 +685,8 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$dataStr <- NULL
       for(ii in 1:wd) lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
-      # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
-      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
-      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      if(!identical(lop$qVars, NA)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
@@ -1067,7 +1067,7 @@ while(is.null(fm)) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
          #if(is.na(lop$gltList[[n]])[1]) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
-	 if(identical(lop$gltList[[ii]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL, # 01/19/2023: fix the problem w/ length of lop$gltList > 1
+	 if(identical(lop$gltList[[n]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL, # 01/19/2023: fix the problem w/ length of lop$gltList > 1
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)

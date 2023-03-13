@@ -64,7 +64,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_AnalyzeTrace_ParseInput(char *argv[], int
    Opt->debug = 0;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_AnalyzeTrace(ps);
@@ -266,7 +266,7 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func,
             func, file, *line, *io, *level);
                           
    #if 0
-   /* skip the muck until next + or - that is preceeded by new 
+   /* skip the muck until next + or - that is preceded by new 
    line or followed by ENTRY or EXIT on the same line*/
    ss = ss_level;
    while (*ss != '\0') {
@@ -288,7 +288,7 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func,
    reversal by ENTRY or EXIT on the same line */
    ss = ss_level;
    while (*ss != '\0') {
-      if (*ss == '+' || *ss == '-') { /* pluging in */
+      if (*ss == '+' || *ss == '-') { /* plugging in */
          char *pti=ss, *pt=ss, sgn=*ss, *pti_retry; int fnd = 0, lll, good;
          while (!SUMA_IS_LINE_END(*pt) && *pt != '\0') ++pt;   
                                           /* move till end of line */

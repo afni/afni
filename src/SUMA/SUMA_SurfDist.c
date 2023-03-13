@@ -3,7 +3,7 @@
 /*
   [PT: July 24, 2020] Fix some option names
 
-  + new opt '-Euclidean', synonym (or synonim) for 'Euclidian'
+  + new opt '-Euclidean', synonym (or synonym) for 'Euclidian'
   + fix help that '-graph' is the real opt name
 
 */
@@ -19,7 +19,7 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "Usage: SurfDist  [OPTIONS] <SURFACE> <NODEPAIRS>\n"
 "       Output shortest distance between NODEPAIRS along\n"
-"       the nesh of SURFACE, or the Euclidian distance.\n"
+"       the nesh of SURFACE, or the Euclidean distance.\n"
 "\n"
 "Mandatory options:\n"
 "  <SURFACE> : Surface on which distances are computed.\n"
@@ -136,7 +136,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    Opt->b2 = 0;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           ps->hverb = 1;
@@ -437,7 +437,7 @@ int main (int argc,char *argv[])
       fprintf(fout, "#%-6s %-6s %-6s\n",
                            "From" , "to", "gDist." );
    } else {
-      fprintf(fout, "#Internodal euclidian distance for surface %s\n"
+      fprintf(fout, "#Internodal euclidean distance for surface %s\n"
                         "#A distance of -1 indicates an error of sorts.\n", 
                         SO->Label);
       fprintf(fout, "#%-6s %-6s %-6s\n",

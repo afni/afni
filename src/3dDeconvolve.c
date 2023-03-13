@@ -1627,7 +1627,7 @@ void display_help_menu(int detail)
     "        there is only 1 'married' parameter, the program will print    \n"
     "        a warning message, then convert to '-stim_times_AM1', and      \n"
     "        continue -- so nothing bad will happen to your analysis!       \n"
-    "        (But you will be embarassed in front of your friends.)         \n"
+    "        (But you will be embarrassed in front of your friends.)         \n"
     " *N.B.: If you are using AM2 (amplitude modulation) with dmBLOCK, you  \n"
     "        might want to use 'dmBLOCK(1)' to make each block have native  \n"
     "        amplitude 1 before it is scaled by the amplitude parameter.    \n"
@@ -1936,7 +1936,7 @@ void display_help_menu(int detail)
     "                    as scaled shorts [** now the default **]           \n"
     "[-short]            Write output as scaled shorts [no longer default]  \n"
     "                                                                       \n"
-    "***** The following options control miscellanous outputs *****         \n"
+    "***** The following options control miscellaneous outputs *****         \n"
     "                                                                       \n"
     "[-quiet]             Flag to suppress most screen output               \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
@@ -2543,7 +2543,7 @@ void get_options
       /*-----   -force_TR  -------*/
       if (strcmp(argv[nopt], "-force_TR") == 0)  /* 18 Aug 2008 */
       {
-        /* if ttmax is alreay set (from -input), suggest putting -force_TR
+        /* if ttmax is already set (from -input), suggest putting -force_TR
          * earlier (this is for _IM, at least)          5 Jul 2017 [rickr] */
         if (ttmax < big_time)
            ERROR_exit("please apply -force_TR before -input\n"
@@ -2985,11 +2985,12 @@ void get_options
 
         /* check number of reasonable times */
 
-        /* allow for global timing    19 Jul 2017 [rickr] */
-        if( basis_timetype == GLOBAL_TIMES )
-           nc = mri_counter( tim , 0.0f , gtmax ) ;
-        else
+        /* allow for global timing (or guess)   19 Jul 2017 [rickr] */
+        /* have GUESS_TIMES default to GLOBAL   17 Feb 2023 [rickr] */
+        if( basis_timetype == LOCAL_TIMES )
            nc = mri_counter( tim , 0.0f , ttmax ) ;
+        else
+           nc = mri_counter( tim , 0.0f , gtmax ) ;
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 
@@ -3142,7 +3143,13 @@ void get_options
           basis_stim[k]->type = BASIS_SINGLE ;  /* simplest possible case */
 
         } else if( strcmp(suf,"_IM") == 0 ){          /* 16 Jul 2007 */
-
+          /* give the user a single heads-up             17 Feb 2023 [rickr] */
+          if( basis_timetype == GUESS_TIMES ) {
+             static int stupid_IM_timetype_warn = 1;
+             if( stupid_IM_timetype_warn )
+                WARNING_message("have IM timing without -local/global_times");
+             stupid_IM_timetype_warn = 0;
+          }
           basis_stim[k]->type = BASIS_MODULATED_INDV;
           basis_stim[k]->nparm *= nc ;  /* nc = number of time points */
           INFO_message("'%s %d %s' will have %d regressors",
@@ -3991,7 +3998,7 @@ ENTRY("read_time_series") ;
       MRI_IMAGE *tim = mri_transpose(flim) ;
       mri_free(flim) ; flim = tim ;
       far = MRI_FLOAT_PTR(flim); nx = flim->nx; ny = flim->ny;
-      INFO_message("1D time series file %s has %d rows and %d columns: tranposing it",ts_filename,nx,ny);
+      INFO_message("1D time series file %s has %d rows and %d columns: transposing it",ts_filename,nx,ny);
     } else {
       WARNING_message("1D file %s has %d rows and %d columns: ignoring later columns",ts_filename,nx,ny);
     }
@@ -5184,7 +5191,7 @@ ENTRY("remove_zero_stimfns") ;
   num_glt    = option_data->num_glt;
 
 
-  /*----- Loop over all stimulus funcitons -----*/
+  /*----- Loop over all stimulus functions -----*/
   is = 0;
   while (is < num_stimts)
     {
@@ -8707,7 +8714,7 @@ void output_results
   int * nptr;               /* number of stim fn. time points per TR */
   int ib;                   /* sub-brick index */
   int is;                   /* stimulus index */
-  int ts_length;            /* length of impulse reponse function */
+  int ts_length;            /* length of impulse response function */
   int nt;                   /* number of images in input 3D+time dataset */
   int nxyz;                 /* number of voxels */
 
@@ -8756,7 +8763,7 @@ void output_results
         continue ;
       }
 
-      /* old style iresp: each coefficent is a response */
+      /* old style iresp: each coefficient is a response */
 
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->iresp_filename[is] != NULL)

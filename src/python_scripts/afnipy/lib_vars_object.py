@@ -12,8 +12,8 @@ if __name__ == '__main__':
 
 
 # atomic (type within nested list) and simple types for VarsObject
-g_valid_atomic_types = [int, float, str, list]
-g_simple_types = [int, float, str]
+g_valid_atomic_types = [int, float, str, list, bool]
+g_simple_types = [int, float, str, bool]
 g_sort_keys = []
 
 class VarsObject(object):
@@ -228,7 +228,7 @@ class VarsObject(object):
          or in the user interface itself.  Since we are setting variables as
          strings.
 
-            requred params:
+            required params:
 
                 vname           : name of variable
                 vlist           : value list (set from vlist[0] or vlist)

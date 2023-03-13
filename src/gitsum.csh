@@ -7,7 +7,7 @@
 ## co-conspirators. (It is the 'git blame' part that is the slowest.)
 ## Output files:
 ##  gitsum.out.txt    = author line counts (also cat-ed to stdout)
-##  gitsum.unkown.txt = lines that had unknown authors (for further research)
+##  gitsum.unknown.txt = lines that had unknown authors (for further research)
 ##  gitsum.list.txt   = files that were processed (in case you care)
 ##
 ## -- RWCox -- Sep 2019

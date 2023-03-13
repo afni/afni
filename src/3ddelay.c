@@ -320,7 +320,7 @@ void display_help_menu()
 "\n"
 "                                                                      \n"
 "Random Comments/Advice:\n"
-"   The longer you time series, the better. It is generally recomended that\n"
+"   The longer you time series, the better. It is generally recommended that\n"
 "   the largest delay be less than N/10, N being time series' length.\n"
 "   The algorithm does go all the way to N/2.\n\n"
 "   If you have/find questions/comments/bugs about the plugin, \n"
@@ -2047,7 +2047,7 @@ void output_results
    int num_idealts;           /* number of ideal time series */
    int ib;                   /* sub-brick index */
    int is;                   /* ideal index */
-   int ts_length;            /* length of impulse reponse function */
+   int ts_length;            /* length of impulse response function */
    int N;                    /* number of usable data points */
 
 
@@ -2179,7 +2179,7 @@ void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int y
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime (while delays are     */
-/* computed, are handeled here, the others are handeled         */
+/* computed, are handled here, the others are handled         */
 /* instantaneously, and need not be logged                       */
 /* ************************************************************ */
 
@@ -2207,7 +2207,7 @@ void error_report (struct DELAY_options* option_data, int ncall )
          break;
       default:
          fprintf (option_data->outlogfile,
-                  "De Fault, De Fault (%d), the two sweetest words in the english langage ! ",
+                  "De Fault, De Fault (%d), the two sweetest words in the english language ! ",
                   option_data->errcode);
          break;
       }   

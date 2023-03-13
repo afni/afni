@@ -5,7 +5,7 @@ from afnipy import lib_format_cmd_str as lfcs
 import copy
 
 # ----------------------------------------------------------------------
-# This is a library for storing basic infomation regarding options and
+# This is a library for storing basic information regarding options and
 # examples for afni_proc.py.
 #
 #    - examples are stored as individual dictionaries
@@ -232,7 +232,7 @@ class APExample:
       print("")
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
-       """if lmax > 0: restrict parstr to given length, plus elipsis
+       """if lmax > 0: restrict parstr to given length, plus ellipsis
        """
        estr = ''
        kprint = parstr
@@ -244,7 +244,7 @@ class APExample:
        print("%s%-*s  %s%s" % (indent, maxlen, oname, kprint, estr))
 
    def _print_diff_line(self, indent, tstr, parstr, lmax=50):
-       """if lmax > 0: restrict parstr to given length, plus elipsis
+       """if lmax > 0: restrict parstr to given length, plus ellipsis
        """
        estr = ''
        kprint = parstr

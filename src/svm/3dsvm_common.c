@@ -1904,7 +1904,7 @@ int getAllocateModelArrays(THD_3dim_dataset *dsetModel,
 }
 
 
-/* just fills in the model data set (assumed constant accross class combinations) */
+/* just fills in the model data set (assumed constant across class combinations) */
 /* Need to also use updateModel for class */
 /* The idea is to only call this once and then updateModel for combination specific aspects */
 int get_svm_model(MODEL *model, DatasetType **dsetModelArray, 
@@ -7315,7 +7315,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
 
   DOC    *docsTrain       = NULL; /* svm-light data structure used for training */
   KERNEL_CACHE kernel_cache;      /* svm-light data structure holding kernel
-                                   * paramters */
+                                   * parameters */
 
 
   long nt                 = 0;   /* number of time points in TRAIN dataset */

@@ -989,7 +989,7 @@ static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , 
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime (while delays are 	 */
-/* computed, are handeled here, the others are handeled  		 */
+/* computed, are handled here, the others are handled  		 */
 /* instantaneously, and need not be logged 							 */
 /* ************************************************************ */
 

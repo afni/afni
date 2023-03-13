@@ -43,7 +43,7 @@ This function creates an RGB colormap containing Ncols that vary linearly
           Fiducials is the last color in M. If set to 1, the last
           color in M represents the color that would come right
           before the last one in Fifucials. This last option is
-          usefull when you're crating cyclical color maps where
+          useful when you're crating cyclical color maps where
           the last color in Fiduciasl is like the first.
    \param Name (char *) name of colormap
    \ret SM (SUMA_COLOR_MAP *) see help for SUMA_COLOR_MAP for more info
@@ -185,7 +185,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap ( float **Fiducials, int Nfid, byte isRGBA,
 }
 
 /*!
-This function creates an RGB colormap containing Ncols that vary linearily
+This function creates an RGB colormap containing Ncols that vary linearly
    from the first color in Fiducials to the last.
 
    SM = SUMA_MakeColorMap_v2 (Fiducials, NFid, isRGBA, Nin , SkipLast, Name)
@@ -616,7 +616,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    // fprintf(stderr, "%s\n", FuncName);
 
 
-   /* initilialize*/
+   /* initialize*/
    N_maps = -1;
    N_cols = -1;
    for (i=0;i<NPANE_MAX+1;++i) { pthr[i] = 0.0; pov[i] = 0;}
@@ -2934,7 +2934,7 @@ SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec,
                SUMA_LH("Need new T copy, col %d", colind);
                SUMA_SetOverlay_Vecs(Sover, vec, colind, "clear", perc);
                if (Sover->T) {
-                  SUMA_S_Err("I dont't like ghosts!");
+                  SUMA_S_Err("I don't like ghosts!");
                   SUMA_RETURN(NOPE);
                }
                if (!(Sover->T =
@@ -3042,7 +3042,7 @@ float SUMA_OverlayPercentile (SUMA_OVERLAYS *Sover, char vec, float perc)
    2- Linearize the colormap if need be
    3- Apply a global brightness coefficient (if any) on the
       colors in the colormap
-   4- Loop accross each node in the intensity column
+   4- Loop across each node in the intensity column
       if its threshold meets the cut-off,
       colorize it
 
@@ -3113,7 +3113,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(Sover->dset_link),
                                     Opt->ColsContMode);
 
-   SUMA_LH("Fetching vetors from dset");
+   SUMA_LH("Fetching vectors from dset");
 
    B = NULL;
    /* Thresholding ? */
@@ -3182,7 +3182,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->Clusterize && Opt->RecomputeClust) {
       if (!(nv = (float *)SUMA_calloc(SDSET_VECFILLED(Sover->dset_link),
                                           sizeof(float)))) {
-         SUMA_S_Crit("Failed to alloate!");
+         SUMA_S_Crit("Failed to allocate!");
          SUMA_RETURN(NOPE);
       }
    }
@@ -3856,7 +3856,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
    if (  Opt->interpmode != SUMA_DIRECT &&
          Opt->interpmode != SUMA_NO_INTERP && Opt->interpmode != SUMA_INTERP) {
       fprintf (SUMA_STDERR,
-               "Error %s: Opt->interpmode is incorrectly specifed (%d).\n",
+               "Error %s: Opt->interpmode is incorrectly specified (%d).\n",
                FuncName, Opt->interpmode);
       SUMA_RETURN(NOPE);
    }
@@ -4914,7 +4914,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
          Opt->interpmode != SUMA_NO_INTERP &&
          Opt->interpmode != SUMA_INTERP) {
       fprintf (SUMA_STDERR,
-               "Error %s: Opt->interpmode is incorrectly specifed (%d).\n",
+               "Error %s: Opt->interpmode is incorrectly specified (%d).\n",
                FuncName, Opt->interpmode);
       SUMA_RETURN(NOPE);
    }
@@ -5934,7 +5934,7 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
    if (!CM->M) SUMA_RETURNe;
 
    lim = CM->N_M[0]/2;
-   for (j=0; j < CM->N_M[1]; ++j) {  /* loop accross R,G,B columns */
+   for (j=0; j < CM->N_M[1]; ++j) {  /* loop across R,G,B columns */
       for (i=0; i < lim; ++i) {
          t = CM->M[i][j];           /* store color at i to be flipped */
          c = CM->N_M[0] - i - 1;     /* index of color to replace one at i */
@@ -6647,7 +6647,7 @@ SUMA_Boolean SUMA_ReleaseOverlay (SUMA_OVERLAYS * Overlays,
    \param Sover (SUMA_OVERLAYS * )
    \ret ans (SUMA_Boolean) (YUP/NOPE)
 
-   -WARNING, If YOU CREATED AN INODE FOR THIS POINTER, YOU NEED TO RELASE IT BEFORE YOU FREE Sover
+   -WARNING, If YOU CREATED AN INODE FOR THIS POINTER, YOU NEED TO RELEASE IT BEFORE YOU FREE Sover
    Perhaps you should use SUMA_FreeOverlay (SUMA_OVERLAYS * Sover, SUMA_INODE *Sover_Inode);
 
    If you free one overlay structure at a time, take care to make sure the
@@ -6980,7 +6980,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset_arr (SUMA_OVERLAYS **Overlays,
 
    if (LocalHead) {
       fprintf( SUMA_STDERR,
-               "%s: Seaching from %d overlays for dset_link = %p\n",
+               "%s: Searching from %d overlays for dset_link = %p\n",
                FuncName, N_Overlays, dset);
    }
    nfound = 0;
@@ -9589,7 +9589,7 @@ SUMA_Boolean SUMA_iRGB_to_SO_OverlayPointer (SUMA_SurfaceObject *SO,
 
       SO->Overlays[OverInd]->DimFact = sopd->DimFact;
       SO->Overlays[OverInd]->cmapname = SUMA_copy_string("explicit");
-                                 /* explict color definition in data */
+                                 /* explicit color definition in data */
       SO->Overlays[OverInd]->FullList = 0; /*!< This type of planes is not
                usually a full list because it has the nodes defined*/
 
@@ -9839,7 +9839,7 @@ SUMA_Boolean SUMA_iRGB_to_TDO_OverlayPointer (SUMA_TractDO *TDO,
    Overlay = SUMA_ADO_Overlay(ado, OverInd);
    Overlay->DimFact = sopd->DimFact;
    Overlay->cmapname = SUMA_copy_string("explicit");
-                              /* explict color definition in data */
+                              /* explicit color definition in data */
    Overlay->FullList = 0; /*!< This type of planes is not
             usually a full list because it has the nodes defined*/
 
@@ -10357,12 +10357,12 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
          }else {
             SUMA_LH(
                "Looks like a full list of values\n"
-               "Techincally, there's no need for explicit node column.\n"
+               "Technically, there's no need for explicit node column.\n"
                "But at times, the data are not ordered by ascending node \n"
                "index which causes trouble.\nSo now I add a node index column"
                " always which would help point to the problem if it arises");
             /* Sept 21 04, call SUMA_AddNodeIndexColumn, it is good for you.
-               Might add an unecessary index column when none exit but makes
+               Might add an unnecessary index column when none exit but makes
                things clear*/
             if (!SUMA_AddNodeIndexColumn(dset, SO->N_Node)) {
                 SUMA_LH(" Failed to add a node index column");
@@ -10382,7 +10382,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       SUMA_LH("Node index column found");
       /* there is a node index column, see if the range is OK */
       if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
-         SUMA_SLP_Err("Unexpect error in SUMA_GetDsetColRange");
+         SUMA_SLP_Err("Unexpected error in SUMA_GetDsetColRange");
          SUMA_RETURN(NOPE);
       }
       if (range[0] < 0 || range[1] > SO->N_Node) {
@@ -10401,7 +10401,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
 /*!
    \brief Loads a Dset file and adds it to the list of datasets
 
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) structure from selection dialogue
 */
 void SUMA_LoadDsetOntoSO (char *filename, void *data)
 {
@@ -10825,7 +10825,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       SUMA_GRAPH_SAUX *GSaux=NULL;
       if (SetupOverlay) {
          SUMA_LH("Setting up overlay for GRAPH dset");
-         OverInd = -1; /* OverInd is irrelvant,
+         OverInd = -1; /* OverInd is irrelevant,
                           just one overlay per graph dset, at least for now */
          {
             if (dset != dsetpre) { /* dset was pre-existing in the list */
@@ -11080,7 +11080,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
 /*!
    \brief Loads a color plane file and adds it to a surface's list of colorplanes
 
-   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) structure from selection dialogue
 */
 void SUMA_LoadColorPlaneFile (char *filename, void *data)
 {
@@ -11656,7 +11656,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
    if (!SV) {
       if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
           SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
-         SUMA_LHv("Creating countours for %s\n",SDSET_LABEL(cp->dset_link));
+         SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
          if (cp->Contours) {
             /* this should only happen when users reload a label dset.
             or maybe if it regenerated by a draw ROI move in the future.
@@ -11688,7 +11688,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
       if (!SV->VCont || !SV->N_VCont) {
          SUMA_RETURN(NOPE);
       } else {
-         SUMA_LHv("Creating countours for %s\n",SDSET_LABEL(cp->dset_link));
+         SUMA_LHv("Creating contours for %s\n",SDSET_LABEL(cp->dset_link));
          if (cp->Contours) {
             SUMA_LHv("Wiping out existing contours for label dset %s\n",
                          SDSET_LABEL(cp->dset_link));
