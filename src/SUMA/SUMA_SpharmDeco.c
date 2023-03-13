@@ -135,7 +135,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    Opt->in_name = NULL;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SpharmDeco(ps);

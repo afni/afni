@@ -27,7 +27,7 @@ Purpose :
  	If the starting or ending sequences are not found
  	If the number of points read is not a multiple of three
  	If the first number of the first FaceSets triplet and the last character in the starting sequence 
- 		are not spearated by a space (or tab). You can fix this by manually adding a space.
+ 		are not separated by a space (or tab). You can fix this by manually adding a space.
  	 
  	
  
@@ -287,7 +287,7 @@ void usage ()
 		printf ("\t If the starting or ending sequences are not found\n");
 		printf ("\t If the number of points read is not a multiple of three\n");
 		printf ("\t If the first number of the first FaceSets triplet and the last character in the starting sequence \n");
-		printf ("\t 	are not spearated by a space (or tab). You can fix this by manually adding a space.\n");
+		printf ("\t 	are not separated by a space (or tab). You can fix this by manually adding a space.\n");
 		printf ("\t \n");
 		printf ("\t IV_filename : Filename of the ascii inventor file \n");
 		printf ("\t [-o output-filename] : output file name containing the : NodeNumber X Y Z  \n");

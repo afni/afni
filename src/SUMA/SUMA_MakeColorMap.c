@@ -198,7 +198,7 @@ int main (int argc,char *argv[])
    idISi=0;
    iform = SUMA_NO_DSET_FORMAT;
    sdset_prefix=NULL;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MakeColorMap_usage();
          exit (0);
@@ -436,7 +436,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop across command ine options */
+   }/* loop across command line options */
    
    /* check input */
    if (  (Usage1 && (Usage2 || Usage3 || Usage4)) || 

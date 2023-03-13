@@ -31,7 +31,7 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(strlen(argv[kar])>3 ? 2:1);

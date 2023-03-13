@@ -222,7 +222,7 @@ int main (int argc,char *argv[])
    arange  = -1.0; /* afni range specified */
    Sgn = 0;
    ShowMapdb = NOPE;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_ScaleToMap_usage();
@@ -485,7 +485,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
 
-   }/* loop across command ine options */
+   }/* loop across command line options */
 
    /* Get your colors straightened out */
    if (!SUMAg_CF->scm) {

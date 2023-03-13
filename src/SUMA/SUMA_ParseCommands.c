@@ -3931,7 +3931,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
    ps->cs = SUMA_Create_CommSrtuct();
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /* envs */
       if (!brk) {
          if (!strcmp(argv[kar],"-setenv")) {

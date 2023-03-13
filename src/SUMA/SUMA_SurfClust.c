@@ -197,7 +197,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
    outname = NULL;
    BuildMethod = SUMA_OFFSETS2_NO_REC;
    brk = NOPE;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_SurfClust(strlen(argv[kar]) > 3 ? 2:1);

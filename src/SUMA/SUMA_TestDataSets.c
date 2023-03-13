@@ -65,7 +65,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop across command ine options */
+   }/* loop across command line options */
 
    /* Say you want to save a bunch of node values */
    { /* BEGIN: Test to save a data set with a bunch of node values */

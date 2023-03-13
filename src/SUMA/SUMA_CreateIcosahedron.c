@@ -226,7 +226,7 @@ int main (int argc, char *argv[])
          kar ++;
       }
       
-   }/* loop across command ine options */
+   }/* loop across command line options */
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
    if (LocalHead) 

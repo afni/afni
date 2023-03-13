@@ -163,7 +163,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
    Opt->n_fvec=0;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_Surf2VolCoord_demo(ps, strlen(argv[kar]) > 3 ? 2:1);

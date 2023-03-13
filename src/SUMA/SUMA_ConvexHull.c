@@ -360,7 +360,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->unif = 0;
    Opt->UseThisBrain = NULL;
 	brk = NOPE;
-	while (kar < argc) { /* loop across command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_ConvexHull(ps);

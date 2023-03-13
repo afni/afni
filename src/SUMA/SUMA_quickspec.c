@@ -94,7 +94,7 @@ int main (int argc,char *argv[])
    N_surf = 0;
    N_name = 0;
    spec_name = NULL;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_quickspec(ps);

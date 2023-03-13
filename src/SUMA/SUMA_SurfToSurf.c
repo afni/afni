@@ -156,7 +156,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(
    Opt->iopt = 0;
    Opt->oform = SUMA_NO_DSET_FORMAT;
    accepting_out = NOPE;
-   while (kar < argc) { /* loop across command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       
       if (!brk && accepting_out) { 

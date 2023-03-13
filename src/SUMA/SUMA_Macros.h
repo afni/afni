@@ -598,7 +598,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    \param p1 x y z of point 1
    \param p2 x y z of point 2
    \param Eq equation of plane
-   \param Hit: On exit: 1 segment interects plane
+   \param Hit: On exit: 1 segment intersects plane
                         0 segment does not intersect plane
    \param pinter: On exit:  x y z of intersection point (0,0,0) if no intersection
 
@@ -2166,7 +2166,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_MULT_MAT(a,b,c,rowsa,colsa,colsb,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2205,7 +2205,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_ADD_MAT(a,b,c,rowsa,colsa,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2233,7 +2233,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_SUB_MAT(a,b,c,rowsa,colsa,typea,typeb,typec)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to second matrix.
        c       pointer to result matrix.
        rowsa   number of rows in matrix a
@@ -2262,7 +2262,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
    SUMA_TRANSP_MAT(a,b,rowsa,colsa,typea,typeb)
 
-       a       pointer to first matirx.
+       a       pointer to first matrix.
        b       pointer to result matrix.
        rowsa   number of rows in matrix a
        colsa   number of columns in matrix a
