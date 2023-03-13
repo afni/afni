@@ -64,12 +64,12 @@ while ( $ac <= $#argv )
   else if ( "$argv[$ac]" == "-prefix" ) then
     @ ac ++
     if ( $ac > $#argv ) then
-        echo "** missing paramater for option '-prefix'"
+        echo "** missing parameter for option '-prefix'"
         exit 1
     endif
     set pfx = $argv[$ac]
   else 
-    # input datset
+    # input dataset
     if ( $inp != "" ) then
       echo "** too many params, should have options followed by single dset"
       echo "   (seem to have multiple inputs: $inp $argv[$ac-])"
