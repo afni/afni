@@ -3875,7 +3875,7 @@ SUMA_Boolean SUMA_VE_LoadTexture(SUMA_VolumeElement **VE, int n)
    SUMA_LHv("Storing texture for %s: %d %d %d\n", 
             SUMA_VE_Headname(VE, n), SUMA_VE_Ni(VE, n), 
             SUMA_VE_Nj(VE, n),  SUMA_VE_Nk(VE, n));
-   /* And store the image poiner in question */
+   /* And store the image pointer in question */
    glTexImage3D   (  GL_TEXTURE_3D, 
                      0, /* texture level, highest resolution */
                      GL_RGBA, /* RGBA baby*/
@@ -4002,7 +4002,7 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
             SUMA_RETURN(NOPE);
          }
       } else {
-         SUMA_S_Note("Proably done already via SUMA_Overlays_2_GLCOLAR4's\n"
+         SUMA_S_Note("Probably done already via SUMA_Overlays_2_GLCOLAR4's\n"
                      "call to SUMA_VE_LoadTexture. Does this function still \n"
                      "have a reason to exist?");
       }

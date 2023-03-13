@@ -6518,7 +6518,7 @@ void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data,
    }
    if (TF->cell_modified != -1) {
       /* make sure it is the last one you'd been working on
-      This check fails when I am dealing with mutliple tables
+      This check fails when I am dealing with multiple tables
       If you need it, store a value for each cell and
       check them individually*/
       if (0 && CurrentCell >= 0  && TF->cell_modified != CurrentCell) {
@@ -9415,7 +9415,7 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str)
 }
 
 /*!
-   This function will fail if the strings have been trunctated
+   This function will fail if the strings have been truncated
    Consider writing SetMenuChoiceUserData
 */
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
@@ -9467,7 +9467,7 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str)
    for (i=0; i< SurfCont->SwitchCmapMenu->N_mw; ++i) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
-      if (nstr > strlen(XtName(w[i]))) { /* name in list got trunctated ...*/
+      if (nstr > strlen(XtName(w[i]))) { /* name in list got truncated ...*/
          nf = strncmp(str, XtName(w[i]), strlen(XtName(w[i])));
       } else {
          nf = strcmp(str, XtName(w[i]));
@@ -11296,7 +11296,7 @@ void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2])
 
    rmult = (double)SUMA_floatEnv("SUMA_Range_Multiplier", 0.0) ;
    if (rmult > 0.0f && rmult != 1.0f) {
-      SUMA_LHv("Applying range multipler of %f\n", rmult);
+      SUMA_LHv("Applying range multiplier of %f\n", rmult);
       range[0] = range[0]*rmult;
       range[1] = range[1]*rmult;
    }
