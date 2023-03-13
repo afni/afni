@@ -28,7 +28,7 @@ help.TRR.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to TRR ~1~
     Test-Retest Reliability Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, Febarch 13, 2022 
+Version 0.0.5, March 13, 202r32 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD20892
@@ -604,7 +604,7 @@ outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep
 names(lop$dataTable)[names(lop$dataTable)==lop$subject] <- 'subj'
 names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
 names(lop$dataTable)[names(lop$dataTable)==lop$repetition] <- 'rep'
-names(lop$dataTable)[names(lop$dataTable)==lop$condiiton]  <- 'cond'
+names(lop$dataTable)[names(lop$dataTable)==lop$condition]  <- 'cond'
 
 # make sure sess and subject are treated as factors
 if(!is.factor(lop$dataTable$rep)) lop$dataTable$rep <- as.factor(lop$dataTable$rep)
