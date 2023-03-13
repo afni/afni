@@ -4873,7 +4873,6 @@ num : int
     if 1 :
         print("++ APQC create:", '_'.join([obase, qcb, qci]))
 
-
     do_cap = True
     cmd    = '# @radial_correlate images for: ' + rcdir
     com    = ab.shell_com(cmd, capture=do_cap)
@@ -4885,6 +4884,7 @@ num : int
 
     Nulay = len( all_ulay )
     Nolay = len( all_olay )
+    Ncbar = Nolay - 1                # the idx of volume to get cbar under
 
     rc_block = rcdir.split(".")[2]
 
@@ -4992,18 +4992,78 @@ num : int
         with open(otopjson, 'w', encoding='utf-8') as fff:
             json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
-        # Make pbar text
-        cmd = '''
-        abids_json_tool.py                                                   \
-            -overwrite                                                       \
-            -txt2json                                                        \
-            -delimiter_major  '::'                                           \
-            -delimiter_minor  ',,'                                           \
-            -input            "{opbarrt}.txt"                                \
-            -prefix           "{opbarrt}.json"
-        '''.format( opbarrt=opbarrt )
-        com    = ab.shell_com(cmd, capture=do_cap)
-        com.run()
+
+        # Make info above images
+        otopdict = {
+            'itemtype'    : 'VOL',
+            'itemid'      : qci,
+            'blockid'     : qcb,
+            'blockid_hov' : lah.qc_blocks[qcb][0],
+            'title'       : lah.qc_blocks[qcb][1],
+            'text'        : otoptxt,
+        }
+        with open(otopjson, 'w', encoding='utf-8') as fff:
+            json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+        # conditions for top text
+        olay_title = 'olay: ' + olay_pref
+        if not(ii) :
+            otoptxt = []
+            ttt  = '@radial_correlate check for data dir: ' + rcdir
+            lent = len(ttt)
+            otoptxt.append(ttt)
+            otoptxt.append("{:^{}s}".format(olay_title, lent)) # center info
+        else:
+            otoptxt = olay_title
+
+        # conditions for placing text and cbar
+        if ii == Ncbar :
+            # Make a cbar and text below image, *only* for last one in set
+
+            # text below images
+            osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
+
+            # Make info above+below images
+            otopdict = {
+                'itemtype'    : 'VOL',
+                'itemid'      : qci,
+                'blockid'     : qcb,
+                'blockid_hov' : lah.qc_blocks[qcb][0],
+                'title'       : lah.qc_blocks[qcb][1],
+                'text'        : otoptxt,
+                'subtext'     : osubtxt,
+            }
+            with open(otopjson, 'w', encoding='utf-8') as fff:
+                json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+            # Make pbar text
+            cmd = '''
+            abids_json_tool.py                                               \
+                -overwrite                                                   \
+                -txt2json                                                    \
+                -delimiter_major  '::'                                       \
+                -delimiter_minor  ',,'                                       \
+                -input            "{opbarrt}.txt"                            \
+                -prefix           "{opbarrt}.json"
+            '''.format( opbarrt=opbarrt )
+            com    = ab.shell_com(cmd, capture=do_cap)
+            com.run()
+        else:
+            # Make text above image only
+
+            # Make info below images
+            otopdict = {
+                'itemtype'    : 'VOL',
+                'itemid'      : qci,
+                'blockid'     : qcb,
+                'blockid_hov' : lah.qc_blocks[qcb][0],
+                'title'       : lah.qc_blocks[qcb][1],
+                'text'        : otoptxt,
+            }
+            with open(otopjson, 'w', encoding='utf-8') as fff:
+                json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+
 
     return 0
 
