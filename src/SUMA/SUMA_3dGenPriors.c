@@ -317,7 +317,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		SUMA_LH("Parsing command line at %s...\n", argv[kar] );
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);
@@ -1639,7 +1639,7 @@ int main(int argc, char **argv)
                Opt->VoxDbg, Opt->VoxDbg3[0], Opt->VoxDbg3[1], Opt->VoxDbg3[2]);
    }
 
-   /* An inportant sanity check */
+   /* An important sanity check */
    if (Opt->pset && Opt->clss->num != DSET_NVALS(Opt->pset)) {
       ERROR_exit( "Number of classes %d does not "
                   "match number of pset subricks %d\n",

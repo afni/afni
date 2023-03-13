@@ -205,7 +205,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    brk = 0;
    Opt->f1 = -1.0;
    kar = 1;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
          if (!strcmp(Opt->feats->str[ii], "upvol")) {
             float vv;
             if (Opt->f1 < 0) {
-               SUMA_S_Err( "Bad news seeting voxvol");
+               SUMA_S_Err( "Bad news seeding voxvol");
                exit(1);
             }
             vv = SUMA_hist_value(hh, Opt->wA, "rcdf") / 1.0e6 * Opt->f1;
@@ -678,7 +678,7 @@ int main(int argc, char **argv)
          }
          if (Opt->f1 == 0.0f) Opt->f1 = 1.0;
          if (Opt->f1 < 0) {
-            SUMA_S_Err( "Bad news seeting voxvol");
+            SUMA_S_Err( "Bad news seeding voxvol");
             exit(1);
          }
          voxthr = SUMA_val_at_count(hh, Opt->wL*1.0e6/Opt->f1, 0, 1);

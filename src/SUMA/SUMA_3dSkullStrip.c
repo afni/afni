@@ -104,7 +104,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX\n"
 "     Vanilla mode, should work for most datasets.\n"
 "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -push_to_edge\n"
-"     Adds an agressive push to brain edges. Use this option\n"
+"     Adds an aggressive push to brain edges. Use this option\n"
 "     when the chunks of gray matter are not included. This option\n"
 "     might cause the mask to leak into non-brain areas.\n"
 "  o 3dSkullStrip -input VOL -surface_coil -prefix VOL_PREFIX -monkey\n"
@@ -339,7 +339,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                       see SurfSmooth -help for detail.\n"
 "     -avoid_vent: avoid ventricles. Default.\n"
 "                  Use this option twice to make the avoidance more\n"
-"                  agressive. That is at times needed with old brains.\n"
+"                  aggressive. That is at times needed with old brains.\n"
 "     -no_avoid_vent: Do not use -avoid_vent.\n"
 "     -init_radius RAD: Use RAD for the initial sphere radius.\n"
 "                       For the automatic setting, there is an\n"
@@ -412,7 +412,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "           meant to work in noisy data with bright skull outline.\n"
 "              The output is a surface outline and a mask volume with names\n"
 "           derived from the -prefix option.\n"
-"              The program will stop immeadiately after the mask is generated.\n"
+"              The program will stop immediately after the mask is generated.\n"
 "           No skull stripping is performed.\n"
 "              Voxel values are listed in 3dSurfMask -help (see FAST method).\n"
 "           In general, you'll want to keep voxel values > 1\n"
@@ -571,7 +571,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->b1 = 0;
 
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_BrainWrap(ps, strlen(argv[kar])>3?2:1);
@@ -1013,7 +1013,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
 				exit (1);
 			}
 			Opt->ExpFrac = atof(argv[kar]);
-         if (Opt->ExpFrac < -1 || Opt->ExpFrac > 1) { /* accroding to algo,
+         if (Opt->ExpFrac < -1 || Opt->ExpFrac > 1) { /* according to algo,
                                              should be between 0 and 1 */
             fprintf (SUMA_STDERR, "%f is a bad expantion fraction.\n",
                      Opt->ExpFrac);

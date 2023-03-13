@@ -67,7 +67,7 @@ NULL
 "                         the features. Each sub-brick is a feature\n"
 "                         and the sub-brick's name is used to name the \n"
 "                         feature. Multiple volumes get catenated.\n"
-"                         Each occurence of -sig option must be paired with\n"
+"                         Each occurrence of -sig option must be paired with\n"
 "                         a -samp option. Think of each pair of '-sig, -samp'\n"
 "                         options as describing data on the same voxel grid; \n"
 "                         Think from the same subject. When specifying \n"
@@ -86,7 +86,7 @@ NULL
 "                         defined in -labeltable. You can specify multiple\n"
 "                         volumes, they all get catenated. Any volume can\n"
 "                         contain voxels from 1 or more classes.\n"
-"                         Each occurence of -samp option must be paired with\n"
+"                         Each occurrence of -samp option must be paired with\n"
 "                         a -sig option. Think of each pair of '-sig, -samp'\n"
 "                         options as describing data on the same voxel grid; \n"
 "                         Think from the same subject. When specifying \n"
@@ -407,7 +407,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    
    brk = 0;
    kar = 1;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);
