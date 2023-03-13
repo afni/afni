@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  {  1, Mar, 2023, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -show_pretty_command, to print a more readable one",
-   "Append this to a current command to generate a prettier one, not to run it."
+   "Append this to a current command to generate prettier one, not to run it."
  } ,
 
  { 27, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
@@ -65,7 +65,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "add -choose_nonzero_cols",
-   "This is for excluding all-zero columns for condition number of chosen cols."
+   "This is to exclude all-zero columns for condition number of chosen cols."
  } ,
 
  { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
