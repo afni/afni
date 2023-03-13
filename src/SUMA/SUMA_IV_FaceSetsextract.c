@@ -31,7 +31,7 @@ Purpose :
  	 
  	
  
-Input paramters : 
+Input parameters : 
  
  	IV_filename (char *) a string specifying the name of the inventor file
 	N_FaceSetList (int *) will give the number of rows in FaceSetList
@@ -68,7 +68,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
    
    cnt4.quot = cnt4.rem = 0;
 
-	/* intialize the number of points read to 0 */
+	/* initialize the number of points read to 0 */
 	*N_FaceSetList = 0;
 	
 	linv = (int *)SUMA_malloc (MaxAlloc*sizeof(int));
@@ -297,7 +297,7 @@ void usage ()
 		printf ("\t The format of the output on each line is tab delimited:\n");
 		printf ("\t NodeNumber	X	Y	Z\n\n");
 		printf ("\t The older version of this code is called IV-FaceSetsextract\n");
-		printf ("\t  it is left around for backward compatibilty\n\n");
+		printf ("\t  it is left around for backward compatibility\n\n");
 		printf ("\t\t\t Ziad Saad \t Tue Nov 17 19:00:42 CST 1998\n");
 		exit (0);
   }/*Usage*/

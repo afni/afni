@@ -277,7 +277,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
    if (action == 1) { /* action == 1,  send data mode */
       if (!i_in) {
          fprintf (stderr,"You must call SUMA_SendToSuma with action 0 "
-                     "before action 1.\nNo Communcation cleanup done.\n");
+                     "before action 1.\nNo Communication cleanup done.\n");
          cs->Send = 0;
          return(0);
       }
@@ -382,7 +382,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
       NI_element *nel=NULL;
       if (i_in < 2) {
          fprintf (stderr,"You must call SUMA_SendToSuma with action 0 and 1"
-                     " before action 2.\nNo Communcation cleanup done.\n");
+                     " before action 2.\nNo Communication cleanup done.\n");
          cs->Send = 0;
          return(0);
       }

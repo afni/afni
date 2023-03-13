@@ -635,7 +635,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(
    from any triangle it touches. 
    The sign of the distance is relative to the triangle's normal and
    is likely not consistent across voxels or triangles because the surface
-   may not be consistenly wound.
+   may not be consistently wound.
    
    *The distance is in index units, not mm, so the value is not
    quite accurate for non-cubic voxels. 
@@ -1621,7 +1621,7 @@ SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *Off
 /*!
    \brief free memory associated with SUMA_GET_OFFSET_STRUCT * struct
    
-   \param OffS (SUMA_GET_OFFSET_STRUCT *) Offset strcture
+   \param OffS (SUMA_GET_OFFSET_STRUCT *) Offset structure
    \return NULL
    
    \sa SUMA_Recycle_getoffsets
@@ -2168,7 +2168,7 @@ typedef struct {
    \param r (double) (see above)
    \param Rref (double) (see above)
    \pram tmpList (float *) a pre-allocated vector to contain the new coordinates of the surface 
-   \return A (double) the area of the new surface (post streching)
+   \return A (double) the area of the new surface (post stretching)
    \sa SUMA_AreaDiff
 */
 double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, 
@@ -2267,7 +2267,7 @@ SUMA_Boolean SUMA_NewSurfaceRadius(SUMA_SurfaceObject *SO,
    \param r (double) (see above)
    \param Rref (double) (see above)
    \pram tmpList (float *) a pre-allocated vector to contain the new coordinates of the surface 
-   \return V (double) the volume of the new surface (post streching)
+   \return V (double) the volume of the new surface (post stretching)
    \sa SUMA_VolDiff
 */
 double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
@@ -3766,7 +3766,7 @@ float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO,
    smoothing algorithm for a combination of scaling factors
    and number of iterations 
    
-   \param l (float)  postive scaling factor
+   \param l (float)  positive scaling factor
    \param m (float)  negative scaling factor
                     (for avoiding the shrinkage of surfaces)
             The band-pass frequency (kbp) is 1/m + 1/l
@@ -3822,7 +3822,7 @@ SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Ou
    Processing on Polygonal Meshes (Eurographics 2000)
    
    \param k (float) the pass-band frequency (typically 0.1)
-   \param *l (float) what will be the postive scaling factor
+   \param *l (float) what will be the positive scaling factor
    \param *m (float) what will be the negative scaling factor
                      (for avoiding the shrinkage of surfaces)
    \return ans (SUMA_Boolean) YUP, good solution found
@@ -4069,13 +4069,13 @@ int SUMA_NN_GeomSmooth3_SO(   SUMA_SurfaceObject *SO,
    \param SO (SUMA_SurfaceObject *SO) The surface, with NodeList, FaceSetList
                                        and FN fields present
    \param wgt (float **) interpolation weights for each node. 
-                         The dimentions of wgt are equal to those of 
+                         The dimensions of wgt are equal to those of 
                          SO->FN->FirstNeighb
                          These weights may need to be re-evaluated for
                          each iteration
                          For equal weights (1/SO->FN->N_FirstNeighb[n]), 
                          just pass NULL         
-   \param lambda (float) postive scaling factor
+   \param lambda (float) positive scaling factor
    \param mu (float) negative scaling factor 
    \param fin (float *) vector containing node data. The length of this vector
                         is vpn x SO->N_Node , where vpn is the number of values
@@ -6020,7 +6020,7 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    
@@ -6393,7 +6393,7 @@ SUMA_Boolean SUMA_Chung_Smooth_05_single_dset (SUMA_SurfaceObject *SO, float **w
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d columns to process.\n", N_icols);
@@ -6561,7 +6561,7 @@ SUMA_Boolean SUMA_Chung_Smooth_05_Pre_07_dset (SUMA_SurfaceObject *SO, float **w
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    
@@ -6760,7 +6760,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d columns to process.\n", N_icols);
@@ -7099,7 +7099,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d columns to process.\n", N_icols);
@@ -7509,7 +7509,7 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       if (N_zeros) {
          SUMA_LHv("Have %d redundancies at pass %d (%d nodes in mask).\n"
                   " We must reduce redundancies.\n"
-                  " Have addtional blur fwhm of %f, sigma %g, Niter %d\n", 
+                  " Have additional blur fwhm of %f, sigma %g, Niter %d\n", 
                   N_zeros, ipass, N_nmask, dfwhm, sigma, N_iter);
          if (!wgt) {
             wgt = SUMA_Chung_Smooth_Weights_07(SO, sigma);
@@ -8013,7 +8013,7 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       }
       
       if (xyzref) {
-         SUMA_LH( "Offseting projections by [%f %f %f]",
+         SUMA_LH( "Offsetting projections by [%f %f %f]",
                   xyzref[0], xyzref[1], xyzref[2] );
          for (i=0; i<N_xyz; ++i) {
             i3=3*i;
@@ -9376,7 +9376,7 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
    icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    
@@ -9757,7 +9757,7 @@ int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList,
        will get a different direction vector formed by the 
        node and the surface's center.
    dots Will contain the dot products. If *dots == NULL,
-        the function will alocate space, else it will
+        the function will allocate space, else it will
         use the pointer in *dots
 */   
 SUMA_Boolean SUMA_DotNormals(SUMA_SurfaceObject *SO, float *dir, float **dots)
@@ -10654,7 +10654,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
                      -hits 1 \
                      -input lhpatch_1node.1D 0 1
       (  divide answer of 2.219910 by 3 (0.73997), 
-         difference at 3rd signifcant digit from SM_out_1node.1D of 0.731866)
+         difference at 3rd significant digit from SM_out_1node.1D of 0.731866)
    
    for a box:
       SurfMeasures   -func node_vol -spec RectPly.spec \
@@ -10853,7 +10853,7 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                   /* at N_nc = 2, non-selected node moves along edge
                         N_nc = 3, non-selected node moves along triangle
                         N_nc >3 , non-selected node will end up off of
-                                  orginal surface, shrinkage */
+                                  original surface, shrinkage */
                   if (verb > 1 || (verb && !inotice)) {
                      SUMA_S_Notev("Contour correction will cause some"
                                   "shrinkage at node %d (becomes %d, and %d) \n"
@@ -11763,7 +11763,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
          /* if (ROId) SUMA_FreeROIDatum (ROId);
          SUMA_RETURN(NULL);   */
       } else {
-         /* ROId->tPath has a potentially enourmous chunk of memory allocated for it. Trim the fat. */
+         /* ROId->tPath has a potentially enormous chunk of memory allocated for it. Trim the fat. */
          {
             int *tPath_tmp=NULL, i_tmp=0;
             tPath_tmp = (int *)SUMA_calloc (ROId->N_t, sizeof(int));
@@ -12234,7 +12234,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out,
             SUMA_RETURN(NOPE);
          }
 
-         /* redisplay curent only*/
+         /* redisplay current only*/
          sv->ResetGLStateVariables = YUP;
          SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
       }
@@ -12289,7 +12289,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out,
             SUMA_RETURN(NOPE);
          }
 
-         /* redisplay curent only*/
+         /* redisplay current only*/
          sv->ResetGLStateVariables = YUP;
          SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
       }
@@ -12348,12 +12348,12 @@ SUMA_Boolean SUMA_Mark_Tri (SUMA_EDGE_LIST  *EL, int E1, int iBranch, int *TriBr
       Found = NOPE; 
       k = 0;
       while (!Found && k < 3) {
-         E2 = EL->Tri_limb[Tri][k]; /* this may not be the first occurence of this edge since the list contains duplicates */
+         E2 = EL->Tri_limb[Tri][k]; /* this may not be the first occurrence of this edge since the list contains duplicates */
          if (LocalHead) {
             fprintf (SUMA_STDERR, "%s: Trying edge E2 %d (%d %d), tiangle %d, edge %d.\n", 
                      FuncName, E2, EL->EL[E2][0], EL->EL[E2][1], Tri, k);
          }
-         while (EL->ELps[E2][2] < 0) { /* find the first occurence of this edge in the list */
+         while (EL->ELps[E2][2] < 0) { /* find the first occurrence of this edge in the list */
             E2--;
          }
          if (LocalHead) fprintf (SUMA_STDERR, "%s: E2 changed to %d. E1 is %d\n", FuncName, E2, E1);
@@ -12932,7 +12932,7 @@ int * SUMA_Dijkstra_usegen (SUMA_SurfaceObject *SO, int Nx,
                         usually equal to N_Path if path is a loop (closed) or N_Path - 1. 
                         0 if function fails.
    \param ePath (int *) pointer to vector containing indices of edges forming the path. 
-                        The indices are into EL->EL and represent the first occurence of the
+                        The indices are into EL->EL and represent the first occurrence of the
                         edge between Path[i] and Path[i+1].
                         NULL if trouble is encountered.
                         
@@ -13602,7 +13602,7 @@ DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT
 
             E0 = -1;
             if (T0>=0) { /* have gun, will travel, find next edge */
-               /* find the other interesected edge of this triangle*/
+               /* find the other intersected edge of this triangle*/
                n0 = SO->FaceSetList[3*T0]; 
                n1 = SO->FaceSetList[3*T0+1]; 
                n2 = SO->FaceSetList[3*T0+2];   
@@ -13912,7 +13912,7 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
       }
    
    
-   /* initiliaze first node results and look for the second node */
+   /* initialize first node results and look for the second node */
    tPath[0] = Tri0;
    *N_Tri = 1;
    Found = NOPE;
@@ -14638,8 +14638,8 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
                   Usage : 
 
 
-                  Input paramters : 
-                            InterMat (int **) pointer to a 2D int array of dimention [IMsz, 4]
+                  Input parameters : 
+                            InterMat (int **) pointer to a 2D int array of dimension [IMsz, 4]
                            IMsz (int) number or rows in InterMat
                            InterNodes (float **) pointer to a 2D float array that contains the
                               intersection nodes XYZ coordinates, size of the array is [INsz,3]
@@ -14913,7 +14913,7 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
                    void SUMA_WeldBranches ( BRANCH *branch, int *sz_Branch, int brIndx1, int brIndx2 , int brEnd1, int brEnd2 );
 
 
-                  Input paramters : 
+                  Input parameters : 
                       branch   (BRANCH *)   a vector of structures BRANCH
                      sz_Branch   (int *)   pointer to the scalar containing the number of elements of branch
                      brIndx1   (int)   index (into branch) of the first branch to weld
@@ -15006,7 +15006,7 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
                         branch[tmpreplace].list[k] = tmp.list[k];
 
                      /*copy branch[sz_Branch-1] (the last branch) into position brIndx2 */
-                     /*by now, tmpmove is definetly larger than tmpreplace*/
+                     /*by now, tmpmove is definitely larger than tmpreplace*/
                      /* if tmpmove is not the last branch, then move the last branch up one*/
                      /* otherwise, no need to move anything */
 
@@ -15681,7 +15681,7 @@ int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, char *expr)
                    otherwise it uses what the user passed. This way, if a 
                    tract has been marked as intersected by a previous
                    MDO, it is not revisited here.
-   The function retuns the number of NEW intersections encountered in this call.
+   The function returns the number of NEW intersections encountered in this call.
 */                 
 int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp)
 {

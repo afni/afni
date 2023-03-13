@@ -7,7 +7,7 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
 /*!
-   SUMA's viewing paramters are tuned to show human brains in mm units.
+   SUMA's viewing parameters are tuned to show human brains in mm units.
    When a human surface is entered in cm units, some scaling needs to be
    done so that the surface appears nice.
    For example, in the cm vs mm case, I got nasty shading errors because
@@ -1085,7 +1085,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->PickPix[0] = SV->PickPix[1] = -1;
       SV->pickrenpix4 = NULL;
 
-      /* Squence of types to be displayed. Anything not in the list
+      /* Sequence of types to be displayed. Anything not in the list
          gets displayed first */
       SV->N_otseq = SUMA_SetObjectDisplayOrder("DEFAULT", SV->otseq);
       {
@@ -1557,7 +1557,7 @@ SUMA_Boolean SUMA_BlankColorListStruct(SUMA_COLORLIST_STRUCT *cl)
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NOPE);
    }
-   /* fill up with blanks, may be unecessary ... */
+   /* fill up with blanks, may be unnecessary ... */
    i=0;
    while (i < cl->N_glar_ColorList) {
       cl->glar_ColorList_private[i] =
@@ -4144,7 +4144,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec,
    SUMA_RETURN (YUP);
 }
 
-/*! allocate and intialize SUMA_CommonFields
+/*! allocate and initialize SUMA_CommonFields
    No fancy allocation, No fancy macros.
 \sa SUMA_Free_CommonFields
 */

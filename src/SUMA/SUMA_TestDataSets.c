@@ -45,7 +45,7 @@ int main (int argc,char *argv[])
    /* Work the options */
    kar = 1;
    brk = 0;
-   while (kar < argc) { /* loop accross command line options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -65,7 +65,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
       
-   }/* loop accross command ine options */
+   }/* loop across command ine options */
 
    /* Say you want to save a bunch of node values */
    { /* BEGIN: Test to save a data set with a bunch of node values */

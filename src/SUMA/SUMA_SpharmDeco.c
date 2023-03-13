@@ -80,7 +80,7 @@ void usage_SpharmDeco (SUMA_GENERIC_ARGV_PARSE *ps)
 "     file with the order l in its name. For example for l = 3, the harmonics\n"
 "     are stored in a file called  BASES_PREFIX.sph03.1D.\n"
 "     In the simplest form, this file is in .1D format and contains an\n" 
-"     (l+1 x N) complex matrix. The real part constitutes the negative degree\n" "     harmonics and the positive part contains the postive degree ones.\n"
+"     (l+1 x N) complex matrix. The real part constitutes the negative degree\n" "     harmonics and the positive part contains the positive degree ones.\n"
 "     (Internally, the complex matrix is turned into a real matrix of size \n"
 "      2l+1 x N )\n" 
 "  Beta coefficients are stored in one for each of the input K data columns.\n"
@@ -135,7 +135,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    Opt->in_name = NULL;
    kar = 1;
    brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SpharmDeco(ps);

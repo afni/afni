@@ -666,13 +666,13 @@ SUMA_SPHERE_QUALITY *
   SUMA_binTesselate(nodeList, triList, nCtr, tCtr, recDepth, depth, n1, n2, n3);
 
   This function divides 1 triangle into 4 recursively to depth recDepth.
-  \param nodeList (float *) 3 x N_Node list of nodes (updated as new nodes created during tesselation)
-  \param triList (int *) 3 x N_Triangle list of nodes assoicated with each triangle (updated as new triangles created during tesselation)
+  \param nodeList (float *) 3 x N_Node list of nodes (updated as new nodes created during tessellation)
+  \param triList (int *) 3 x N_Triangle list of nodes associated with each triangle (updated as new triangles created during tessellation)
   \param nCtr (int *) index of most recently added node to nodeList
   \param tCtr (int *) index of most recently added triangle to triList
   \param recDepth (int) recursion depth
   \param depth (int) current depth
-  \param n1, n2, n3 (int) indices in nodeList corresponding to three nodes of triangle being tesselated
+  \param n1, n2, n3 (int) indices in nodeList corresponding to three nodes of triangle being tessellated
   \return void (but nodeList and triList updated)
 
   Written by Brenna Argall
@@ -741,7 +741,7 @@ void SUMA_binTesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int 
       SUMA_addTri( triList, tCtr, index3, index2, index1);
    }
 
-   /**recursion depth not met: call tesselate on each of 4 new triangles*/
+   /**recursion depth not met: call tessellate on each of 4 new triangles*/
    else {
       ++depth;
       SUMA_binTesselate( nodeList, triList, nCtr, tCtr, recDepth, 
@@ -761,12 +761,12 @@ void SUMA_binTesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int 
   SUMA_tesselate(nodeList, triList, nCtr, tCtr, N_Div, n0, n1, n2);
 
   This function tesselates triangle by dividing edges into N_Div segments.
-  \param nodeList (float *) 3 x N_Node list of nodes (updated as new nodes created during tesselation)
-  \param triList (int *) 3 x N_Triangle list of nodes assoicated with each triangle (updated as new triangles created during tesselation)
+  \param nodeList (float *) 3 x N_Node list of nodes (updated as new nodes created during tessellation)
+  \param triList (int *) 3 x N_Triangle list of nodes associated with each triangle (updated as new triangles created during tessellation)
   \param nCtr (int *) index of most recently added node to nodeList
   \param tCtr (int *) index of most recently added triangle to triList
   \param N_Div (int) number of edge divides
-  \param n1,n2,n3 (int) indices in nodeList corresponding to three nodes of triangle being tesselated
+  \param n1,n2,n3 (int) indices in nodeList corresponding to three nodes of triangle being tessellated
   \return void (but nodeList and triList updated)
 
   Written by Brenna Argall
@@ -881,7 +881,7 @@ int * SUMA_divEdge( float *nodeList, int *nCtr, int node1, int node2, int N_Div)
 
   Creates triangulation between line segments currFloor and node1-node2.  It is expected that node1-node2 has one fewer node than currFloor.
   \param nodeList (float *) 3 x N_Node list of nodes
-  \param triList (int *) 3 x N_Tri list of node indicies corresponding to triangles
+  \param triList (int *) 3 x N_Tri list of node indices corresponding to triangles
   \param nCtr (int *) current number of elements in nodeList
   \param tCtr (int *) current number of elements in triList
   \param N_Div (int) number of divisions to be created from line segment node1-node2
@@ -939,7 +939,7 @@ void SUMA_triangulateRow( float *nodeList, int *triList, int *nCtr, int *tCtr, i
 /*!
   SUMA_addNode(nodeList, ctr, x, y, z);
 
-  Function to add the x, y, z corrdinates of a node to nodeList.
+  Function to add the x, y, z coordinates of a node to nodeList.
   \param nodeList (float *) 3 x N_node array of x,y,z coordinates of nodes
   \param ctr (int *) current position in nodeList
   \param x, y, z (float) x, y, z values of added node
@@ -1014,11 +1014,11 @@ SUMA_Boolean SUMA_ProjectToSphere(SUMA_SurfaceObject *SO, float *ctr, float r)
 /*!
   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, ToSphere);
 
-  This function creates an icosahedron of size r and to tesselation extent depth.
+  This function creates an icosahedron of size r and to tessellation extent depth.
   \param r (float) size of icosahedron (distance from center to node).
-  \param depth (int) number of edge subdivisions (bin='n') or depth of recursive tesselation (bin='y')
+  \param depth (int) number of edge subdivisions (bin='n') or depth of recursive tessellation (bin='y')
   \param ctr (float[]) coordinates of center of icosahedron
-  \param bin (char[]) indicates whether tesselation binary/recursive ('y') or brute ('n')
+  \param bin (char[]) indicates whether tessellation binary/recursive ('y') or brute ('n')
   \param ToSpHere (int) if 1 then project nodes to form a sphere of radius r
   \ret SO (SUMA_SurfaceObject *) icosahedron is a surface object structure.
   returns NULL if function fails.
@@ -1062,7 +1062,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, ch
 
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Allocated for %d Nodes, %d numTri\n", FuncName, numNodes, numTri);
    
-   /**icosahedron creation and tesselation*/
+   /**icosahedron creation and tessellation*/
    SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth); /* lgth is the length of edge by dist node0->node1 */
    
    if (LocalHead) {
@@ -1099,11 +1099,11 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, ch
    SUMA_addNode( icosaNode, &nodePtCt, -a+ctr[0], 0+ctr[1], b+ctr[2] );  
    SUMA_addNode( icosaNode, &nodePtCt, a+ctr[0], 0+ctr[1], -b+ctr[2] );
 
-   /**tesselate icosahedron*/
+   /**tessellate icosahedron*/
 
    triPtCt = -1;
 
-   /**if recursion depth is 0, just make icosahedron (no tesselation)*/
+   /**if recursion depth is 0, just make icosahedron (no tessellation)*/
    if (depth==0) {
 
       SUMA_addTri( icosaTri, &triPtCt, 0, 4, 6 );   
@@ -1139,7 +1139,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, ch
 
    else {
       if (strcmp(bin, "y") == 0) {
-         /*binary tesselation*/
+         /*binary tessellation*/
          SUMA_binTesselate(icosaNode, icosaTri, &nodePtCt, &triPtCt, 
                         depth, 1, 0, 4, 6);
          SUMA_binTesselate(icosaNode, icosaTri, &nodePtCt, &triPtCt, 
@@ -1186,7 +1186,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float *ctru, ch
       }
 
       else {
-         /*brute tesselation*/
+         /*brute tessellation*/
          SUMA_tesselate(icosaNode, icosaTri, &nodePtCt, &triPtCt, 
                         depth, 0, 4, 6);
          SUMA_tesselate(icosaNode, icosaTri, &nodePtCt, &triPtCt, 
@@ -2192,7 +2192,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       triNode1 = &(ctrNodeList_2[ 3*i_node[1] ]);
       triNode2 = &(ctrNodeList_2[ 3*i_node[2] ]);
     
-      /**determine weights which are the barycetric corrdinates 
+      /**determine weights which are the barycetric coordinates 
          of the intersection node*/
       SUMA_TRI_AREA( ptHit, triNode1, triNode2, weight[j]); 
       SUMA_TRI_AREA( ptHit, triNode0, triNode2, weight[j+1]); 
@@ -2988,7 +2988,7 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
    
    num_val = num_tot-num_loc;
 
-   /*sort column indicies*/
+   /*sort column indices*/
    i_colmSrtd = SUMA_calloc( i_colm[0]-1, sizeof(int));
    for (i=0; i<i_colm[0]; ++i) {
       /*copy i_colm removing first element (contains number of columns)*/
@@ -3145,7 +3145,7 @@ void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data) 
   Function to write simple 1D file.
   \param num (int*) [0] contains number of rows, [1] number of columns, to be written
   \param vals (float*) vector of values (size: num[0]*num[1], format: contcatanated rows)
-  \param index (int*) vector of indicies (size: num[0]); pass as NULL if standard increment
+  \param index (int*) vector of indices (size: num[0]); pass as NULL if standard increment
   \param firstline (char[]) comment for top of file
   \param outFileNm (char[]) name of file written to
   \return void
