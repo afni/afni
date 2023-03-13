@@ -349,7 +349,7 @@ echo '                -load_dset $ds -surf_label lh.smoothwm.asc -1_only y'
 echo '   end'
 echo ""
 echo "That will load the datasets in question for you. Scroll through them via"
-echo "The Switch Dset interace in the Surface Controller"
+echo "The Switch Dset interface in the Surface Controller"
 echo ""
 echo "For more info on automation, see @DriveSuma and @DriveAfni."
 echo "--"
