@@ -466,13 +466,13 @@ int main(int argc, char *argv[]) {
   // getting radius    
   if( DO_SPHERE ) {
      Vneigh = IntSpherVol(Rdim, NEIGH_R);
-     INFO_message("Final vox neighbood: ellipsoid with Nneigh=%d "
+     INFO_message("Final vox neighborhood: ellipsoid with Nneigh=%d "
                   "and radii (%.3f,%.3f,%.3f).",
                   Vneigh,NEIGH_R[0],NEIGH_R[1],NEIGH_R[2]);
   }
   else {
      Vneigh = IntBoxVol(Rdim, NEIGH_R);
-     INFO_message("Final vox neighbood: box with Nneigh=%d "
+     INFO_message("Final vox neighborhood: box with Nneigh=%d "
                   "and radii (%.3f,%.3f,%.3f).",
                   Vneigh, NEIGH_R[0], NEIGH_R[1], NEIGH_R[2]);
   }
