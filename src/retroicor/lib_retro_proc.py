@@ -810,7 +810,7 @@ def determineRespiratoryPhases(test_retro_obj, resp_peaks,
         
     return phases
 
-def limitNumOutputTimepoints(rawData, test_retro_obj, samp_freq):
+def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
     """
     NAME
         limitNumOutputTimepoints
@@ -818,7 +818,8 @@ def limitNumOutputTimepoints(rawData, test_retro_obj, samp_freq):
      TYPE
         <class 'int'>
     ARGUMENTS
-        rawData: (array, dType = float) Raw input data
+        phaseData: (array, dType = float) Phase data determined from peaks 
+                                          (and troughs)
         
         test_retro_obj: Object with the following fields.
             
@@ -837,7 +838,7 @@ def limitNumOutputTimepoints(rawData, test_retro_obj, samp_freq):
 
     # Get maximum number of output time points
     # Num TR intervals covered by physio data (float)
-    duration = len(rawData)/samp_freq
+    duration = len(phaseData)/samp_freq
     max_numTime_float = duration/test_retro_obj.vol_tr 
     eps_nt = 0.1    # Tolerance for rounding up number of TRs 
                     # (fraction of TR)
@@ -1275,9 +1276,21 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                     show_graph = test_retro_obj.show_graph_level>0, 
                     save_graph = test_retro_obj.save_graph_level>0,
                     font_size = test_retro_obj.font_size)
+    
+            # Trim phase data before start time
+            if test_retro_obj.card_data.start_time < 0:
+                leading_length = round(-test_retro_obj.card_data.start_time *\
+                    test_retro_obj.card_data.samp_freq)
+                card_phases = card_phases[leading_length:]
+                
+            # Trim phase at end
+            lastTime = min(test_retro_obj.card_data.end_time,
+                           test_retro_obj.duration_vol)
+            lastIndex = round(lastTime * test_retro_obj.card_data.samp_freq)
+            card_phases = card_phases[:lastIndex]
         
         # Ensure number of output time points not too high
-        num_time_pts = limitNumOutputTimepoints(rawData, test_retro_obj,
+        num_time_pts = limitNumOutputTimepoints(card_phases, test_retro_obj,
                                      cardiac_sample_frequency)
         
     # Process respiratory data if any
@@ -1298,6 +1311,18 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                    show_graph = test_retro_obj.show_graph_level>0, 
                    save_graph = test_retro_obj.save_graph_level>0,
                    font_size = test_retro_obj.font_size)
+
+        # Trim phase data before start time
+        if test_retro_obj.resp_data.start_time < 0:
+            leading_length = round(-test_retro_obj.resp_data.start_time *\
+                test_retro_obj.resp_data.samp_freq)
+            resp_phases = resp_phases[leading_length:]
+            
+        # Trim phase at end
+        lastTime = min(test_retro_obj.resp_data.end_time,
+                           test_retro_obj.duration_vol)
+        lastIndex = round(lastTime * test_retro_obj.resp_data.samp_freq)
+        resp_phases = resp_phases[:lastIndex]
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(rawData, test_retro_obj, 
