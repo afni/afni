@@ -370,13 +370,12 @@ regressors for MRI data.
 
         return all_col
             
-
     def check_end_time_phys_ge_vol(self, label):
         """Check if the 'label' physio time series's end time (which is offset
         by the start_time parameter) is greater than or equal to that
-        of the volumetric data (= MRI).  This essentially determines
-        if it makes sense to continue with the calculation.
-
+        of the volumetric data (= MRI).  This kinda determines if it
+        makes sense to continue with the calculation---see 
+        check_end_time_phys_ge_final_slice(...) for a more official one.
         """
 
         if label=='resp' :
@@ -390,6 +389,29 @@ regressors for MRI data.
             return False
 
         if phys_end_time < self.duration_vol :
+            return False
+        else:
+            return True
+
+    def check_end_time_phys_ge_final_slice(self, label):
+        """Check if the 'label' physio time series's end time (which is offset
+        by the start_time parameter) is greater than or equal to the
+        time at which the final slice of the volumetric data (= MRI)
+        is acquired.  This essentially determines if it makes sense to
+        continue with the calculation.
+        """
+
+        if label=='resp' :
+            if not(self.have_resp) : return False
+            phys_end_time = self.resp_data.end_time
+        elif label=='card' :
+            if not(self.have_card) : return False
+            phys_end_time = self.card_data.end_time
+        else:
+            print("+* ERROR: Unrecognized label '{}'".format(label))
+            return False
+
+        if phys_end_time < self.vol_final_slice_time :
             return False
         else:
             return True
@@ -414,6 +436,14 @@ regressors for MRI data.
         """The total amount of time (in sec) of the volumetric (= MRI)
         data, defined as the TR times the number of volumes."""
         return self.vol_tr * self.vol_nv
+
+    @property
+    def vol_final_slice_time(self): 
+    """The actual maximum duration of data in the MRI, taking into account
+    slice timing. This is the acquisition *time* of the last
+    volumetric slice.
+    """
+    return self.duration_vol - self.vol_tr + max(self.vol_slice_times)
 
 
 def find_bad_vals(x, bad_nums=None, verb=0):
