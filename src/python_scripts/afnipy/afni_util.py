@@ -2150,7 +2150,7 @@ def check_list_2dmat_and_mask(L, mask=None):
 
     # need a [N, nrow, ncol] here
     if len(Ldims) != 3 :   
-        BASE.EP("Matrix fails test for being a list of 2D matrices;\m"
+        BASE.EP("Matrix fails test for being a list of 2D matrices;\n"
                 "instead of having 3 dims, it has {}".format(len(Ldims)))
 
     if mask != None :
