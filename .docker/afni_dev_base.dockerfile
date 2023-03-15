@@ -80,6 +80,7 @@ RUN apt-get update && apt-get install -y eatmydata && \
     libxpm-dev \
     libxt-dev \
     netpbm \
+    libjpeg-progs \
     python3-rpy2 \
     python3-wxgtk4.0 \
     python3.6-dev \
