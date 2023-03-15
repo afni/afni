@@ -70,6 +70,18 @@ derived data.
         the start_time."""
         return self.start_time + self.duration_ts_orig
 
+    @property
+    def start_phys_idx(self):
+        """The integer index for selecting the window of physio data due to
+        having a nonzero start_time.  Note: we think of this as:
+           start_time / samp_rate
+        but mechanically accomplish this by multiplication with samp_freq.
+        """
+        if self.start_time < 0 :
+            return round(- self.start_time * self.samp_freq)
+        else:
+            return 0
+
 # -------------------------------------------------------------------------
 
 class retro_obj:
