@@ -4476,7 +4476,7 @@ num : int
 
 
     # text above+below 'orig' image
-    otoptxt_o = "original anat edges, " + state_o
+    otoptxt_o = "... original anat edges ({})".format(state_o)
     osubtxt_o = "olay: {} (over EPI, {})".format(olay_pref_o, ulay_pref)
 
     # Make info above+below 'orig' image
@@ -4494,7 +4494,7 @@ num : int
 
 
     # text above+below 'flipped' image
-    otoptxt_f = "flipped anat edges, " + state_f
+    otoptxt_f = "... flipped anat edges ({})".format(state_f)
     osubtxt_f = "olay: {} (over EPI, {})".format(olay_pref_f, ulay_pref)
 
     # Make info above+below 'flipped' image
