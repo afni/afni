@@ -1,5 +1,5 @@
 #!/bin/tcsh
- 
+
 # use ubuntu 18.04 build now!
 set thedate = `date +%Y_%m_%d`
 
