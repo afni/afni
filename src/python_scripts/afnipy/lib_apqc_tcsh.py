@@ -1231,7 +1231,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# volreg motion pars, and censoring'''
@@ -1335,7 +1335,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# outlier frac and censoring'''
@@ -1443,7 +1443,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# mot enorm and censoring'''
@@ -1549,7 +1549,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# mot enorm plus outlier frac, and censoring'''
@@ -1639,7 +1639,7 @@ num : int
     odir_mtedana = ap_ssdict['odir_qc'] + '/' + 'dir_mtedana'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# multi-echo (mecho) processing via MEICA group TEDANA'''
@@ -1730,7 +1730,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# individual regressors of interest in X-matrix'''
@@ -1837,7 +1837,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# sum of regressors of interest in X-matrix'''
@@ -1951,7 +1951,7 @@ num : int
     cbar            = "gray_scale"
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# Check {} (ulay) in orig space ({} %ile topval for pbar)
@@ -2103,7 +2103,7 @@ num : int
     otopdeobtxt2_bup = opref + '.sag_DEOB.txt_info'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# init overlap between EPI (ulay) and anatomical (olay)'
@@ -2216,7 +2216,7 @@ num : int
     osubjson = opref + '.sag.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     com    = ab.shell_com('# check EPI mask over main_dset', capture=do_cap)
@@ -2341,7 +2341,7 @@ num : int
     osubjson = opref + '.sag.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# alignment of EPI (ulay) and anatomical (olay) in final sp'
@@ -2470,7 +2470,7 @@ num : int
     osubjson = opref + '.sag.json'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# alignment of anatomical (ulay) and template (olay) in final sp'
@@ -2596,7 +2596,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# check ave errts corr through brain'
@@ -2758,7 +2758,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# view errts seed-based correlation: {}'.format(seed.roi_label)
@@ -2956,7 +2956,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# peruse statistical results: '
@@ -3285,7 +3285,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '# calc TSNR ' + descrip
@@ -3439,7 +3439,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# grayplot of residuals'''
@@ -3666,7 +3666,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# degree of freedom (df) check for processing'''
@@ -3729,7 +3729,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# summary quantities (ss_review_basic) from processing'''
@@ -3794,7 +3794,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring per stim'''
@@ -3913,7 +3913,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring (total)'''
@@ -3995,7 +3995,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for correlation matrix warnings'''
@@ -4071,7 +4071,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for 3dDeconvolve warnings'''
@@ -4153,7 +4153,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for pre-steady state warnings'''
@@ -4234,7 +4234,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check for any TENT warnings from timing_tool.py'''
@@ -4345,7 +4345,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check LR-flip warnings'''
@@ -4410,7 +4410,7 @@ num : int
     stat   = com.run()
     olay_pref_o  = com.so[0].strip()
     opref_o      = opref + '_0'
-    osubjson_o   = opref_o + '.axi.json'
+    otopjson_o   = opref_o + '.axi.json'
 
     # get olay name 'flipped'
     olay_f = fdict['flip_dset_flipped']
@@ -4419,7 +4419,7 @@ num : int
     stat   = com.run()
     olay_pref_f  = com.so[0].strip()
     opref_f      = opref + '_1'
-    osubjson_f   = opref_f + '.axi.json'
+    otopjson_f   = opref_f + '.axi.json'
 
     # text above data
     otoptxt = "Left-right flip check warnings"
@@ -4474,42 +4474,41 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
-    # text below images
-    osubtxt = []
-    osubtxt.append("ulay: {} ({})".format(ulay_pref, "EPI"))
-    ttt = "original anat edges, " + state_o
-    osubtxt.append("olay: {} ({})".format(olay_pref_o, ttt))
 
-    # Make info below images
-    osubdict = {
+    # text above+below 'orig' image
+    otoptxt_o = "original anat edges, " + state_o
+    osubtxt_o = "olay: {} (over EPI, {})".format(olay_pref_o, ulay_pref)
+
+    # Make info above+below 'orig' image
+    otopdict_o = {
         'itemtype'    : 'VOL',
         'itemid'      : qci,
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
-        'subtext'     : osubtxt,
+        'text'        : otoptxt_o,
+        'subtext'     : osubtxt_o,
     }
-    with open(osubjson_o, 'w', encoding='utf-8') as fff:
-        json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
+    with open(otopjson_o, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict_o, fff, ensure_ascii=False, indent=4 )
 
 
-    # text below images
-    osubtxt2 = []
-    osubtxt2.append("ulay: {} ({})".format(ulay_pref, "EPI"))
-    ttt = "flipped anat edges, " + state_f
-    osubtxt2.append("olay: {} ({})".format(olay_pref_f, ttt))
+    # text above+below 'flipped' image
+    otoptxt_f = "flipped anat edges, " + state_f
+    osubtxt_f = "olay: {} (over EPI, {})".format(olay_pref_f, ulay_pref)
 
-    # Make info below images
-    osubdict2 = {
+    # Make info above+below 'flipped' image
+    otopdict_f = {
         'itemtype'    : 'VOL',
         'itemid'      : qci,
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
-        'subtext'     : osubtxt2,
+        'text'        : otoptxt_f,
+        'subtext'     : osubtxt_f,
     }
-    with open(osubjson_f, 'w', encoding='utf-8') as fff:
-        json.dump( osubdict2, fff, ensure_ascii=False, indent=4 )
+    with open(otopjson_f, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict_f, fff, ensure_ascii=False, indent=4 )
 
     return 0
 
@@ -4701,7 +4700,7 @@ num : int
     osubjson = opref + '_0' + '.sag.json'  
 
     if 1 :
-        print("++ APQC create:", oname)
+        print("++ APQC create:", oname, flush=True)
 
     do_cap = True
     cmd    = '''# check variance lines (var_line) warnings'''
@@ -4871,7 +4870,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create:", '_'.join([obase, qcb, qci]))
+        print("++ APQC create:", '_'.join([obase, qcb, qci]), flush=True)
 
     do_cap = True
     cmd    = '# @radial_correlate images for: ' + rcdir
@@ -4931,9 +4930,6 @@ num : int
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
         olay_pref = com.so[0].strip()
-
-        # Q: should we add '-no_sag' here? don't need image, just make
-        # sure it doesn't affect text reading
 
         cmd = '''
         @chauffeur_afni                                                      \
@@ -5090,7 +5086,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy jsons to info dir")
+        print("++ APQC create: copy jsons to info dir", flush=True)
 
     do_cap = True
     cmd    = '''# copy subj json(s)'''
@@ -5126,7 +5122,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy ss_review_basic file")
+        print("++ APQC create: copy ss_review_basic file", flush=True)
 
     do_cap = True
     cmd    = '''# copy review basic text file to QC dir'''
@@ -5178,7 +5174,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: display ss_review_basic info")
+        print("++ APQC create: display ss_review_basic info", flush=True)
 
     do_cap = False
     cmd    = '''# disp basic information from processing'''
