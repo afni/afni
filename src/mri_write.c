@@ -494,8 +494,8 @@ ENTRY("mri_write_png") ;
 
    pg = THD_find_executable( "pnmtopng" ) ;
    if( pg == NULL ) {
-      //ERROR_message("missing program pnmtopng, cannot write %s",
-      //              fname ? fname : "NULL") ;
+      ERROR_message("missing program pnmtopng, cannot write %s",
+                    fname ? fname : "NULL") ;
       RETURN(0) ;
    }
    pgfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
