@@ -134,7 +134,7 @@ Sorting images make_sorted_fim_list():
             - sort by state (if diff, return compare_by_num_suff)
             - same state:
                - if state != TO_PROC, sort by findex
-               - else, return compre_by_num_suff()
+               - else, return compare_by_num_suff()
                compare_by_num_suff()
                   - if diff, sort
                   - else sort alphabetically
