@@ -439,11 +439,11 @@ regressors for MRI data.
 
     @property
     def vol_final_slice_time(self): 
-    """The actual maximum duration of data in the MRI, taking into account
-    slice timing. This is the acquisition *time* of the last
-    volumetric slice.
-    """
-    return self.duration_vol - self.vol_tr + max(self.vol_slice_times)
+        """The actual maximum duration of data in the MRI, taking into account
+        slice timing. This is the acquisition *time* of the last
+        volumetric slice.
+        """
+        return self.duration_vol - self.vol_tr + max(self.vol_slice_times)
 
 
 def find_bad_vals(x, bad_nums=None, verb=0):

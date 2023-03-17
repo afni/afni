@@ -36,11 +36,37 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         <class 'numpy.ndarray'>, int
    ARGUMENTS
        test_retro_obj:   object which includes the following fields.
+               
+            show_graph_level: (dType = int) Level at which to show graphs on
+                screen during run time.  Levels may be one of the following.
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+               
+            save_graph_level: (dType = int) Level at which to save graphs to
+                files (without necessarily showing on screen).  Levels may be 
+                one of the following.  
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+                   
+            font_size: (dtype = <class 'int'>) Size of the font used in graphs.
        
-           card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
                containing the following fields.
                
-               samp_freq: (dtype = <class 'float'>) Sampling frequency in Hz
+               ts_orig: (dtype = <class 'numpy.ndarray'>)  Raw input cardiac
+                        time series.
+                        
+                min_bps: (dtype = <class 'float'>) minimum number of heartbeats 
+                         per second (Between 0 and 1)
+               
+               samp_freq: (dtype = <class 'float'>) Number of time series
+                          sample points per second.
        
        filterPercentile: (dType = float) Minimum percentile of raw 
                        data for a peak value to imply a valid peak
@@ -51,11 +77,6 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    global OutDir
    
    rawData = test_retro_obj.card_data.ts_orig
-   
-   # MIN_HEART_RATE = 25  # Minimum HR in BPM
-    
-   # Determine lower bound based based on minimum HR
-   # minBeatsPerSecond = MIN_HEART_RATE/60
    
    # Lower bound, of heartbeats per second based based on minimum HR
    minBeatsPerSecond = test_retro_obj.card_data.min_bps
@@ -203,15 +224,45 @@ def getRespiratoryPeaks(test_retro_obj):
     """
     NAME
         getRespiratoryPeaks
-        Get peaks from repiratory time series supplied as an ASCII 
+        Get peaks and troughs from respiratory time series supplied as an ASCII 
         file with one time series entry per line
     TYPE
-        <class 'numpy.ndarray'>, int
-    ARGUMENTS
-        parameters:   dictionary of input parameters which includes 
-                        the following fields.
-    
-        rawData: (dType = float, array) Raw cardiac data
+        <class 'numpy.ndarray'>, <class 'numpy.ndarray'>, int
+   ARGUMENTS
+       test_retro_obj:   object which includes the following fields.
+               
+            show_graph_level: (dType = int) Level at which to show graphs on
+                screen during run time.  Levels may be one of the following.
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+               
+            save_graph_level: (dType = int) Level at which to save graphs to
+                files (without necessarily showing on screen).  Levels may be 
+                one of the following.  
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+                   
+            font_size: (dtype = <class 'int'>) Size of the font used in graphs.
+       
+            resp_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+               containing the following fields.
+               
+               ts_orig: (dtype = <class 'numpy.ndarray'>)  Raw input respiratory
+                        time series.
+                        
+                min_bps: (dtype = <class 'float'>) minimum number of breaths 
+                         per second (Between 0 and 1)
+               
+               samp_freq: (dtype = <class 'float'>) Sampling frequency in Hz
+               
+               samp_freq: (dtype = <class 'float'>) Number of time series
+                          sample points per second.
     AUTHOR
     Peter Lauren
     """
@@ -475,6 +526,9 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         show_graph:   (dType = bool) Whether to graph the results
         
         save_graph: (dType = bool) Whether to save graoh to disk
+                   
+        font_size: (dtype = <class 'int'>) Size of the font used in graphs.
+
     AUTHOR
        Peter Lauren
     """
@@ -550,12 +604,10 @@ def getACoeffs(data, phases):
     TYPE
         <class 'list'>
     ARGUMENTS
-        parameters:   dictionary of input parameters which 
-                        includes a 'key' field.
+        data: (dtype = <class 'numpy.ndarray'>)  Raw input cardiac
+                 time series.  
         
-        key       :   key to file of interest
-        
-        phases    :   <class 'list'> containing phases determined 
+        phases:   <class 'list'> containing phases determined 
                         as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
@@ -586,13 +638,11 @@ def getBCoeffs(data, phases):
     TYPE
         <class 'list'>
     ARGUMENTS
-        parameters:   dictionary of input parameters which 
-                      includes a 'key' field.
+        data: (dtype = <class 'numpy.ndarray'>)  Raw input cardiac
+                 time series.  
         
-        key       :   key to file of interest
-        
-        phases    :   <class 'list'> containing phases determined 
-                      as described in Glover (2000) paper
+        phases:   <class 'list'> containing phases determined 
+                        as described in Glover (2000) paper
     AUTHOR
        Peter Lauren
     """
@@ -614,7 +664,7 @@ def getBCoeffs(data, phases):
     return b
             
 
-def determineRespiratoryPhases(test_retro_obj, resp_peaks, 
+def determineRespiratoryPhases(resp_peaks, 
                     resp_troughs, phys_fs, rawData, 
                     show_graph = False, save_graph = True,
                     font_size = 10):
@@ -626,13 +676,6 @@ def determineRespiratoryPhases(test_retro_obj, resp_peaks,
     TYPE
         <class 'list'>
     ARGUMENTS
-        parameters:   dictionary of input parameters which 
-                      includes the following fields.
-            respFile;   Name of ASCII file with respiratory time 
-                         series
-             phys_fs: Physiological signal sampling frequency 
-                        in Hz.
-        
         resp_peaks      :   peaks in respiratory time series.  
                             Type = <class 'numpy.ndarray'>
         
@@ -646,6 +689,8 @@ def determineRespiratoryPhases(test_retro_obj, resp_peaks,
         show_graph:   (dType = bool) Whether to graph the results
         
         save_graph: (dType = bool) Whether to save graoh to disk
+                   
+        font_size: (dtype = <class 'int'>) Size of the font used in graphs.
         
     AUTHOR
        Peter Lauren
@@ -824,8 +869,9 @@ def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
         test_retro_obj: Object with the following fields.
             
             vol_tr:  (dtype = class 'float') (volume_tr) Volume 
-                     repetition time (TR) which defines the 
-                     length of time 
+                     repetition time (TR)
+                     
+            vol_nv:  (dtype = <class 'int'>) Number of output time points
                         
             n_ts_orig:  (dType = int) Number of time points in 
                            the output
@@ -888,6 +934,12 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
         
         num_time_pts: (dType = int) Number of time points in the 
                       output
+                      
+        TR:  (dtype = class 'float') (volume_tr) Volume repetition time
+        
+        show_graph:   (dType = bool) Whether to graph the results
+        
+        save_graph: (dType = bool) Whether to save graoh to disk
         
         interpolationOrder:    <class 'str'> Method of 
                                interpolation among critical points 
@@ -899,6 +951,8 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
                                ‘nearest-up’, ‘zero’, ‘slinear’, 
                                ‘previous’, or ‘next’. ‘zero’, 
                                ‘slinear’.
+                   
+        font_size: (dtype = <class 'int'>) Size of the font used in graphs.
                        
     AUTHOR
        Peter Lauren 
@@ -944,7 +998,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
         num_time_pts: (dType = int) Number of time points in the 
                       output
         
-        TR:    <class 'float'> Volume TR.
+        TR:         <class 'float'> Volume TR.
         
         interpolationOrder:    <class 'str'> Method of 
                                interpolation among critical points 
@@ -1220,13 +1274,101 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             Return physiological (respiratory and cardiac) 
             contamination components of BOLD signal
     TYPE
-        Dictionary with the following fields
+        test_retro_obj: (dtype = <class 'lib_retro_reading.retro_obj'>)
+            Dictionary with the following fields
+            
+            resp_phases: (dtype = <class 'numpy.ndarray'>) Respiratory phases
+            
+            card_phases: (dtype = <class 'numpy.ndarray'>) Cardiac phases
+            
+            rvt_coeffs: (dtype = <class 'numpy.ndarray'>) RVT coefficients.  
+                        I.e. coefficients of Regression Volume Per Time (RVT) 
+                        as described in ``Separating respiratory-variation-
+                        related fluctuations from neuronal-activity-related 
+                        fluctuations in fMRI'' by Rasmus M. Birn, Jason B. 
+                        Diamond, Monica A. Smith, and Peter A. Bandettini
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sample, in Hertz
+            
+            repsp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sample, in Hertz
+            
     ARGUMENTS
         test_retro_obj:   Object with the following fields.
         
-            resp_data:   Respiratory time series
+            out_dir: (dtype = <class 'str'>) Output directory relative to the
+                     current working directory.
+               
+            show_graph_level: (dType = int) Level at which to show graphs on
+                screen during run time.  Levels may be one of the following.
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+               
+            save_graph_level: (dType = int) Level at which to save graphs to
+                files (without necessarily showing on screen).  Levels may be 
+                one of the following.  
+                0: Do not show graphs at all.
+                1: Show coompleted steps such as final peaks and troughs,
+                   phases and RVT
+                2: Also graph intermediate stages such as the intermediate
+                   stages of peak and trough detection
+                   
+            font_size: (dtype = <class 'int'>) Size of the font used in graphs.
+                
+            card_data:   (dtype = <class 'lib_retro_reading.phys_ts_obj'>)
+                         Object containing the following fields.
+                            
+                        ts_orig: (dtype = <class 'numpy.ndarray'>)  Raw input 
+                                 cardiac time series.
+                                 
+                         min_bps: (dtype = <class 'float'>) minimum number of 
+                                  heartbeats per second (Between 0 and 1)
+                        
+                        samp_freq: (dtype = <class 'float'>) Sampling frequency 
+                                   in Hz
+                        
+                        samp_freq: (dtype = <class 'float'>) Number of time 
+                                   series sample points per second.
+                                   
+                        start_time: <class 'float'> Time (seconds) at which 
+                                    cardiac data collection starts relative to
+                                    the beginning of the MRI data collection 
+                                    start.
+                                    
+                        end_time: <class 'float'> Time (seconds) at which 
+                                    cardiac data collection ends relative to
+                                    the beginning of the MRI data collection 
+                                    start.
+                                  
             
-            card_data:   Cardiac time series
+            resp_data:     (dtype = <class 'lib_retro_reading.phys_ts_obj'>)
+                         Object containing the following fields.
+                            
+                        ts_orig: (dtype = <class 'numpy.ndarray'>)  Raw input 
+                                 respiratory time series.
+                                 
+                        min_bps: (dtype = <class 'float'>) minimum number of 
+                                  breaths per second (Between 0 and 1)
+                        
+                        samp_freq: (dtype = <class 'float'>) Sampling frequency 
+                                   in Hz
+                        
+                        samp_freq: (dtype = <class 'float'>) Number of time 
+                                   series sample points per second.
+                                   
+                        start_time: <class 'float'> Time (seconds) at which 
+                                    respiratory data collection starts relative 
+                                    to the beginning of the MRI data collection 
+                                    start.
+                                    
+                        end_time: <class 'float'> Time (seconds) at which 
+                                    respiratory data collection ends relative to
+                                    the beginning of the MRI data collection 
+                                    start.
             
             niml    : whether output should be in niml format 
                         instead of CSV
@@ -1234,9 +1376,39 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             vol_tr      : (dtype = class 'float') (volume_tr) Volume 
                         repetition time (TR) which defines the 
                         length of time            
+                     
+            vol_nv:  (dtype = <class 'int'>) Number of output time points
                         
             n_ts_orig:  (dType = int) Number of time points in 
                             the output
+            
+            resp_phases: (dtype = <class 'numpy.ndarray'>) Respiratory phases
+            
+            card_phases: (dtype = <class 'numpy.ndarray'>) Cardiac phases
+            
+            rvt_coeffs: (dtype = <class 'numpy.ndarray'>) RVT coefficients.  
+                        I.e. coefficients of Regression Volume Per Time (RVT) 
+                        as described in ``Separating respiratory-variation-
+                        related fluctuations from neuronal-activity-related 
+                        fluctuations in fMRI'' by Rasmus M. Birn, Jason B. 
+                        Diamond, Monica A. Smith, and Peter A. Bandettini
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sample, in Hertz
+                        
+            duration_vol: (dtype = <class 'float'>) Time (in seconds) of MRI data
+                          collection.
+                          
+            do_out_rvt: (dtype = <class 'bool'>) Whether to determine Regression 
+            Volume Per Time (RVT) as described in ``Separating respiratory-
+            variation-related fluctuations from neuronal-activity-related 
+            fluctuations in fMRI'' by Rasmus M. Birn, Jason B. 
+            Diamond, Monica A. Smith, and Peter A. Bandettini
+            
+            do_calc_ab: (dtype = <class 'bool'>) Whether to determine the a and
+                        b coefficients as per Glover et al, Magnetic Resonance 
+                        in Medicine 44:162–167 (2000).  The alternative is to
+                        set the a and b coefficients to 1.0.
     AUTHOR
        Peter Lauren
     """
@@ -1278,16 +1450,16 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                     font_size = test_retro_obj.font_size)
     
             # Trim phase data before start time
-            if test_retro_obj.card_data.start_time < 0:
-                leading_length = round(-test_retro_obj.card_data.start_time *\
-                    test_retro_obj.card_data.samp_freq)
-                card_phases = card_phases[leading_length:]
+            if test_retro_obj.card_data.start_phys_idx > 0:
+                card_phases = \
+                    card_phases[test_retro_obj.card_data.start_phys_idx:]
                 
             # Trim phase at end
-            lastTime = min(test_retro_obj.card_data.end_time,
-                           test_retro_obj.duration_vol)
-            lastIndex = round(lastTime * test_retro_obj.card_data.samp_freq)
-            card_phases = card_phases[:lastIndex]
+            # Not currently used but DO NOT DELETE FOR NOW
+            # lastTime = min(test_retro_obj.card_data.end_time,
+            #                test_retro_obj.duration_vol)
+            # lastIndex = round(lastTime * test_retro_obj.card_data.samp_freq)
+            # card_phases = card_phases[:lastIndex]
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(card_phases, test_retro_obj,
@@ -1305,7 +1477,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         
         rawData = test_retro_obj.resp_data.ts_orig
         respiratory_sample_frequency = test_retro_obj.resp_data.samp_freq
-        resp_phases = determineRespiratoryPhases(test_retro_obj, resp_peaks,
+        resp_phases = determineRespiratoryPhases(resp_peaks,
                    resp_troughs, respiratory_sample_frequency,
                    rawData, 
                    show_graph = test_retro_obj.show_graph_level>0, 

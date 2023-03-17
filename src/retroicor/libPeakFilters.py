@@ -719,7 +719,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
         denominator: (dType = int) Number by which to divide the period in order
                                   to determine the minimum acceptable separation
         
-        graph:   (dType = bool) Whether to graph the results
+        show_graph:   (dType = bool) Whether to graph the results
         
         phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
                                  results are to be graphed
