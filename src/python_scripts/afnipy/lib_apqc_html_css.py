@@ -82,11 +82,6 @@ wlevel_str = ' '.join(list(wlevel_ranks.keys()))
 
 # The CSS!
 css_text = '''
-:root {
-  --SavingTextCol:    #9f9f9f;
-  --SavingBkgdCol:    #F0F0F0;
-  --SavingTextDec:    line-through;
-}
 
 h1 {
     padding-top: 80px;
@@ -187,6 +182,7 @@ css_text+= '''
     margin-left: auto;
     margin-right: auto;
     width: 90%; 
+    text-align: left;
 }}
 
 .wcol_none {{
@@ -224,6 +220,7 @@ css_text+= '''
     margin-left: auto;
     margin-right: auto;
     width:90%; 
+    text-align: left;
 }}
 '''.format(**wlevel_colors)
 
@@ -437,6 +434,29 @@ css_text+= '''
     font-size: 21px;
     font-weight: normal; /* bold; */
 }
+'''
+
+css_text+= '''
+/* For NiiVue (NV) and AfniView (AV) buttons; 
+   these know if server is serving */
+.btn6 {
+    color:            var(--SavingTextColB6);
+    background-color: var(--SavingBkgdColB6);
+    margin: 4px 2px 0px 3px;
+    height: 26px;
+    width: 40px;
+    padding: 0px 2px;
+    float: right;
+}
+/* ... and the container/div holding the buttons */
+.container_avnv {
+    width: 160px; 
+    white-space:nowrap; 
+    position: absolute; 
+    top: -34; 
+    right: 5%;
+}
+
 '''
 
 css_text+= '''

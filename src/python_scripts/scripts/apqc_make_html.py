@@ -107,8 +107,10 @@ if __name__ == "__main__":
     # own, external CSS file.  They grow up soooo fast... 
     ht+= '''
     <head>
-    <link rel="stylesheet" type="text/css" href="{}" />
-    '''.format( ocss )
+    <title>{subj}</title>
+    <link rel="stylesheet" type="text/css" href="{ocss}" />
+    <link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq_128.jpg"> 
+    '''.format( subj=titlepg_dict['subj'], ocss=ocss )
 
     # javascript functions
     ht+= lah.make_javascript_btn_func( titlepg_dict['subj'] )
@@ -222,7 +224,11 @@ if __name__ == "__main__":
                 ht+=lah.wrap_img( img, vpad=True,
                                   addclass=" class='bordered' " )
             elif AAII.itemtype == 'VOL':
-                ht+=lah.wrap_img( img, vpad=True )
+                # [PT] make a more general condition here !!!!
+                #if '.axi.' in img :   add_nvbtn = True
+                if AAII.text :        add_nvbtn = True
+                else:                 add_nvbtn = False
+                ht+=lah.wrap_img( img, vpad=True, add_nvbtn=add_nvbtn )
 
             elif AAII.itemtype == 'WARN':
                 ht+=lah.wrap_dat( lah.read_dat(img),
@@ -290,10 +296,23 @@ if __name__ == "__main__":
     # originally-reported relative path is often not useful.  here,
     # get abs path to current dir, which should be QC_*/, because of
     # os.chdir(..)  above
-    cwd_qc = os.getcwd()
+    pwd_res    = os.getcwd()
+    qcfile_abs = pwd_res + '/' + ohtml
 
-    print('\n++ Done! Wrote QC HTML.  To check, consider:\n\n'
-          '   afni_open -b {}/{}\n'.format(cwd_qc, ohtml))
+    bye_msg = """
+++ Done! Wrote QC HTML.
+   To view, run either this (without server):
+
+       afni_open -b {qcfile_abs}
+
+   ... or this (with server):
+
+       open_apqc.py -infiles {qcfile_abs}
+
+""".format(qcfile_abs=qcfile_abs)
+
+
+    print(bye_msg)
 
     os.chdir(my_cwd)
 

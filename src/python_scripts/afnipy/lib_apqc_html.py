@@ -526,8 +526,10 @@ def write_help_html_file( ofile, ocss ):
     # use same style sheet as main pages
     ht+= '''
     <head>
-    <link rel="stylesheet" type="text/css" href="{}" />
-    '''.format( ocss )
+    <title>APQC help</title>
+    <link rel="stylesheet" type="text/css" href="{ocss}" />
+    <link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq.jpg"> 
+    '''.format( ocss=ocss )
 
     ht+= '''
     </head>
@@ -843,8 +845,9 @@ def make_nav_table(llinks, max_wlevel=''):
 
     # =======================================================================
     # real, foreground nav
+    # + use z-index to keep it always on top
 
-    y+= '''\n<div class="navbar">\n'''
+    y+= '''\n<div class="navbar" style="z-index: 10;">\n'''
 
     # -----------------------------------------------------
     # L-floating part: section anchors and rating buttons
@@ -1098,10 +1101,16 @@ function colorizeSavingButton(val) {
     r.style.setProperty('--SavingTextCol', '#009933');
     r.style.setProperty('--SavingBkgdCol', '#fff');
     r.style.setProperty('--SavingTextDec', 'none');
+
+    r.style.setProperty('--SavingTextColB6', '#000');
+    r.style.setProperty('--SavingBkgdColB6', '#029a64');
   } else {
     r.style.setProperty('--SavingTextCol', '#9f9f9f');
     r.style.setProperty('--SavingBkgdCol', '#fff');
     r.style.setProperty('--SavingTextDec', 'line-through');
+
+    r.style.setProperty('--SavingTextColB6', '#016843');
+    r.style.setProperty('--SavingBkgdColB6', '#016843');
   }
 }
 
@@ -1929,21 +1938,38 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, vpad=0, addclass=""):
+def wrap_img(x, wid=500, vpad=0, addclass="", add_nvbtn=False):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
+    # [PT: Mar 15, 2023] add in items for NiiVue button
 
     y = ''
     y+= vpad*'\n'
 
-    y+= '''<div style="text-align: center">
+    y+= '''<div style="text-align: center; position: relative;">
     <a href="{0}">
     <img src="{0}" 
          alt="{0}" {1} 
          style="display: inline-block; text-align: center;">
-    </a> 
-</div>'''.format( x, addclass)
+    </a>'''.format( x, addclass)
+    
+    if add_nvbtn :
+        y+= '''
+    <!-- NiiVue and AFNI-view buttons, added from R->L -->
+    <div class="container_avnv">
+      <td style="white-space:nowrap;" id=td6_NV>
+      <button class="button-generic button-RHS btn6"
+              title="Run NiiVue" 
+              onclick="colorizeSavingButton(is_served)">NV</button>
+      </td>
+      <td style="white-space:nowrap;" id=td6_AV>
+      <button class="button-generic button-RHS btn6"
+              title="Run AFNI-view" 
+              onclick="colorizeSavingButton(is_served)">AV</button>
+      </td>
+    </div>
+    '''
     y+= vpad*'\n'
 
     return y
