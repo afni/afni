@@ -27,6 +27,7 @@ DEF = {
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
     'pause_time'    : 2.0,      # time (s) to pause to let pages load
+    'verb'          : 1,        # verbosity level
 }
 
 # ==========================================================================
@@ -330,7 +331,8 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
         # criterion to shift between common and rem paths
         nshift = min_rem_len - rem_nstep_min
         if nshift > 0 :                # do adjustment
-            print("++ Adjusting common/rem paths by {} steps".format(nshift))
+            if verb > 1 :
+                print("++ Adjusting common/rem paths by {} steps".format(nshift))
             if nshift > common_nstep :
                 print("** ERROR: user's min_rem_len '{}' arg is too large for\n"
                       "   the current min remainder path len '{}' and the\n"

@@ -164,6 +164,11 @@ parser.add_argument('-host', nargs=1,
                     'specify hostname '
                     'def: {})'.format(lao.DEF['host']))
 
+parser.add_argument('-verb', nargs=1,
+                    default=[lao.DEF['verb']],
+                    help='verbosity level '
+                    '(def: {})'.format(lao.DEF['verb']))
+
 parser.add_argument('-ver', action="store_true", 
                     default=False,
                     help='display version') 
@@ -189,6 +194,7 @@ do_hview         = args.hview
 do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
+verb             = int(args.verb[0])
 
 # hview functionality
 if do_hview :
@@ -210,8 +216,9 @@ if do_ver :
 # ---------------------------------
 # process opts slightly
 
-print("do_new_tabs_only:", do_new_tabs_only)
-print("do_new_wins_only:", do_new_wins_only)
+if verb > 2 :
+    print("++ do_new_tabs_only:", do_new_tabs_only)
+    print("++ do_new_wins_only:", do_new_wins_only)
 
 # how to open first page in browser
 if do_new_tabs_only:   first_page_code = 2         # in new tab
@@ -220,8 +227,9 @@ else:                  first_page_code = 1         # in new window
 if do_new_wins_only:   other_page_code = 1         # in new tab
 else:                  other_page_code = 2         # in new window
 
-print("do_new_tabs_only:", first_page_code)
-print("do_new_wins_only:", other_page_code)
+if verb > 2 :
+    print("++ first_page_code:", first_page_code)
+    print("++ other_page_code:", other_page_code)
 
 # ======================== determine path pieces ===========================
 
@@ -343,7 +351,10 @@ if __name__ == "__main__":
     portnum = lao.find_open_port( portnum=portnum,
                                   nsearch=port_nsearch,
                                   host=host,
-                                  verb=0 )
+                                  verb=verb )
+
+    if 1 :
+        print("++ NB: Ignore the 'This is a development server ...' warning")
 
     # construct the web address for each page to be opened, and if
     # asked for open the browser (first page in new window and others
