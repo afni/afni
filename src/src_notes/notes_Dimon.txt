@@ -47,7 +47,6 @@ general outline of Dimon main()
             - quit, whine or read_image_files()
 
 
-
 states:
    IFM_FSTATE_TO_READ      - ready to read image
                            - set at start of read_image_files()
