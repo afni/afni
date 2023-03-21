@@ -247,14 +247,16 @@ common_abs_path, rem_html_list = \
 npath = len(rem_html_list)
 
 # ... and then get accompanying 'remainder' list of apqc_*.json files
-rem_json_list = \
-    lao.find_apqc_json_for_each_index_html(common_abs_path, rem_html_list)
+rem_apqc_json_list, rem_ssrev_json_list = \
+    lao.find_other_json_for_each_index_html(common_abs_path, rem_html_list)
 
 # debugging display at present
-print("++ Number of paths:", npath)
-print("++ common_abs_path:" + dent + common_abs_path)
-print("++ rem index.html:" + dent + dent.join(rem_html_list))
-print("++ rem apqc_json:" + dent + dent.join(rem_json_list))
+if verb :
+    print("++ Number of paths:", npath)
+    print("++ common_abs_path:" + dent + common_abs_path)
+    print("++ rem index.html:" + dent + dent.join(rem_html_list))
+    print("++ rem apqc_json:" + dent + dent.join(rem_apqc_json_list))
+    print("++ rem ssrev_json:" + dent + dent.join(rem_ssrev_json_list))
 
 # ===========================================================================
 # ========================== flask/decorator stuff ==========================
@@ -279,36 +281,46 @@ def save_json():
     Function to save the QC button/rating info to the apqc*.json file.
     """
 
-    #print('++++ RUNNING on port: {}'.format(request.host))
-
     # [TH] javascript needs to send the url parts, so that we can
     # parse them here and know which subject json to update
     posted_dict = request.get_json()
     pjson_fname = posted_dict['remJsonFilename']
+    pjson_ssrev = posted_dict['remJson_ssrev']
     pjson_data  = posted_dict['JsonFileContents']
 
-    #print('++ json fname is: ')
-    #pp.pprint(pjson_fname)
-    #print('++ json data are: ')
-    #pp.pprint(pjson_data)
-
+    # save the form information to apqc_{subj}.json
     try:
         # should be a match from within the initial input list
-        index = rem_json_list.index(pjson_fname)
+        index = rem_apqc_json_list.index(pjson_fname)
         # open using full path; means this prog can be run from anywhere
-        json_to_open = common_abs_path + '/' + rem_json_list[index]
+        json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
         with open(json_to_open, 'w', encoding='utf-8') as fff:
             json.dump( pjson_data, fff, 
                        ensure_ascii=False, indent=4 )
     except:
         print(f'** ERROR: could not find index for path {pjson_fname}')
 
-    ''' TO ADD:  for FINAL info
-    < get name of extra_info/out.ss_review.*.txt from apqc_json text str>
+    # add+save the form information to extra_info/out.ss_review.{subj}.json
+    try:
+        # should be a match from within the initial input list
+        index = rem_ssrev_json_list.index(pjson_ssrev)
 
-    if <final not ""> :
-        < call function with subprocess calls to set abids >
-    '''
+        # open using full path; means this prog can be run from anywhere
+        json_to_open = common_abs_path + '/' + rem_ssrev_json_list[index]
+        with open(json_to_open, 'r', encoding='utf-8') as fff:
+            ssrev_dict = json.load(fff)
+
+        # turn the list into a dict
+        pjson_dict = lao.apqc_list_to_dict(pjson_data)
+
+        # add the rating dictionary to the ssrev dict
+        mdict = lao.merge_two_dicts(ssrev_dict, pjson_dict)
+
+        with open(json_to_open, 'w', encoding='utf-8') as fff:
+            json.dump( mdict, fff, 
+                       ensure_ascii=False, indent=4 )
+    except:
+        print(f'** ERROR: could not find index for path {pjson_ssrev}')
 
     return jsonify(pjson_data)
 

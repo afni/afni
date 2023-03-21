@@ -9,10 +9,11 @@
 # 
 # ==========================================================================
 
-import sys
-import os
+import sys, os
 import glob
+import copy
 import socket
+
 
 # ==========================================================================
 
@@ -29,6 +30,57 @@ DEF = {
     'pause_time'    : 2.0,      # time (s) to pause to let pages load
     'verb'          : 1,        # verbosity level
 }
+
+# ==========================================================================
+
+def apqc_list_to_dict(A):
+    """APQC files are lists of lists of: QC block, rating and comment.
+This functions takes this length-N list of length-3 lists and creates
+a dictionary of the ratings.
+
+Parameters
+----------
+A : list (of lists)
+    list from apqc_*.json file, each element being a list of 3 items:
+    QC_block, rating, comment
+
+Returns
+-------
+D : dict
+    dict of key-value pairs: '<QC_block> rating': <rating>
+
+    """
+    D = {}
+    
+    # [0]th element of A is essentially a header row, so skip
+    for x in A[1:]: 
+        key = x[0] + ' rating'
+        val = x[1]
+        D[key] = val
+
+    return D
+
+def merge_two_dicts(A, B):
+    """Merge 2 dictionaries, such that B updates A, and return the merger
+as a new dict.
+
+Parameters
+----------
+A : dict
+    the 'base' dictionary
+B : dict
+    the 'updating' dictionary
+
+Return
+------
+C : dict
+    the merger of A and B, where B's values get precedence
+
+    """
+
+    C = copy.deepcopy(A)
+    C.update(B)
+    return C
 
 # ==========================================================================
 # port-related functions
@@ -332,7 +384,8 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
         nshift = min_rem_len - rem_nstep_min
         if nshift > 0 :                # do adjustment
             if verb > 1 :
-                print("++ Adjusting common/rem paths by {} steps".format(nshift))
+                print("++ Adjusting common/rem paths by {} steps"
+                      "".format(nshift))
             if nshift > common_nstep :
                 print("** ERROR: user's min_rem_len '{}' arg is too large for\n"
                       "   the current min remainder path len '{}' and the\n"
@@ -392,25 +445,30 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
 
     return common_abs_path, rem_path_list
 
-def find_apqc_json_for_each_index_html(common_abs_path, rem_html_list):
+def find_other_json_for_each_index_html(common_abs_path, rem_html_list):
+    """Each index.html should be accompanied by specific JSONs.  For the
+list of index.html files the user has input, create the lists of those
+accompanying JSONs.
+
+Parameters
+----------
+common_abs_path : str
+    the common (absolute) path of the input list of paths 
+rem_html_list : list (of str)
+    list of rel paths to each index.html
+
+Return
+-------
+rem_apqc_json_list : list (of str)
+    list of rel paths to each apqc_*.json, accompanying each 
+    index.html
+rem_ssrev_json_list : list (of str)
+    list of rel paths to each exta_info/out.ss_review.*.json,
+    ccompanying each index.html
+
     """
 
-    Parameters
-    ----------
-    common_abs_path : str
-             the common (absolute) path of the input list of paths 
-    rem_html_list : list (of str)
-             list of rel paths to each index.html
-
-    Return
-    -------
-    rem_json_list : list (of str)
-             list of rel paths to each apqc_*.json, accompanying each 
-             index.html
-
-    """
-
-    RETURN_IF_BAD = []
+    RETURN_IF_BAD = [], []
 
     if type(rem_html_list) != list :
         print("**ERROR: need to input a list of paths 'rem_html_list'")
@@ -426,24 +484,40 @@ def find_apqc_json_for_each_index_html(common_abs_path, rem_html_list):
         return RETURN_IF_BAD
 
     # create matched list to apqc*json files
-    rem_json_list = []
+    rem_apqc_json_list  = []
+    rem_ssrev_json_list = []
     for path in rem_html_list :
         gpath = common_abs_path
         if path :
             gpath += '/' + path
-        # full path to json
-        json_list  = glob.glob(gpath.replace("index.html", "apqc_*.json"))
+
+        # glob with full path to apqc json
+        jstr = "apqc_*.json"
+        json_list  = glob.glob(gpath.replace("index.html", jstr))
         njson_list = len(json_list)
         if njson_list != 1 :
-            print("** ERROR: found wrong number of possible JSON files for '{}'"
-                  "".format(path))
+            print("** ERROR: found wrong number of possible {} files for '{}'"
+                  "".format(jstr, path))
             print("   Should have exactly 1, but here had {}."
                   "".format(njson_list))
             return RETURN_IF_BAD
-        rem_json = os.path.relpath(json_list[0], start = common_abs_path)
-        rem_json_list.append(rem_json)
+        rem_apqc_json = os.path.relpath(json_list[0], start=common_abs_path)
+        rem_apqc_json_list.append(rem_apqc_json)
 
-    return rem_json_list
+        # glob with full path to ssrev json
+        jstr = "extra_info/out.ss_review.*.json"
+        json_list  = glob.glob(gpath.replace("index.html", jstr))
+        njson_list = len(json_list)
+        if njson_list != 1 :
+            print("** ERROR: found wrong number of possible {} files for '{}'"
+                  "".format(jstr, path))
+            print("   Should have exactly 1, but here had {}."
+                  "".format(njson_list))
+            return RETURN_IF_BAD
+        rem_ssrev_json = os.path.relpath(json_list[0], start=common_abs_path)
+        rem_ssrev_json_list.append(rem_ssrev_json)
+
+    return rem_apqc_json_list, rem_ssrev_json_list
 
 
 def verify_all_paths_to_html( inp_path_list ):

@@ -1066,8 +1066,9 @@ def make_javascript_btn_func(subj ):
 // global vars
 var allBtn1, allTd1, allhr_sec;  // selection/location IDs
 var topi, previ;                 // keeps our current/last location
-//var subj_id  = "{0}";            // subject's ID
-var jsonfile = "apqc_{0}.json";  // json file: apqc_SUBJ.json
+//var subj_id  = "{subj}";            // subject's ID
+var jsonfile = "apqc_{subj}.json";  // json file: apqc_SUBJ.json
+var json_ssrev = "extra_info/out.ss_review.{subj}.json"; // ss_review JSON
 var qcjson = {{}};                 // I/O json of QC button responses
 var nb_offset = 66-1;            // navbar height: needed for scroll/jump
 
@@ -1084,7 +1085,7 @@ let is_served = url.startsWith('file:') ? false : true
 console.log('URL', url)
 console.log('is_served', is_served)
 
-'''.format( subj )
+'''.format( subj=subj )
 
     y+= '''
 
@@ -1734,8 +1735,11 @@ function doSaveAllInfo() {
     // of the path to the APQC JSON file from the end of the 
     // common abs path used to start the server
     remJsonFilename = qcPath.join('/') + '/' + jsonfile
+    remJson_ssrev   = qcPath.join('/') + '/' + json_ssrev
+
     dataToPost = {
         //'subj_id': subj_id,
+        'remJson_ssrev': remJson_ssrev,
         'remJsonFilename': remJsonFilename,
         'JsonFileContents': qcjson,
     }
