@@ -445,7 +445,7 @@ if __name__ == "__main__":
     ldep  = ['subj']
     if lat.check_dep(ap_ssdict, ldep) :
         opref = lat.page_title_json  # here, just the title page name
-        lat.make_apqc_Top_pagetop( ap_ssdict, opref, "Top", "pagetop" )
+        lat.make_apqc_Top_pagetop( ap_ssdict, opref, "HOME", "pagetop" )
 
     # --------------------------------------------------------------------
     # --------------------------------------------------------------------
@@ -486,7 +486,7 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     idx  = 0
-    """
+
     # --------------------------------------------------------------------
 
     # QC block: "vorig"
@@ -1049,7 +1049,7 @@ if __name__ == "__main__":
         idx     += 1
 
     # --------------------------------------------------------------------
-"""
+
     # QC block: "warns"
     # item    : flip check from aea
 
@@ -1058,7 +1058,7 @@ if __name__ == "__main__":
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_warns_flip( ap_ssdict, obase, "warns", "flip" )
         idx     += 1
-    """
+
     # --------------------------------------------------------------------
 
     # QC block: "warns"
@@ -1107,7 +1107,7 @@ if __name__ == "__main__":
     if 1:
         cmd      = lat.apqc_DO_term_ss_review_basic( ap_ssdict )
         idx     += 1
-"""
+
     # ======================================================================
     # ======================================================================
     # finishing text

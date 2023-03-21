@@ -115,7 +115,7 @@ dir_img    = 'media'
 # it easier to see what is connected to what, even if they change.)
 
 qc_title           = coll.OrderedDict()
-qc_title["Top"]    = [ "Top of page for subj:&#10  ", # and append subj here!
+qc_title["HOME"]   = [ "Top of page for subj:&#10  ", # and append subj here!
                        "afni_proc.py single subject report" ]
 
 qc_blocks          = coll.OrderedDict()
@@ -459,7 +459,7 @@ qcbh ]
 brate_hover = '''QC BUTTON FORM
 
 NAVIGATE
-Click a label ('Top', etc.) to jump to a section.
+Click a label ('HOME', 'vorig', etc.) to jump to a section.
 
 RATE + COMMENT
 Click the QC button below it to record your rating, toggling through:
@@ -790,7 +790,7 @@ def write_json_file( ll, fname ):
     olist.append( json_cols )
 
     # skip the first element here because it came from the title, and
-    # that doesn't have a QC button with it (it's just the 'Top' of
+    # that doesn't have a QC button with it (it's just the Top/Home of
     # the page).
     for i in range(1,len(ll)):
         x = ll[i]
@@ -881,18 +881,32 @@ def make_nav_table(llinks, max_wlevel=''):
         y+= '''<table style="float: left">\n'''
 
         # TOP ROW (blockid)
-        y+= '''
-        <tr>
-          <td class="td1" id=td1_{0}>
-            <button class="button-generic button-LHS btn5" id="btn5_{0}" 
-            onmousedown="moveToDiv(hr_{0})" 
-            title="{1}" 
-            {2} 
-            onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
-            {0}</button>
-          </td>
-        </tr>
-        '''.format( ll, hov, finaltab ) 
+        if i :
+            y+= '''
+            <tr>
+              <td class="td1" id=td1_{0}>
+                <button class="button-generic button-LHS btn5" id="btn5_{0}" 
+                onmousedown="moveToDiv(hr_{0})" 
+                title="{1}" 
+                {2} 
+                onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
+                {0}</button>
+              </td>
+            </tr>
+            '''.format( ll, hov, finaltab ) 
+        else:
+            y+= '''
+            <tr>
+              <td class="td1" id=td1_{0}>
+                <button class="button-generic button-LHS btn0" id="btn5_{0}" 
+                onmousedown="moveToDiv(hr_{0})" 
+                title="{1}" 
+                {2} 
+                onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
+                {0}&#8679</button>
+              </td>
+            </tr>
+            '''.format( ll, hov, finaltab ) 
 
         # BOT ROW (QC button)
         y+= '''<td >''' # set boundary between QC buttons here
