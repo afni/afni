@@ -1143,7 +1143,6 @@ async function RunAtStart() {
     console.log(qcjson)
     CheckJsonfileMatchesQcbuttons();
     ApplyJsonfileToQcbuttons();
-    //postJSON(qcjson)
 };
 
 '''
@@ -1220,7 +1219,7 @@ async function postJSON(data = {}, quit=false) {
     body: quit ? null : JSON.stringify(data) 
   });
 
-  // parses JSON response into native JavaScript objects
+  // parse JSON response into native JavaScript objects
   qcjson = await response.json()
   console.log(qcjson)
   return qcjson; 
@@ -1724,10 +1723,6 @@ function findCol(colname) {
 function doSaveAllInfo() {
     updateLocalJson();
 
-    //var text     = JSON.stringify(qcjson);
-    //var filename = "apqc.json";
-    //saveDownloadJsonfile(text, jsonfile);
-
     // prepare to output all info needed for server
     pathParts = window.location.pathname.split('/')
     qcPath = pathParts.slice(1,-1)
@@ -1738,13 +1733,11 @@ function doSaveAllInfo() {
     remJson_ssrev   = qcPath.join('/') + '/' + json_ssrev
 
     dataToPost = {
-        //'subj_id': subj_id,
         'remJson_ssrev': remJson_ssrev,
         'remJsonFilename': remJsonFilename,
         'JsonFileContents': qcjson,
     }
-    // console.log("FULLJSON", remJsonFilename)
-    // console.log("QCJSON", qcjson) 
+
     postJSON(dataToPost);
 } 
 '''
@@ -1754,13 +1747,6 @@ function doSaveAllInfo() {
 
 function doQuit() {
     updateLocalJson();
-    //var text     = JSON.stringify(qcjson);
-    //var filename = "apqc.json";
-    //saveDownloadJsonfile(text, jsonfile);
-
-    /* NOT sure about turning this off---will test and revisit
-       ... but indeed, seems unnecessary */
-    //postJSON(qcjson, true);
 }
 
 '''
@@ -1799,7 +1785,6 @@ function updateLocalJson() {
         var commtext = document.getElementById(bid).dataset.txtcomm;
         saveJsonValuesByNames(qcele, "comment", commtext); 
     }
-    // window.alert("SAVING JSON: " + qcjson);
 }
 '''
 
