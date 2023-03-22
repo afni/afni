@@ -745,12 +745,12 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
         len(physiologicalNoiseComponents['card_phases']) > 0
     
     # y-axis is the number of columns in the output file
-    temp_y_axis = main_info["number_of_slices"] * ( # Num. output column blocks
-        (main_info["rvt_out"]) * int(nRvtSlices) # Num. RVT entries per block
+    temp_y_axis = main_info["number_of_slices"] * ( # Num. output slices
+        (main_info["rvt_out"]) * int(nRvtSlices) # Num. RVT entries per slices
         + (main_info["resp_out"]) * int(nRespiratoryPhaseSlices)
-                                                # Num. resp entries per block
+                                                # Num. resp entries per slices
         + (main_info["card_out"]) * int(nCardiacPhaseSlices)
-                                                # Num. card entries per block
+                                                # Num. card entries per slices
     )
     
     # Initialize 2D output data array.  Former dimension is the number of rows
@@ -767,6 +767,7 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
                               ')')
         return None, None
 
+    # Make output file header without the column labels
     head = (
         "<RetroTSout\n"
         'ni_type = "%d*double"\n'
@@ -775,7 +776,6 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
         % (np.size(main_info["reml_out"], 1), 
            np.size(main_info["reml_out"], 0))
     )
-
     label = head
 
     main_info["slice_major"] = 1
@@ -976,38 +976,48 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
     AUTHOR
        Peter Lauren
     """
-
-    cnt = 0
     
+    # Get RVT coefficients if required.
     if main_info['rvt_out']: resp_info["rvtrs_slc"] =\
                     physiologicalNoiseComponents['rvt_coeffs']
+
+    # Fill output array (main_info["rvt_out"]).  There are about four
+    # coefficients within each slice
+    cnt = 0
+    # Process each column of output
     for i in range(0, main_info["number_of_slices"]):
+        # Coefficients within each slice
         if main_info["rvt_out"] != 0:
-            # RVT
+            # RVT: 2D array. Former dimension is number of coefficients per 
+            # slice. Same coefficients for every slice
             for j in range(0, np.shape(resp_info["rvtrs_slc"])[0]):
                 cnt += 1
                 main_info["reml_out"].append(
-                    resp_info["rvtrs_slc"][j]
+                    resp_info["rvtrs_slc"][j] # Single column of output
                 )  # same regressor for each slice
-                label = "%s s%d.RVT%d ;" % (label, i, j)
+                label = "%s s%d.RVT%d ;" % (label, i, j) # Append column label
         if main_info["resp_out"] != 0:
-            # Resp
-            for j in range(0, 
+            # Resp. 3D array.  First index is the number or output rows.  2nd
+            # is the number of coeffcieints per slice.  3rd is the number of 
+            # slices
+            for j in range(0, # Each coefficient for given slice
                 np.shape(resp_info["phase_slice_reg"])[1]):
                 cnt += 1
                 main_info["reml_out"].append(
                     resp_info["phase_slice_reg"][:, j, i]
-                )
-                label = "%s s%d.Resp%d ;" % (label, i, j)
+                ) # Append output column
+                label = "%s s%d.Resp%d ;" % (label, i, j) # Append column label
         if main_info["card_out"] != 0:
-            # Card
-            for j in range(0, 
+            # Card. 3D array.  First index is the number or output rows.  2nd
+            # is the number of coeffcieints per slice.  3rd is the number of 
+            # slices
+            for j in range(0, # Each coefficient for given slice 
                 np.shape(card_info["phase_slice_reg"])[1]):
                 cnt += 1
                 main_info["reml_out"].append(
                     card_info["phase_slice_reg"][:, j, i]
-                )
-                label = "%s s%d.Card%d ;" % (label, i, j)
+                ) # Append output column
+                label = "%s s%d.Card%d ;" % (label, i, j) # Append column label
                 
     return main_info, label
 
