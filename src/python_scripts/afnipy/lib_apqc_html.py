@@ -1751,8 +1751,8 @@ function saveJsonValuesByNums(rr, cc, VAL) {
 }
 '''
 
-    # find row index of QC element in JSON table
     y+= '''
+// find row index of QC element in JSON table
 function findQceleRow(elename) {
     var Nrow = qcjson.length;
     for( var i=1 ; i<Nrow ; i++ ) {
@@ -1770,8 +1770,8 @@ function findQceleRow(elename) {
 }
 '''
 
-    # find col index of item in JSON table
     y+= '''
+// find col index of item in JSON table
 function findCol(colname) {
     Ncol = qcjson[0].length;
     for( var cc=1 ; cc<Ncol ; cc++ ) {
@@ -1842,24 +1842,22 @@ function doSaveAllInfo() {
 } 
 '''
 
-    # The Quitter
     y+= '''
-
+// The Quitter
 function doQuit() {
     updateLocalJson();
 }
 
 '''
 
-
-
-    # The Helper
     y+= '''
+// The Helper
 function doShowHelp() {
     window.open('help.html', '_blank');
 
 } 
 
+// Link to mtedana QC page, if present
 function doShowMtedana(link) {
     window.open(link, '_blank');
 } 
@@ -1888,8 +1886,9 @@ function updateLocalJson() {
 }
 '''
 
+    ### This is NO LONGER used, so not including at the moment
     # Step 2 of saving the dataset: write to file
-    y+= '''
+    '''
 function saveDownloadJsonfile(text, filename){
     var a = document.createElement('a');
     a.setAttribute('href', 'data:text/plain;charset=utf-u,'+encodeURIComponent(text));
