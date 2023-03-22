@@ -21,6 +21,10 @@ def selectPhaseListAndNumTimeSteps(dataType,
     TYPE
         <class 'list'>, <class 'int'>
     ARGUMENTS
+        dataType:     (dtype = class 'str') Type of data to be 
+                      processed.  'c' for cardiac.'r' for 
+                      respiratory (default is equivalent of alt+z)                      
+
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
         
@@ -30,9 +34,6 @@ def selectPhaseListAndNumTimeSteps(dataType,
             card_phases: (dType = class 'list') Cardiac phases in 
                          time points (not seconds)
             
-        dataType:     (dtype = class 'str') Type of data to be 
-                      processed.  'c' for cardiac.'r' for 
-                      respiratory (default is equivalent of alt+z)                      
     AUTHOR
        Peter Lauren 
     """
@@ -65,25 +66,59 @@ def setUpTimeSeries(phasee, physiologicalNoiseComponents,
             Set up time series which would be the rows of the 
             output SliBase file
     TYPE
-        <class 'dict'>
+        <class 'dict'> >with the  following fields.
+            slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+             volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+             time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                               from 0 to the rounded down maximum 't' value,
+                               in increments of volume_tr.
+                             
     ARGUMENTS
         phasee:   Dictionary that has already been initialized and 
                   may already contain fields.
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                  
+        physiologicalNoiseComponents: Dictionary with the following fields.
+                   
+            resp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sampled, in Hertz
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sampled, in Hertz
+                        
+            num_time_pts: (dType = int) Number of time points in the output
             
-        test_retro_obj:   Dictionary with the following fields.
+        test_retro_obj:   Object with the following fields.
         
             num_slices: (dtype = class 'int') Number of slices
             
-            TR:         (dtype = class 'float') (volume_tr) Volume 
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
                         repetition time (TR) which defines the 
                         length of time 
             
             phys_fs:   (dType = float) Physiological signal 
                        sampling frequency in Hz.
         
-            slice_times: Vector of slice acquisition time offsets 
-                         in seconds. (default is equivalent of 
-                         alt+z)
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+        numTimeSteps; (dtype = <class 'int'>) number of entries in the raw 
+                      input data.
                        
     AUTHOR
        Peter Lauren 
@@ -91,8 +126,8 @@ def setUpTimeSeries(phasee, physiologicalNoiseComponents,
 
     #initialize output from input parameters
     phasee['slice_times'] = test_retro_obj.vol_slice_times
-    if physiologicalNoiseComponents['repsp_sample_frequency']:
-        timeStepIncrement = 1.0/physiologicalNoiseComponents['repsp_sample_frequency']
+    if physiologicalNoiseComponents['resp_sample_frequency']:
+        timeStepIncrement = 1.0/physiologicalNoiseComponents['resp_sample_frequency']
     else:
         timeStepIncrement = 1.0/physiologicalNoiseComponents['card_sample_frequency']
     
@@ -130,16 +165,61 @@ def initializePhaseSlices(phasee, physiologicalNoiseComponents, test_retro_obj):
             number or rows are the number pf time points and the 
             number of columns four times the number of slices
     TYPE
-        <class 'dict'>
+        <class 'dict'> with the  following fields.
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                   
+            slice_times:  (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+            volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+            time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                              from 0 to the rounded down maximum 't' value,
+                              in increments of volume_tr.
+                              
+            number_of_slices:(dtype = class 'int') Number of slices
+            
+            phase_slice_reg:  (dtype = <class 'numpy.ndarray'>) Registered 
+                              phase slices
+                              
+            phase_slice:  (dtype = <class 'numpy.ndarray'>)  2D array with # 
+                          columns = # output time points and 
+                          # columns  = # slices         
+                            
     ARGUMENTS
-        phasee:   Dictionary with the following fields.
-        
-            time_series_time: (dType = class 'list') List of float 
-                which are integral multiples of TR, starting at 0
+        phasee: <class 'dict'> with the  following fields.
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                   
+            slice_times:  (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+            volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+            time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                              from 0 to the rounded down maximum 't' value,
+                              in increments of volume_tr.
                         
-        parameters:   Dictionary with the following fields.
+        test_retro_obj:   Object with the following fields.
         
-            num_slices:   (dtype = class 'int') Number of slices
+            n_slice_times:   (dtype = class 'int') Number of slices
     AUTHOR
        Peter Lauren 
     """
@@ -167,10 +247,38 @@ def fillSliceRegressorArray(phasee):
             RETROICOR" by Gary H. Glover, Tie-Qiang Li, and David 
             Ress (2000).  
     TYPE
-        <class 'dict'>
+        <class 'dict'> with the  following fields.
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                   
+            slice_times:  (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+            volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+            time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                              from 0 to the rounded down maximum 't' value,
+                              in increments of volume_tr.
+                              
+            number_of_slices:(dtype = class 'int') Number of slices
+            
+            phase_slice_reg:  (dtype = <class 'numpy.ndarray'>) Registered 
+                              phase slices
+                              
+            phase_slice:  (dtype = <class 'numpy.ndarray'>)  2D array with # 
+                          columns = # output time points and 
+                          # columns  = # slices         
+                            
     ARGUMENTS
-        phasee:   Partly filled ictionary with the following 
-        fields.
+        phasee:   Partly filled ictionary with the following fields.
         
             number_of_slices: (dtype = class 'int') Number 
             of slices
@@ -183,6 +291,9 @@ def fillSliceRegressorArray(phasee):
                           
             t: (dtype = <class 'numpy.ndarray'>) Progressive 
                 multiples of time step increment
+                
+            volume_tr: (dtype = class 'float') (volume_tr) Volume repetition 
+                       time (TR) which defines the length of time
             
             phase: (dtype = <class 'list'>)  List of phases for a 
                 given type (cardiac or respiratory).  derived 
@@ -196,8 +307,7 @@ def fillSliceRegressorArray(phasee):
             phase_slice_reg: (dtype = <class 'numpy.ndarray'>)  3D 
                 array with first dimension = output time points, 
                 the second dimension 4 and the third dimension the 
-                number of slices
-            
+                number of slices           
                        
     AUTHOR
        Peter Lauren 
@@ -245,7 +355,36 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             Tie-Qiang Li, and David Ress (2000).  Also make time 
             vector.
     TYPE
-        <class 'dict'>
+        <class 'dict'> with the  following fields.
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                   
+            slice_times:  (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+            volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+            time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                              from 0 to the rounded down maximum 't' value,
+                              in increments of volume_tr.
+                              
+            number_of_slices:(dtype = class 'int') Number of slices
+            
+            phase_slice_reg:  (dtype = <class 'numpy.ndarray'>) Registered 
+                              phase slices
+                              
+            phase_slice:  (dtype = <class 'numpy.ndarray'>)  2D array with # 
+                          columns = # output time points and 
+                          # columns  = # slices         
+                            
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
@@ -255,25 +394,38 @@ def makeRegressorsForEachSlice(physiologicalNoiseComponents,
             
             card_phases: (dType = class 'list') Cardiac phases in 
                          time points (not seconds)
+                   
+            resp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sampled, in Hertz
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sampled, in Hertz
+                        
+            num_time_pts: (dType = int) Number of time points in the output
             
         dataType:     (dtype = class 'str') Type of data to be 
                       processed.  'c' for cardiac.'r' for 
                       respiratory
             
-        parameters:   Dictionary with the following fields.
+        test_retro_obj:   Object with the following fields.
         
             num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
             
-            TR:         (dtype = class 'float') (volume_tr) Volume 
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
                         repetition time (TR) which defines the 
                         length of time 
             
             phys_fs:   (dType = float) Physiological signal 
                        sampling frequency in Hz.
         
-            slice_times: (dtype = <class 'list'>) Vector of slice 
-                         acquisition time offsets in seconds. 
-                         (default is equivalent of alt+z)
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
                        
     AUTHOR
        Peter Lauren 
@@ -305,7 +457,44 @@ def getPhysiologicalInfo(physiologicalNoiseComponents, test_retro_obj):
             Get cardiac and respirator slice, and time series, 
             info. to output to NIML file
     TYPE
-        <class 'dict'>, <class 'dict'>
+        <class 'dict'>, <class 'dict'> 
+        Two dictionaries, one for each data type, cardiac and respiratory, where
+        ecah dictionary has the following fields.
+        
+            phase: (dtype = <class 'numpy.ndarray'>) Phase array for the data
+                   type (cardiac of respiratory) being considered.
+                   
+            slice_times:  (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            t: (dtype = <class 'numpy.ndarray'>) Array of progressively 
+               increasing time step increments where the increment size is the
+               multiplicative inverse of the sampling frequency for the given
+               data type (cardiac or respiratory)
+               
+            volume_tr: (dtype = class 'float') (volume_tr) Volume 
+                         repetition time (TR) which defines the 
+                         length of time 
+                         
+            time_series_time: (dtype = <class 'numpy.ndarray'>) float values,
+                              from 0 to the rounded down maximum 't' value,
+                              in increments of volume_tr.
+                              
+            number_of_slices:(dtype = class 'int') Number of slices
+            
+            phase_slice_reg:  (dtype = <class 'numpy.ndarray'>) Registered 
+                              phase slices
+                              
+            phase_slice:  (dtype = <class 'numpy.ndarray'>)  2D array with # 
+                          columns = # output time points and 
+                          # columns  = # slices 
+                          
+            rvt_shifts: (dtype = <class 'list'>) List of integers, from 0 to 20,
+                        in increments of 5
+                        
+            rvtrs_slc:  (dtype = <class 'numpy.ndarray'>) RVT slices
+                            
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
@@ -315,22 +504,35 @@ def getPhysiologicalInfo(physiologicalNoiseComponents, test_retro_obj):
             
             card_phases: (dType = class 'list') Cardiac phases in 
                          time points (not seconds)
+                   
+            resp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sampled, in Hertz
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sampled, in Hertz
+                        
+            num_time_pts: (dType = int) Number of time points in the output
             
-        parameters:   Dictionary with the following fields.
+        test_retro_obj:   Object with the following fields.
         
             num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
             
-            TR:         (dtype = class 'float') (volume_tr) Volume 
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
                         repetition time (TR) which defines the 
                         length of time 
             
             phys_fs:   (dType = float) Physiological signal 
                        sampling frequency in Hz.
         
-            slice_times: (dtype = <class 'list'>) Vector of slice 
-                         acquisition time offsets in seconds. 
-                         (default is equivalent of alt+z)
-                       
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                                              
     AUTHOR
        Peter Lauren  
     """
@@ -373,6 +575,13 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
             and n_e), and time steps (n_n). 
     TYPE
         <class 'int'>, <class 'int'>, <class 'int'>, <class 'int'>
+            n_n: number of time steps
+                
+            n_r_v: number of RVT slices
+                
+            n_r_p: number of phase slices
+                
+            n_e: number of phase slices
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
@@ -392,8 +601,7 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
                               float which are integral multiples 
                               of TR, starting at 0 
                     
-            rvtrs_slc:  (dtype = <class 'numpy.ndarray'>) RVT 
-                        slices
+            rvtrs_slc:  (dtype = <class 'numpy.ndarray'>) RVT slices
             
             phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
                              Registered phase slices
@@ -456,26 +664,52 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
             Language (NIML) format
     TYPE
         <class 'dict'>, <class 'str'>
-    ARGUMENTS
-        parameters:   Dictionary with the following fields.
-        
-            num_slices:     (dtype = class 'int') Number of slices
+        The string is the header of the NIML file, not including the column
+        labels.
+        The dictionary has the following fields.
+
+            number_of_slices: (dtype = class 'int') Number of slices
             
-            TR: (dtype = class 'float') (volume_tr) Volume 
-                repetition time (TR) which defines the length of 
-                time 
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+            
+            rvt_out: (dtype = <class 'int'>) Whether to calculate
+                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                
+            resp_out: (dtype = <class 'bool'>) Whether to calculate
+                and output respiratory noise. (Defautl = True)
+                
+            card_out: (dtype = <class 'bool'>) Whether to calculate
+                and output cardiac noise. (Defautl = True)
+                
+            slice_major: <class 'int'> Whether output is slice major
+                         instead of registered phase slice major
+                
+    ARGUMENTS
+        test_retro_obj:   Object with the following fields.
+        
+            do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
+                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+        
+            num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
+            
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
+                        repetition time (TR) which defines the 
+                        length of time 
             
             phys_fs:   (dType = float) Physiological signal 
-                        sampling frequency in Hz.
+                       sampling frequency in Hz.
         
-            rvt_out:   (dType = int) Whether to have RVT output
-            
-            slice_offset: Vector of slice acquisition time offsets 
-                            in seconds. (default is equivalent of 
-                                         alt+z)
-                          
-            prefix: (dType = str) Prefix for output filename.
-                       
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+                                                                     
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
         
@@ -492,21 +726,6 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
         n_e: (dtype = <class 'int'>) Number of phase slices
         
         n_n: (dtype = <class 'int'>) Number of time steps
-        
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
-                    following fields for respiratory data
-                    
-            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
-            
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
-                            Registered phase slices
-        
-        card_info: (dtype = <class 'dict'>)
-                    
-            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
-            
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
-                        Registered phase slices
             
     AUTHOR
        Peter Lauren
@@ -565,10 +784,13 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
             minor format.
     TYPE
         <class 'dict'>, <class 'str'>
-    ARGUMENTS
-    
-        main_info: (dtype = <class 'dict'>) Dictonary with the 
-            following fields
+        The string is the header of the NIML file, not including the column
+        labels.
+        The dictionary has the following fields.
+
+            number_of_slices: (dtype = class 'int') Number of slices
+            
+            prefix: (dtype = <class 'str'>)  Prefix for output file
             
             rvt_out: (dtype = <class 'int'>) Whether to calculate
                 and output RVT. (0 = No, 1 = Yes, Defautl = 0)
@@ -576,29 +798,55 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
             resp_out: (dtype = <class 'bool'>) Whether to calculate
                 and output respiratory noise. (Defautl = True)
                 
-            Card_out: (dtype = <class 'bool'>) Whether to calculate
+            card_out: (dtype = <class 'bool'>) Whether to calculate
                 and output cardiac noise. (Defautl = True)
                 
-            num_slices:   (dtype = class 'int') Number of slices
+            slice_major: <class 'int'> Whether output is slice major
+                         instead of registered phase slice major
+                
+    ARGUMENTS
+    
+        test_retro_obj:   Object with the following fields.
         
-        label: (dtype = <class 'str'>) Header, for the output
-            NIML file, giving the names of the output slice
-            components
+            do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
+                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
-            following fields for respiratory data
-                    
-            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
             
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
-                                        Registered phase slices
-        
-        card_info: (dtype = <class 'dict'>)
-                    
-            rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
+                        repetition time (TR) which defines the 
+                        length of time 
             
-            phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
-                Registered phase slices
+            phys_fs:   (dType = float) Physiological signal 
+                       sampling frequency in Hz.
+        
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+                                                                     
+        physiologicalNoiseComponents:   Dictionary with the 
+                                        following fields.
+        
+            resp_phases: (dType = class 'list') Respiratory phases 
+                in time points (not seconds)
+            
+            card_phases: (dType = class 'list') Cardiac phases in 
+                        time points (not seconds)
+            
+        n_r_v: (dtype = <class 'int'>) Number of RVT slices
+        
+        n_r_p: (dtype = <class 'int'>) Number of phase slices
+                                
+        n_e: (dtype = <class 'int'>) Number of phase slices
+        
+        n_n: (dtype = <class 'int'>) Number of time steps
             
     AUTHOR
        Peter Lauren
@@ -646,6 +894,29 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
             major format.
     TYPE
         <class 'dict'>, <class 'str'>
+        The string is the header of the NIML file including the column labels.
+        The dictionary has the following fields.
+
+            number_of_slices: (dtype = class 'int') Number of slices
+            
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+            
+            rvt_out: (dtype = <class 'int'>) Whether to calculate
+                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                
+            resp_out: (dtype = <class 'bool'>) Whether to calculate
+                and output respiratory noise. (Defautl = True)
+                
+            card_out: (dtype = <class 'bool'>) Whether to calculate
+                and output cardiac noise. (Defautl = True)
+                
+            slice_major: (dtype = <class 'int'>) Whether output is slice major
+                         instead of registered phase slice major
+                         
+            reml_out: (dtype = <class 'list'>)  2D list where the former 
+                      dimension is the number of columns in the output and the
+                      latter dimension is the number of rows.  The contents are
+                      the output RVT, cardiac and/or respiratory calculations.
     ARGUMENTS
     
         main_info: (dtype = <class 'dict'>) Dictonary with the 
@@ -660,7 +931,12 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
             Card_out: (dtype = <class 'bool'>) Whether to calculate
                 and output cardiac noise. (Defautl = True)
                 
-            num_slices:   (dtype = class 'int') Number of slices
+            number_of_slices:   (dtype = class 'int') Number of slices
+                         
+            reml_out: (dtype = <class 'list'>)  2D list where the former 
+                      dimension is the number of columns in the output and the
+                      latter dimension is the number of rows.  The contents are
+                      the output RVT, cardiac and/or respiratory calculations.
         
         label: (dtype = <class 'str'>) Header, for the output
             NIML file, giving the names of the output slice
@@ -680,6 +956,11 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
             
             phase_slice_reg: (dtype = <class 'numpy.ndarray'>) 
                 Registered phase slices
+                
+        physiologicalNoiseComponents: (dtype = <class 'dict'>) with the 
+                        following fields.
+                        
+            rvt_coeffs: (dtype = <class 'numpy.ndarray'>) RVT coefficients
             
     AUTHOR
        Peter Lauren
@@ -729,28 +1010,60 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
             (NIML) format
     TYPE
         <class 'dict'>, <class 'str'>
-    ARGUMENTS
-        parameters:   Dictionary with the following fields.
-        
-            num_slices:        (dtype = class 'int') Number of 
-            slices
+        String is the full NIML header including the column labels.
+        The dictionary has the following fields.
+
+            number_of_slices: (dtype = class 'int') Number of slices
             
-            TR:       (dtype = class 'float') (volume_tr) Volume 
-                repetition time (TR) which defines the length of 
-                time 
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+            
+            rvt_out: (dtype = <class 'int'>) Whether to calculate
+                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                
+            resp_out: (dtype = <class 'bool'>) Whether to calculate
+                and output respiratory noise. (Defautl = True)
+                
+            card_out: (dtype = <class 'bool'>) Whether to calculate
+                and output cardiac noise. (Defautl = True)
+                
+            slice_major: (dtype = <class 'int'>) Whether output is slice major
+                         instead of registered phase slice major
+                         
+            reml_out: (dtype = <class 'list'>)  2D list where the former 
+                      dimension is the number of columns in the output and the
+                      latter dimension is the number of rows.  The contents are
+                      the output RVT, cardiac and/or respiratory coefficients.
+                      
+    ARGUMENTS
+        test_retro_obj:   Object with the following fields.
+        
+            do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
+                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+        
+            num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
+            
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
+                        repetition time (TR) which defines the 
+                        length of time 
             
             phys_fs:   (dType = float) Physiological signal 
-                sampling frequency in Hz.
+                       sampling frequency in Hz.
         
-            rvt_out:   (dType = int) Whether to have RVT output
-            
-            slice_offset: Vector of slice acquisition time offsets 
-                in seconds. (default is equivalent of alt+z)
-                          
-            prefix: (dType = str) Prefix for output filename.
-                       
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+            prefix: (dtype = <class 'str'>)  Prefix for output file
+
         physiologicalNoiseComponents:   Dictionary with the 
             following fields.
+                        
+            rvt_coeffs: (dtype = <class 'numpy.ndarray'>) RVT coefficients
         
             resp_phases: (dType = class 'list') Respiratory phases 
                 in time points (not seconds)
@@ -815,35 +1128,51 @@ def ouputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
             Output physiological noise components to NeuroImaging 
             Markup Language (NIML) format
     TYPE
-        <class int>
+        <class int> 0 on success.  1 on failure
     ARGUMENTS
-        physiologicalNoiseComponents:   Dictionary with the 
-                                        following fields.
+        physiologicalNoiseComponents:   Dictionary with the following fields.
         
             resp_phases: (dType = class 'list') Respiratory phases 
                          in time points (not seconds)
             
             card_phases: (dType = class 'list') Cardiac phases in 
                          time points (not seconds)
-            
-        parameters:   Dictionary with the following fields.
+                   
+            resp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sampled, in Hertz
+                        
+            card_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        cardiac data is sampled, in Hertz
+                        
+            num_time_pts: (dType = int) Number of time points in the output
+        
+        test_retro_obj:   Object with the following fields.
+        
+            do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
+                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
         
             num_slices: (dtype = class 'int') Number of slices
+        
+            n_slice_times:   (dtype = class 'int') Number of slices
             
-            TR:         (dtype = class 'float') (volume_tr) Volume 
+            vol_tr:     (dtype = class 'float') (volume_tr) Volume 
                         repetition time (TR) which defines the 
                         length of time 
             
             phys_fs:   (dType = float) Physiological signal 
                        sampling frequency in Hz.
         
-            rvt_out:   (dType = int) Whether to have RVT output
+            slice_times: (dtype = <class 'list'>)  Vector of slice acquisition 
+                         time offsets in seconds. (default is equivalent of 
+                                                   alt+z)
+                         
+            vol_slice_times: (dtype = <class 'list'>) list of floats for slice 
+                             timing
+                             
+            prefix: (dtype = <class 'str'>)  Prefix for output file
             
-            slice_offset: Vector of slice acquisition time offsets 
-                          in seconds. (default is equivalent of 
-                          alt+z)
-                          
-            prefix: (dType = str) Prefix for output filename.
+            out_dir: (dtype = <class 'str'>) Durectory search path relative to
+                     the working directory.
                        
     AUTHOR
        Peter Lauren  

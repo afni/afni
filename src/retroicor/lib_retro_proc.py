@@ -1291,8 +1291,8 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             card_sample_frequency: (dtype = <class 'float'>) Frequency at which
                         cardiac data is sample, in Hertz
             
-            repsp_sample_frequency: (dtype = <class 'float'>) Frequency at which
-                        respiratory data is sample, in Hertz
+            resp_sample_frequency: (dtype = <class 'float'>) Frequency at which
+                        respiratory data is sampled, in Hertz
             
     ARGUMENTS
         test_retro_obj:   Object with the following fields.
@@ -1599,7 +1599,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     physiologicalNoiseComponents['num_time_pts'] = num_time_pts
     physiologicalNoiseComponents['card_sample_frequency'] = \
         cardiac_sample_frequency
-    physiologicalNoiseComponents['repsp_sample_frequency'] = \
+    physiologicalNoiseComponents['resp_sample_frequency'] = \
         respiratory_sample_frequency
         
     return physiologicalNoiseComponents
