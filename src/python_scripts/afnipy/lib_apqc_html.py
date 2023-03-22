@@ -964,17 +964,25 @@ def make_nav_table(llinks, max_wlevel=''):
     <textarea type="text" placeholder="Enter comment" 
     rows="4" cols="40" id="comm_{ll}" 
     onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-       event.preventDefault(); keepFromCommentForm(comm_{ll}.id, cform_{ll}.id);}} 
+       event.preventDefault(); 
+       keepFromCommentForm(comm_{ll}.id, cform_{ll}.id);}} 
        else if (event.keyCode == 27) {{ 
            clearCommentForm(comm_{ll}.id, cform_{ll}.id); }}">
     </textarea>  
     <button type="button" class="btn" 
-    onclick="keepFromCommentForm(comm_{ll}.id, cform_{ll}.id)">keep+close</button> 
+    onclick="keepFromCommentForm(comm_{ll}.id, cform_{ll}.id)">
+    keep+close</button> 
     <button type="button" class="btn cancel" 
-    onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">clear+close</button> 
+    onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">
+    clear+close</button> 
     </form> 
 </div> 
 '''.format( ll=ll )
+
+    y+= '''
+<!-- END of QC block buttons -->
+
+'''
 
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
@@ -987,95 +995,107 @@ def make_nav_table(llinks, max_wlevel=''):
     bclear = 'clr' ; bclear_ind = -1
 
     # Start right-side table
-    y+= '''<table style="float: right; margin-right: 2px">\n'''
+    y+= '''
+<!-- START of (right-floating) quick buttons -->
+
+<table style="float: right; margin-right: 2px">'''
 
     # ROW: "all fill" buttons-- click (or Enter) fills empty QC buttons,
     # dblclick (or ctrl+Enter) fills ALL QC buttons
-    y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;">\n'''
+    ### NTS: could add more <td>s here, but doesn't appear necessary
+    y+= '''
+  <tr>
+    <td style="width: 180px; white-space:nowrap;">
+'''
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" 
-title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-  if (event.ctrlKey) {{
-    reallyAllYourBaseAreBelongToUs({2}); 
-  }} else {{ 
-    allYourBaseAreBelongToUs({2}); 
-  }}
-}} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'good', bgood_hover, bgood_ind, bgood )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{
+          reallyAllYourBaseAreBelongToUs({ind}); 
+        }} else {{ 
+          allYourBaseAreBelongToUs({ind}); 
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='good', hov=bgood_hover, ind=bgood_ind, txt=bgood )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" 
-title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-  if (event.ctrlKey) {{ 
-    reallyAllYourBaseAreBelongToUs({2});
-  }} else {{
-    allYourBaseAreBelongToUs({2});
-  }}
-}} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'bad', bbad_hover, bbad_ind, bbad )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind});
+        }} else {{
+          allYourBaseAreBelongToUs({ind});
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='bad', hov=bbad_hover, ind=bbad_ind, txt=bbad )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" 
-title="{1}" 
-onmousedown="allYourBaseAreBelongToUs({2})" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-  if (event.ctrlKey) {{ 
-    reallyAllYourBaseAreBelongToUs({2});
-  }} else {{ 
-    allYourBaseAreBelongToUs({2}); 
-  }}
-}} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'other', bother_hover, bother_ind, bother )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onmousedown="allYourBaseAreBelongToUs({ind})" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind});
+        }} else {{ 
+          allYourBaseAreBelongToUs({ind}); 
+        }}
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='other', hov=bother_hover, ind=bother_ind, txt=bother )
 
     y+= '''
-<button class="button-generic button-RHS button-RHS-little btn2{0}" 
-title="{1}" 
-onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-  if (event.ctrlKey) {{ 
-    reallyAllYourBaseAreBelongToUs({2}); 
-  }} 
-}} " 
-ondblclick="reallyAllYourBaseAreBelongToUs({2})"> 
-{3}</button>
-    '''.format( 'clear', bclear_hover, bclear_ind, bclear )
+      <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
+      title="{hov}" 
+      onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+        if (event.ctrlKey) {{ 
+          reallyAllYourBaseAreBelongToUs({ind}); 
+        }} 
+      }} " 
+      ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
+      {txt}</button>
+'''.format( lab='clear', hov=bclear_hover, ind=bclear_ind, txt=bclear )
 
-    y+= '''</td>\n'''
-    y+= '''</tr>\n'''
+    y+= '''
+    </td>
+  </tr>
+'''
 
-    # ROW:  hyperlinks (anchors) within the page
-    y+= '''<tr>\n'''
-    y+= '''<td style="width: 180px; white-space:nowrap;" id=td3_{}>\n'''.format( bsaving )
+    # ROW:  hyperlinks (anchors) within the page; could add more <td>
+    y+= '''
+  <!-- bot row: saving and help buttons -->
+  <tr>
+    <td style="width: 180px; white-space:nowrap;" id=td3_{lab}>
+    <button class="button-generic button-RHS btn3saving" 
+            title="{hov}"   
+            onclick="colorizeSavingButton(is_served)">
+    {txt}</button>
+'''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
 
-    y+= '''<button class="button-generic button-RHS btn3saving"\n'''
-    y+= '''        title="{}" '''.format( bsaving_hover ) 
-    y+= '''onclick="colorizeSavingButton(is_served)">'''   # re-colorize if clicked
-    y+= '''{}</button>\n'''.format( bsaving )
+    y+= '''
+    <button class="button-generic button-RHS btn3{lab}"
+            title="{hov}" 
+            onclick="doShowHelp()">
+    {txt}</button>
+'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
 
-    y+= '''<button class="button-generic button-RHS btn3help"\n'''.format( bhelp_hover ) 
-    y+= '''        title="{}" '''.format( bhelp_hover ) 
-    y+= '''onclick="doShowHelp()">'''
-#    y+= '''href="help.html" target="_blank">'''
-#    y+= '''onclick="location.href='help.html';">'''
-    y+= '''{}</button>\n'''.format( bhelp )
+    y+= '''
+    </td>
+  </tr>
+</table> <!-- end of right-side table of buttons -->
+</div>
 
-    y+= '''</td>\n'''
-    y+= '''</tr>\n'''
-
-    # End right-side table
-    y+= '''</table>'''
-    y+= '''</div>'''
+<!-- END of navbar -->
+'''
 
     return y
 
