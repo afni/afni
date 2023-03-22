@@ -571,17 +571,17 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
     """
     NAME
         getNimlDimensions 
-            Get number of RVT slices (nRvtSlices), phase slices (nPhaseSlices 
-            and nPhaseSlicesFavoringCard), and time steps (nTimeSteps). 
+            Get number of RVT slices (nRvtSlices), phase slices (nRespiratoryPhaseSlices 
+            and nCardiacPhaseSlices), and time steps (nTimeSteps). 
     TYPE
         <class 'int'>, <class 'int'>, <class 'int'>, <class 'int'>
             nTimeSteps: number of time steps
                 
             nRvtSlices: number of RVT slices
                 
-            nPhaseSlices: number of phase slices
+            nRespiratoryPhaseSlices: number of phase slices
                 
-            nPhaseSlicesFavoringCard: number of phase slices favoring cardio
+            nCardiacPhaseSlices: number of phase slices favoring cardio
     ARGUMENTS
         physiologicalNoiseComponents:   Dictionary with the 
                                         following fields.
@@ -624,18 +624,18 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
 
     nTimeSteps   = 0
     nRvtSlices = 0
-    nPhaseSlices = 0
-    nPhaseSlicesFavoringCard   = 0
+    nRespiratoryPhaseSlices = 0
+    nCardiacPhaseSlices   = 0
 
     if len(physiologicalNoiseComponents['resp_phases']) > 0:
         if "time_series_time" in resp_info:
             nTimeSteps = len(resp_info["time_series_time"])
-            nPhaseSlices = np.size(resp_info["phase_slice_reg"], 1)
+            nRespiratoryPhaseSlices = np.size(resp_info["phase_slice_reg"], 1)
             nRvtSlices = np.size(resp_info["rvtrs_slc"], 0)
     if len(physiologicalNoiseComponents['card_phases']) > 0:
         if "time_series_time" in card_info:
             nTimeSteps = len(card_info["time_series_time"])
-            nPhaseSlices = np.size(card_info["phase_slice_reg"], 1)
+            nRespiratoryPhaseSlices = np.size(card_info["phase_slice_reg"], 1)
             nRvtSlices = np.size(card_info["rvtrs_slc"], 0)
 
     if 'card_info' in locals() and "time_series_time" in card_info:  
@@ -643,20 +643,20 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
         nTimeSteps = len(
             card_info["time_series_time"]
         )  # ok to overwrite len(resp_info.tst), should be same.
-        nPhaseSlicesFavoringCard = np.size(card_info["phase_slice_reg"], 1)
+        nCardiacPhaseSlices = np.size(card_info["phase_slice_reg"], 1)
     elif 'resp_info' in locals() and \
         "time_series_time" in resp_info:  # must have resp_info
                                                 
         nTimeSteps = len(
             resp_info["time_series_time"]
         )  # ok to overwrite len(resp_info.tst), should be same.
-        nPhaseSlicesFavoringCard = np.size(resp_info["phase_slice_reg"], 1)
+        nCardiacPhaseSlices = np.size(resp_info["phase_slice_reg"], 1)
         
-    return nTimeSteps, nRvtSlices, nPhaseSlices, nPhaseSlicesFavoringCard
+    return nTimeSteps, nRvtSlices, nRespiratoryPhaseSlices, nCardiacPhaseSlices
 
 def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj, 
-                               nRvtSlices, nPhaseSlices, 
-                               nPhaseSlicesFavoringCard, nTimeSteps):
+                               nRvtSlices, nRespiratoryPhaseSlices, 
+                               nCardiacPhaseSlices, nTimeSteps):
     """
     NAME
         initializeMainInfoAndLabel 
@@ -722,9 +722,9 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
             
         nRvtSlices: (dtype = <class 'int'>) Number of RVT slices
         
-        nPhaseSlices: (dtype = <class 'int'>) Number of phase slices
+        nRespiratoryPhaseSlices: (dtype = <class 'int'>) Number of phase slices
                                 
-        nPhaseSlicesFavoringCard: (dtype = <class 'int'>) Number of phase 
+        nCardiacPhaseSlices: (dtype = <class 'int'>) Number of phase 
                                   slices favoring cardiac
         
         nTimeSteps: (dtype = <class 'int'>) Number of time steps
@@ -742,12 +742,16 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
     main_info["card_out"] = \
         len(physiologicalNoiseComponents['card_phases']) > 0
     
-    # cnt = 0
-    temp_y_axis = main_info["number_of_slices"] * (
-        (main_info["rvt_out"]) * int(nRvtSlices)
-        + (main_info["resp_out"]) * int(nPhaseSlices)
-        + (main_info["card_out"]) * int(nPhaseSlicesFavoringCard)
+    # y-axis is the number of columns in the output file
+    temp_y_axis = main_info["number_of_slices"] * ( # Num. output column blocks
+        (main_info["rvt_out"]) * int(nRvtSlices) # Num. RVT entries per block
+        + (main_info["resp_out"]) * int(nRespiratoryPhaseSlices)
+                                                # Num. resp entries per block
+        + (main_info["card_out"]) * int(nCardiacPhaseSlices)
+                                                # Num. card entries per block
     )
+    
+    # Initialize 2D output data array
     main_info["reml_out"] = np.zeros((nTimeSteps, temp_y_axis))
 
     # Check number of time points
@@ -844,9 +848,9 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
             
         nRvtSlices: (dtype = <class 'int'>) Number of RVT slices
         
-        nPhaseSlices: (dtype = <class 'int'>) Number of phase slices
+        nRespiratoryPhaseSlices: (dtype = <class 'int'>) Number of phase slices
                                 
-        nPhaseSlicesFavoringCard: (dtype = <class 'int'>) Number of phase 
+        nCardiacPhaseSlices: (dtype = <class 'int'>) Number of phase 
                                   slices favoring cardiac
         
         nTimeSteps: (dtype = <class 'int'>) Number of time steps
@@ -1004,7 +1008,7 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
     return main_info, label
 
 def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents, 
-                    nRvtSlices, nPhaseSlices, nPhaseSlicesFavoringCard, 
+                    nRvtSlices, nRespiratoryPhaseSlices, nCardiacPhaseSlices, 
                     nTimeSteps, resp_info, card_info):
     """
     NAME
@@ -1077,9 +1081,9 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
             
         nRvtSlices: (dtype = <class 'int'>) Number of RVT slices
         
-        nPhaseSlices: (dtype = <class 'int'>) Number of phase slices
+        nRespiratoryPhaseSlices: (dtype = <class 'int'>) Number of phase slices
                                 
-        nPhaseSlicesFavoringCard: (dtype = <class 'int'>) Number of phase 
+        nCardiacPhaseSlices: (dtype = <class 'int'>) Number of phase 
                                   slices favoring cardiac.
         
         nTimeSteps: (dtype = <class 'int'>) Number of time steps
@@ -1107,7 +1111,7 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
     
     main_info, label = initializeMainInfoAndLabel( 
             physiologicalNoiseComponents, test_retro_obj, 
-            nRvtSlices, nPhaseSlices, nPhaseSlicesFavoringCard, nTimeSteps)
+            nRvtSlices, nRespiratoryPhaseSlices, nCardiacPhaseSlices, nTimeSteps)
     if not main_info:
         print('** ERROR: Failure to get main info. for output')
         return None, None
@@ -1188,14 +1192,14 @@ def ouputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
                                                 test_retro_obj)
     
     # Get number of slices and time points
-    nTimeSteps, nRvtSlices, nPhaseSlices, nPhaseSlicesFavoringCard = \
+    nTimeSteps, nRvtSlices, nRespiratoryPhaseSlices, nCardiacPhaseSlices = \
         getNimlDimensions(physiologicalNoiseComponents,
                                   resp_info, card_info)
     
     # Get main info and label
     main_info, label = getMainInfoAndLabel(test_retro_obj, 
-        physiologicalNoiseComponents, nRvtSlices, nPhaseSlices, 
-        nPhaseSlicesFavoringCard, nTimeSteps, 
+        physiologicalNoiseComponents, nRvtSlices, nRespiratoryPhaseSlices, 
+        nCardiacPhaseSlices, nTimeSteps, 
         resp_info, card_info)
     if not main_info:
         print('** ERROR getting main info and label for NIML File')
