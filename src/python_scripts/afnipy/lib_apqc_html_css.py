@@ -460,6 +460,21 @@ css_text+= '''
 '''
 
 css_text+= '''
+/* add subj ID to navbar*/
+.subj_text {
+    color: #000; 
+    background-color: #ccc; 
+    padding: 0px 4px; 
+    margin: 2px 0px 0px 8px; 
+    border: 0px 0px 0px 0px solid #000; 
+    font-size: 24px; 
+    font-weight: bold;
+}
+
+'''
+
+
+css_text+= '''
 
 /* see: https://fvsch.com/styling-buttons/ */
 /* Firefox: removes the inner border shown on focus */

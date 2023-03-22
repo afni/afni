@@ -817,7 +817,7 @@ def write_json_file( ll, fname ):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks, max_wlevel=''):
+def make_nav_table(llinks, subj='', max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -945,38 +945,6 @@ def make_nav_table(llinks, max_wlevel=''):
 '''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
 
 
-            """
-      <td >
-      <button class="button-generic button-RHS btn3{lab}"
-              title="{hov}" 
-              onclick="doShowHelp()">
-      {txt}</button>
-      </td>
-'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
-            """
-
-        y+= '''
-    </tr>
-  </table>
-'''
-    
-        """
-    <button class="button-generic button-RHS btn3{lab}"
-            title="{hov}" 
-            onclick="doShowHelp()">
-    {txt}</button>
-'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
-
-        <button class="button-generic button-LHS btn0" 
-                id="btn0_{ll}" 
-                onclick="" 
-                title="{hov}">
-        {txt}</button>
-      </td>'''.format( ll=ll, hov=brate_hover, txt="FORM:" ) 
-
-"""
-
-
 
         if i :
             # ~dropdown form button
@@ -1015,6 +983,19 @@ def make_nav_table(llinks, max_wlevel=''):
 <!-- END of QC block buttons -->
 
 '''
+
+    # add in subj ID
+    y+= '''
+<table style="float: left">
+  <tr>
+    <td style="width: fit-content;">
+    <p class="subj_text">{subj}</p>
+    </td>
+  </tr>
+</table>
+'''.format(subj=subj)
+
+
 
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 

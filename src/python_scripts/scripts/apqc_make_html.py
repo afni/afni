@@ -262,7 +262,7 @@ if __name__ == "__main__":
 
     list_links.append( lah.qc_link_final )
 
-    txt_for_navtable = lah.make_nav_table(list_links,
+    txt_for_navtable = lah.make_nav_table(list_links, subj=AATI.subj,
                                           max_wlevel = MAX_WLEVEL)
     ht               = ht.replace(tobetable, txt_for_navtable)
 
