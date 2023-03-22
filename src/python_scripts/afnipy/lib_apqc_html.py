@@ -456,26 +456,25 @@ qcbh ]
 
 # ---------------------------------------------------------------------
 
-brate_hover = '''Open help page.
-Click once (or Enter) to open new help page.
+bhelp_hover = '''Click (or hit Enter) to open new help page.
 
              -- Quick help on QC buttons --
 
 NAVIGATE
-Click a label ('HOME', 'vorig', etc.) to jump to a section.
+Scroll, or click a label ('vorig', 've2a', etc.) to jump to a section.
 
 RATE + COMMENT
-Click the QC button below it to record your rating, toggling through:
+Click the QC button below each label to rate it, toggling through:
+    +  :  good.
     X  :  bad,
     ?  :  other/revisit,
-    +  :  good.
 Use ctrl+click on a QC button to provide a comment.  Close the comment 
-panel with ctrl+click or its buttons.
+panel with ctrl+click or one of its buttons.
 
 SPEEDIFY
 There are 'filler buttons' for each rating: |A+|, |Ax|, |A?|.
 Click once to fill all *empty* buttons with that rating, or
-double click to fill *all* buttons with that rating.
+double click to fill *all* buttons (will overwrite) with that rating.
 '''
 
 # ---------------------------------------------------------------------
@@ -501,17 +500,19 @@ Double-click (or ctrl+Enter) to clear *all* QC buttons.
 
 # ---------------------------------------------------------------------
 
-bsaving_hover = '''Check if QC/rating info is automatically saved.
-Done by checking if a local server is running:
-+ Green text: saving is ON.
-+ Gray text with red strikethrough: saving is OFF.
+bsaving_hover = '''Display if QC/rating info is being saved.
 
-Click once (or Enter) to doublecheck.
+Automatic saving is:
++ ON, if the text is green
++ OFF, if the text is gray with red strikethrough
 '''
 
-bhelp_hover = '''Open help page.
-Click once (or Enter) to open new help page.
-'''
+bsaving  = 'SAVE:'
+bhelp  = 'HELP'
+
+#bhelp_hover = '''Open help page.
+#Click once (or Enter) to open new help page.
+#'''
 
 
 
@@ -900,6 +901,8 @@ def make_nav_table(llinks, max_wlevel=''):
 '''.format( ll=ll, hov=hov, finaltab=finaltab ) 
         else:
             # this is specifically for the HOME/jump button
+            # &#8679TOP&#8679
+            # ACME&#8679
             y+= '''
     <!-- top button for block={ll} -->
     <tr>
@@ -909,7 +912,7 @@ def make_nav_table(llinks, max_wlevel=''):
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
-        {ll}&#8679</button>
+        TOP&#8679</button>
       </td>
     </tr>
 '''.format( ll=ll, hov=hov, finaltab=finaltab ) 
@@ -919,7 +922,6 @@ def make_nav_table(llinks, max_wlevel=''):
             # NB: with button clicks, if using onkeypress with
             # onclick, the former *also* drives the latter a second
             # time, so get annoying behavior; hence, distinguish those
-            ### !!!!!! added a <tr> here, which appeared to be missing
             y+= '''
     <!-- bot button for block={ll} -->
     <tr>
@@ -931,9 +933,40 @@ def make_nav_table(llinks, max_wlevel=''):
         {txt}</button>
       </td>'''.format( ll=ll, txt=NULL_BTN1 )
         else:
+            bhelp  = 'HELP'
             y+= '''
-      <!-- bot button for block={ll} -->
+      <!-- bot button for block={lab} -->
+    <td>
+    <button class="button-generic button-RHS btn3saving" id=td3_{lab}
+            title="{hov}"   
+            onclick="colorizeSavingButton(is_served)">
+    {txt}</button>
+    </td>
+'''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
+
+
+            """
       <td >
+      <button class="button-generic button-RHS btn3{lab}"
+              title="{hov}" 
+              onclick="doShowHelp()">
+      {txt}</button>
+      </td>
+'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
+            """
+
+        y+= '''
+    </tr>
+  </table>
+'''
+    
+        """
+    <button class="button-generic button-RHS btn3{lab}"
+            title="{hov}" 
+            onclick="doShowHelp()">
+    {txt}</button>
+'''.format( lab='help', hov=bhelp_hover, txt=bhelp )
+
         <button class="button-generic button-LHS btn0" 
                 id="btn0_{ll}" 
                 onclick="" 
@@ -941,10 +974,9 @@ def make_nav_table(llinks, max_wlevel=''):
         {txt}</button>
       </td>'''.format( ll=ll, hov=brate_hover, txt="FORM:" ) 
 
-        y+= '''
-    </tr>
-  </table>
-'''
+"""
+
+
 
         if i :
             # ~dropdown form button
@@ -987,8 +1019,6 @@ def make_nav_table(llinks, max_wlevel=''):
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
     # NB: this is flexible width
-    bsaving  = 'SAVING'
-    bhelp  = 'HELP'
     bgood  = 'A+'  ; bgood_ind  =  1 
     bbad   = 'Ax'  ; bbad_ind   =  2 
     bother = 'A?'  ; bother_ind =  0 
@@ -1005,7 +1035,7 @@ def make_nav_table(llinks, max_wlevel=''):
     ### NTS: could add more <td>s here, but doesn't appear necessary
     y+= '''
   <tr>
-    <td style="width: 180px; white-space:nowrap;">
+    <td style="width: 140px; white-space:nowrap;">
 '''
 
     y+= '''
@@ -1054,6 +1084,18 @@ def make_nav_table(llinks, max_wlevel=''):
 '''.format( lab='other', hov=bother_hover, ind=bother_ind, txt=bother )
 
     y+= '''
+    </td>
+  </tr>
+'''
+
+    # ROW:  hyperlinks (anchors) within the page; could add more <td>
+    y+= '''
+  <!-- bot row: clear and help buttons -->
+  <tr>
+    <td style="width: 140px; white-space:nowrap;" id=td3_TOBEDETERMINED>
+'''
+
+    y+= '''
       <button class="button-generic button-RHS button-RHS-little btn2{lab}" 
       title="{hov}" 
       onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
@@ -1064,22 +1106,6 @@ def make_nav_table(llinks, max_wlevel=''):
       ondblclick="reallyAllYourBaseAreBelongToUs({ind})"> 
       {txt}</button>
 '''.format( lab='clear', hov=bclear_hover, ind=bclear_ind, txt=bclear )
-
-    y+= '''
-    </td>
-  </tr>
-'''
-
-    # ROW:  hyperlinks (anchors) within the page; could add more <td>
-    y+= '''
-  <!-- bot row: saving and help buttons -->
-  <tr>
-    <td style="width: 180px; white-space:nowrap;" id=td3_{lab}>
-    <button class="button-generic button-RHS btn3saving" 
-            title="{hov}"   
-            onclick="colorizeSavingButton(is_served)">
-    {txt}</button>
-'''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
 
     y+= '''
     <button class="button-generic button-RHS btn3{lab}"
@@ -1148,14 +1174,14 @@ var r = document.querySelector(':root');
 function colorizeSavingButton(val) {
   if (val) {
     r.style.setProperty('--SavingTextCol', '#009933');
-    r.style.setProperty('--SavingBkgdCol', '#fff');
+    r.style.setProperty('--SavingBkgdCol', '#000'); //'#fff');
     r.style.setProperty('--SavingTextDec', 'none');
 
     r.style.setProperty('--SavingTextColB6', '#000');
     r.style.setProperty('--SavingBkgdColB6', '#029a64');
   } else {
     r.style.setProperty('--SavingTextCol', '#9f9f9f');
-    r.style.setProperty('--SavingBkgdCol', '#fff');
+    r.style.setProperty('--SavingBkgdCol', '#000'); //'#fff');
     r.style.setProperty('--SavingTextDec', 'line-through');
 
     r.style.setProperty('--SavingTextColB6', '#016843');

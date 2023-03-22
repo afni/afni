@@ -409,7 +409,7 @@ css_text+= '''
     border: none;
     border-radius: 0px;
     font-family: "courier new", courier, monospace;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -505,10 +505,10 @@ css_text+= '''
     padding: 0px 0px;
 }
 
-.btn3saving, .btn3help {
+.btn3help {
     background-color: #F0F0F0;
     float: left;
-    margin: 2;
+    margin: 3;
     width: 86px;
     height: 28px;
     padding: 2px 2px;
@@ -523,7 +523,24 @@ css_text+= '''
     text-decoration:  var(--SavingTextDec);
     text-decoration-thickness: 10%;
     text-decoration-color: #d7191c;
+    float: left;
+    margin: 3;
+    /*width: 86px;*/
+    width: 74px;
+    height: 28px;
+    padding: 0px 2px;
+    font-size: 24px;
+    border-radius: 0px;
+    cursor: auto;
 }
+
+
+/* Use this so that the saving/rating button is passive, nonclickable
+*/
+.disabled {
+    pointer-events: none; 
+}
+
 
 /* help button color just on its own */
 .btn3help {
