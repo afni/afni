@@ -340,7 +340,7 @@ Commenting
 Saving info
     If you have a local server running, then as you click and type
     the rating/QC buttons the information will be saved automatically
-    in the QC directory.  The 'SAVING' button in the upper-right corner
+    in the QC directory.  The 'SAVE:' button in the upper-left corner
     shows whether the server is running:  
     + if the letters are green and visible, then the server is running
       (and your QC info is being saved).
@@ -350,6 +350,13 @@ Saving info
     It is useful to start the server and save QC/rating info for
     sharing and/or later using inclusion/exclusion criteria for the
     subject in group analysis.
+
+    The ratings and comments are both saved in 'apqc_*.json'.
+    The ratings are also saved in 'extra_info/out.ss_review.*.json', 
+    which is a file that can be used as an input file to 
+    gen_ss_review_table.py, combining the qualitative evaluations of
+    the APQC HTML with the quantitative ones gathered by afni_proc.py,
+    for systematic evaluation and QC of subject data.
 
 '''
 ],
