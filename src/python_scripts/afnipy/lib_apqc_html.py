@@ -1193,21 +1193,29 @@ async function RunAtStart() {
 
 '''
 
-    # OFF AT THE MOMENT, but a guard for reloading page
     y+= '''
-    window.onbeforeunload = function(event)
-    {
-      doQuit()
-      let seriouslyQuit = confirm()
-      if (seriouslyQuit) {
-        doQuit()
-      }
-      return seriouslyQuit;
-    };
+/*
+  OFF AT THE MOMENT, but a guard for reloading page
+*/
+window.onbeforeunload = function(event)
+{
+  doQuit()
+  let seriouslyQuit = confirm()
+  if (seriouslyQuit) {
+    doQuit()
+  }
+  return seriouslyQuit;
+};
 '''
 
     y+= '''
-// This function gets run when page loads ("onload").
+/* This function gets run when page loads ("onload").
+   The classes matter for identifying properties that certain buttons
+   or other objects have:
+     btn1   : QC rating buttons
+     td1    : QC comment buttons
+     hr_sec : locations for where to jump for each QC block ID
+*/
 function initializeParams() {
     allBtn1   = document.getElementsByClassName("btn1");   // btn1_vepi, btn1_*
     allTd1    = document.getElementsByClassName("td1");    // td1_vepi,  td1_*
@@ -1226,7 +1234,11 @@ function initializeParams() {
     # set to read synchronously, which is necessary for the JSON to
     # load fully before use-- slower, but this is a small file
     y+= '''
-
+/*
+  Read in JSON file.  Importantly, the xobjs.open(...) func NEEDS to
+  have the 'false' set to read synchronously, which is necessary for
+  the JSON to load fully before use---slower, but this is a small file.
+*/
 async function loadJSON(ifile) {
     let json = await fetch(ifile)
     .then(response => response.json())
@@ -1274,8 +1286,10 @@ async function postJSON(data = {}, quit=false) {
 
 '''
 
-    # Both the QC element names AND their order need to match
     y+= '''
+/*
+  Both the QC element names AND their order need to match
+*/
 function CheckJsonfileMatchesQcbuttons() {
     var Nele = qcjson.length;
 
@@ -1294,10 +1308,12 @@ function CheckJsonfileMatchesQcbuttons() {
 }
 '''
 
-    # Because order matches (offset by 1), we can just apply directly
-    # with the counting index, based on the allBtn1 list.
     y+= '''
-// This function gets run when page loads ("onload").
+/* This function gets run when page loads ("onload").
+
+   Because order matches (offset by 1), we can just apply directly
+   with the counting index, based on the allBtn1 list.
+*/
 function ApplyJsonfileToQcbuttons() {
     var Nele = qcjson.length;
 
@@ -1313,9 +1329,11 @@ function ApplyJsonfileToQcbuttons() {
 }
 '''
 
-    # This function gets run when page loads ("onload").  'ss' is the
-    # JSON rating, and 'bid' is the button ID in AllBtn1.
     y+= '''
+/*    
+   This function gets run when page loads ("onload").  'ss' is the
+   JSON rating, and 'bid' is the button ID in AllBtn1.
+*/
 function sendRatingToButton(ss, bid) {
     if ( ss == "good" ) {
        setThisButtonRating(bid, 1);
@@ -1332,9 +1350,11 @@ function sendRatingToButton(ss, bid) {
 }
 '''
 
-    # When the JSON is read in, get comments and give any text to both
-    # the btn1 and associated comment form textarea
     y+= '''
+/*
+   When the JSON is read in, get comments and give any text to both
+   the btn1 and associated comment form textarea
+*/
 function sendCommentToButtonAndForm(comm, bid) {
     thisButtonGetsAComment(bid, comm);
 
@@ -1352,8 +1372,10 @@ function sendCommentToButtonAndForm(comm, bid) {
 
     # --------------- scroll location in page stuff -----------------
 
-    # Checks/rechecks whenever change in page location occurs.
     y+= '''
+/*
+  Checks/rechecks whenever change in page location occurs.
+*/
 window.addEventListener("scroll", function(event) {
     var newi = findTopSectionIdx();
 
@@ -1366,9 +1388,11 @@ window.addEventListener("scroll", function(event) {
 }, false);
 '''
 
-   # Just go through (short) list from top, and first one that has pos
-   # coor, is the one at top
     y+= '''
+/*
+  Go through (short) list from top, and first one that has pos
+  coor, is the one at top
+*/
 function findTopSectionIdx() {
     for( var i=0; i<allhr_sec.length; i++ ) {
         var bid = allhr_sec[i].id; 
@@ -1390,10 +1414,12 @@ function setTd1Border(ii, bkgdcol) {
 
     # --------------- QC button: toggle indiv or fill group -------------
     
-    # click on the QC buttons will scroll through the color values
-    ## ctrl+click on the QC buttons will toggle between the comment
-    ## form being open or closed (saving what is in form when closing).
     y+= '''
+/*
+  A click on the QC buttons will scroll through the color values;
+  ctrl+click on the QC buttons will toggle between the comment
+  form being open or closed (saving what is in form when closing).
+*/
 function btn1Clicked(event, button) {
     if (event.ctrlKey) {
        btn1ClickedWithCtrl(event, button);
@@ -1425,6 +1451,9 @@ function btn1ClickedWithCtrl(event, button) {
     ## hovering after changing DOM properties.
     ## https://stackoverflow.com/questions/46553405/css-hover-not-working-after-javascript-dom
     y+= '''
+/*
+  Toggle individual button colors/etc.
+*/
 function changeColor(button) {
   newidx = Number(button.dataset.idx || 0);     // idx=0 on first click
   newidx = (newidx + 1) % bkgds.length;         // calc new idx, mod Ncol
@@ -1462,6 +1491,11 @@ function checkIfButtonCommented( button ) {
     # AllBt1n, and the 'idx' which picks out valeurs[idx]
     # etc. properties.
     y+= '''
+/*
+  two arguments: 
+  + the button ID 'bid' from an element of AllBt1n, 
+  + the 'idx' which picks out valeurs[idx] etc. properties.
+*/
 function setThisButtonRating(bid, idx) {{
     // normal values
     if ( idx >= 0 ) {{
@@ -1494,11 +1528,15 @@ function isBtn1InNullState( bid ) {{
 }}
 '''.format ( NULL_BTN1 )
 
-    # two arguments: the button ID 'bid' from an element of AllBt1n,
-    # and the 'comment' that gets added/overwritten (in the newly
-    # created element, txtcomm).  Basically used to put the form
-    # comments into the button fields, and then later into jsons.
     y+= '''
+/*
+  two arguments: 
+  + the button ID 'bid' from an element of AllBt1n,
+  + the 'comment' that gets added/overwritten (in the newly created
+  element, txtcomm).  
+  Basically used to put the form comments into the button fields, and
+  then later into jsons.
+*/
 function thisButtonGetsAComment(bid, comm) {
     document.getElementById(bid).dataset.txtcomm = comm;
 
@@ -1517,9 +1555,11 @@ function thisButtonGetsAComment(bid, comm) {
 }
 '''
 
-    # "ALL OTHER" fill button, here to set every btn1-button value to
-    # "+" or "x", depending on input arg 'ii' (index in list)
     y+= '''
+/*
+  "ALL OTHER" fill button, here to set every btn1-button value to
+  "+" or "x", depending on input arg 'ii' (index in list)
+*/
 function allYourBaseAreBelongToUs(ii) {{ 
    for( var i=0; i<allBtn1.length; i++ ) {{ 
      var bid = allBtn1[i].id; 
@@ -1532,10 +1572,12 @@ function allYourBaseAreBelongToUs(ii) {{
 }}
 '''.format( NULL_BTN1 )
 
-    # "ALL-ALL" fill button: regardless of initial state set every
-    # btn1-button value to "+" or "x", depending on input arg 'ii'
-    # (index in list); that is, this overruns earlier button values
     y+= '''
+/*
+  "ALL-ALL" fill button: regardless of initial state set every
+  btn1-button value to "+" or "x", depending on input arg 'ii'
+  (index in list); that is, this overruns earlier button values
+*/
 function reallyAllYourBaseAreBelongToUs(ii) { 
    for( var i=0; i<allBtn1.length; i++ ) { 
      var bid = allBtn1[i].id; 
@@ -1551,18 +1593,21 @@ function reallyAllYourBaseAreBelongToUs(ii) {
 
     # ------------------- commentize form ------------------------
     
-    # Get position coordinates of an object, knowing its ID
     y+= '''
+/*
+  Get position coordinates of an object, knowing its ID
+*/
 function getBoundingRect(iid) {
     var bbox = document.getElementById(iid).getBoundingClientRect();
     return bbox;
 }
 '''
 
-    # Use this to place the thing: the height comes from the height of
-    # the menu bar, and the L-R positioning comes from the QC button
-    # itself.
     y+= '''
+/*
+  Use this to place the thing: the height comes from the height of the
+  menu bar, and the L-R positioning comes from the QC button itself.
+*/
 function openCommentForm(cfID, bid) {
     document.getElementById(cfID).style.display = "block";
     var bbox = getBoundingRect(bid);
@@ -1570,15 +1615,19 @@ function openCommentForm(cfID, bid) {
 }
 '''
 
-    # just close the form button when done (mainly for ctrl+click)
     y+= '''
+/*
+  Just close the form button when done (mainly for ctrl+click)
+*/
 function closeCommentForm(cfID) {
     document.getElementById(cfID).style.display = "none";
 }
 '''
 
-    # close *and* remove value (esc key, or clear+close button)
     y+= '''
+/*
+  Close *and* remove value (esc key, or clear+close button)
+*/
 function clearCommentForm(cid, cfID) {
     document.getElementById(cid).value = "";
 
@@ -1594,18 +1643,22 @@ function clearCommentForm(cid, cfID) {
 }
 '''
 
-    # needed for when JSON file is read in, to give values from that
-    # to the text area field (as well as bt1n)
     y+= '''
+/*
+   needed for when JSON file is read in, to give values from that to
+   the text area field (as well as bt1n)
+*/
 function thisFormTextAreaGetsAComment(cid, comm) {
     document.getElementById(cid).value = comm;
 }
 '''
 
-    # "Saving" here means taking the comment (cid) and associating it
-    # with a button (bid), while also closing the comment form (cfID).
-    # (enter key, or keep+close button)
     y+= '''
+/*
+  "Saving" here means taking the comment (cid) and associating it with
+  a button (bid), while also closing the comment form (cfID).  (enter
+  key, or keep+close button)
+*/
 function keepFromCommentForm(cid, cfID) {
 
     // user's text
@@ -1622,9 +1675,11 @@ function keepFromCommentForm(cid, cfID) {
 }
 '''
 
-    # Same as keepFromCommentForm(...), but used when user is
-    # ctrl+clicking on btn1 to close comment
     y+= '''
+/*
+  Same as keepFromCommentForm(...), but used when user is
+  ctrl+clicking on btn1 to close comment.
+*/
 function keepFromCommentFormViaBtn1(bid, cfID) {
 
     // get the btn1 ID from comm ID
@@ -1643,9 +1698,11 @@ function keepFromCommentFormViaBtn1(bid, cfID) {
 
     # ------------------- page scrolling ------------------------------
 
-    # THIS is now how we move on the page, so that there is no need to
-    # jump into the page, and hence tabbing through buttons is allowed.
     y+= '''
+/*
+  THIS is now how we move on the page, so that there is no need to
+  jump into the page, and hence tabbing through buttons is allowed.
+*/
 function moveToDiv( hr_sec ) {
     var sid = new String(hr_sec.id)
     var rect = getBoundingRect(sid);
@@ -1661,8 +1718,10 @@ function moveToDiv( hr_sec ) {
 
     # ------------------- saving into JSON obj ------------------------
 
-    # submit values by element and col names
     y+= '''
+/*
+  Submit values by element and col names
+*/
 function saveJsonValuesByNames(elename, colname, VAL) {
     cc = findCol(colname);
     rr = findQceleRow(elename);
@@ -1671,8 +1730,10 @@ function saveJsonValuesByNames(elename, colname, VAL) {
 }
 '''
 
-    # submit values by row and col nums
     y+= '''
+/* 
+  Submit values by row and col nums
+*/
 function saveJsonValuesByNums(rr, cc, VAL) {
     Ncol = qcjson[0].length;
     if ( cc >= Ncol ) {
