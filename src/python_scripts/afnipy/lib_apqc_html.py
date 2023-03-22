@@ -825,39 +825,40 @@ def make_nav_table(llinks, max_wlevel=''):
     # dummy, background nav
 
     y = '''
-    <div class="navbar">
-      <table style="width: 100%">
+<!-- make dummy navbar, which sits in the background -->
+<div class="navbar">
+  <table style="width: 100%">
 
-        <tr>
-          <td style="width: 100%">
-            <a style="text-align: left"> {0} </a>
-          </td>
-        </tr>
+    <tr>
+      <td style="width: 100%">
+        <a style="text-align: left"> {0} </a>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="width: 100%">
-            <button class="button-generic button-LHS btn0" onclick="">
-            {0} </button>
-          </td>
-        </tr>
+    <tr>
+      <td style="width: 100%">
+        <button class="button-generic button-LHS btn0" 
+                onclick="">
+        {0} </button>
+      </td>
+    </tr>
 
-      </table>
-    </div>
-    '''.format( NULL_BTN0 ) 
+  </table>
+</div>
+'''.format( NULL_BTN0 ) 
 
     # =======================================================================
     # real, foreground nav
     # + use z-index to keep it always on top
 
-    y+= '''\n<div class="navbar" style="z-index: 10;">\n'''
+    y+= '''
+<!-- start of real, foreground nav bar, which uses z-index to keep on top -->
+<div class="navbar" style="z-index: 10;">
+'''
 
     # -----------------------------------------------------
     # L-floating part: section anchors and rating buttons
     # NB: these are fixed width
-
-    ## note about keycodes on internet explorer, might have to do
-    ## something like this for each one:
-    # https://stackoverflow.com/questions/1750223/javascript-keycode-values-are-undefined-in-internet-explorer-8
 
     for i in range(0, N):
         ll, hov = llinks[i][0], llinks[i][1]
@@ -865,102 +866,115 @@ def make_nav_table(llinks, max_wlevel=''):
 
         color_change = ''
         
-        # Put lines around "FINAL" element
-        if i<N-1 : 
-            finaltab = ''
-            if ll == 'warns' and max_wlevel :
-                wcol = lahc.wlevel_colors[max_wlevel]
-                if lahc.wlevel_ranks[max_wlevel] > lahc.wlevel_ranks['mild'] :
-                    finaltab = '''style="color: {}; '''.format("#000") 
-                    finaltab+= '''background-color: {};" '''.format(wcol)
-                else:
-                    finaltab = '''style="color: {};" '''.format(wcol) 
-
+        # add colors to warning button (and nothing else)
+        if ll == 'warns' and max_wlevel :
+            wcol = lahc.wlevel_colors[max_wlevel]
+            if lahc.wlevel_ranks[max_wlevel] > lahc.wlevel_ranks['mild'] :
+                finaltab = '''style="color: {}; '''.format("#000") 
+                finaltab+= '''background-color: {};" '''.format(wcol)
+            else:
+                finaltab = '''style="color: {};" '''.format(wcol) 
         else:
-            finaltab = '''style="background-color: #ccc; color: #000;" '''
+            finaltab = ''
 
         # new table
-        y+= '''<table style="float: left">\n'''
+        y+= '''
+  <!-- start QC button table for block={ll} -->
+  <table style="float: left">
+'''.format( ll=ll )
 
         # TOP ROW (blockid)
         if i :
             y+= '''
-            <tr>
-              <td class="td1" id=td1_{0}>
-                <button class="button-generic button-LHS btn5" id="btn5_{0}" 
-                onmousedown="moveToDiv(hr_{0})" 
-                title="{1}" 
-                {2} 
-                onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
-                {0}</button>
-              </td>
-            </tr>
-            '''.format( ll, hov, finaltab ) 
+    <!-- top button for block={ll} -->
+    <tr>
+      <td class="td1" id=td1_{ll}>
+        <button class="button-generic button-LHS btn5" id="btn5_{ll}" 
+        onmousedown="moveToDiv(hr_{ll})" 
+        title="{hov}" 
+        {finaltab} 
+        onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
+        {ll}</button>
+      </td>
+    </tr>
+'''.format( ll=ll, hov=hov, finaltab=finaltab ) 
         else:
+            # this is specifically for the HOME/jump button
             y+= '''
-            <tr>
-              <td class="td1" id=td1_{0}>
-                <button class="button-generic button-LHS btn0" id="btn5_{0}" 
-                onmousedown="moveToDiv(hr_{0})" 
-                title="{1}" 
-                {2} 
-                onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{0}); }}">
-                {0}&#8679</button>
-              </td>
-            </tr>
-            '''.format( ll, hov, finaltab ) 
+    <!-- top button for block={ll} -->
+    <tr>
+      <td class="td1" id=td1_{ll}>
+        <button class="button-generic button-LHS btn0" id="btn5_{ll}" 
+        onmousedown="moveToDiv(hr_{ll})" 
+        title="{hov}" 
+        {finaltab} 
+        onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
+        {ll}&#8679</button>
+      </td>
+    </tr>
+'''.format( ll=ll, hov=hov, finaltab=finaltab ) 
 
         # BOT ROW (QC button)
-        y+= '''<td >''' # set boundary between QC buttons here
         if i :
             # NB: with button clicks, if using onkeypress with
             # onclick, the former *also* drives the latter a second
             # time, so get annoying behavior; hence, distinguish those
+            ### !!!!!! added a <tr> here, which appeared to be missing
             y+= '''
-              <button class="button-generic button-LHS btn1" id="btn1_{0}" data-txtcomm="" 
-              onmousedown="btn1Clicked(event, this)" 
-              onkeypress="if ( event.keyCode == 13 ) {{ btn1Clicked(event, this); }}" 
-              {1}</button>
-            </td>
-            '''.format( ll, NULL_BTN1 )
+    <!-- bot button for block={ll} -->
+    <tr>
+      <td>
+        <button class="button-generic button-LHS btn1" 
+                id="btn1_{ll}" data-txtcomm="" 
+                onmousedown="btn1Clicked(event, this)" 
+        onkeypress="if ( event.keyCode == 13 ) {{ btn1Clicked(event, this); }}" 
+        {txt}</button>
+      </td>'''.format( ll=ll, txt=NULL_BTN1 )
         else:
             y+= '''
-              <button class="button-generic button-LHS btn0" id="btn0_{0}" 
-              onclick="" 
-              title="{1}">
-              {2}</button></td>
-            '''.format( ll, brate_hover, "FORM:" ) 
-        y+= '''</tr>\n'''
-        y+= '''</table>'''
+      <!-- bot button for block={ll} -->
+      <td >
+        <button class="button-generic button-LHS btn0" 
+                id="btn0_{ll}" 
+                onclick="" 
+                title="{hov}">
+        {txt}</button>
+      </td>'''.format( ll=ll, hov=brate_hover, txt="FORM:" ) 
+
+        y+= '''
+    </tr>
+  </table>
+'''
 
         if i :
             # ~dropdown form button
-            ## NB: the onkeydown stuff makes it that hitting "Enter"
-            ## (event.keyCode == 10 || event.keyCode == 13) inside the
-            ## text field is like submitting the text (and the
-            ## .preventDefault() means that it does NOT input a
-            ## newline):
-            ## https://stackoverflow.com/questions/155188/trigger-a-button-click-with-javascript-on-the-enter-key-in-a-text-box
-            ## https://stackoverflow.com/questions/26975349/textarea-wont-stop-making-new-line-when-enter-is-pressed
-            ## ... and hitting "Esc" (event.keyCode == 27) is like
-            ## canceling.
+            # NB: the onkeydown stuff makes it that hitting "Enter"
+            # (event.keyCode == 10 || event.keyCode == 13) inside the
+            # text field is like submitting the text (and the
+            # .preventDefault() means that it does NOT input a
+            # newline):
+            # https://stackoverflow.com/questions/155188/trigger-a-button-click-with-javascript-on-the-enter-key-in-a-text-box
+            # https://stackoverflow.com/questions/26975349/textarea-wont-stop-making-new-line-when-enter-is-pressed
+            # ... and hitting "Esc" (event.keyCode == 27) is like
+            # canceling.
             y+= '''
-            <div class="form-popup" id="cform_{0}" > 
-                <form class="form-container" onsubmit="return false;"> 
-                <textarea type="text" placeholder="Enter comment" 
-                rows="4" cols="40" id="comm_{0}" 
-                onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
-                   event.preventDefault(); keepFromCommentForm(comm_{0}.id, cform_{0}.id);}} 
-                   else if (event.keyCode == 27) {{ 
-                       clearCommentForm(comm_{0}.id, cform_{0}.id); }}">
-                </textarea>  
-                <button type="button" class="btn" 
-                onclick="keepFromCommentForm(comm_{0}.id, cform_{0}.id)">keep+close</button> 
-                <button type="button" class="btn cancel" 
-                onclick="clearCommentForm(comm_{0}.id, cform_{0}.id)">clear+close</button> 
-                </form> 
-            </div> 
-            '''.format( ll )
+<!-- QC button comment form for block={ll} -->
+<div class="form-popup" id="cform_{ll}" > 
+    <form class="form-container" onsubmit="return false;"> 
+    <textarea type="text" placeholder="Enter comment" 
+    rows="4" cols="40" id="comm_{ll}" 
+    onkeydown="if (event.keyCode == 10 || event.keyCode == 13) {{ 
+       event.preventDefault(); keepFromCommentForm(comm_{ll}.id, cform_{ll}.id);}} 
+       else if (event.keyCode == 27) {{ 
+           clearCommentForm(comm_{ll}.id, cform_{ll}.id); }}">
+    </textarea>  
+    <button type="button" class="btn" 
+    onclick="keepFromCommentForm(comm_{ll}.id, cform_{ll}.id)">keep+close</button> 
+    <button type="button" class="btn cancel" 
+    onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">clear+close</button> 
+    </form> 
+</div> 
+'''.format( ll=ll )
 
     # ------------------------------------------------------ 
     # R-floating part: subj ID and SAVE button 
