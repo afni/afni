@@ -456,7 +456,10 @@ qcbh ]
 
 # ---------------------------------------------------------------------
 
-brate_hover = '''QC BUTTON FORM
+brate_hover = '''Open help page.
+Click once (or Enter) to open new help page.
+
+             -- Quick help on QC buttons --
 
 NAVIGATE
 Click a label ('HOME', 'vorig', etc.) to jump to a section.
@@ -473,8 +476,7 @@ SPEEDIFY
 There are 'filler buttons' for each rating: |A+|, |Ax|, |A?|.
 Click once to fill all *empty* buttons with that rating, or
 double click to fill *all* buttons with that rating.
-
---- click 'HELP' at the right for more details and features ---'''
+'''
 
 # ---------------------------------------------------------------------
 
@@ -794,7 +796,7 @@ def write_json_file( ll, fname ):
     # the page).
     for i in range(1,len(ll)):
         x = ll[i]
-        olist.append( [x[0], "", ""] )
+        olist.append( [x[0], "null", ""] )
     
     # output with indentation
     ojson = json.dumps( olist, indent=4 )
@@ -1098,11 +1100,9 @@ let is_served = url.startsWith('file:') ? false : true
 
 console.log('URL', url)
 console.log('is_served', is_served)
-
 '''.format( subj=subj )
 
     y+= '''
-
 /* For using is_served to set saving button color:
     First, get the root element, which has color
     defined
@@ -1129,10 +1129,8 @@ function colorizeSavingButton(val) {
   }
 }
 
-/* ... finally, use and colorize
-*/
+/* ... finally, use and colorize */
 colorizeSavingButton(is_served);
-
 '''
 
 
@@ -1181,9 +1179,9 @@ function initializeParams() {
     allTd1    = document.getElementsByClassName("td1");    // td1_vepi,  td1_*
     allhr_sec = document.getElementsByClassName("hr_sec"); // hr_vepi,   hr_*
 
-    topi      = findTopSectionIdx()       // idx of current loc
+    topi      = findTopSectionIdx();      // idx of current loc
     previ     = topi;                     // init "previous" idx
-    setTd1Border(topi, "#ffea00"); //"yellow"); // show location
+    setTd1Border(topi, "#ffea00");        // show location
 }
 '''
 
@@ -1270,7 +1268,6 @@ function ApplyJsonfileToQcbuttons() {
     var Nele = qcjson.length;
 
     for( var i=1; i<Nele; i++ ) {
-
         var jj = i - 1;  // offset because of col heading in JSON
         var bid = new String(allBtn1[jj].id);
 
@@ -1279,7 +1276,6 @@ function ApplyJsonfileToQcbuttons() {
         sendCommentToButtonAndForm(qcjson[i][2], bid);
         sendRatingToButton(qcjson[i][1], bid);
     }
-
 }
 '''
 
@@ -1287,7 +1283,6 @@ function ApplyJsonfileToQcbuttons() {
     # JSON rating, and 'bid' is the button ID in AllBtn1.
     y+= '''
 function sendRatingToButton(ss, bid) {
-
     if ( ss == "good" ) {
        setThisButtonRating(bid, 1);
     } else if ( ss == "bad" ) {
@@ -1326,12 +1321,11 @@ function sendCommentToButtonAndForm(comm, bid) {
     # Checks/rechecks whenever change in page location occurs.
     y+= '''
 window.addEventListener("scroll", function(event) {
-
     var newi = findTopSectionIdx();
 
     if ( newi != topi ) {
-        setTd1Border(newi, "#ffea00"); /* "yellow ");*/
-        setTd1Border(topi,  "inherit");    /*  ; //"#FFF", "#444"); */
+        setTd1Border(newi, "#ffea00"); 
+        setTd1Border(topi, "inherit");
         previ = topi;
         topi  = newi;
     }
@@ -1372,7 +1366,6 @@ function btn1Clicked(event, button) {
     }  else {
        changeColor(button); //alert("The CTRL key was NOT pressed!");
     }
-
 }
 '''
 
@@ -1413,7 +1406,6 @@ function changeColor(button) {
 
     y+= '''
 function checkIfButtonCommented( button ) {
-
     var value = button.textContent;
     var bcomm = button.dataset.txtcomm;
     var VAL_HAS_QUOTE = value.includes(`"`);
@@ -1439,20 +1431,20 @@ function checkIfButtonCommented( button ) {
 function setThisButtonRating(bid, idx) {{
     // normal values
     if ( idx >= 0 ) {{
-      document.getElementById(bid).textContent      = valeurs[idx];
-      document.getElementById(bid).style.background = bkgds[idx];
+      document.getElementById(bid).textContent       = valeurs[idx];
+      document.getElementById(bid).style.background  = bkgds[idx];
       document.getElementById(bid).style.borderColor = bkgds[idx];
-      document.getElementById(bid).style.color      = tcols[idx];
-      document.getElementById(bid).dataset.idx      = idx;
+      document.getElementById(bid).style.color       = tcols[idx];
+      document.getElementById(bid).dataset.idx       = idx;
       checkIfButtonCommented( document.getElementById(bid) );
     
     }} else {{
-    // the reset, for "null" JSON
+      // the reset, for "null" JSON
       document.getElementById(bid).textContent       = "{}";
       document.getElementById(bid).style.background  = '';  // reset to CSS
       document.getElementById(bid).style.borderColor = '';  // reset to CSS
       document.getElementById(bid).style.color       = '';  // reset to CSS
-      document.getElementById(bid).dataset.idx       = 0;   //null;
+      document.getElementById(bid).dataset.idx       = 0;   // null
     }}
 }}
 '''.format ( NULL_BTN1 )
@@ -1502,7 +1494,7 @@ function allYourBaseAreBelongToUs(ii) {{
        setThisButtonRating(bid, ii); 
      }}
    }} 
-   doSaveAllInfo() 
+   doSaveAllInfo();
 }}
 '''.format( NULL_BTN1 )
 
@@ -1519,7 +1511,7 @@ function reallyAllYourBaseAreBelongToUs(ii) {
         sendCommentToButtonAndForm("", bid);
      }
    }
-   doSaveAllInfo() 
+   doSaveAllInfo();
 } 
 '''
 
@@ -1638,7 +1630,6 @@ function moveToDiv( hr_sec ) {
     # submit values by element and col names
     y+= '''
 function saveJsonValuesByNames(elename, colname, VAL) {
-
     cc = findCol(colname);
     rr = findQceleRow(elename);
 
