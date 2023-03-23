@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Fed 28, 2023
+Version 1.0.1, March 22, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -153,6 +153,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                                     \\
          -mask myMask+tlrc                                          \\
           -model  'emotion+(1|Subj)'                                \\
+          -SS_type 3                                                \\
           -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
@@ -191,6 +192,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                   \\
           -mask myMask+tlrc                       \\
           -model  'emotion*RT+(RT|Subj)'          \\
+          -SS_type 2                              \\
           -bounds -2 2                            \\
           -qVars  'RT'                            \\
           -qVarCenters 0                          \\
@@ -229,6 +231,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                       \\
           -mask myMask+tlrc                           \\
           -model  'emotion+(1|Subj)+(1|site)'         \\
+          -SS_type 1                                  \\
           -bounds -2 2                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
@@ -254,7 +257,36 @@ Introduction
    \n"
 
    ex4 <-
-"Example 4 --- Test-retest reliability. LME model can be adopted for test-
+"Example 4 --- LME analysis with a between-subject factor (group: two groups of
+  subjects -- control, patient), two within-subject factros (emotion: 3 levels 
+  -- pos, neg, neu; type: 2 levels -- face, word), one quantitative variable (age).
+
+-------------------------------------------------------------------------
+    3dLMEr -prefix LME -jobs 12                                                           \\
+          -mask myMask+tlrc                                                               \\
+          -model  'group*emotion*type+age+(1|Subj)+(1/Subj:emotion)+(1|Subj:type)'        \\
+          -SS_type 2                                                                      \\
+          -bounds -2 2                                                                    \\
+          -gltCode pat.pos      'gruop : 1*patient emotion : 1*pos'                       \\
+          -gltCode pat.neg      'gruop : 1*patient emotion : 1*neg'                       \\
+          -gltCode ctr.pos.age  'gruop : 1*control emotion : 1*pos age :'                 \\
+          -dataTable                                              \\
+          Subj  group    emotion  type  age  InputFile            \\
+          s1    control   pos     face  35  s1_pos+tlrc           \\
+          s1    control   neg     face  35  s1_neg+tlrc           \\
+          s1    control   neu     face  35  s1_neu+tlrc           \\
+          s2    control   pos     face  23  s2_pos+tlrc           \\
+          s2    control   neg     face  23  s2_neg+tlrc           \\
+          s2    control   pos     face  23  s2_neu+tlrc           \\
+          ...         		
+          s80   patient   pos     word  28  s80_pos+tlrc          \\
+          s80   patient   neg     word  28  s80_neg+tlrc          \\
+          s80   patient   neu     word  28  s80_neu+tlrc          \\
+          ...
+   \n"
+
+   ex5 <-
+"Example 5 --- Test-retest reliability. LME model can be adopted for test-
   retest reliability analysis if trial-level effect estimates (e.g., using
   option -stim_times_IM in 3dDeconvolve/3dREMLfit) are available from each
   subjects. The following script demonstrates a situation where each subject
@@ -318,7 +350,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ex5, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
@@ -523,6 +555,15 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
                      ) ),
 
+     '-SS_type' = apl(n=1, d=3, h = paste(
+   "-SS_type NUMBER: Specify the type for sums of squares in the F-statistics.",
+   "         Three options are: sequential (1), hierarchical (2), and marginal (3).",
+   "         When this option is absent (default), marginal (3) is automatically set.",
+   "         Some discussion regarding their differences can be found here:",
+   "         https://sscc.nimh.nih.gov/sscc/gangc/SS.html\n ",
+             sep = '\n'
+                     ) ),		     
+
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" ),
@@ -560,6 +601,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$gltCode    <- NULL
       lop$glfCode  <- NULL
       lop$dataTable <- NULL
+      lop$SS_type <- 3
 
       lop$iometh  <- 'clib'
       lop$dbgArgs <- FALSE # for debugging purpose
@@ -586,6 +628,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
+	     SS_type = lop$SS_type <- ops[[i]],
 
              help = help.LME.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
@@ -775,9 +818,9 @@ runLME <- function(myData, DM, tag) {
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
       if(!is.null(fm)) {
-         #Stat[1:lop$nF] <- anova(fm)$`F value` # F-stat
-	 Stat[1:lop$nF] <- qchisq(anova(fm)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
-	 #qnorm(anova(fm)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
+         #Stat[1:lop$nF] <- anova(fm, type=lop$SStype)$`F value` # F-stat
+	 Stat[1:lop$nF] <- qchisq(anova(fm, type=lop$SStype)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
+	 #qnorm(anova(fm, type=lop$SStype)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
             #if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
@@ -1093,7 +1136,7 @@ while(is.null(fm)) {
          nT          <- 2*nrow(summary(fm)$coefficients)
          lop$NoBrick <- nT + 2 # 2 ICC values: one for avefage and one for contrast
       } else {
-         lop$nF      <- nrow(anova(fm))    # total number of F-stat
+         lop$nF      <- nrow(anova(fm, type=lop$SStype))    # total number of F-stat
          nT          <- 2*lop$num_glt
          lop$NoBrick <- lop$nF + nT + lop$num_glf
       }
@@ -1260,7 +1303,7 @@ if(lop$TRR) {
    for(n in 1:nrow(summary(fm)$coefficients)) 
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt", par=NULL)))
 } else {
-   brickNames <- paste(rownames(anova(fm)), 'Chi-sq')
+   brickNames <- paste(rownames(anova(fm, type=lop$SStype)), 'Chi-sq')
    if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
       brickNames <- append(brickNames, lop$gltLabel[n])
       brickNames <- append(brickNames, paste(lop$gltLabel[n], "Z"))
