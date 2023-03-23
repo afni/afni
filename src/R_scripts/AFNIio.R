@@ -371,7 +371,7 @@ parse.AFNI.name.selectors <- function(filename,verb=0) {
    n$insel<- NULL;
    
    #Get last occurrence of selectors
-   #Modifed function to keep names such as
+   #Modified function to keep names such as
    # 'path/[something]/{other}/from_messing_up+orig[select]{ors}<sets>' ZSS Happy Lunar Year 2022
    ll <- strsplit(filename, split='')[[1]]
    llim <- length(ll)
@@ -3041,7 +3041,7 @@ unparse.c.AFNI.head <- function (nel) {
 
 
 
-#A funtion to create an AFNI header string 
+#A function to create an AFNI header string 
 AFNIheaderpart <- function(type, name, value) {
  a <- "\n"
  a <- paste(a, "type = ", type, "\n", sep="")
