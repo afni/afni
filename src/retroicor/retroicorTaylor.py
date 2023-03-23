@@ -28,7 +28,7 @@ if __name__ == "__main__":
         sys.exit()
 
     # parameters['OutDir'] = OutDir
-    if RET.ouputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
+    if RET.outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         print('** ERROR outputting SliBase file')
         sys.exit()
     
