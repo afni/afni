@@ -1,4 +1,4 @@
-#!/usr/bin/env AFNI_Batch_R
+!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -192,7 +192,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                   \\
           -mask myMask+tlrc                       \\
           -model  'emotion*RT+(RT|Subj)'          \\
-          -SS_type 2                              \\
+          -SS_type 3                              \\
           -bounds -2 2                            \\
           -qVars  'RT'                            \\
           -qVarCenters 0                          \\
@@ -231,7 +231,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                       \\
           -mask myMask+tlrc                           \\
           -model  'emotion+(1|Subj)+(1|site)'         \\
-          -SS_type 1                                  \\
+          -SS_type 3                                  \\
           -bounds -2 2                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
@@ -265,7 +265,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                                                           \\
           -mask myMask+tlrc                                                               \\
           -model  'group*emotion*type+age+(1|Subj)+(1/Subj:emotion)+(1|Subj:type)'        \\
-          -SS_type 2                                                                      \\
+          -SS_type 3                                                                      \\
           -bounds -2 2                                                                    \\
           -gltCode pat.pos      'gruop : 1*patient emotion : 1*pos'                       \\
           -gltCode pat.neg      'gruop : 1*patient emotion : 1*neg'                       \\
