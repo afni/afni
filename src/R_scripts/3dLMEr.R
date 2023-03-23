@@ -9,7 +9,7 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dLMEr'
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dLMEr Input functions ################################
@@ -313,7 +313,7 @@ Introduction
   0.5 with the option -qVars 'cond'. Code subject and session as factor
   labels with labels. Below is an example of the data table. There is no 
   need to add backslash at the end of each line. If sub-brick selector
-  is used, do NOT use gziped files (otherwise the file reading time would
+  is used, do NOT use gzipped files (otherwise the file reading time would
   be too long) and do NOT add quotes around the square brackets [] for the
   sub-brick selector.
  
