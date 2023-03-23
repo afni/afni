@@ -283,7 +283,7 @@ def db_cmd_tcat(proc, block):
 
     if proc.have_sels: selstr = "while applying volume selectors"
     else:              selstr = "while removing the first %d TRs" % first
-       
+
 
     cmd = cmd + "# %s\n"                                                \
                 "# apply 3dTcat to copy input dsets to results dir,\n"  \
