@@ -65,7 +65,7 @@ Usage: ~1~
  A data table in pure text format is needed as input for an MBA script. The
  data table should contain at least 4 columns that specify the information
  about subjects, region pairs and the response variable values with the
- following fixed header. The header lables are case-sensitive, and their order
+ following fixed header. The header labels are case-sensitive, and their order
  does not matter.
 
  Subj   ROI1   ROI2   Y      Age 
@@ -251,7 +251,7 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    subject region1 region2  zscore  sex group
    S1      DMNLAG  DMNLHC 0.274   F  patient
    S1      DMNLAG  DMNPCC 0.443   F  patient
-   S2      DMNLAG  DMNRAG 0.455   M  contorl
+   S2      DMNLAG  DMNRAG 0.455   M  control
    S2      DMNLAG  DMNRHC 0.265   M  control
    ...
 
@@ -351,7 +351,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         chain will be assigned with 6 threads.\n", sep='\n')),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
-   "-verb VERB: Speicify verbose level.\n", sep = '\n'
+   "-verb VERB: Specify verbose level.\n", sep = '\n'
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
@@ -737,7 +737,7 @@ outDF(summary(lop$dataTable$ROI2), lop$outFN)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR*(nR-1)/2 < nrow(lop$dataTable))
-   stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to toally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR*(nR-1)/2, nlevels(lop$dataTable$Subj)*nR*(nR-1)/2, nrow(lop$dataTable)))
+   stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR*(nR-1)/2, nlevels(lop$dataTable$Subj)*nR*(nR-1)/2, nrow(lop$dataTable)))
 
 lop$EOIq <- strsplit(lop$qVars, '\\,')[[1]]
 if(!('Intercept' %in% lop$EOIq)) lop$EOIq <- c('Intercept', lop$EOIq)
@@ -924,7 +924,7 @@ ww <- function(aa, bb, tm, nR) {
 }
 # ps <- ww(aa, bb, 'Intercept', nR)
 
-# obtain summary informatin of posterior samples for RPs
+# obtain summary information of posterior samples for RPs
 vv <- function(ps, ns, nR) {
   mm <- apply(ps, c(2,3), mean)
   for(ii in 1:nR) for(jj in 1:nR) ps[,ii,jj] <- sqrt(2)*(ps[,ii,jj] - mm[ii,jj]) + mm[ii,jj]
@@ -975,9 +975,9 @@ require(corrplot)
 
 addTrans <- function(color,trans)
 {
-  # This function adds transparancy to a color.
-  # Define transparancy with an integer between 0 and 255
-  # 0 being fully transparant and 255 being fully visable
+  # This function adds transparency to a color.
+  # Define transparency with an integer between 0 and 255
+  # 0 being fully transparent and 255 being fully visible
   # Works with either color and trans a vector of equal length,
   # or one of the two of length 1.
 

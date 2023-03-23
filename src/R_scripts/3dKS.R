@@ -98,7 +98,7 @@ read.AFNI <- function(filename) {
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned character or short
   if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
     dim(myttt) <- c(dx,dy,dz,dt)
@@ -250,7 +250,7 @@ outFNexist <- TRUE
 while (outFNexist) {
    outFN <- readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
    if(file.exists(paste(outFN,"+orig.HEAD", sep="")) || file.exists(paste(outFN,"+tlrc.HEAD", sep=""))) {
-      print("File exsists! Try a different name.")
+      print("File exists! Try a different name.")
       outFNexist <- TRUE
    } else outFNexist <- FALSE }
 outFN <- paste(outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet

@@ -317,7 +317,7 @@ read.TRR.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
-   "-verb VERB: Speicify verbose level.\n", sep = '\n'
+   "-verb VERB: Specify verbose level.\n", sep = '\n'
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
@@ -764,7 +764,7 @@ if(is.null(lop$cond)) { # single effect
    cat(sprintf('Population-level average effect between the two conditions: mean - %f; sd - %f',
       mean((pE[,1]+pE[,2])/2), sd((pE[,1]+pE[,2])/2)),
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   cat(sprintf('TRR across the two repetions: mode - %f;', lp),
+   cat(sprintf('TRR across the two repetitions: mode - %f;', lp),
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat(sprintf('TRR: 95%% highest density interval - [%f, %f]', lq[1], lq[2]),
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
