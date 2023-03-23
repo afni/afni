@@ -258,7 +258,7 @@ The input file 'myData.txt' is formatted as below:
 subject region  zscore  sex group
 S1      DMNLAG  0.274    F  patient
 S1      DMNLHC  0.443    F  patient
-S2      DMNRAG  0.455    M  contorl
+S2      DMNRAG  0.455    M  control
 S2      DMNRHC  0.265    M  control
 ...
 
@@ -557,7 +557,7 @@ params <- list (
 #   "         parallelization can be used to speed up runtime. To take advantage of",
 #   "         this feature, you need the following: 1) at least 8 or more CPUs; 2)",
 #   "         install 'cmdstan'; 3) install 'cmdstanr'. The default (the absence of the",
-#   "         option '-StanPath') means that 'cmdstan' is under the home directroy:",
+#   "         option '-StanPath') means that 'cmdstan' is under the home directory:",
 #   "         '~/'; otherwise, explicictly indicate the path as, for example, ",
 #   "         '-StanPath \"~/here/is/myStanPath\"'.\n", sep='\n')),
 
@@ -803,7 +803,7 @@ if(is.na(lop$mean)) {
    outDF(summary(lop$dataTable[[lop$ROI]]), lop$outFN)
    
    if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
-stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to toally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
+stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to totally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
 }
 
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -883,7 +883,7 @@ ptm <- proc.time()
 
 ##### model formulation #####
 
-#if(is.na(lop)[1]) { # specfically for ROI-type modeling
+#if(is.na(lop)[1]) { # specifically for ROI-type modeling
 if(is.na(lop$mean)) {
   if(is.null(lop$se))  { # model without standard errors
     if(!is.na(lop$distROI) & lop$distROI == 'student') {
@@ -1045,9 +1045,9 @@ sumROI <- function(R0, ns, nd) {
 
 addTrans <- function(color,trans)
 {
-  # This function adds transparancy to a color.
-  # Define transparancy with an integer between 0 and 255
-  # 0 being fully transparant and 255 being fully visable
+  # This function adds transparency to a color.
+  # Define transparency with an integer between 0 and 255
+  # 0 being fully transparent and 255 being fully visible
   # Works with either color and trans a vector of equal length,
   # or one of the two of length 1.
 
