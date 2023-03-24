@@ -288,7 +288,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 14, Apr, 2022, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_BUG_FIX,
-   "Replacement was not occuring if ROIs were purged by modal smoothing.",
+   "Replacement was not occurring if ROIs were purged by modal smoothing.",
    "Fixed that bug, hopefully improving robustness to such error in future.\n"
 },
 
@@ -383,7 +383,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 25, Jan , 2022 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
-   "Add in existin chauffeur options: -no_cor, -no_axi, -no_sag.",
+   "Add in existing chauffeur options: -no_cor, -no_axi, -no_sag.",
    "For APQC---vorig of initial overlap.\n"
 },
 
@@ -1283,12 +1283,12 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
-   "1dplot.py improved for backward compatability to Python 2.7.",
+   "1dplot.py improved for backward compatibility to Python 2.7.",
    "So, for task FMRI, individual stim label plots work again in Py2.7.\n"
 },
 
 { 11, May , 2021 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
-   "Replace str.isnumeric() with str.isdigit(), for backward compatability.",
+   "Replace str.isnumeric() with str.isdigit(), for backward compatibility.",
    "Python 2.7 didn't have that method for str type.\n"
 },
 
@@ -1328,12 +1328,12 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
-   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "This program has been superseded by: adjunct_apqc_tsnr_general.",
    "The new version is more... general.\n"
 },
 
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
-   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "This program has been superseded by: adjunct_apqc_tsnr_general.",
    "The new version is more... general.\n"
 },
 
@@ -2104,7 +2104,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 22, Feb , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
    "Temporary files now have a random string in their prefix.",
-   "Thus, can have multiple runs in same directory simultaneously sans probleme.\n"
+   "Thus, can have multiple runs in same directory simultaneously sans problem.\n"
 },
 
 { 22, Feb , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
@@ -2274,7 +2274,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 14, Nov , 2019 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "New opt:  '-make_rank_dsets ..', bc *rank* dsets no longer make by def.",
-   "The *REN* dsets should be used instead; opt just for back compatability.\n"
+   "The *REN* dsets should be used instead; opt just for back compatibility.\n"
 },
 
 { 23, Oct , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_PROG,
@@ -2473,7 +2473,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 16, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
-   "Fix incompatability with py2.",
+   "Fix incompatibility with py2.",
    "Sigh.\n"
 },
 
@@ -3298,7 +3298,7 @@ afni_history_struct ptaylor_history[] = {
 } ,
 
 { 11, Aug , 2017 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
-   "Change a '>>' to '>' for wider compatability.",
+   "Change a '>>' to '>' for wider compatibility.",
    "Yup.\n"
 },
 
@@ -3463,7 +3463,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 27, Jan , 2017 , PT , "3dDWItoDT" , MICRO , TYPE_NEW_OPT,
-   "Miniscule new option, '-bmatrix_FULL' to have clearer usage.",
+   "Minuscule new option, '-bmatrix_FULL' to have clearer usage.",
    "Just copies functionality of cryptic '-bmatrix_Z'.\n"
 },
 
@@ -3818,7 +3818,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 15, Dec , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_OPT,
-   "Make a subset of an ROI by choosing maximal neighoring values.",
+   "Make a subset of an ROI by choosing maximal neighboring values.",
    "Start with peak value, add neighboring max until N voxels selected.\n"
 },
 
@@ -3871,7 +3871,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 8, Sep , 2014 , PT , "fat_mvm_scripter.py" , SUPER , TYPE_NEW_PROG,
    "Connect FATCAT with 3dMVM-- write a basic command call to 3dMVM.",
-   "User specificies specific model, and awaaaay we go.\n"
+   "User specifies specific model, and awaaaay we go.\n"
 },
 
 { 8, Sep , 2014 , PT , "fat_mvm_gridconv.py" , SUPER , TYPE_NEW_PROG,
@@ -4068,7 +4068,7 @@ afni_history_struct ptaylor_history[] = {
    "Putting together old deterministic and probabilistic programs into 1.",
    "Unifying tracking, will be easier to update/improve in future."
    "For deterministic tracking, allow networks of target ROIs for tracking,"
-   "as well as bunding outputs for SUMA network/matrix viewing."
+   "as well as bundling outputs for SUMA network/matrix viewing."
    "New option as well, `-mini_prob', to have some probabilistic aspect to"
    "deterministic/tract-based output."
 },

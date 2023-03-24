@@ -7,7 +7,7 @@
 
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
-                  (optional) long descrption with intermediate newlines
+                  (optional) long description with intermediate newlines
 
     copy entire section: { ... } ,
 
@@ -203,7 +203,7 @@ afni_history_struct rwcox_history[] = {
  { 15 , MAR , 2021 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
    "Add -wprefix option" ,
    "This option will write out the computed warp for each sub-brick. Mostly\n"
-   "for Zhark's curiousity." } ,
+   "for Zhark's curiosity." } ,
 
  { 13 , MAR , 2021 , RWC , "parser.f" , MICRO , TYPE_BUG_FIX ,
    "non-NUL terminated FORMAT string" ,
@@ -345,7 +345,7 @@ afni_history_struct rwcox_history[] = {
 
  { 24 , FEB , 2020 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "Add -warpscale option" ,
-   "To scale the warp displacments down at each level, for experimentation." } ,
+   "To scale the warp displacements down at each level, for experimentation." } ,
 
  { 14 , FEB , 2020 , RWC , "afni GUI" , MINOR , TYPE_BUG_FIX ,
    "Get Atlas Colors working again" ,
@@ -628,7 +628,7 @@ afni_history_struct rwcox_history[] = {
    "Simpler specification of pthr=RANGE" ,
    "pthr=0.01/0.001/10 is the same as\n"
    "pthr=0.01,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
-   "Implemented via NIML's NI_decode_float_list(), so also availble in some\n"
+   "Implemented via NIML's NI_decode_float_list(), so also available in some\n"
    "other places -- which I can't be bothered to look for at this moment." } ,
 
  { 4 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
@@ -1311,7 +1311,7 @@ afni_history_struct rwcox_history[] = {
    NULL } ,
 
  { 29 , SEP , 2016 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
-   "-NEW25 is a slightly more agressive approach" ,
+   "-NEW25 is a slightly more aggressive approach" ,
    "(a) uses 25 point running median instead of 9 for pre-filtering\n"
    "(b) sets cut2=3.2 (4 MADs) instead of 4.0 (5 MADs)" } ,
 
@@ -1644,7 +1644,7 @@ afni_history_struct rwcox_history[] = {
    "Allow minpatch to go as low as 5." ,
    "Of course, such a small patch will be VERY slow indeed.  Also, bring out\n"
    "of hiding the '-ballopt' option, which changes the optimization strategy\n"
-   "somewhat -- allowing for larger displacments in the incremental warps." } ,
+   "somewhat -- allowing for larger displacements in the incremental warps." } ,
 
  { 26 , OCT , 2015 , RWC , "afni Clusterize" , MAJOR , TYPE_ENHANCE ,
    "Allow user to use multiple (up to 4) Aux datasets for Plot/Save" ,
@@ -2227,7 +2227,7 @@ afni_history_struct rwcox_history[] = {
    "to extend the warp before using it, so as to deal with peculiar results\n"
    "with non-padded inverse warps from 3dQwarp when there was a big\n"
    "displacement via '-allin'.  Speaking of which, I also extended the\n"
-   "zero-padding in 3dQwarp to allow for the large displacments.  By\n"
+   "zero-padding in 3dQwarp to allow for the large displacements.  By\n"
    "default, WARP outputs from 3dQwarp are not truncated any more, but can\n"
    "be with the new '-nopadWARP' option.  Next up -- changes to\n"
    "@toMNI_Qwarpar to allow for collections of warps that may be on\n"
@@ -2861,7 +2861,7 @@ afni_history_struct rwcox_history[] = {
    "dmBLOCK now defaults to peak=0 ==> variable amplitude" ,
    "Former behavior is now achieved with dmBLOCK(1) ==> fixed amplitude.\n"
    "Also, the peak variable amplitude is now 1, rather than some annoying\n"
-   "value that means nothin to nobody nohow." } ,
+   "value that means nothing to nobody nohow." } ,
 
  { 2 , APR , 2012 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Add MIONN() function to repertoire (negative MION)" ,
@@ -2968,13 +2968,13 @@ afni_history_struct rwcox_history[] = {
  { 23 , DEC , 2011 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Allow user to append a string to the overlay label" ,
    "Via environment AFNI_IMAGE_LABEL_STRING or by a new item on the\n"
-   "intensity bar popup menu in the GUI -- the latter takes precendence. \n"
+   "intensity bar popup menu in the GUI -- the latter takes precedence. \n"
    "This is Ziad's Xmas present." } ,
 
  { 22 , DEC , 2011 , RWC , "afni realtime plugin" , MICRO , TYPE_NEW_ENV ,
    "AFNI_REALTIME_External_Dataset environment variable" ,
    "Lets the realtime user (let's call her/him 'CC') specify an external\n"
-   "dataset to be used as the registation base.  CC doesn't have to use a\n"
+   "dataset to be used as the registration base.  CC doesn't have to use a\n"
    "dataset that is in the cwd, unlike the plugin's GUI selector.  Nor does\n"
    "the setting of this environment variable affect the plugin's GUI." } ,
 
@@ -3081,7 +3081,7 @@ afni_history_struct rwcox_history[] = {
 
  { 7 , NOV , 2011 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
    "No -iresp or -sresp for dmBLOCK" ,
-   "Also, change defintion of 'near-duplicate' times from 0.05*TR to 0.50*TR" } ,
+   "Also, change definition of 'near-duplicate' times from 0.05*TR to 0.50*TR" } ,
 
  { 17 , OCT , 2011 , RWC , "3dhistog" , MICRO , TYPE_MODIFY ,
    "removed DOS ctrl-M's in file, they screwed things up for compiling" ,
@@ -3534,7 +3534,7 @@ afni_history_struct rwcox_history[] = {
    "Runs inside afni_logger, for Daniel Handwerker" } ,
 
  { 13 , DEC , 2010 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
-   "Add hexahedron volume warp to output of 3D warp displacments" ,
+   "Add hexahedron volume warp to output of 3D warp displacements" ,
    NULL } ,
 
  { 9 , DEC , 2010 , RWC , "@2dwarper.Allin" , MICRO , TYPE_GENERAL ,
@@ -3833,7 +3833,7 @@ afni_history_struct rwcox_history[] = {
    "Now will they stop bugging me?!  (of course not)" } ,
 
  { 12 , JUL , 2010 , RWC , "afni" , MINOR , TYPE_MODIFY ,
-   "Clusterize features modifed and enhanced" ,
+   "Clusterize features modified and enhanced" ,
    "1) Only NN clustering is now allowed in the AFNI Clusterize GUI, and so\n"
    "the only parameter left is the 'Voxels' count for the smallest cluster\n"
    "to retain.\n"
@@ -4699,7 +4699,7 @@ afni_history_struct rwcox_history[] = {
 
  { 9 , FEB , 2009 , RWC , "imseq.c" , MINOR , TYPE_NEW_ENV ,
    "Add AFNI_ANIM_DUP environment variable." ,
-   "Allows user to duplicate images when writting an animation (AGIF or\n"
+   "Allows user to duplicate images when writing an animation (AGIF or\n"
    "MPEG) file.  A simple and stoopid way to slow down an MPEG." } ,
 
  { 5 , FEB , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
@@ -5688,7 +5688,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 21,NOV,1996 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Incorporated the f2c (Fortran-to-C) convertor into the AFNI96\n"
+   "* Incorporated the f2c (Fortran-to-C) converter into the AFNI96\n"
    "   distribution, in a separate directory (f2cdir).  This allows\n"
    "   the use of the old 'parser.f' routines to compile and execute\n"
    "   user created expressions.\n"
@@ -5949,7 +5949,7 @@ afni_history_struct rwcox_history[] = {
   { 28,JUL,1997 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added new utility program '3drefit.c' to allow user to change\n"
    "   the axes stored in a dataset header.  This is mostly to\n"
-   "   fixup errors that may have occured at to3d time.\n"
+   "   fixup errors that may have occurred at to3d time.\n"
    "* Added -orient option to to3d.c (not that it is much use).\n"
    "* Fixed bug in 3dinfo.c, for printout of sub-brick scaling\n"
    "   factors when no statistics are present in the header.\n"
@@ -6289,7 +6289,7 @@ afni_history_struct rwcox_history[] = {
    "* Added new environment variable AFNI_BYTEORDER to control byte order\n"
    "   of output datasets.  This can be 'LSB_FIRST' or 'MSB_FIRST'.  If not\n"
    "   present, this means to use the native order of the CPU.\n"
-   "* Added enviroment variable 'AFNI_NOMMAP' to allow suppression of mmap.\n"
+   "* Added environment variable 'AFNI_NOMMAP' to allow suppression of mmap.\n"
    "   If the value is 'YES', then all datasets will be malloc-ed.\n"
    "* Modified the 'Purge Memory' button to purge ALL datasets from memory.\n"
    "   Formerly, it only purged the unused ones.\n"
@@ -6530,7 +6530,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 9,OCT,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifed afni.c and thd_fdbrick.c to allow the user to control the\n"
+   "* Modified afni.c and thd_fdbrick.c to allow the user to control the\n"
    "   image flipping -- that is, to let left be displayed on the left.\n"
    },
 
@@ -6799,7 +6799,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 15,FEB,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifed mri_render.c to change the way it deals with color volumes.\n"
+   "* Modified mri_render.c to change the way it deals with color volumes.\n"
    "* Modified plug_render.c to allow for color overlays.\n"
    "* Modified xim.c and display.c to deal with converting a RGB image\n"
    "   to an XImage in a more efficient way.\n"
@@ -7006,7 +7006,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 3,JUN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Fixed thd_info.c where it refered to brick labels that might not\n"
+   "* Fixed thd_info.c where it referred to brick labels that might not\n"
    "   exist -- now it uses the DSET_BRICK_LAB macro, which always works.\n"
    "* Fixed plug_realtime.c to add brick labels to the FIM dataset.\n"
    },
@@ -7039,7 +7039,7 @@ afni_history_struct rwcox_history[] = {
   { 15,JUN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Fixed afni_receive.c to return the proper 'key' value from function\n"
    "    AFNI_receive_init().\n"
-   "* Modifed plug_render.c to redisplay func dataset statistics after\n"
+   "* Modified plug_render.c to redisplay func dataset statistics after\n"
    "    receiving a drawing notice.\n"
    "* Modified afni_plugin.[ch] to crosscheck each plugin's compilation\n"
    "    date with AFNI's, and print a warning if they differ.\n"
@@ -7076,7 +7076,7 @@ afni_history_struct rwcox_history[] = {
    "   which was causing trouble on SunOS.\n"
    "* Line 2707 of afni_graph.c had an '==' for assignment, instead of '='.\n"
    "   The effect was a possible failure of the x-axis (xax_tsim) graphing\n"
-   "   mode.  I don't think this failure ever occured in practice.\n"
+   "   mode.  I don't think this failure ever occurred in practice.\n"
    },
 
   { 30,JUL,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -7127,7 +7127,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 23,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Added 1/N scaling option to csfft.c.  Modifed fftcheck.c accordingly.\n"
+   "* Added 1/N scaling option to csfft.c.  Modified fftcheck.c accordingly.\n"
    },
 
   { 29,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -7498,7 +7498,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 20,DEC,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified parser.f to remove the possibility of divison by zero in\n"
+   "* Modified parser.f to remove the possibility of division by zero in\n"
    "   the expression evaluation routines.\n"
    "* Modified display.[ch] and plug_render.c to allow 'non-mixing' of\n"
    "   colors displayed from rendering results.\n"
@@ -7512,7 +7512,7 @@ afni_history_struct rwcox_history[] = {
 
   { 3,JAN,2000 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3ddata.h to increase maximum number of datasets per directory\n"
-   "   to 512 anats and funcs (each), and max number of directorys to 80.\n"
+   "   to 512 anats and funcs (each), and max number of directories to 80.\n"
    "* Modified afni.h, afni_fimmer.c, afni_pcor.c, and afni_graph.c to\n"
    "   add '% From Top' option to FIM menus.\n"
    },
@@ -7941,7 +7941,7 @@ afni_history_struct rwcox_history[] = {
   { 29,SEP,2000 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified afni_graph.[ch] to move FIM and Opt menus onto private\n"
    "   menubars.  (Got rid of grapher->option_mbar everywhere.)\n"
-   "* Also put a Form inbetween the afni_graph shell and the drawing\n"
+   "* Also put a Form in between the afni_graph shell and the drawing\n"
    "   area.  The option_rowcol that holds all the menu buttons is\n"
    "   now a child of the Form, not the drawing area.  This makes\n"
    "   it possible to popup the menus with Button3 (the Button3\n"
@@ -7976,7 +7976,7 @@ afni_history_struct rwcox_history[] = {
    "   mode if montage spacing is 1.\n"
    "* Modified afni_graph.c to change grid when program alters pin_num\n"
    "   (but not when user does directly).\n"
-   "* Modifed plug_realtime.c to start work process after a timeout.\n"
+   "* Modified plug_realtime.c to start work process after a timeout.\n"
    "* Added PLUTO_register_timeout() afni_plugin.[ch], to execute a\n"
    "   function after a given number of ms.\n"
    },
@@ -8461,7 +8461,7 @@ afni_history_struct rwcox_history[] = {
    "* Added '-sum' and '-sqr' options to 3dMean.c.\n"
    "* Added program 1dsum.c.\n"
    "* Added machdep.c to do machine-dependent runtime startup (supplementing\n"
-   "   machine-dependent compiletime stuff in machdep.h).\n"
+   "   machine-dependent compile time stuff in machdep.h).\n"
    },
 
   { 20,APR,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -8639,7 +8639,7 @@ afni_history_struct rwcox_history[] = {
   { 13,JUL,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* OK, made afni_ttren.c work with the volume renderer.\n"
    "* Modified mcw_glob.c to only print warning message if allowed to.\n"
-   "   Modifed various codes that use MCW_file_expand() to turn such\n"
+   "   Modified various codes that use MCW_file_expand() to turn such\n"
    "   messages on or off, depending on what I feel like.\n"
    },
 
@@ -9018,7 +9018,7 @@ afni_history_struct rwcox_history[] = {
   { 26,OCT,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added THD_surefit_to_dicomm() to agni.[ch] (from Vecwarp.c).\n"
    "* Modified agni.c to allow SureFit coord files to be read directly\n"
-   "   using <SureFit coord=filname IDadd=number/> in .SURF file.\n"
+   "   using <SureFit coord=filename IDadd=number/> in .SURF file.\n"
    },
 
   { 29,OCT,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -9114,7 +9114,7 @@ afni_history_struct rwcox_history[] = {
 
   { 15,NOV,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added plot_strip.c to coxplot/, for doing timeseries plots with\n"
-   "   recyling back to the left when the graph is full.\n"
+   "   recycling back to the left when the graph is full.\n"
    "* Added OPEN_GRAPH_1D (etc.) to afni_driver.c.\n"
    "* Added cutoff() to afni_plugout.c when it closes a socket.\n"
    },
@@ -9618,7 +9618,7 @@ afni_history_struct rwcox_history[] = {
   { 28,MAY,2002 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified 3drefit.c to add -clear_bstat option.\n"
    "* Modified 3dAutomask.c to remove -fillin option.\n"
-   "* Modifed thd_automask.c to make fillin = brick size/60, and to make\n"
+   "* Modified thd_automask.c to make fillin = brick size/60, and to make\n"
    "   final mask = complement of largest component of zeros.\n"
    },
 
@@ -10006,7 +10006,7 @@ afni_history_struct rwcox_history[] = {
   { 2,DEC,2002 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified plug_crender.c to use mcw_graf.c stuff of 30,NOV,2002.\n"
    "* Modified mri_read_dicom.c to deal with Siemens Mosaic differently, to\n"
-   "   accomodate variations from NYU's Allegra scanner (vs. NIDA's).\n"
+   "   accommodate variations from NYU's Allegra scanner (vs. NIDA's).\n"
    "* Modified to3d.c to show NX x NY along with Datum in GUI.\n"
    },
 
@@ -10036,7 +10036,7 @@ afni_history_struct rwcox_history[] = {
    "* Modified imseq.c to save temporary files for animated GIF or MPEG\n"
    "   output with a random suffix, to avoid collisions if 2 copies\n"
    "   of AFNI (or aiv) are running.\n"
-   "* Modified niml.[ch] to allow definiton of 'NI_rowtypes' to make it easier\n"
+   "* Modified niml.[ch] to allow definition of 'NI_rowtypes' to make it easier\n"
    "   to deal with structs (with all fixed length elements, alas).\n"
    "* Modified nids.[ch] to deal with vectors of arbitrary NI_rowtype.\n"
    },
@@ -10533,7 +10533,7 @@ afni_history_struct rwcox_history[] = {
 
   { 30,APR,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified thd_intlist.c to let '{}' bound the list as well as '[]'.\n"
-   "* Modifed mri_read_1D() to use intlist of the form '{..}' to do row sub-selection,\n"
+   "* Modified mri_read_1D() to use intlist of the form '{..}' to do row sub-selection,\n"
    "   as well as the older '[..]' for column sub-selection.\n"
    "* Modified most programs that used mri_read_ascii() to read timeseries files to\n"
    "   use mri_read_1D() instead, so that the '{..}' feature can be supported.\n"
@@ -10661,7 +10661,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 18,JUL,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifed imseq.[ch] (etc.) to include a 'pen' box to turn on the 'pen drawing'\n"
+   "* Modified imseq.[ch] (etc.) to include a 'pen' box to turn on the 'pen drawing'\n"
    "   Button-1 mode (only available when drawing has been enabled).\n"
    },
 
@@ -11229,7 +11229,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 21,JUL,2004 , RWC , "Miscellaneous" , MINOR , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifed MCM_get_intlist() to print error messages when the user inputs\n"
+   "* Modified MCM_get_intlist() to print error messages when the user inputs\n"
    "   values off the top end of the range, instead of silently turning them\n"
    "   into the top (stupid users).\n"
    "* Modified afni_fimmer.c to correctly use scaling factors if present in\n"
@@ -11381,7 +11381,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 22,OCT,2004 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifed thd_shear3d.c to use true SVD in computing the rotation for\n"
+   "* Modified thd_shear3d.c to use true SVD in computing the rotation for\n"
    "   3dTagalign, rather than the symmetric eigensolution method.\n"
    },
 
@@ -11401,7 +11401,7 @@ afni_history_struct rwcox_history[] = {
 
   { 30,NOV,2004 , RWC , "Miscellaneous" , MAJOR , TYPE_GENERAL , "Older History stuff" ,
    "* First version of 3dWarpDrive released.\n"
-   "* 3dcalc now prints a warning if outputing a byte-valued dataset when the\n"
+   "* 3dcalc now prints a warning if outputting a byte-valued dataset when the\n"
    "   calculated results had some negative values.\n"
    },
 
@@ -12349,7 +12349,7 @@ afni_history_struct rwcox_history[] = {
 
   { 10,JAN,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified svd_double() in cs_symeig.c to sort singular values and vectors.\n"
-   "* Modifed 1dsvd.c to have a '-sort' option.\n"
+   "* Modified 1dsvd.c to have a '-sort' option.\n"
    },
 
   { 15,JAN,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -12562,7 +12562,7 @@ afni_history_struct rwcox_history[] = {
 
   { 27,MAR,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Help for cluster editing, and some rationalization (e.g., reset it when\n"
-   "   changing datasets, turn widgets off if it's not avaiable, et cetera).\n"
+   "   changing datasets, turn widgets off if it's not available, et cetera).\n"
    },
 
   { 3,APR,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -12625,7 +12625,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 1,JUN,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modifiy mri_dicom_hdr.c to use a larger buffer for RWC_printf() function,\n"
+   "* Modify mri_dicom_hdr.c to use a larger buffer for RWC_printf() function,\n"
    "   which may help with really big DICOM header files.\n"
    },
 
@@ -12975,7 +12975,7 @@ afni_history_struct rwcox_history[] = {
   { 24,JAN,2008 , RWC , "Miscellaneous" , MINOR , TYPE_NEW_OPT , "Older History stuff" ,
    "* Add FDR curve generation to 3dANOVA.lib, 3dNLfim, 3dRegana, 3dttest.\n"
    "* Fix little problems with AFNI threshold scale display as q-value alters.\n"
-   "* Fix bug in thd_mastery.c in assiging FDR curves to mastered sub-bricks.\n"
+   "* Fix bug in thd_mastery.c in assigning FDR curves to mastered sub-bricks.\n"
    "* Add '-killSTAT' option to 3drefit.\n"
    },
 
