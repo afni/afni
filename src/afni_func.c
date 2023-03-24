@@ -5903,7 +5903,7 @@ ENTRY("AFNI_write_dataset_CB") ;
                  "**        Original View.                          **\n"
                  "**   -- It isn't allowed to overwrite data that   **\n"
                  "**        is not warped from some other dataset.  **\n"
-                 "**   -- An internal program error has occurred!    **\n"
+                 "**   -- An internal program error has occurred!   **\n"
                  "****************************************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
@@ -8639,7 +8639,7 @@ static char *skit[NSKIT][3] = {
    "errant" ,        "dread-bolted" ,      "death-token" ,
    "fawning" ,       "earth-vexing" ,      "dewberry" ,
    "fobbing" ,       "elf-skinned" ,       "flap-dragon" ,
-   "forward" ,       "fat-kidneyed" ,      "flax-wench" ,
+   "froward" ,       "fat-kidneyed" ,      "flax-wench" ,
    "frothy" ,        "fen-sucked" ,        "flirt-gill" ,
    "gleeking" ,      "flap-mouthed" ,      "foot-licker" ,
    "goatish" ,       "fly-bitten" ,        "fustilarian" ,
