@@ -5884,7 +5884,7 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
-     /*** Optimzation is done, so do some cleanup and some output ***/
+     /*** Optimization is done, so do some cleanup and some output ***/
 
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */

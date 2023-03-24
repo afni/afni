@@ -251,7 +251,7 @@
 
   Mod:     Various checks for bad matrix input:
             * duplicate -stim_file input filenames
-            * collinear column pairs, and all zero columnns
+            * collinear column pairs, and all zero columns
             * matrix condition numbers
            Also - disable 3dDeconvolve_f (FLOATIZE)
   Date:    14 Jul 2004 - RWCox
@@ -7718,7 +7718,7 @@ void cubic_spline
         * c = NULL,
         * d = NULL;      /* cubic spline interpolation polynomial coefs. */
   float tslice;          /* slice acquisition time offset */
-  float tdelta;          /* time between same slice acquisitons */
+  float tdelta;          /* time between same slice acquisitions */
   float frac;            /* fraction of interval for slice acq. time offset */
   int k;                 /* interval to use for interpolation */
   float t;               /* time in fractions of TR */
