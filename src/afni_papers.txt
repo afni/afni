@@ -152,7 +152,7 @@ SJ Gotts, WK Simmons, LA Milbury, GL Wallace, RW Cox, A Martin.
   Brain, 135: 2711-2725, 2012.
 
   * In our humble opinion, this shows how to use resting state FMRI correctly when
-    making inter-group comparisons (hint: no global signal regresssion is used).
+    making inter-group comparisons (hint: no global signal regression is used).
   * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3437021/
   * https://dx.doi.org/10.1093/brain/aws160
 ----------------------------------------------------------------------------
