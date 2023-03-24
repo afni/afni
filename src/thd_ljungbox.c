@@ -3,7 +3,7 @@
 /*----------------------------------------------------------------------------*/
 /* Compute the Ljung-Box statistic on uneven (censored) data.
    The true time index of the i-th point is tau[i].
-   However, if tau==NULL, code asssumes tau[i] = i (no censoring).
+   However, if tau==NULL, code assumes tau[i] = i (no censoring).
    See the next function ljung_box_zcens() if you are interested
    in censoring via input val[i] = 0.0 instead of supplying tau.
      -- RWCox - 21 Jan 2020

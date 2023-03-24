@@ -270,7 +270,7 @@ FILE * COMPRESS_fopen_read( char * fname )
 
    mm = COMPRESS_filecode( fname ) ;  /* find compression mode */
 
-   if( mm == COMPRESS_NOFILE ) return NULL ;  /* can't do nothin */
+   if( mm == COMPRESS_NOFILE ) return NULL ;  /* can't do nothing */
 
    if( mm == COMPRESS_NONE ){
       fp = fopen(fname,"r") ;   /* open it normally */

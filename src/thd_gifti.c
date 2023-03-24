@@ -1536,7 +1536,7 @@ static int nifti_get_min_max_posn(void * vdata, int nitype, int len,
 }
 
 /* append 2 floats and ints to str, subject to total length, len,
-   and pre-pended with sep */
+   and prepended with sep */
 static int append_vals(char ** str, int * len, char * sep,
                            float f1, float f2, int i1, int i2)
 {
