@@ -2331,7 +2331,7 @@ typedef struct {
   float xmid , ymid , zmid ;     /* middle of the knots */
   float xscl , yscl , zscl ;     /* scale reciprocal of the knots */
   float *xknot, *yknot, *zknot ; /* each is an nknot-long vector */
-  dmat44 Qmat ;                  /* 4x4 Q matrix for linear coefficents */
+  dmat44 Qmat ;                  /* 4x4 Q matrix for linear coefficients */
   rcmat *Lmat ;                  /* Choleski factor of M matrix */
   int uselin ;                   /* using linear coefficients? */
   float *P0, *Px , *Py , *Pz ;   /* each is an nknot-long vector */

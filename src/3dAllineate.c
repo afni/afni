@@ -507,7 +507,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "  writes it out, and stops.\n"
      "\n"
      "* If you are curious about the stepwise process used, see the section below\n"
-     "  titled 'SUMMARY of the Default Allineation Process'.\n"
+     "  titled: SUMMARY of the Default Allineation Process.\n"
      "\n"
      "=====----------------------------------------------------------------------\n"
      "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -6852,7 +6852,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does a litte extra general smoothing. --*/
+          then the Gaussian filter does a little extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */

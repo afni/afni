@@ -162,7 +162,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does a litte extra general smoothing. --*/
+          then the Gaussian filter does a little extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;         /* make a mask */
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;

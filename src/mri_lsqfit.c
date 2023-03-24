@@ -276,7 +276,7 @@ float * lsqfit( int veclen ,
    to delayed_lsqfit.  If wt != NULL, then ref[ii][jj] is
    scaled by wt[jj] as well.
 
-   If NULL is returned, an error occured.
+   If NULL is returned, an error occurred.
 ------------------------------------------------------------------*/
 
 double * startup_lsqfit( int veclen ,

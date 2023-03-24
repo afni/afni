@@ -257,7 +257,7 @@ void TCAT_read_opts( int argc , char *argv[] )
 
           cpt = strstr(fexp[ee],"[") ;  /* look for the sub-brick selector */
 
-          subv = NULL;   /* Need to resest this variable ZSS Nov. 24 2010 */
+          subv = NULL;   /* Need to reset this variable ZSS Nov. 24 2010 */
           if( cpt == NULL ){              /* no selector */
             strcpy(dname,fexp[ee]) ;
           } else if( cpt == fexp[ee] ){ /* can't be at start!*/
