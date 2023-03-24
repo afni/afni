@@ -134,7 +134,10 @@ if __name__ == "__main__":
     {}
     '''.format( tobetable ) 
 
-    ht+= lah.wrap_page_title( AATI.title, "task_name", AATI.subj,
+    # NB: someday, xstudy can be the task_name, likely from a uvar and
+    # field in page_title_json
+    ht+= lah.wrap_page_title( AATI.title, AATI.subj,
+                              xstudy='task_name',
                               vpad=1,
                               blockid=AATI.blockid,
                               padmarg=PADMARG_VAL )

@@ -1943,8 +1943,13 @@ function translateBtn1TextToJsonRating( tt ) {
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 
-def wrap_page_title( xtitle, xstudy, xsubj, 
+def wrap_page_title( xtitle, xsubj, xstudy='',
                      vpad=0, addclass="", blockid='', padmarg=0 ):
+
+
+    txt_study = ''
+    if xstudy :
+        txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
 
     # start the first div on the page
     y = '''<div class="div_pad_class">'''
@@ -1962,16 +1967,15 @@ def wrap_page_title( xtitle, xstudy, xsubj,
     y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">'''.format(padmarg)
 
     y+= '''
-    <h1><center> {} <center></h1></div>
+    <h1><center> {title} <center></h1></div>
 
 <div style="text-align: center;">
-    <div style="display: inline-block; text-align: left;">
-    <pre><h2>subj: {}</h2></pre>
-    <pre><h3>task: {}</h3></pre>
-
-    </div>
+  <div style="display: inline-block; text-align: left;">
+    <pre><h2>subj: {subj}</h2></pre>
+    {txt_study}
+  </div>
 </div>
-'''.format( xtitle, xsubj, xstudy )
+'''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
 
 
 
