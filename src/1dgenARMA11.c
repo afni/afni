@@ -86,7 +86,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
@@ -157,7 +157,7 @@ rcmat * rcmat_arma_gen( int nt, int *tau, doublevec *corvec )
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
