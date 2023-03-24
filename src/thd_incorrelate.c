@@ -184,7 +184,7 @@ ENTRY("create_INCORR_BLOK_set") ;
 
      /* balls go on a hexagonal close packed lattice,
         but with lattice spacing reduced to avoid gaps
-        (of course, then the balls overlap -- c'est la geometry) */
+        (of course, then the balls overlap -- c'est la geometrie) */
 
      case GA_BLOK_BALL:{
        float s3=1.73205f ,           /* sqrt(3) */
