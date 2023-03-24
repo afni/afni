@@ -217,7 +217,7 @@ Main is defined. That was nice and dandy when only afni and whereami
 used them. Now, every main has a use for them since input datasets
 can be a string referring to a particular atlas zone. So they were
 added to libmri.a and accessible without restrictions. libmri.a and other
-binaries are fatter as a result. But you dont' get nothin for nothin.
+binaries are fatter as a result. But you don't get nothing for nothing.
 ZSS Feb. 2006 with a nod of approval by RickR */
 /* TTatlas by Jack Lancaster and Peter Fox */
 #define TTO_COUNT_HARD 241
@@ -8412,7 +8412,7 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar, ATLAS_LIST *atlas_list)
 
    if (!shar) RETURN(maskset);
    if (strlen(shar) < 3) RETURN(maskset);
-   Set_ROI_String_Decode_Verbosity(0); /* must be discreet here */
+   Set_ROI_String_Decode_Verbosity(0); /* must be discrete here */
 
    if (!(aar = ROI_String_Decode(shar, atlas_list))) {
       if (LocalHead) ERROR_message("ROI string decoding failed.");

@@ -62,7 +62,7 @@ double ljung_box_uneven( int nval , int hh , double *val , int *tau )
      }
    }
    gsum *= nval*(nval+2.0) ;
-   if( gsum > 1.e+10 ) gsum = 1.e+10 ;             /* in case of trubble */
+   if( gsum > 1.e+10 ) gsum = 1.e+10 ;             /* in case of trouble */
 
    free(nj) ; free(sumk) ;
    return gsum ;
