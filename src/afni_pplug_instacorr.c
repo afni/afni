@@ -228,9 +228,11 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
    /* only the first 4 of these methods is available to a "normal" user */
+   /* [PT] should do Euclidian -> Euclidean, *if* that doesn't break 
+      anything */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
-                                    "BCpearson" , "VCpearson", "Euclidean",
+                                    "BCpearson" , "VCpearson", "Euclidian",
                                     "CityBlock" , "Quantile:9" } ;
    char sk[32] , sc[32] ;
    int gblur = AFNI_yesenv("AFNI_INSTACORR_SEEDBLUR") ;
