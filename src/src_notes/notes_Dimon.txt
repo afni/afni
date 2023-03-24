@@ -47,7 +47,6 @@ general outline of Dimon main()
             - quit, whine or read_image_files()
 
 
-
 states:
    IFM_FSTATE_TO_READ      - ready to read image
                            - set at start of read_image_files()
@@ -134,7 +133,7 @@ Sorting images make_sorted_fim_list():
             - sort by state (if diff, return compare_by_num_suff)
             - same state:
                - if state != TO_PROC, sort by findex
-               - else, return compre_by_num_suff()
+               - else, return compare_by_num_suff()
                compare_by_num_suff()
                   - if diff, sort
                   - else sort alphabetically

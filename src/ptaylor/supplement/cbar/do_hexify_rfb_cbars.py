@@ -124,7 +124,7 @@ return a string that can be directly put into AFNI's pbardefs.h.
 if __name__ == "__main__" :
 
     # get list of cmap files, simply by name (with the parts of the
-    # name used for globbing here stripped to findout cbar name)
+    # name used for globbing here stripped to find out cbar name)
     all_cmap_files = glob.glob("cmap_rgb_*.txt")
     all_cmap_files.sort()
     

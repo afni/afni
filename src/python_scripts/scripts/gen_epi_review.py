@@ -235,7 +235,7 @@ class GenEPIReview:
                         acplist=['axial','coronal','sagittal'],
                         helpstr='choose afni image windows to display')
 
-        # corrdinate arguments
+        # coordinate arguments
         self.valid_opts.add_opt('-im_size', 2, [],
                         helpstr='image size, in pixels (2 integers)')
         self.valid_opts.add_opt('-im_xoff', 1, [],

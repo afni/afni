@@ -120,8 +120,8 @@ g_uvar_dict = {
    'paired'             : 'specify whether this is a paired test (yes/no)',
    'mask'               : 'specify mask dataset for computation',
 
-   'tt_options'         : 'specify extra optins for 3dttest++ command',
-   'MM_options'         : 'specify extra optins for 3dMEMA command'
+   'tt_options'         : 'specify extra options for 3dttest++ command',
+   'MM_options'         : 'specify extra options for 3dMEMA command'
 
    #'tt_cov_file'        : '',
    #'tt_center_meth'     : '',

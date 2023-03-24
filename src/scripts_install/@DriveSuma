@@ -46,7 +46,7 @@ cd $outdir
         sleep 3; set l = `prompt_user -pause \
 "The script will pop up messages informing of the upcoming DriveSuma commands.\n\
 Those commands will be echoed in the shell from which this script was run.\n\
-After reading and acknowledging the notice for the upcomming command, take\n\
+After reading and acknowledging the notice for the upcoming command, take\n\
 a look at the shell to get a better understanding of DriveSuma's syntax.\n\
 You should also take a look at @DriveAfni and @DO.examples \n\n\
 Note that SUMA will be alive and well during this exercise, \n\
@@ -87,7 +87,7 @@ just for kicks'`; if ( $l == '0') goto STEND
 #viewer_cont action
        sleep 3; set l = `prompt_user -pause \
        'The next commands control the viewer.   \n\
-The syntax of the commands is intended to mimick what you \n\
+The syntax of the commands is intended to mimic what you \n\
 press with the mouse or click on the keyboard when running SUMA interactively.'` 
       if ( $l == '0') goto STEND
 

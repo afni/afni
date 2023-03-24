@@ -118,7 +118,7 @@ def get_param_combinations(*params, r_list=None):
     # only be a single key used for the options)
     verify_parameters_structure(params)
 
-    # Sort the param tuples lexigraphically by their cmd flag option.
+    # Sort the param tuples lexicographically by their cmd flag option.
     params = sorted(params, key=lambda x: x[1][option_key])
     cmd_flags = [y[1][option_key] for y in params]
 

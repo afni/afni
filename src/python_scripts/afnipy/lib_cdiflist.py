@@ -76,7 +76,7 @@ RUNNING ~1~
                  output by GE scanners when acquiring DWIs and has the
                  following format:
                  + first line is 1 number, which is the number of grads N
-                   used in the aquisition
+                   used in the acquisition
                  + N rows of 3 values each, which relate to the gradient
                    direction+strength (but they are *not* directly the 
                    grads themselves)

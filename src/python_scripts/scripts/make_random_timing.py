@@ -4079,7 +4079,7 @@ class RandTiming:
        #
        # Run and event indexes describe all oclass events (to be changed).
        # Then the list can be appropriately shuffled, and assigned in equally
-       # sized sets to the new clases.
+       # sized sets to the new classes.
        nnewe = (osc.nreps * self.num_runs) // nnewc
        eind_list = []
 

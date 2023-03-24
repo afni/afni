@@ -631,8 +631,8 @@ the same space as the input volume:
 
     + Three refaced/defaced volumes:
       1) a "defaced" volume (face+ears replaced with zeros)
-      2) a "refaced" volume (face+ears replaced with artifical values) 
-      3) a "reface_plused" volume (face+ears+skull replaced with artifical
+      2) a "refaced" volume (face+ears replaced with artificial values) 
+      3) a "reface_plused" volume (face+ears+skull replaced with artificial
          values)
 
     + Two face-replacing volumes:
@@ -749,8 +749,8 @@ the current/atlases directory.  Or just ask for more info on the
 Message Board.
 
 
-Author  - The Face of Imperial Zhark, Who is Terrible to Behold!
-Modifer - PA Taylor
+Author   - The Face of Imperial Zhark, Who is Terrible to Behold!
+Modifier - PA Taylor
 
 EXAMPLES ~1~
 
