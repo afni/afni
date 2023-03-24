@@ -2287,7 +2287,7 @@ static char *readme_env[] = {
    "-----------------------------\n" ,
    "The AFNI threshold sliders (in the Define Overlay control panels and\n" ,
    "the Render Dataset plugins) are divided into 10000 steps from bottom\n" ,
-   "to top. If you click in the through or use the PageUp/PageDown keys,\n" ,
+   "to top. If you click in the trough or use the PageUp/PageDown keys,\n" ,
    "the default action is to move the slider 10 of the steps at once.\n" ,
    "(The up and down arrow keys move 1 step at a time.)  You can change\n" ,
    "this big step from the default of 10 to any value between 1 and 1000\n" ,
