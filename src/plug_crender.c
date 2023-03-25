@@ -9129,7 +9129,7 @@ ENTRY( "RCREND_rotmatrix_to_angles" );
 /*==========================================================================*/
 
 /*--------------------------------------------------------------------------
- * compute spacial crosshair points, given axis grid
+ * compute spatial crosshair points, given axis grid
  *--------------------------------------------------------------------------
  */
 static int get_xhair_points( CR_xhairs * pts, THD_3dim_dataset * dset )
