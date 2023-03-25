@@ -210,7 +210,7 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
     learn_parm->sharedslack=1;
   }
   else {
-    printf("\nUnknown type '%s': Valid types are 'c' (classification), 'r' regession, and 'p' preference ranking.\n",type);
+    printf("\nUnknown type '%s': Valid types are 'c' (classification), 'r' regression, and 'p' preference ranking.\n",type);
     wait_any_key();
     print_help();
     exit(0);
@@ -315,7 +315,7 @@ void print_help()
   printf("         -w [0..]    -> epsilon width of tube for regression\n");
   printf("                        (default 0.1)\n");
   printf("         -j float    -> Cost: cost-factor, by which training errors on\n");
-  printf("                        positive examples outweight errors on negative\n");
+  printf("                        positive examples outweigh errors on negative\n");
   printf("                        examples (default 1) (see [4])\n");
   printf("         -b [0,1]    -> use biased hyperplane (i.e. x*w+b>0) instead\n");
   printf("                        of unbiased hyperplane (i.e. x*w>0) (default 1)\n");

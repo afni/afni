@@ -92,14 +92,14 @@ int main (int argc, char* argv[])
       free_example(doc,1);
     }
     if(dist>0) {
-      if(pred_format==0) { /* old weired output format */
+      if(pred_format==0) { /* old weird output format */
 	fprintf(predfl,"%.8g:+1 %.8g:-1\n",dist,-dist);
       }
       if(doc_label>0) correct++; else incorrect++;
       if(doc_label>0) res_a++; else res_b++;
     }
     else {
-      if(pred_format==0) { /* old weired output format */
+      if(pred_format==0) { /* old weird output format */
 	fprintf(predfl,"%.8g:-1 %.8g:+1\n",-dist,dist);
       }
       if(doc_label<0) correct++; else incorrect++;
