@@ -1903,7 +1903,7 @@ ENTRY("IW3D_to_dataset") ;
 
    if( AA == NULL ) RETURN(NULL) ;
 
-   /* we need the geometry string to know how to contstruct the dataset */
+   /* we need the geometry string to know how to construct the dataset */
 
    if( AA->geomstring == NULL ){
      char *gstr = EDIT_imat_to_geometry_string(AA->imat,AA->nx,AA->ny,AA->nz) ;
