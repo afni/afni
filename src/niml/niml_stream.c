@@ -185,7 +185,13 @@ static void tcp_sigurg_handler( int sig )
 
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
-  See http://www.manually.sk/sock-faq/unix-socket-faq.html for info.
+  See http://www.manualy.sk/sock-faq/unix-socket-faq.html for info.
+  [PT: Mar 25, 2023] NB: the above link does not currently resolve.
+  From searching online, perhaps this is the modern form (or at least 
+  something analogously useful), which appears to exist in a couple
+  different places:
+  http://www.faqs.org/faqs/unix-faq/socket/
+  https://web.fe.up.pt/~jmcruz/etc/sockets/unix-socket-faq.html
 *********************************************************************/
 
 /*-------------------------------------------------------------------*/
