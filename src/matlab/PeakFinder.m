@@ -370,7 +370,7 @@ function h = analytic_signal(vi, windwidth, percover, win),
    return
 
 function [bli, ble, num] = fftsegs (ww, po, nv)
-% Returns the segements that are to be used for fft
+% Returns the segments that are to be used for fft
 % calculations.
 %  ww: Segment width (in number of samples)
 %  po: Percent segment overlap
