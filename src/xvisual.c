@@ -89,7 +89,7 @@ int main( int argc , char * argv[] )
         XVisualInfo     vinfo;          /* template for find visual */
         Visual          *vis ;          /* the Visual itself */
         XVisualInfo     *vinfo_list;    /* returned list of visuals */
-        int             count;          /* number of matchs (only 1?) */
+        int             count;          /* number of matches (only 1?) */
         int             vid , stat ;
         Widget          fred , fff ;
 
