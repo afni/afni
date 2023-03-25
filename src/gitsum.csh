@@ -130,7 +130,7 @@ foreach uuu ( $alist $blist1 $blist2 )
 end
 set gunk = ( $gunk -e scripts_install -e imnotamember -e CircleCI )
 
-# will acccumulate all unknown lines in to one file, for later research
+# will accumulate all unknown lines in to one file, for later research
 if( -f gitsum.unknown.txt ) \rm -f gitsum.unknown.txt
 touch gitsum.unknown.txt
 
