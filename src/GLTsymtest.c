@@ -18,7 +18,7 @@ int main( int argc , char *argv[] )
 "      -badonly : output only BAD messages, rather than all\n"
 "\n"
 "* 'varlist' is a list of allowed variable names in the expression.\n"
-"  These names can be separated by commands, semicolons, and/or\n"
+"  These names can be separated by commas, semicolons, and/or\n"
 "  spaces (varlist would have to be in quotes if it contains spaces).\n"
 "\n"
 "* Each 'expr' is a GLT symbolic expression, which should be in quotes\n"
