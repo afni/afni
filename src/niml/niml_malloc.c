@@ -617,7 +617,7 @@ NI_dpr("hidden_NI_realloc: called from %s#%d\n",fnam,lnum) ;
 }
 
 /*-----------------------------------------------------------------
-    The actual replacment for free()
+    The actual replacement for free()
 -------------------------------------------------------------------*/
 
 void hidden_NI_free( void *fred , char *fnam , int lnum )
