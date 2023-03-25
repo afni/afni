@@ -188,12 +188,12 @@ void clear_vector_n(double *vec, long int n)
   for(i=0;i<=n;i++) vec[i]=0;
 }
 
-void add_vector_ns(double *vec_n, WORD *vec_s, double factor)
+void add_vector_ns(double *vec_n, WORD *vec_s, double faktor)
 {
   register WORD *ai;
   ai=vec_s;
   while (ai->wnum) {
-    vec_n[ai->wnum]+=(factor*ai->weight);
+    vec_n[ai->wnum]+=(faktor*ai->weight);
     ai++;
   }
 }
