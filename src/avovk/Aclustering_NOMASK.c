@@ -473,7 +473,7 @@ void example_kmeans( int nrows, int ncols,
 
    /* call function to calculate distance between each voxel and centroid */
    /* we will need: 
-      count - number of elements in cluster as we allready have it
+      count - number of elements in cluster as we already have it
       cdata - cluster centroids
       clusterid
       data */

@@ -81,7 +81,7 @@ static void display_help(int detail)
           "                 volumes. Default is the same as jobname\n"
           "                 There are two output volumes, one for the cluster\n"
           "                 membership and one with distance measures.\n"
-          "                 The distance dataset, mostly for debugging puposes\n"
+          "                 The distance dataset, mostly for debugging purposes\n"
           "                 is formatted as follows:\n"
           "                 Sub-brick 0: Dc = 100*(1-Ci)+100*Di/(Dmax)\n"
           "                 with Ci the cluster number for voxel i, Di the \n"
