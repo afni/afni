@@ -35,7 +35,7 @@ FuncName = 'isint';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 fv = fix(v);
 df = v - fv;
 if (~df),

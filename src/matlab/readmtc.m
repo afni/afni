@@ -3,7 +3,7 @@ function mtc = readmtc (filename, o1d)
 % Read BrainVoyager's mesh time course (mtc) files
 % filename: name of .mtc file
 % o1d: (optional), name of output .1D (AFNI's text format output) version
-% mtc: output stucture with contents of filename
+% mtc: output structure with contents of filename
 %
 % By ZSS, SSCC/NIMH/NIH
 % based on Hester's positing at
