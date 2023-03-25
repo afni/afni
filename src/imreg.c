@@ -284,7 +284,7 @@ void REG_syntax(void)
     "                    align the images.  The optional :0 indicates to\n"
     "                    skip the iteration of the method, and to use the\n"
     "                    simpler linear differential spatial alignment method.\n"
-    "                    ACCURACY: displacments of at most a few pixels.\n"
+    "                    ACCURACY: displacements of at most a few pixels.\n"
     "                *** This is the default method (without the :0).\n"
     "\n"
 
