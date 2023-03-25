@@ -292,7 +292,7 @@ HELP:
    echo "         4 Pearson correlation, abs value"
    echo "         5 Spearman's rank correlation"
    echo "         6 Kendall's tau"
-   echo "         7 Euclidian distance"
+   echo "         7 Euclidean distance"
    echo "         8 City block distance"
    echo ""
    echo "Examples:"
