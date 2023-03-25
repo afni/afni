@@ -497,7 +497,7 @@ def padassign(x, L):
     '''Move an assignment operator '=' rightward to a new index L, if it
 exists to the left; if it exists to the right of that spot, or if it
 doesn't appear in that string, just return the original string.  If
-multiple occurences of '=' occur in a string, just return original.
+multiple occurrences of '=' occur in a string, just return original.
 
     '''
     
@@ -505,7 +505,7 @@ multiple occurences of '=' occur in a string, just return original.
     if not('=' in x):
         return x
 
-    # check if multiple occurences
+    # check if multiple occurrences
     if x.count('=') > 1:
         return x
 
@@ -2409,7 +2409,7 @@ def apqc_gen_mask2final( obase, qcb, qci, ulay, focusbox ):
     return '\n\n'.join(lout)
 
 
-# complicated/tiered depedencies...
+# complicated/tiered dependencies...
 def apqc_regr_corr_errts( obase, qcb, qci, 
                           ulay, focusbox, corr_brain ):
 
@@ -2546,7 +2546,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
 
 #-------------------------------------------------------------------------
 
-# complicated/tiered depedencies...
+# complicated/tiered dependencies...
 def apqc_vstat_seedcorr( obase, qcb, qci, 
                          ulay, focusbox,     # bc some flexibility in usage
                          seed, count=0,
