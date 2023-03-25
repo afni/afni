@@ -340,7 +340,7 @@ void SUMA_NI_set_double(NI_element *nel, char *attrname, double n)
 }
 
 /*! 
-   \brief A function to calulate shortest distance on a graph,
+   \brief A function to calculate shortest distance on a graph,
    and return the path corresponding to the short distance without
    relying on the SurfaceObject structure.
    
