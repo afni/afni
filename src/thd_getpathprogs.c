@@ -187,7 +187,7 @@ ENTRY("THD_find_regular_file") ;
    Do not free returned pointer
    Empty string means nothing was found
    if altpath is not NULL, and nimlname does not
-   have an absolute path, altpath is considere before diving into the
+   have an absolute path, altpath is considered before diving into the
    default locations
 */
 char *find_afni_file(char * nimlname, int niname, char *altpath)
@@ -1047,7 +1047,7 @@ int check_for_opt_in_prog_opts(char *prog, char *opt)
 
 /* 
    Return 1 if program uprog has option option opt
-          0 otherwsise
+          0 otherwise
    
    The function first checks if the program has an
    entry in array poptslist from file prog_opts.c included above.
@@ -1138,7 +1138,7 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
             #endif
             break;
           case -2:
-            ERROR_message("Nonesense here?");
+            ERROR_message("Nonsense here?");
             break;
       }
    

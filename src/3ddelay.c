@@ -425,7 +425,7 @@ void initialize_options
    option_data->NLast  = 32767;
    option_data->polort = -1;
 
-   /* Left over from 3dfim+.c remove inthe future, with care !*/
+   /* Left over from 3dfim+.c remove in the future, with care !*/
    option_data->num_ortts = 0;
    option_data->num_idealts = 0;
    option_data->N      = 0;

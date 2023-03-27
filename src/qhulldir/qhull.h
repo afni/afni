@@ -3,7 +3,7 @@
 
    qhull.h
 
-   Proxy for libqhull.h for backwards compatability
+   Proxy for libqhull.h for backwards compatibility
 
    copyright (c) 1993-2010 The Geometry Center.
    $Id$$Change: 1188 $

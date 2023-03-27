@@ -253,7 +253,7 @@ int main( int argc , char *argv[] )
          printf("\nRUN %02d:\t  %s .. %s\t",nrun,gnam_I[ibot],gnam_I[itop-1]) ;
          /* check for skipped slices [assume 1st 2 slices are OK] */
          
-         if (0) /* intial method */
+         if (0) /* initial method */
             {/* [[ this algorithm could use some thought!  ]] */
             /* [[ maybe compute median delta-zoff?        ]] */
             /* [[ what about 1 or 2 slice imaging runs?   ]] */
@@ -1177,7 +1177,7 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 
 
 /*
- * Extend the gl_pathv member of a glob_t structure to accomodate a new item,
+ * Extend the gl_pathv member of a glob_t structure to accommodate a new item,
  * add the new item, and update gl_pathc.
  *
  * This assumes the BSD realloc, which only copies the block when its size

@@ -2636,7 +2636,7 @@ void write_afni_data
       bot_ss =  0;
     }
   else
-    RA_error ("Illegal ouput dataset function type");
+    RA_error ("Illegal output dataset function type");
   
   top = top_ss / func_scale_short;
   bot = bot_ss / func_scale_short;

@@ -53,7 +53,7 @@ AFNI*purge:		False
 
 !! Whether to use the "big" Talairach box, which
 !! extends 10 mm more inferior than the AFNI 1.0x
-!! to accomodate the cerebellum.
+!! to accommodate the cerebellum.
 AFNI*tlrc_big:		True
 
 !! Whether or not to use periodic montage layouts.

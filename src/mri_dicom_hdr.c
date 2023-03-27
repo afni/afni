@@ -4675,7 +4675,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 	case DCM_US:
 	case DCM_OW:
 	    /*
-	     * Temorary hack by Nilesh to support memory mapping for testing
+	     * Temporary hack by Nilesh to support memory mapping for testing
 	     * purposes.
 	     */
 	    length &= ~1;

@@ -68,7 +68,7 @@ static char * newstuff[] = {
    "     .HEAD file.  It will then compare that order to the CPU order,\n" ,
    "     and if necessary, swap the bytes as it read the .BRIK file into\n" ,
    "     memory.  This is intended to make it simpler to use AFNI datasets\n" ,
-   "     in a clustered enviroment with different types of computers.\n" ,
+   "     in a clustered environment with different types of computers.\n" ,
    "   Plugin 'ROI Average' does pretty much the same thing as program\n" ,
    "     3dmaskave, so that you can now get ROI statistics interactively.\n" ,
    "   Program '3dcalc' can now take as input a time series file '*.1D'\n" ,

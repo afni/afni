@@ -13,7 +13,7 @@ static char *get_MAC_addr(void) ;  /* prototype */
 /*! Return a globally unique string (I hope).  This can be hashed to
     produce a unique idcode (cf. UNIQ_idcode and UUID_idcode).
 
-  Method: Generate a string from the system identfier information and
+  Method: Generate a string from the system identifier information and
           the current time of day.  The output string is malloc()-ed,
           and should be free()-ed when no longer needed.
 
@@ -109,7 +109,7 @@ URR_DONE: ;
   it could be used as a temporary filename.  Repeated calls to this
   function should never return the same string.
 
-  Method: Generate a string from the system identfier information and
+  Method: Generate a string from the system identifier information and
           the current time of day. MD5 hash this to a 128 byte code.
           Base64 encode this to a 22 byte string. Replace '/' with '-'
           and '+' with '_'. Add 4 character prefix (1st 3 characters

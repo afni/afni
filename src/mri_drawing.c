@@ -657,10 +657,10 @@ void ppmd_text(byte *pixels, int cols, int rows,
 			    int tx1, ty1, tx2, ty2;
 
                             /* Note that up until this  moment  we've  been
-			       working	in  an	arbitrary model co-ordinate
+			       working	in  an	arbitrary model coordinate
 			       system with  fixed  size  and  no  rotation.
 			       Before  drawing	the  stroke,  transform  to
-			       viewing co-ordinates to	honour	the  height
+			       viewing coordinates to	honour	the  height
 			       and angle specifications. */
 
 			    mx1 = (lx * height) / Scalef;

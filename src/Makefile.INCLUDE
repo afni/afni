@@ -1760,7 +1760,7 @@ sparse_array.o:sparse_array.c sparse_array.h
 	$(RM) $@
 	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
 
-# This one doens't need OpenMP, but goes with other RCC progs
+# This one doesn't need OpenMP, but goes with other RCC progs
 3dsvm_linpredict:3dsvm_linpredict.o
 	$(RM) $@
 	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)

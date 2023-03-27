@@ -41,7 +41,7 @@ FuncName = 'CheckBrikHEAD';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 ErrMessage = '';
@@ -120,7 +120,7 @@ end
 
 
 
-%Further Field specfic checks
+%Further Field specific checks
 	%For Mandatory Fields
 		if (Info.DATASET_RANK(1) ~= 3),
 			err = 1; ErrMessage = sprintf('Error %s: DATASET_RANK(1) must be 3', FuncName); errordlg(ErrMessage); return;

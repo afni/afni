@@ -1079,7 +1079,7 @@ transp_frame_data(Gif_Stream *gfs, Gif_Image *gfi, byte *map)
 static void
 create_new_image_data(Gif_Stream *gfs, int optimize_level)
 {
-  Gif_Image cur_unopt_gfi;	/* placehoder; maintains pre-optimization
+  Gif_Image cur_unopt_gfi;	/* placeholder; maintains pre-optimization
 				   image size so we can apply background
 				   disposal */
   int screen_size = screen_width * screen_height;

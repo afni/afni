@@ -275,7 +275,7 @@ ENTRY("THD_open_analyze") ;
       static int nwarn=0 ;
       ori = "LPI"; /* set default LPI */
       if( nwarn < 1 ){
-        WARNING_message("Assuming ANALYZE orientaion is LPI.\n"
+        WARNING_message("Assuming ANALYZE orientation is LPI.\n"
                         "++    To change orientation or silence this message,\n"
                         "++    Set AFNI_ANALYZE_ORIENT to the proper orientation\n"
                         "++    in your .afnirc file.\n"

@@ -2576,7 +2576,7 @@ int main( int argc , char *argv[] )
      MRI_IMARR *impr ;
      int cdebug = AFNI_yesenv("3dGroupInCorr_DEBUG") ;
 
-     /* simmple tests to gaurd against stoopid users [am there any other kind?] */
+     /* simple tests */
 
      if( shd_AAA->dslab == NULL ){
        ERROR_message("GIC: Can't use covariates, since setA doesn't have dataset labels!") ;

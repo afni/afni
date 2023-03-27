@@ -64,7 +64,7 @@ function [err] = FigPrint (Opt, colopt)
 %Define the function name for easy referencing
 FuncName = 'FigPrint';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %Set up the default Options

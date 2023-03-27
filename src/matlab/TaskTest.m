@@ -34,7 +34,7 @@ FuncName = 'TaskTest';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %Create a matrix so that 3dDeconvolve uses for regressor test.

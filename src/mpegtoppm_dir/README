@@ -125,7 +125,7 @@ There are several places where we could easily use some help:
 	project using it has had to figure things out by looking at
 	the header files, at the mpeg2dec sample application, and by
 	asking questions. Writing down a nice documentation would make
-	the code more easily reuseable.
+	the code more easily reusable.
 
       *	Testing: If you find any stream that does not decode right
 	with libmpeg2, let us know ! The best thing would be to mail

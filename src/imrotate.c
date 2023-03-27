@@ -21,7 +21,7 @@ int main( int argc , char *argv[] )
               "  dy pixels downwards\n"
               "  phi degrees clockwise\n"
               "  -linear means to use bilinear interpolation (default is bicubic)\n"
-              "  -Fourier means to use Fourier interpolaion\n"
+              "  -Fourier means to use Fourier interpolation\n"
               "Values outside the input_image are taken to be zero.\n" ) ;
       exit(0) ;
    }

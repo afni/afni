@@ -143,7 +143,7 @@ int main( int argc , char * argv[] )
 
    machdep() ;
 
-   /* 28 Feb 2003: scan for -ps flage NOW */
+   /* 28 Feb 2003: scan for -ps flag NOW */
 
    for( jj=1 ; jj < argc ; jj++ )
      if( strcmp(argv[jj],"-ps") == 0 ){ out_ps = 1; break; }

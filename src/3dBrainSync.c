@@ -608,7 +608,7 @@ MEMORY_CHECK("b") ;
 
    svd_double( m , m , amat , sval , umat , vmat ) ;
 
-   /* since sval is otherwise unused, sort it so largest are firstest */
+   /* since sval is otherwise unused, sort it so largest are first */
 
    for( ii=0 ; ii < m ; ii++ ) sval[ii] = -sval[ii] ;
    qsort_double( m , sval ) ;

@@ -88,7 +88,7 @@ ENTRY("mean_vector") ;
 
 /*----------------------------------------------------------------------------*/
 /* If you can't figure out what this does without help, please
-   back away slowly from the code and take up competive toenail clipping.
+   back away slowly from the code and take up competitive toenail clipping.
 *//*--------------------------------------------------------------------------*/
 
 static int is_allzero( int nf , float *ff )

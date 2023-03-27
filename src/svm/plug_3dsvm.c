@@ -1385,7 +1385,7 @@ void svm_rt_callback(void *junk)
       else {
         /* should never get here */
         snprintf(rt_errorString, LONG_STRING, 
-            "What happend?! Real-time train type is unknown!");
+            "What happened?! Real-time train type is unknown!");
         fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
@@ -1455,7 +1455,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   GLOBAL_svm_vars.bucket_predict = 0;
 
   /* Cameron cradock to let us now if initializations from the BEGIN
-     phase of the callback have occured */
+     phase of the callback have occurred */
   GLOBAL_svm_vars.initialized = 0;
  
   /* --- setting global afni callback function to be invoked as
@@ -1522,7 +1522,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
         /* first lets open the dataset */
         if(( bucket = THD_open_dataset( options->modelWeightFile )) == NULL )
         {
-            snprintf( errorString, LONG_STRING, "Could not open bucket datset: %s!",
+            snprintf( errorString, LONG_STRING, "Could not open bucket dataset: %s!",
                        options->modelWeightFile );
             free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
             return 1;

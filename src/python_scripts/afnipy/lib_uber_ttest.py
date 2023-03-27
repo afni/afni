@@ -629,7 +629,7 @@ helpstr_gui = """
 ===========================================================================
 uber_ttest.py (GUI)      - a graphical interface for group t-tests
 
-   Generate and run 3dttest++/3dMEMA tcsh scripts for group ttests.
+   Generate and run 3dttest++/3dMEMA tcsh scripts for group t-tests.
 
    purpose:
         o to run simple group tests (t-test or related MEMA)

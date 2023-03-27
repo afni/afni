@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
        "    #(A uni B) = number of voxels in the either or both masks (set union)\n"
        "    #(A int B) = number of voxels present in BOTH masks (set intersection)\n"
        "    #(A \\ B)   = number of voxels in A mask that aren't in B mask\n"
-       "    #(B \\ A)   = number of voxels in B mask that arent' in A mask\n"
+       "    #(B \\ A)   = number of voxels in B mask that aren't in A mask\n"
        "    %%(A \\ B)   = percentage of voxels from A mask that aren't in B mask\n"
        "    %%(B \\ A)   = percentage of voxels from B mask that aren't in A mask\n"
        "    Rx(B/A)    = radius of gyration of B mask / A mask, in x direction\n"

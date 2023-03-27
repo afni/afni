@@ -38,7 +38,7 @@ FuncName = 'GroupAna.m';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 clear all;
@@ -115,7 +115,7 @@ switch NF
    fprintf('\n\tType 1: Factorial (crossed) design AXB - both factors are fixed.\n');
    fprintf('\n\tType 2: Factorial (crossed) design AXB - factor A is fixed while B is random. If B is subject, it is');
 	fprintf('\n\t        usually called 1-way design with A varying within subject. Notice: It is inappropriate to');
-	fprintf('\n\t        run any constrasts including mean estimates and differences for factor B with this design type.\n');
+	fprintf('\n\t        run any contrasts including mean estimates and differences for factor B with this design type.\n');
    fprintf('\n\tType 3: Factorial (crossed) design AXB - both factors are random.\n');	
 
    case 3,
@@ -123,7 +123,7 @@ switch NF
 	fprintf('\n\tType 1: Factorial (crossed) design AXBXC - all factors are fixed.\n');
    fprintf('\n\tType 2: Factorial (crossed) design AXBXC - factors A and B are fixed while C is random. If C is subject, it is');
 	fprintf('\n\t        usually called 2-way design with A and B varying within subject. Notice: It is inappropriate to');
-	fprintf('\n\t        run any constrast tests including mean estimates and differences for factor C with this design type.\n');
+	fprintf('\n\t        run any contrast tests including mean estimates and differences for factor C with this design type.\n');
 	fprintf('\n\tType 3: Mixed design BXC(A)              - A and B are fixed while C (usually subject) is random and nested within A.\n');
 	fprintf('\n\tType 4: Mixed design BXC(A)              - Fixed factor C is nested within fixed factor A while B (usually subject) is random.\n');
 
@@ -259,7 +259,7 @@ if (unbalanced.yes == 1),
 	   FL(NF).N_level = 0;		
 	   fprintf(2, '\nLabel for No. %i ', NF);
 	   FL(NF).expr = input('factor: ', 's');     % Label this unbalanced factor
-%		fprintf(2, '\nNote: Since this is a nested design the label for levels (usuall subject names) of factor No. %i (%c - %s)', NF, 64+NF, FL(NF).expr);
+%		fprintf(2, '\nNote: Since this is a nested design the label for levels (usually subject names) of factor No. %i (%c - %s)', NF, 64+NF, FL(NF).expr);
 %		fprintf(2, '\nhas to be DIFFERENT for each level of factor %c (%s)!!!\n\n', 64+1, FL(1).expr);
  	
  	   flag = 0;
@@ -1497,7 +1497,7 @@ end
 
 for (i = 1:1:NF),
    if (i == NF & cov.do),
-	   group(NF) = {cov.vec'};    % Convert the cloumn into one row
+	   group(NF) = {cov.vec'};    % Convert the column into one row
       varnames(NF) = {cov.label};
    else
       group(i) = {GP(i,:)};
@@ -1724,7 +1724,7 @@ for (sn = 1:1:slices),
    	end
 	end
 
-	if (file_format == 0),   % Each file contains mutliple subbriks from one subject
+	if (file_format == 0),   % Each file contains multiple subbriks from one subject
 %   fprintf(1,'\nReading slice #%d from %d input files... ', sn, file_num);
 		Opt.Slices = sn;   % Right now just try once slice
 	% Create a subbrik array. Here we assume the first file_SB subbriks are for ANOVA. Need to change for general situation?
@@ -1746,7 +1746,7 @@ for (sn = 1:1:slices),
 	      	X(:, :, (file(i).F1L-1)*file_SB*FL(4).N_level + (SB(j).lv(1)-1)*FL(3).N_level*FL(4).N_level + ...
 			   	(SB(j).lv(2)-1)*FL(4).N_level + file(i).cntr(file(i).F1L)) = tmp(:, :, (i-1)*file_SB+j);		
 		   end
-			else fprintf(2,'Sorry, I cannot handle mutliple subbriks for this case. \n');
+			else fprintf(2,'Sorry, I cannot handle multiple subbriks for this case. \n');
 			   while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 	      end
 					
@@ -1754,7 +1754,7 @@ for (sn = 1:1:slices),
 
 	% Here we run 4-way ANOVA one slice a time due to swap memory issue. In matrix tmp, the first two
 	% dimensions are voxels along X and Y axes while the 4th dimension is subbrik tacked together for
-	% each subject. We need to shuffle the 4th dimension in tmp so that the 4th dimention is arranged
+	% each subject. We need to shuffle the 4th dimension in tmp so that the 4th dimension is arranged
 	% in the following order: varying 4th factor first, then 3rd, then 2nd and 1st factors.
 	
 	% 1st factor: (file(i).F1L-1)*file_SB*FL(4).N_level
@@ -1763,7 +1763,7 @@ for (sn = 1:1:slices),
 	% 4th factor: file(i).cntr(file(i).F1L)
 	
 %			X(:, :, :, (i-1)*file_SB*FL(1).N_level + (j-1)*FL(3).N_level*FL(4).N_level + (k-1)*FL(4).N_level + l)	
-% Here i, j, k, and l are indeces for 1st, 2nd, 3rd and 4th factor levels.
+% Here i, j, k, and l are indices for 1st, 2nd, 3rd and 4th factor levels.
 
 % file_SB = FL(3).N_level*FL(2).N_level   Maybe I should set a checking condition to make sure this equality does hold?
 

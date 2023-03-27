@@ -63,7 +63,7 @@ Tmask * create_Tmask( int nx, int ny, int nz, byte * vol )
    For values outside the range of vol[], im[] is set to 0.
 
    The five interpolation routines that follow are:
-     _nn   = nearest neigbhor "interpolation"
+     _nn   = nearest neighbor "interpolation"
      _lifl = linear interpolation, with floating point arithmetic
      _liby = linear interpolation, with byte arithmetic
      _ts   = two-step interpolation

@@ -1386,7 +1386,7 @@ int main( int argc , char *argv[] )
 "  the correlations as in (Lohmann et. al. 2010), or by adding one\n"
 "  and dividing by two (Wink et al. 2012). \n\n"
 "  Calculating the first eigenvector of a whole-brain similarity matrix\n"
-"  requires alot of system memory and time. 3dECM uses the optimizations\n"
+"  requires a lot of system memory and time. 3dECM uses the optimizations\n"
 "  described in (Wink et al 2012) to improve performance. It additionally\n"
 "  provides a mechanism for limited the amount of system memory used to\n"
 "  avoid memory related crashes.\n\n"
@@ -1469,7 +1469,7 @@ int main( int argc , char *argv[] )
 "  -prefix p   = Save output into dataset with prefix 'p'\n"
 "                [default prefix is 'ecm'].\n"
 "\n"
-"  -memory G   = Calculating eignevector centrality can consume alot\n"
+"  -memory G   = Calculating eignevector centrality can consume a lot\n"
 "                of memory. If unchecked this can crash a computer\n"
 "                or cause it to hang. If the memory hits this limit\n"
 "                the tool will error out, rather than affecting the\n"
@@ -1617,7 +1617,7 @@ int main( int argc , char *argv[] )
     if( nopt >= argc ) ERROR_EXIT_CC("Need a dataset on command line!?") ;
     xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
 
-    /* Check fast method isnt enabled with non-compatible options */
+    /* Check fast method isn't enabled with non-compatible options */
     if (( do_fecm == 1 ) && ((do_sparsity == 1) || (do_thresh == 1) || (do_full == 1)))
     {
         WARNING_message( "Cannot use FECM, with -sparsity, -thresh,"
