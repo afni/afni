@@ -1288,7 +1288,7 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
          }
       } while (el != dlist_tail(sv->SelAdo));
 
-      nn = ii; /* in case we had null nonesense */
+      nn = ii; /* in case we had null nonsense */
       if (!nn) {
          SUMA_LH("Nothing good in here");
          SUMA_ifree(ssv); SUMA_ifree(Pxyz); SUMA_ifree(Sxyz);
