@@ -1,7 +1,7 @@
 [codespell]
 # connexe.c -- too much French influence
 # f2c,XmHTML -- came from others
-skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c,venvs,f2c,XmHTML
+skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c,venvs,f2c,XmHTML,mri_dicom_hdr.c
 # file with ignores (ATM all shorts found by codespell)
 ignore-words = .codespell-ignores
 # Individual words if so desired to be added
