@@ -13,4 +13,4 @@ ignore-words = .codespell-ignores
 # degress - typo which was acknowledged in history etc, fixed some manually
 # ALLO -- all o's in Makefile
 # Cushin,shs -- vars etc in SUMA
-ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress,allo,normall,cushin,shs
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress,allo,normall,cushin,shs,Groupe
