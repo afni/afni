@@ -189,7 +189,7 @@ struct _GLUTwindow {
   int damaged;          /* is layer damaged by expose? */
 #define GLUT_MAX_MENUS              3
 
-  int menu[GLUT_MAX_MENUS];  /* attatched menu nums */
+  int menu[GLUT_MAX_MENUS];  /* attached menu nums */
   /* Window relationship state. */
   GLUTwindow *parent;   /* parent window */
   GLUTwindow *children; /* list of children */

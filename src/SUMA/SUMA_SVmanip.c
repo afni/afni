@@ -239,7 +239,7 @@ float SUMA_sv_auto_fov(SUMA_SurfaceViewer *sv)
                break; }
             case CDOM_type: {
                xyzr = SUMA_CIFTI_DO_XYZ_Range(
-	             	(SUMA_CIFTI_DO*)SUMAg_DOv[Vis_IDs[i]].OP, NULL);
+                        (SUMA_CIFTI_DO*)SUMAg_DOv[Vis_IDs[i]].OP, NULL);
                if (minv[0] > maxv[0]) { /* init */
                   for (k=0; k<3; ++k) {
                      minv[k] = xyzr[2*k];
@@ -487,7 +487,7 @@ int SUMA_SetObjectDisplayOrder(char *ord, int *otseq)
          if (sar->str[iii]) deblank_name(sar->str[iii]);
          if (sar->str[iii]) {
             bad = 0;
-                   if (!strncasecmp(sar->str[iii],"sur", 3)) {
+            if (!strncasecmp(sar->str[iii],"sur", 3)) {
                if (!used[SO_type]) {
                   otseq[cnt++] = SO_type;
                   used[SO_type] = 1;
@@ -1817,29 +1817,29 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
       SUMA_CIFTI_DO *CO=NULL;
       int ksub;
       if ((CO = SUMA_find_CIFTI_subdom_container(DO_idstr, &ksub, NULL, 0))) {
-      	 /* search again to find the pointer to the colorlist of the entire
-	 CIFTI domain */
-	 Found = NOPE;
-      	 i = 0;
-      	 while (!Found && i < sv->N_ColList) {
-      	    if (strcmp (ADO_ID((SUMA_ALL_DO *)CO),
-	                sv->ColList[i]->idcode_str) == 0) {
+         /* search again to find the pointer to the colorlist of the entire
+         CIFTI domain */
+         Found = NOPE;
+         i = 0;
+         while (!Found && i < sv->N_ColList) {
+            if (strcmp (ADO_ID((SUMA_ALL_DO *)CO),
+                        sv->ColList[i]->idcode_str) == 0) {
                Found = YUP;
-	    } else ++i;
-	 }
+            } else ++i;
+         }
          if (Found) {
-	    GLfloat *glc=NULL;
-	    SUMA_LH(
-	       "Found CIFTI container's colorlist for id %s, offset of 4*%d",
-	            DO_idstr, SUMA_CIFTI_SubDomFullOffset(CO, ksub));
+            GLfloat *glc=NULL;
+            SUMA_LH(
+               "Found CIFTI container's colorlist for id %s, offset of 4*%d",
+                    DO_idstr, SUMA_CIFTI_SubDomFullOffset(CO, ksub));
 
-	    /* Now return the pointer offset to the sub-domain */
-	    glc = SUMA_GetColorListPtr(sv->ColList[i])+
-	             	      	       4*SUMA_CIFTI_SubDomFullOffset(CO, ksub);
-	    SUMA_RETURN(glc);
-	 } else {
-	    SUMA_LH("Found cobwebs");
-	 }
+            /* Now return the pointer offset to the sub-domain */
+            glc = SUMA_GetColorListPtr(sv->ColList[i])+
+                                       4*SUMA_CIFTI_SubDomFullOffset(CO, ksub);
+            SUMA_RETURN(glc);
+         } else {
+            SUMA_LH("Found cobwebs");
+         }
       }
    }
    #endif
@@ -2860,15 +2860,15 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
             TotWeight += VO_NVOX(VO);
             break; }
          case CDOM_type: {
-	    int kkk;
-	    xyzr = SUMA_ADO_Center((SUMA_ALL_DO *)dov[do_id].OP, NULL);
+            int kkk;
+            xyzr = SUMA_ADO_Center((SUMA_ALL_DO *)dov[do_id].OP, NULL);
             kkk = SUMA_ADO_N_Datum((SUMA_ALL_DO *)dov[do_id].OP);
             NewCenter[0] += kkk*xyzr[0];
             NewCenter[1] += kkk*xyzr[1];
             NewCenter[2] += kkk*xyzr[2];
             TotWeight += kkk;
             break; }
-	 default:
+         default:
             if (SUMA_is_iDO_Selectable(do_id)) {
                static int nwarn=0;
                if (!nwarn) {
@@ -3296,7 +3296,7 @@ int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *ttv,
                Membs[N_Membs]=-1;/* a plug, if uN_Membs is NULL*/
             break;
          case CDOM_type:
-	 case TRACT_type:
+         case TRACT_type:
          case MASK_type:
          case VO_type:
                if (!Membs) Membs = (int *)
@@ -4007,7 +4007,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec,
          case TRACT_type:
          case MASK_type:
          case VO_type:
-	 case CDOM_type:
+         case CDOM_type:
          case GRAPH_LINK_type:
             is = SUMA_WhichState (SUMA_iDO_state(i), csv,SUMA_iDO_group(i));
             if (is < 0) {
@@ -4106,7 +4106,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec,
          case MASK_type:
          case VO_type:
          case GRAPH_LINK_type:
-	 case CDOM_type:
+         case CDOM_type:
             is = SUMA_WhichState (SUMA_iDO_state(i), csv,SUMA_iDO_group(i));
             if (is < 0) {
                SUMA_S_Errv("This should not be.\n"
