@@ -1788,7 +1788,7 @@ static int dicom_order_files( param_t * p )
                 p->nfiles);
 
     if( p->opts.sort_acq_time ) {
-        if( gD.level > 0 ) fprintf(stderr,"++ will sort by acqusition time\n");
+        if( gD.level > 0 ) fprintf(stderr,"++ will sort by acquisition time\n");
         g_sort_by_atime = 1;
     }
 

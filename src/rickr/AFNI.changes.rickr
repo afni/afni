@@ -2306,7 +2306,7 @@
         - contain -dylib_file option, for resolving 10.5 problem with libGL
 
 28 Dec 2007: gifti_io v0.9 (now, with gifti_tool)
-  * added gifti_tool.[ch]: replacing gifti_test, with added fucntionality
+  * added gifti_tool.[ch]: replacing gifti_test, with added functionality
   * modified gifti_test.[ch]: simplifying the program as a sample
   * modified gifti.get.times, gifti.test.io, Makefile: use tifti_tool
   * modified gifti_io.[ch], gifti_xml.[ch]:
