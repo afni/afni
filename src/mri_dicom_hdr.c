@@ -1724,7 +1724,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag)
 **	of list reached.
 **	If end of list
 **		return DCM_ELEMENTNOTFOUND
-**	If CTX pointer containts NULL
+**	If CTX pointer contains NULL
 **	    Begin copy from beginning of element
 **	else
 **	    Begin copy from address in CTX pointer
@@ -2924,7 +2924,7 @@ DCM_WriteFile(DCM_OBJECT ** callerObject, unsigned long opt, const char *file)
 **	of list reached.
 **	If end of list
 **		return DCM_ELEMENTNOTFOUND
-**	If CTX pointer containts NULL
+**	If CTX pointer contains NULL
 **	    Begin copy from beginning of element
 **	else
 **	    Begin copy from address in CTX pointer
@@ -3724,7 +3724,7 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 **	Set ITEM to head of linked list of ACR object
 **	Set CURRENT item in linked list to ITEM
 **	Search sequentially through linked list until:
-**	    - Reach exisiting group that matches caller's group
+**	    - Reach existing group that matches caller's group
 **	    - Reach a group with larger group number than caller's group
 **	    - Reach end of linked list
 **	Each time you move to a new item, update CURRENT to point to that item
@@ -6531,7 +6531,7 @@ ENTRY("readVRLength") ;
 
     e->length = 0;
     if (e->representation == DCM_DLM) {
-	explicitVR = FALSE;	/* Special rule for delimitors */
+	explicitVR = FALSE;	/* Special rule for delimiters */
     }
 
     /* if there is no or no valid vrCode, skip explicitVR */
@@ -11144,7 +11144,7 @@ LST_Insert(LST_HEAD ** list, LST_NODE * node, LST_END where)
     } else if (where == LST_K_AFTER) {	/* not a special case       */
 	OLD_NEXT->previous = node;	/* we precede a node        */
 	node->next = OLD_NEXT;	/* the old next follows us  */
-	node->previous = CURRENT;	/* the current preceeds us  */
+	node->previous = CURRENT;	/* the current precedes us  */
 	CURRENT->next = node;	/* we follow current        */
 
     } else {			/* not a special case       */
@@ -11461,7 +11461,7 @@ LST_Index(LST_HEAD ** l, int index)
 **
 ** Algorithm:
 **	A simple function to perform a DICOM regular expression match with the
-**	specified  string, stm.  The sematics of the DICOM patterns must be altered
+**	specified  string, stm.  The semantics of the DICOM patterns must be altered
 **	slightly to work correctly with regex under unix...more information may
 **	be found below.
 **
