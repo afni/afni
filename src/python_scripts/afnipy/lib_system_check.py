@@ -1050,7 +1050,7 @@ class SysInfo:
 
    def show_python_lib_info(self, header=1):
 
-      # any extra libs to test beyone main ones
+      # any extra libs to test beyond main ones
       # (empty for now, since matplotlib got its own function)
       extralibs = []
       verb = 3

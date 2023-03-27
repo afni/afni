@@ -6566,7 +6566,7 @@ void SUMA_set_cmap_options(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_RETURNe;
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURNe;
       case CDOM_type:
@@ -12921,7 +12921,7 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado)
          SUMA_UpdateNodeField(ado);
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURN(NOPE);
          break;

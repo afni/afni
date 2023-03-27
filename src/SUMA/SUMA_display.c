@@ -6296,7 +6296,7 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
 
 /*!
    \brief A call back to open the viewer Info window
-   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+   Expects the index of the viewer in SUMAg_SVv in data->ContID
 */
 void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
 {
@@ -6324,7 +6324,7 @@ void SUMA_cb_helpViewerStruct (Widget w, XtPointer data, XtPointer callData)
 
 /*!
    \brief A call back to open the surface Info window
-   Exepcts the index of the viewer in SUMAg_SVv in data->ContID
+   Expects the index of the viewer in SUMAg_SVv in data->ContID
 */
 void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
 {
@@ -12141,7 +12141,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(
                               (SUMA_SurfaceObject *)ado, colPlane));
          break;
       case GDSET_type:
-         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+         SUMA_S_Err("No init for a DO that cannot be displayed\n"
                     "without variant");
          SUMA_RETURN(NOPE);
          break;

@@ -3653,7 +3653,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                mm = SUMA_MAX_PAIR(
                      SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aHEIGHT,
                      SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aWIDTH);
-               if (mm > k) { /* too big, find best new dimesnions */
+               if (mm > k) { /* too big, find best new dimensions */
                   rat = (double)mm/(double)k;
                      /*window shrinking factor to allow for stitching*/
                   SUMA_S_Notev(  "%d/%d (H/W) Too big for oversampling\n"
@@ -8183,7 +8183,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                   if (!SUMA_Bundle_Pick_Intersect(nelitp, 'N', -1, sv, scpx, 0,
                                                   &nnmin, &mmmin,
                                                   &fmin, &mindist)) {
-                     SUMA_LH("No bunlde intersection");
+                     SUMA_LH("No bundle intersection");
                   }
                   mmmin3 = 3*mmmin;
                   if (nnmin > -1) {
@@ -8479,7 +8479,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                tb = TDO_BUNDLE(tdo, PR->primitive_index);
                if (!(oki=SUMA_Bundle_Pick_Intersect(tb, 'B', -1, sv, NULL, 0,
                                             &nnmin, &mmmin, &fmin, &mindist))) {
-                  SUMA_LH("No bunlde intersection");
+                  SUMA_LH("No bundle intersection");
                }
             } else if (!strcmp(PR->primitive,"tracts")) {
                SUMA_LHv("Seeking tract %d/%d\n",

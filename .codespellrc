@@ -1,7 +1,7 @@
 [codespell]
 # connexe.c -- too much French influence
 # f2c,XmHTML -- came from others
-skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c,venvs,f2c,XmHTML,mri_dicom_hdr.c
+skip = .git,*.pdf,*.svg,*.BRIK,meica.libs,afni_ci_test_data,*.dset,connexe.c,venvs,f2c,XmHTML,mri_dicom_hdr.c,crorden,gifti,nifti
 # file with ignores (ATM all shorts found by codespell)
 ignore-words = .codespell-ignores
 # Individual words if so desired to be added
@@ -13,4 +13,4 @@ ignore-words = .codespell-ignores
 # degress - typo which was acknowledged in history etc, fixed some manually
 # ALLO -- all o's in Makefile
 # Cushin,shs -- vars etc in SUMA
-ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress,allo,normall,cushin,shs
+ignore-words-list = slient,nnumber,merget,reqiure,pinter,childs,atleast,statuss,acount,acounts,doubleclick,lesstiff,algebraical,forhead,firsth,surviver,boundin,planed,thar,fpt,interm,degress,allo,normall,cushin,shs,groupe

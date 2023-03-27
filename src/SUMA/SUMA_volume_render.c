@@ -3985,7 +3985,7 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
          "Also, should check how and when textures are to be deleted\n"
          "and whether texture nel (and other NIDOs) are being properly\n"
          "disposed of when a DO is freed\n"
-         "Lastly, is the issue of the dset header that I loath to \n"
+         "Lastly, is the issue of the dset header that I loathe to \n"
          "duplicate into nel. I should just keep dset's header around\n"
          "somehow. For the moment, dset is one static variable in this\n"
          "file and that is clearly not appropriate. So have to deal with\n"
