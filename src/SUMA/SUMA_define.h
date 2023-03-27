@@ -1784,7 +1784,7 @@ typedef struct {
    Widget AppFrame;
    Widget quit_pb; /*!< quit push button */
    SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
-   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio
+   SUMA_rb_group *Lock_rbg; /*!< pointer to structure containing N radio
                                  button groups */
    Widget *LockView_tbg;   /*!< vector of toggleview buttons */
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */

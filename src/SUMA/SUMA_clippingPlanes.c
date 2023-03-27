@@ -1579,7 +1579,7 @@ void lightenActiveClipPlaneSquare(int planeIndex){
 
     // This block is necessary for the color changes to be applied to the square object
     // PDL: Not clear why two iterations are necessary to the last two planes.  Hopefully,
-    //  this will become clear with further analysis of the code duirng the addition of
+    //  this will become clear with further analysis of the code during the addition of
     //  added functionality.
     int iterations = (planeIndex > 3)? 2 : 1;
     for (i = 0; i < iterations; ++i)

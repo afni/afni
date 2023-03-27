@@ -35,7 +35,7 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "            the result is incorrect. \n"
 "            Volume is calculated using Gauss's theorem,\n"
 "            see [Hughes, S.W. et al. 'Application of a new \n"
-"            discreet form of Gauss's theorem for measuring \n"
+"            discrete form of Gauss's theorem for measuring \n"
 "            volume' in Phys. Med. Biol. 1996].\n"
 "      -conv: output surface convexity at each node.\n"
 "         Output file is prefix.conv. Results in two columns:\n"

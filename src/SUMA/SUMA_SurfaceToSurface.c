@@ -226,7 +226,7 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
                      along the projection vector. 
                      If 0, then a default of 100.0 is used.
    \param ClosestPossible (int ) 0: Do nothing
-                                1: If you find no interesction along the
+                                1: If you find no intersection along the
                                    projection, take the closest node 
                                    from S2 as your result.
                                 2: Same as 1, AND use closet node from 
