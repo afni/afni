@@ -202,7 +202,7 @@ purgeStaleWindow(Window win)
   GLUTstale **pEntry = &__glutStaleWindowList;
   GLUTstale *entry = __glutStaleWindowList;
 
-  /* Tranverse singly-linked stale window list look for the
+  /* Traverse singly-linked stale window list look for the
      window ID. */
   while (entry) {
     if (entry->win == win) {
