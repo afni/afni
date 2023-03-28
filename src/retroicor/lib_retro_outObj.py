@@ -16,7 +16,20 @@ class PhysionlogicalNoise:
     self. rvt_coeffs = rvt_coeffs
     
   def selectPhaseListAndNumTimeSteps(self):
-      
+        """
+        NAME
+            selectPhaseListAndNumTimeSteps 
+                Recover determined phase for each input time step, along with 
+                the number of time steps.
+        TYPE
+            <Void>
+        ARGUMENTS
+            N/A
+                       
+        AUTHOR
+           Peter Lauren  
+        """  
+        
         self.numTimeSteps = len(self.phases)
         if self.numTimeSteps == 0:
             print('*** Error in selectPhaseListAndNumTimeSteps')
@@ -27,7 +40,21 @@ class PhysionlogicalNoise:
         self.phaseList = self.phases
         
   def setUpTimeSeries(self, test_retro_obj):
-      
+      """
+         NAME
+            setUpTimeSeries 
+                Set up number of output volumetric time points.
+        TYPE
+            <Void>
+        ARGUMENTS
+            test_retro_obj
+                vol_tr:  (dtype = class 'float') Volume repetition time (TR) 
+                            which defines the length of time 
+                       
+        AUTHOR
+           Peter Lauren  
+      """  
+        
       #initialize output from input parameters
       self.timeStepIncrement = 1.0/self.sampleFrequency
       
@@ -54,7 +81,20 @@ class PhysionlogicalNoise:
         )
             
   def initializePhaseSlices(self, test_retro_obj):
-
+    """
+         NAME
+            initializePhaseSlices 
+                Initialize arrays for phase slices and their times.
+        TYPE
+            <Void>
+        ARGUMENTS
+            test_retro_obj
+                n_slice_times:  (dtype = <class 'int'>) Number of slices
+                       
+        AUTHOR
+           Peter Lauren  
+    """  
+        
     # Initialize registered phase slices which will be fed into output file data
     self.phase_slice_reg = np.zeros(
         (len(self.time_series_time), 4, 
@@ -67,7 +107,23 @@ class PhysionlogicalNoise:
     )
     
   def fillSliceRegressorArray(self, test_retro_obj):
-      
+    """
+         NAME
+            fillSliceRegressorArray 
+                Determine sinusoids for each slice for each volume.
+        TYPE
+            <Void>
+        ARGUMENTS
+            test_retro_obj
+                n_slice_times:  (dtype = <class 'int'>) Number of slices
+                
+                vol_slice_times: (dtype = <class 'list'>) list of floats for 
+                                 slice timing
+                       
+        AUTHOR
+           Peter Lauren  
+    """  
+        
     # phasee["time_series_time"] are TR * index.  I.e. integral 
     # multiples of TR, starting at zero
     for i_slice in range(test_retro_obj.n_slice_times):
@@ -102,7 +158,22 @@ class PhysionlogicalNoise:
       
 
   def makeRegressorsForEachSlice(self, test_retro_obj):
-      
+    """
+         NAME
+            makeRegressorsForEachSlice 
+                Determine sinusoids for each slice for each volume.
+        TYPE
+            <Void>
+        ARGUMENTS
+            test_retro_obj
+                n_slice_times:  (dtype = <class 'int'>) Number of slices
+                
+                vol_slice_times:
+                       
+        AUTHOR
+           Peter Lauren  
+    """  
+        
     # Select phase list and get number of time steps
     self.selectPhaseListAndNumTimeSteps()
     if self.numTimeSteps == None: return 1
@@ -144,6 +215,32 @@ class PhysionlogicalNoise:
                     
 def makeOutputHeaderAndOutputInfo(test_retro_obj, cardiacNoise, 
                                   respiratoryNoise):
+    """
+         NAME
+            makeOutputHeaderAndOutputInfo 
+                Make output NIML header, matrix and metadata.
+        TYPE
+            <Void>
+        ARGUMENTS
+            test_retro_obj
+                n_slice_times:  (dtype = <class 'int'>) Number of slices
+                
+                vol_slice_times: (dtype = <class 'list'>) list of floats for 
+                                 slice timing
+                                 
+                do_out_rvt:   (dtype = <class 'int'>) Whether to calculate
+                             and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                             
+                vol_nv: (dtype = <class 'int'>) Nvol (num_time_pts) MRI EPI 
+                
+            cardiacNoise:
+            respiratoryNoise: Objects, of type PhysionlogicalNoise, with cardiac
+                              and respiratory information to output
+                       
+        AUTHOR
+           Peter Lauren  
+    """  
+        
     outputInfo = dict()
     outputInfo["resp_out"] = \
         len(respiratoryNoise.phases) > 0
@@ -315,13 +412,6 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         print('** ERROR getting main info and label for NIML File')
         return 1
     
-    
-    
-    # main_info, label = getMainInfoAndLabel(test_retro_obj, 
-    #     physiologicalNoiseComponents, nRvtSlices, nRespiratoryPhaseSlices, 
-    #     nCardiacPhaseSlices, nTimeSteps, 
-    #     resp_info, card_info)
-
     # # Output file
     tail = '"\n>'
     tailclose = "</RetroTSout>"
