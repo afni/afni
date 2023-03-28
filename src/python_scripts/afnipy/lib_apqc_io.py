@@ -1836,7 +1836,7 @@ class apqc_tcsh_opts:
         self.revstyle         = "basic"
         self.pythonic2basic   = 0
 
-        self.ow_mode          = 'shy'   # overwrite mode (def: don't OW)
+        self.ow_mode          = 'backup'   # overwrite mode 
         self.bup_dir          = None
         self.do_mot_grayplot  = True
         self.vstat_label_list = []

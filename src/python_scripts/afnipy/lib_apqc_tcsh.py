@@ -796,7 +796,7 @@ ap_ssdict : dict
     return ap_ssdict
 
 
-def make_apqc_dirs(ap_ssdict, ow_mode='shy', bup_dir=None):
+def make_apqc_dirs(ap_ssdict, ow_mode='backup', bup_dir=None):
     """Create the output QC directory, along with its main
 subdirectories.  These names and paths exist in the dictionary
 ap_ssdict. 
