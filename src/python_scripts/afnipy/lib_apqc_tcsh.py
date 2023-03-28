@@ -2,7 +2,7 @@
 
 # This library contains functions for creating part of the
 # afni_proc.py QC HTML.  Specifically, these functions build the
-# script '@ss_review_html' that is run for single-subject HTML review.
+# image, data and text of the single-subject HTML review.
 #
 #
 auth = 'PA Taylor'
@@ -2555,7 +2555,7 @@ num : int
     return 0
 
 
-# complicated/tiered dependencies...
+# complicated/tiered depedencies...
 def apqc_regr_corr_errts( ap_ssdict, obase, qcb, qci, 
                           ulay, focusbox, corr_brain ):
     """Make images of the correlation map of the average residual signal
@@ -2712,7 +2712,7 @@ num : int
 
 #-------------------------------------------------------------------------
 
-# complicated/tiered dependencies...
+# complicated/tiered depedencies...
 def apqc_vstat_seedcorr( ap_ssdict, obase, qcb, qci, 
                          ulay, focusbox, seed ):
     """Make images of the volumetric statistics (and effect estimate, when

@@ -1,4 +1,5 @@
-#
+#!/usr/bin/env python
+
 # ver : 1.2 || date: Oct 17, 2018 || auth: PA Taylor
 # + separate title and text strings
 # + new warn type
@@ -852,7 +853,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     </tr>
 
   </table>
-</div>
+</div> <!-- end of dummy navbar -->
 '''.format( NULL_BTN0 ) 
 
     # =======================================================================
@@ -860,7 +861,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     # + use z-index to keep it always on top
 
     y+= '''
-<!-- start of real, foreground nav bar, which uses z-index to keep on top -->
+<!-- start of real/foreground navbar (uses z-index to keep on top) -->
 <div class="navbar" style="z-index: 10;">
 '''
 
@@ -965,7 +966,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
             # ... and hitting "Esc" (event.keyCode == 27) is like
             # canceling.
             y+= '''
-<!-- QC button comment form for block={ll} -->
+<!-- top of QC button comment form for block={ll} -->
 <div class="form-popup" id="cform_{ll}" > 
     <form class="form-container" onsubmit="return false;"> 
     <textarea type="text" placeholder="Enter comment" 
@@ -983,16 +984,16 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     onclick="clearCommentForm(comm_{ll}.id, cform_{ll}.id)">
     clear+close</button> 
     </form> 
-</div> 
+</div> <!-- bot of QC button comment form -->
 '''.format( ll=ll )
 
     y+= '''
 <!-- END of QC block buttons -->
-
 '''
 
     # add in subj ID
     y+= '''
+<!-- show subj ID in navbar -->
 <table style="float: left">
   <tr>
     <td style="width: fit-content;">
@@ -1015,7 +1016,6 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     # Start right-side table
     y+= '''
 <!-- START of (right-floating) quick buttons -->
-
 <table style="float: right; margin-right: 2px">'''
 
     # ROW: "all fill" buttons-- click (or Enter) fills empty QC buttons,
@@ -1106,9 +1106,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     </td>
   </tr>
 </table> <!-- end of right-side table of buttons -->
-</div>
-
-<!-- END of navbar -->
+</div> <!-- end of real/foreground navbar -->
 '''
 
     return y
@@ -1123,10 +1121,10 @@ def make_javascript_btn_func(subj ):
 
     y = ''
 
-    y+= '''<script type="text/javascript">\n'''
+    y+= '''<script type="text/javascript">
+'''
 
     y+= '''
-
 // global vars
 var allBtn1, allTd1, allhr_sec;  // selection/location IDs
 var topi, previ;                 // keeps our current/last location
@@ -1952,32 +1950,34 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
         txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
 
     # start the first div on the page
-    y = '''<div class="div_pad_class">'''
+    y = '''<!-- start of title block div -->
+<div class="div_pad_class">'''
 
     # the boundary line: location+ID necessary for highlighting page
     # location
-    y+= '''\n\n<hr class="hr_sec" id="hr_{}"/>'''.format(blockid)
-
-    # the title
-    y+= '''<div id="{}" '''.format(blockid)
+    y+= '''
+  <hr class="hr_sec" id="hr_{blockid}"/>
+  <div id="{blockid}" '''.format(blockid=blockid)
 
     # this line offsets the anchor location for the navigation bar to
     # head to: the values here should be equal to the height of the
     # navigation bar (plus the line beneath it).
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">'''.format(padmarg)
+    y+= ''' 
+       style="padding-top: {0}px; margin-top: -{0}px;">'''.format(padmarg)
 
     y+= '''
-    <h1><center> {title} <center></h1></div>
-
-<div style="text-align: center;">
-  <div style="display: inline-block; text-align: left;">
-    <pre><h2>subj: {subj}</h2></pre>
-    {txt_study}
+    <h1><center> {title} <center></h1>
   </div>
-</div>
+
+  <!-- top of subj/title info -->
+  <div style="text-align: center;">
+    <div style="display: inline-block; text-align: left;">
+      <pre><h2>subj: {subj}</h2></pre>
+      {txt_study}
+    </div>
+  </div> <!-- bot of subj/title info -->
+</div> <!-- end of title block div -->
 '''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
-
-
 
     if vpad:
         y = """\n"""+y
@@ -1988,35 +1988,45 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
 
 # -------------------------------------------------------------------
 
-def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0):
+def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0,
+                     do_close_prev_div=True):
 
-    # close the previous section div (at least the title will have one)
-    y = '''</div>\n\n'''
+    y = ''
+    if do_close_prev_div :
+        # close the previous section div (at least the title will have one)
+        y+= '''</div> <!-- end of block div -->
+'''
 
     # start the new section div
-    y+= '''<div class="div_pad_class">'''
+    y+= '''
+<!-- start of div for QC block: '{blockid}' -->
+<div class="div_pad_class">
+'''.format(blockid=blockid)
 
     # the boundary line: location+ID necessary for highlighting page
     # location
-    y+= '''\n\n<hr class="hr_sec" ''' 
+    y+= '''
+<hr class="hr_sec" ''' 
     if blockid :
         y+= ''' id="hr_{}" '''.format(blockid)
     y+= '''/>\n''' 
 
-    # the title
+    # the title.  NB: the spacing in this section *matters*, so don't
+    # worry about trying to make it readable within 80 chars.
     y+= '''<div '''
     if blockid :
         y+= ''' id="{}" '''.format(blockid)
     # this line offsets the anchor location for the navigation bar to
     # head to: the values here should be equal to the height of the
     # navigation bar (plus the line beneath it).
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;"'''.format(padmarg)
-    y+= """><pre """
-    y+= ''' {} '''.format(addclass)
-    y+= """><center>["""+blockid+"""]<b> """
-    y+= """<u>"""+x+"""</u>"""
+    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;">
+'''.format(padmarg)
+    y+= '''  <pre {}>'''.format(addclass)
+    y+= '''<center>[''' + blockid + ''']<b>'''
+    y+= ''' <u>'''+x+'''</u>'''
     y+= ' '*(len(blockid)+3)       # balance blockid text
-    y+= """</b></center></pre></div>"""
+    y+= '''</b></center></pre>
+</div>'''
     if vpad:
         y= """\n"""+y
         y+="""\n"""
@@ -2028,23 +2038,27 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
                      padmarg=0 ):
     addid = ''
     if itemid :
-        addid = ''' id="{}" '''.format( itemid )
+        addid = '''id="{}"'''.format( itemid )
 
-    y = """<div {0}""".format( addid )
-    y+= ''' style="padding-top: {0}px; margin-top: -{0}px;"'''.format(padmarg)
-    y+= ''' {} >'''.format(addclass)
+    y = '''<!-- top of text {addid} -->
+<div {addid} 
+     style="padding-top: {padmarg}px; margin-top: -{padmarg}px;"
+     {addclass}>
+'''.format( addid=addid, padmarg=padmarg, addclass=addclass )
     if dobold :
-        y+= """<pre><b>"""+x+"""</b></pre></div>"""
+        y+= '''  <pre><b>'''+x+'''</b></pre>
+</div> <!-- bot of text -->'''
     else:
-        y+= """<pre>"""+x+"""</pre></div>"""
+        y+= '''  <pre>'''+x+'''</pre>
+</div> <!-- bot of text -->'''
     if vpad:
-        y= """\n"""+y
-        y+="""\n"""
+        y= '''\n'''+y
+        y+='''\n'''
     return y
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, vpad=0, addclass="", add_nvbtn=False):
+def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
@@ -2053,29 +2067,33 @@ def wrap_img(x, wid=500, vpad=0, addclass="", add_nvbtn=False):
     y = ''
     y+= vpad*'\n'
 
-    y+= '''<div style="text-align: center; position: relative;">
-    <a href="{0}">
-    <img src="{0}" 
-         alt="{0}" {1} 
+    y+= '''<!-- top of image: {itemid} ({img}) -->
+<div style="text-align: center; position: relative;">
+    <a href="{img}">
+    <img src="{img}" 
+         alt="{img}" {addclass} 
          style="display: inline-block; text-align: center;">
-    </a>'''.format( x, addclass)
+    </a>'''.format( img=x, addclass=addclass, itemid=itemid )
     
     if add_nvbtn :
         y+= '''
-    <!-- NiiVue and AFNI-view buttons, added from R->L -->
+    <!-- top AFNI-view and NiiVue buttons -->
     <div class="container_avnv">
-      <td style="white-space:nowrap;" id=td6_NV>
+      <td style="white-space:nowrap;" id=td6_NV_{itemid}>
       <button class="button-generic button-RHS btn6"
               title="Run NiiVue" 
               onclick="colorizeSavingButton(is_served)">NV</button>
       </td>
-      <td style="white-space:nowrap;" id=td6_AV>
+      <td style="white-space:nowrap;" id=td6_AV_{itemid}>
       <button class="button-generic button-RHS btn6"
               title="Run AFNI-view" 
               onclick="colorizeSavingButton(is_served)">AV</button>
       </td>
-    </div>
-    '''
+    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid )
+
+    y+= '''
+</div> <!-- bottom of image -->
+'''
     y+= vpad*'\n'
 
     return y

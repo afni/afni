@@ -106,11 +106,13 @@ if __name__ == "__main__":
     # [PT: Jan 14, 2019] Have finally moved CSS attributes to their
     # own, external CSS file.  They grow up soooo fast... 
     ht+= '''
-    <head>
-    <title>{subj}</title>
-    <link rel="stylesheet" type="text/css" href="{ocss}" />
-    <link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq_128.jpg"> 
-    '''.format( subj=titlepg_dict['subj'], ocss=ocss )
+
+<!-- START of pre-QC-block part -->
+<head>
+<title>{subj}</title>
+<link rel="stylesheet" type="text/css" href="{ocss}" />
+<link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq_128.jpg"> 
+'''.format( subj=titlepg_dict['subj'], ocss=ocss )
 
     # javascript functions
     ht+= lah.make_javascript_btn_func( titlepg_dict['subj'] )
@@ -143,15 +145,14 @@ if __name__ == "__main__":
                               padmarg=PADMARG_VAL )
     list_links.append( [AATI.blockid, AATI.blockid_hov] )
 
-    ht+= '''
-    </head>
-    '''
+    ht+= '''</head> <!-- END of pre-QC-block part -->
+'''
 
     # ========================= HTML: body =========================== #
 
-    ht += """
-    <body onload="RunAtStart()">
-    """
+    ht += '''
+<body onload="RunAtStart()">
+    '''
 
     # ---------------------------------------------------------------------
     # ---------------- get images with any associated text ----------------
@@ -160,6 +161,7 @@ if __name__ == "__main__":
     # First, find ALL images and jsons, and then we'll exclude some
     # because they are supplementary sub-images and not independent
     # ones (like the *.cor.*, *.sag.* and *pbar* ones)
+    DID_START_QC_BLOCKS = False
     list_allglob = []
     for ff in ftypes:
         list_allglob += glob.glob(lah.dir_img + '/*.' + ff)
@@ -207,19 +209,24 @@ if __name__ == "__main__":
             # 1) Try to get title+text+blockid, only for first one in
             # list
             if AAII.title and not(ii):
+                if DID_START_QC_BLOCKS :    dcpd = True
+                else:                       dcpd = False
                 ht+= lah.wrap_block_title( AAII.title,
                                            vpad=1,
                                            addclass=" class='padtop' ",
                                            blockid=AAII.blockid,
-                                           padmarg=PADMARG_VAL )
+                                           padmarg=PADMARG_VAL,
+                                           do_close_prev_div=dcpd )
                 list_links.append( [AAII.blockid, AAII.blockid_hov] )
-
+                DID_START_QC_BLOCKS = True
+                
             # 2) Try to add text above it
             if AAII.text :
                 ht+= lah.wrap_block_text( AAII.text,
-                                          addclass=" class='container' ",
+                                          addclass="class='container' ",
                                           itemid=AAII.itemid,
-                                          padmarg=PADMARG_VAL  )
+                                          padmarg=PADMARG_VAL,
+                                          vpad=1 )
 
             # 3) Try to add image or dat
             if AAII.itemtype == '1D':
@@ -231,7 +238,8 @@ if __name__ == "__main__":
                 #if '.axi.' in img :   add_nvbtn = True
                 if AAII.text :        add_nvbtn = True
                 else:                 add_nvbtn = False
-                ht+=lah.wrap_img( img, vpad=True, add_nvbtn=add_nvbtn )
+                ht+=lah.wrap_img( img, itemid=AAII.itemid,
+                                  vpad=True, add_nvbtn=add_nvbtn )
 
             elif AAII.itemtype == 'WARN':
                 ht+=lah.wrap_dat( lah.read_dat(img),
@@ -254,14 +262,17 @@ if __name__ == "__main__":
             if AAII.subtext :
                 ht+= lah.wrap_block_text( AAII.subtext,
                                           addclass=" class='container2' ",
-                                          dobold=True )
+                                          dobold=True,
+                                          vpad=2 )
 
     # ---------------------------------------------------------------------
     # -------------- put the nav link table in  ------------------
     # ---------------------------------------------------------------------
 
     # close final section div
-    ht+= '''</div>'''
+    ht+= '''
+</div> <!-- close of final QC block div -->
+'''
 
     list_links.append( lah.qc_link_final )
 
@@ -271,7 +282,10 @@ if __name__ == "__main__":
 
     # -------------- done: wrap up and close body text ------------------
 
-    ht+="""</body>\n\n</html>"""
+    ht+='''
+</body>
+</html>
+'''
 
     # ------------- write to file ----------------
 
