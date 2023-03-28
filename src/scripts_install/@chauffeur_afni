@@ -343,9 +343,12 @@
 #set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
 #    + [PT] cleaner clust output, sep cmd
 #
-set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
+#set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
 #    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
 #      correct key word is not used
+#
+set version   = "6.6";   set rev_dat   = "Mar 28, 2023"
+#    + [PT] add more fields to output pbar info, for APQC/NiiVue
 #
 # =====================================================================
 
@@ -2155,7 +2158,11 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
         ## [PT: May 8, 2019] older pbar info format, byeeeeeee.
         #echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
 
+        # make this str bc we will use ',,' as a minor delimiter
+        set subbb_str = "${subbb[1]} ,, ${subbb[2]} ,, ${subbb[3]}"
+
 # [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
+# [PT: Mar 28, 2023] add more info, for APQC outputs
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
 cbar         :: "${my_cbar}"
@@ -2163,6 +2170,11 @@ pbar_fname   :: "${pbar_fname:t}"
 pbar_bot     :: "${bot_frange}"
 pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
+pbar_sign    :: "${pbar_sign}"
+olay_alpha   :: "${olay_alpha}"
+olay_boxed   :: "${olay_boxed}"
+see_olay     :: "${see_olay}"
+subbb        :: ${subbb_str}
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
 gen_comm     :: "${gen_comm}"
