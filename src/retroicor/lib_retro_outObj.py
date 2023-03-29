@@ -11,6 +11,7 @@ import numpy as np
 class PhysionlogicalNoise:
   def __init__(self, phases, nTimePoints, sampleFrequency, rvt_coeffs = None):
     self.phases = phases
+    self.nPhaseSlices = len(self.phases)
     self.nTimePoints = nTimePoints
     self.sampleFrequency = sampleFrequency
     self. rvt_coeffs = rvt_coeffs
@@ -203,8 +204,7 @@ class PhysionlogicalNoise:
   def getNimlDimensions(self):
         self.nTimeSteps   = 0
         self.nRvtSlices = 0
-        self.nRespiratoryPhaseSlices = 0
-        self.nCardiacPhaseSlices   = 0
+        self.nPhaseSlices = 0
     
         if len(self.phases) > 0:
             if "time_series_time" in dir(self):
@@ -259,7 +259,10 @@ def makeOutputHeaderAndOutputInfo(test_retro_obj, cardiacNoise,
     
     # # Initialize 2D output data array.  Former dimension is the number of rows
     # # while the latter dimension is the number of columns
-    nTimeSteps = min(cardiacNoise.nTimeSteps, respiratoryNoise.nTimeSteps)
+    if cardiacNoise.nTimeSteps > 0 and respiratoryNoise.nTimeSteps > 0:
+        nTimeSteps = min(cardiacNoise.nTimeSteps, respiratoryNoise.nTimeSteps)
+    elif cardiacNoise.nTimeSteps > 0: nTimeSteps = cardiacNoise.nTimeSteps
+    else: nTimeSteps = respiratoryNoise.nTimeSteps
     outputInfo["reml_out"] = np.zeros((nTimeSteps, temp_y_axis))
 
     # # Check number of time points

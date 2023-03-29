@@ -1419,6 +1419,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     resp_phases = np.array([]) #None
     card_phases     = []           
     
+    # Get full path for output directory
     OutDir = os.path.join(os.getcwd(), test_retro_obj.out_dir)
     if os.path.exists(OutDir) and os.path.isdir(OutDir):
         shutil.rmtree(OutDir)
@@ -1453,13 +1454,6 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             if test_retro_obj.card_data.start_phys_idx > 0:
                 card_phases = \
                     card_phases[test_retro_obj.card_data.start_phys_idx:]
-                
-            # Trim phase at end
-            # Not currently used but DO NOT DELETE FOR NOW
-            # lastTime = min(test_retro_obj.card_data.end_time,
-            #                test_retro_obj.duration_vol)
-            # lastIndex = round(lastTime * test_retro_obj.card_data.samp_freq)
-            # card_phases = card_phases[:lastIndex]
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(card_phases, test_retro_obj,
@@ -1596,6 +1590,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     physiologicalNoiseComponents['card_phases'] = card_phases
     if test_retro_obj.do_out_rvt: 
         physiologicalNoiseComponents['rvt_coeffs'] = rvt_coeffs
+    else: physiologicalNoiseComponents['rvt_coeffs'] = []
     physiologicalNoiseComponents['num_time_pts'] = num_time_pts
     physiologicalNoiseComponents['card_sample_frequency'] = \
         cardiac_sample_frequency
