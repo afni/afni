@@ -256,7 +256,7 @@ from afnipy import lib_apqc_html       as lah
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
-
+from afnipy import lib_apqc_niivue     as lanv
 
 # ----------------------------------------------------------------------
 
@@ -2922,6 +2922,9 @@ possible!) information.  These images are made in **highlight** mode,
 using transparent thresholding. Also create text for above/below
 images.
 
+We now also read back in the pbar JSON dictionary, to help with
+driving AFNI-view and NiiVue instances.
+
 Parameters
 ----------
 ap_ssdict : dict
@@ -2946,7 +2949,7 @@ Returns
 num : int
     return 0 up on success, or a different int if failure
 
-"""
+    """
 
     # output names/prefixes/etc.
     oname    = '_'.join([obase, qcb, qci])           # output name
@@ -2954,6 +2957,7 @@ num : int
     otopjson = opref + '.axi.json'
     osubjson = opref + '.sag.json'
     opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
 
     if 1 :
         print("++ APQC create:", oname, flush=True)
@@ -3185,6 +3189,7 @@ num : int
                                                      olay_pref ))
     otoptxt.append(" thr: [{}] '{}' (df = {})".format( thrbrick, thrlabel,
                                                        thr_dof ))
+
 ##### PT: use something like this for NiiVue
 #    dtext_u = '''"dset: ${ulay_dset}"'''
 #    dtext_o = '''"dset: ${stats_dset}" ,, '''
@@ -3235,6 +3240,20 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
+    # For AV/NV: get pbar/cmap info as dict
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=olay, itemid=qci,
+                                     verb=1 )
+
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+    
     return 0
 
 # -----------------------------------------------------------------

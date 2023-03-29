@@ -457,6 +457,14 @@ css_text+= '''
     right: 5%;
 }
 
+/* Formatting for NiiVue canvas */
+.class_niivue {
+    width: 90%; 
+    aspect-ratio: 5 / 1; 
+    margin-left: auto; 
+    margin-right: auto;
+}
+
 '''
 
 css_text+= '''
@@ -650,6 +658,8 @@ css_text+= '''
 }
 
 '''
+
+
 
 # --------------------------------------------------------------------
 

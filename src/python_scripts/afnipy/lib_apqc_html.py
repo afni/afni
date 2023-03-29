@@ -1121,7 +1121,8 @@ def make_javascript_btn_func(subj ):
 
     y = ''
 
-    y+= '''<script type="text/javascript">
+    y+= '''<script src="./niivue.umd.js"> </script>
+<script type="text/javascript">
 '''
 
     y+= '''
