@@ -347,8 +347,12 @@
 #    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
 #      correct key word is not used
 #
-set version   = "6.6";   set rev_dat   = "Mar 28, 2023"
+#set version   = "6.6";   set rev_dat   = "Mar 28, 2023"
 #    + [PT] add more fields to output pbar info, for APQC/NiiVue
+#
+set version   = "6.61";   set rev_dat   = "Mar 30, 2023"
+#    + [PT] add more fields to output pbar info, for APQC/NiiVue
+#         + left/left and left/post info
 #
 # =====================================================================
 
@@ -1123,6 +1127,19 @@ if ( $USER_ULAY_RANGE != 1 ) then
     set umax = "98%"
     set ulay_nz = ""
     set USER_ULAY_RANGE = 1
+endif
+
+# -------------------------------------------------------------------
+# query/store L/R and A/P info in images
+
+set is_left_left = `afni -no_detach -q -VAFNI_LEFT_IS_LEFT=`
+if ( "${is_left_left}" == "" ) then
+    set is_left_left = YES                  # mirror default behavior
+endif
+
+set is_left_post = `afni -no_detach -q -VAFNI_LEFT_IS_POSTERIOR=`
+if ( "${is_left_post}" == "" ) then
+    set is_left_post = NO                   # mirror default behavior
 endif
 
 # -------------------------------------------------------------------
@@ -2175,6 +2192,8 @@ olay_alpha   :: "${olay_alpha}"
 olay_boxed   :: "${olay_boxed}"
 see_olay     :: "${see_olay}"
 subbb        :: ${subbb_str}
+is_left_left :: "${is_left_left}"
+is_left_post :: "${is_left_post}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
 gen_comm     :: "${gen_comm}"

@@ -45,10 +45,24 @@ nv_dict : dict
     # cmap or cmaps in niivue
     cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
 
+    # topval of ulay grayscale cbar
+    nv_dict['ulay_cal_max'] = pbar_dict['ulay_top']
+
+    # L/R directionality
+    if pbar_dict['is_left_left'].lower() == "yes" :
+       nv_dict['isRadCon'] = 'false'
+    else:
+       nv_dict['isRadCon'] = 'true'
+       
+    # A/P directionality
+    if pbar_dict['is_left_post'].lower() == "no" :
+       nv_dict['sagNoseLeft'] = 'true'
+    else:
+       nv_dict['sagNoseLeft'] = 'false'
+
     # is there an overlay to display?
     nv_dict['see_overlay'] = pbar_dict['see_olay']
-
-    if pbar_dict['see_olay'] == '+' :
+    if nv_dict['see_overlay']  == '+' :
         nv_dict['cmap']     = cmap[0]                 # cbar name(s)
         if len(cmap) > 1 :
             nv_dict['cmap_neg'] = cmap[1]             # cbar name(s)
@@ -92,6 +106,7 @@ nv_ulay_txt : str
 
     nv_ulay_txt = '''      {{ // ulay
         url:"{ulay}",
+        cal_max: {ulay_cal_max},
       }}'''.format( **nv_dict )
 
     return nv_ulay_txt
@@ -181,8 +196,10 @@ nv_then_txt : str
     nv_then_txt = '''
       {nobj}.setFrame4D({nobj}.volumes[1].id, {idx_olay}); // olay
       {nobj}.setFrame4D({nobj}.volumes[2].id, {idx_thr});  // thr
-      {nobj}.volumes[0].colorbarVisible = false; 
-      {nobj}.volumes[1].alphaThreshold = {do_alpha};
+      {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
+      {nobj}.volumes[1].colorbarVisible = true;  // yes thr bar
+      {nobj}.volumes[2].colorbarVisible = false; // no thr bar
+      {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
       {nobj}.overlayOutlineWidth = {do_boxed};
       {nobj}.opts.multiplanarForceRender = true;
       {nobj}.backgroundMasksOverlays = true;
@@ -242,6 +259,8 @@ otxt : str
     nv_dict = translate_pbar_dict_afni2nv(pbar_dict)
     nv_dict['ulay'] = ulay
     if olay :  nv_dict['olay'] = olay
+
+    nv_dict['nid']  = nid
     nv_dict['nobj'] = nobj
 
     # create pieces of text within NiiVue canvas
@@ -270,15 +289,17 @@ otxt : str
         show3Dcrosshair: true }}
     )
     {nobj}.opts.isColorbar = true
+    {nobj}.opts.sagittalNoseLeft = {sagNoseLeft}
+    {nobj}.opts.isRadiologicalConvention = {isRadCon}
+    {nobj}.opts.isCornerOrientationText = true
     {nobj}.attachTo('{nid}')
     {nobj}.loadVolumes([
 {nv_ulay_txt}{nv_olay_txt}{nv_thr_txt}
     ]).then(()=>{{ // more actions
 {nv_then_txt}
-    }})'''.format( nobj=nobj, nid=nid, 
-                   nv_ulay_txt=nv_ulay_txt, nv_olay_txt=nv_olay_txt,
-                   nv_thr_txt=nv_thr_txt,
-                   nv_then_txt=nv_then_txt )
+    }})'''.format( nv_ulay_txt=nv_ulay_txt, nv_olay_txt=nv_olay_txt,
+                   nv_thr_txt=nv_thr_txt, nv_then_txt=nv_then_txt,
+                   **nv_dict )
 
     otxt+= '''
   </script>
