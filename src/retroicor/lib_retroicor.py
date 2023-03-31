@@ -1165,11 +1165,12 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
             for entry in h:
                 lineNumber = lineNumber + 1
                 try:
-                    float(entry)
-                    if float(entry) != 5000.0: # Some files have 
-                                               # artifactual 
-                                               # entries of 5000.0
-                        phys_dat.append(float(entry))
+                    # float(entry)
+                    # if float(entry) != 5000.0: # Some files have 
+                    #                            # artifactual 
+                    #                            # entries of 5000.0
+                    #     phys_dat.append(float(entry))
+                    phys_dat.append(float(entry))
                 except:
                     print('*** ERROR: invalid, non-numeric ' + \
                         'data entry: ', entry, 
@@ -1179,6 +1180,18 @@ def readRawInputData(respcard_info, filename=None, phys_dat=None):
                 phys_dat.append(float(line.strip()))
                 
     v_np = np.asarray(phys_dat)
+    
+    # Filter out values that are exectly 5000.0
+    Length = len(v_np)
+    last = Length - 1
+    for i in range(0,Length):
+        if v_np[i] == 5000.0:
+            if i > 0 and i < last:
+                v_np[i] = (v_np[i-1] + v_np[i + 1])/2
+            elif i > 0:
+                v_np[i] = v_np[i-1]
+            else:
+                v_np[i] = v_np[i+1]
     
     # Trim leading datapoints if they precede start time
     if ('StartTime' in respcard_info and 
