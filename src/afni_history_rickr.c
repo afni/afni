@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
+   "update @diff.tree, @diff.files: possibly switch to meld if no xxdiff",
+   "Be automatic, rather than forcing one to use '-diff_prog meld'."
+ } ,
+
  {  1, Mar, 2023, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -show_pretty_command, to print a more readable one",
    "Append this to a current command to generate prettier one, not to run it."
