@@ -285,9 +285,9 @@ otxt : str
     function reportCoorAndValues(data) {{
       // coord str
       let str_c = '&nbspxyz:[' + 
-                  flt2str0(data.mm[0], 3) + ', ' +
-                  flt2str0(data.mm[1], 3) + ', ' +
-                  flt2str0(data.mm[2], 3) + '], '
+                  flt2str0_dir(data.mm[0], 3, 'RL') + ', ' +
+                  flt2str0_dir(data.mm[1], 3, 'AP') + ', ' +
+                  flt2str0_dir(data.mm[2], 3, 'IS') + '], '
       // value str
       let str_v = 'UOT:[' + 
                   flt2str0(data.values[0].value, 6) + ', ' + 

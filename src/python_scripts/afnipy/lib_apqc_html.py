@@ -1213,6 +1213,32 @@ function flt2str0(flt, ndec = 0) {
     return flt.toFixed(ndec); //return string
 }
 
+/* more string formatting numbers, below ... WITH directionality here,
+   assuming the coords are what AFNI calls LPI (and what some other
+   software call RAS); basically, L/P/I are neg coords, and R/A/S are
+   positive.  
+*/
+function flt2str0_dir(flt, ndec = 0, dir = '' ) {
+    //retain trailing zero
+    if ( dir == '' ) {
+      return flt.toFixed(ndec); //return string
+    } else if ( dir == 'RL' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'L' : 'R';
+      return aflt.toFixed(ndec) + lab;
+    } else if ( dir == 'AP' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'P' : 'A';
+      return aflt.toFixed(ndec) + lab;
+    } else if ( dir == 'IS' ) {
+      let aflt = Math.abs(flt);
+      let lab  = (flt < 0 ) ? 'I' : 'S';
+      return aflt.toFixed(ndec) + lab;
+    } else {
+      return ''; 
+    }
+}
+
 '''
 
     y+= '''
