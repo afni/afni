@@ -12,11 +12,10 @@ import copy, json
 # Dictionary for converting an AFNI cbar name (keys) to NiiVue cmap
 # name(s). Note that NiiVue will split bi-directional pbars into 2
 # cmaps (pos first, then neg), so we always make a list of any mapping.
-# !!! TODO:  UPDATE WITH AFNI CBARS, WHEN AVAILABLE
 afni2nv_cmaps = {
     'Plasma' : ['plasma'],
-    #'Reds_and_Blues_Inv' : ['afni_reds_inv', 'afni_blues_inv'],
-    'Reds_and_Blues_Inv' : ['redyell', 'bluegrn'],
+    'Reds_and_Blues_Inv' : ['afni_reds_inv', 'afni_blues_inv'],
+    #'Reds_and_Blues_Inv' : ['redyell', 'bluegrn'],
 }
 
 
@@ -191,13 +190,12 @@ nv_then_txt : str
 
     """
 
-
     # !!!! TODO:  add in negative colorbar stuff, using if conditions
     nv_then_txt = '''
       {nobj}.setFrame4D({nobj}.volumes[1].id, {idx_olay}); // olay
       {nobj}.setFrame4D({nobj}.volumes[2].id, {idx_thr});  // thr
       {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
-      {nobj}.volumes[1].colorbarVisible = true;  // yes thr bar
+      {nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
       {nobj}.volumes[2].colorbarVisible = false; // no thr bar
       {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
       {nobj}.overlayOutlineWidth = {do_boxed};
@@ -280,19 +278,37 @@ otxt : str
 <div class="class_niivue">
   <canvas id="{nid}" height=480 width=640>
   </canvas>
+  <footer id="intensity" style="color:#fff; ">
+    &nbsp;
+  </footer>
   <script>
+    function reportCoorAndValues(data) {{
+      // coord str
+      let str_c = '&nbspxyz:[' + 
+                  flt2str0(data.mm[0], 3) + ', ' +
+                  flt2str0(data.mm[1], 3) + ', ' +
+                  flt2str0(data.mm[2], 3) + '], '
+      // value str
+      let str_v = 'UOT:[' + 
+                  flt2str0(data.values[0].value, 6) + ', ' + 
+                  flt2str0(data.values[1].value, 6) + ', ' + 
+                  flt2str0(data.values[2].value, 6) + ']' 
+      document.getElementById('intensity').innerHTML = str_c + str_v;
+    }}
 '''.format( nid=nid )
 
     otxt+= '''
     const {nobj} = new niivue.Niivue(
-      {{ logging:true, 
-        show3Dcrosshair: true }}
+      {{ logging: true, 
+        show3Dcrosshair: true,
+        onLocationChange: reportCoorAndValues,
+      }}
     )
-    {nobj}.opts.isColorbar = true
-    {nobj}.opts.sagittalNoseLeft = {sagNoseLeft}
-    {nobj}.opts.isRadiologicalConvention = {isRadCon}
-    {nobj}.opts.isCornerOrientationText = true
-    {nobj}.attachTo('{nid}')
+    {nobj}.opts.isColorbar = true;
+    {nobj}.opts.sagittalNoseLeft = {sagNoseLeft};
+    {nobj}.opts.isRadiologicalConvention = {isRadCon};
+    {nobj}.opts.isCornerOrientationText = true;
+    {nobj}.attachTo('{nid}');
     {nobj}.loadVolumes([
 {nv_ulay_txt}{nv_olay_txt}{nv_thr_txt}
     ]).then(()=>{{ // more actions

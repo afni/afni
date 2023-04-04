@@ -1207,6 +1207,15 @@ async function RunAtStart() {
 '''
 
     y+= '''
+// used for string formatting numbers (C Rorden), below
+function flt2str0(flt, ndec = 0) {
+    //retain trailing zero
+    return flt.toFixed(ndec); //return string
+}
+
+'''
+
+    y+= '''
 /*
   OFF AT THE MOMENT, but a guard for reloading page
 */
