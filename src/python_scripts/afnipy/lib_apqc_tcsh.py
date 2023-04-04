@@ -2712,7 +2712,7 @@ num : int
 
 #-------------------------------------------------------------------------
 
-# complicated/tiered depedencies...
+# complicated/tiered dependencies...
 def apqc_vstat_seedcorr( ap_ssdict, obase, qcb, qci, 
                          ulay, focusbox, seed ):
     """Make images of the volumetric statistics (and effect estimate, when
