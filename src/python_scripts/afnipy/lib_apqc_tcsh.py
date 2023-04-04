@@ -2555,7 +2555,7 @@ num : int
     return 0
 
 
-# complicated/tiered depedencies...
+# complicated/tiered dependencies...
 def apqc_regr_corr_errts( ap_ssdict, obase, qcb, qci, 
                           ulay, focusbox, corr_brain ):
     """Make images of the correlation map of the average residual signal

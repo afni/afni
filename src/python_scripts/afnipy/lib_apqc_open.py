@@ -311,7 +311,7 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
              constraint on the common path
     remove_dup : bool
              remove instances of duplicated remainder paths.  Will remove
-             later occurences in the list
+             later occurrences in the list
     verb : int
              verbosity level
 
