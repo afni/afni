@@ -505,7 +505,7 @@ def padassign(x, L):
     '''Move an assignment operator '=' rightward to a new index L, if it
 exists to the left; if it exists to the right of that spot, or if it
 doesn't appear in that string, just return the original string.  If
-multiple occurences of '=' occur in a string, just return original.
+multiple occurrences of '=' occur in a string, just return original.
 
     '''
     
@@ -513,7 +513,7 @@ multiple occurences of '=' occur in a string, just return original.
     if not('=' in x):
         return x
 
-    # check if multiple occurences
+    # check if multiple occurrences
     if x.count('=') > 1:
         return x
 

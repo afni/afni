@@ -11,7 +11,7 @@ source(first.in.path('AFNIio.R'))
 ExecName <- '3dLME'
 
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dLME Input functions ################################
@@ -914,7 +914,7 @@ process.LME.opts <- function (lop, verb = 0) {
    #   }
    #}
    
-   # constrcuct pairwise comparisons for function contrast
+   # construct pairwise comparisons for function contrast
    # now assume quantitative variables are always set to 0 for contrast testing
    # may change to any value later
    #if (lop$num_glt > 0) {

@@ -767,7 +767,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
 
 
 /* - appended _eng to engine function name             20 Oct 2003 [rickr]
- * - added debug parmeter
+ * - added debug parameter
  * - only print non-error info when debug flag is set
 */
 /*!
@@ -775,7 +775,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
       SO = SUMA_Load_Surface_Object_eng ( SO_FileName, SO_FT, SO_FF, char *VolParName, int debug)
 
 
-Input paramters :
+Input parameters :
 \param   (void *) SO_FileName
          For SUMA_INVENTOR_GENERIC SO_FileName is (char *) containing path (if any) and filename of surface
          For SUMA_SUREFIT SO_FileName is (SUMA_SFname *) containing full topo and coord names, with path (if any)
@@ -875,7 +875,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       if (  gSO_FT > SUMA_FT_NOT_SPECIFIED &&
             gSO_FT != SO_FT && !pname) {
          SUMA_S_Warnv("Warning Warning MSB!!!\n"
-                      "Surface file name's (%s) extension indcates a\n"
+                      "Surface file name's (%s) extension indicates a\n"
                       "surface of type %s and conflicts with specified\n"
                       "type of %s.\n"
                       "Function will attempt to proceed as if type is\n"
@@ -1308,7 +1308,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             SUMA_ifree(pname); SUMA_ifree(psv);
             SUMA_RETURN (NULL);
          }
-         /* add a couple of lines to appease the optimation gods...         */
+         /* add a couple of lines to appease the optimization gods...       */
          /* (suma, v2s, SSmooth were crashing on FC7)   23 Jan 2008 [rickr] */
          memset(FS, 0, sizeof(SUMA_FreeSurfer_struct));
          if(debug > 1) fprintf(stderr,"-- optimization appeasement message\n");
@@ -1781,13 +1781,13 @@ SUMA_Boolean SUMA_Read_SpecFile (
    SpecName = SUMA_StripPath (f_name);
    if (strlen(SpecName.Path) > SUMA_MAX_DIR_LENGTH-1) {
       fprintf( SUMA_STDERR,
-               "Error %s: Path of specfile > %d charcters.\n",
+               "Error %s: Path of specfile > %d characters.\n",
                FuncName, SUMA_MAX_DIR_LENGTH-1);
       SUMA_RETURN (NOPE);
    }
    if (strlen(SpecName.FileName) > SUMA_MAX_NAME_LENGTH-1) {
       fprintf( SUMA_STDERR,
-               "Error %s: Name of specfile > %d charcters.\n",
+               "Error %s: Name of specfile > %d characters.\n",
                FuncName, SUMA_MAX_NAME_LENGTH-1);
       SUMA_RETURN (NOPE);
    }
@@ -1892,7 +1892,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                            FuncName, Spec->N_Surfs-2);
                   SUMA_RETURN (NOPE);
                }
-               /* initilize SOME of the fields to previous one */
+               /* initialize SOME of the fields to previous one */
                Spec->CoordFile[Spec->N_Surfs-1][0] = '\0';  /* *** BA, Dec 03 */
                Spec->SurfaceFile[Spec->N_Surfs-1][0] = '\0';/* *** BA, Dec 03 */
 
@@ -1910,7 +1910,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
                         Spec->SureFitVolParam[Spec->N_Surfs-2]);
                Spec->VolParName[Spec->N_Surfs-1][0] = '\0';
                      /* it is confusing to users to inherit
-                        this one from the pervious, keep it separate.*/
+                        this one from the previous, keep it separate.*/
                Spec->IDcode[Spec->N_Surfs-1] = NULL; /*  this field is set in
                                                          LoadSpec function */
                Spec->SurfaceLabel[Spec->N_Surfs-1][0] = '\0';
@@ -2729,7 +2729,7 @@ SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
    }
 
 
-   /* loop accross states and relabel non-anatomically correct states */
+   /* loop across states and relabel non-anatomically correct states */
    c = 0;
    for (k=0; k<2; ++k) {
       for (i=0; i<vs[k]->N_Surfs; ++i) {
@@ -3086,7 +3086,7 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
             Spec->LocalCurvatureParent[i][0] ||
             Spec->OriginatorID[i][0] ||
             Spec->DomainGrandParentID[i][0]) ) {
-         SUMA_SL_Err("You cannont mix MappingRef with\n"
+         SUMA_SL_Err("You cannot mix MappingRef with\n"
                      "newer fields such as:\n"
                      "LocalDomainParent, LocalCurvatureParent\n"
                      "OriginatorID or DomainGrandParentID  ");
@@ -4134,7 +4134,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             and users should not be making this mistake too often */
             if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
                fprintf( SUMA_STDERR,
-                        "Error %s: Surface %d is specifed more than once.\n"
+                        "Error %s: Surface %d is specified more than once.\n"
                         "Multiple copies ignored.\n", FuncName, i);
                /* free SO */
                if (!SUMA_Free_Surface_Object (SO)) {
@@ -4484,7 +4484,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
    if (DoEL && SOinh) {
       if (strcmp(SO->LocalDomainParentID, SOinh->idcode_str)) {
          SUMA_SL_Warn(  "Cannot inherit Edge List\n"
-                        "and First Neightbor.\n"
+                        "and First Neighbor.\n"
                         "Cause: idcode mismatch.\n"
                         "Independent lists will\n"
                         "be created.\n" );
@@ -4493,7 +4493,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
                   SO->N_FaceSet != SOinh->N_FaceSet) {
          SUMA_SL_Note(  "(IGNORE for surface with cuts)\n"
                         "Cannot inherit Edge List\n"
-                        "and First Neightbor.\n"
+                        "and First Neighbor.\n"
                         "Cause: Node number mismatch.\n"
                         "Independent lists will\n"
                         "be created.\n");
@@ -4519,7 +4519,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       }
    }
 
-   /* prerequisits */
+   /* prerequisites */
    if (DoCurv) {
       DoArea = YUP;
       DoEL = YUP;
@@ -4705,7 +4705,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
          char *name_tmp=NULL;
          if ((name_tmp = SUMA_SurfaceFileName(SO, 1))) {
             /* Go with this baby, maybe someday modify
-               fuction above to return full path, making it
+               function above to return full path, making it
                more robust */
             name_tmp = SUMA_append_replace_string("Convexity_",name_tmp,"",2);
          } else if (SO->Label) {
@@ -5247,7 +5247,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
       if (  centmed[0] <= SO->MinDims[0] || centmed[0] >= SO->MaxDims[0] ||
             centmed[1] <= SO->MinDims[1] || centmed[1] >= SO->MaxDims[1] ||
             centmed[2] <= SO->MinDims[2] || centmed[2] >= SO->MaxDims[2] ) {
-         SUMA_LH("Failed center test, outside boundig box. Flat surface?\n");
+         SUMA_LH("Failed center test, outside bounding box. Flat surface?\n");
             isSphere  = SUMA_GEOM_IRREGULAR;
             goto DONE;
       }
@@ -5623,7 +5623,7 @@ int SUMA_unique_name_ind( SUMA_SurfSpecFile * spec, char * sname )
 
 /* Like SUMA_unique_name_ind, but return a pointer copy to the
    coordfile name instead.
-   An empty string is retuned in error cases or no match */
+   An empty string is returned in error cases or no match */
 char * SUMA_unique_name( SUMA_SurfSpecFile * spec, char * sname )
 {
     char * nfile;
@@ -6325,7 +6325,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
       SUMA_free(spec); spec = NULL; *nspec = 0; ispec0 = 0;
    }
 
-   /* Now see if you have explicity define specs on command line */
+   /* Now see if you have explicitly define specs on command line */
    if (ps->accept_spec || ps->accept_s) {
       SUMA_LHv("Working Specs, %d %d\n"
                "ispec0 = %d, ps->N_spec_names = %d\n"

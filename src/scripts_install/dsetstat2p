@@ -303,7 +303,7 @@ cat << EOF
     In all cases note the use of the single quotes around the subbrick
     selector-- these are necessary!
 
-    # 1) Do a calculation and display various informations to screen:
+    # 1) Do a calculation and display various information to screen:
     $this_prog  \
         -inset stats.sub01+tlrc'[2]'                        \
         -statval 3.313                                      \

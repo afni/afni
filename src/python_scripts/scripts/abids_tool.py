@@ -253,7 +253,7 @@ for i in range(0,len(dset_list)):
     if new_prefix is not None:
         if os.path.isfile(new_prefix[i]+".json"):
             print("\nError: "+new_prefix[i]+".json already exists. "+
-                 "Not overwritting!!\n")
+                 "Not overwriting!!\n")
             sys.exit(1)
         else:
             os.system("cp "+json_file+" "+new_prefix[i]+".json")

@@ -55,7 +55,7 @@ else()
   # are always available for use. The downside is that the installation
   # cannot be associated with a particular environment and so if the user
   # changes their python environment AFNI's python code may be available
-  # but the pytho:n dependencies may not be.
+  # but the python dependencies may not be.
   install(
     DIRECTORY ../python_scripts/scripts/
     COMPONENT python

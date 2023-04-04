@@ -263,7 +263,7 @@ auth  : PA Taylor (SSCC, NIMH, NIH)
 
 USAGE ~1~
 
-This program is generall run as:
+This program is generally run as:
 
     3dLocalUnifize [options] -prefix DSET_OUT -input DSET_IN
 

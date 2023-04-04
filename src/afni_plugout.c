@@ -50,7 +50,7 @@ ENTRY("AFNI_init_plugouts") ;
    verbose = (GLOBAL_argopt.plugout_code & 1) != 0 ;
 
    #if 0   /*  ZSS June 2011. Delete unused code after dust has settled.  */
-   /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overrided */
+   /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overridden */
    /*            (put into AFNI distribution 31 Jan 2006 [rickr]) */
    base_port = BASE_TCP_CONTROL;
    env = getenv("AFNI_PLUGOUT_TCP_BASE");
@@ -70,7 +70,7 @@ ENTRY("AFNI_init_plugouts") ;
       sprintf(ioc_conname[cc],"tcp:*:%d",base_port+cc) ;
    }
    #else 
-   /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overrided */
+   /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overridden */
    /*            (put into AFNI distribution 31 Jan 2006 [rickr]) */
    /*            (Switched to get_port_named(), June 2011 [ZSS] ) */
    for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){ 
@@ -267,7 +267,7 @@ RwcBoolean AFNI_plugout_workproc( XtPointer elvis )
         free(pobuf) ;
         opcount++ ;
 
-     } else if( jj == -1 ){  /* something bad happend to control socket */
+     } else if( jj == -1 ){  /* something bad happened to control socket */
 
 #if 0
        if( verbose )

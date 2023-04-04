@@ -32,7 +32,7 @@ function [err,Loc] = FindChar (C, cfnd)
 % ks2 could be a whole ascii file or a chunk of one, like
 % fid = fopen('thisfile','r'); ks2 = fscanf(fid,'%c',100); fclose (fid);
 % the previous line reads the 1st 100 characters
-% carefull, if you use
+% careful, if you use
 % ks2 = fscanf(fid,'%s',100);
 % you'll read the first 100 strings (space, tab and newline delimited)
 %
@@ -51,7 +51,7 @@ FuncName = 'FindChar';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Loc = [];
 

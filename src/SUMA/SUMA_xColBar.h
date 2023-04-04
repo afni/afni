@@ -525,7 +525,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "         accurate.:LR:\n"  \
 "   0 :   No transparency, opaque.:LR:\n"  \
 "   ...:LR:\n"    \
-"   16:   Maximum transparency, invisibile:LR:\n"   
+"   16:   Maximum transparency, invisible:LR:\n"   
 
    #define  SUMA_SurfContHelp_TransMode  \
 "Set the transparency for this surface to one of the following "   \
@@ -535,7 +535,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "           be changed with the :ref:`o<LC_o>`, :ref:`O<UC_O>`  options.:LR:\n" \
 "   0 :   No transparency, opaque.:LR:\n"  \
 "   ...:LR:\n"    \
-"   16:   Maximum transparency, invisibile:LR:\n"   
+"   16:   Maximum transparency, invisible:LR:\n"   
 
 #define  SUMA_SurfContHelp_DsetViewMode  \
    "Choose the viewing mode for this dataset.:LR:\n" \
@@ -818,7 +818,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_DsetOrd \
    "Order of Dset's colorplane in the stack of all colorplanes of the parent surface.\n"  \
-   "The datset with highest order number is \n"   \
+   "The dataset with highest order number is \n"   \
    "on top of the stack. Separate \n"  \
    ":ref:`stacks<Plane_Layering>` exist for foreground (fg:)\n" \
    "and background planes (bg:).:LR:\n"   \
@@ -827,7 +827,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_TractContHelp_DsetOrd \
    "Order of this tract's dataset colorplane in the stack of all colorplanes available.\n"  \
-   "The datset with highest order number is \n"   \
+   "The dataset with highest order number is \n"   \
    "on top of the stack.\n"   \
    ":SPX:See :ref:`color plane grouping <Color_Plane_Grouping>` for details "\
    "on how colors are merged.:SPX:"
@@ -1548,7 +1548,7 @@ SUMA_SHPINX_BREAK \
 "for all ROIs i the tract intersects.\n\n"   \
 "For example, say a tract goes through a blue region of color [0 0 1] with alpha of 0.5 (A ~ 5 in column A), and a red region of color [1 0 0] (alpha is 1.0, or in the table = 9). The tracts that go through both ROIs will be colored (1.0*([1 0 0]+0.5*([0 0 1])/1.5, which is purple. Similar averaging goes on if tracts go through more than 2 regions. Tracts that go though one region will get that region's color.\n\n"\
 "Now, if you set alpha to 0 for a certain ROI, then that ROI does add to the "\
-"tint of tracts that go thourough it at all. And for a tract that goes through that region only, it retains its original colors.:SPX: See image on the right side.:SPX:\n\n"\
+"tint of tracts that go thorough it at all. And for a tract that goes through that region only, it retains its original colors.:SPX: See image on the right side.:SPX:\n\n"\
 ":SPX:\n\n"\
 "  .. figure:: media/Masks.02.jpg\n"\
 "     :align: left\n"\

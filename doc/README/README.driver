@@ -116,7 +116,7 @@ SET_THRESHNEW [c] val [flags]
   numerical value 'val', which must be in the range [0..9999].  If the
   optional 'flags' string contains the character '*', then the slider decimal
   offset (i.e., the '**' setting) will be changed to match the size of 'val'.
-  If 'flags' contains the character 'p', then 'val will be interepreted as
+  If 'flags' contains the character 'p', then 'val will be interpreted as
   a p-value (and so must be between 0.0 and 1.0).  Examples:
     SET_THRESHNEW A 9.2731
     SET_THRESHNEW B 0.3971 *p
@@ -519,12 +519,12 @@ SAVE_RAWMONT [c.]imagewindowname filename
 
 SAVE_UNDERLAY  [c] prefix
 WRITE_UNDERLAY [c] prefix
-  These synonomous commands write a copy of the current underlay dataset for
+  These synonymous commands write a copy of the current underlay dataset for
   the given image viewer to disk, using the given prefix.
 
 SAVE_OVERLAY  [c] prefix
 WRITE_OVERLAY [c] prefix
-  These synonomous commands write a copy of the current overlay dataset for
+  These synonymous commands write a copy of the current overlay dataset for
   the given image viewer to disk, using the given prefix.
      ** Note that these WRITE_ commands will over-write existing **
      ** datasets with the same name, so you must use care here!  **

@@ -230,14 +230,14 @@ int compute_meandiff(options_t * opts, int method)
       if( opts->mask && ! opts->mask[vind] ) continue;
 
       if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
-         ERROR_message("failed to exract data at index %d\n", vind);
+         ERROR_message("failed to extract data at index %d\n", vind);
          free(dwork);  free(fdata);  RETURN(1);
       }
 
       /* accumuate squared differences; dwork[0] is already 0 */
-      gmean += fdata[0];  /* and accumlate for mean */
+      gmean += fdata[0];  /* and accumulate for mean */
       for( tind=1; tind < nt; tind++ ) {
-         gmean += fdata[tind];      /* accumlate for mean */
+         gmean += fdata[tind];      /* accumulate for mean */
          fdiff = fabs(fdata[tind]-fdata[tind-1]);
          mdiff += fdiff;            /* accumulate for mean diff */
          dwork[tind] += fdiff;
@@ -331,7 +331,7 @@ int compute_4095(options_t * opts, int method)
       if( opts->mask && ! opts->mask[vind] ) continue;
 
       if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
-         ERROR_message("failed to exract data at index %d\n", vind);
+         ERROR_message("failed to extract data at index %d\n", vind);
          free(fdata);  RETURN(1);
       }
 
@@ -424,14 +424,14 @@ int compute_enorm(options_t * opts, int method)
       if( opts->mask && ! opts->mask[vind] ) continue;
 
       if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
-         ERROR_message("failed to exract data at index %d\n", vind);
+         ERROR_message("failed to extract data at index %d\n", vind);
          free(dwork);  free(fdata);  RETURN(1);
       }
 
       /* accumuate squared differences; dwork[0] is already 0 */
-      gmean += fdata[0];  /* and accumlate for mean */
+      gmean += fdata[0];  /* and accumulate for mean */
       for( tind=1; tind < nt; tind++ ) {
-         gmean += fdata[tind];      /* accumlate for mean */
+         gmean += fdata[tind];      /* accumulate for mean */
          fdiff = fdata[tind]-fdata[tind-1];
          mdiff += fabs(fdiff);      /* accumulate for mean diff */
          dwork[tind] += fdiff*fdiff;

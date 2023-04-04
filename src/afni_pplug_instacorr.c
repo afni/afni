@@ -228,6 +228,8 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
    /* only the first 4 of these methods is available to a "normal" user */
+   /* [PT] should do Euclidian -> Euclidean, *if* that doesn't break 
+      anything */
    static char *meth_string[10] = { "Pearson" , "Spearman" ,
                                     "Quadrant", "Ken Tau_b", "TicTacToe" ,
                                     "BCpearson" , "VCpearson", "Euclidian",
@@ -1246,7 +1248,7 @@ ENTRY("GICOR_setup_func") ;
      ININFO_message("%d datasets in set B",giset->ndset_B) ;
 
    ININFO_message("----------------------------------------------------") ;
-   ININFO_message("----- AFNI is now connnected to 3dGroupInCorr! -----") ;
+   ININFO_message("----- AFNI is now connected to 3dGroupInCorr! -----") ;
    ININFO_message("..... Use 'InstaCorr Set' to pick a seed voxel .....") ;
    ININFO_message("..... (Mouse-right-click menu in image viewer) .....") ;
    ININFO_message("----------------------------------------------------") ;

@@ -57,7 +57,7 @@ noFaultXAllocColor(Display * dpy, Colormap cmap, int cmapSize,
       return;
 
     /* Retrieve color table entries. */
-    /* XXX alloca canidate. */
+    /* XXX alloca candidate. */
     ctable = (XColor *) malloc(cmapSize * sizeof(XColor));
     for (i = 0; i < cmapSize; i++)
       ctable[i].pixel = i;
@@ -202,7 +202,7 @@ static void
 menuSetup(void)
 {
   if (menuFont) {
-    /* menuFont overload to indicate menu initalization */
+    /* menuFont overload to indicate menu initialization */
     return;
   }
   menuFont = XLoadQueryFont(__glutDisplay,
@@ -383,7 +383,7 @@ mapMenu(GLUTmenu * menu, int x, int y)
     changes.x = x;
   }
 
-  /* Rember where the menu is placed so submenus can be
+  /* Remember where the menu is placed so submenus can be
      properly placed relative to it. */
   menu->x = changes.x;
   menu->y = changes.y;
@@ -920,7 +920,7 @@ __glutMenuItemEnterOrLeave(GLUTmenuItem * item,
     GLUTmenuItem *prevItem = item->menu->highlighted;
 
     if (prevItem && prevItem != item) {
-      /* If there's an already higlighted item in this menu
+      /* If there's an already highlighted item in this menu
          that is different from this one (we could be
          re-entering an item with an already cascaded
          submenu!), unhighlight the previous item. */

@@ -550,7 +550,7 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
                   if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )){
                      fprintf (SUMA_STDERR,
                               "Warning %s: "
-                              "Shared memory communcation failed.\n",
+                              "Shared memory communication failed.\n",
                               FuncName);
                   }
                }
@@ -1600,7 +1600,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      SOaf = SUMA_findSOp_inDOv (nel_surfidcode,
                                                 SUMAg_DOv, SUMAg_N_DOv);
                      if (!SOaf) {
-                        SUMA_S_Warn("AFNI sending unkown id %s, "
+                        SUMA_S_Warn("AFNI sending unknown id %s, "
                                     "taking default for viewer",
                                     nel_surfidcode?nel_surfidcode:"NULL");
                         if (!(SOaf = SUMA_SV_Focus_any_SO(svi, NULL))) {
@@ -1875,7 +1875,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                } /* link cross hair */
             } /* iview ... for all viewers */
             /* don't free nel, it's freed later on
-               dont't free attributes obtained in NI_get_attribute,
+               don't free attributes obtained in NI_get_attribute,
                they are copies of pointers in nel  */
          }/* SUMA_crosshair_xyz */
          SUMA_RETURN(YUP) ;
@@ -1972,7 +1972,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
 
-         /* redisplay curent only*/
+         /* redisplay current only*/
          sv->ResetGLStateVariables = YUP;
          SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -2008,7 +2008,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
 
-         /* redisplay curent only*/
+         /* redisplay current only*/
          sv->ResetGLStateVariables = YUP;
          SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
 
@@ -2377,7 +2377,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
                                    SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
 
          if (XYZmap == NULL){
-            SUMA_S_Err("Linkage is not posible, using current XYZ");
+            SUMA_S_Err("Linkage is not possible, using current XYZ");
             XYZmap = (float *)SUMA_calloc (3, sizeof(float));
             if (XYZmap == NULL) {
                SUMA_S_Err("Give me a break !");
@@ -2640,7 +2640,7 @@ NI_group * SUMA_makeNI_InstaTract_Query (SUMA_SurfaceViewer *sv)
 /*!
    ans = SUMA_CanTalkToAfni (dov, N_dov);
    determines if any of the Surface Viewers is allowed to talk to afni
-   \param dov (SUMA_DO *) the Displayable Objects vector (ususally SUMAg_DOv)
+   \param dov (SUMA_DO *) the Displayable Objects vector (usually SUMAg_DOv)
    \param N_dov (int) the number of elements in dov (usually SUMAg_N_DOv)
    \ret ans (SUMA_Boolean) NOPE if none of the SOs shown in the viewer has both
       LocalDomainParentID != NULL && VolPar != NULL
@@ -2937,7 +2937,7 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
 
 
 /*!
-   \brief transfroms a SUMA_NIML_DRAWN_ROI * to a SUMA_DRAWN_ROI *
+   \brief transforms a SUMA_NIML_DRAWN_ROI * to a SUMA_DRAWN_ROI *
 
    \param nimlROI (SUMA_NIML_DRAWN_ROI *) the niml ROI structure
    \param ForDisplay (SUMA_Boolean) YUP: Action stack is created
@@ -3321,7 +3321,7 @@ SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs)
    \param HostName (char *) hostname in IP number form, or name form afni.nimh.nih.gov or afni (if in /etc/hosts file)
                                  NULL to set cf->HostName_v[istream] to localhost if i = SUMA_AFNI_STREAM_INDEX
                                                                                  127.0.0.1 otherwise. That's done to keep
-                                                                                 Shared Memory communication betwen AFNI
+                                                                                 Shared Memory communication between AFNI
                                                                                  and SUMA only.
    \param istream (int) if -1 then all streams are set to HostName
                         otherwise, only HostName_v[istream] is set
@@ -4372,7 +4372,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
       if (cs) {
          if (!i_in) {
             SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 "
-                        "before action 1.\nNo Communcation cleanup done.");
+                        "before action 1.\nNo Communication cleanup done.");
             cs->Send = NOPE;
             SUMA_RETURN(NOPE);
          }
@@ -4618,7 +4618,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
    if (action == 2) {
       if (i_in < 2) {
          SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 and 1"
-                     " before action 2.\nNo Communcation cleanup done.");
+                     " before action 2.\nNo Communication cleanup done.");
          if (cs) cs->Send = NOPE;
          SUMA_RETURN(NOPE);
       }
@@ -4752,7 +4752,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
       if (!i_in) {
          SUMA_SL_Err(
             "You must call SUMA_SendToAfni with action 0 before action 1.\n"
-            "No Communcation cleanup done.");
+            "No Communication cleanup done.");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
       }
@@ -4783,7 +4783,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
    if (action == 2) {
       if (i_in < 2) {
          SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 and 1 "
-                     "before action 2.\nNo Communcation cleanup done.");
+                     "before action 2.\nNo Communication cleanup done.");
          cs->afni_Send = NOPE;
          SUMA_RETURN(NOPE);
       }

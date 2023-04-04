@@ -33,7 +33,7 @@ cleanWindowWorkList(GLUTwindow * window)
   GLUTwindow **pEntry = &__glutWindowWorkList;
   GLUTwindow *entry = __glutWindowWorkList;
 
-  /* Tranverse singly-linked window work list look for the
+  /* Traverse singly-linked window work list look for the
      window. */
   while (entry) {
     if (entry == window) {
@@ -53,7 +53,7 @@ cleanStaleWindowList(GLUTwindow * window)
   GLUTstale **pEntry = &__glutStaleWindowList;
   GLUTstale *entry = __glutStaleWindowList;
 
-  /* Tranverse singly-linked stale window list look for the
+  /* Traverse singly-linked stale window list look for the
      window ID. */
   while (entry) {
     if (entry->window == window) {

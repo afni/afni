@@ -17,9 +17,9 @@
  *     coord_B          : second xyz coordinate
  *     n_area_A         : area for each node on the first surface
  *     n_area_B         : area for each node on the second surface
- *     n_avearea_A      : average area of trianges for each node on surface
- *     n_avearea_B      : average area of trianges for each node on surface
- *     n_ntri           : number of included trianges for each node
+ *     n_avearea_A      : average area of triangles for each node on surface
+ *     n_avearea_B      : average area of triangles for each node on surface
+ *     n_ntri           : number of included triangles for each node
  *     nodes            : node index
  *     node_vol         : between surface volume per node
  *     node_volg        : between surface volume per node estimated with
@@ -1107,8 +1107,8 @@ ENTRY("get_surf_measures");
     {
         if ( p->S.nsurf < 2 )
         {
-            fprintf(stderr,"** gsf: functions requre 2 surfaces, failing...\n");
-            RETURN(-1);
+           fprintf(stderr,"** gsf: functions require 2 surfaces, failing...\n");
+           RETURN(-1);
         }
 
         if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug,
@@ -1360,7 +1360,7 @@ ENTRY("compute_node_areas");
         {
             if ( flist[c] < 0 || flist[c] >= so->N_FaceSet )
             {
-                fprintf(stderr,"** cna: FaceSet mis-match flist,max = %d,%d\n",
+                fprintf(stderr,"** cna: FaceSet mismatch flist,max = %d,%d\n",
                         flist[c], so->N_FaceSet);
                 free(p->S.narea[sindex]);
                 RETURN(-1);
@@ -1415,7 +1415,7 @@ ENTRY("compute_node_vols");
         {
             if ( flist[c] < 0 || flist[c] >= so->N_FaceSet )
             {
-                fprintf(stderr,"** cnv: FaceSet mis-match flist,max = %d,%d\n",
+                fprintf(stderr,"** cnv: FaceSet mismatch flist,max = %d,%d\n",
                         flist[c], so->N_FaceSet);
                 free(p->S.nvol);
                 RETURN(-1);
@@ -1559,7 +1559,7 @@ ENTRY("compute_node_vols_G");
 /*----------------------------------------------------------------------
  * compute_face_vols                    - volume for each triangle face
  *
- * The volume corresponding to a triange face is the approximate volume
+ * The volume corresponding to a triangle face is the approximate volume
  * of the pentahedron formed by the pair of corresponding triangular faces.
  * It is computed (approximated) as the sum of three quadrahedrons, which
  * will be close to correct, and will give a very accurate total volume
@@ -2801,13 +2801,13 @@ ENTRY("check_func_name");
 
     if ( sizeof(g_sm_names)/sizeof(char *) != (int)E_SM_FINAL )
     {
-        fprintf(stderr,"** error: g_sm_names mis-match\n");
+        fprintf(stderr,"** error: g_sm_names mismatch\n");
         RETURN(E_SM_INVALID);
     }
 
     if ( sizeof(g_sm_desc)/sizeof(char *) != (int)E_SM_FINAL )
     {
-        fprintf(stderr,"** error: g_sm_desc mis-match\n");
+        fprintf(stderr,"** error: g_sm_desc mismatch\n");
         RETURN(E_SM_INVALID);
     }
 
@@ -2868,7 +2868,7 @@ ENTRY("final_cleanup");
 
 
 /*----------------------------------------------------------------------
- * tetra_volume                 - retrun the volume of the tetrahedron
+ * tetra_volume                 - return the volume of the tetrahedron
  *
  *      V = 1/6 * |a o (b x c)|               -- mathworld.wolfram.com
  *----------------------------------------------------------------------

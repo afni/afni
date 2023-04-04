@@ -963,7 +963,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                "Have %d entries with argt[0]='%s'",
                FuncName, argtc, argt[0]);
 	}
-   while (kar < argtc) { /* loop accross command ine options */
+   while (kar < argtc) { /* loop across command line options */
       SUMA_LHv("Now processing argt[%d]=%s\n",
                kar, SUMA_CHECK_NULL_STR(argt[kar]));
       if (!argt[kar]) {
@@ -2696,7 +2696,7 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    /* now search for some extra options */
    kar = 1;
    brk = NOPE;
-	while (kar < argtc) { /* loop accross command ine options */
+	while (kar < argtc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)))
       {
@@ -2840,7 +2840,7 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    /* parse 'em */
    kar = 1;
    brk = NOPE;
-	while (kar < argtc) { /* loop accross command ine options */
+	while (kar < argtc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (!brk && (  (strcmp(argt[kar], "-label") == 0) ||
                      (strcmp(argt[kar], "-surf_label") == 0) ||
@@ -2979,7 +2979,7 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
    /* parse left overs */
    kar = 1;
    brk = NOPE;
-	while (kar < argtc) { /* loop accross command ine options */
+	while (kar < argtc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (argt[kar][0] == '\0') { brk = YUP; } /* been take care of */
 

@@ -34,11 +34,11 @@ ex_hdr = setfield(ex_hdr, 'srctodet', fread(fid,1,'float32'));     %Distance fro
 ex_hdr = setfield(ex_hdr, 'srctoiso', fread(fid,1,'float32'));     %Distance from source to iso%
 ex_hdr = setfield(ex_hdr, 'tubetyp', fread(fid,1,'int16'));        %Tube type%
 ex_hdr = setfield(ex_hdr, 'dastyp', fread(fid,1,'int16'));         %DAS type%
-ex_hdr = setfield(ex_hdr, 'num_dcnk', fread(fid,1,'int16'));       %Number of Decon Kernals%
-ex_hdr = setfield(ex_hdr, 'dcn_len', fread(fid,1,'int16'));        %Number of elements in a Decon Kernal%
-ex_hdr = setfield(ex_hdr, 'dcn_density', fread(fid,1,'int16'));    %Decon Kernal density%
-ex_hdr = setfield(ex_hdr, 'dcn_stepsize', fread(fid,1,'int16'));   %Decon Kernal stepsize%
-ex_hdr = setfield(ex_hdr, 'dcn_shiftcnt', fread(fid,1,'int16'));   %Decon Kernal Shift Count%
+ex_hdr = setfield(ex_hdr, 'num_dcnk', fread(fid,1,'int16'));       %Number of Decon Kernels%
+ex_hdr = setfield(ex_hdr, 'dcn_len', fread(fid,1,'int16'));        %Number of elements in a Decon Kernel%
+ex_hdr = setfield(ex_hdr, 'dcn_density', fread(fid,1,'int16'));    %Decon Kernel density%
+ex_hdr = setfield(ex_hdr, 'dcn_stepsize', fread(fid,1,'int16'));   %Decon Kernel stepsize%
+ex_hdr = setfield(ex_hdr, 'dcn_shiftcnt', fread(fid,1,'int16'));   %Decon Kernel Shift Count%
 if byte_align; fseek(fid,2,0); end % 32-bit alignment
 ex_hdr = setfield(ex_hdr, 'magstrength', fread(fid,1,'int32'));    %Magnet strength (in gauss)%
 ex_hdr = setfield(ex_hdr, 'patid', fread(fid,13,'uchar'));         %Patient ID for this Exam%

@@ -103,7 +103,7 @@ char *angle_strings[] = { "120" , "180" , "240" , "300" , "360" } ;
 char *globalrange_strings[] = { "Slice" , "Volume" , "Dataset" } ; /* 29 Jan 2014 */
 #define NUM_globalrange_strings 3
 
-/*--------------------- strings for Cooordinate format --------------------*/
+/*--------------------- strings for Coordinate format --------------------*/
 
 #define NUM_cord_strings 50
 

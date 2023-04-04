@@ -212,7 +212,7 @@
 #   + [PT] also, control pbar image output file name: jpg by default
 # 
 #set version   = "5.52"; set rev_dat   = "July 1, 2019"
-#   + [PT] miniscule new option, '-pbar_for ..'
+#   + [PT] minuscule new option, '-pbar_for ..'
 # 
 #set version   = "5.6"; set rev_dat   = "July 8, 2019"
 #   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
@@ -2573,7 +2573,7 @@ refer to the variables in the "AFNI Driver" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
 or variables in the "AFNI Environment" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
-References to these are sometimes noted explicitely with "see DR" or
+References to these are sometimes noted explicitly with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
 For example, "(see ENV: SAVE_AGIF)".
 
@@ -2604,7 +2604,7 @@ COMMAND OPTIONS ~1~
                     A montage of those slices is made for any ulay UUU
                     and olay OOO selected.  Note that with this
                     option:
-                    + the user cannot thresold by statistic with the 
+                    + the user cannot threshold by statistic with the 
                       "-thr_olay_p2stat .." opt (-> because different
                       stats in a volume might have different conversions)
                     + when using this opt, at least on of UUU and OOO 
@@ -3106,7 +3106,7 @@ COMMAND OPTIONS ~1~
 -do_clean          :Use this option to remove the temporary directory
                     of copied/intermediate files. (As of July 8, 2019,
                     this is the new default behavior.  Thus, this opt
-                    is only here for backwards compatability).
+                    is only here for backwards compatibility).
 
 -echo              :run script verbosely (with 'set echo' executed)
 
@@ -3249,7 +3249,7 @@ EXAMPLES ~1~
         -do_clean  
 
 
- B) Make a 3x5 montage of an overlayed data set that has an ROI
+ B) Make a 3x5 montage of an overlaid data set that has an ROI
     map, so we want it to be colored-by-integer.  Put the images
     into a pre-existing directory, SUBDIR/.
 
@@ -3267,10 +3267,10 @@ EXAMPLES ~1~
         -do_clean 
 
 
- C) Make a 3x5 montage of an overlayed data set that shows the
+ C) Make a 3x5 montage of an overlaid data set that shows the
     beta coefficients stored in brick [1] while thresholding the
     associated statistic stored in brick [2] at voxelwise p=0.001, 
-    overlayed on the anatomical volume.
+    overlaid on the anatomical volume.
 
     @chauffeur_afni                       \
         -ulay  anat.nii.gz                \

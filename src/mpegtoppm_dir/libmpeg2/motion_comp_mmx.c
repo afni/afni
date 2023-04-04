@@ -57,7 +57,7 @@ static mmx_t round4 = {0x0002000200020002LL};
 
 /*
  * This code should probably be compiled with loop unrolling
- * (ie, -funroll-loops in gcc)becuase some of the loops
+ * (ie, -funroll-loops in gcc)because some of the loops
  * use a small static number of iterations. This was written
  * with the assumption the compiler knows best about when
  * unrolling will help

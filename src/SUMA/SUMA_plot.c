@@ -193,7 +193,7 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 }
 
 
-/* save the plot into a standalone verion */
+/* save the plot into a standalone version */
 static void clonebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;

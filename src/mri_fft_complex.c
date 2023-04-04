@@ -37,7 +37,7 @@ void mri_fft_complex( int mode , float taper , MRI_IMAGE *im )
    npix = im->nx * im->ny ;                           /* number of pixels */
    rbuf = (float *)malloc( sizeof(float) * npix ) ;   /* real and imag buffs */
    ibuf = (float *)malloc( sizeof(float) * npix ) ;
-   cxim = mri_data_pointer( im ) ;                    /* easy acces to im */
+   cxim = mri_data_pointer( im ) ;                    /* easy access to im */
 
    for( ii=0 ; ii < npix ; ii++ ){
       rbuf[ii] = cxim[ii].r ;
@@ -240,7 +240,7 @@ MRI_IMAGE * mri_fft_3Dconvolve( MRI_IMAGE *aim , MRI_IMAGE *bim )
    nxa = aim->nx ; nya = aim->ny ; nza = aim->nz ;
    nxb = bim->nx ; nyb = bim->ny ; nzb = bim->nz ;
 
-   /* FFT and output dimensions (sum, bumped up for FFT effiency) */
+   /* FFT and output dimensions (sum, bumped up for FFT efficiency) */
 
    Lxx = (nxa > 1 && nxb > 1) ? csfft_nextup_one35(nxa+nxb) : 0 ;
    Lyy = (nya > 1 && nyb > 1) ? csfft_nextup_one35(nya+nyb) : 0 ;

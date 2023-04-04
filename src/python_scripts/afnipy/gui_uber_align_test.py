@@ -1254,7 +1254,7 @@ class MainWindow(QtGui.QMainWindow):
    def set_cvar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
          - use deepcopy (nuke it from orbit, it's the only way to be sure)
-         return 1 if canged
+         return 1 if changed
       """
 
       if not self.cvars.set_var(name, newval): return 0
@@ -1382,7 +1382,7 @@ Specifying a list of cost functions to test:
       with the '-cost' option to align_epi_anat.py.  All other cost functions
       will be given using the '-multi_cost' option.
 
-      Once a "good" cost funtion is found (along with any other options),
+      Once a "good" cost function is found (along with any other options),
       that cost function might be provided to afni_proc.py (or uber_subject.py)
       for use in single subject analysis.
 
@@ -1407,7 +1407,7 @@ This is usually not necessary.
 
    description of interface:
 
-      Aligning centers means chaning the coordinates in the dataset headers so
+      Aligning centers means changing the coordinates in the dataset headers so
       that the center of each dataset volume is the same (as the center base).
 
       To align centers:
@@ -1420,7 +1420,7 @@ This is usually not necessary.
 
    background:
 
-      When the input anat and EPI datasets are overlayed together in afni, if
+      When the input anat and EPI datasets are overlaid together in afni, if
       the brains are not nearly in the same place, or worse, if only one can
       be viewed at a time, then alignment may not be possible.  Even if it is
       possible, part of the aligned brain might be chopped off because the
@@ -1477,7 +1477,7 @@ Choose from a few other options.
 
       If the user wishes to add any other options to align_epi_anat.py, they
       can be listed here.  If some options seem common, please feel free to
-      suggest adding them to the main inteface.
+      suggest adding them to the main interface.
 """
 
 g_help_eg = """

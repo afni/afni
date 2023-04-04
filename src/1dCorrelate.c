@@ -371,7 +371,7 @@ int main( int argc , char *argv[] )
    else                /* Pearson */
      sprintf(fmt,"  %%-%ds  %%-%ds  %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f %%+8.5f\n",vlen,vlen) ;
 
-   /*--- Do some actual work for a suprising change ---*/
+   /*--- Do some actual work for a surprising change ---*/
 
    for( jj=0 ; jj < nvec ; jj++ ){       /* loops over column pairs */
      for( kk=jj+1 ; kk < nvec ; kk++ ){

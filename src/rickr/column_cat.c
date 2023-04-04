@@ -1,5 +1,5 @@
 /**********************************************************************
- * column concatination of files
+ * column concatenation of files
  *
  * - rickr 1/25/02
  **********************************************************************
@@ -241,7 +241,7 @@ int usage ( char * prog, int style )
 	printf("  Output is sent to stdout, so redirection of output to\n"
 	       "  a file may be desirable.\n"
 	       "\n"
-	       "  Each line of output is the concatination of each current\n"
+	       "  Each line of output is the concatenation of each current\n"
 	       "  line from the input files, all on the same line, and\n"
 	       "  separated by a space.  If different separation is desired,\n"
 	       "  such as a tab, please use the -sep option.\n"

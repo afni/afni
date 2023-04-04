@@ -154,7 +154,7 @@ extern "C" {
 #undef  isnumeric
 #define isnumeric(c) (isdigit(c) || (c) == '-' || (c) == '+' || (c) == '.')
 
-/* define what angular difference constitues a "real" difference
+/* define what angular difference constitutes a "real" difference
  * (allow for truncation artifacts)          22 May 2015 [rickr] */
 #undef OBLIQ_ANGLE_THRESH
 #define OBLIQ_ANGLE_THRESH 0.01
@@ -446,7 +446,7 @@ typedef struct {
 
 #define INC_VLIST 64
 
-/*! Initialize a dynamic array of xyz points, attached to datset ddd. */
+/*! Initialize a dynamic array of xyz points, attached to dataset ddd. */
 
 #define INIT_VLIST(name,ddd) \
    ( (name) = RwcNew(THD_vector_list) ,  \
@@ -2249,7 +2249,7 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
                                  "none" : \
                                  UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE] )
 
-/*! Struct to hold information about the time axis of a 3D+time datset.
+/*! Struct to hold information about the time axis of a 3D+time dataset.
 
     For 3D+t datasets, there are ntt 3D times; the i-th one is centered
     at ttorg + ttdel*ii seconds, for ii=0..ntt-1.
@@ -4837,7 +4837,7 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "each row are separated by tab characters -- spaces are NOT separators.\n"    \
    "Each element is string, some of which are numeric (e.g. 3.1416).\n"          \
    "The first row of a .tsv file is a set of strings which are column\n"         \
-   "desciptors (separated by tabs, of course). For the most part, the\n"         \
+   "descriptors (separated by tabs, of course). For the most part, the\n"         \
    "following data in each column are exclusively numeric or exclusively\n"      \
    "strings. Strings can contain blanks/spaces since only tabs are used\n"       \
    "to separate values.\n"                                                       \
@@ -5974,7 +5974,7 @@ typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
 typedef struct {
    /* tdval and tdlev stand for "Talairach Daemon" value and level */
    /* these are kept for historical purposes  */
-   /* perhaps one day making an unusally boring PBS special */
+   /* perhaps one day making an unusually boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
    char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */
    float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */

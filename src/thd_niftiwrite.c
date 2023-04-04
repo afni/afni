@@ -44,7 +44,7 @@ ENTRY("THD_write_nifti") ;
     RETURN(1) ;
   }
 
-  /* if we need a float dataset, make one (insted of failing)
+  /* if we need a float dataset, make one (instead of failing)
    * (wasteful, but simple and effective)  6 Sep 2012 [rickr] */
   if( needs_conversion_to_float(din, 1) ) {
      dset = EDIT_full_copy(din, NULL);
@@ -551,7 +551,7 @@ ENTRY("populate_nifti_image") ;
                nifti_slice_string(pattern), sfirst, slast, nim->slice_duration);
       }
 
-      /* if toffset is 0 and the timing patter is known and the minimum
+      /* if toffset is 0 and the timing pattern is known and the minimum
        * slice offset is positive, the toffset to that minimum
        *                                        12 Oct 2007 [rickr] */
       if( nim->toffset == 0.0 && nim->slice_code != NIFTI_SLICE_UNKNOWN ){

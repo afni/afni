@@ -112,7 +112,7 @@ void DT_read_opts( int argc , char * argv[] )
           ERROR_exit("can't mix -byslice and -slicevector") ;
         DT_byslice++ ; nopt++ ; continue ;
 #else
-        ERROR_exit("-byslice is no longer suppported") ;
+        ERROR_exit("-byslice is no longer supported") ;
 #endif
       }
 

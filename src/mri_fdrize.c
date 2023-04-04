@@ -236,7 +236,7 @@ STATUS("computing mdf") ;
         if( qval < QBOT ) qval = QBOT;
 
         /* The reasoning involved to get MDF as a function of threshold:
-          * Number of values more signifcant than this threshold is jj+1;
+          * Number of values more significant than this threshold is jj+1;
           * Approximately qval*(jj+1) of these are false positive detections
              (that's what FDR means, dude or dudette);
           * So about (1-qval)*(jj+1) are true positive detections;

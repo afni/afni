@@ -508,7 +508,7 @@
    dset_name="TT_caez_pmaps_18+tlrc"
    template_space="TT_N27"
    description="Cytoarch. Probabilistic Maps 1.8"
-   comment="Eickhoff-Zilles probablity maps 1.8 version on TT_N27
+   comment="Eickhoff-Zilles probability maps 1.8 version on TT_N27
     from post-mortem analysis"
 ></ATLAS>
 
@@ -517,7 +517,7 @@
    dset_name="TT_caez_gw_18+tlrc"
    template_space="TT_N27"
    description="Cytoarch. Prob. Maps for gray/white matter 1.8"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 1.8 version
+   comment="Eickhoff-Zilles probability maps on MNI-152 1.8 version
     from post-mortem analysis"
 ></ATLAS>
 
@@ -578,7 +578,7 @@
    dset_name="MNIa_caez_pmaps_18+tlrc"
    template_space="MNI_ANAT"
    description="Cytoarch. Probabilistic Maps"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
+   comment="Eickhoff-Zilles probability maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS
@@ -586,7 +586,7 @@
    dset_name="MNIa_caez_gw_18+tlrc"
    template_space="MNI_ANAT"
    description="Cytoarch. Prob. Maps for gray/white matter"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
+   comment="Eickhoff-Zilles probability maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS

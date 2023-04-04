@@ -1022,7 +1022,7 @@ ENTRY("process_NSD_sparse_data");
 
     /*--- check for a ni_timestep attribute ---*/
     rhs = NI_get_attribute(nel, "ni_timestep");
-    if( rhs && nel->vec_num > 1 )  /* then make time dependant */
+    if( rhs && nel->vec_num > 1 )  /* then make time dependent */
     {
         tr = strtod(rhs, NULL);
         if(gni.debug > 1) fprintf(stderr,"-d found TR = %f\n", tr);
@@ -1072,7 +1072,7 @@ ENTRY("process_NSD_attrs");
                         ADN_type,        HEAD_ANAT_TYPE,
                     ADN_none);
 
-    /* if not time dependant, set as bucket */
+    /* if not time dependent, set as bucket */
     if( ! dset->taxis || dset->taxis->ntt <= 1)
         EDIT_dset_items(dset, ADN_func_type,  ANAT_BUCK_TYPE, ADN_none);
 
@@ -1904,7 +1904,7 @@ static char * my_strndup(char *str, int len)
 }
 
 /* append 2 floats and ints to str, subject to total length, len,
-   and pre-pended with sep */
+   and prepended with sep */
 static int loc_append_vals(char ** str, int * len, char * sep,
                            float f1, float f2, int i1, int i2)
 {
@@ -2100,7 +2100,7 @@ ENTRY("niml_get_major_label_order");
 }
 
 /* apply any escape characters, and return a new string
- *  * (which will not exceed the orignal string in length)
+ *  * (which will not exceed the original string in length)
  *   * 
  *    * \n, \t, \b                   31 Jul 2009 */
 char * unescape_unix_str(const char * ustr)

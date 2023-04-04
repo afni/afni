@@ -2,7 +2,7 @@
 1dFlagMotion.c - designed to flag motion greater than a user defined 
 translation distance and a user defined rotation angle.
 
-Copywrite is under gnu public license, or somesuch.
+Copyright is under gnu public license, or somesuch.
 
 Written by Allison Nugent, 10/31/2007
 

@@ -217,7 +217,7 @@ void usage_TrackID(int detail)
 "  $ @Install_FATCAT_Demo\n"
 "  In that demo are data, a number of scripts, and more detailed descriptions\n"
 "  for using 3dTrackID, as well as other programs in the FATCAT litter.\n"
-"  Recommended to always check that one has the most uptodate version.\n"
+"  Recommended to always check that one has the most up-to-date version.\n"
 "\n"
 "****************************************************************************\n"
 "\n"
@@ -394,7 +394,7 @@ void usage_TrackID(int detail)
 "     and then there is a choice of loading DTI data, with either:\n"
 "         '-dti_in' or '-dti_list',\n"
 "     and then one can also use '-dti_extra', '-mask', '-alg_Nseed_Y',\n"
-"     et al. from the /ALL/ and DET colums; one canNOT specify '-unc_min_FA'\n"
+"     et al. from the /ALL/ and DET columns; one canNOT specify '-unc_min_FA'\n"
 "     here -> the option is in an unmatched mode column.\n"
 "     Exact usages of each option, plus formats for any arguments, are listed\n"
 "     below. Default values for optional arguments are also described.\n"
@@ -2340,7 +2340,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
    if(DETNET && (opts.LOG_TYPE==0) && opts.ONLY_BT){
       INFO_message("With '-logic OR', the '-cut_at_rois' option will"
-                   " be automically turned off (-> have '-uncut_at_rois').");
+                   " be automatically turned off (-> have '-uncut_at_rois').");
       opts.ONLY_BT=0;
    }
 

@@ -33,7 +33,7 @@
 # + [PT] 1dplot.py can output PDF files now, too
 #
 #ver = '1.61' ; date = 'July 26, 2019' 
-# + [PT] Fix py2 incompatability
+# + [PT] Fix py2 incompatibility
 #
 #ver = '1.7' ; date = 'Jan 29, 2020' 
 # + [PT] Fix input with '-xfile ..' opt
@@ -406,7 +406,7 @@ COMMAND OPTIONS ~1~
                 the first RL value).
 
 -censor_trs CS1 CS2 CS3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered using AFNI index
                 notation, such as '0..3,8,25,99..$'.  Note that if you
@@ -419,7 +419,7 @@ COMMAND OPTIONS ~1~
                 background color will be added to all plots of width 1.
 
 -censor_files CF1 CF2 CF3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered as 1D files, columns
                 where 0 indicates censoring at that [i]th time point,
@@ -1114,7 +1114,7 @@ class apqc_1dplot_opts:
         self.censor_width = self.all_x[1] - self.all_x[0]
 
         # add to this in different forms, where True values mean
-        # censoring is flagged to have occured
+        # censoring is flagged to have occurred
         cen_arr = [False] * self.npts
 
         # combine all strings of censor lists:
@@ -1903,7 +1903,7 @@ class apqc_tcsh_opts:
 
 # -------------------------------------------------------------------
 
-### Keep this list uptodate as new options get added, for parsing 
+### Keep this list up-to-date as new options get added, for parsing 
 list_apqc_tcsh_opts = ['-help', '-h',
                        '-ver',
                        '-uvar_json',
@@ -1994,7 +1994,7 @@ def parse_tcsh_args(argv):
             if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             while i+1 < Narg :
-                # NB: this requires keeping the list of options uptodate!
+                # NB: this requires keeping the list of options up-to-date!
                 if argv[i+1] in list_apqc_tcsh_opts :
                     break
                 else:

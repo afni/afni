@@ -1282,7 +1282,7 @@ void zero_fill_volume (float ** fvol, int nxyz)
 void allocate_memory 
 (
   DC_options * option_data,  /* deconvolution algorithm options */
-  float *** outts_vol        /* volumes for ouput time series */
+  float *** outts_vol        /* volumes for output time series */
 )
 
 {
@@ -1444,7 +1444,7 @@ void calc_response
   vector_initialize (&yhat);
 
 
-  /*----- calculate the system reponse -----*/
+  /*----- calculate the system response -----*/
   vector_multiply (x, b, &yhat);
 
 

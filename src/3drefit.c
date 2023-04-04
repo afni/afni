@@ -1589,7 +1589,7 @@ fprintf(stderr,"\n") ; }
 
    if( new_tags || shift_tags ){                     /* 08 May 2006 [rickr] */
       if( new_tags && shift_tags )
-         SynErr("Cant' use -shift_tags with -d{xyz}tag") ;
+         SynErr("Can't use -shift_tags with -d{xyz}tag") ;
       if( new_orient )
          SynErr("Can't use -orient with -shift_tags or -d{xyz}tags") ;
       if( shift_tags && !dxorg && !dyorg && !dzorg )

@@ -552,7 +552,7 @@ class AfniXmat:
         if len(cols) == 1: return 1.0
         if len(cols) < 1: return 0.0
         if min(cols) < 0 or max(cols) >= self.ncols:
-            print('** column indices ouside range [0,%d]' % (self.ncols-1))
+            print('** column indices outside range [0,%d]' % (self.ncols-1))
         mat = self.mat[:,cols]
         try: u,s,vh = self.SL.svd(mat)
         except:

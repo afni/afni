@@ -621,7 +621,7 @@ PARSE:
          goto BEND
       endif
       if ($RemoveSkull != 1) then
-         # if intput and output are identical, do not run   19 Feb 2020 [rickr]
+         # if input and output are identical, do not run   19 Feb 2020 [rickr]
          # (avoid confusing FATAL ERROR: already exists, e.g. Robin on MB)
          if ( "`@GetAfniPrefix $anat_in`" != ${ns_pref} ) then
             echo "++ anat already stripped, copying $anat_in as $ns_pref"
@@ -1004,7 +1004,7 @@ AUTO_TLRC_MODE:
                   echo "much else to try automatically. "
                   echo "Check your results, the -help tips"
                   echo "and report persisting problems to "
-                  echo "progam authors."
+                  echo "program authors."
                   echo ""
                   echo "Script will stop ..."
                   echo ""
@@ -1020,7 +1020,7 @@ AUTO_TLRC_MODE:
                   echo "without shear operation."
                   echo "Check your results, the -help tips"
                   echo "and report persisting problems to "
-                  echo "progam authors."
+                  echo "program authors."
                   echo ""
                   echo "Script will stop ..."
                   echo ""
@@ -1251,7 +1251,7 @@ AUTO_TLRC_MODE:
    ACPCIATE:
    if ($acpciate == 1) then
       echo "Doing the MSB thing..."
-      #create a version witout scaling
+      #create a version without scaling
       if ($warpdrive_method == "3dAllineate") then
          cat_matvec  ${out_pref}.Xat.1D -P \
                   > ${out_pref}.Xat.rigid.1D
@@ -1821,7 +1821,7 @@ echo "                          created using Usage 1 of `basename $0`"
 echo "                          From the example for usage 1, TLRC_parent"
 echo "                          would be: SubjectHighRes+TLRC"
 echo "      -input DSET       : Dataset (typically EPI time series or"
-echo "                          statistical datset) to transform to"
+echo "                          statistical dataset) to transform to"
 echo "                          tlrc space per the xform in TLRC_parent"
 echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
 echo "                          space Default MM is 1. If you do not"

@@ -257,7 +257,7 @@ void TCAT_read_opts( int argc , char *argv[] )
 
           cpt = strstr(fexp[ee],"[") ;  /* look for the sub-brick selector */
 
-          subv = NULL;   /* Need to resest this variable ZSS Nov. 24 2010 */
+          subv = NULL;   /* Need to reset this variable ZSS Nov. 24 2010 */
           if( cpt == NULL ){              /* no selector */
             strcpy(dname,fexp[ee]) ;
           } else if( cpt == fexp[ee] ){ /* can't be at start!*/
@@ -705,7 +705,7 @@ int main( int argc , char *argv[] )
        angle = dset_obliquity_angle_diff(new_dset, DSUB(iv),OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
-            "dataset %s has an obliquity difference of %f degress with %s\n",
+            "dataset %s has an obliquity difference of %f degrees with %s\n",
             new_dset ,
             angle, DSUB(iv) );
        }

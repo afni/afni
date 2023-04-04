@@ -205,7 +205,8 @@ class SurfClust(object):
       # try converting to absolute paths
       try: inputs = [ os.path.abspath(fname) for fname in inputs ]
       except:
-         msg = '** cannot convert inputs to asolute path names:\n   %s' % inputs
+         msg = '** cannot convert inputs to absolute path names:\n   %s' \
+               % inputs
          self.errors.append(msg)
          return 1
 
@@ -392,7 +393,7 @@ class SurfClust(object):
    def script_do_surfclust(self, indent=0):
       istr = ' '*indent
 
-      # time_str use is indended
+      # time_str use is indented
       if self.LV.time_str: tstr = '      ' + self.LV.time_str
       else:                tstr = ''
 
@@ -537,7 +538,7 @@ class SurfClust(object):
    def script_analysis_prep(self):
       """return a set of commands to:
             convert pthr_list to zthr_list
-            create a dummy time series of lenth itersize (if > 1)
+            create a dummy time series of length itersize (if > 1)
             divide (ceil) niter by itersize (if > 1)
       """
 

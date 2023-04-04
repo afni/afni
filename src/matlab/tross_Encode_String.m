@@ -35,7 +35,7 @@ FuncName = 'tross_Encode_String';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %to find out the ascii number of special characters do

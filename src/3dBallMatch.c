@@ -290,7 +290,7 @@ void Bmatch_help(void)
     "# loop over datasets in the current directory\n"
     "  foreach sss ( anat_sub?????.nii.gz )\n"
     "\n"
-    "# extract the subject identfier code (the '?????')\n"
+    "# extract the subject identifier code (the '?????')\n"
     "    set sub = `echo $sss | sed -e 's/anat_sub//' -e 's/.nii.gz//'`\n"
     "\n"
     "# if 3dAllineate was already run on this, skip to next dataset\n"

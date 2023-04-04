@@ -44,7 +44,7 @@ end
 [InBrikPrefix, InBrikView, InBrikExt] =  AfniPrefix (InBrik);
 
 flg2 = 0;
-%Repition time                 %TR in seconds
+%Repetition time                 %TR in seconds
 while flg2 == 0,
    TR = input('TR (second): ');
 	if (isnumeric(TR) == 0 | isempty(TR)),
@@ -141,7 +141,7 @@ end
 
 flg7 = 0;
 while flg7 == 0,
-   fprintf('\nNormalization would automatically covert the regressor coefficients into percent signal change.');
+   fprintf('\nNormalization would automatically convert the regressor coefficients into percent signal change.');
    run_norm = input('\nWant to normalize the dataset before running deconvolution/regression? (0 - No; 1 - Yes): ');
 	if (run_norm ~= 0 & run_norm ~= 1),
 	   flg7 = 0; fprintf(2,'Error: the input has to be 0 or 1. Please try it again.\n');
@@ -174,7 +174,7 @@ end
 flg8 = 0;
 %polort = 2;             %Read the 3dDeconvolve manual ...
 while flg8 == 0,
-   polort = input('\nOrder of polynormial fitting for baseline (-1 - no basline; 0 - constant; 1 - linear; 2 - quadratic; ...): ');
+   polort = input('\nOrder of polynormial fitting for baseline (-1 - no baseline; 0 - constant; 1 - linear; 2 - quadratic; ...): ');
 	if (isnumeric(polort) == 0 | isempty(polort)),
 	   flg8 = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
 	else flg8 = 1;

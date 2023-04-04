@@ -615,7 +615,7 @@ Usage :
 Ret = SUMA_SureFit_Read_Coord (coordname, SureFit)
 
 
-Input paramters :
+Input parameters :
 \param coordname (char *) name of .coord file
 \param SureFit (SUMA_SureFit_struct *) pointer to the SureFit structure
 
@@ -2495,7 +2495,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                   if (!iwarn) {
                      SUMA_SL_Warn("Node Color (label) not found in cmap.\n"
                                   "Marking with annotation value.\n"
-                                  "Further occurences will not be reported.");
+                                  "Further occurrences will not be reported.");
                      ++iwarn;
                   }
                   imap = anv[i];
@@ -2741,7 +2741,7 @@ Ret = SUMA_FreeSurfer_Read_eng (surfname, FreeSurfer, debug)
    The FaceSetList follows with i1 i2 i3 0
 
 
-Input paramters :
+Input parameters :
 \param surfname (char *) name of surface (or patch) file output by:
         mris_convert <surface_name> <surface_name.asc>
    or if it is a patch by
@@ -6357,7 +6357,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
 
       SUMA_LH("Checking for duplicates...");
       if ((iDO = SUMA_whichDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) >= 0) {
-         SUMA_LH("Duplicate found ... Deleteing old one...");
+         SUMA_LH("Duplicate found ... Deleting old one...");
          /* ROI already exists delete it */
          if (!SUMA_DeleteROI ((SUMA_DRAWN_ROI *)SUMAg_DOv[iDO].OP)) {
             SUMA_SLP_Err("Failed to delete ROI");
@@ -6365,7 +6365,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
          }
       }
 
-      /* transfom nimlROI to a series of drawing actions */
+      /* transform nimlROI to a series of drawing actions */
       SUMA_LH("Transforming ROI to a series of actions...");
       ROIv[inel] = SUMA_NIMLDrawnROI_to_DrawnROI (nimlROI, ForDisplay);
       if (LocalHead)
@@ -6989,7 +6989,7 @@ SUMA_DSET *SUMA_ROIv2MultiDset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
       SUMA_disp_dvect (NodesTotal, N_NodesTotal);
    }
 
-   /* Create a datset to store all that stuff */
+   /* Create a dataset to store all that stuff */
    SUMA_LHv("Ready to fill up %d nodes with %d (%d cols if cmp) values\n",
              N_NodesTotal, dlist_size(ddl), cmp ? (*cmp)->N_M[0] : -1);
       /* construct a NIML data set for the output */
@@ -7456,7 +7456,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
    \brief handles saving xform opts to filename.
 
    \param filename (char *)
-   \param data(void *) pointer to SUMA_XFORM stucture to be saved.
+   \param data(void *) pointer to SUMA_XFORM structure to be saved.
 */
 void SUMA_SaveXformOpts (char *filename, void *data)
 {
@@ -7499,7 +7499,7 @@ void SUMA_SaveXformOpts (char *filename, void *data)
    \brief handles saving ROI to filename.
 
    \param filename (char *)
-   \param data(void *) pointer to DrawnROI stucture to be saved.
+   \param data(void *) pointer to DrawnROI structure to be saved.
           If you pass null then SUMAg_CF->X->DrawROI->curDrawnROI is used.
 */
 void SUMA_SaveDrawnROI (char *filename, void *data)
@@ -8736,7 +8736,7 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
       /* add the parent volume (SurfVol, NOT SurfVol_AlndExp) IDcode if present.
         That ID does not usually refer to the volume from which VolPar
         is created. Except in the case
-        where you are viewing the surfaces on the orignal volume (SurfVol) then
+        where you are viewing the surfaces on the original volume (SurfVol) then
         this field and SurfVol (afni dset *) ->idcode.str and
         VolPar->vol_idcode_str should be identical */
       if (SO->parent_vol_idcode_str) {
@@ -9890,7 +9890,7 @@ SUMA_Boolean SUMA_OBJ_Read_SO(char *fname, SUMA_SurfaceObject *SO,
          SUMA_SphereDO *SDO=NULL;
          int ip3 = 0, i3 = 0;
 
-         SUMA_S_Warn("Loosing link of points to node ids here");
+         SUMA_S_Warn("Losing link of points to node ids here");
          SDO = SUMA_Alloc_SphereDO (  obj->N_Point, fname,
                                        NULL, SP_type);
          i = 0;

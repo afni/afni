@@ -276,7 +276,7 @@ afni_history_struct ziad_history[] = {
 
  { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
    "Made program output centrality measures with -do o .",
-   "Documentaiton hidden until option is ready for mass usage." 
+   "Documentation hidden until option is ready for mass usage." 
  },
 
  { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_MODIFY,
@@ -415,12 +415,12 @@ afni_history_struct ziad_history[] = {
  
  { 17, Oct, 2014, ZSS, "afni-general", MAJOR, TYPE_GENERAL,
    "Checked in first pass of SUMA sphinx documentation",
-   "GUI documentaiton is automatically generated from BHelp text."
+   "GUI documentation is automatically generated from BHelp text."
  },
  
  { 15, Oct, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
    "Added -respad_in, -gscale, and -pad_val options",
-   "Proces involved modifications to mri_read_resamp_many_files(),\n"
+   "Process involved modifications to mri_read_resamp_many_files(),\n"
    "mri_zeropad_2D(), and a new mri_valpad_2D(). See imcat -help for details."
  },
  
@@ -753,7 +753,7 @@ afni_history_struct ziad_history[] = {
    "Improved selection logic on slices and for graphs.",
    "Graph selection was changed so that what is rendered is selectable.\n"
    "The alternate was too confusing.\n"
-   "Fixed bug with selctions on matrix where selections at times were \n"
+   "Fixed bug with selections on matrix where selections at times were \n"
    "going to the volume, even though it is not displayed with the matrix.\n"
    "Fixed slice highlighting when in montage mode.\n"
    "Added alpha value threshold condition to slice picking. This slows the\n"
@@ -972,7 +972,7 @@ afni_history_struct ziad_history[] = {
  
  { 24, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed SUMA's erroneous switch of colplanes for tracts",
-   "Problem was in thoughtless use of SUMA_ADO_Overlay0() insead\n"
+   "Problem was in thoughtless use of SUMA_ADO_Overlay0() instead\n"
    "of available curColPlane pointer in SUMA_cb_createSurfaceCont_TDO().\n"
    "Similar changes were made to other SUMA_cb_createSurfaceCont_*() functions\n"
    "where curColPlane must be non null at the time of controller creation.\n"
@@ -1147,7 +1147,7 @@ afni_history_struct ziad_history[] = {
  },
 
  { 12, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
-   "Added possibilty to store network tracts in external file for graph dsets",
+   "Added possibility to store network tracts in external file for graph dsets",
    "See 3dProbTrackID's -gdset_toy for an illustration.\n"
    "Some small changes were made to ptaylor/ files to allow for this.\n"
  },
@@ -1231,7 +1231,7 @@ afni_history_struct ziad_history[] = {
  },
  
  { 5, Aug , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
-   "Option -nocor is now obsolte. -GNIFTI replaces it",
+   "Option -nocor is now obsolete. -GNIFTI replaces it",
    "This was necessary to alert whoever was using -nocor that\n"
    "resultant GIFTI surfaces were being written in RAI and that now\n"
    "they are in LPI in keeping with the standard.\n"
@@ -1481,7 +1481,7 @@ afni_history_struct ziad_history[] = {
  },
 
  { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
-   "SUMA_ContourThickness to control the tickness of dset contour lines",
+   "SUMA_ContourThickness to control the thickness of dset contour lines",
    "Addition made in response to Valentinos' feedback.\n"
    "Documentation is in .sumarc file.\n" 
  },
@@ -1759,7 +1759,7 @@ afni_history_struct ziad_history[] = {
 
  { 12, Sep , 2012 , ZSS , "3dttest++" , MICRO , TYPE_BUG_FIX,
    "Fixed incorrect warning in 3dttest++ about labels and filenames",
-   "The warning is intented to be sure users don't mess up the\n"
+   "The warning is intended to be sure users don't mess up the\n"
    "-setA option when using the long form. The warning message\n"
    "was being triggered incorrectly, this should no longer be the case.\n"
    "Warning did not affect results."
@@ -1816,7 +1816,7 @@ afni_history_struct ziad_history[] = {
  },
 
  { 5, Sep , 2012 , ZSS , "@CalculateSignatures" , MINOR , TYPE_NEW_OPT,
-   "Added possiblity to scale by top percentiles with -FATscl",
+   "Added possibility to scale by top percentiles with -FATscl",
    "This would produce .sc9 outputs. It looks like the scaling is\n"
    "more promising than by MEDIAN(20) or MAD(20)."
  },
@@ -1878,7 +1878,7 @@ afni_history_struct ziad_history[] = {
  },
 
  { 27, Aug , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
-   "Modifed THD_load_tcat() to include subbrick labels in auto catenation",
+   "Modified THD_load_tcat() to include subbrick labels in auto catenation",
    "Also, started checking for datatype mixing and issuing warning when needed."
  },
 
@@ -1886,7 +1886,7 @@ afni_history_struct ziad_history[] = {
    "Fixed SUMA<-->AFNI cross hair linkage with multiple anat. correct surfaces",
    "It used to be that a coordinate always got attached to the Local Domain\n"
    "Parent surface. Even if you clicked closest to a node on the Pial surface\n"
-   "SUMA would jump to the correspoding node on the smoothwm surface. This was\n"
+   "SUMA would jump to the corresponding node on the smoothwm surface. This was\n"
    "way uncool."
  },
 
@@ -2418,7 +2418,7 @@ afni_history_struct ziad_history[] = {
  
  { 6, FEB , 2012 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "3drefit was failing on the view change when target dset is under a path.",
-   "Prolem was with default catenation of path to DSET_BRIKNAME and \n"
+   "Problem was with default catenation of path to DSET_BRIKNAME and \n"
    "DSET_HEADNAME. Those now contain the path automatically.\n"
  },
  
@@ -3200,7 +3200,7 @@ afni_history_struct ziad_history[] = {
  } ,
 
  { 1, NOV , 2010 , ZSS , "3dBrickStat" , MINOR , TYPE_BUG_FIX,
-   "3dBrickStat's precentile option did not work with byte datasets",
+   "3dBrickStat's percentile option did not work with byte datasets",
    NULL
  } ,
 
@@ -3538,7 +3538,7 @@ afni_history_struct ziad_history[] = {
 
  { 12 , APR , 2010 , ZSS , "afni" , MINOR , TYPE_BUG_FIX,
    "Added AFNI_GUI_WRITE_AS_DECONFLICT to modify interactive 'Write' overwrite.",
-   "The default is to have the interactive 'Write' buttons overwrite exisiting\n"
+   "The default is to have the interactive 'Write' buttons overwrite existing\n"
    "volumes. If this env variable is set to YES, the 'Write' behaviour follows\n"
    "env AFNI_DECONFLICT\n"
  } ,
@@ -3559,7 +3559,7 @@ afni_history_struct ziad_history[] = {
  } ,
 
  { 19 , MAR , 2010 , ZSS , "SurfDist" , MINOR , TYPE_NEW_OPT,
-   "Added option to calculate Euclidian distance",
+   "Added option to calculate Euclidean distance",
    NULL
  } ,
 
@@ -3599,7 +3599,7 @@ afni_history_struct ziad_history[] = {
  } ,
 
  { 3 , MAR , 2010 , ZSS , "3dmerge" , MINOR , TYPE_NEW_OPT ,
-   "-isomerge and -isovalue options that mimick 3dclust's options",
+   "-isomerge and -isovalue options that mimic 3dclust's options",
    NULL
  } ,
 
@@ -3788,7 +3788,7 @@ afni_history_struct ziad_history[] = {
  { 9 , NOV , 2009 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT ,
    "Added options to check for, and correct 'bowties' in pathches.",
    "Bowties in patches result in non 2-manifold stiched surfaces whose\n"
-   "volume cannot be caluclated. The *bowtie option deal with such cases.\n"
+   "volume cannot be calculated. The *bowtie option deal with such cases.\n"
  } ,
 
  { 9 , NOV , 2009 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT ,
@@ -4223,7 +4223,7 @@ afni_history_struct ziad_history[] = {
  },
  
  { 29 , AUG , 2008 , ZSS , "3ddelay" , MINOR ,  TYPE_BUG_FIX,
-   "Unitialized pointer in 3ddelay",
+   "Uninitialized pointer in 3ddelay",
    NULL
  },
 
@@ -4280,7 +4280,7 @@ afni_history_struct ziad_history[] = {
  { 2 , APR , 2008 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
    "Changed suma -environment's output to reflect user's current environment.",
    "With this change, users can always replace their .sumarc with\n"
-   "the one output by suma -environment without worrying about loosing\n"
+   "the one output by suma -environment without worrying about losing\n"
    "their preferred settings."
  } ,
 

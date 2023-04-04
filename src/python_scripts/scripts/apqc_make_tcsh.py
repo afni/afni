@@ -41,7 +41,7 @@ auth = 'PA Taylor'
 # + [PT] title info is now handled with a JSON, too
 #
 # ver = '1.8' ; date = 'Nov 27, 2018' 
-# + [RCR] fixed py 2/3 compatability
+# + [RCR] fixed py 2/3 compatibility
 #
 #ver = '1.9' ; date = 'Nov 27, 2018' 
 # + [PT] changed the conditions for 1dplotting programs

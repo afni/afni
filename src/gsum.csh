@@ -72,7 +72,7 @@ foreach uuu ( $alist $blist1 $blist2 )
   set gunk = ( $gunk -e $uuu )
 end
 
-# will acccumulate all unknown lines in to one file
+# will accumulate all unknown lines in to one file
 if( -f gsum.unk.txt ) \rm -f gsum.unk.txt
 touch gsum.unk.txt
 

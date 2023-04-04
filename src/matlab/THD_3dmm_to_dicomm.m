@@ -41,7 +41,7 @@ FuncName = 'THD_3dmm_to_dicomm';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 for (i=1:1:3),

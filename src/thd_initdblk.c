@@ -324,7 +324,7 @@ ENTRY("THD_datablock_from_atr") ;
      /* must be malloc-ed if:
            data is compressed,
            data is not in native byte order, or
-           user explicity forbids use of mmap   */
+           user explicitly forbids use of mmap   */
 
      if( brick_ccode >= 0 || dkptr->byte_order != native_order || no_mmap )
         dblk->malloc_type = DATABLOCK_MEM_MALLOC ;

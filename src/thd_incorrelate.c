@@ -1547,7 +1547,7 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
 }
 
 /*----------------------------------------------------------------------------*/
-#else /*--- Parallel-ized verison of the above ----------------------*/
+#else /*--- Parallel-ized version of the above ----------------------*/
 
 void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
                                         float *w, INCOR_pearclp *inpear )

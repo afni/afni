@@ -27,7 +27,7 @@ def decay_e3_Ex(a,b):
       Note: the denomiator scales e^-x values to probabilities,
             i.e.  e^-x / (e^-a - e^-b) is a PDF on [a,b].
 
-      This is a @ a and quicly approaches the upper limit of a+1.0.
+      This is a @ a and quickly approaches the upper limit of a+1.0.
       On (0,L], this is 0 @ 0.0 and quickly approaches 1.0.
    """
    if a <  0.0: return 0
@@ -63,7 +63,7 @@ def decay_e4_frac_L(L):
    return rv
 
 def decay_e4_gen(A, B, step=0.1):
-   """generater function for equation 4"""
+   """generator function for equation 4"""
    cur = A
    while cur <= B:
       yield decay_e4_frac_L(cur)
@@ -226,7 +226,7 @@ def plot_data(pair_list, labs=[], y0=0):
    if len(labs) > 0:
       plt.legend()
 
-   # use default bounds, excecpt bound minimum y at 0
+   # use default bounds, except bound minimum y at 0
    if y0:
       bounds = [mnx, 1.1*mxx, 0, 1.1*mxy]
       print('== plot bounds %s' % bounds)
@@ -630,7 +630,7 @@ def run_demo(demo_ind):
 
    return rv
 
-# *** note the nubmer of demos
+# *** note the number of demos
 g_num_demos = 7
 
 # end demo functions
