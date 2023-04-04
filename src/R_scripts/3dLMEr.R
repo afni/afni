@@ -1,4 +1,4 @@
-!/usr/bin/env AFNI_Batch_R
+#!/usr/bin/env AFNI_Batch_R
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, March 22, 2023
+Version 1.0.2, Apr 3, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -818,9 +818,9 @@ runLME <- function(myData, DM, tag) {
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
       if(!is.null(fm)) {
-         #Stat[1:lop$nF] <- anova(fm, type=lop$SStype)$`F value` # F-stat
-	 Stat[1:lop$nF] <- qchisq(anova(fm, type=lop$SStype)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
-	 #qnorm(anova(fm, type=lop$SStype)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
+         #Stat[1:lop$nF] <- anova(fm, type=lop$SS_type)$`F value` # F-stat
+	 Stat[1:lop$nF] <- qchisq(anova(fm, type=lop$SS_type)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
+	 #qnorm(anova(fm, type=lop$SS_type)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
             #if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
@@ -1136,7 +1136,7 @@ while(is.null(fm)) {
          nT          <- 2*nrow(summary(fm)$coefficients)
          lop$NoBrick <- nT + 2 # 2 ICC values: one for avefage and one for contrast
       } else {
-         lop$nF      <- nrow(anova(fm, type=lop$SStype))    # total number of F-stat
+         lop$nF      <- nrow(anova(fm, type=lop$SS_type))    # total number of F-stat
          nT          <- 2*lop$num_glt
          lop$NoBrick <- lop$nF + nT + lop$num_glf
       }
@@ -1303,7 +1303,7 @@ if(lop$TRR) {
    for(n in 1:nrow(summary(fm)$coefficients)) 
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt", par=NULL)))
 } else {
-   brickNames <- paste(rownames(anova(fm, type=lop$SStype)), 'Chi-sq')
+   brickNames <- paste(rownames(anova(fm, type=lop$SS_type)), 'Chi-sq')
    if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
       brickNames <- append(brickNames, lop$gltLabel[n])
       brickNames <- append(brickNames, paste(lop$gltLabel[n], "Z"))
