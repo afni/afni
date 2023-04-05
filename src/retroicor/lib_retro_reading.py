@@ -108,7 +108,8 @@ regressors for MRI data.
         self.exit_on_nan  = True       # exit if NaN values in data files?
         self.exit_on_null = True       # exit if null values in data files?
         self.do_fix_outliers = False   # exit if null values in data files?
-        self.extra_fix_list = []       # list of to-be-bad values
+        self.extra_fix_list = []       # list of to-be-bad values (-> interp)
+        self.remove_val_list = []      # list of values to be purged
 
         # physio info (-> some now in resp_data and card_data objs)
         self.start_time   = None       # float, time offset (<=0, in s) from start of MRI
@@ -190,6 +191,7 @@ regressors for MRI data.
         self.exit_on_null    = not(args_dict['do_fix_null'])
         self.do_fix_outliers = args_dict['do_fix_outliers']
         self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
+        self.remove_val_list = copy.deepcopy(args_dict['remove_val_list'])
 
         # run these file reads+checks last, because they use option
         # items from above
@@ -228,8 +230,12 @@ regressors for MRI data.
 
         all_col = self.read_and_check_data_file(fname)
         arr     = self.extract_list_col(all_col, 0) 
+        arr2, nrem = \
+            check_and_remove_arr_values(arr, 
+                                        bad_vals=self.remove_val_list,
+                                        verb=self.verb)
         arr_fixed, nfix = \
-            check_and_fix_arr_badness(arr, 
+            check_and_fix_arr_badness(arr2, 
                                       bad_nums=self.extra_fix_list,
                                       outliers_bad=self.do_fix_outliers,
                                       verb=self.verb)
@@ -278,8 +284,12 @@ regressors for MRI data.
             USE_COL+= 1
             idx = D["Columns"].index('respiratory')
             arr = self.extract_list_col(all_col, idx)
+            arr2, nrem = \
+                check_and_remove_arr_values(arr, 
+                                            bad_vals=self.remove_val_list,
+                                            verb=self.verb)
             arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr, 
+                check_and_fix_arr_badness(arr2, 
                                           bad_nums=self.extra_fix_list,
                                           outliers_bad=self.do_fix_outliers,
                                           verb=self.verb)
@@ -299,9 +309,13 @@ regressors for MRI data.
                 print("++ Reading _card_ data from {}".format(fname))
             USE_COL+= 1
             idx = D["Columns"].index('cardiac')
-            arr = self.extract_list_col(all_col, idx) 
+            arr = self.extract_list_col(all_col, idx)
+            arr2, nrem = \
+                check_and_remove_arr_values(arr, 
+                                            bad_vals=self.remove_val_list,
+                                            verb=self.verb)
             arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr, 
+                check_and_fix_arr_badness(arr2, 
                                           bad_nums=self.extra_fix_list,
                                           outliers_bad=self.do_fix_outliers,
                                           verb=self.verb)
@@ -682,6 +696,58 @@ all_slen: list
 
     return all_strk, all_slen
 
+def check_and_remove_arr_values(x, bad_vals=[], verb=0):
+    """Check 1D array x for values that will be removed/purged.  If any of
+the int or float values in the bad_vals list appear in x, then the
+output array will be shorter than the input.
+
+Parameters
+----------
+x : np.ndarray (1D)
+    input array
+bad_vals : list
+    list of integer or float values that will be removed
+verb : int
+    verbosity level
+
+Returns
+-------
+x_fixed : np.ndarray
+    the input array x with any bad values removed
+nrem : int
+    number of points removed
+
+"""
+
+    # simple case, nothing really to do
+    if not(len(bad_vals)) :    return copy.deepcopy(x), 0
+
+    N = len(x)
+
+    y = list(x)
+    nrem = 0            # count number of points removed
+    if verb :
+        list_idx = []   # for verb, make list of points removed
+
+    for ii in range(N-1, -1, -1):
+        if y[ii] in bad_vals :
+            tmp = y.pop(ii)
+            nrem+= 1
+            if verb :
+                list_idx.append(ii)
+
+    x_fixed = np.array(y)
+
+    if verb :
+        print("++ Removed this many bad values from the time series: {}"
+              "".format(nrem))
+        if nrem :
+            list_idx.reverse()
+            str_idx = ', '.join([str(idx) for idx in list_idx])
+            print("   These occurred at these indices:\n"
+                  "   {}".format(str_idx))
+
+    return x_fixed, nrem
 
 ALL_fix_method = [ 'interp_linear',
 ]

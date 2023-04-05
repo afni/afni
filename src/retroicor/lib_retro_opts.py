@@ -4,7 +4,8 @@
 # 
 # ==========================================================================
 
-version = '1.0'
+#version = '1.0'
+version = '1.1'   # add remove_val_list, for some vals to get replaced
 
 # ==========================================================================
 
@@ -54,6 +55,7 @@ DEF = {
     'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
     'do_fix_outliers'   : False,     # (list) fix/interp outliers
     'extra_fix_list'    : [],        # (list) extra values to fix
+    'remove_val_list'   : [],        # (list) purge some values from ts
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
@@ -570,6 +572,10 @@ Notes on usage and inputs ~1~
 
 {ddashline}
 
+Notes on input pecularities ~1~
+
+{ddashline}
+
 Examples ~1~
 
   1) 
@@ -715,6 +721,15 @@ opt = '''extra_fix_list'''
 hlp = '''List of one or more values that will also be considered 'bad' if
 they appear in the physio time series, and replaced with interpolated
 values'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs='+', type=str) # parse later
+
+opt = '''remove_val_list'''
+hlp = '''List of one or more values that will removed (not interpolated: the
+time series will be shorter, if any are found) if they appear in the
+physio time series; this is necessary with some manufacturers'
+outputs, see "Notes of input peculiarities," below.'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
@@ -1041,7 +1056,8 @@ args_dict2 : dict
             sys.exit(3)
 
     if args_dict2['extra_fix_list'] :
-        # interpret string to be list of floats
+        # Interpret string to be list of ints or floats. NB: written
+        # as floats, but these are OK for equality checks in this case
         IS_BAD = 0
 
         L = args_dict2['extra_fix_list'].split()
@@ -1050,6 +1066,22 @@ args_dict2 : dict
             args_dict2['extra_fix_list'] = copy.deepcopy(efl)
         except:
             print("** ERROR interpreting extra_fix_list")
+            IS_BAD = 1
+
+        if IS_BAD :
+            sys.exit(1)
+
+    if args_dict2['remove_val_list'] :
+        # Interpret string to be list of ints or floats. NB: written
+        # as floats, but these are OK for equality checks in this case
+        IS_BAD = 0
+
+        L = args_dict2['remove_val_list'].split()
+        try:
+            lll = [float(ll) for ll in L]
+            args_dict2['remove_val_list'] = copy.deepcopy(lll)
+        except:
+            print("** ERROR interpreting remove_val_list")
             IS_BAD = 1
 
         if IS_BAD :
