@@ -6,7 +6,6 @@ import sys
 import lib_retro_opts    as lro
 import lib_retro_reading as lrr
 import lib_retro_proc as lrp
-import lib_retro_out as RET
 import lib_retro_outObj as RETO
 
 
