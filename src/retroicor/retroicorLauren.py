@@ -369,7 +369,7 @@ def retro_ts(
     elif  phys_json: parameters['prefix'] = getPrefix(phys_json)
     elif  parameters['cardFile']: 
         parameters['prefix'] = getPrefix(parameters['cardFile'])
-    elif  parameters['cardFile']: 
+    elif  parameters['respFile']: 
         parameters['prefix'] = getPrefix(parameters['respFile'])
     else: 
         print('Error: Could not determine output file prefix')
