@@ -948,7 +948,7 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
         refinePeakLocations
             Adjust peaks to correspond to local maxima.  This is usually 
             necessary if the peaks were.Determined from a band-pass filtered 
-            version of the inut raw data where the peaks are uniformly spaced 
+            version of the input raw data where the peaks are uniformly spaced 
             based on the overall typical period of raw data
     TYPE
          <class 'numpy.ndarray'>
@@ -1198,7 +1198,7 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
        show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
        phys_fs = phys_fs, OutDir = OutDir)
     
-    # Remove extra peaks bewteen troughs and troughs between peaks
+    # Remove extra peaks between troughs and troughs between peaks
     peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, 
                                                            rawData)
     

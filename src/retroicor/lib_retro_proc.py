@@ -671,7 +671,7 @@ def determineRespiratoryPhases(resp_peaks,
     """
     NAME
         determineRespiratoryPhases
-            Determine respiratory phases as descibed in Glover 
+            Determine respiratory phases as described in Glover 
             (2000) paper (equation 3)
     TYPE
         <class 'list'>

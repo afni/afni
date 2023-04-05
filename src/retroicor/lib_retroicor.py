@@ -695,7 +695,7 @@ def determineRespiratoryPhases(parameters, resp_peaks,
     """
     NAME
         determineRespiratoryPhases
-            Determine respiratory phases as descibed in Glover 
+            Determine respiratory phases as described in Glover 
             (2000) paper (equation 3)
     TYPE
         <class 'list'>
@@ -1491,7 +1491,7 @@ def initializeMainInfoAndLabel(parameters,
         
         n_n: (dtype = <class 'int'>) Number of time steps
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
                     following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
@@ -1564,17 +1564,17 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
         <class 'dict'>, <class 'str'>
     ARGUMENTS
     
-        main_info: (dtype = <class 'dict'>) Dictonary with the 
+        main_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields
             
             rvt_out: (dtype = <class 'int'>) Whether to calculate
-                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                and output RVT. (0 = No, 1 = Yes, Default = 0)
                 
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             Card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             num_slices:   (dtype = class 'int') Number of slices
         
@@ -1582,7 +1582,7 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
             NIML file, giving the names of the output slice
             components
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
@@ -1645,17 +1645,17 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
         <class 'dict'>, <class 'str'>
     ARGUMENTS
     
-        main_info: (dtype = <class 'dict'>) Dictonary with the 
+        main_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields
             
             rvt_out: (dtype = <class 'int'>) Whether to calculate
-                and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                and output RVT. (0 = No, 1 = Yes, Default = 0)
                 
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             Card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             num_slices:   (dtype = class 'int') Number of slices
         
@@ -1663,7 +1663,7 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
             NIML file, giving the names of the output slice
             components
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
@@ -1763,7 +1763,7 @@ def getMainInfoAndLabel(parameters, physiologicalNoiseComponents,
         
         n_n: (dtype = <class 'int'>) Number of time steps
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT 
@@ -1822,7 +1822,7 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
                                                 time points
                                                 (not seconds)
        
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
                    following fields for respiratory data
                     
             time_series_time: <class 'numpy.ndarray'>) List of 
@@ -2774,7 +2774,7 @@ def connectTroughRVTs(resp_troughs, troughRVTs, fullLength):
     # Initialise output array
     connectedRVTs = []
     
-    # Assign value of first trought to preceding elements
+    # Assign value of first through to preceding elements
     for i in range(0,resp_troughs[0]):
         connectedRVTs.append(troughRVTs[0])
         
@@ -2790,7 +2790,7 @@ def connectTroughRVTs(resp_troughs, troughRVTs, fullLength):
         for k in range(start, end): 
             connectedRVTs.append(connectedRVTs[k-1] + increment)
     
-    # Assign value of last trought to postceding elements
+    # Assign value of last through to postceding elements
     for i in range(resp_troughs[-1],fullLength):
         connectedRVTs.append(troughRVTs[-1])
     

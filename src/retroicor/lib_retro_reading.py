@@ -775,10 +775,10 @@ Parameters
 x : np.ndarray (1D)
     input array
 thr_nbad : int
-    threshold value for proceeeding/fixing: if there are thr_nbad or
+    threshold value for proceeding/fixing: if there are thr_nbad or
     more bad elements in x, then exit
 thr_bad_strk : int
-    threshold value for proceeeding/fixing: if there is a streak of
+    threshold value for proceeding/fixing: if there is a streak of
     thr_bad_strk or more *consecutive* bad elements in x, then exit
 fix_method : str
     the fix method to apply, from a list of: 'interp_linear'.
@@ -1201,18 +1201,18 @@ tlist : list
     floats and ''s.  The idea is ''s will be flagged to be dealt with
     later, not just left as they are!
 bad_nanlist : list (of lists)
-    list of NaNs occuring; each element of nanlist is a sublist, with
+    list of NaNs occurring; each element of nanlist is a sublist, with
     elements:
       [0] zerobase index of row with the NaN
       [1] the full string of the NaN-causing row
 bad_nulllist : list (of lists)
-    list of ''s occuring; each element of nulllist is a sublist, with
+    list of ''s occurring; each element of nulllist is a sublist, with
     elements:
       [0] zerobase index of row which led to ''
       [1] the full string of the ''-causing row
 dict_of_len : dict
     a dictionary summarizing the lengths of each line in fname.  Each
-    key is a length of line occuring in the file, and each value is
+    key is a length of line occurring in the file, and each value is
     how many times that line length occurred.
 
     """

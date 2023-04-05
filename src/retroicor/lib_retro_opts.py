@@ -572,7 +572,7 @@ Notes on usage and inputs ~1~
 
 {ddashline}
 
-Notes on input pecularities ~1~
+Notes on input peculiarities ~1~
 
 {ddashline}
 

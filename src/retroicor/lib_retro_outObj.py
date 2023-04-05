@@ -229,7 +229,7 @@ def makeOutputHeaderAndOutputInfo(test_retro_obj, cardiacNoise,
                                  slice timing
                                  
                 do_out_rvt:   (dtype = <class 'int'>) Whether to calculate
-                             and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                             and output RVT. (0 = No, 1 = Yes, Default = 0)
                              
                 vol_nv: (dtype = <class 'int'>) Nvol (num_time_pts) MRI EPI 
                 
@@ -363,7 +363,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -384,7 +384,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
                              
             prefix: (dtype = <class 'str'>)  Prefix for output file
             
-            out_dir: (dtype = <class 'str'>) Durectory search path relative to
+            out_dir: (dtype = <class 'str'>) Directory search path relative to
                      the working directory.
                        
     AUTHOR
