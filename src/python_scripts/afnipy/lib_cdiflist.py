@@ -17,9 +17,12 @@ auth = 'PA Taylor'
 # [PT] update help-- note this should only be used at present on axial
 #      slice acq;  thanks, Joelle!
 #
-ver = '0.3' ; date = 'June 22, 2020'
+#ver = '0.3' ; date = 'June 22, 2020'
 # [PT] the column vectors should be scaled by bval, as help says; that
 # happens now
+#
+ver = '0.4' ; date = 'Jan 10, 2023'
+# [PT] report more info if a cdiflist appears to be ragged
 #
 # --------------------------------------------------------------------------
 
@@ -73,7 +76,7 @@ RUNNING ~1~
                  output by GE scanners when acquiring DWIs and has the
                  following format:
                  + first line is 1 number, which is the number of grads N
-                   used in the aquisition
+                   used in the acquisition
                  + N rows of 3 values each, which relate to the gradient
                    direction+strength (but they are *not* directly the 
                    grads themselves)
@@ -171,7 +174,9 @@ def read_in_cdiflist(fname, lines=1, strip=1, noblank=1, verb=1):
         ab.EP("Top number in file is {}, so file should have {} rows total,\n"
               "but I detect {} rows total".format(ntop, ntop+1, nrow+1))
     if is_rag :
-        ab.EP("Cannot have a ragged cdiflist")
+        ab.EP("Cannot have a ragged cdiflist", end_exit=False)
+        tmp = check_ragged_list(L2[1:], idx_offset=1)
+        sys.exit(3)
     if ncolmax != 3 :
         ab.EP("Need 3 cols throughout most of cdiflist, {}".format(ncolmax))
 
@@ -180,6 +185,72 @@ def read_in_cdiflist(fname, lines=1, strip=1, noblank=1, verb=1):
         out.append([float(x) for x in row])
 
     return ntop, out
+
+def check_ragged_list(X, idx_offset = 0):
+    """Report on where a list of lists appears to have non-standard length.
+
+    Parameters
+    ----------
+    X          : list (of lists)
+                 a 2D 'matrix' made of a list of lists, to report on
+    idx_offset : int
+                 if X is actually a subset of an array of interest, idx_offset
+                 can be used so that *actual* row values are reported, in 
+                 because the idx_offset value is added to each row val.
+
+
+    """
+
+    N = len(X)
+
+    if not(N):    
+        ab.IP("The matrix is empty")
+        return 1
+
+    D = {}  # dictionary of lengths
+    R = {}  # dictionary of rows in X of a given length
+    for ii in range(N):
+        x = X[ii]
+        nx = len(x)
+        if nx in list(D.keys()):
+            D[nx]+= 1
+            R[nx].append(ii + idx_offset)
+        else:
+            D[nx] = 1
+            R[nx] = [ii + idx_offset]
+
+    # convert D into a list of (len, nrow) tuples, sorted by
+    # descending value
+    Dtup_list = sorted(D.items(), key=lambda x: x[1], reverse=True)
+    Nlens     = len(Dtup_list)
+
+    if Nlens == 1 :
+        ab.IP("The matrix is not ragged. Each of the {} rows has len = {}"
+              "".format(N, Dtup_list[0][0]))
+    else:
+        ab.WP("The matrix is ragged.")
+
+        # calc this to get systematic width for integer table
+        wid = len(str(Dtup_list[0][1]))
+
+        for ii in range(Nlens):
+            if Dtup_list[ii][1] == 1 :
+                text = 'row  has '
+            else :
+                text = 'rows have'
+            print("   {:{}} {} len = {}".format(Dtup_list[ii][1],
+                                                wid,
+                                                text,
+                                                Dtup_list[ii][0]))
+        text_warn = "Check rows with non-majority len (*zero-based* indices):"
+        print("   " + '-'*len(text_warn))
+        print("   " + text_warn)
+        for ii in range(1, Nlens):
+            ncol = Dtup_list[ii][0]
+            sss = ', '.join([str(r) for r in R[ncol]])
+            print("   rows with len = {} --> {}".format(ncol, sss))
+
+    return 0
 
 def cdiflist_vals_to_grad_bval(L, bval=1):
     """Input is a list of cdiflist values (L = list of lists of 3 floats;

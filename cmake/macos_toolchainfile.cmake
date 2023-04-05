@@ -39,7 +39,7 @@ elseif(AFNI_COMPILER_CHOICE STREQUAL Clang)
   set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/llvm/lib")
 elseif(AFNI_COMPILER_CHOICE STREQUAL GNU)
   # Can be installed with "brew install gcc", will need to be modified for the
-  # exact verion of gcc installed
+  # exact version of gcc installed
   set(CMAKE_C_COMPILER /usr/local/bin/gcc-9)
   set(CMAKE_C_COMPILER /usr/local/bin/g++-9)
   set(CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/gcc/lib")

@@ -140,7 +140,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
          "  + SUMA:\n"
          "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"
          "    o Allow replacement of pre-loaded DO and Dsets\n"
-         "    o Support for .niml.dset as format for surface-based anlysis\n"
+         "    o Support for .niml.dset as format for surface-based analysis\n"
          "    o High resolution image saving with ctrl+r\n"
          "    o Bug fixes for support of niml dset format\n"
          "    o Use of '[i]' to select node index from surface dset\n"
@@ -482,11 +482,11 @@ char * SUMA_NIDO_Info(void)
 "     Elements in the foreground would always be visible, while those in the\n"
 "     background may be obscured by the rendered surface.\n"
 "     * If 'mobile' then the elements will move along with your object.\n"
-"     In that case, the corrdinates you specify are in the same space \n"
+"     In that case, the coordinates you specify are in the same space \n"
 "     as your rendered objects. Also, with 'mobile' NIDO, you can specify\n"
 "     location by specifying a 'node' attribute as illustrated below.\n"
 "     * Default NIDO coordinate type is: 'mobile'\n"
-"  default_color atribute:\n"
+"  default_color attribute:\n"
 "     3 (R G B) , or 4 (R G B A) color values between [0, 1]\n"
 "     Elements that do not have their own 'col' attribute set, will use \n"
 "     default_color instead. At the moment however, A is not being used.\n"
@@ -512,7 +512,7 @@ char * SUMA_NIDO_Info(void)
 "     is currently selected, some random surface is picked.\n"
 "  default_node:\n"
 "     One integer which specifies the index of the node to which all elements\n"
-"     belong. This value essentially specfies the 'node' attribute of\n"
+"     belong. This value essentially specifies the 'node' attribute of\n"
 "     individual elements should the 'node' attribute be missing.\n"
 "     A missing default_node, or a value of -1 indicate there is no default\n"
 "     node.\n"
@@ -643,7 +643,7 @@ char * SUMA_NIDO_Info(void)
 "        0.0 1.0 1\n"
 "        1.0 1.0 1\n"
 "        1.0 0.0 1 '\n"
-"     For 'fixed' coord_type, this defaut sets up a rectangle that fills up \n"
+"     For 'fixed' coord_type, this default sets up a rectangle that fills up \n"
 "     the suma viewer in the background of the scene. \n"
 "     BUG: If you reduce z in 'fixed' coord_type, the texture map be\n"
 "     positioned closer to the foreground, and should obscure objects behind  \n"
@@ -1053,7 +1053,7 @@ char * SUMA_sources_Info(void)
 "* 'http://astronomy.swin.edu.au/~pbourke': Paul Bourke's personal pages\n"
 "                                           on geometry and rendering .\n"
 "   Copyright notice on webpage: Copyright Paul Bourke or a third party \n"
-"   contributer where indicated. You may view this site and its contents \n"
+"   contributor where indicated. You may view this site and its contents \n"
 "   using your web browser. You may print or save an electronic copy of \n"
 "   parts of this web site for your own personal use. \n"
 "   Permission must be sought for any other use. \n"
@@ -2625,7 +2625,7 @@ void SUMA_VolSurf_help (FILE *Out)
 	 fprintf (Out, "\nVolume <--> Surface jeremiad:\n");
 	 fprintf (Out, "-----------------------------\n");
 	 fprintf (Out, "\tTo transform surface node coordinates to voxel coordinates a few parameters are required.\n");
-	 fprintf (Out, "\tThose paramters vary depending on the type of surfaces used. Currently, SUMA supports \n");
+	 fprintf (Out, "\tThose parameters vary depending on the type of surfaces used. Currently, SUMA supports \n");
 	 fprintf (Out, "\tFreeSurfer and SureFit surfaces.\n");
 	 fprintf (Out, "\nParent Volume (VolPar):\n");
 	 fprintf (Out, "\tThe surface model is created from a high-resolution anatomical scan\n");
@@ -2645,7 +2645,7 @@ void SUMA_VolSurf_help (FILE *Out)
 	 fprintf (Out, "\n\t+FreeSurfer Parent Volume:\n");
 	 fprintf (Out, "\tConstruct VolPar from the .COR images used to create the surface using:\n");
 	 fprintf (Out, "\tto3d -prefix CW-cSurfParent-SPGR -xSLAB 127.5L-R -ySLAB 127.5S-I -zSLAB 127.5P-A COR-???\n");
-	 fprintf (Out, "\tExample command line for a FreeSurfer suface with VolPar aligned to experiment ARzs:\n");
+	 fprintf (Out, "\tExample command line for a FreeSurfer surface with VolPar aligned to experiment ARzs:\n");
 	 fprintf (Out, "\t./suma -vp CW-cSurfParent-SPGR_Reg2_ARzsspgrax_1mm_256pad_cor_RSP_down12+orig\\\n");
 	 fprintf (Out, "\t -spec CW-FreeSurfer.SumaSpec\n");
 	 fprintf (Out, "\n\t+SureFit Parent Volume:\n");

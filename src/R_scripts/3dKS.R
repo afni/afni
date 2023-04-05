@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dKS.R ==================          ")
 print("AFNI Kolmogorov-Smirnov testing program!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.2,  March. 1, 2012")
+print("Version 0.0.3,  Jan 17, 2023")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - https://afni.nimh.nih.gov/sscc/gangc/")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -98,7 +98,7 @@ read.AFNI <- function(filename) {
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
-  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned character or short
   if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
     dim(myttt) <- c(dx,dy,dz,dt)
@@ -250,7 +250,7 @@ outFNexist <- TRUE
 while (outFNexist) {
    outFN <- readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
    if(file.exists(paste(outFN,"+orig.HEAD", sep="")) || file.exists(paste(outFN,"+tlrc.HEAD", sep=""))) {
-      print("File exsists! Try a different name.")
+      print("File exists! Try a different name.")
       outFNexist <- TRUE
    } else outFNexist <- FALSE }
 outFN <- paste(outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
@@ -299,7 +299,11 @@ for(ii in 1:nGrp) {
    print("Masking is optional.")
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
-   if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
+   if(masked) {
+      maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): ")
+      maskData <- read.AFNI(maskFN)$ttt
+      maskData <- ifelse(abs(maskData) > 1e-16, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
+   }
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
       
    nBrick <- 2   # no. sub-bricks in the main output

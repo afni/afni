@@ -142,9 +142,14 @@
 #          + remove any non-programmatic exclamation marks. those are BAD
 #            to have in t/csh scripts, even in comments.
 #
-set version   = "2.55";   set rev_dat   = "May 10, 2022"
+#set version   = "2.55";   set rev_dat   = "May 10, 2022"
 #     + [PT] for 3dWarp-deobliqueing, use NN interp for mask, not wsinc5
 #            -> thanks, RCR
+#
+set version   = "2.6";   set rev_dat   = "OCt 31, 2022"
+#     + [PT] removing use of -cost_aff opt (it will just produce a warning
+#            message).  It had been ignored, anyways.  Affine cost just
+#            matches the cost_nl_init choice.
 #
 # ----------------------------------------------------------------
 
@@ -195,7 +200,7 @@ set DO_EXTRA_QC = 1      # more chauffeur output
 set JUMP_TO_EXTRA_QC = 0 # just for testing/internal purposes
 set DO_RANDOM_TMP = 1    # use random chars in tmp fname; can use nicer
 
-set cost_aff   = "lpa+ZZ"   # used in:  3dAllineate -cost ...
+set USER_COST_AFF = 0       # did user use -cost_aff?
 set cost_nli   = "-lpa"     # used in:  3dQwarp, initial rounds
 set cost_nlf   = "-pcl"     # used in:  3dQwarp, final rounds
 
@@ -326,9 +331,14 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-cost_aff" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set cost_aff = "$argv[$ac]"
+        ##set cost_aff = "$argv[$ac]"
+        echo "+* WARNING ********"
+        echo "   The option '-cost_aff' is no longer used.  The affine"
+        echo "   alignment cost function will simply match the"
+        echo "   '-cost_nl_init ..' value."
+        set USER_COST_AFF = 1
 
-    # [PT: Jan 14, 2020] probably just for backwards compatability:
+    # [PT: Jan 14, 2020] probably just for backwards compatibility:
     # default will be lpa hereafter  (could be '-pcl' for back-compat)
     else if ( "$argv[$ac]" == "-cost_nl_init" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -449,7 +459,7 @@ unset sss
 
 # output dir from $Adataset, if not set by user
 if ( "$odir" == "" ) then
-    set odir = `dirname $Adataset`
+    set odir = `dirname "$Adataset"`
     echo ""
     echo "++ Based on input, the output directory will be:"
     echo "     $odir"
@@ -463,7 +473,7 @@ if ( ${skipwarp} ) then
     set DO_EXTRA_QC = 0
 endif
 
-\mkdir -p ${odir}
+\mkdir -p "${odir}"
 
 # set random prefix for temp files
 
@@ -474,9 +484,9 @@ if ( $DO_RANDOM_TMP ) then
     # after '.' caaaan cause mischief (see amusing anecdote in
     # comments at top for this date).
     set pppp = "`3dnewid -fun11`"
-    set pref = $odir/junk.SSwarper_${pppp}_
+    set pref = "$odir/junk.SSwarper_${pppp}_"
 else
-    set pref = $odir/junk_ssw_
+    set pref = "$odir/junk_ssw_"
 endif 
 
 # ---------------------------- this will change -------------------
@@ -509,7 +519,7 @@ endif
 @djunct_overlap_check  ${more_echo}               \
     -ulay   "${Adataset}"                         \
     -olay   "$Basedset"                           \
-    -prefix ${odir}/init_qc_00_overlap_usrc_obase
+    -prefix "${odir}/init_qc_00_overlap_usrc_obase"
 
 if ( ${JUMP_TO_EXTRA_QC} ) then
     echo "\n++ Just jumpin' to extra QC\n"
@@ -521,7 +531,7 @@ endif
 ## Step #-1: copy the raw anat (and perhaps mask_ss) into output
 ## dir---often useful to compare later and/or check header info
 
-set dset_cp = $odir/anat_cp."${SubID}".nii
+set dset_cp = "$odir/anat_cp.${SubID}.nii"
 if ( ! -f "${dset_cp}" ) then
     3dTcat                        \
         -prefix "${dset_cp}"      \
@@ -529,7 +539,7 @@ if ( ! -f "${dset_cp}" ) then
 endif
 
 if ( "${mask_ss}" != "" ) then
-    set mask_ss_cp = $odir/mask_ss_cp."${SubID}".nii
+    set mask_ss_cp = "$odir/mask_ss_cp.${SubID}.nii"
     if ( ! -f "${mask_ss_cp}" ) then
         3dTcat                           \
             -prefix "${mask_ss_cp}"      \
@@ -541,7 +551,7 @@ endif
 
 ## Step #0: Deoblique, either in style of 3dWarp or 3drefit
 if ( ${DO_DEOB} ) then
-    set dset_do = $odir/anatDO."${SubID}".nii
+    set dset_do = "$odir/anatDO.${SubID}.nii"
     3dWarp                        \
         -deoblique                \
         -wsinc5                   \
@@ -551,7 +561,7 @@ if ( ${DO_DEOB} ) then
     set Adataset = "${dset_do}"
 
     if ( "${mask_ss}" != "" ) then
-        set mask_do = $odir/maskDO."${SubID}".nii.gz
+        set mask_do = "$odir/maskDO.${SubID}.nii.gz"
         # [PT: 10 May 2022] kernel from wsinc5 -> NN, as noticed by RCR
         3dWarp                        \
             -deoblique                \
@@ -563,7 +573,7 @@ if ( ${DO_DEOB} ) then
     endif 
 
 else if ( ${DO_DEOB_REF} ) then
-    set dset_do = $odir/anatDO."${SubID}".nii
+    set dset_do = "$odir/anatDO.${SubID}.nii"
     # copy
     3dcalc                        \
         -a "$Adataset"            \
@@ -577,7 +587,7 @@ else if ( ${DO_DEOB_REF} ) then
     set Adataset = "${dset_do}"
 
     if ( "${mask_ss}" != "" ) then
-        set mask_do = $odir/maskDO."${SubID}".nii.gz
+        set mask_do = "$odir/maskDO.${SubID}.nii.gz"
 
         # copy
         3dcalc                        \
@@ -604,19 +614,19 @@ echo "++ SSW Step 1"
 
 # [PT: Feb 11, 2019] now allows for option *not* to unifize
 # [PT: Feb 21, 2019] use Urad=30 when unifizing (better for final output)
-if ( ! -f $odir/anatU."${SubID}".nii ) then
+if ( ! -f "$odir/anatU.${SubID}.nii" ) then
     if ( ${DO_UNIFIZE} ) then
         3dUnifize                             \
             -GM                               \
             -clfrac 0.4                       \
             -Urad 30                          \
-            -prefix $odir/anatU."$SubID".nii  \
+            -prefix "$odir/anatU.$SubID.nii"  \
             -input "$Adataset"
     else
         echo "++ NOT unifizing dset."
         3dcopy                                \
             "$Adataset"                       \
-            $odir/anatU."$SubID".nii
+            "$odir/anatU.$SubID.nii"
     endif
 endif
 
@@ -627,20 +637,20 @@ endif
 
 
 # [PT: Feb 11, 2019] now allows for option *not* to anismoothize
-if ( ! -f $odir/anatUA."${SubID}".nii ) then
+if ( ! -f "$odir/anatUA.${SubID}.nii" ) then
     if ( ${DO_ANISO} ) then
         3danisosmooth                           \
             -iters 1                            \
             -3D                                 \
             -automask                           \
             -noneg                              \
-            -prefix $odir/anatUA."${SubID}".nii \
-            $odir/anatU."${SubID}".nii
+            -prefix "$odir/anatUA.${SubID}.nii" \
+            "$odir/anatU.${SubID}.nii"
     else
         echo "++ NOT anisosmoothing dset."
         3dcopy                                  \
-            $odir/anatU."$SubID".nii            \
-            $odir/anatUA."$SubID".nii
+            "$odir/anatU.$SubID.nii"            \
+            "$odir/anatUA.$SubID.nii"
     endif
 endif
 
@@ -651,23 +661,23 @@ endif
 
 # [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
 # 98%ile of non-zero vox
-if ( ! -f $odir/anatUAC."${SubID}".nii ) then
+if ( ! -f "$odir/anatUAC.${SubID}.nii" ) then
     if ( ${DO_CEIL} ) then
         set vvv = `3dBrickStat                  \
                     -percentile 98 1 98         \
                     -non-zero                   \
-                    $odir/anatUA."${SubID}".nii`
+                    "$odir/anatUA.${SubID}.nii"`
         # apply ceiling
         3dcalc                                  \
-            -a $odir/anatUA."${SubID}".nii      \
+            -a "$odir/anatUA.${SubID}.nii"      \
             -expr "maxbelow(${vvv[2]},a)"       \
-            -prefix $odir/anatUAC."${SubID}".nii
+            -prefix "$odir/anatUAC.${SubID}.nii"
 
     else
         echo "++ NOT anisosmoothing dset."
         3dcopy                                   \
-            $odir/anatUA."$SubID".nii            \
-            $odir/anatUAC."$SubID".nii
+            "$odir/anatUA.$SubID.nii"            \
+            "$odir/anatUAC.$SubID.nii"
     endif
 endif
 
@@ -681,11 +691,11 @@ endif
 echo "++ SSW Step 2"
 
 # [PT: Feb 11, 2019] now allows for option *not* to skullstrip 
-if ( ! -f $odir/anatS."${SubID}".nii ) then
+if ( ! -f "$odir/anatS.${SubID}.nii" ) then
     if ( ${DO_SKULLST} ) then
         3dSkullStrip \
-            -input  $odir/anatUAC."$SubID".nii \
-            -prefix $odir/anatS."$SubID".nii   \
+            -input  "$odir/anatUAC.$SubID.nii" \
+            -prefix "$odir/anatS.$SubID.nii"   \
             -debug 1 -ld 33 -niter 777         \
             -shrink_fac_bot_lim 0.777          \
             -exp_frac 0.0666 -orig_vol         \
@@ -693,15 +703,15 @@ if ( ! -f $odir/anatS."${SubID}".nii ) then
     else if ( "${mask_ss}" != "" ) then
         echo "++ Instead of skullstripping, apply mask_ss dset."
         3dcalc                                 \
-            -a $odir/anatUAC."$SubID".nii      \
+            -a "$odir/anatUAC.$SubID.nii"      \
             -b ${mask_ss}                      \
             -expr 'a*step(b)'                  \
-            -prefix $odir/anatS."$SubID".nii
+            -prefix "$odir/anatS.$SubID.nii"
     else
         echo "++ NOT pre-skullstripping dset."
         3dcopy                                 \
-            $odir/anatUAC."$SubID".nii         \
-            $odir/anatS."$SubID".nii
+            "$odir/anatUAC.$SubID.nii"         \
+            "$odir/anatS.$SubID.nii"
     endif
 endif
 
@@ -719,7 +729,7 @@ if ( ${DO_GIANT} ) then
         -base   "${Basedset}[1]"                          \
         ${cost_nli}                                       \
         -warpscale ${warpscale}                           \
-        -source $odir/anatUAC."$SubID".nii                \
+        -source "$odir/anatUAC.$SubID.nii"                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
         -wtgaus ${gaus_wt}                                \
@@ -733,7 +743,7 @@ else
         -base   "${Basedset}[1]"                          \
         ${cost_nli}                                       \
         -warpscale ${warpscale}                           \
-        -source $odir/anatUAC."$SubID".nii                \
+        -source "$odir/anatUAC.$SubID.nii"                \
         -weight "${Basedset}[2]"                          \
         -allineate -noneg -maxlev 5 -iwarp -awarp         \
         -wtgaus ${gaus_wt}                                \
@@ -759,15 +769,15 @@ set opref_qc_nl0 = "${odir}/init_qc_01_nl0.${SubID}.jpg"
     -ulay             "${ulay}"        \
     -olay             "${olay}"        \
     -box_focus_slices "${olay}"        \
-    -prefix           ${pref}MONT3
+    -prefix           "${pref}MONT3"
 
 2dcat                                  \
     -gap 5                             \
     -gap_col 255 204 153               \
     -nx 1                              \
     -ny 3                              \
-    -prefix ${opref_qc_nl0}            \
-    ${pref}MONT3*jpg
+    -prefix "${opref_qc_nl0}"          \
+    "${pref}"MONT3*jpg
 
 ## Step #4: mask off the skull using the template (second skull-strip)
 echo "++ SSW Step 4"
@@ -793,7 +803,7 @@ echo "++ SSW Step 5"
 
 3dNwarpApply -echo_edu                 \
     -nwarp "${pref}TAL5_WARPINV.nii"   \
-    -master $odir/anatS."$SubID".nii   \
+    -master "$odir/anatS.$SubID.nii"   \
     -source "${pref}TAL5mm.nii"        \
     -prefix "${pref}TAL5ww.nii"
 
@@ -811,7 +821,7 @@ endif
     -prefix "${pref}MASK.nii"
 3dNwarpApply \
     -nwarp "${pref}TAL5_WARPINV.nii"   \
-    -master $odir/anatS."$SubID".nii   \
+    -master "$odir/anatS.$SubID.nii"   \
     -source "${pref}MASK.nii"          \
     -prefix "${pref}MASKO.nii"         \
     -ainterp NN
@@ -839,11 +849,11 @@ endif
 # DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
 3dmask_tool                           \
     -dilate_inputs -3 3               \
-    -prefix ${pref}de3.nii            \
+    -prefix "${pref}de3.nii"          \
     -input  "$odir/anatSS.${SubID}.nii"
 3dcalc                                \
     -a "$odir/anatSS.${SubID}.nii"    \
-    -b ${pref}de3.nii                 \
+    -b "${pref}de3.nii"               \
     -expr 'a*step(b)'                 \
     -prefix "$odir/anatSSc.${SubID}.nii"
 
@@ -853,7 +863,7 @@ if ( ${status} ) then
 endif
 
 # Throw in an automask step to clean up the outer edges [18 Jun 2019]
-\rm -f ${pref}de3.nii "$odir/anatSS.${SubID}.nii"
+\rm -f "${pref}de3.nii" "$odir/anatSS.${SubID}.nii"
 3dAutomask                                            \
     -apply_prefix "$odir/anatSSd.${SubID}.nii"        \
     "$odir/anatSSc.${SubID}.nii"
@@ -874,14 +884,15 @@ if ( $skipwarp ) goto CLEANUP
 echo "++ SSW Step 6"
 
 # [PT: Jan 7, 2019] use lpa+ZZ cost func by default; also add in -twopass
+# [PT: Oct 31, 2022] um, $cost_aff has no effect here
 echo "++ SSW Step 6 ... piece 0"
 3dAllineate \
     -1Dmatrix_apply "${pref}TAL5_Allin.aff12.1D"   \
-    -source $odir/anatSS."${SubID}".nii            \
+    -source "$odir/anatSS.${SubID}.nii"            \
     -master "${pref}TAL5mm.nii"                    \
-    -cost ${cost_aff}                              \
-    -twopass                                       \
-    -autoweight -source_automask                   \
+    #-cost ${cost_aff}                              \
+    #-twopass                                       \
+    #-autoweight -source_automask                   \
     -final wsinc5                                  \
     -prefix "${pref}AffSS.nii"
 
@@ -902,15 +913,15 @@ set opref_qc_aff = "${odir}/init_qc_02_aff.${SubID}.jpg"
     -ulay             "${ulay}"        \
     -olay             "${olay}"        \
     -box_focus_slices "${olay}"        \
-    -prefix           ${pref}MONT6
+    -prefix           "${pref}MONT6"
 
 2dcat                                  \
     -gap 5                             \
     -gap_col 255 204 153               \
     -nx 1                              \
     -ny 3                              \
-    -prefix ${opref_qc_aff}            \
-    ${pref}MONT6*jpg
+    -prefix "${opref_qc_aff}"          \
+    "${pref}"MONT6*jpg
 
 
 
@@ -977,7 +988,7 @@ if ( $minp > 13 ) then
       -inedge                              \
       -pblur -minpatch $minp               \
       -Qfinal                              \
-      -prefix $odir/anatQQ."${SubID}".nii
+      -prefix "$odir/anatQQ.${SubID}.nii"
 
   if ( ${status} ) then
       echo "** ERROR: program failed in Step 6.3a"
@@ -1019,7 +1030,7 @@ else
       -wtgaus ${gaus_wt}                   \
       -inedge                              \
       -pblur -minpatch $minp               \
-      -prefix $odir/anatQQ."${SubID}".nii
+      -prefix "$odir/anatQQ.${SubID}.nii"
 
   if ( ${status} ) then
       echo "** ERROR: program failed in Step 6.3c"
@@ -1033,27 +1044,27 @@ echo "++ SSW: done warping.  Finalize."
 # DRG's erode-dilate trick for cleanup of little stuff [16 Jan 2019]
 3dmask_tool                             \
     -dilate_inputs -1 1                 \
-    -prefix ${pref}de3.nii              \
-    -input  $odir/anatQQ."${SubID}".nii
+    -prefix "${pref}de3.nii"            \
+    -input  "$odir/anatQQ.${SubID}.nii"
 3dcalc                                  \
-    -a $odir/anatQQ."${SubID}".nii      \
-    -b ${pref}de3.nii                   \
+    -a "$odir/anatQQ.${SubID}.nii"      \
+    -b "${pref}de3.nii"                 \
     -expr 'a*step(b)'                   \
-    -prefix $odir/anatQQc."${SubID}".nii
+    -prefix "$odir/anatQQc.${SubID}.nii"
 
 if ( ${status} ) then
     echo "** ERROR: program failed in Finalize"
     goto BAD_EXIT
 endif
 
-\rm -f ${pref}de3.nii anatQQ."${SubID}".nii
-\mv -f $odir/anatQQc."${SubID}".nii $odir/anatQQ."${SubID}".nii
+\rm -f "${pref}de3.nii" "anatQQ.${SubID}.nii"
+\mv -f "$odir/anatQQc.${SubID}.nii" "$odir/anatQQ.${SubID}.nii"
 
 ## Step #7: Make two pretty pictures, and scram
 echo "++ SSW Step 7"
 
-@snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
-@snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
+@snapshot_volreg "$odir/anatQQ.${SubID}.nii" "$Basedset" "$odir/AM${SubID}"
+@snapshot_volreg "$Basedset" "$odir/anatQQ.${SubID}.nii" "$odir/MA${SubID}"
 
 JUMP_TO_EXTRA_QC:
 
@@ -1082,7 +1093,7 @@ if ( ${DO_EXTRA_QC} ) then
         -box_focus_slices ${olay}          \
         -cbar "Reds_and_Blues_Inv"         \
         -opacity 4                         \
-        -prefix  ${pref}MONT1              \
+        -prefix  "${pref}MONT1"            \
         -save_ftype JPEG                   \
         -montx 9 -monty 1                  \
         -montgap 3                         \
@@ -1094,8 +1105,8 @@ if ( ${DO_EXTRA_QC} ) then
         -gap_col 66 184 254                \
         -nx 1                              \
         -ny 3                              \
-        -prefix ${opref_exqc1}             \
-        ${pref}MONT1*jpg
+        -prefix "${opref_exqc1}"           \
+        "${pref}"MONT1*jpg
 
     # -------- check alignment in ref vol space ---------
 
@@ -1109,15 +1120,15 @@ if ( ${DO_EXTRA_QC} ) then
         -ulay             "${ulay}"        \
         -olay             "${olay}"        \
         -box_focus_slices "${olay}"        \
-        -prefix           ${pref}MONT2
+        -prefix           "${pref}MONT2"
 
     2dcat                                  \
         -gap 5                             \
         -gap_col 66 184 254                \
         -nx 1                              \
         -ny 3                              \
-        -prefix ${opref_exqc2}             \
-        ${pref}MONT2*jpg
+        -prefix "${opref_exqc2}"           \
+        "${pref}"MONT2*jpg
 
 endif
 
@@ -1134,7 +1145,7 @@ echo "++ SSW cleanup"
 # re-running extra QC images, might not have the first file name;
 # now, avoid an unnecessary error msg.
 if ( -e "${pref}TAL5_Allin.aff12.1D" ) then
-    \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
+    \mv -f "${pref}TAL5_Allin.aff12.1D" "$odir/anatQQ.${SubID}.aff12.1D"
 endif
 
 if ( $doclean ) then
@@ -1203,7 +1214,6 @@ USAGE ~1~
        {-init_skullstr_off}  \
        {-extra_qc_off}       \
        {-jump_to_extra_qc}   \
-       {-cost_aff CA}        \
        {-cost_nl_init CNI}   \
        {-cost_nl_final CNF}  \
        {-deoblique}          \
@@ -1306,18 +1316,16 @@ grown/improved over time):
               This command would just be tacked on to previously
               executed one.
 
-  -cost_aff CA :(opt) specify cost function for affine (3dAllineate)
-              part of alignment.  Here, 'CA' would be just the name of
-              the cost function to be provided after '-cost ..' (def:
-              is now "lpa+ZZ").  This is probably only here for
-              backwards compatability to older @SSwarper (where def
-              was 'hel').
+  #-cost_aff CA :***no longer used.*** The affine cost function is only  
+              set via cost_nl_init, since the affine alignment is just a
+              'preliminary alignment' for that one.  So, what is specified
+              for the cost_nl_init will be used for the affine.
 
   -cost_nl_init CNI 
              :(opt) specify cost function for initial nonlinear
               (3dQwarp) part of alignment.  Here, 'CNI' would be the
               cost function name to be provided (def: is now "lpa").
-              This is probably only here for backwards compatability
+              This is probably only here for backwards compatibility
               to older @SSwarper (where def was 'pcl').
 
   -cost_nl_final CNF 
@@ -1423,7 +1431,7 @@ Datasets ~2~
                             to nonlinearly aligned dataset;
 
   * The .aff12.1D and _WARP.nii transformations need to be catenated to get
-    the full warp from orginal space to the base space; example:
+    the full warp from original space to the base space; example:
 
       3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
 
@@ -1456,29 +1464,28 @@ QC images ~2~
 
 USING SSW WITH AFNI_PROC.PY ~1~
 
-  When B-O-B uses @SSwarper for skull-stripping plus warping, He
-  gives afni_proc.py these options (among others), after running
-  ${this_prog} successfully -- here, 'subj' is the subject
+  When B-O-B uses @SSwarper for skull-stripping plus warping, He gives
+  afni_proc.py these options (among others, hence the ellipses), after
+  running ${this_prog} successfully. Here, 'subj' is the subject
   identifier:
 
-  |  set btemplate = MNI152_2009_template_SSW.nii.gz
-  |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
-  |  if ( "$tpath" == "" ) exit 1
-  |
-  |  afni_proc.py                                                  \
-  |    [...other stuff here: processing blocks, options...]        \
-  |    -copy_anat anatSS.\${subj}.nii                               \
-  |    -anat_has_skull no                                          \
-  |    -align_opts_aea -ginormous_move -deoblique on -cost lpc+ZZ  \
-  |    -volreg_align_to MIN_OUTLIER                                \
-  |    -volreg_align_e2a                                           \
-  |    -volreg_tlrc_warp -tlrc_base $tpath/$btemplate              \
-  |    -tlrc_NL_warp                                               \
-  |    -tlrc_NL_warped_dsets                                       \
-  |       anatQQ.\${subj}.nii                                       \
-  |       anatQQ.\${subj}.aff12.1D                                  \
-  |       anatQQ.\${subj}_WARP.nii
-
+  |    set template = MNI152_2009_template_SSW.nii.gz
+  |    
+  |    afni_proc.py                                                  \
+  |      ...                                                         \
+  |      -copy_anat             anatSS.\${subj}.nii                   \
+  |      -anat_has_skull        no                                   \
+  |      -align_opts_aea        -cost lpc+ZZ -giant_move             \
+  |                             -check_flip                          \
+  |      -volreg_align_to       MIN_OUTLIER                          \
+  |      -volreg_align_e2a                                           \
+  |      -volreg_tlrc_warp                                           \
+  |      -tlrc_base             \${template}                          \
+  |      -tlrc_NL_warp                                               \
+  |      -tlrc_NL_warped_dsets  anatQQ.\${subj}.nii                   \
+  |                             anatQQ.\${subj}.aff12.1D              \
+  |                             anatQQ.\${subj}_WARP.nii
+  |      ...
 
 NOTES ~1~
 
@@ -1511,7 +1518,7 @@ The steps being run ~2~
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
-  #2: Strip the skull with 3dSkullStrip, with mildly agressive settings.
+  #2: Strip the skull with 3dSkullStrip, with mildly aggressive settings.
        ==> anatS.sub007.nii
   #3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on
       template, driving the warping to a medium level of refinement.
@@ -1609,6 +1616,14 @@ EXAMPLES ~1~
         -odir    group/o.aw_sub-001
 
 EOF
+
+if ( ${USER_COST_AFF} == 1 ) then
+    echo "+* WARNING: the user used the '-cost_aff ..' option,"
+    echo "   but it is no longer used within the program---it has no effect."
+    echo "   The affine cost function just follows what is set by"
+    echo "   The '-cost_nl_init ..' option value (or its default)."
+endif
+
 
    goto GOOD_EXIT
 

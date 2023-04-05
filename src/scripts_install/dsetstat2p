@@ -2,8 +2,14 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.0";  set rev_dat   = "July 1, 2019"
+#set version   = "1.0";  set rev_dat   = "July 1, 2019"
 # + [PT] born, starting from p2dsetstat (its complementary partner)
+#
+#set version   = "1.1";  set rev_dat   = "July 27, 2022"
+# + [PT] fix issue where large stat -> sci not -> badness with 'bc'
+#
+set version   = "1.3";   set rev_dat   = "Aug 23, 2022"
+#     + [PT] expand allowed statauxcode range (to 6)
 #
 # ---------------------------------------------------------------
 
@@ -148,7 +154,7 @@ endif
 ## Interval of allowed stats, by code number; basically, could be:
 ## corr coef, t-stat, F-stat or z-score.
 set OK_STAT = "0"
-foreach i ( `seq 2 1 5` )
+foreach i ( `seq 2 1 6` )
     if ( "${my_bstats[2]}" == "$i" ) then
         set OK_STAT = "1"
     endif
@@ -167,9 +173,10 @@ if ( "$OK_STAT" == "1" ) then
 
     # Calculate the stat value associated with the user's p-value,
     # and store it in a variable for later user.
-    set my_cdf  = `cdf -t2p "$my_stype" "${istat}" ${my_pars}`
-
-    set finalp  = `echo "scale=9; ( $my_cdf[3] * $MULTFAC ) / 1.0" | bc`
+    set my_cdf    = `cdf -t2p "$my_stype" "${istat}" ${my_pars}`
+    # avoid scientific notation
+    set my_cdf_fl = `printf "%.15f" "$my_cdf[3]"`
+    set finalp    = `echo "scale=15; ( $my_cdf_fl * $MULTFAC ) / 1.0" | bc`
 
     set check3 = `echo "$finalp < 0 || $finalp > 1" | bc -l`
 
@@ -296,7 +303,7 @@ cat << EOF
     In all cases note the use of the single quotes around the subbrick
     selector-- these are necessary!
 
-    # 1) Do a calculation and display various informations to screen:
+    # 1) Do a calculation and display various information to screen:
     $this_prog  \
         -inset stats.sub01+tlrc'[2]'                        \
         -statval 3.313                                      \

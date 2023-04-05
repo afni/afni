@@ -165,7 +165,7 @@ r_alg_s     gRA;                /* algorithm structure                      */
 interp_s    gRI;                /* interpolation structure (both X and alg) */
 holes_s     gRH;                /* hole filling structure  (both X and alg) */
 r_pt_conn_s gRCP;               /* point connection structure               */
-char        gRmessage[ 1024 ];  /* error messgae memory                     */
+char        gRmessage[ 1024 ];  /* error message memory                     */
 
 
 static int      r_afni_set_fill_point    ( int *, r_alg_s * );

@@ -1,7 +1,7 @@
 
 # Fedora 19 Linux setup, 21 Aug, 2013   R Reynolds
 
-# This is probably not a complete depencency list, but it
+# This is probably not a complete dependency list, but it
 # should help.
 
 # for a build machine:

@@ -169,7 +169,7 @@ LEARN_PARM *learn_parm;
       if(result == NAN_SOLUTION) {
 	lindep_sensitivity*=2;  /* throw out linear dependent examples more */
 	                        /* generously */
-	/* results not valid, so return inital values */
+	/* results not valid, so return initial values */
 	for(i=0;i<qp->opt_n;i++) {
 	  primal[i]=qp->opt_xinit[i];
 	}

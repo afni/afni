@@ -42,7 +42,7 @@ FuncName = 'NewCs';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 cs.err = 1;
 cs.c = '';
 cs.v = '';

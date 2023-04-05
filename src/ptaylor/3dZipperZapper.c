@@ -727,7 +727,7 @@ int main(int argc, char *argv[]) {
    // *************************************************************
    // *************************************************************
 	
-   /* don't add this in for now; reenable later on, and will have to
+   /* don't add this in for now; re-enable later on, and will have to
       update testing (adds more terminal output text, and testing
       diffs that)
 

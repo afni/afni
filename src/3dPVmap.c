@@ -38,7 +38,7 @@ int main( int argc , char *argv[] )
             "or dispersion of the PVmap.\n"
             "\n"
             "These values can be captured into a file by Unix shell redirection\n"
-            "or into a shell variable by assigment:\n"
+            "or into a shell variable by assignment:\n"
             "  3dPVmap -mask AUTO Fred.nii > Fred.sval.1D\n"
             "  set sval = ( `3dPVmap -mask AUTO Fred.nii` )  # csh syntax\n"
             "If the first value is very large, for example, this might indicate\n"

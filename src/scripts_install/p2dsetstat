@@ -10,9 +10,12 @@
 # + allow "bisided" as a type of test (=2sided, for p-to-stat
 #   conversion)
 #
-set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
+#set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
+#
+set version   = "1.3";   set rev_dat   = "Aug 23, 2022"
+#     + [PT] expand allowed statauxcode range (to 6)
 #
 # ---------------------------------------------------------------
 
@@ -157,7 +160,7 @@ endif
 ## Interval of allowed stats, by code number; basically, could be:
 ## corr coef, t-stat, F-stat or z-score.
 set OK_STAT = "0"
-foreach i ( `seq 2 1 5` )
+foreach i ( `seq 2 1 6` )
     if ( "${my_bstats[2]}" == "$i" ) then
         set OK_STAT = "1"
     endif
@@ -287,7 +290,7 @@ cat << EOF
     In all cases note the use of the single quotes around the subbrick
     selector-- these are necessary!
 
-    # 1) Do a calculation and display various informations to screen:
+    # 1) Do a calculation and display various information to screen:
     $this_prog  \
         -inset stats.sub01+tlrc'[2]'            \
         -pval 0.001                             \

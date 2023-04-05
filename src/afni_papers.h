@@ -154,7 +154,7 @@ static char *afni_papers[] = {
    "  Brain, 135: 2711-2725, 2012.\n" ,
    "\n" ,
    "  * In our humble opinion, this shows how to use resting state FMRI correctly when\n" ,
-   "    making inter-group comparisons (hint: no global signal regresssion is used).\n" ,
+   "    making inter-group comparisons (hint: no global signal regression is used).\n" ,
    "  * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3437021/\n" ,
    "  * https://dx.doi.org/10.1093/brain/aws160\n" ,
    "----------------------------------------------------------------------------\n" ,

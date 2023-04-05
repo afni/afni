@@ -154,7 +154,7 @@ extern "C" {
 #undef  isnumeric
 #define isnumeric(c) (isdigit(c) || (c) == '-' || (c) == '+' || (c) == '.')
 
-/* define what angular difference constitues a "real" difference
+/* define what angular difference constitutes a "real" difference
  * (allow for truncation artifacts)          22 May 2015 [rickr] */
 #undef OBLIQ_ANGLE_THRESH
 #define OBLIQ_ANGLE_THRESH 0.01
@@ -446,7 +446,7 @@ typedef struct {
 
 #define INC_VLIST 64
 
-/*! Initialize a dynamic array of xyz points, attached to datset ddd. */
+/*! Initialize a dynamic array of xyz points, attached to dataset ddd. */
 
 #define INIT_VLIST(name,ddd) \
    ( (name) = RwcNew(THD_vector_list) ,  \
@@ -2249,7 +2249,7 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
                                  "none" : \
                                  UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE] )
 
-/*! Struct to hold information about the time axis of a 3D+time datset.
+/*! Struct to hold information about the time axis of a 3D+time dataset.
 
     For 3D+t datasets, there are ntt 3D times; the i-th one is centered
     at ttorg + ttdel*ii seconds, for ii=0..ntt-1.
@@ -4519,7 +4519,7 @@ extern int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2);
 
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
-extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
+extern char * THD_dataset_info( THD_3dim_dataset * , int , int ) ;
 extern char * THD_dset_subbrick_info( THD_3dim_dataset * , int );
 
 extern int THD_subbrick_minmax( THD_3dim_dataset *dset, int isb, int scl,
@@ -4837,7 +4837,7 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "each row are separated by tab characters -- spaces are NOT separators.\n"    \
    "Each element is string, some of which are numeric (e.g. 3.1416).\n"          \
    "The first row of a .tsv file is a set of strings which are column\n"         \
-   "desciptors (separated by tabs, of course). For the most part, the\n"         \
+   "descriptors (separated by tabs, of course). For the most part, the\n"         \
    "following data in each column are exclusively numeric or exclusively\n"      \
    "strings. Strings can contain blanks/spaces since only tabs are used\n"       \
    "to separate values.\n"                                                       \
@@ -4923,7 +4923,8 @@ extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
-extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
+/* THD_load_nifti: void -> int [2 Sep 2022 rickr] */
+extern int     THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
@@ -5973,7 +5974,7 @@ typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
 typedef struct {
    /* tdval and tdlev stand for "Talairach Daemon" value and level */
    /* these are kept for historical purposes  */
-   /* perhaps one day making an unusally boring PBS special */
+   /* perhaps one day making an unusually boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
    char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */
    float xx,yy,zz;     /* xx,yy,zz - RAI position of region  - now in float */
@@ -6042,7 +6043,7 @@ extern float quantile_prepare( int n , float *a ) ;
 extern float THD_tictactoe_corr( int,float *,float *) ;  /* 19 Jul 2011 */
 
 extern float THD_pearson_corr_wt(int,float *,float *,float *); /* 13 Sep 2006 */
-
+extern double THD_pearson_corrd_wt( int n, double *x , double *y , float *wt );
 extern void THD_pearson_corr_boot( int n, float *x, float *y,
                             float_triple *rrr ,
                             float_triple *aaa ,

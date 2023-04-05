@@ -1384,7 +1384,7 @@ void AFNI_make_descendants( THD_sessionlist *ssl )
    return ;
 }
 
-/** In this routine, each occurence of vbase was originally VIEW_ORIGINAL_TYPE **/
+/** In this routine, each occurrence of vbase was originally VIEW_ORIGINAL_TYPE **/
 
 void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
 {
@@ -2829,7 +2829,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
    nov = 0;
    for( at_sbi=0; at_sbi < at_nsb; at_sbi++) { /* loop over bricks */
 
-      /* extract atlas slice from volumne #at_sbi */
+      /* extract atlas slice from volume #at_sbi */
       b1im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
                               atlas_ovdset);
       if( b1im == NULL ) continue ; /* this is bad */
@@ -5903,7 +5903,7 @@ ENTRY("AFNI_write_dataset_CB") ;
                  "**        Original View.                          **\n"
                  "**   -- It isn't allowed to overwrite data that   **\n"
                  "**        is not warped from some other dataset.  **\n"
-                 "**   -- An internal program error has occured!    **\n"
+                 "**   -- An internal program error has occurred!   **\n"
                  "****************************************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
@@ -7293,7 +7293,7 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char *inf ;
 STATUS("getting anat info") ;
-      inf = THD_dataset_info( im3d->anat_now , 0 ) ;
+      inf = THD_dataset_info( im3d->anat_now , 0 , 1 ) ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
@@ -7320,7 +7320,7 @@ STATUS("getting anat info") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char *inf ;
 STATUS("getting func info") ;
-      inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+      inf = THD_dataset_info( im3d->fim_now , 0 , 1 ) ;
 STATUS("got func info") ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){

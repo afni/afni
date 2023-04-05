@@ -111,7 +111,7 @@ typedef struct  /* user options */
     char          ** argv;          /* passed to the program            */
     int              argc;
     float            tr;            /* user input TR, overrides files   */
-    float            ep;            /* epsilon - defaut to IFM_EPSILON  */
+    float            ep;            /* epsilon - default to IFM_EPSILON */
     int              nt;            /* user input time points per run   */
     int              num_slices;    /* first volume must match          */
     int              max_images;    /* max allowed images per volume    */
@@ -202,7 +202,7 @@ typedef struct
     mosaic_info    minfo;                /* info describing mosaic structure */
     int            nim;                  /* number of images in this volume  */
     int            fl_1;                 /* first index into flist           */
-    int            fn_1, fn_n;           /* indicies into the fnames list    */
+    int            fn_1, fn_n;           /* indices into the fnames list     */
     char           first_file[IFM_MAX_FLEN]; /*file name of first slice image*/
     char           last_file [IFM_MAX_FLEN]; /*file name of last slice image */
     float          z_first;              /* z location of first slice image  */

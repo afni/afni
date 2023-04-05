@@ -59,7 +59,8 @@
 #define IFM_SORT_ZPOSN       6       /*    z-coordinate                */
 #define IFM_SORT_RIN         7       /*    geh.index = RIN             */
 #define IFM_SORT_GEME_RIN    8       /*    RIN/echo/geme_index         */
-#define IFM_SORT_NUM_METHODS 8       /*    should match top index      */
+#define IFM_SORT_GEME_XNAT   9       /*    RIN/geme_index              */
+#define IFM_SORT_NUM_METHODS 9       /*    should match top index      */
 
 /* -- define copies -- */
 
@@ -81,7 +82,7 @@ typedef struct  /* user options */
     char          ** argv;          /* passed to the program            */
     int              argc;
     float            tr;            /* user input TR, overrides files   */
-    float            ep;            /* epsilon - defaut to IFM_EPSILON  */
+    float            ep;            /* epsilon - default to IFM_EPSILON */
     int              nt;            /* user input time points per run   */
     int              num_slices;    /* first volume must match          */
     int              max_images;    /* max allowed images per volume    */
@@ -213,7 +214,7 @@ typedef struct
     int              nfim;          /* length of both finfo_t lists  */
     int              nfalloc;       /* number of elements allocated for */
     /* fim_update: -1 = wait, 0 = go, >0 = # first names to ignore      */
-    int              fim_update;    /* flag: any changes to propogate?  */
+    int              fim_update;    /* flag: any changes to propagate?  */
     int              fim_skip;      /* # 2 ignore, from -start_dir/file */
     /* fim_start: all prior images are done with processing             */
     int              fim_start;     /* starting index into fim_sind     */

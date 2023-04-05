@@ -12,6 +12,10 @@ tcsh @update.afni.binaries -package linux_ubuntu_16_64 -do_extras
 
 source ~/.cshrc
 
+# follows on from part 'a', where pip was installed; get better matplotlib
+echo "++ Use pip for more modern Matplotlib (following admin install)"
+echo "   --> this is needed to get ver>3.1.2, which has jpg error"
+pip install matplotlib
 
 echo "++ Download Bootcamp data, **if** it doesn't appear to exist already"
 

@@ -634,7 +634,7 @@ static char *helpstring =
    " * Pre-defined variables (if not set as described above) are\n"
    "     x = DICOM x coordinate (R=- L=+)\n"
    "     y = DICOM y coordinate (A=- P=+)\n"
-   "     z = DICOM z coordiante (I=- S=+)\n"
+   "     z = DICOM z coordinate (I=- S=+)\n"
    "     i = #1 3D index  j = #2 3D index  k = #3 3D index\n"
    "   You can use these variable names in the expression without defining them\n"
    "   in the variable choosers.  Other variables names used in the expression\n"

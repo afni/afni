@@ -169,7 +169,7 @@ typedef struct quadratic_program {
 } QP;
 
 typedef struct kernel_cache {
-  long   *index;  /* cache some kernel evalutations */
+  long   *index;  /* cache some kernel evaluations */
   CFLOAT *buffer; /* to improve speed */
   long   *invindex;
   long   *active2totdoc;

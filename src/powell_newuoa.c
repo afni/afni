@@ -915,7 +915,7 @@ L410:
 	xpt[knew + i__ * xpt_dim1] = xnew[i__];
     }
 
-/*    If a trust region step makes a small change to the objective functio
+/*    If a trust region step makes a small change to the objective function
 n,*/
 /*    then calculate the gradient of the least Frobenius norm interpolant
 at*/
@@ -1921,7 +1921,7 @@ L70:
 	wvec[ip + wvec_dim1 * 5] = zero;
     }
 
-/*     Put the coefficents of THETA*Wcheck in PROD. */
+/*     Put the coefficients of THETA*Wcheck in PROD. */
 
     for (jc = 1; jc <= 5; ++jc) {
 	nw = *npt;

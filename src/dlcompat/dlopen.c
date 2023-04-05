@@ -152,7 +152,7 @@ struct stat *stat_buf)
 		        element = p;  /* this terminates the loop */
 		    }
 
-		    /* add slash if neccessary */
+		    /* add slash if necessary */
 		    if(*(q-1) != '/' && q < pathbuf_end){
 		        *q++ = '/';
 		    }

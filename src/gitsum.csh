@@ -7,7 +7,7 @@
 ## co-conspirators. (It is the 'git blame' part that is the slowest.)
 ## Output files:
 ##  gitsum.out.txt    = author line counts (also cat-ed to stdout)
-##  gitsum.unkown.txt = lines that had unknown authors (for further research)
+##  gitsum.unknown.txt = lines that had unknown authors (for further research)
 ##  gitsum.list.txt   = files that were processed (in case you care)
 ##
 ## -- RWCox -- Sep 2019
@@ -130,7 +130,7 @@ foreach uuu ( $alist $blist1 $blist2 )
 end
 set gunk = ( $gunk -e scripts_install -e imnotamember -e CircleCI )
 
-# will acccumulate all unknown lines in to one file, for later research
+# will accumulate all unknown lines in to one file, for later research
 if( -f gitsum.unknown.txt ) \rm -f gitsum.unknown.txt
 touch gitsum.unknown.txt
 

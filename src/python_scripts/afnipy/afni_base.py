@@ -77,7 +77,7 @@ class afni_name(object):
          this is identically ppve(sel=1), but maybe without quotes
       """
       
-      # if no selectors, do not incude quotes    7 Apr 2015 [rickr]
+      # if no selectors, do not include quotes    7 Apr 2015 [rickr]
 
       # if no quotes, clear and reset internal selqute
       if not quotes:
@@ -272,30 +272,61 @@ class afni_name(object):
             return 1
          else: return 0
    
-   def locate(self, oexec=""):
-      """Attempt to locate the file and if found, update its info"""
+   def locate(self, oexec="", verb=0):
+      """attempt to locate the file
+
+         First search using the input path.  If not found, drop that path
+         and search using @FindAfniDsetPath.  If then found, update the
+         path using the new information.
+
+         return 1 if found (exist() or via @Find)
+         (previously, this returned 0 even if @Find succeeded)
+      """
+      # drop the path for comments and searching
+      dname = self.pv()
+
       if (self.exist()):
+         if verb: print("-- locate: dset %s exists" % dname)
          return 1
+
+      if verb: print("-- locate: dset %s does not exist" % dname)
+
+      # not found with input path, so drop path and search in abin, etc.
+      # (might be nicer with afni_util, but that would be new dep)
+      cmd = '@FindAfniDsetPath %s' % dname
+      com=shell_com(cmd, oexec, capture=1)
+      com.run()
+
+      # this fails on no output (thanks, Rasmus)
+      if len(com.so) > 0:
+          path = com.so[0]
       else:
-         #could it be in abin, etc.
-         cmd = '@FindAfniDsetPath %s' % self.pv()
-         com=shell_com(cmd,oexec, capture=1)
-         com.run()
+          path = ''
 
-         if com.status or not com.so or len(com.so[0]) < 2:
-           # call this a non-fatal error for now
-           if 0:
-              print('   status = %s' % com.status)
-              print('   stdout = %s' % com.so)
-              print('   stderr = %s' % com.se)
-           return 0
+      if com.status or not path or len(path) < 1:
+        # call this a non-fatal error for now
+        if verb: print("-- locate: @Find did not find dset %s" % dname)
+        if 0:
+           print('   status = %s' % com.status)
+           print('   stdout = %s' % com.so)
+           print('   stderr = %s' % com.se)
+        return 0
 
-         # self.path = com.so[0].decode()
-         self.path = com.so[0]
-         # nuke any newline character
-         newline = self.path.find('\n')
-         if newline > 1: self.path = self.path[0:newline]
-      return 0
+      # found, so update with new path to dataset
+
+      # remove any newline character
+      newline = path.find('\n')
+      if newline > 1: path = path[0:newline]
+
+      # require it to end in a '/'
+      if not path.endswith('/'): path += '/'
+
+      # and finally, assign
+      self.path = path
+
+      if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
+
+      return 1
       
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""

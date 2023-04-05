@@ -165,7 +165,7 @@ int main( int argc , char *argv[] )
 "               the number of voxels included in the calculation will\n"
 "               significantly speedup the calculation. Consider using\n"
 "               a mask to constrain the calculations to the grey matter\n"
-"               rather than the whole brain. This is also preferrable\n"
+"               rather than the whole brain. This is also preferable\n"
 "               to using -autoclip or -automask.\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p', this file will\n"

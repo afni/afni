@@ -62,7 +62,7 @@ def exec_or_error(cmd, error_msg="See above!!!", showerr=1, showcmd=1):
     """return text output from the given command
        if showcmd, print the cmd
        if showerr and there is a command error, show it
-       This will exit on status other than 0 so BE CAREFULL!!!
+       This will exit on status other than 0 so BE CAREFUL!!!
     """
 
     status, cmd_output, error_out = afni_base.simple_shell_exec(cmd,capture=1)

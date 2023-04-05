@@ -37,6 +37,10 @@ g_ss_uvar_fields = [ \
                        2],
    ['rm_trs',          'set number of TRs removed per run', 
                        2],
+   ['mb_level',        'multiband level and slice', 
+                       1],
+   ['slice_pattern',   'slice timing pattern', 
+                       'alt+z'],
    ['num_stim',        'set number of main stimulus classes', 
                        2],
    ['tcat_dset',       'set first tcat dataset',
@@ -118,7 +122,9 @@ g_ss_uvar_fields = [ \
    ['suma_specs',      'actual spec file names', 
                        ['std.141.FT_lh.spec']],
    ['surf_vol',        'surface volume dset', 
-                       'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
+                       'FT.surf_SurfVol_Alnd_Exp+orig.HEAD'],
+   ['vlines_tcat_dir', 'variance lines dir for tcat', 
+                       'vlines.pb00.tcat']
    ]
 
 

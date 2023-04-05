@@ -213,6 +213,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); 
          lop$maskData <- read.AFNI(lop$maskFN, 
                                    verb=lop$verb, meth=lop$iometh)$brk
+	 lop$maskData <- ifelse(abs(lop$maskData) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
    }else {
       lop$maskFN <- NULL;
    }
@@ -511,7 +512,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.1, June 11, 2021
+Version 1.1.2, Jan 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -568,8 +569,8 @@ Usage:
  Basically, 3dMEMA can run one-sample, two-sample, and all types of BETWEEN-SUBJECTS
  ANOVA and ANCOVA. Within-subject variables mostly cannot be modeled, but there are 
  a few exceptions. For instance, paired-test can be performed through feeding the 
- contrast of the two conditons as input. Multi-way ANOVA can be analyzed under the
- following two scnearios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
+ contrast of the two conditions as input. Multi-way ANOVA can be analyzed under the
+ following two scenarios: 1) all factors have only two levels (e.g., 2 X 2 repeated-
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
@@ -609,7 +610,7 @@ contrast from each subject in a group):
                -residual_Z     \n"      
    ex2 <- 
 "Example 2 --- Two-sample type (one regression coefficient or general linear
-contrast from each subject in two groups with the constrast being the 2nd group 
+contrast from each subject in two groups with the contrast being the 2nd group 
 subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
 between the two groups), outlier modeling, covariates centering, no payment no 
 interest till Memorial Day next year. Notice that option -groups has to be
@@ -938,7 +939,7 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
       lop$nNodes <- 1
       lop$nNonzero <- -1
       lop$nMaxzero <- -1
-      #The default for lop$KHtest was FLASE, but now is TRUE. GC Jun 22, 2011 
+      #The default for lop$KHtest was FALSE, but now is TRUE. GC Jun 22, 2011 
       #lop$KHtest <- FALSE
       lop$KHtest <- TRUE
       lop$maskFN <- NULL
@@ -1340,7 +1341,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
          warning("Failed to read mask", immediate.=TRUE);
          return(NULL);
       }
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if (verb) cat ("Done read ", lop$maskFN,'\n');
    }
    if(!is.null(lop$maskFN)) 
@@ -2130,7 +2132,7 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
 #################################################################################
 
 
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 tolU <- 1e8  # upper tolerance for those variances of 0
 #tTop <- 100   # upper bound for t-statistic
 
@@ -2524,7 +2526,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
    #browser()
    if(lop$anaType!=4) for(m in seq(2,(2+4*(lop$nGrp==2)+2*lop$nCov),2)) 
       #outArr[,,,m] <- tConvert(outArr[,,,m], grpDFList[[1]][,,,1], nDF) else {
-      #the line above is more effecient, but gives warning!
+      #the line above is more efficient, but gives warning!
       for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3])
          outArr[i,j,k,m] <- tConvert(outArr[i,j,k,m], grpDFList[[1]][i,j,k,1], nDF) else {    
       # no covariate is involved with type 4
@@ -2562,7 +2564,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
       statpar <- paste(statpar, " -substatpar 5 ", " fitt ", nDF)
       statsym <- c(statsym,list(list(sb=5, typ="fitt", par=nDF)))
    }
-   # doesn't apply to type 4 (invidual group t analyzed separately)
+   # doesn't apply to type 4 (individual group t analyzed separately)
    if(anyCov) {
       for(ii in 1:lop$nCov) {
          statpar <- paste( statpar, " -substatpar ", 

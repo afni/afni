@@ -469,7 +469,7 @@ void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map, int npan )
 
 ENTRY("PBAR_fill_bigmap") ;
 
-   /* bubble sort val,col pairs so largest is firstest */
+   /* bubble sort val,col pairs so largest is first */
 
    do{
     for( jj=ii=0 ; ii < neq-1 ; ii++ ){
@@ -1719,7 +1719,7 @@ STATUS("reset pval_save") ;
 }
 
 /*-------------------------------------------------------------------------
-  user want to programatically alter the pbar:
+  user want to programmatically alter the pbar:
     number of panes, and/or new array of values
 ---------------------------------------------------------------------------*/
 

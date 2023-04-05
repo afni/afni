@@ -208,6 +208,9 @@ static char g_version[] = "2.13";
 static char g_version_date[] = "February 27, 2022";
 static int  g_debug = 1;
 
+#include <string.h>
+#include <stdint.h>
+
 #define _NIFTI_TOOL_C_
 #include "nifti2_io.h"
 #include "nifti_tool.h"
@@ -226,11 +229,11 @@ static char * read_file_text(const char * filename, int * length);
         do{ int tval=(val); free_opts_mem(&opts); return tval; } while(0)
 
 /* these are effectively constant, and are built only for verification */
-field_s g_hdr1_fields[NT_HDR1_NUM_FIELDS];    /* nifti_1_header fields */
-field_s g_hdr2_fields[NT_HDR2_NUM_FIELDS];    /* nifti_2_header fields */
-field_s g_ana_fields [NT_ANA_NUM_FIELDS];     /* nifti_analyze75       */
-field_s g_nim1_fields[NT_NIM_NUM_FIELDS];     /* nifti_image fields    */
-field_s g_nim2_fields[NT_NIM_NUM_FIELDS];     /* nifti2_image fields   */
+static field_s g_hdr1_fields[NT_HDR1_NUM_FIELDS];    /* nifti_1_header fields */
+static field_s g_hdr2_fields[NT_HDR2_NUM_FIELDS];    /* nifti_2_header fields */
+static field_s g_ana_fields [NT_ANA_NUM_FIELDS];     /* nifti_analyze75       */
+static field_s g_nim1_fields[NT_NIM_NUM_FIELDS];     /* nifti_image fields    */
+static field_s g_nim2_fields[NT_NIM_NUM_FIELDS];     /* nifti2_image fields   */
 
 /* slice timing hdr and nim fields */
 static const char * g_hdr_timing_fnames[NT_HDR_TIME_NFIELDS] = {
@@ -843,13 +846,17 @@ int verify_opts( nt_opts * opts, char * prog )
 int fill_cmd_string( nt_opts * opts, int argc, char * argv[])
 {
    char * cp;
-   int    len, remain = NT_CMD_LEN;  /* NT_CMD_LEN is max command len */
+   int    len, remain = sizeof(opts->command);  /* max command len */
    int    c, ac;
    int    has_space;  /* arguments containing space must be quoted */
    int    skip = 0;   /* counter to skip some of the arguments     */
 
    /* get the first argument separately */
-   len = sprintf( opts->command, "\n  command: %s", argv[0] );
+   len = snprintf( opts->command, sizeof(opts->command), "\n  command: %s", argv[0] );
+   if( len < 0 || len >= (int)sizeof(opts->command) ) {
+      fprintf(stderr,"FCS: no space remaining for command, continuing...\n");
+      return 1;
+   }
    cp = opts->command + len;
    remain -= len;
 
@@ -869,8 +876,8 @@ int fill_cmd_string( nt_opts * opts, int argc, char * argv[])
       has_space = 0;
       for( c = 0; c < len-1; c++ )
          if( isspace(argv[ac][c]) ){ has_space = 1; break; }
-      if( has_space ) len = sprintf(cp, " '%s'", argv[ac]);
-      else            len = sprintf(cp, " %s",   argv[ac]);
+      if( has_space ) len = snprintf(cp, remain, " '%s'", argv[ac]);
+      else            len = snprintf(cp, remain, " %s",   argv[ac]);
 
       remain -= len;
 
@@ -1019,7 +1026,7 @@ int usage(char * prog, int level)
 /*----------------------------------------------------------------------
  * full usage
  *----------------------------------------------------------------------*/
-int use_full()
+int use_full(void)
 {
    printf(
    "nifti_tool - display, modify or compare nifti headers\n"
@@ -2932,7 +2939,7 @@ int act_disp_exts( nt_opts * opts )
                  nim->fname, nim->num_ext);
       for( ec = 0; ec < nim->num_ext; ec++ )
       {
-         sprintf(mesg, "    ext #%d : ", ec);
+         snprintf(mesg, sizeof(mesg), "    ext #%d : ", ec);
          if( g_debug > 0 ) mptr = mesg;
          else              mptr = NULL;
 
@@ -6728,30 +6735,55 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
                printf("%d", *(char *)dp);
                break;
          case DT_INT16:
-               printf("%d", *(short *)dp);
+         {
+               short temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%d", temp);
                break;
+         }
          case DT_INT32:
-               printf("%d", *(int *)dp);
+         {
+               int temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%d", temp);
                break;
+         }
          case DT_INT64:
-               printf("%"PRId64, *(int64_t *)dp);
+         {
+               int64_t temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%"PRId64, temp);
                break;
+         }
          case DT_UINT8:
-               printf("%u", *(unsigned char *)dp);
+         {
+               unsigned char temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%u", temp);
                break;
+         }
          case DT_UINT16:
-               printf("%u", *(unsigned short *)dp);
+         {
+               unsigned short temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%u", temp);
                break;
+         }
          case DT_UINT32:
-               printf("%u", *(unsigned int *)dp);
+         {
+               unsigned int temp;
+               memcpy(&temp, dp, sizeof(temp));
+               printf("%u", temp);
                break;
+         }
          case DT_FLOAT32:
          {
-               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%f",
-                                *(float *)dp);
+               float temp;
+               memcpy(&temp, dp, sizeof(temp));
+               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%f", temp);
                /* if it is a large number for some reason, print as is */
                if( nchar >= NT_LOC_MAX_FLOAT_BUF ) {
-                  printf("%f", *(float *)dp);
+                  printf("%f", temp);
                } else {
                   clear_float_zeros(fbuf);
                   printf("%s", fbuf);
@@ -6760,11 +6792,12 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
          }
          case DT_FLOAT64:
          {
-               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%lf",
-                                *(double *)dp);
+               double temp;
+               memcpy(&temp, dp, sizeof(temp));
+               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%lf", temp);
                /* if it is a large number for some reason, print as is */
                if( nchar >= NT_LOC_MAX_FLOAT_BUF ) {
-                  printf("%lf", *(double *)dp);
+                  printf("%lf", temp);
                } else {
                   clear_float_zeros(fbuf);
                   printf("%s", fbuf);
@@ -6877,9 +6910,9 @@ int nt_run_misc_nim_tests(nifti_image * nim)
    if( g_debug )
       printf("------------------------------------------------------------\n"
              "testing : %s\n\n", nim->fname);
-   sprintf(mesg, "= qform_code = %d\n", nim->qform_code);
+   snprintf(mesg, sizeof(mesg), "= qform_code = %d\n", nim->qform_code);
    nifti_disp_matrix_orient(mesg, nim->qto_xyz);
-   sprintf(mesg, "= sform_code = %d\n", nim->sform_code);
+   snprintf(mesg, sizeof(mesg), "= sform_code = %d\n", nim->sform_code);
    nifti_disp_matrix_orient(mesg, nim->sto_xyz);
 
    /* actually display the sform */
@@ -7288,7 +7321,7 @@ nifti_image * nt_image_read( nt_opts * opts, const char * fname, int read_data,
 
     if( !opts || !fname  ) {
         fprintf(stderr,"** nt_image_read: bad params (%p,%p)\n",
-                (void *)opts, (void *)fname);
+                (void *)opts, (const void *)fname);
         return NULL;
     }
 

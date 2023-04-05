@@ -162,6 +162,11 @@ examples (very basic for now): ~1~
          1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols ALL \\
                     -show_regs_style encoded
 
+       g. Display X-matrix column index list for all-zero regressors.
+          Display regressor labels or in encoded column index format.
+
+         1d_tool.py -infile X.xmat.1D -show_xmat_stype_cols AM IM
+
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
        This option does not include warnings from baseline regressors,
@@ -462,11 +467,14 @@ examples (very basic for now): ~1~
 
        b. show rank order of slice times piped directly from 3dinfo
 
-         3dinfo -slice_timing epi+orig | 1d_tool.py -infile - -rank -write -
+          Note: input should be space separated, not '|' separated.
+
+         3dinfo -slice_timing -sb_delim ' ' epi+orig \\
+                | 1d_tool.py -infile - -rank -write -
 
        c. show rank order using 'competition' rank, instead of default 'dense'
 
-         3dinfo -slice_timing epi+orig \\
+         3dinfo -slice_timing -sb_delim ' ' epi+orig \\
                 | 1d_tool.py -infile - -rank_style competition -write -
 
    Example 22. Guess volreg base index from motion parameters. ~2~
@@ -593,6 +601,22 @@ examples (very basic for now): ~1~
 
             1d_tool.py -show_regs set -infile zerocols.X.xmat.1D \\
                        -select_groups POS -verb 0
+
+   Example 31. Determine slice timing pattern for EPI data ~2~
+
+       Determine the slice timing pattern from a list of slice times.
+       The output is :
+            - multiband level (usually 1) 
+            - tpattern, one from those in 'to3d -help'
+
+       a. where slice times are in a file
+
+          1d_tool.py -show_slice_timing_pattern -infile slice_times.1D
+
+       b. or as a filter
+
+         3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
+                | 1d_tool.py -show_slice_timing_pattern -infile -
 
 ---------------------------------------------------------------------------
 command-line options: ~1~
@@ -992,8 +1016,9 @@ general options: ~2~
    -show_gcor_doc               : display descriptions of those ways
    -show_group_labels           : display group and label, per column
    -show_indices_baseline       : display column indices for baseline
-   -show_indices_motion         : display column indices for motion regressors
    -show_indices_interest       : display column indices for regs of interest
+   -show_indices_motion         : display column indices for motion regressors
+   -show_indices_zero           : display column indices for all-zero columns
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
    -show_max_displace           : display max displacement (from motion params)
@@ -1030,6 +1055,13 @@ general options: ~2~
         (label, encoded, comma, space) and -verb (0, 1 or 2).
 
    -show_rows_cols              : display the number of rows and columns
+
+   -show_slice_timing_pattern   : display the to3d tpattern for the data
+
+        The output will be 2 values, the multiband level (the number of
+        sets of unique slice times) and the tpattern for those slice times.
+        The tpattern will be one of those from 'to3d -help', such as alt+z.
+
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
                                      trs        : TR counts
@@ -1304,9 +1336,11 @@ g_history = """
    2.12 Oct 28, 2021 - remove 2-run polort 0 cormat IDENTICAL warnings
    2.13 Dec 19, 2021 - added -show_distmat
    2.14 Jan 27, 2022 - added -write_sep, -write_style
+   2.15 Aug  9, 2022 - minor update for get_max_displacement (no effect)
+   2.16 Feb  4, 2023 - added -show_slice_timing_pattern
 """
 
-g_version = "1d_tool.py version 2.14, January 27, 2022"
+g_version = "1d_tool.py version 2.16, February 4, 2023"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1374,7 +1408,7 @@ class A1DInterface:
       self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_distmat    = 0          # show distmat
-      self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
+      self.show_df_info    = 0          # show xmat degrees of freedom info
       self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
       self.show_group_labels = 0        # show the groups and labels
@@ -1387,6 +1421,7 @@ class A1DInterface:
       self.show_rows_cols  = 0          # show the number of rows and columns
       self.show_regs       = ''         # see g_show_regs_list
       self.show_regs_style = 'label'    # see g_show_regs_style_list
+      self.show_tpattern   = 0          # show the slice timing pattern
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
       self.show_trs_censored = ''       # style variable can be in:
@@ -1674,6 +1709,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_indices_motion', 0, [], 
                       helpstr='display index list for motion regressors')
 
+      self.valid_opts.add_opt('-show_indices_allzero', 0, [], 
+                      helpstr='display index list for all-zero regressors')
+
       self.valid_opts.add_opt('-show_label_ordering', 0, [], 
                       helpstr='show whether labels are in slice-major order')
 
@@ -1699,6 +1737,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
+
+      self.valid_opts.add_opt('-show_slice_timing_pattern', 0, [], 
+                      helpstr='display nbands and the to3d-style tpattern')
 
       self.valid_opts.add_opt('-show_tr_run_counts', 1, [], 
                    acplist=['trs', 'trs_cen', 'trs_no_cen', 'frac_cen'],
@@ -2153,6 +2194,9 @@ class A1DInterface:
          elif opt.name == '-show_indices_interest':
             self.show_indices |= 4
 
+         elif opt.name == '-show_indices_allzero':
+            self.show_indices |= 8
+
          elif opt.name == '-show_label_ordering':
             self.show_label_ord = 1
 
@@ -2167,6 +2211,9 @@ class A1DInterface:
 
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
+
+         elif opt.name == '-show_slice_timing_pattern':
+            self.show_tpattern = 1
 
          elif opt.name == '-show_num_runs':
             self.show_num_runs = 1
@@ -2495,6 +2542,8 @@ class A1DInterface:
       if self.show_regs != '': self.show_regressors(show=self.show_regs)
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
+
+      if self.show_tpattern: self.adata.show_tpattern(verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
 

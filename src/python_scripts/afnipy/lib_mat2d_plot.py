@@ -72,7 +72,7 @@ from   afnipy import lib_mat2d_base as lm2b
 
 #cbar_link = 'https://scipy.github.io/old-wiki/pages'
 #cbar_link+= '/Cookbook/Matplotlib/Show_colormaps'
-cbar_link = 'https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html'
+cbar_link = 'https://matplotlib.org/stable/tutorials/colors/colormaps.html'
 
 # ---------------------------------------------------------------------------
 

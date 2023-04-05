@@ -758,7 +758,7 @@ char * without_afni_filename_extension( char * fname )
 
     if (strlen(fname) >= THD_MAX_NAME) {
       WARNING_message("Filename too long for without_afni_filename_extension()"
-                      "Returing fname");
+                      "Returning fname");
       RETURN(fname);
     }
     num_ext = sizeof(file_extension_list)/sizeof(char *);
@@ -844,7 +844,7 @@ ENTRY("modify_afni_prefix");
       flen = strlen(fname);
       if (flen+strlen(pref) >= THD_MAX_NAME) {
          WARNING_message("Filename too long for modify_afni_prefix()"
-                         "Returing fname");
+                         "Returning fname");
          RETURN(fname);
       }
 
@@ -868,7 +868,7 @@ ENTRY("modify_afni_prefix");
       flen = strlen(fname);
       if (flen+strlen(suf) >= THD_MAX_NAME) {
          WARNING_message("Filename too long for modify_afni_prefix()"
-                         "Returing fname");
+                         "Returning fname");
          RETURN(fname);
       }
 

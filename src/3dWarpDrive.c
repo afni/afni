@@ -494,7 +494,7 @@ int main( int argc , char * argv[] )
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
             "----------------------\n"
-            "The options below control how the affine tranformations\n"
+            "The options below control how the affine transformations\n"
             "(-shift_rotate, -shift_rotate_scale, -affine_general)\n"
             "are structured in terms of 3x3 matrices:\n"
             "\n"
@@ -593,7 +593,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-summ") == 0 ){    /* 28 Sep 2005 */
        if( ++nopt >= argc )
-         ERROR_exit("Need 1 parameter afer -summ!\n");
+         ERROR_exit("Need 1 parameter after -summ!\n");
        W_summfile = strdup( argv[nopt] ) ;
        if( !THD_filename_ok(W_summfile) )
          ERROR_exit("Name after -summ has bad characters!\n") ;
@@ -617,7 +617,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-1Dmatrix_save") == 0 ){
        if( ++nopt >= argc )
-         ERROR_exit("Need 1 parameter afer -1Dmatrix_save!\n");
+         ERROR_exit("Need 1 parameter after -1Dmatrix_save!\n");
        if( !THD_filename_ok(argv[nopt]) )
          ERROR_exit("badly formed filename: %s '%s'",argv[nopt-1],argv[nopt]) ;
        if( STRING_HAS_SUFFIX(argv[nopt],".1D") ){
@@ -633,7 +633,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-1Dfile") == 0 ){
        if( ++nopt >= argc )
-         ERROR_exit("Need 1 parameter afer -1Dfile!\n");
+         ERROR_exit("Need 1 parameter after -1Dfile!\n");
        W_1Dfile = strdup( argv[nopt] ) ;
        if( !THD_filename_ok(W_1Dfile) )
          ERROR_exit("Name after -1Dfile has bad characters!\n") ;
@@ -687,7 +687,7 @@ int main( int argc , char * argv[] )
        char *str ;
 
        if( ++nopt >= argc )
-         ERROR_exit("Need 1 parameter afer -final!\n") ;
+         ERROR_exit("Need 1 parameter after -final!\n") ;
        str = argv[nopt] ; if( *str == '-' ) str++ ;
 
             if( strcmp(str,"cubic")   == 0 ) abas.regfinal = MRI_CUBIC ;
@@ -704,7 +704,7 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-parfix") == 0 ){
        int np , ip ; float vp ;
        if( ++nopt >= argc-1 )
-         ERROR_exit("Need 2 parameters afer -parfix!\n");
+         ERROR_exit("Need 2 parameters after -parfix!\n");
        np = strtol( argv[nopt] , NULL , 10 ) ; nopt++ ;
        vp = strtod( argv[nopt] , NULL ) ;
        if( np <= 0 || np > MAXPAR )

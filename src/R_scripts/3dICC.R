@@ -10,7 +10,7 @@ source(first.in.path('AFNIio.R'))
 ExecName <- '3dICC'
 
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dICC Input functions ################################
@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.10, Dec 19, 2021
+Version 0.1.12, Jan 19, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -56,7 +56,7 @@ Usage:
  estimates plus their t-statistic values which are used for weighting based
  on the precision contained in the t-statistic.
  
- In addition to R installtion, the following R packages need to be installed
+ In addition to R installation, the following R packages need to be installed
  in R first before running 3dICC: "lme4", "blme" and "metafor". In addition,
  the "snow" package is also needed if one wants to take advantage of parallel
  computing. To install these packages, run the following command at the terminal:
@@ -100,15 +100,9 @@ Usage:
           -dataTable                                              \\
           Subj      session        InputFile                      \\
           s1         one    s1_1+tlrc\'[pos#0_Coef]\'               \\
-          s1         one    s1_1+tlrc\'[neg#0_Coef]\'               \\
-          s1         one    s1_1+tlrc\'[neu#0_Coef]\'               \\
           s1         two    s1_2+tlrc\'[pos#0_Coef]\'               \\
-          s1         two    s1_2+tlrc\'[neg#0_Coef]\'               \\
-          s1         two    s1_2+tlrc\'[neu#0_Coef]\'               \\
           ... 
           s21        two   s21_2+tlrc\'[pos#0_Coef]\'               \\
-          s21        two   s21_2+tlrc\'[neg#0_Coef]\'               \\
-          s21        two   s21_2+tlrc\'[neu#0_Coef]\'               \\
           ...                                   
    \n"
 
@@ -126,15 +120,9 @@ Usage:
           -dataTable                                              \\
           Subj      session        InputFile                      \\
           s1         one    s1_1+tlrc\'[pos#0_Coef]\'               \\
-          s1         one    s1_1+tlrc\'[neg#0_Coef]\'               \\
-          s1         one    s1_1+tlrc\'[neu#0_Coef]\'               \\
           s1         two    s1_2+tlrc\'[pos#0_Coef]\'               \\
-          s1         two    s1_2+tlrc\'[neg#0_Coef]\'               \\
-          s1         two    s1_2+tlrc\'[neu#0_Coef]\'               \\
           ... 
           s21        two   s21_2+tlrc\'[pos#0_Coef]\'               \\
-          s21        two   s21_2+tlrc\'[neg#0_Coef]\'               \\
-          s21        two   s21_2+tlrc\'[neu#0_Coef]\'               \\
          ...
      \n"
 
@@ -153,15 +141,9 @@ Usage:
           -dataTable                                                 \\
        subject age session       tFile                    InputFile                          \\
           s1    21   one   s1_1+tlrc\'[pos#0_tstat]\'    s1_1+tlrc\'[pos#0_Coef]\'               \\
-          s1    21   one   s1_1+tlrc\'[neg#0_tstat]\'    s1_1+tlrc\'[neg#0_Coef]\'               \\
-          s1    21   one   s1_1+tlrc\'[neu#0_tstat]\'    s1_1+tlrc\'[neu#0_Coef]\'               \\
           s1    21   two   s1_2+tlrc\'[pos#0_tstat]\'    s1_2+tlrc\'[pos#0_Coef]\'               \\
-          s1    21   two   s1_2+tlrc\'[neg#0_tstat]\'    s1_2+tlrc\'[neg#0_Coef]\'               \\
-          s1    21   two   s1_2+tlrc\'[neu#0_tstat]\'    s1_2+tlrc\'[neu#0_Coef]\'               \\
           ... 		                               
           s21   28   two   s21_2+tlrc\'[pos#0_tstat]\'   s21_2+tlrc\'[pos#0_Coef]\'              \\
-          s21   28   two   s21_2+tlrc\'[neg#0_tstat]\'   s21_2+tlrc\'[neg#0_Coef]\'              \\
-          s21   28   two   s21_2+tlrc\'[neu#0_tstat]\'   s21_2+tlrc\'[neu#0_Coef]\'              \\
          ...
      \n"
 
@@ -181,15 +163,9 @@ Usage:
           -dataTable                                              \\
        subject age session        inputfile                       \\
           s1    21   one    s1_1+tlrc\'[pos#0_Coef]\'               \\
-          s1    21   one    s1_1+tlrc\'[neg#0_Coef]\'               \\
-          s1    21   one    s1_1+tlrc\'[neu#0_Coef]\'               \\
           s1    21   two    s1_2+tlrc\'[pos#0_Coef]\'               \\
-          s1    21   two    s1_2+tlrc\'[neg#0_Coef]\'               \\
-          s1    21   two    s1_2+tlrc\'[neu#0_Coef]\'               \\
           ... 	
           s21   28   two   s21_2+tlrc\'[pos#0_Coef]\'               \\
-          s21   28   two   s21_2+tlrc\'[neg#0_Coef]\'               \\
-          s21   28   two   s21_2+tlrc\'[neu#0_Coef]\'               \\
          ...
      \n"
 
@@ -273,9 +249,9 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
    "         Suppose that each subject ('subj') has two sessions ('ses'), a model",
    "         ICC(2,1) without any covariate is \"1+(1|ses)+(1|subj)\" while one",
    "         for ICC(3,1) is \"1+ses+(1|subj)\". Each random-effects factor is",
-   "         specified within paratheses per formula convention in R. Any",
+   "         specified within parentheses per formula convention in R. Any",
    "         confounding effects (quantitative or categorical variables) can be",
-   "         added as fixed effects without paratheses.\n", sep = '\n'
+   "         added as fixed effects without parentheses.\n", sep = '\n'
              ) ),
 
        '-dbgArgs' = apl(n=0, h = paste(
@@ -539,7 +515,8 @@ process.ICC.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!")
    }

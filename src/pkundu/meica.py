@@ -14,10 +14,10 @@ welcome_block="""
 # meica.py version 2.5 (c) 2014 Prantik Kundu
 # PROCEDURE 1 : Preprocess multi-echo datasets and apply multi-echo ICA based on spatial concatenation
 # -Check arguments, input filenames, and filesystem for dependencies
-# -Calculation of motion parameters based on images with highest constrast
+# -Calculation of motion parameters based on images with highest contrast
 # -Application of motion correction and coregistration parameters
 # -Misc. EPI preprocessing (temporal alignment, smoothing, etc) in appropriate order
-# -Compute PCA and ICA in conjuction with TE-dependence analysis
+# -Compute PCA and ICA in conjunction with TE-dependence analysis
 """ % (__version__)
 
 import sys
@@ -226,7 +226,7 @@ if '[' in options.dsinputs:
 	isf= dssuffix(options.dsinputs)
 	setname=prefix+''.join(datasets)+trailing+options.label
 else:
-	#Parse longhand input file specificiation
+	#Parse longhand input file specification
 	shorthand_dsin = False
 	datasets_in = options.dsinputs.split(',')
 	datasets = [str(vv+1) for vv in range(len(tes))]
@@ -334,7 +334,7 @@ if options.anat=='' and options.mask_mode!='func':
 if " -affter aaa  = *** THIS OPTION IS NO LONGER AVAILABLE" in commands.getstatusoutput("3dNwarpApply -help")[1]: old_qwarp = False
 else: old_warp = True
 
-#Detect AFNI direcotry
+#Detect AFNI directory
 afnidir = os.path.dirname(os.popen('which 3dSkullStrip').readlines()[0])
 
 #Prepare script and enter MEICA directory

@@ -211,7 +211,7 @@ if (~isempty(which('se_note'))),
       car = char(ca);
       sdecl = sprintf('char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
       sdecl2 = sprintf('char CA_EZ_VERSION_STR[%d]',length(vers)+3);
-      %do someting nice
+      %do something nice
       rname  = sprintf('%s/%s', toolbox_dir, rname);
       fida = fopen(rname,'w');
       fprintf(fida, '%s = {\n',sdecl);

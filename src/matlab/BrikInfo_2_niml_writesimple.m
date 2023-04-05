@@ -8,7 +8,7 @@ function S=BrikInfo_2_niml_writesimple(Info, S)
 %
 %Input Parameters:
 %  Info: Brick header structure like one output by BrikInfo
-%  S: If specifed add fields to this struct
+%  S: If specified add fields to this struct
 %
 %Output:
 %  S: Struct to be used in afni_niml_writesimple

@@ -49,12 +49,12 @@ endif
          -overwrite  \
          -prefix ${in}.range
          
-set avg_discreet_vals = `3dBrickStat -non-zero -mean ${in}.range+orig`
+set avg_discrete_vals = `3dBrickStat -non-zero -mean ${in}.range+orig`
 set avg_minchange_vals = `3dBrickStat -non-zero -mean ${in}.minpercchange+orig`
 
 echo ""
 echo "***************************************************************"
-echo "Average within brain voxel range: ${avg_discreet_vals} values"
+echo "Average within brain voxel range: ${avg_discrete_vals} values"
 echo "Average within brain minimum perc change step: ${avg_minchange_vals} %" 
 echo "***************************************************************"
 
@@ -73,7 +73,7 @@ echo "- A dataset whose prefix ends with minpercchange"
 echo "  wich shows the percent signal change that an increment of 1 digitized"
 echo "  value in the time series corresponds to."
 echo "- A dataset whose prefix ends with .range"
-echo "  which shows the number of discreet levels used to "
+echo "  which shows the number of discrete levels used to "
 echo "  represent the time series."
 echo ""
 echo "The scripts output the average range and the average %change corresponding"

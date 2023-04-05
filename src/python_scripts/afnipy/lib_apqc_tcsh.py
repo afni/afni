@@ -210,9 +210,31 @@ auth = 'PA Taylor'
 # [PT] ve2a: better %ile range for ulay: should have have better contrast
 # + ve2a: also introduce scaling/values for local-unifized EPI as ulay
 #
-ver = '4.01' ; date = 'June 6, 2022'
+#ver = '4.01' ; date = 'June 6, 2022'
 # [PT] ve2a: new scaling for ulay, extra control of grayscale with
 #   ulay_min_fac
+#
+#ver = '4.02' ; date = 'July 27, 2022'
+# [PT] mecho: cp -> rsync, because of annoying Mac difference in cp
+#
+#ver = '4.03' ; date = 'Aug 18, 2022'
+# [PT] add warns: 3dDeconvolve *.err text file
+#
+#ver = '4.04' ; date = 'Aug 18, 2022'
+# [PT] add mask_dset images: overlays final dset, whether in 
+#      va2t, ve2a or vorig QC block
+#
+#ver = '4.05' ; date = 'Aug 18, 2022'
+# [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
+#      ---> but just as quickly have removed it; might distract from the
+#           important sulcal/gyral overlap
+#
+#ver = '4.06' ; date = 'Aug 31, 2022'
+# [PT] make a JSON version of ss_rev_basic TXT file in QC*/extra_info
+#      -> will use this for 'saving' mode of APQC HTML interaction
+#
+ver = '4.1' ; date = 'Nov 15, 2022'
+# [PT] many new parts for var_lines (AKA vlines) and tcat QC
 #
 #########################################################################
 
@@ -239,6 +261,9 @@ dir_info   = 'extra_info'            # for gen_ss- and AP-JSONs, and more
 
 page_title_json = '__page_title'
 
+# used in one of the warnings checks
+fname_vlines_img = 'QC_var_lines.jpg'
+fname_vlines_txt = 'QC_var_lines.txt'
 
 # ----------------------------------------------------------------------
 
@@ -472,7 +497,7 @@ def padassign(x, L):
     '''Move an assignment operator '=' rightward to a new index L, if it
 exists to the left; if it exists to the right of that spot, or if it
 doesn't appear in that string, just return the original string.  If
-multiple occurences of '=' occur in a string, just return original.
+multiple occurrences of '=' occur in a string, just return original.
 
     '''
     
@@ -480,7 +505,7 @@ multiple occurences of '=' occur in a string, just return original.
     if not('=' in x):
         return x
 
-    # check if multiple occurences
+    # check if multiple occurrences
     if x.count('=') > 1:
         return x
 
@@ -1523,10 +1548,13 @@ def apqc_mecho_mtedana( obase, qcb, qci, comb_meth ):
     echo "++ Copy tedana QC figure dirs to: ${odir_mtedana}"
     '''
 
+    # [PT: July 27, 2022] Switch to using 'rsync -R ...' here, instead
+    # of 'cp --parents ...', because '--parents' doesn't exist on Mac
+    # version of cp.
     cmd1 = '''
     \\mkdir -p ${odir_mtedana}
-    \\cp -rp --parents tedana_r*/figures ${odir_mtedana}/.
-    \\cp -rp --parents tedana_r*/tedana*.html ${odir_mtedana}/.
+    \\rsync -avR tedana_r*/figures ${odir_mtedana}/
+    \\rsync -avR tedana_r*/tedana*.html ${odir_mtedana}/
     '''
 
     cmd2 = '''
@@ -2048,7 +2076,8 @@ def apqc_vorig_olap( obase, qcb, qci ):
 
 # ['final_anat', 'final_epi_dset'],
 # ['final_anat', 'final_epi_unif_dset']
-def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
+def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox, dice_file ):
+    
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -2125,6 +2154,15 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     -prefix ${ojson}
     '''
 
+    ### [PT: Aug 18, 2022] ignore this for now---the patterns are more
+    ### important
+    # Dice coef info
+    #if dice_file :
+    #    dice = lah.read_dat(dice_file)
+    #else:
+    #    dice = 'unknown'
+    #osubtext2 = "Dice coefficient (EPI-anatomical masks): {}".format(dice)
+
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2160,7 +2198,7 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 # ----------------------------------------------------------------------
 
 # ['final_anat', 'template']
-def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
+def apqc_va2t_anat2temp( obase, qcb, qci, focusbox, dice_file ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
@@ -2208,6 +2246,15 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     -prefix ${ojson}
     '''
 
+    ### [PT: Aug 18, 2022] ignore this for now---the patterns are more
+    ### important
+    ## Dice coef info
+    #if dice_file :
+    #    dice = lah.read_dat(dice_file)
+    #else:
+    #    dice = 'unknown'
+    #osubtext2 = "Dice coefficient (anatomical-template masks): {}".format(dice)
+
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -2216,7 +2263,7 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid_hov :: {}
     title       :: {}
     EOF
-    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1])
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -2253,7 +2300,116 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
 
 #-------------------------------------------------------------------------
 
-# complicated/tiered depedencies...
+# ['mask_dset', 'template']
+def apqc_gen_mask2final( obase, qcb, qci, ulay, focusbox ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''See how the EPI mask dset overlays the template'''
+
+    pre = '''
+    set opref = {}
+    set focus_box = {}
+    set ulay_dset = {}
+    set ulay_name = `3dinfo -prefix ${{main_dset}}`
+    set olay_name = `3dinfo -prefix ${{mask_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    '''.format( opref, focusbox, ulay )
+
+    if qcb == 'va2t' :
+        ulay_desc = 'template dset'
+    elif qcb == 've2a' :
+        ulay_desc = 'final anatomical dset'
+    elif qcb == 'vorig' :
+        ulay_desc = 'volreg base dset'
+    else:
+        ulay_desc = '-'
+
+    ttext = '''"ulay: ${{ulay_name}} ({})" ,, '''.format(ulay_desc)
+    ttext+= '''"olay: ${olay_name} (final EPI mask coverage)"'''
+
+    cmd = '''
+    @chauffeur_afni    
+    -ulay  ${{ulay_dset}}
+    -box_focus_slices ${{focus_box}}
+    -olay  ${{mask_dset}}  
+    -cbar {cbar}
+    -ulay_range 0% 120%  
+    -func_range 1
+    -olay_alpha No
+    -olay_boxed No
+    -set_subbricks 0 0 0
+    -opacity 4  
+    -prefix        "${{odir_img}}/${{opref}}"
+    -save_ftype JPEG
+    -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 4  
+    -no_cor
+    -do_clean
+    '''.format( cbar='Reds_and_Blues_Inv' )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+                ttext )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
+# complicated/tiered dependencies...
 def apqc_regr_corr_errts( obase, qcb, qci, 
                           ulay, focusbox, corr_brain ):
 
@@ -2390,7 +2546,7 @@ def apqc_regr_corr_errts( obase, qcb, qci,
 
 #-------------------------------------------------------------------------
 
-# complicated/tiered depedencies...
+# complicated/tiered dependencies...
 def apqc_vstat_seedcorr( obase, qcb, qci, 
                          ulay, focusbox,     # bc some flexibility in usage
                          seed, count=0,
@@ -3609,6 +3765,74 @@ def apqc_warns_xmat( obase, qcb, qci,
 
 # ----------------------------------------------------------------------
 
+# Text warning, 3dDeconvolve issues
+# ['decon_err_dset']
+def apqc_warns_decon( obase, qcb, qci,
+                      fname = '' ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''review: check for 3dDeconvolve warnings'''
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname :  
+        txt = lah.read_dat(fname)
+        if txt.strip() == '' :
+            warn_level = "none"
+        ### could add more conditions here, as the need arises
+        #elif txt.__contains__("WARNING:") :
+        #    warn_level = "medium"
+
+    pre = '''
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    cmd = '''
+    if ( -f ${decon_err_dset} && ! -z ${decon_err_dset} ) then
+    ~~~~cat ${decon_err_dset} > ${odir_img}/${opref}.dat
+    else
+    ~~~~printf ""  > ${odir_img}/${opref}.dat
+    endif
+    '''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "3dDeconvolve warnings"
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+# ----------------------------------------------------------------------
+
 # Text warning, goes to dir_img output
 # ['pre_ss_warn_dset']
 def apqc_warns_press( obase, qcb, qci,
@@ -3917,13 +4141,6 @@ those might have been flipped.'''
     -no_cor
     -prefix            ${odir_img}/${opref_o}
     '''
-#    cmd0 = '''
-#    @djunct_edgy_align_check
-#    -ulay    ${fdset_0_orig}
-#    -box_focus_slices ${focus_box}
-#    -olay    ${olay_flip}
-#    -prefix  ${odir_img}/${opref_o}
-#    '''
 
     # ... followed by "flipped" one
     # [PT: May 26, 2020] update the way this is now, for cleaner views
@@ -3941,13 +4158,6 @@ those might have been flipped.'''
     -no_cor
     -prefix            ${odir_img}/${opref_f}
     '''
-#    cmd1 = '''
-#    @djunct_edgy_align_check
-#    -ulay    ${fdset_1_flipped}
-#    -box_focus_slices ${focus_box}
-#    -olay    ${olay_flip}
-#    -prefix  ${odir_img}/${opref_f}
-#    '''
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -4016,6 +4226,353 @@ those might have been flipped.'''
             pre, jsontxt_warn, jsontxt_warn_cmd,
             cmd0, cmd1, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
+
+# -------------------------------------------------------------------
+
+def vlines_read_in_coords(fname):
+    '''Read in a file 'fname' of coords, and return a list of strings (one
+    per row).  Also return the number of columns.  The fname file
+    might be empty.
+
+    Parameters
+    ----------
+    fname  : str
+             filename to read in
+
+    Return
+    ------
+    list_rows : list (of str)
+             list form of fname, each row being 1 string that has no 
+             whitespace at the right.
+    '''
+
+    fff = open(fname, 'r')
+    X = fff.readlines()
+    fff.close()
+
+    list_rows = []
+    for x in X:
+        y = x.rstrip()
+        if y :
+            list_rows.append(y)
+
+    return list_rows
+
+def vlines_combine_coord_lists(list_coordlist, list_title, maxnblock = 3):
+    '''Take a list of lists (of coords) and create a block of text to
+visualize in APQC by stacking the lists adjacently.
+    
+    Parameters
+    ----------
+    list_coordlist : list (of lists (of str))
+            1 or more lists of coordinates;  each sublist is a list
+            of strings (one string is a row of coords)
+    list_title : list (of str)
+            list of titles to put at the top of each column
+    maxnblock : int
+            max number text blocks to output, by default.
+
+    Return
+    ------
+    otext : str
+            text block to be used in APQC report. Consecutive lists
+            of text
+
+    '''
+
+    nlist = len(list_coordlist)
+
+    if nlist == 0 :                  return ''
+    if nlist != len(list_title) :    return ''
+
+    # only use as many as we can and/or are allowed
+    ntot  = nlist
+    extra = ''
+    if maxnblock < ntot :
+        ntot  = maxnblock
+        extra = '  ...'      # hint that more files than are shown exist
+
+    # store nrows and max row width for each list
+    l_nrow   = []
+    l_maxwid = []
+    for n in range(ntot):
+        coordlist = list_coordlist[n]
+        l_nrow.append(len(coordlist))
+        maxwid = -1
+        for y in coordlist :
+            if len(y) > maxwid :
+                maxwid = len(y)
+        l_maxwid.append(maxwid)
+    max_nrow = max(l_nrow)
+
+    # commence the text string
+    otext = ''
+
+    # the title line
+    for n in range(ntot) :
+        otext+= '{title:^{wid}s}'.format(title=list_title[n], 
+                                         wid=l_maxwid[n])
+        if n < ntot-1 :
+            otext+= ' '*2
+        else:
+            otext+= extra + '\n'
+
+    # the title underlining
+    for n in range(ntot) :
+        otext+= '-'*l_maxwid[n]
+        if n < ntot-1 :
+            otext+= ' '*2
+        else:
+            otext+= '\n'
+            
+    # each row of info
+    for i in range(max_nrow):
+        for n in range(ntot) :
+            # print a row *if* it exists
+            if i < l_nrow[n]: 
+                otext+= '{row:<{wid}s}'.format(row=list_coordlist[n][i], 
+                                               wid=l_maxwid[n])
+            else:
+                otext+= ' '*l_maxwid[n]
+            if n < ntot-1 :
+                otext+= ' '*2
+            else:
+                otext+= '\n'
+
+    return otext
+
+def vlines_parse_QC_txt(fname):
+    '''The text file created by find_variance_lines.tcsh has useful
+    information for QC pieces. This function opens, reads and parses
+    the file, returning both the full text and the list/name of the
+    [0]th line found (i.e., what is the [0]th image shown); returns
+    null strings if there were no image found
+
+    Parameters
+    ----------
+    fname : str
+            name of text file
+
+    Return
+    ------
+    str_full : str
+            the full contents of the file, as a single string (it is only
+            one line, at present)
+    str_name : str
+            name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
+
+    '''
+
+    # default return, if error exiting
+    BAD_RETURN = ""
+
+    if not(os.path.isfile( fname )) :    BAD_RETURN
+    
+    fff = open(fname, 'r')
+    X = fff.readlines()
+    fff.close()
+    
+    # parse first entry
+    str_full = X[0].strip()
+    if not(str_full) :    BAD_RETURN
+
+    str_name = str_full.split(":")[0]
+
+    return str_full, str_name
+
+# -----------------
+
+# check for lines in EPI: ['vlines_tcat_dir']
+def apqc_warns_vlines( obase, qcb, qci,
+                       dirname = '' ):
+
+    if not(dirname) :
+        print("+* WARNING: no dirname for apqc_warns_vlines()?")
+        return ''
+    
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    # special files in the  dir, if (possibly bad) lines were
+    # found
+    file_img = dirname + '/' + fname_vlines_img
+    file_txt = dirname + '/' + fname_vlines_txt
+
+    comm  = '''show any variance line warnings from the EPI'''
+    cmd0  = '''
+    echo "++ Check EPI variance lines (vlines) in: {}"
+    '''.format( dirname )
+
+    pre = '''
+    set opref = {}
+    set tjsonw  = _tmpw.txt
+    set ojsonw  = ${{odir_img}}/${{opref}}.json
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}_0.sag.json
+    '''.format( opref )
+
+    # --------- start creating warning text
+
+    # default: no variance lines, which makes life simple :)
+    warn_level = "none"
+    list_bad   = []
+    otext      = 'No lines found\n'
+
+    # use the text file info, if it exists
+    text_loc = ''
+    str_full, str_name = vlines_parse_QC_txt( file_txt )
+    if str_full :
+        text_loc = 'olay: line markers for ' + str_full
+
+    # alternate: some variance lines, and now we have to do work :(
+    if os.path.isfile( file_img ) : 
+        warn_level = "medium"   ## or should be severe?
+
+        otext = ''              # start afresh
+
+        # get the list of files, and count
+        list_bad = glob.glob(dirname + '/' + 'bad_coords.r*.txt')
+        list_bad.sort()
+        nbad = len(list_bad)
+        # ... and check for an intersection file (should only be 1)
+        list_inter = glob.glob(dirname + '/' + 'bad_coords.inter.txt')
+
+        # get coordinate list, and store title+list of all non-empty
+        # files.  Remember: [0]th list is intersection, and [1:] lists
+        # are per-run
+        list_coordlist = []
+        list_title     = []
+        list_nlines    = []
+        sum_nrow       = 0
+
+        # info from intersection file
+        if list_inter and nbad>1 :
+            title = 'Intersecting all'
+
+            coordlist = vlines_read_in_coords(list_inter[0])
+            nrow      = len(coordlist)
+            if nrow :
+                list_coordlist.append(coordlist)
+                list_title.append(title)
+                sum_nrow+= nrow
+            text_inter = 'Intersecting  : {}\n'.format(nrow)
+
+        # info from bad_coords.r* files
+        for i in range(nbad):
+            title = list_bad[i].split('/')[-1]
+            title = title.split('.')[1]
+
+            coordlist = vlines_read_in_coords(list_bad[i])
+            nrow      = len(coordlist)
+            list_nlines.append(nrow)  # keep track of ALL of them
+            if nrow :
+                list_coordlist.append(coordlist)
+                list_title.append(title)
+                sum_nrow+= nrow
+        all_num = [str(x) for x in list_nlines]
+        otext+= 'Lines per run : {}\n'.format(' '.join(all_num))
+
+        if list_inter and nbad>1 :
+            otext+= text_inter 
+        otext+= '\n'
+
+        ttt_extra = 'of each'
+        if sum_nrow > 7 :
+            ttt_extra = 'of the first 7'
+
+        # main table text
+        ttt   = 'Coordinates (see images {}, below, '.format(ttt_extra)
+        ttt  += 'check locations with InstaCorr)\n'
+        otext+= ttt + '-'*(len(ttt)-1) + '\n'
+        otext+= vlines_combine_coord_lists(list_coordlist, list_title)
+        otext+= '\n'
+
+    # write out the text file to a temporary file
+    fff = open('_tmp_vlines_warns.txt', 'w')
+    fff.write(otext)
+    fff.close()
+    
+    # --------- finish creating warning text
+
+    jsontxt_warn = '''
+    cat << EOF >! ${{tjsonw}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "EPI variance lines warnings" 
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_warn_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjsonw}
+    -prefix ${ojsonw}
+    '''
+
+    # --------- image text
+
+    # copy warning text (and image, if it exists)
+    cmd1 = '''
+    \cp _tmp_vlines_warns.txt ${{odir_img}}/${{opref}}.dat
+    if ( -f {file_img} ) then
+    ~~~~\cp {file_img} ${{odir_img}}/${{opref}}_0.sag.jpg
+    endif
+    '''.format( file_img=file_img )
+
+    subtext = '''"ulay: {}/var*scale*.nii.gz (scaled variance per run)",,'''.format(dirname)
+    subtext+= '''"{}"'''.format(text_loc)
+
+    #subtext = 
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: {}
+    EOF
+    '''.format(qci, qcb, lah.qc_blocks[qcb][0], lah.qc_blocks[qcb][1],
+               subtext)
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+
+    comm = commentize( comm )
+    cmd0 = commandize( cmd0, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt_warn      = commandize( jsontxt_warn, cmdindent=0, ALLEOL=False )
+    jsontxt_warn_cmd  = commandize( jsontxt_warn_cmd, padpost=2 )
+    cmd1  = commandize( cmd1, cmdindent=0,
+                        ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt       = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd   = commandize( jsontxt_cmd, padpost=2 )
+    #jsontxt2      = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    #jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, cmd0,
+            pre, jsontxt_warn, jsontxt_warn_cmd,
+            cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
 
 
 # -------------------------------------------------------------------
@@ -4215,17 +4772,39 @@ def apqc_DO_cp_subj_jsons( all_json ):
 # ['ss_review_dset']
 def apqc_DO_cp_subj_rev_basic( ):
 
-    comm  = '''preserve subj review_basic text file'''
+    comm  = '''preserve subj review_basic text file info, and have an editable
+    JSON version'''
 
-    cmd = '''
+
+    pre = '''
+    set obase = ${ss_review_dset:r}
+    set ojson = ${odir_info}/${obase}.json
+    '''
+
+    # the TXT copy
+    cmd0 = '''
     \cp ${ss_review_dset} ${odir_info}/.
     '''
 
-    comm = commentize( comm )
-    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False,
-                       padpost=2 )
+    # the JSON version
+    cmd1 = '''
+    abids_json_tool.py 
+    -overwrite 
+    -txt2json 
+    -literal_keys 
+    -values_stay_str
+    -input  ${ss_review_dset}
+    -prefix ${ojson}
+    '''
 
-    lout = [comm, cmd]
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0 = commandize( cmd0, cmdindent=0, ALLEOL=False,
+                       padpost=2 )
+    cmd1 = commandize( cmd1 )
+
+    lout = [comm, pre, cmd0, cmd1]
     return '\n\n'.join(lout)
 
 # ========================== term echo ==============================

@@ -440,7 +440,7 @@ class SubjectList(object):
 
       slist = UTIL.list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=dpre)
 
-      # in the case of diretories, check for success
+      # in the case of directories, check for success
       # (maybe we can try to skip past them, that might be okay)
       for index in range(len(slist)):
          if '/' in slist[index]:

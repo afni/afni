@@ -1082,6 +1082,8 @@ static char *gby[] = {
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
      "If you need me, I'll be in my van"                             ,
+     "I get up so early, I'm out of bed by noon the day before!"     ,
+     "We don't just drip with sarcasm, we are a class-4 hurricane"   ,
 
      /* Mistakes? in AFNI? */
 
@@ -1128,6 +1130,7 @@ static char *gby[] = {
      "Brain-ology at the cutting edge since 1994"                    ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
      "Confusing neuroscientists successfully since 1994"             ,
+     "Overwhelming users with options since 1994"                    ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
@@ -1153,7 +1156,7 @@ static char *gby[] = {
      "To set itself in glory above its peers"                                            ,
      "Hurled headlong flaming from the ethereal sky"                                     ,
      "Here in the heart of Hell to work in fire"                                         ,
-     "Ceases now to bellow through the vast and boundless deep"                          ,
+     "Ceases now to below through the vast and boundless deep"                          ,
      "The seat of desolation, void of light"                                             ,
      "Left at large to its own dark designs"                                             ,
      "Whom reason has equalled, force has made supreme above his equals"                 ,
@@ -1408,7 +1411,7 @@ static char *gby[] = {
      "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
      "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
      "Are you a special snowflake, or a normal cloddish lump of ice?"                 ,
-     "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
+     "Remember -- You are absolutely incredibly unique. Just like everyone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
@@ -1693,6 +1696,10 @@ static char *gby[] = {
      "Later there will be, I hope, some people who\n"
      "  will find it to their advantage to decipher all this mess"                            ,
 
+     // L-M Miranda
+     "Oceans rise, empires fall,\n"
+     "  We have seen each other through it all."                                              ,
+
      // Eliot
      "                           Not fare well,\n"
      "But fare forward, voyagers"                                                             ,
@@ -1839,16 +1846,6 @@ static char *gby[] = {
      "      what it is, it is simply here without reason and rhyme!\n"
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
      "      in the simple fact that there is life" ,
-
-     /* John 5:2-4 (KJV) */
-
-     "Remember -- the NIH is in Bethesda (John 5:2-4 KJV):\n"
-     "  Now there is at Jerusalem by the sheep market a pool, which is called in\n"
-     "  the Hebrew tongue Bethesda, having five porches. In these lay a great\n"
-     "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
-     "  moving of the water. For an angel went down at a certain season into the\n"
-     "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had" ,
 
      /* From https://www.thesaurus.com/browse/wonderful */
 

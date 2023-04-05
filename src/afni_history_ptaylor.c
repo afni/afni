@@ -69,6 +69,155 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Mar , 2023 , PT , "auto_warp.py" , MINOR , TYPE_NEW_OPT,
+   "Put in -hview functionality, to show full help.",
+   "Running with no opts will also show FULL help (not annoying short one!).\n"
+},
+
+{ 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_ENHANCE,
+   "And just like that, update/improve the ijkord functionality and format.",
+   "Also explain more clearly what is happening in a help section.\n"
+},
+
+{ 17, Jan , 2023 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "More new options, in particular for ijkord (-> useful for 3dcalc expr).",
+   "Also clean up other features/help. Add -npad_safety_on, too.\n"
+},
+
+{ 11, Jan , 2023 , PT , "@chauffeur_afni" , MICRO , TYPE_ENHANCE,
+   "Extra check of a couple of options, that only correct key words are used.",
+   "Done for the '-left_is_* ..' opts.\n"
+},
+
+{ 10, Jan , 2023 , PT , "convert_cdiflist_to_grads.py" , MINOR , TYPE_ENHANCE,
+   "Output more information if the input cdiflist appears to be ragged.",
+   "Help pinpoint the potential problem row for the user.\n"
+},
+
+{ 6, Jan , 2023 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_NEW_OPT,
+   "Add '-vstat_list' opt, so user can enter label bases for vstat in APQC.",
+   "HTML still has up to 5 automatically chosen vols by def in vstat.\n"
+},
+
+{ 6, Dec , 2022 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Put quotes around (hopefully) every path, so spaces in paths are OK.",
+   "This is because of OneDrive.  Grrrr.\n"
+},
+
+{ 6, Dec , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Put quotes around (hopefully) every path, so spaces in paths are OK.",
+   "This is because of OneDrive.  Grrrr.\n"
+},
+
+{ 2, Dec , 2022 , PT , "@animal_warper" , MINOR , TYPE_ENHANCE,
+   "Add another QC image if  '-init_scale ..' is used.",
+   "Useful to check if scaling is approximately appropriate.\n"
+},
+
+{ 1, Dec , 2022 , PT , "@animal_warper" , MINOR , TYPE_NEW_OPT,
+   "Opt '-init_scale ..' to provide initial len scaling before affine align.",
+   "Useful if input is much smaller/bigger than template.\n"
+},
+
+{ 1, Dec , 2022 , PT , "align_epi_anat.py" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: using -pre_matrix with -output_dir was broken.",
+   "Now internally use full path for pre_matrix (+bonus: check existence).\n"
+},
+
+{ 27, Nov , 2022 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Update the help for integrating SSW with afni_proc.py (AP).",
+   "More readable, and simpler option usage\n"
+},
+
+{ 23, Nov , 2022 , PT , "find_variance_lines.tcsh" , MINOR , TYPE_ENHANCE,
+   "Put a backslash before shell commands, so possible aliases aren't used.",
+   "Also put numbers by each exit.  Thanks, S Torrisis!\n"
+},
+
+{ 9, Nov , 2022 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-weight_corr ..' (diff application than '-weight_ts ..').",
+   "Calculate weighted Pearson Correlation.  For Dante P.\n"
+},
+
+{ 5, Oct , 2022 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_ENHANCE,
+   "Output a run_instacorr_errts.tcsh script in the results directory.",
+   "Very useful for data QC. Use it.  Quick now, here, now, always...\n"
+},
+
+{ 22, Sep , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-clusterize_wami ..', for Clustering functionality.",
+   "Adds a 'whereami' table to the output dir.\n"
+},
+
+{ 1, Sep , 2022 , PT , "3dBrickStat" , MICRO , TYPE_BUG_FIX,
+   "Fix bug: when using '-min' with '-positive' (or sim) and no mask.",
+   "Tended to return 0 (now fixed).  Thanks for mentioning, Xiaowei!\n"
+},
+
+{ 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
+   "Add -values_stay_str flag, so num/str items stay as str type.",
+   "Otherwise, by default they attempt to be int, then float, then str.\n"
+},
+
+{ 30, Aug , 2022 , PT , "abids_json_tool.py" , MINOR , TYPE_NEW_OPT,
+   "Add -literal_keys flag, to turn off auto-replacement of spaces and [()].",
+   "Also try to keep ints looking like ints.\n"
+},
+
+{ 25, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Make a tweak so that certain pathological cases don't scupper all others.",
+   "Thanks, D. Schwartz for pointing out this behavior.\n"
+},
+
+{ 23, Aug , 2022 , PT , "p2dsetstat" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
+{ 23, Aug , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand stataux code range to 6.",
+   "Includes chi-square now.\n"
+},
+
+{ 23, Aug , 2022 , PT , "3ddelay" , MICRO , TYPE_BUG_FIX,
+   "Set correct dims being used from input dset in option_data struct.",
+   "Fixes report, and some internal instances (like micro/no change?).\n"
+},
+
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_ENHANCE,
+   "Display final EPI coverage mask on final space dset.",
+   "Could be on template, final anatomical or vr_base.\n"
+},
+
+{ 18, Aug , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_ENHANCE,
+   "In warns block check for 3dDeconvolve.err text file for warns.",
+   "If exists, most warns go to 'undecided' at the moment. Thanks, RCR!\n"
+},
+
+{ 11, Aug , 2022 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-button_press ..', for Norm/Colr/Swap buttons.",
+   "Adds in functionality from driving AFNI GUI.\n"
+},
+
+{ 27, July , 2022 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_BUG_FIX,
+   "In mecho block when using m_tedana on Mac OS: fix copying tedana QC HTML.",
+   "Swap cp -> rsync, because Mac OS cp opts are diff than on Linux.\n"
+},
+
+{ 27, July , 2022 , PT , "dsetstat2p" , MICRO , TYPE_GENERAL,
+   "Expand output precision and scale of calculability.",
+   "Program used to run into trouble for large stat (bc of bc); now better.\n"
+},
+{ 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_GENERAL,
+   "Add functionality to '-rimify RIM' opt.",
+   "A negative RIM value now leads to creating an anti-rim (or core) ROI.\n"
+},
+
+{ 22, Jan , 2022 , PT , "3dDepthMap" , MICRO , TYPE_NEW_OPT,
+   "Add in the '-rimify RIM' opt, where RIM is a numerical value.",
+   "Transform ROIs into boundaries up to depth RIM.\n"
+},
+
 { 4, July , 2022 , PT , "3dLocalUnifize" , MINOR , TYPE_NEW_OPT,
    "Well, a new arg for '-local_mask ..' opt.",
    "Use arg value 'None' to turn off the default automasking now.\n"
@@ -81,7 +230,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 6, June , 2022 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Add new ve2a QC, via new uvar final_epi_unif_dset.",
-   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.'\n"
+   "Also scale ulay=EPI brightness better for EPI-to-anat align imgs.\n"
 },
 
 { 6, June , 2022 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
@@ -139,7 +288,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 14, Apr, 2022, PT , "@djunct_modal_smoothing_with_rep" , MAJOR, TYPE_BUG_FIX,
-   "Replacement was not occuring if ROIs were purged by modal smoothing.",
+   "Replacement was not occurring if ROIs were purged by modal smoothing.",
    "Fixed that bug, hopefully improving robustness to such error in future.\n"
 },
 
@@ -234,7 +383,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 25, Jan , 2022 , PT , "@djunct_overlap_check" , MINOR , TYPE_NEW_OPT,
-   "Add in existin chauffeur options: -no_cor, -no_axi, -no_sag.",
+   "Add in existing chauffeur options: -no_cor, -no_axi, -no_sag.",
    "For APQC---vorig of initial overlap.\n"
 },
 
@@ -1134,12 +1283,12 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 11, May , 2021 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
-   "1dplot.py improved for backward compatability to Python 2.7.",
+   "1dplot.py improved for backward compatibility to Python 2.7.",
    "So, for task FMRI, individual stim label plots work again in Py2.7.\n"
 },
 
 { 11, May , 2021 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
-   "Replace str.isnumeric() with str.isdigit(), for backward compatability.",
+   "Replace str.isnumeric() with str.isdigit(), for backward compatibility.",
    "Python 2.7 didn't have that method for str type.\n"
 },
 
@@ -1179,12 +1328,12 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_with_mask" , MINOR , TYPE_REMOVE,
-   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "This program has been superseded by: adjunct_apqc_tsnr_general.",
    "The new version is more... general.\n"
 },
 
 { 16, Apr , 2021 , PT , "adjunct_apqc_tsnr_no_mask" , MINOR , TYPE_REMOVE,
-   "This program has been superceded by: adjunct_apqc_tsnr_general.",
+   "This program has been superseded by: adjunct_apqc_tsnr_general.",
    "The new version is more... general.\n"
 },
 
@@ -1955,7 +2104,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 22, Feb , 2020 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
    "Temporary files now have a random string in their prefix.",
-   "Thus, can have multiple runs in same directory simultaneously sans probleme.\n"
+   "Thus, can have multiple runs in same directory simultaneously sans problem.\n"
 },
 
 { 22, Feb , 2020 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
@@ -2125,7 +2274,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 14, Nov , 2019 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "New opt:  '-make_rank_dsets ..', bc *rank* dsets no longer make by def.",
-   "The *REN* dsets should be used instead; opt just for back compatability.\n"
+   "The *REN* dsets should be used instead; opt just for back compatibility.\n"
 },
 
 { 23, Oct , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_PROG,
@@ -2324,7 +2473,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 16, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
-   "Fix incompatability with py2.",
+   "Fix incompatibility with py2.",
    "Sigh.\n"
 },
 
@@ -3149,7 +3298,7 @@ afni_history_struct ptaylor_history[] = {
 } ,
 
 { 11, Aug , 2017 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
-   "Change a '>>' to '>' for wider compatability.",
+   "Change a '>>' to '>' for wider compatibility.",
    "Yup.\n"
 },
 
@@ -3314,7 +3463,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 27, Jan , 2017 , PT , "3dDWItoDT" , MICRO , TYPE_NEW_OPT,
-   "Miniscule new option, '-bmatrix_FULL' to have clearer usage.",
+   "Minuscule new option, '-bmatrix_FULL' to have clearer usage.",
    "Just copies functionality of cryptic '-bmatrix_Z'.\n"
 },
 
@@ -3669,7 +3818,7 @@ afni_history_struct ptaylor_history[] = {
 },
 
 { 15, Dec , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_OPT,
-   "Make a subset of an ROI by choosing maximal neighoring values.",
+   "Make a subset of an ROI by choosing maximal neighboring values.",
    "Start with peak value, add neighboring max until N voxels selected.\n"
 },
 
@@ -3722,7 +3871,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 8, Sep , 2014 , PT , "fat_mvm_scripter.py" , SUPER , TYPE_NEW_PROG,
    "Connect FATCAT with 3dMVM-- write a basic command call to 3dMVM.",
-   "User specificies specific model, and awaaaay we go.\n"
+   "User specifies specific model, and awaaaay we go.\n"
 },
 
 { 8, Sep , 2014 , PT , "fat_mvm_gridconv.py" , SUPER , TYPE_NEW_PROG,
@@ -3919,7 +4068,7 @@ afni_history_struct ptaylor_history[] = {
    "Putting together old deterministic and probabilistic programs into 1.",
    "Unifying tracking, will be easier to update/improve in future."
    "For deterministic tracking, allow networks of target ROIs for tracking,"
-   "as well as bunding outputs for SUMA network/matrix viewing."
+   "as well as bundling outputs for SUMA network/matrix viewing."
    "New option as well, `-mini_prob', to have some probabilistic aspect to"
    "deterministic/tract-based output."
 },

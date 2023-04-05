@@ -348,7 +348,7 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	out_data = (float **)My_Malloc(ntimes * sizeof(float *));
 	for (i=0; i<ntimes; out_data[i++] = (float *)My_Malloc(nvox * sizeof(float)));
 	
-	/* Create the tempory float array */
+	/* Create the temporary float array */
 	out_temp = (float *)My_Malloc(ntimes*sizeof(float));
 	
 	/* Get the scale factors for later */

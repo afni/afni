@@ -3277,7 +3277,7 @@ _XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width,
 	if(html->html.images_enabled)
 	{
 		/*****
-		* We try to be a little bit carefull with system resources.
+		* We try to be a little bit careful with system resources.
 		* HTML documents intend to have an increasing amount of images in
 		* them, so we try to reuse as much as possible.
 		* lookForImage also updates width and height if width and/or height

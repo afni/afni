@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-from afnipy import afni_util as UTIL
+from afnipy import afni_util          as UTIL
+from afnipy import lib_format_cmd_str as lfcs
 import copy
 
 # ----------------------------------------------------------------------
-# This is a library for storing basic infomation regarding options and
+# This is a library for storing basic information regarding options and
 # examples for afni_proc.py.
 #
 #    - examples are stored as individual dictionaries
@@ -231,7 +232,7 @@ class APExample:
       print("")
 
    def _print_opt_lin(self, indent, oname, maxlen, parstr, lmax=50):
-       """if lmax > 0: restrict parstr to given length, plus elipsis
+       """if lmax > 0: restrict parstr to given length, plus ellipsis
        """
        estr = ''
        kprint = parstr
@@ -243,7 +244,7 @@ class APExample:
        print("%s%-*s  %s%s" % (indent, maxlen, oname, kprint, estr))
 
    def _print_diff_line(self, indent, tstr, parstr, lmax=50):
-       """if lmax > 0: restrict parstr to given length, plus elipsis
+       """if lmax > 0: restrict parstr to given length, plus ellipsis
        """
        estr = ''
        kprint = parstr
@@ -254,19 +255,28 @@ class APExample:
 
        print("%s%-8s : %s%s" % (indent, tstr, kprint, estr))
 
-   def command_string(self, wrap=0, windent=10):
+   def command_string(self, wrap=0, windent=8):
       """return a string that is an afni_proc.py command
             if wrap: - return indented command
                      - indent by windent
       """
-     
-      clist = ['%s %s' % (e[0], ' '.join(e[1])) for e in self.olist]
-      if wrap:
-         return UTIL.list_to_wrapped_command('afni_proc.py', clist,
-                                             nindent=14, maxlen=75)
+      
+      # minor format conversion to a list of lists per line
+      newolist = [['afni_proc.py']] + [([o[0]] + o[1]) for o in self.olist]
+
+      # set default left-padding and line length
+      if wrap:  
+         leftstr = ' '*windent
+         linewid = 78
+         is_diff, str_nice = lfcs.afni_niceify_cmd_str('', 
+                                                       comment_start=leftstr,
+                                                       max_lw=linewid,
+                                                       big_list=newolist)
       else:
-         clist.insert(0, 'afni_proc.py')
-         return ' '.join(clist)
+         # join nested list into single string
+         str_nice = ' '.join([' '.join(entry) for entry in newolist])
+
+      return str_nice
 
    def display(self, verb=0, sphinx=1):
       """display a single example - use a copy for quoting
@@ -567,11 +577,13 @@ def populate_examples():
            entire volume were acquired at the beginning of the TR.
 
            The 'align' block implies using align_epi_anat.py to align the
-           anatomy with the EPI.  Extra options to that specify using lpc+ZZ
-           for the cost function (more robust than lpc), and -giant_move (in
-           case the anat and EPI start a little far apart).  This block
-           computes the anat to EPI transformation matrix, which will be 
-           inverted in the volreg block, based on -volreg_align_e2a.
+           anatomy with the EPI.  Here, the EPI base is first unifized locally.
+           Additional epi/anat alignment options specify using lpc+ZZ for the
+           cost function (more robust than simply lpc), -giant_move (in case
+           the anat and EPI start a bit far apart), and -check_flip, to try to
+           verify whether EPI left and right agree with the anatomy.
+           This block computes the anat to EPI transformation matrix, which
+           will be inverted in the volreg block, based on -volreg_align_e2a.
 
            Also, compute the transformation of the anatomy to MNI space, using
            affine registration (for speed in this simple example) to align to
@@ -637,14 +649,18 @@ def populate_examples():
         ['-copy_anat',             ['FT/FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'blur', 'mask', 'scale', 'regress']],
+                                    'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
         ['-tlrc_base',             ['MNI152_T1_2009c+tlrc']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4.0']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
         ['-regress_stim_labels',   ['vis', 'aud']],
@@ -659,6 +675,7 @@ def populate_examples():
         ['-regress_est_blur_epits', []],
         ['-regress_est_blur_errts', []],
         ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
         ['-execute',               []],
        ],
      ))
@@ -704,9 +721,10 @@ def populate_examples():
         ['-anat_follower',         ['anat_w_skull', 'anat', 'FT/FT_anat+orig']],
         ['-dsets',                 ['FT/FT_epi_r?+orig.HEAD']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'blur', 'mask', 'scale', 'regress']],
+                                    'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
@@ -717,6 +735,7 @@ def populate_examples():
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
         ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
         ['-mask_epi_anat',         ['yes']],
         ['-blur_size',             ['4.0']],
         ['-regress_stim_times',    ['FT/AV1_vis.txt', 'FT/AV2_aud.txt']],
@@ -1077,6 +1096,7 @@ def populate_examples():
      header="""
               (recommended?  no, not intended for a complete analysis)
               (              prefer: see Example 11)
+              (         ***        : use censoring and 3dLombScargle)
 
             This is for band passing and computation of ALFF, etc.
 
@@ -1122,6 +1142,7 @@ def populate_examples():
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
            than the default lpc one.  Apply -giant_move, in case the datasets
            do not start off well-aligned.  Include -check_flip for good measure.
+           A locally unifized EPI base is used for anatomical registration.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
@@ -1169,13 +1190,14 @@ def populate_examples():
         ['-copy_anat',             ['anatSS.FT.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.FT.nii']],
-        ['-anat_follower_ROI',     ['aaseg', 'anat', 'aparc.a2009s+aseg.nii']],
-        ['-anat_follower_ROI',     ['aeseg', 'epi', 'aparc.a2009s+aseg.nii']],
+        ['-anat_follower_ROI',     ['aaseg', 'anat', 'aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',     ['aeseg', 'epi', 'aparc.a2009s+aseg_REN_all.nii.gz']],
         ['-anat_follower_ROI',     ['FSvent', 'epi', 'fs_ap_latvent.nii.gz']],
         ['-anat_follower_ROI',     ['FSWe', 'epi', 'fs_ap_wm.nii.gz']],
         ['-anat_follower_erode',   ['FSvent', 'FSWe']],
         ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
@@ -1240,7 +1262,9 @@ def populate_examples():
         ['-copy_anat',             ['FT_anat+orig']],
         ['-dsets',                 ['FT_epi_r?+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
         ['-tlrc_base',             ['TT_N27+tlrc']],
         ['-tlrc_NL_warp',          []],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1478,6 +1502,7 @@ def populate_examples():
         ['-ricor_regs_nfirst',     ['2']],
         ['-ricor_regs',            ['FT/fake.slibase.FT.r?.1D']],
         ['-ricor_regress_method',  ['per-run']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
         ['-volreg_align_e2a',      []],
@@ -1514,6 +1539,7 @@ def populate_examples():
         ['-surf_anat',             ['FT/SUMA/FT_SurfVol.nii']],
         ['-surf_spec',             ['FT/SUMA/std.60.FT_?h.spec']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1559,6 +1585,7 @@ def populate_examples():
                                     'FT/FT_epi_r2+orig.HEAD',
                                     'FT/FT_epi_r3+orig.HEAD']],
         ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
         ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
                                     '-check_flip']],
         ['-volreg_align_to',       ['MIN_OUTLIER']],
@@ -1715,6 +1742,91 @@ def populate_examples():
        ],
      ))
                                       
+   ap_examples.append( APExample('simple_rest_QC',
+     source='ap_run_simple_rest.tcsh',
+     descrip='for QC, run ap_run_simple_rest.tcsh with defaults',
+     header="""
+              (recommended?  yes, for quick quality control)
+
+         This example matches running ap_run_simple_rest.tcsh with default
+         parameters using anat and EPI data from AFNI_data6/FT.  It is meant
+         for quality control evaluation, treating it as rest.
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-out_dir',               ['SID.results']],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',             ['FT_anat+orig']],
+        ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
+                                    'FT/FT_epi_r2+orig.HEAD',
+                                    'FT/FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-align_unifize_epi',     ['local']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['6']],
+        ['-regress_censor_motion', ['0.25']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
+   ap_examples.append( APExample('simple_rest_QC_na',
+     source='ap_run_simple_rest.tcsh',
+     descrip='for QC, run ap_run_simple_rest.tcsh with NO ANAT',
+     header="""
+              (recommended?  yes, for quick quality control of EPI)
+
+         This example matches running ap_run_simple_rest.tcsh with default
+         parameters using only EPI data from AFNI_data6/FT.  It is meant
+         for quality control evaluation, treating it as rest.
+
+         No anatomical volume is included, excluding many options from 
+         example simple_rest_QC.
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-out_dir',               ['SID.results']],
+        ['-blocks',                ['tshift', 'volreg', 'mask',
+                                    'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-dsets',                 ['FT/FT_epi_r1+orig.HEAD',
+                                    'FT/FT_epi_r2+orig.HEAD',
+                                    'FT/FT_epi_r3+orig.HEAD']],
+        ['-tcat_remove_first_trs', ['2']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_compute_tsnr',   ['yes']],
+        ['-blur_size',             ['6']],
+        ['-regress_censor_motion', ['0.25']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_motion_per_run', []],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_est_blur_epits', []],
+        ['-regress_est_blur_errts', []],
+        ['-regress_make_ideal_sum',  ['sum_ideal.1D']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
    return
 
 def find_eg(name):
@@ -1728,11 +1840,64 @@ def find_eg(name):
    global ap_examples
    populate_examples()
 
-   for eg in ap_examples:
-      if eg.name.lower() == name.lower():
-         return eg
+   if len(name) < 1: return None
 
+   # use lower case for searching names
+   nlist = [eg.name.lower() for eg in ap_examples]
+   lname = name.lower()
+
+   # if lanme is in nlist, return the respective example
+   if lname in nlist:
+      return ap_examples[nlist.index(lname)]
+
+   # otherwise, try harder
+
+   # If number (possibly with trailing a,b,c,...) search for it as a trailer.
+   # Prepend ' ' to not confuse 1a with 11a, for example.
+   if lname[0].isdigit():
+      ind = unique_substr_name_index(' '+lname, nlist, endswith=1)
+      if ind >= 0:
+         return ap_examples[ind]
+
+   # otherwise, just see if there is a unique substring match
+   ind = unique_substr_name_index(lname, nlist)
+   if ind >= 0:
+      return ap_examples[ind]
+  
    return None
+
+def unique_substr_name_index(nsub, nlist, endswith=0):
+   """search for nsub in nlist, where nsub can be a substring
+      if endswith, use name.endswith(), rather than name.find()
+      return : index >= 0 on success
+             : -1, if no match is found
+             : -2, if the match is not uniq
+   """
+   findex = -1
+   for ind, name in enumerate(nlist):
+      # first, check to see if nsub matches name
+      found = 0
+      if endswith:
+         if name.endswith(nsub):
+            found = 1
+      elif name.find(nsub) >= 0:
+         found = 1
+
+      # if not, just move along
+      if not found:
+         continue
+
+      # if so, fail on non-unique
+      if findex >= 0:
+         # not unique
+         return -2
+
+      # we have a match, keep looking for non-uniqueness
+      findex = ind
+
+   # we have either failed to find a match, or have a unique one
+   # - either way, return findex
+   return findex
 
 def show_enames(verb=1):
    """list all ap_example names

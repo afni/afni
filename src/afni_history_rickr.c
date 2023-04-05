@@ -53,6 +53,289 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
+   "update @diff.tree, @diff.files: possibly switch to meld if no xxdiff",
+   "Be automatic, rather than forcing one to use '-diff_prog meld'."
+ } ,
+
+ {  1, Mar, 2023, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -show_pretty_command, to print a more readable one",
+   "Append this to a current command to generate prettier one, not to run it."
+ } ,
+
+ { 27, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_indices_allzero",
+   "List indices of all-zero coluns."
+ } ,
+
+ { 27, Feb, 2023, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -choose_nonzero_cols",
+   "This is to exclude all-zero columns for condition number of chosen cols."
+ } ,
+
+ { 19, Feb, 2023, RCR, "build_afni.py", MAJOR, TYPE_NEW_PROG,
+   "compile AFNI",
+   "  - download from github\n"
+   "  - download AFNI atlases\n"
+   "  - compile\n"
+   "  - suggest rsync (will apply with some options, later)"
+ } ,
+
+ { 17, Feb, 2023, RCR, "3dDeconvolve", MINOR, TYPE_BUG_FIX,
+   "when counting events, default (with GUESS) to GLOBAL",
+   "Previously, when the user did not specify either -local_times or\n"
+   "-global_times, the number of events (and therefore IM regressors)\n"
+   "was based on local time run length, so many event regressors might\n"
+   "not be included.\n"
+   "Change the default to be based on -global_times.\n"
+   "If IM, warn if the user did not specify the timing type.\n"
+   "Thanks to M Hoptman for letting us know of the problem."
+ } ,
+ 
+ {  8, Feb, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "give error message when image writing fails on missing external program",
+   "Warn on missing programs cjpeg and pnmtopng"
+ } ,
+ 
+ {  7, Feb, 2023, RCR, "@RetinoProc", MICRO, TYPE_MODIFY,
+   "as with afni_proc.py, get SurfSmooth parms from smrec file",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "include output from init_user_dotfiles.py -test",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_ENHANCE,
+   "add -shell_list and prep for possible librification",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "propagate slice_pattern from any -tshift_opts_ts -tpatttern",
+   NULL
+ } ,
+
+ {  6, Feb, 2023, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "show multiband level and timing patternn in basic output",
+   NULL
+ } ,
+
+ {  4, Feb, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_pattern",
+   NULL
+ } ,
+
+ {  4, Feb, 2023, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add timing_to_slice_pattern() - to determine known slice time patterns",
+   NULL
+ } ,
+
+ {  3, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "actually fail (not just warn) on inconsistent num echoes",
+   "Thanks to T Weiss bringing up the issue."
+ } ,
+
+ {  1, Feb, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "get SurfSmooth params from smrec dset",
+   "Thanks to Erin G for bringing up the issue."
+ } ,
+
+ { 24, Jan, 2023, RCR, "3dvolreg", MINOR, TYPE_ENHANCE,
+   "add error message for trimming weight set to empty",
+   "For now, still let it crash.  Try to trap in startup_lsqfit later."
+ } ,
+
+ { 24, Jan, 2023, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add QC output to ricor block",
+   NULL
+ } ,
+
+ {  3, Jan, 2023, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "fix -write_tsv_cols_of_interest with -tsv_labels",
+   NULL
+ } ,
+
+ { 23, Dec, 2022, RCR, "init_user_dotfiles.py", MAJOR, TYPE_NEW_PROG,
+   "evaluate or initialize dot/RC files for running AFNI",
+   "From the perspective of:\n"
+   "    i) adding a directory (ABIN?) to the PATH\n"
+   "   ii) sourcing the apsearch all_progs.COMP file (per shell)\n"
+   "  iii) (for macs) adding flat_namespace to DYLD_LIBRARY_PATH"
+ } ,
+
+ { 16, Dec, 2022, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "update mask order in examples 6,6b (mask then blur)",
+   NULL
+ } ,
+
+ {  9, Dec, 2022, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "add more detail to afni_system_check.py -help_dot_files",
+   NULL
+ } ,
+
+ {  7, Dec, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add more detail to timing_tool.py -help_basis",
+   NULL
+ } ,
+
+ { 23, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add examples simple_rest_QC, simple_rest_QC_na",
+   "These are the DEFAULT comparison example in ap_run_simple_rest.tcsh."
+ } ,
+
+ { 23, Nov, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add add -align_unifize_epi local and -compare_to options",
+   NULL
+ } ,
+
+ { 15, Nov, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -find_var_line_blocks for calling find_variance_lines.tcsh",
+   NULL
+ } ,
+
+ { 14, Nov, 2022, RCR, "find_variance_lines.tcsh", MAJOR, TYPE_NEW_PROG,
+   "(w PT/DG) look for columns of high temporal variance in time series",
+   "Will be a recommended QC option in afni_proc.py."
+ } ,
+
+ {  9, Nov, 2022, RCR, "Makefile.macos_10.13_homebrew", MICRO, TYPE_MODIFY,
+   "rename Makefile.macOS_10.13_homebrew to Makefile.macos_10.13_homebrew",
+   "Done for consistency."
+ } ,
+
+ {  2, Nov, 2022, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -sort_method case geme_xnat",
+   "Sort as with geme_index, but pre-sort with RIN rather than alphabetical."
+ } ,
+
+ { 13, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix crash (in afni_base.py) if missing template",
+   "Thanks to R Birn for noting the problem."
+ } ,
+
+ { 13, Oct, 2022, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -no_hist to 3dinfo, to omit the HISTORY text",
+   NULL
+ } ,
+
+ { 13, Oct, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "okay, fix 'final DF fraction' to be wrt uncensored TRs",
+   NULL
+ } ,
+
+ { 12, Oct, 2022, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add basic output of 'final DF fraction'",
+   NULL
+ } ,
+
+ {  8, Oct, 2022, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "w/PT, reformat help examples and remove extra indentation",
+   NULL
+ } ,
+
+ {  6, Oct, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "replace aparc.a2009s+aseg.nii with aparc.a2009s+aseg_REN_all.nii.gz",
+   NULL
+ } ,
+
+ { 20, Sep, 2022, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "make -timing_to_1D overlap error more clear",
+   "Thanks to the suffering of Y Takarae."
+ } ,
+
+ {  6, Sep, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "remove specific commits from cmake/afni_project_dependencies.cmake",
+   "Build off of the current master."
+ } ,
+
+ {  2, Sep, 2022, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "trap NIFTI write errors (via new nifti_image_write_bricks_status())",
+   "Have 3dcopy and 3dreit return non-zero status on failure.\n"
+   "Thanks to J Teves for reminding us of this shortcoming."
+ } ,
+
+ { 30, Aug, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "make -show_example allow unique substring matching",
+   "This allows one to run simply 'afni_proc.py -show_example 6b', say.\n"
+   "Also, pass final_epi_dset as a uvar when there is no warped version."
+ } ,
+
+ { 19, Aug, 2022, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "clean up some warnings in suma_utils.c (and retab and strip whitespace)",
+   "Thanks to markjens@github for noting them."
+ } ,
+
+ { 18, Aug, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "in basic script, do not cat any pre_ss_warn file, as output is now a dict",
+   "Thanks to PT for noting this."
+ } ,
+
+ { 17, Aug, 2022, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if tlrc block and -regress_ROI*, require -volreg_tlrc_warp",
+   "Thanks to Mingbo on MB."
+ } ,
+
+ { 17, Aug, 2022, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
+   "use of -anat is now optional, only -epi is needed",
+   NULL
+ } ,
+
+ { 17, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "allow rebuild of cjpeg/djpeg/libjpeg.a when any is missing",
+   NULL
+ } ,
+
+ { 12, Aug, 2022, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_ubuntu_22_ARM_clang, as written by C Rorden",
+   "Thanks to C Rorden for submitting the file."
+ } ,
+
+ { 12, Aug, 2022, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "replace obsolete two-suffix rule with (.h) prerequisites",
+   "A target like .c.o or .c.$(SO) should not have extra prerequisites.\n"
+   "Use the more expanded form of '%.o : %.c ...' instead.\n"
+   "Also, fix an apparent unit var."
+ } ,
+
+ {  9, Aug, 2022, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "modify how censor dset is applied in get_max_displacement",
+   NULL
+ } ,
+
+ {  3, Aug, 2022, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "3dDeconvolve currently misbehaves when there are no events for IM",
+   "Have the program terminate with an error, until the problem is resolved.\n"
+   "Thanks for T Clarkson for pointing out the problem."
+ } ,
+
+ { 30, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "copy tlrc_base/template to results dir; add opt -tlrc_copy_base",
+   "Done for QC and visualization purposes; requested by P Taylor."
+ } ,
+
+ { 29, Jul, 2022, RCR, "afni_base.py", MINOR, TYPE_MODIFY,
+   "update locate() : return 1 if found, even via @Find",
+   NULL
+ } ,
+
+ { 28, Jul, 2022, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_ENHANCE,
+   "add -Wl,-headerpad_max_install_names to linker command",
+   "Make space for install_name_tool -change to use @executable_path.\n"
+   "Thanks to witherscp on MB for noting the problem."
+ } ,
+
+ { 26, Jul, 2022, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "when warping an anat follower, if appropriate, copy the label table",
+   "Done at the behest of the mighty P Taylor."
+ } ,
+
+ { 22, Jul, 2022, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "add linux_fedora_28_shared; we now distribute linux_fedora_35_shared",
+   NULL
+ } ,
+
  { 24, Jun, 2022, RCR, "3dmask_tool", MICRO, TYPE_MODIFY,
    "apply mask_epi_anat in help examples, rather than full_mask",
    NULL
@@ -344,7 +627,7 @@ afni_history_struct rickr_history[] = {
 
  { 24, Jan, 2022, RCR, "suma", MICRO, TYPE_BUG_FIX,
    "fix dupe symbol (clippingPlaneFile) error for mac 12",
-   "As reported by the international man of mistery, P Kundu."
+   "As reported by the international man of mystery, P Kundu."
  } ,
 
  { 24, Jan, 2022, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_NEW_OPT,
@@ -532,7 +815,7 @@ afni_history_struct rickr_history[] = {
 
  {  8, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_xmat_stype_cols",
-   "Display xmat columns for speicified -stim_* regressor classes."
+   "Display xmat columns for specified -stim_* regressor classes."
  } ,
 
  {  1, Oct, 2021, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
@@ -1360,7 +1643,7 @@ afni_history_struct rickr_history[] = {
 
  { 14, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -compare_opts_vs_opts",
-   "One can compare two afni_proc.py commmands sequentially, that are\n"
+   "One can compare two afni_proc.py commands sequentially, that are\n"
    "not part of the stored examples list.  Consider:\n"
    "   afni_proc.py ... first option set ...    \\\n"
    "                -compare_opts_vs_opts       \\\n"
@@ -1396,7 +1679,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  5, Feb, 2020, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
-   "add inital new library for processing example, lib_ap_examples.py",
+   "add initial new library for processing example, lib_ap_examples.py",
    NULL
  } ,
 
@@ -1725,7 +2008,7 @@ afni_history_struct rickr_history[] = {
 
  { 23, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "updates corresponding to Travis CI OS change: Ubuntu 14->16",
-   "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system udpate,\n"
+   "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system update,\n"
    "and update the notes to include fix of GLwDrawA.h.\n"
    "Also, seem to need to enable mysql."
  } ,
@@ -2048,7 +2331,7 @@ afni_history_struct rickr_history[] = {
    "add options -radial_correlate_blocks and -radial_correlate_opts",
    "Run @raidal_correlate at the end of each specified block, creating one\n"
    "correlation volume per run.  Each voxel gets the correlation of its time\n"
-   "series with a local (slighly Gaussian weighted) average."
+   "series with a local (slightly Gaussian weighted) average."
  } ,
 
  { 13, May, 2019, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
@@ -2499,7 +2782,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  4, Oct, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
-   "wget/curl may remove execute permision, so re-add it",
+   "wget/curl may remove execute permission, so re-add it",
    NULL
  } ,
 
@@ -2673,7 +2956,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 21, Jun, 2018, RCR, "model_PRF_6_BAD", MINOR, TYPE_NEW_PROG,
-   "old model_PRF_6, but with version and gauss_file udpates",
+   "old model_PRF_6, but with version and gauss_file updates",
    "This is for result comparison."
  } ,
 
@@ -2853,7 +3136,7 @@ afni_history_struct rickr_history[] = {
  { 18,  Apr, 2018, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -csim_show_clustsize and helper options to report cluster requirements",
    "Given a cluster table output by 3dClustSim, use this option to extract\n"
-   "the mininum cluster size, given uncorrected and corrected p-values.\n"
+   "the minimum cluster size, given uncorrected and corrected p-values.\n"
    "Use -csim_pthr and -csim_alpha to specify those respective p-values."
  } ,
 
@@ -3955,7 +4238,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 16,  Jun, 2016, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "if NLwarp but no EPI warp, no NL; fix refit of blip median datsets",
+   "if NLwarp but no EPI warp, no NL; fix refit of blip median datasets",
    "User probably forgot -volreg_tlrc_warp, so warn them."
  } ,
 
@@ -4586,7 +4869,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Jul, 2015, RCR, "3dcalc", MICRO, TYPE_MODIFY,
-   "clarify error about mis-match in number of volumes",
+   "clarify error about mismatch in number of volumes",
    NULL
  } ,
 
@@ -5223,7 +5506,7 @@ afni_history_struct rickr_history[] = {
 
  { 22, Oct, 2014, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
    "if padding for dilate/erode steps, preserve ijk_to_dicom_real",
-   "Thanks to A Kurani for nothing the problem."
+   "Thanks to A Kurani for noting the problem."
  } ,
 
  { 20, Oct, 2014, RCR, "imcat", MINOR, TYPE_BUG_FIX,
@@ -5796,7 +6079,7 @@ afni_history_struct rickr_history[] = {
 
  { 16,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "fixed use of num_trs in the case of censoring",
-   "Thanks to K Kerr for nothing the problem."
+   "Thanks to K Kerr for noting the problem."
  } ,
 
  { 16,  Dec, 2013, RCR, "auto_warp.py", MINOR, TYPE_NEW_OPT,
@@ -6052,7 +6335,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  9,  Jul, 2013, RCR, "to3d", MINOR, TYPE_NEW_OPT,
-   "added -ushort2float, for converting unsinged shorts to floats",
+   "added -ushort2float, for converting unsigned shorts to floats",
    "Requested by D Handwerker."
  } ,
 
@@ -6383,7 +6666,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 28, Dec, 2012, RCR, "suma-general", MICRO, TYPE_BUG_FIX,
-   "mri_polyfit() now takes exar paramter, pass NULL",
+   "mri_polyfit() now takes exar parameter, pass NULL",
    NULL
  } ,
 
@@ -7037,7 +7320,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  9, MAR, 2012, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
-   "added $hemi to rm.mean dset during scaling; added -overwrite_resp to SATE",
+   "added $hemi to rm.mean dset during scaling; added -overwrite_resp to SA2E",
    "Surface analysis would fail on 2nd hemi, as rm.mean dset would exist."
    "Also, added new '-overwrite_resp S' to @SUMA_AlignToExperiement command."
  } ,
@@ -7832,7 +8115,7 @@ afni_history_struct rickr_history[] = {
  { 12, MAY, 2011, RCR, "uber_align_test.py", MINOR, TYPE_ENHANCE,
    "many small updates",
    "This set of 3 files was broken off set uber_skel.py, meant to be a\n"
-   "resonable starting point for future uber programs."
+   "reasonable starting point for future uber programs."
  } ,
 
  { 11, MAY, 2011, RCR, "uber_align_test.py", MAJOR, TYPE_ENHANCE,
@@ -8519,7 +8802,7 @@ afni_history_struct rickr_history[] = {
 
  { 7, JUL, 2010, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
    "fixed znzread/write to again return nmembers",
-   "Also, added M Hanke's update to CMakeLists.txt for new realease number."
+   "Also, added M Hanke's update to CMakeLists.txt for new release number."
  } ,
 
  { 7, JUL, 2010, RCR, "nifti_tool", MICRO, TYPE_BUG_FIX,
@@ -8621,7 +8904,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20, MAY, 2010, RCR, "Makefile.NIH.CentOS.5.3_64", MICRO, TYPE_MODIFY,
-   "update CCOLD to compile with gcc verion 3.4",
+   "update CCOLD to compile with gcc version 3.4",
    NULL
  } ,
 

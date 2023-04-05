@@ -113,7 +113,7 @@ static int is_vect_null ( float * v , int npts );
 static int write_float (float *x,char *f_name,int n_points);
 
 
-/* definition and declaration part to suport the main algorithm */
+/* definition and declaration part to support the main algorithm */
 /* -----------------------END-----------------------------------*/
 
 #define free_well(a) { if ((a)) free((a)) ;  (a) = NULL; } 
@@ -1195,7 +1195,7 @@ static void f_mult (float *x,float *y,float *z,int ln)
 /* Important :
    Before you replace this function by a new version, make note of the following
    changes to the function in here: maxdel is changed from lng /3 to lng /2, 
-   and the funcion returns a 1, 2 or 3 in case of encoutered errors instead of 
+   and the function returns a 1, 2 or 3 in case of encountered errors instead of 
    a regular 1 
    Also the function does not output any warning messages to the screen 
    if the delay is larger than one 1/2 a segment length 
@@ -1278,7 +1278,14 @@ static int hilbertdelay_V2 (float *x,
       a=0.0,var_y=0.0,varu_y=0.0,stdv_y=0.0,
       stdvu_y=0.0,var_x=0.0,varu_x=0.0,stdv_x=0.0,stdvu_x=0.0;
       
-      return (0);                  
+      /* [PT: Aug 25, 2022] *don't* return here, but keep going to try
+         the calc; 0 should still be returned in other bad cases if a
+         solution can't be found.  If this *does* return here, then
+         it starts a stream of all-zeros being returned in some cases of 
+         hitting one 'problem' voxel.
+         -> goes along with setting 'opt=0' in main 3ddelay.c file.
+      */
+      //return (0);
    }
 
    
@@ -1527,7 +1534,7 @@ static int hilbertdelay_V2 (float *x,
 
    ifft (Rxx,m+1);          /*calculating autocorrelation of x*/
 
-   c_get (Pxy,Rxy,0,2*lng); /* seperation of real and imaginary parts, 
+   c_get (Pxy,Rxy,0,2*lng); /* separation of real and imaginary parts, 
                                only extract meaningful segment */
    c_get (Pxy,HRxy,1,2*lng);  
 

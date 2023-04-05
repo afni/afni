@@ -49,7 +49,7 @@ class AfniTiming(LD.AfniData):
       if self.verb > 1: print('++ Timing: adding %d rows' % newdata.nrows)
 
       if self.mtype != newdata.mtype:
-         print('** add rows: mis-match mtypes (%d vs. %d)' \
+         print('** add rows: mismatch mtypes (%d vs. %d)' \
                % (self.mtype, newdata.mtype))
 
       # get data and mdata
@@ -420,7 +420,7 @@ class AfniTiming(LD.AfniData):
             tind = row[ind][0]/tr
             # note that rf = 0 now means floor and 1 means ceil
 
-            # add/subract a tiny fraction even for truncation
+            # add/subtract a tiny fraction even for truncation
             if rf == 1.0   :
                if tind == 0: val = 0.0  # to avoid tiny negatives
                else:         val = math.ceil(tind-tiny) * tr
@@ -571,7 +571,7 @@ class AfniTiming(LD.AfniData):
                 min_tr_frac     : minimum fraction of a TR required to set it
                                   (must be in (0.0, 1.0])
          Note that if they are not TR-locked and min_tr_frac <= 0.5, then
-         one stimulus lasting one TR but occuring on the half TR can result
+         one stimulus lasting one TR but occurring on the half TR can result
          in a pair of consecutive 1s.
          ** end save
 
@@ -656,12 +656,15 @@ class AfniTiming(LD.AfniData):
             data[tind][1] = round(data[tind][1]/float(tr),3)
 
             if tind > 0 and data[tind][0] < data[tind-1][1]:
+               estr = '(event times %g and %g)' \
+                      % (tr*data[tind-1][0], tr*data[tind][0])
+               emesg = '** run %d, index %d %s, stimulus overlap' \
+                         % (rind+1, tind, estr)
                if allow_warns:
-                  print('** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind))
+                  print(emesg)
+                       
                else:
-                  return '** run %d, index %d, stimulus overlap with next' \
-                         % (rind, tind), [], []
+                  return emesg, [], []
 
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
@@ -1305,7 +1308,7 @@ def parse_Ncol_tsv(fname, hlabels=None,
       return -1, [], []
 
    # ----------------------------------------
-   # decide on column extration indices, based on hlabels and lines[0:2]
+   # decide on column extraction indices, based on hlabels and lines[0:2]
 
    # if nothing passed, set to defaults
    # - let tsv_hlabels_to_col_list append any mod_*
@@ -1345,13 +1348,13 @@ def parse_Ncol_tsv(fname, hlabels=None,
       col_dur_alt = cols_alt[1]
 
    # perhaps we want to write out cols of interest
-   if not tsv_int is None:
-      # first merge col_inds nand cols_alt, then write
+   if tsv_int is not None:
+      # first be sure any col_dur_alt is in col_inds, then write
       if verb > 1:
          print("== writing to tsv %s" % tsv_int)
       csub = col_inds[:]
-      csub.extend(cols_alt)
-      csub = UTIL.get_unique_sublist(csub)
+      if col_dur_alt >= 0 and col_dur_alt not in csub:
+         csub.append(col_dur_alt)
       write_tsv_cols(lines, csub, ofile=tsv_int)
 
    # if show_only, we are done

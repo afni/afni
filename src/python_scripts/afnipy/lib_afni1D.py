@@ -104,7 +104,7 @@ class Afni1D:
       if self.verb > 2: self.show()
 
    def reduce_by_tlist(self, tlist):
-      """reduce by time list, similiar to afni's {} selector
+      """reduce by time list, similar to afni's {} selector
          this affects run_len and runs, so try to fix those
 
          return 0 on success"""
@@ -257,6 +257,22 @@ class Afni1D:
       cols = self.ordered_cols_by_group_list(gnew)
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
+
+   def list_allzero_cols(self):
+      """return an array of indices where the matrix column is all-zero
+      """
+
+      if not self.ready:
+         print('** list_allzero_cols: Afni1D is not ready')
+         return 1
+
+      zlist = []
+
+      for vind, vec in enumerate(self.mat):
+         if UTIL.vals_are_constant(vec, cval=0):
+            zlist.append(vind)
+
+      return zlist
 
    def show_header(self):
       print('\n'.join(self.header))
@@ -2071,7 +2087,7 @@ class Afni1D:
       """print a distance matrix, to the given number of places
 
          Treating the input as lines of vectors (coordinates), print out an
-         nrows x nrows distance matrix, the Euclidian distance between the
+         nrows x nrows distance matrix, the Euclidean distance between the
          pairs of coordinates.
 
          verb: integral verbosity level (None : use self.verb)
@@ -2125,7 +2141,7 @@ class Afni1D:
 
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
-      """make a string for any entires at or above cutoffs:
+      """make a string for any entries at or above cutoffs:
             cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
 
             cut0, cut1, cut2 are cutoff levels (cut0=highest)
@@ -2564,6 +2580,19 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
+   def show_tpattern(self, mesg='', verb=1):
+      """display the multiband level and to3d-style tpattern
+
+         mesg: if set print before output
+         verb: if 0, no text"""
+
+      if mesg:     print('%s' % mesg, end='')
+      nb, tpat = UTIL.timing_to_slice_pattern([v[0] for v in self.mat])
+      if nb < 0:
+         tpat = 'INVALID'
+      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
+      else:        print('%d %s' % (nb, tpat))
+
    def get_tr_counts(self):
       """return status, self.run_len, self.run_len_nc
 
@@ -2699,68 +2728,99 @@ class Afni1D:
       """compute the maximum pairwise displacement among the
          N-dimensional coordinates (e.g. motion params)
 
-         dtype = 1: enorm
+         dtype = 1: enorm (L2 norm)
 
             - so compute max(dist(x,y)) over all x, y coordinate pairs
 
-         dtype = 0: max abs
+         dtype = 0: L1 norm (was some probably useless max diff)
 
-            compute max absolue pairwise displacement among the N dimensions
-
-            - so compute max(abs(v_i,j - v_i,k)) over all all dimensions i
-              and j,k index pairs
-            - or compute as max(max(v_i)-min(v_i)) over dimensions i
-
+            compute max pairwise displacement among the coordinate pairs
+               using L1 norm (sum of abs(diffs))
+            
           cset is an optional censor dataset (1=keep, 0=censor)
       """
 
       maxdiff = 0
 
-      mat = self.get_censored_mat(cset)
-      if mat == None: mat = self.mat
+      # convenience
+      mat = self.mat
+      nt = self.nt
+      nv = self.nvec
 
-      if self.nvec > 0: nt = len(mat[0])
-      else:             nt = 0
+      if nt == 0: return 0
 
+      # do not apply censoring, but store in sorting matrix
+      censor = 0
+      if cset is not None:
+         if cset.nvec > 0 and cset.nt == nt:
+            censor = 1
+         else:
+            print("** cset nt/nvec mismatch, skipping censor set")
+
+      if censor:
+         clist = cset.mat[0]
+      else:
+         clist = [1] * nt
+      
+      # create displacement list, of length NT*(NT-1)/2
+      # store per pair list of displacement, row1, row2, censor product
       if dtype == 0:    # max vector displacement
-         maxdiff = max([max(vec)-min(vec) for vec in mat])
+         fn = UTIL.loc_sum
+         # sum abs vals
+         dlist = [[fn([abs(mat[i][r1]-mat[i][r2]) for i in range(nv)]),
+                   r1, r2, clist[r1]*clist[r2]] \
+                   for r1 in range(nt) for r2 in range(r1)]
+      else:
+         fn = UTIL.euclidean_norm
+         # store Euclidean norm, row1, row2, censor product, per pair
+         dlist = [[fn([mat[i][r1]-mat[i][r2] for i in range(nv)]),
+                   r1, r2, clist[r1]*clist[r2]] \
+                   for r1 in range(nt) for r2 in range(r1)]
 
-      else:             # max euclidean distance
+      # and grab the biggest non-censored value
+      dlist.sort()
+      maxind = len(dlist)-1
+      # while the big ones are censored, decrement
+      while maxind > 0 and not dlist[maxind][3]:
+         maxind -= 1
 
-         # get all distances, a 2D list of the form [[DIST, i, j]]
-         # (so length is NT choose 2 = (NT*(NT-1)/2), which is possibly long)
+      # if list is fully censored, just return
+      if maxind == 0 and not dlist[maxind][3]:
+         if self.verb:
+            print("== no max to compute from fully censored list")
+         return 0
 
-         en = UTIL.euclidean_norm
-         dlist = [[en([mat[i][r1]-mat[i][r2] for i in range(self.nvec)]),
-                     r1, r2] for r1 in range(nt) for r2 in range(r1)]
-
-         # and grab the biggest
-         dlist.sort()
-         maxdiff = dlist[-1][0]
+      # else we have an actual maximum difference, and index locations
+      maxdiff = dlist[maxind][0]
          
-         if self.verb > 1:
-            i = dlist[-1][1]
-            j = dlist[-1][2]
-            print('++ max edisp %.10f between indices %d and %d' \
-                  % (maxdiff, i, j))
+      if self.verb > 1:
+         i = dlist[maxind][1]
+         j = dlist[maxind][2]
+         print('++ max edisp %.10f between indices %d and %d' \
+               % (maxdiff, i, j))
+         if self.verb > 2:
+            print('  mat : %d x %d, dtype %d'% (nv, self.nt, dtype))
+            print('  mat[%d] = %s' % (i, [mat[r][i] for r in range(nv)]))
+            print('  mat[%d] = %s' % (j, [mat[r][j] for r in range(nv)]))
 
-         del(dlist)
+      del(dlist)
 
       return maxdiff
 
-   def get_max_displacement_str(self, mesg='', enorm=2, verb=1):
+   def get_max_displacement_str(self, mesg='', enorm=2, cset=None, verb=1):
       """display the maximum displacement based on enorm
             enorm = 1   : absolute displacement over dims only
             enorm = 2   : enorm only
             enorm = 3   : both
+            cset        : censor set
       """
 
       rstr = ''         # return string
 
       if enorm == 1 or enorm == 3:
-         maxabval = self.get_max_displacement(0)
+         maxabval = self.get_max_displacement(0, cset=cset)
       if enorm:
-         maxenorm = self.get_max_displacement(1)
+         maxenorm = self.get_max_displacement(1, cset=cset)
 
       if verb > 0:
          if enorm == 1:   rstr = 'max_param_diff = %g' % maxabval
@@ -2855,7 +2915,7 @@ class Afni1D:
             IM:     -stim_times_IM
 
       """
-      # make a list of acceptible options
+      # make a list of acceptable options
       if 'ALL' in stypes:
          optlist = ['-stim_times', '-stim_times_AM1', '-stim_times_AM2',
                     '-stim_times_IM']
@@ -2998,17 +3058,19 @@ class Afni1D:
             1: baseline (group  -1)
             2: motion   (group   0)
             4: interest (group > 0)
+            8: allzero
 
-         Do not return an empty list.  If the groups do not exist or are
-         not found, return '0..$'."""
+         Do not return an empty list, unless allzero is given.
+         If the groups do not exist or are not found, return '0..$'."""
 
       default = '0..$'
 
       if self.verb > 1: print('-- show indices, types = %d, groups = %s' \
                               % (ind_types, self.groups))
 
-      bmask = ind_types & 7
+      bmask = ind_types & 15
       if not self.ready:           return default
+      # treat no groups and all groups the same
       if bmask == 0 or bmask == 7: return default
       if len(self.groups) < 1:     return default
 
@@ -3020,10 +3082,13 @@ class Afni1D:
          ilist += [ind for ind in allind if self.groups[ind] == 0]
       if ind_types & 4:
          ilist += [ind for ind in allind if self.groups[ind] > 0]
+      # all-zero is more work
+      if ind_types & 8:
+         ilist += self.list_allzero_cols()
       ilist.sort()
 
       elist = UTIL.encode_1D_ints(ilist)
-      if elist == '':
+      if elist == '' and not (ind_types & 8):
          if self.verb > 1: print('-- replacing empty encode list with full')
          elist = default
       return elist
@@ -3778,7 +3843,7 @@ class AfniData(object):
       return 0
 
    def transpose(self):
-      """the tranpose operation requires rectangular data"""
+      """the transpose operation requires rectangular data"""
       if not self.ready: return 1
 
       # allow transpose if max row length is 1
@@ -4095,7 +4160,7 @@ class AfniData(object):
                 - maximum should be less than current run_length
          if tr is passed, scale the run lengths
 
-         return -1 on fatal erros
+         return -1 on fatal errors
                  0 on OK
                  1 on non-fatal errors
       """
@@ -4338,7 +4403,7 @@ class AfniData(object):
          return 1
 
    def file_type_errors_global(self, run_lens=[], tr=0.0, verb=1):
-      """ return -1 on fatal erros
+      """ return -1 on fatal errors
                   0 on OK
                   1 on non-fatal errors
       """
@@ -4722,7 +4787,7 @@ class AfniData(object):
       # self.mdata
       lorig = self.mdata
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding mdata")
             d = []
@@ -4737,7 +4802,7 @@ class AfniData(object):
       # self.alist
       lorig = self.alist
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding alist")
             d = []
@@ -4752,7 +4817,7 @@ class AfniData(object):
       # self.run_lens
       lorig = self.run_lens
       if lorig != None:
-         # if length mis-match, skip (probably empty)
+         # if length mismatch, skip (probably empty)
          if len(lorig) == nold:
             if self.verb > 3: print("++ padding run_lens")
             d = []

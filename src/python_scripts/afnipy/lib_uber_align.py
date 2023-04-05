@@ -629,7 +629,7 @@ Overview:
    Step 3. Choose whether to align dataset centers.
 
            Some datasets do not have a properly defined location in space,
-           and so they are very far apart when overlayed on each other (in
+           and so they are very far apart when overlaid on each other (in
            afni).  By aligning centers, the middle of each dataset will be
            set to that of the 'center base' dataset, so they at least start
            off in somewhat the same location.
@@ -770,7 +770,7 @@ Writing the GUI
    bar, and menu functionality like creating and processing the script can be
    traced separately.
 
-   One could start by having the library genrate a very simple script, and
+   One could start by having the library generate a very simple script, and
    then setting up the GUI to deal with it.  Then just add the interfaces for
    all of the variables.  That will allow starting with a testable platform.
 
@@ -784,7 +784,7 @@ Writing the GUI
            - if separate button list to update textLine, have callback to
              both update the textLine and to set uvar
            - if table, add to update_svars_from_tables()
-              - also, deal with table udpates (e.g. browse, clear, add, help)
+              - also, deal with table updates (e.g. browse, clear, add, help)
               - processed in CB_gbox_PushB?
         - add var to apply_uvar_in_gui (for updating GUI from vars)
         - add var to update_uvars_from_gui

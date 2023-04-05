@@ -39,7 +39,7 @@ void usage_SUMA_quickspec(SUMA_GENERIC_ARGV_PARSE *ps)
 "                   quick.spec (the default) spec file.\n"
 "   -h or -help: This message here.\n"
 "\n"
-"  You can use any combinaton of -tn and -tsn options.\n"
+"  You can use any combination of -tn and -tsn options.\n"
 "  Fields in the spec file that are (or cannot) be specified\n"
 "  by this program are set to default values.\n"
 "\n   This program was written to ward off righteous whiners and is\n"
@@ -94,7 +94,7 @@ int main (int argc,char *argv[])
    N_surf = 0;
    N_name = 0;
    spec_name = NULL;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_quickspec(ps);
@@ -484,7 +484,7 @@ int main (int argc,char *argv[])
          }
       }
    }
-   /* now loop accross surfaces and write out the results */
+   /* now loop across surfaces and write out the results */
    idefstate = 0;
    for (i=0; i < N_surf; ++i) {
       fprintf(fid, "\nNewSurface\n");

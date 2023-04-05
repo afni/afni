@@ -2285,7 +2285,7 @@ Variable: AFNI_THRESH_BIGSTEP
 -----------------------------
 The AFNI threshold sliders (in the Define Overlay control panels and
 the Render Dataset plugins) are divided into 10000 steps from bottom
-to top. If you click in the trough or use the PageUp/PageDown keys,
+to top. If you click in the through or use the PageUp/PageDown keys,
 the default action is to move the slider 10 of the steps at once.
 (The up and down arrow keys move 1 step at a time.)  You can change
 this big step from the default of 10 to any value between 1 and 1000
@@ -2604,7 +2604,7 @@ If this variable is NOT set to anything, then it is the same as NO.
 
 MPEG filenames input to AFNI programs (as sources of images or as
 datasets) must end in ".mpg", ".MPG", ".mpeg", or ".MPEG". MPEG
-datasets will be read so that the individal images are displayed in an
+datasets will be read so that the individual images are displayed in an
 Axial image window.
 
 Note that decoding a long .mpg file that happens to be in your
@@ -2794,7 +2794,7 @@ sensitive):
 This variable replaces the 2 variables listed below. Again, this only
 controls the INITIAL setting of the widgets -- you can change them in
 the AFNI GUI later at any time. Setting this variable after AFNI
-starts (e.g., from plugout_drive) will have little discernable effect.
+starts (e.g., from plugout_drive) will have little discernible effect.
 
 -------------------------
 Variable: AFNI_FUNC_ALPHA
@@ -2863,7 +2863,7 @@ even when the overlay is a 'bucket' dataset without a time axis.
 ----------------------------
 Variable: AFNI_CLICK_MESSAGE
 ----------------------------
-If this veriable is set to NO, then the string
+If this variable is set to NO, then the string
   [---------------]
   [ Click in Text ]
   [ to Pop Down!! ]
@@ -2978,7 +2978,7 @@ to see all conversion warnings.
 --------------------------
 Variable: AFNI_DEBUG_PLUG_VOL2SURF
 --------------------------
-Use this interger variable to initialize the debug level in
+Use this integer variable to initialize the debug level in
 plug_vol2surf. The current set of acceptable values is {0..5}.
 
 --------------------------
@@ -3070,7 +3070,7 @@ variable AFNI_RESCAN_METHOD to.
 Variable: AFNI_RESCAN_AT_SWITCH
 -------------------------------
 If this YES/NO variable is set to YES, then the interactive AFNI
-program will rescan all session directories everytime you click on
+program will rescan all session directories every time you click on
 either of the 'Overlay' or 'Underlay' buttons. Basically, this is just
 another way for you to avoid pressing the 'Rescan' buttons. (Unlike
 with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
@@ -3491,7 +3491,7 @@ reasons, dating back to the old FD program from Medieval Times.
 Variable: AFNI_IMAGE_COLORSCALE
 -------------------------------
 This variable defines the colorscale used by the 'Colr' button
-at the top right of the AFNI image viwer window to colorize
+at the top right of the AFNI image viewer window to colorize
 the Underlay image -- the Overlay colorization is controlled
 from the colorscale on the 'Define Overlay' control pane.
 At this time [Oct 2019], only the following four color scales

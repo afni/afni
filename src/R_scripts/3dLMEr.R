@@ -9,7 +9,7 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dLMEr'
 # Global variables
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avoiding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin 3dLMEr Input functions ################################
@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.6, June 29, 2021
+Version 1.0.2, Apr 3, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -48,10 +48,10 @@ Introduction
  http://afni.nimh.nih.gov/sscc/staff/gangc/pub/lmerNotations.pdf
  (adopted from https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html)
 
- Similar to 3dLME, all the main effects and interactions are automatically available
+ Like 3dLME, all main effects and interactions are automatically available
  in the output while simple effects that tease apart those main effects and
  interactions would have to be requested through options -gltCode or -glfCode. Also,
- the 3dLMEr interface is largely similar to 3dLME except
+ the 3dLMEr interface is largely like 3dLME except
 
  1) the random-effects components are incorporated as part of the model
  specification, and thus the user is fully responsible in properly formulating the
@@ -78,11 +78,10 @@ Introduction
  Cite the following if test-retest analysis is performed using the trial-level
  effect estimates as input with 3dLEMr through the option -TRR:
  
- Chen G, et al., Beyond the intraclass correlation: A hierarchical modeling
- approach to test-retest assessment.
- https://www.biorxiv.org/content/10.1101/2021.01.04.425305v1
-
- To be added soon---
+ Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D., 
+ Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. Beyond 
+ linearity in neuroimaging: Capturing nonlinear relationships with application 
+ to longitudinal studies. NeuroImage 233, 117891. 
 
  Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain
  the output int the same format of the input, append a proper suffix to the
@@ -98,7 +97,7 @@ Introduction
 
  Whenever a quantitative variable is involved, it is required to explicitly
  declare the variable through option -qVars. In addition, be mindful about the
- centering issue of each quantitive quantitative variable: you have to decide
+ centering issue of each quantitative variable: you have to decide
  which makes more sense in the research context - global centering or within-
  condition (or within-group) centering? Here is some background and discussion
  about the issue:
@@ -106,7 +105,7 @@ Introduction
 
  The following exemplifying scripts are good demonstrations. More examples will
  be added in the future if I could crowdsource more scenarios from the users
- (including you the reader). In case you find one example similar to your data
+ (including you the reader). In case you find one example like your data
  structure, use the example(s) as a template and then build up your own script.
 
  In addition to R installation, the following R packages need to be installed
@@ -115,7 +114,7 @@ Introduction
 
  rPkgsInstall -pkgs "lmerTest,phia,snow"
 
- Alternatively you may install them in R:
+ Alternatively, you may install them in R:
 
  install.packages("lmerTest")
  install.packages("phia")
@@ -143,7 +142,7 @@ Introduction
 "Example 1 --- Simplest case: LME analysis for one group of subjects each of
   which has three effects associated with three emotions (pos, neg and neu),
   and the effects of interest are the comparisons among the three emotions
-  at the populaton level (missing data allowed). This data structure is usually
+  at the population level (missing data allowed). This data structure is usually
   considered as one-way repeated-measures (or within-subject) ANOVA if no
   missing data occurred. The LME model is typically formulated with a random
   intercept in this case. With the option -bounds, values beyond [-2, 2] will
@@ -154,6 +153,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                                     \\
          -mask myMask+tlrc                                          \\
           -model  'emotion+(1|Subj)'                                \\
+          -SS_type 3                                                \\
           -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
@@ -192,6 +192,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                   \\
           -mask myMask+tlrc                       \\
           -model  'emotion*RT+(RT|Subj)'          \\
+          -SS_type 3                              \\
           -bounds -2 2                            \\
           -qVars  'RT'                            \\
           -qVarCenters 0                          \\
@@ -221,8 +222,8 @@ Introduction
    ex3 <-
 "Example 3 --- LME analysis for one group of subjects each of which has three
   effects associated with three emotions (pos, neg and neu), and the effects
-  of interest are the comparisons among the three emotions  at the populaton
-  level. As the data were acquired across 12 scanning sites,  we set up an LME
+  of interest are the comparisons among the three emotions at the population
+  level. As the data were acquired across 12 scanning sites, we set up an LME
   model with a crossed random-effects structure, one for cross-subjects and one
   for cross-sites variability.
 
@@ -230,6 +231,7 @@ Introduction
     3dLMEr -prefix LME -jobs 12                       \\
           -mask myMask+tlrc                           \\
           -model  'emotion+(1|Subj)+(1|site)'         \\
+          -SS_type 3                                  \\
           -bounds -2 2                                \\
           -gltCode pos      'emotion : 1*pos'                       \\
           -gltCode neg      'emotion : 1*neg'                       \\
@@ -255,7 +257,36 @@ Introduction
    \n"
 
    ex4 <-
-"Example 4 --- Test-retest reliability. LME model can be adopted for test-
+"Example 4 --- LME analysis with a between-subject factor (group: two groups of
+  subjects -- control, patient), two within-subject factros (emotion: 3 levels 
+  -- pos, neg, neu; type: 2 levels -- face, word), one quantitative variable (age).
+
+-------------------------------------------------------------------------
+    3dLMEr -prefix LME -jobs 12                                                           \\
+          -mask myMask+tlrc                                                               \\
+          -model  'group*emotion*type+age+(1|Subj)+(1/Subj:emotion)+(1|Subj:type)'        \\
+          -SS_type 3                                                                      \\
+          -bounds -2 2                                                                    \\
+          -gltCode pat.pos      'gruop : 1*patient emotion : 1*pos'                       \\
+          -gltCode pat.neg      'gruop : 1*patient emotion : 1*neg'                       \\
+          -gltCode ctr.pos.age  'gruop : 1*control emotion : 1*pos age :'                 \\
+          -dataTable                                              \\
+          Subj  group    emotion  type  age  InputFile            \\
+          s1    control   pos     face  35  s1_pos+tlrc           \\
+          s1    control   neg     face  35  s1_neg+tlrc           \\
+          s1    control   neu     face  35  s1_neu+tlrc           \\
+          s2    control   pos     face  23  s2_pos+tlrc           \\
+          s2    control   neg     face  23  s2_neg+tlrc           \\
+          s2    control   pos     face  23  s2_neu+tlrc           \\
+          ...         		
+          s80   patient   pos     word  28  s80_pos+tlrc          \\
+          s80   patient   neg     word  28  s80_neg+tlrc          \\
+          s80   patient   neu     word  28  s80_neu+tlrc          \\
+          ...
+   \n"
+
+   ex5 <-
+"Example 5 --- Test-retest reliability. LME model can be adopted for test-
   retest reliability analysis if trial-level effect estimates (e.g., using
   option -stim_times_IM in 3dDeconvolve/3dREMLfit) are available from each
   subjects. The following script demonstrates a situation where each subject
@@ -282,7 +313,7 @@ Introduction
   0.5 with the option -qVars 'cond'. Code subject and session as factor
   labels with labels. Below is an example of the data table. There is no 
   need to add backslash at the end of each line. If sub-brick selector
-  is used, do NOT use gziped files (otherwise the file reading time would
+  is used, do NOT use gzipped files (otherwise the file reading time would
   be too long) and do NOT add quotes around the square brackets [] for the
   sub-brick selector.
  
@@ -319,7 +350,7 @@ Introduction
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep=''))
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ex5, ss, sep='\n')
 
    if (adieu) exit.AFNI();
 }
@@ -447,7 +478,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-glfCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-glfCode label CODING: Specify a general linear F-style (GLF) formulation",
    "         with the weights among factor levels in which two or more null",
-   "         relationships (e.g., A-B=0 and B-C=0) are innvolved. The symbolic",
+   "         relationships (e.g., A-B=0 and B-C=0) are involved. The symbolic",
    "         coding has to be within (single or double) quotes. For example, the",
    "         coding '-glfCode AvBvc 'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos''",
    "         examines the main effect of Condition at the positive Emotion with",
@@ -514,7 +545,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         file, e.g., calling it table.txt, and then in the script specify the data",
    "         with '-dataTable @table.txt'. However, when the table is provided as a",
    "         separate file, do NOT put any quotes around the square brackets for each",
-   "         sub-brick,otherwise the program would not properly read the files, unlike the",
+   "         sub-brick, otherwise the program would not properly read the files, unlike the",
    "         situation when quotes are required if the table is included as part of the",
    "         script. Backslash is also not needed at the end of each line, but it would",
    "         not cause any problem if present. This option of separating the table from",
@@ -524,12 +555,21 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
                      ) ),
 
+     '-SS_type' = apl(n=1, d=3, h = paste(
+   "-SS_type NUMBER: Specify the type for sums of squares in the F-statistics.",
+   "         Three options are: sequential (1), hierarchical (2), and marginal (3).",
+   "         When this option is absent (default), marginal (3) is automatically set.",
+   "         Some discussion regarding their differences can be found here:",
+   "         https://sscc.nimh.nih.gov/sscc/gangc/SS.html\n ",
+             sep = '\n'
+                     ) ),		     
+
       '-help' = apl(n=0, h = '-help: this help message\n'),
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" ),
 
        '-cio' = apl(n=0, h = paste(
-   "-cio: Use AFNI's C io functions, which is the default. Alternatively -Rio",
+   "-cio: Use AFNI's C io functions, which is the default. Alternatively, -Rio",
    "         can be used.\n", sep='\n')),
        '-Rio' = apl(n=0, h = "-Rio: Use R's io functions. The alternative is -cio.\n")
 
@@ -561,6 +601,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$gltCode    <- NULL
       lop$glfCode  <- NULL
       lop$dataTable <- NULL
+      lop$SS_type <- 3
 
       lop$iometh  <- 'clib'
       lop$dbgArgs <- FALSE # for debugging purpose
@@ -587,6 +628,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
+	     SS_type = lop$SS_type <- ops[[i]],
 
              help = help.LME.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
@@ -667,7 +709,8 @@ process.LME.opts <- function (lop, verb = 0) {
                        'format other than BRIK'))
    }
    # assume the quantitative variables are separated by + here
-   if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   #if(!is.na(lop$qVars)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   if(!identical(lop$qVars, NA)) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!(is.null(lop$bounds))) {
@@ -685,9 +728,8 @@ process.LME.opts <- function (lop, verb = 0) {
       lop$dataStr <- NULL
       for(ii in 1:wd) lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
       names(lop$dataStr) <- lop$dataTable[1:wd]
-      # wow, terrible mistake here with as.numeric(lop$dataStr[,jj])
-      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
-      if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
+      if(!identical(lop$qVars, NA)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       #if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
       for(ii in 1:(wd-1)) if(sapply(lop$dataStr, class)[ii] == "character")
          lop$dataStr[,ii] <- as.factor(lop$dataStr[,ii])
@@ -741,7 +783,8 @@ process.LME.opts <- function (lop, verb = 0) {
          return(NULL)
       }
       #lop$maskData <- mm$brk[,,,1]
-      lop$maskData <- mm$brk
+      #lop$maskData <- mm$brk
+      lop$maskData <- ifelse(abs(mm$brk) > tolL, 1, 0) # 01/17/2023: sometimes mask is defined as 0s and nonzeros
       if(verb) cat("Done read ", lop$maskFN,'\n')
       if(dim(mm$brk)[4] > 1) stop("More than 1 sub-brick in the mask file!") 
    }
@@ -761,7 +804,7 @@ runLME <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$NoBrick)
    if(!is.null(lop$resid)) {
-      resid <- rep(0, length(myData))
+      resid <- rep(0, nrow(lop$dataStr))
       res.na <- which(is.na(myData)) # indices for missing data
    }
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
@@ -775,16 +818,17 @@ runLME <- function(myData, DM, tag) {
       try(fm <- lmer(lop$model, data=DM), silent=TRUE)
 
       if(!is.null(fm)) {
-         #Stat[1:lop$nF] <- anova(fm)$`F value` # F-stat
-	 Stat[1:lop$nF] <- qchisq(anova(fm)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
-	 #qnorm(anova(fm)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
+         #Stat[1:lop$nF] <- anova(fm, type=lop$SS_type)$`F value` # F-stat
+	 Stat[1:lop$nF] <- qchisq(anova(fm, type=lop$SS_type)$`Pr(>F)`, 2, lower.tail = F) # convert to chisq
+	 #qnorm(anova(fm, type=lop$SS_type)$`Pr(>F)`/2, lower.tail = F) # Z-stat: should use one-tailed!
 	 if(lop$num_glt > 0) for(ii in 1:lop$num_glt) {
             tt <- NULL
-            if(is.na(lop$gltList[[ii]])) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
+            #if(is.na(lop$gltList[[ii]])[1]) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]],
+	    if(identical(lop$gltList[[ii]], NA)) tt <- tryCatch(testInteractions(fm, pairwise=NULL, slope=lop$slpList[[ii]], # 01/19/2023: fix the problem w/ length of lop$gltList > 1
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL) else
             tt <- tryCatch(testInteractions(fm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]],
                covariates=lop$covValList[[ii]], adjustment="none"), error=function(e) NULL)
-            if(!is.null(tt)) {
+            if(!is.null(tt)[1]) {
                Stat[lop$nF[1]+2*ii-1] <- tt[1,'Value']
 	       Stat[lop$nF[1]+2*ii]   <- sign(tt[1,'Value'])*qnorm(tt[1,'Pr(>Chisq)']/2, lower.tail = F)  # convert chisq to Z
             }
@@ -797,7 +841,7 @@ runLME <- function(myData, DM, tag) {
 	    ff <- tryCatch(testFactors(fm, levels=lop$glfList[[ii]],
 	       slope=lop$slpListF[[ii]], covariates=lop$covValListF[[ii]],
 	       adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL)
-            if(!is.null(ff)) {
+            if(!is.null(ff)[1]) {
                Stat[lop$nF[1]+2*lop$num_glt+ii] <- qchisq(ff[2,'Pr(>Chisq)'], 2, lower.tail = F) # glf[2,2]  # convert chisq to Z
             }
          }
@@ -948,9 +992,11 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
-   errex.AFNI(c("At least one of the input files has different dimensions:\n",
-   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
-   "or     (2) some input files have more than one value per voxel.\n",
+   errex.AFNI(c("Dimension mismatch!\n",
+   "Check files in the InputFile column all have\n",
+   " (1) a single timepoint/value per voxel\n",
+   "     Use sub-brick selectors if \"3dinfo -nt\" is >1 volume",
+   " (2) the same number of voxels along X, Y, and Z axes\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
    "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
@@ -1017,7 +1063,14 @@ cat('is likely inappropriate.\n\n')
 
 # pick up a test voxel
 if(!is.na(lop$maskFN)) {
-  idx <- which(lop$maskData == 1, arr.ind = T)
+   idx <- which(lop$maskData == 1, arr.ind = T)
+
+  # make sure there was something in the mask
+  #if(length(idx)==0L) errex.AFNI(
+  # c("Input mask has no voxels == 1!\n",
+  #   "If your mask has many non-zero values (e.g an atlas),\n",
+  #   "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
+
   idx <- idx[floor(dim(idx)[1]/2),1:3]
   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
   ii <- xinit; jj <- yinit; kk <- zinit
@@ -1056,7 +1109,8 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+         #if(is.na(lop$gltList[[n]])[1]) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+	 if(identical(lop$gltList[[n]], NA)) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL, # 01/19/2023: fix the problem w/ length of lop$gltList > 1
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
@@ -1082,7 +1136,7 @@ while(is.null(fm)) {
          nT          <- 2*nrow(summary(fm)$coefficients)
          lop$NoBrick <- nT + 2 # 2 ICC values: one for avefage and one for contrast
       } else {
-         lop$nF      <- nrow(anova(fm))    # total number of F-stat
+         lop$nF      <- nrow(anova(fm, type=lop$SS_type))    # total number of F-stat
          nT          <- 2*lop$num_glt
          lop$NoBrick <- lop$nF + nT + lop$num_glf
       }
@@ -1249,7 +1303,7 @@ if(lop$TRR) {
    for(n in 1:nrow(summary(fm)$coefficients)) 
       statsym <- c(statsym, list(list(sb=2*n-1, typ="fizt", par=NULL)))
 } else {
-   brickNames <- paste(rownames(anova(fm)), 'Chi-sq')
+   brickNames <- paste(rownames(anova(fm, type=lop$SS_type)), 'Chi-sq')
    if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
       brickNames <- append(brickNames, lop$gltLabel[n])
       brickNames <- append(brickNames, paste(lop$gltLabel[n], "Z"))

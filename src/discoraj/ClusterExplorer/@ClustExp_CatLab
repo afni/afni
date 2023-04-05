@@ -110,7 +110,7 @@ endif
 # 3dTcat -overwrite -prefix delete.me00.nii.gz "$images"
 3dcalc -a "$images" -expr 'a' -prefix delete.me00.nii.gz
 
-## give the propper labels, save out as prefix
+## give the proper labels, save out as prefix
 3drefit -relabel_all_str "${labels}" delete.me00.nii.gz
 3dcopy delete.me00.nii.gz $prefix
 

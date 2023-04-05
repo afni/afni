@@ -18,7 +18,7 @@ g_history = """
      - process local vars in string format, not QString
      - current font is courier bold
   May 11, 2011: added createAction, addActions and resize_table_cols
-  May 13, 2011: added make_button, lable, checkbox, line
+  May 13, 2011: added make_button, label, checkbox, line
 
 - glt box:
    - write make_gltsym_table -> to self.gvars.Table_gltsym
@@ -1580,7 +1580,7 @@ class TcshCommandWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass
@@ -1743,7 +1743,7 @@ class ProcessWindow(QtGui.QMainWindow):
                    self.readstdout)
 
       # self.connect(self.process, QtCore.SIGNAL('finished()'), self.finished)
-      # 'finished' does not work via QtCore.SIGNAL, but funtion is not so
+      # 'finished' does not work via QtCore.SIGNAL, but function is not so
       # necessary, so just 'try' the new way...
       try: self.process.finished.connect(self.finished)
       except: pass

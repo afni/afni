@@ -52,7 +52,7 @@ history for $prog :
   2.1  16 Feb 2016 : added -ver and initial statement of version
   2.2  19 Feb 2016 : minor text changes (note get_prog and appease dglen)
   2.3  29 Mar 2016 : added -no_cert_verify to omit certificate verification
-  2.4  30 Mar 2016 : possibly udpate .bashrc after .cshrc
+  2.4  30 Mar 2016 : possibly update .bashrc after .cshrc
   2.5  07 Apr 2016 : added -proto and -test_protos options
   2.6  08 Apr 2016 : save -test_protos results
   2.7  28 Apr 2016 : added -local_package option
@@ -85,6 +85,7 @@ history for $prog :
   3.18 10 Jan 2022 : if no .tcshrc, create one to source .cshrc
   3.19 11 Jan 2022 : if not found, init .afnirc/.sumarc
   3.20  3 May 2022 : for anyos packages, test update with AFNI_version.txt
+  3.21 22 Jul 2022 : add linux_fedora_28_shared to obsolete_list
 
 -------------------------------------------------------------------------------
 EOF
@@ -93,18 +94,19 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.20, May 3, 2022"
+set aub_version = "3.21, July 22, 2022"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
 set obsolete_list = (                                           \
         linux_gcc32 linux_gcc33_64 linux_glibc22                \
         NIH.openSUSE.11.4_64                                    \
-        linux_fedora_21_64 linux_fedora_25_64                   \
-        solaris29_suncc solaris29_suncc_64                      \
-        macosx_10.5_Intel_64 macosx_10.6_Intel_64               \
-        macosx_10.7_Intel_64 macosx_10.7_local                  \
-        macosx_10.8_gcc macosx_10.8_icc                         \
+        linux_fedora_21_64         linux_fedora_25_64           \
+        linux_fedora_28_shared                                  \
+        solaris29_suncc            solaris29_suncc_64           \
+        macosx_10.5_Intel_64       macosx_10.6_Intel_64         \
+        macosx_10.7_Intel_64       macosx_10.7_local            \
+        macosx_10.8_gcc            macosx_10.8_icc              \
         )
 
 # ----------------------------------------------------------------------
@@ -348,7 +350,7 @@ Install or update the AFNI binaries, either via '-defaults' or by the
 
 examples:
 
-    individual user: initial install or udpate
+    individual user: initial install or update
 
        The default package is linux_openmp_64 (Linux) or macos_10.12_local
        (OS X).  The default binary directory is ~/abin.
@@ -356,7 +358,7 @@ examples:
        @update.afni.binaries -defaults
 
 
-    root user: initial install or udpate
+    root user: initial install or update
 
        @update.afni.binaries -package linux_openmp_64 \\
                              -bindir /usr/local/AFNIbin
@@ -712,7 +714,7 @@ if ( $use_curl || $missing_wget ) then
     set get_prog = ( curl -O -f )
 endif
 
-# do we verify certificates via CA list?  if not, speicify
+# do we verify certificates via CA list?  if not, specify
 if ( ! $cert_verify ) then
    if ( $get_prog[1] == "wget" ) then
       set get_prog = ( $get_prog --no-check-certificate )
@@ -1038,7 +1040,7 @@ if ( $test_protos ) then
 endif
 
 # ----------------------------------------------------------------------
-# revert to previous version, if requrested
+# revert to previous version, if requested
 if ( $revert ) then
    # revert to backup
    if ( ! -d ../$backup_dir ) then
@@ -1232,7 +1234,7 @@ endif
 
 # actually install the new binaries
 if ( $use_rsync ) then
-   echo "++ synching new binaries..."
+   echo "++ syncing new binaries..."
    # either sync package or files
    if ( $#prog_list > 0 ) then
       rsync -av * ..
@@ -1490,7 +1492,7 @@ EOF
 
    endif
 
-   # udpates for zsh
+   # updates for zsh
    set brcfile = ~/.zshrc
    \grep all_progs.COMP.zsh $brcfile >& /dev/null
    set pstatus = $status

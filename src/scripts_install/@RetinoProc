@@ -466,7 +466,8 @@ foreach sd ($sides)
          endif            
          if (-f $dset) then
             if (  ! -f $class.sm.SmPar.1D ) then
-         echo "Smoothing $dset to $sfwhm mm FWHM and creating $class.sm.SmPar.1D"
+               echo "Smoothing $dset to $sfwhm mm FWHM" \
+                    "and creating $class.sm.SmPar.1D"
                SurfSmooth  -spec          ${specs[$sdc]} \
                            -surf_A        ${sd}.smoothwm.${stype} \
                            -input         $dset \
@@ -475,20 +476,24 @@ foreach sd ($sides)
                            -blurmaster    $dset \
                            -detrend_master \
                            -overwrite     \
-                           -output        $stim_direc[$tp].sm.$sd.niml.dset\
+                           -output        $stim_direc[$tp].sm.$sd.niml.dset \
                            > $class.sm.SmPar.1D
+               set smfile = $stim_direc[$tp].sm.$sd.niml.dset.1D.smrec
+               set pars = ( `1dcat $smfile | tail -n 1` )
             else
-               echo "Reusing $class.sm.SmPar.1D"
+               echo "Reusing $class.sm.SmPar.1D and $smfile"
             endif
             if ( ! -f $stim_direc[$tp].sm.$sd.niml.dset ) then
-         echo "Smoothing $dset to $sfwhm mm FWHM per $class.sm.SmPar.1D"
-               set pars = `1dcat $class.sm.SmPar.1D`
+               echo "Smoothing $dset to $sfwhm mm FWHM via params $pars"
+               echo "   (as implied by $smfile)"
+               # get pars from $smfile, instead   7 Feb 2023 [rickr]
+               # set pars = `1dcat $class.sm.SmPar.1D`
                SurfSmooth  $eu -spec          ${specs[$sdc]} \
                            -surf_A        ${sd}.smoothwm.${stype} \
                            -input         $dset \
                            -met           HEAT_07   \
-                           -Niter         $pars[1]\
-                           -sigma         $pars[2]\
+                           -Niter         $pars[1] \
+                           -sigma         $pars[3] \
                            -overwrite     \
                            -output       $stim_direc[$tp].sm.$sd.niml.dset
             else

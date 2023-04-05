@@ -136,7 +136,7 @@ int main (int argc,char *argv[])
    olabel = 0;
    keepsep = 0;
    nodups = 0;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /* SUMA_LH("Parsing command line..."); */
       
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -371,7 +371,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      /* Now go throught the ROIs and load them if possible into ROIv */
+      /* Now go throughout the ROIs and load them if possible into ROIv */
       SUMA_LHv("Cycling over %d rois\n", N_tROI);
       for (ii=0; ii < N_tROI; ++ii) {
          if (!Parent_idcode_str) {

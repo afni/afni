@@ -304,7 +304,7 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "How To See Atlas regions overlaid in the AFNI GUI:\n"
 "--------------------------------------------------\n"
 "   To see specific atlas regions overlaid on underlay and other overlay data,\n"
-"     1. In Overlay control panel, check \"See TT Atlas Regions\" \n"
+"     1. In Overlay control panel, check \"See Atlas Regions\" \n"
 "     2. Switch view to Talairach in View Panel\n"
 "     3. Right-click on image and select \"-Atlas colors\". In the Atlas colors\n"
 "        menu, select the colors you would like and then choose Done.\n"
@@ -417,7 +417,7 @@ printf(
 " -xform_xyz : used with calc_chain, takes the x,y,z coordinates and \n"
 "             applies the combined chain of transformations to compute\n"
 "             a new x,y,z coordinate\n"
-" -xform_xyz_quiet : Same as -xform_xyz but only ouputs the final result\n"
+" -xform_xyz_quiet : Same as -xform_xyz but only outputs the final result\n"
 " -coord_out  outfile : with -xform_xyz, -coord_file and -calc_chain, \n"
 "             specifies an output file for transformed coordinates\n"
 "             If not specified, coord_files will be transformed and printed\n"
@@ -1555,7 +1555,7 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
               return(1);
             }
          } else {
-            if (unq[iroi] == 0) { /* skip nonesense */
+            if (unq[iroi] == 0) { /* skip nonsense */
                fprintf(stdout,"++ Skipping unique value of 0\n");
                continue;
             } else {

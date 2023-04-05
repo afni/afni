@@ -417,7 +417,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    Opt->out_prefix = NULL;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           ps->hverb = strlen(argv[kar])>3?2:1;

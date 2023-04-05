@@ -186,6 +186,12 @@ static void tcp_sigurg_handler( int sig )
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
   See http://www.manualy.sk/sock-faq/unix-socket-faq.html for info.
+  [PT: Mar 25, 2023] NB: the above link does not currently resolve.
+  From searching online, perhaps this is the modern form (or at least 
+  something analogously useful), which appears to exist in a couple
+  different places:
+  http://www.faqs.org/faqs/unix-faq/socket/
+  https://web.fe.up.pt/~jmcruz/etc/sockets/unix-socket-faq.html
 *********************************************************************/
 
 /*-------------------------------------------------------------------*/
@@ -196,7 +202,7 @@ static void tcp_sigurg_handler( int sig )
      -  < 0  ==> wait until something happens (not recommended)
 
    Return values are:
-     - -1 = some error occured (socket closed at other end?)
+     - -1 = some error occurred (socket closed at other end?)
      -  0 = socket is not ready to read
      -  1 = socket has data
 ---------------------------------------------------------------------*/
@@ -232,7 +238,7 @@ static int tcp_readcheck( int sd , int msec )
      -  < 0  ==> wait until something happens (not recommended)
 
    Return values are
-     - -1 = some error occured (socket closed at other end?)
+     - -1 = some error occurred (socket closed at other end?)
      -  0 = socket is not ready to write
      -  1 = OK to write to socket
 ---------------------------------------------------------------------*/
@@ -262,7 +268,7 @@ static int tcp_writecheck( int sd , int msec )
 
 /*------------------------------------------------------------------------*/
 /*! Set a socket so that it will cutoff quickly when it is closed.
-   See http://www.manualy.sk/sock-faq/unix-socket-faq.html for more
+   See http://www.manually.sk/sock-faq/unix-socket-faq.html for more
    information about this stuff.
 --------------------------------------------------------------------------*/
 
@@ -320,7 +326,7 @@ static int tcp_alivecheck( int sd )
 
      This function is used to "reach out" to a server that is supposed
      to be listening on the same port.
-     Returns socket id; if -1, some error occured (e.g., nobody listening).
+     Returns socket id; if -1, some error occurred (e.g., nobody listening).
 --------------------------------------------------------------------------*/
 
 static int tcp_connect( char *host , int port )
@@ -498,7 +504,7 @@ static int tcp_listen( int port )
 /*! Accept incoming connection on a socket.
 
    Return value is the attached socket (which is not the original socket!).
-   If -1 is returned, some error occured.  If the accept works, then the
+   If -1 is returned, some error occurred.  If the accept works, then the
    original socket is still open and listening for further attachments.
    Under many circumstances, you will want to close the original socket
    immediately.  This can be done with CLOSEDOWN(sd), where sd is the

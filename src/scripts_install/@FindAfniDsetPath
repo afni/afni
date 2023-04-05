@@ -113,7 +113,7 @@ foreach vv ( $list_of_vars )
 
     if ( "$aaa" != "" ) then
 
-        # remove first occurence of the variable in the string (which
+        # remove first occurrence of the variable in the string (which
         # should be the LHS of assignment
         set bbb = `echo $aaa | sed -E "s/${vv}//"`
 

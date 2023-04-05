@@ -212,7 +212,7 @@
 #   + [PT] also, control pbar image output file name: jpg by default
 # 
 #set version   = "5.52"; set rev_dat   = "July 1, 2019"
-#   + [PT] miniscule new option, '-pbar_for ..'
+#   + [PT] minuscule new option, '-pbar_for ..'
 # 
 #set version   = "5.6"; set rev_dat   = "July 8, 2019"
 #   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
@@ -327,9 +327,25 @@
 #set version   = "6.4";   set rev_dat   = "June 3, 2022"
 #     + [PT] add '-ulay_range_am ..' and '-olay_range_am ..' opts
 #
-set version   = "6.41";   set rev_dat   = "June 6, 2022"
+#set version   = "6.41";   set rev_dat   = "June 6, 2022"
 #     + [PT] add '-ulay_min_fac ..' opt to allow refined control of ulay
 #       brightness/grayscale mapping.  Useful in APQC
+#set version   = "6.42";   set rev_dat   = "Aug 11, 2022"
+#    + [PT] add 'button_press .." opt, for the Colr/Swap/Norm "butpress"
+#      driving functionality
+#
+#set version   = "6.43";   set rev_dat   = "Aug 12, 2022"
+#    + [PT] fix spelling of button_press.  Sigh
+#
+#set version   = "6.5";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] new opt: clusterize_wami
+#
+#set version   = "6.51";   set rev_dat   = "Sept 22, 2022"
+#    + [PT] cleaner clust output, sep cmd
+#
+set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
+#    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
+#      correct key word is not used
 #
 # =====================================================================
 
@@ -380,6 +396,9 @@ set thrflag = "*"                # threshold flags
 set crossh = "OFF"               # crosshairs OFF by default
 set xh_gap = -1                  # default crosshair gap
 set opac   =  6                  # opacity of overlay
+
+set butpress = ""                # DR: button pres for Colr, Swap, Norm 
+set all_butpress = ( Norm Colr Swap )  # allowed values
 
 set mx     =  3                  # 'x' dim of montage
 set my     =  3                  # 'y' dim of montage
@@ -477,7 +496,8 @@ set DO_AXI    = 1                # [PT: Sep 21, 2021] can control output slices
 set DO_SAG    = 1
 set DO_COR    = 1
 
-set clust_cmd = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_cmd  = ""               # [PT: Sep 22, 2021] clusterize with A/B
+set clust_wami = ""               # [PT: Sep 22, 2022] whereami on clusts
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -555,6 +575,26 @@ while ( $ac <= $#argv )
         @ ac += 1
         set bufac = "$argv[$ac]"
         
+    else if ( "$argv[$ac]" == "-button_press" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        # convert to array immediately, because the argv[] here can be
+        # a space-separated string of button presses (Norm Swap Colr)
+        # that will be put together
+        set in_press = ( $argv[$ac] )
+        foreach ii ( `seq 1 1 ${#in_press}` )
+            set bbb = ${in_press[$ii]}
+            if ( "${bbb}" == "${all_butpress[1]}" || \
+                 "${bbb}" == "${all_butpress[2]}" || \
+                 "${bbb}" == "${all_butpress[3]}" ) then 
+                set butpress = "${butpress} butpress=${bbb}"
+            else
+                echo "** ERROR: invalid button press keyword: ${bbb}"
+                echo "   Must be one of the following: ${all_butpress}"
+                goto BAD_EXIT
+            endif
+        end
+
     else if ( "$argv[$ac]" == "-set_xhairs" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -584,6 +624,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set clust_cmd = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-clusterize_wami" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set clust_wami = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -831,11 +876,25 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-left_is_left" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_left' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_LEFT "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-left_is_posterior" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
+        if ( ! ( "$argv[$ac]" == "YES" || \
+                 "$argv[$ac]" == "NO") ) then
+            echo "** ERROR: '-left_is_posterior' must be followed by one of:"
+            echo "          YES, NO"
+            echo "   ... and not '$argv[$ac]'"
+            goto BAD_EXIT
+        endif
         setenv AFNI_LEFT_IS_POSTERIOR "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-zerocolor" ) then
@@ -1050,7 +1109,7 @@ while ( $ac <= $#argv )
 
     endif
     @ ac += 1
-end
+end    ### end of main option loop
 
 # -------------------------------------------------------------------
 
@@ -1557,18 +1616,44 @@ if ( "${clust_cmd}" != "" ) then
         goto BAD_EXIT
     endif
 
-    3dClusterize -echo_edu                        \
+# store the command (don't indent)
+cat <<EOF > "${odir}/${impref}_clust_cmd.txt"
+3dClusterize                                  \
+    ${clust_cmd}                              \
+    -idat ${subbb[2]}                         \
+    -ithr ${subbb[3]}                         \
+    ${clust_thr_args}                         \
+    -pref_map ${read_dir}/olay_clust.nii      \
+    -inset  ${olay}
+EOF
+
+    3dClusterize                                  \
         ${clust_cmd}                              \
         -idat ${subbb[2]}                         \
         -ithr ${subbb[3]}                         \
         ${clust_thr_args}                         \
-        -pref_map ${read_dir}/olay_clust.nii      \
-        -inset  ${olay}                           \
-        > ${odir}/${impref}_clust_rep.txt
+        -pref_map "${read_dir}/olay_clust.nii"    \
+        -inset  "${olay}"                         \
+        > "${odir}/${impref}_clust_rep.txt"
 
     if ( $status ) then
         echo "** ERROR: 3dClusterize failed for some reason (see above)."
         goto BAD_EXIT
+    endif
+
+    # [PT: Sept 22, 2022] use basic reporting on clusters
+    if ( "${clust_wami}" != "" ) then
+        echo "++ Run whereami on the cluster output, for atlas: ${clust_wami}"
+        whereami                                                             \
+            -omask       ${read_dir}/olay_clust.nii                          \
+            -atlas       "${clust_wami}"                                     \
+            > "${odir}/${impref}_clust_whereami.txt"
+
+        if ( $status ) then
+            echo "** WARNING: bad whereami; check atlas: ${clust_wami}"
+            echo "** WARNING: bad whereami; check atlas: ${clust_wami}" \
+                >> "${odir}/${impref}_clust_whereami.txt"
+        endif
     endif
 
     # this value is 99% of actual threshold value
@@ -2174,6 +2259,7 @@ echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set butpress     = "\""${butpress}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
 echo "set my           = "\""${my}"\"""  >> $oechocmd
 echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
@@ -2200,7 +2286,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu           \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
-     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
+     -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}        \\\
             mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
             crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
@@ -2230,7 +2316,7 @@ endif
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
-             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
+             -com "$OW ${ppord[$rrr]}image opacity=${opac} ${butpress}      \
                     mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
                     crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
@@ -2294,6 +2380,7 @@ echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set xh_gap       = "\""${xh_gap}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set butpress     = "\""${butpress}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
 echo "set my           = "\""${my}"\"""  >> $oechocmd
 echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
@@ -2338,13 +2425,13 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
-    -com "$OW sagittalimage opacity=${opac}                          \\\
+    -com "$OW sagittalimage opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
            crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
-    -com "$OW coronalimage  opacity=${opac}                          \\\
+    -com "$OW coronalimage  opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
            crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
-    -com "$OW axialimage    opacity=${opac}                          \\\
+    -com "$OW axialimage    opacity=${opac} ${butpress}              \\\
            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
@@ -2372,9 +2459,9 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
-    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
     -com "$com_pbar_str"                                             \
     -com "SET_SUBBRICKS   ${subbb}"                                  \
@@ -2401,7 +2488,7 @@ if ( $?killX ) kill %1
 if ( $DO_CLEAN ) then
     echo "\n+* Removing temporary image directory '$odir/$tmp_dir'.\n"
     # AKA $read_dir, at present
-    \rm -rf $odir/$tmp_dir
+    \rm -rf "$odir/$tmp_dir"
 else
     echo "\n++ NOT removing temporary directory '$odir/$tmp_dir'.\n"
 endif
@@ -2455,7 +2542,7 @@ refer to the variables in the "AFNI Driver" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
 or variables in the "AFNI Environment" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
-References to these are sometimes noted explicitely with "see DR" or
+References to these are sometimes noted explicitly with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
 For example, "(see ENV: SAVE_AGIF)".
 
@@ -2486,7 +2573,7 @@ COMMAND OPTIONS ~1~
                     A montage of those slices is made for any ulay UUU
                     and olay OOO selected.  Note that with this
                     option:
-                    + the user cannot thresold by statistic with the 
+                    + the user cannot threshold by statistic with the 
                       "-thr_olay_p2stat .." opt (-> because different
                       stats in a volume might have different conversions)
                     + when using this opt, at least on of UUU and OOO 
@@ -2854,6 +2941,13 @@ COMMAND OPTIONS ~1~
                     what options go where when clusterizing.  Examples
                     are also included below.
 
+-clust_wami CW     :if using '-clusterize ..', then this option can be used
+                    to run AFNI's whereami program on the results.  The user
+                    provides the name of an allowed atlas for reference
+                    (see the top of whereami's help), and a text file
+                    reporting the relative overlap of each ROI will be 
+                    produced in the outputs.  
+
 -montx  MX         :in creating a montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
                     total number of panels per axis is: MX*MY (see
@@ -2878,6 +2972,15 @@ COMMAND OPTIONS ~1~
                     the present option (def: 'black').  (See DR:
                     "mont=PxQ:R" additional option ":G:C"; basically,
                     MC is the 'C' value).
+
+-button_press BP   :simulate a button press for one of the following
+                    buttons in an image viewer window:
+                       ${all_butpress}
+                    You can enter more than one of these button presses here
+                    *if* you put all of them within a single pair of quotes, 
+                    such as:  -button_press "Colr Swap".  Note that the order
+                    of the button presses matters.
+                    (See DR: "butpress=name")
 
 -no_cor            :no coronal slice views output (def: this view is shown)
 -no_axi            :no axial slice views output (def: this view is shown)
@@ -2972,7 +3075,7 @@ COMMAND OPTIONS ~1~
 -do_clean          :Use this option to remove the temporary directory
                     of copied/intermediate files. (As of July 8, 2019,
                     this is the new default behavior.  Thus, this opt
-                    is only here for backwards compatability).
+                    is only here for backwards compatibility).
 
 -echo              :run script verbosely (with 'set echo' executed)
 
@@ -3063,6 +3166,11 @@ this:
     + The Clusterize report is output in the same place as the final
       images, as PREFIX_clust_rep.txt.
 
+The ability to run 'whereami' on the output clusters is also now
+included, via the '-clusterize_wami ..' option.  This leads to a
+report of the overlap of each cluster in the cluster map with the
+specified atlas.  The output text file of information is then:
+PREFIX_clust_whereami.txt.
 
 There are a couple examples of using this functionality, below, in
 EXAMPLES.
@@ -3110,7 +3218,7 @@ EXAMPLES ~1~
         -do_clean  
 
 
- B) Make a 3x5 montage of an overlayed data set that has an ROI
+ B) Make a 3x5 montage of an overlaid data set that has an ROI
     map, so we want it to be colored-by-integer.  Put the images
     into a pre-existing directory, SUBDIR/.
 
@@ -3128,10 +3236,10 @@ EXAMPLES ~1~
         -do_clean 
 
 
- C) Make a 3x5 montage of an overlayed data set that shows the
+ C) Make a 3x5 montage of an overlaid data set that shows the
     beta coefficients stored in brick [1] while thresholding the
     associated statistic stored in brick [2] at voxelwise p=0.001, 
-    overlayed on the anatomical volume.
+    overlaid on the anatomical volume.
 
     @chauffeur_afni                       \
         -ulay  anat.nii.gz                \
@@ -3192,7 +3300,7 @@ EXAMPLES ~1~
         -no_clean
 
   F) Included Clusterizing, with Alpha+Boxed on, similar to above, but
-     1sided example.
+     1sided example, and using 'whereami' functionality:
 
     @chauffeur_afni                                                 \
         -pbar_posonly                                               \
@@ -3200,6 +3308,7 @@ EXAMPLES ~1~
         -olay               stats.nii.gz                            \
         -cbar               "Spectrum:yellow_to_red"                \
         -clusterize         "-NN 1 -clust_nvox 157"                 \
+        -clusterize_wami    "MNI_Glasser_HCP_v1.0"                  \
         -func_range 3                                               \
         -set_subbricks      -1 1 2                                  \
         -thr_olay           3.314300                                \

@@ -101,7 +101,7 @@ SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve )
    for (j=0; j<opt->N_ctrl_points; ++j) {
       j3 = 3*j;
    
-      /* Store intial location of control point. */
+      /* Store initial location of control point. */
       k=0; 
       dp = mxvdp3(ControlCurve, i, j, k);
       dp[0] = opt->CtrlPts_i[j3  ];
@@ -687,7 +687,7 @@ SUMA_Boolean Change_in_Energy(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SU
                   fprintf(SUMA_STDERR, "del_SF = %f\n", del_SF.elts[0]);
                }
                
-               if(LocalHead) fprintf(SUMA_STDERR, "CHECK THE INDICIES!!!i = %d, m = %d, q = %d, p = %d\n", i, m, q, p);
+               if(LocalHead) fprintf(SUMA_STDERR, "CHECK THE INDICES!!!i = %d, m = %d, q = %d, p = %d\n", i, m, q, p);
                mxvd4(Del_S, i, m, q, p) = del_SF.elts[0]; 
                if(LocalHead) fprintf(SUMA_STDERR, "del_SF = %11.8f\n", del_SF.elts[0]);
                matrix_destroy(&B);
@@ -1447,7 +1447,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt, FILE *condition_n
          else { idm = opt->dim*i; }
       i3 = 3*i;
       /* Distance between control point and desired destination of control point */ 
-      /* nrm is the axis of rotation from intial control point location to final. */       
+      /* nrm is the axis of rotation from initial control point location to final. */       
       /* BEWARE: USING _NC HERE, MEANING NO CENTER.  WILL THE CENTER ALWAYS BE THE ORIGIN? */
       SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts[i3])), opt->Dtheta[i], (&(opt->Nrm[i3])) );
 

@@ -985,7 +985,7 @@ in the order in which they are encountered.
 <u><b>Data stream</b></u>:<br />
 The data stream starts at the next byte after the "<tt>&gt;</tt>" that closes
 the element header,
-unless a "<tt>/</tt>" character immediately preceeds the "<tt>&gt;</tt>",
+unless a "<tt>/</tt>" character immediately precedes the "<tt>&gt;</tt>",
 as in "<tt>/&gt;</tt>".
 In that case, there is no data stream present in the input, and this "<tt>&gt;</tt>"
 is the end of the data element encoding.
@@ -1132,7 +1132,7 @@ The following predefined subtypes can be used:
 </b></pre>
 It is an error to redefine one of these subtypes, to define
 a new subtype that starts with "<tt>ni_</tt>", or to redefine
-a subtype that was previously defined through an explict
+a subtype that was previously defined through an explicit
 <tt>ni_typedef</tt> element.  A&nbsp;user-defined subtype cannot
 be used in an element until it has been defined previously in the
 data transmission.
@@ -2132,7 +2132,7 @@ already present in the application.
          the data element header.  How your program ensures that
          is beyond the scope of this API (e.g.,&nbsp;you could have
          an convention for various element names to be mapped to
-         corresonding struct types).
+         corresponding struct types).
     <li> If you prefer not to use the variable argument list function
          <tt>NI_define_rowmap_VA()</tt>, you can instead use
          the function <tt>NI_define_rowmap_AR()</tt>, where the type
@@ -2370,7 +2370,7 @@ very well tested yet.
               is followed with an underscore, and then the rest of the
               identifier characters.
          <li> The identifier is generated as follows:
-              Generate a string from the system identfier information
+              Generate a string from the system identifier information
               (<tt>uname()</tt>),
               the current time of day, the process id, and the number
               of times the function has been called. Then MD5 hash this string to a

@@ -40,7 +40,7 @@ auth = 'PA Taylor'
 # + [PT] title info is now handled with a JSON, too
 #
 # ver = '1.8' ; date = 'Nov 27, 2018' 
-# + [RCR] fixed py 2/3 compatability
+# + [RCR] fixed py 2/3 compatibility
 #
 #ver = '1.9' ; date = 'Nov 27, 2018' 
 # + [PT] changed the conditions for 1dplotting programs
@@ -215,15 +215,35 @@ auth = 'PA Taylor'
 # [PT] new ve2a entry, if EPI is unifized (via uvar=final_epi_unif_dset)
 #    + also better control of brightness scaling for edgy EPI/anat images
 #
-ver = '4.02' ; date = 'June 10, 2022' 
+#ver = '4.02' ; date = 'June 10, 2022' 
 # [PT] ... and just like that, no longer make second ve2a image anymore,
 #      that would be based on final_epi_unif_dset. Was extraneous/unnec.
 #      An ex-parrot.
 #
+#ver = '4.03' ; date = 'Aug 18, 2022'
+# [PT] add warns: 3dDeconvolve *.err text file
+#
+#ver = '4.04' ; date = 'Aug 18, 2022'
+# [PT] add mask_dset images: overlays final dset, whether in 
+#      va2t, ve2a or vorig QC block
+#
+#ver = '4.05' ; date = 'Aug 18, 2022'
+# [PT] put already-calc'ed Dice info below ve2a and va2t olay imgs
+#      ---> but just as quickly have removed it; might distract from the
+#           important sulcal/gyral overlap
+#
+#ver = '4.1' ; date = 'Oct 5, 2022'
+# [PT] add in run_instacorr_errts.tcsh script
+#
+#ver = '4.2' ; date = 'Nov 15, 2022'
+# [PT] add in run_instacorr_tcat.tcsh script
+#
+ver = '4.3' ; date = 'Jan 6, 2023'
+# [PT] new opt: -vstat_list, to add a user-defined list of labels
+#      that would appear in the vstat section (default is still to have
+#      5 chosen by the program)
+#
 #########################################################################
-
-# !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
-
 
 import sys
 import os
@@ -236,6 +256,8 @@ from afnipy import lib_apqc_tcsh       as lat
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
+from afnipy import lib_apqc_instacorr  as laic
+from afnipy import lib_apqc_instacorr_tcat  as laict
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -281,7 +303,68 @@ if __name__ == "__main__":
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
-    
+
+    # ----------------------- InstaCorr scripts ----------------------
+
+    # [PT: Oct 5, 2022] make an instacorr run script in the main
+    # results directory
+
+    ldep     = ['errts_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+
+            # make the full text
+            script_text_insta = laic.make_apqc_ic_script(ap_ssdict)
+
+            # write the text file in the results directory
+            otcsh_insta  = iopts.subjdir + '/' + laic.scriptname
+            fff = open(otcsh_insta, 'w')
+            fff.write(script_text_insta)
+            fff.close()
+
+            # make executable, a la rcr
+            try: code = eval('0o755')
+            except: code = eval('0755')
+            try:
+                os.chmod(otcsh_insta, code)
+            except:
+                omsg = "failed: chmod {} {}".format(code, otcsh_insta)
+                print(omsg)
+
+            msg = '''
+            ++ Done making (executable) InstaCorr script:
+            {}
+            '''.format(otcsh_insta)
+            msg = lat.commandize(msg, ALLEOL=False)
+            print( msg )
+
+    ldep     = ['tcat_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        # make the full text
+        script_text_insta = laict.make_apqc_ic_script(ap_ssdict)
+
+        # write the text file in the results directory
+        otcsh_insta  = iopts.subjdir + '/' + laict.scriptname
+        fff = open(otcsh_insta, 'w')
+        fff.write(script_text_insta)
+        fff.close()
+
+        # make executable, a la rcr
+        try: code = eval('0o755')
+        except: code = eval('0755')
+        try:
+            os.chmod(otcsh_insta, code)
+        except:
+            omsg = "failed: chmod {} {}".format(code, otcsh_insta)
+            print(omsg)
+
+        msg = '''
+        ++ Done making (executable) InstaCorr script:
+        {}
+        '''.format(otcsh_insta)
+        msg = lat.commandize(msg, ALLEOL=False)
+        print( msg )
+
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0
@@ -525,6 +608,28 @@ if __name__ == "__main__":
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (template, anat_final, *vr_base*)
+
+    ldep       = ['mask_dset', 'vr_base_dset']
+    ldep_anti1 = ['template']    # check this does NOT exist
+    ldep_anti2 = ['final_anat']  # check this does NOT exist
+    if lat.check_dep(ap_ssdict, ldep)              and \
+       not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
+       not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on vr_base')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "vorig", "mask2final", 
+                                            ulay, focusbox )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
 
     # --------------------------------------------------------------------
 
@@ -533,11 +638,36 @@ if __name__ == "__main__":
 
     ldep  = ['final_anat', 'final_epi_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
+        focusbox  = '${main_dset}'
+        dice_file = None
+        if lat.check_dep(ap_ssdict, ['mask_corr_dset']) :
+            dice_file = ap_ssdict['mask_corr_dset']
 
         ban      = lat.bannerize('EPI and anatomical alignment')
         obase    = 'qc_{:02d}'.format(idx) # will get appended to
-        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox )
+        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox,
+                                           dice_file )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "ve2a" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (template, *anat_final*, vr_base)
+
+    ldep      = ['mask_dset', 'final_anat']
+    ldep_anti = ['template']  # check this does NOT exist
+    if lat.check_dep(ap_ssdict, ldep) and \
+       not( lat.check_dep(ap_ssdict, ldep_anti) ) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on final anat')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "ve2a", "mask2final", 
+                                            ulay, focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -550,12 +680,34 @@ if __name__ == "__main__":
 
     ldep = ['final_anat', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
+        focusbox  = '${main_dset}'
+        dice_file = None
+        if lat.check_dep(ap_ssdict, ['mask_anat_templ_corr_dset']):
+            dice_file = ap_ssdict['mask_anat_templ_corr_dset']
 
         ban      = lat.bannerize('anatomical and template alignment')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
-                                            focusbox )
+                                            focusbox, dice_file )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "va2t" (*but could be others; see elsewhere for this func)
+    # item    : EPI mask on final dset (*template*, anat_final, vr_base)
+
+    ldep = ['mask_dset', 'template']
+    if lat.check_dep(ap_ssdict, ldep) :
+        focusbox = '${main_dset}'
+        ulay     = '${main_dset}'
+
+        ban      = lat.bannerize('EPI mask on template')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_gen_mask2final( obase, "va2t", "mask2final", 
+                                            ulay, focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -594,7 +746,8 @@ if __name__ == "__main__":
         #all_vstat = ["Full_Fstat"]
         #if lat.check_dep(ap_ssdict, ldep3) :
         #    all_vstat.extend(ap_ssdict[ldep3[0]])
-        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'] )
+        all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'],
+                                           user_plabs=iopts.vstat_label_list )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):
@@ -1120,6 +1273,23 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "warns"
+    # item    : 3dDeconvolve warnings
+
+    ldep = ['decon_err_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('3dDeconvolve warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        txtfile  = ap_ssdict['decon_err_dset']
+        cmd      = lat.apqc_warns_decon( obase, "warns", "decon",
+                                         fname = txtfile)
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
     # item    : pre-steady state warnings
 
     ldep = ['pre_ss_warn_dset']
@@ -1163,6 +1333,22 @@ if __name__ == "__main__":
         txtfile  = ap_ssdict['flip_check_dset']
         cmd      = lat.apqc_warns_flip( obase, "warns", "flip",
                                         fname = txtfile )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : variance lines
+
+    ldep = ['vlines_tcat_dir']  
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('var_line warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_vlines( obase, "warns", "vlines",
+                                          dirname=ap_ssdict['vlines_tcat_dir'] )
 
         str_FULL+= ban
         str_FULL+= cmd

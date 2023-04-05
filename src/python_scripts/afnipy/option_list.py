@@ -93,7 +93,7 @@ class OptionList:
 
     def sort(self):
         """sort command option list by name"""
-        # cmp keywork has been removed in python3, use key instead
+        # cmp keyword has been removed in python3, use key instead
         # self.olist.sort(cmp=compare_comopts)
         self.olist.sort(key=comopts_key)
 
@@ -144,7 +144,7 @@ class OptionList:
                print("  [%-25s %s]," % ("'%s',"%opt.name, opt.parlist))
            print("]")
 
-    def find_opt(self, name, nth=1):    # find nth occurance of option name
+    def find_opt(self, name, nth=1):    # find nth occurrence of option name
         """return nth comopt where name=name, else None"""
         index = 0
         for com in self.olist:
@@ -211,7 +211,7 @@ class OptionList:
             if com.name == name: count += 1
         return count
 
-    def del_opt(self, name, nth=1):     # delete nth occurance of option label
+    def del_opt(self, name, nth=1):   # delete nth occurrence of option label
         """delete nth comopt where name=name, else None"""
         count = 0
         for index in range(len(self.olist)):
@@ -273,7 +273,8 @@ class OptionList:
             return default, 1
         try: val = otype(opt.parlist[0])
         except:
-            print("** cannot convert '%s' to %s" % (opt.parlist[0], otype))
+            print("** cannot convert '%s' to %s for option %s" \
+                  % (opt.parlist[0], otype, opt_name))
             return default, 1
 
         return val, 0
@@ -308,8 +309,8 @@ class OptionList:
         try:
             tlist = list(map(otype,opt.parlist))
         except:
-            if verb: print("** %s takes only %ss, have: %s"  \
-                           % (opt_name,otype,opt.parlist))
+            if verb: print("** %s takes only %s's, have params: %s"  \
+                           % (opt_name, otype, opt.parlist))
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
@@ -319,7 +320,7 @@ class OptionList:
         return tlist, 0        # return the list
 
     def replace_opt(self, opt_name, vals):
-        """replace the parlist from the first instace of opt_name with vals
+        """replace the parlist from the first instance of opt_name with vals
            if not found, add a new option
         """
 
@@ -336,7 +337,7 @@ class OptionList:
         return
 
     def append_to_opt(self, opt_name, vals):
-        """append the vals to parlist from the first instace of opt_name
+        """append the vals to parlist from the first instance of opt_name
            if not found, add a new option
         """
 
