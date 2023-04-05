@@ -579,11 +579,48 @@ Notes on input pecularities ~1~
 Examples ~1~
 
   1) 
+    
+    python ~/retroicor/retroicorTaylor.py                                        \
+    -card_file                      physiopy/test000c                        \
+    -num_slices                     33                                       \
+    -volume_tr                      2.2                                      \
+    -freq                           400                                      \
+    -do_fix_nan                                                              \
+    -num_time_pts                   17                                       \
+    -slice_pattern                  alt+z                                    \
+    -extra_fix_list                 5000                                     \
+    -out_dir                        $outDir                                  \
+    -prefix                         $prefix
 
   2) 
+    
+    python retroicorTaylor.py                                                    \
+    -phys_file                      physiopy/test003c.tsv.gz                 \
+    -phys_json                      physiopy/test003c.json                   \
+    -num_slices                     34                                       \
+    -volume_tr                      2.2                                      \
+    -do_fix_nan                                                              \
+    -num_time_pts                   34                                       \
+    -slice_pattern                  alt+z                                    \
+    -extra_fix_list                 5000                                     \
+    -out_dir                        $outDir                                  \
+    -prefix                         $prefix
 
   3) 
 
+    python ~/retroicor/retroicorTaylor.py                                                        \
+    -card_file                      physiopy/sub-005_ses-01_task-rest_run-1_physio-ECG.txt   \
+    -resp_file                      physiopy/sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \
+    -num_slices                     33                                                       \
+    -volume_tr                      2.2                                                      \
+    -freq                           50                                                       \
+    -do_fix_nan                                                                              \
+    -num_time_pts                   219                                                      \
+    -slice_pattern                  alt+z                                                    \
+    -extra_fix_list                 5000                                                     \
+    -out_dir                        $outDir                                                  \
+    -prefix                         $prefix
+    
 {ddashline}
 written by: Peter Lauren (SSCC, NIMH, NIH, USA)
 
