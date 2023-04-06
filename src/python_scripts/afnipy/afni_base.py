@@ -659,11 +659,11 @@ class shell_com(object):
 
    def shell_history(self, nhist=0):
       if nhist == 0 or nhist > len(self.history): return self.history
-      else:                                  return self.history[-nhist]
+      else:                                  return self.history[-nhist:]
 
    def shell_log(self, nlog=0):
       if nlog == 0 or nlog > len(self.log): return self.log
-      else:                                 return self.log[-nlog]
+      else:                                 return self.log[-nlog:]
 
    def stdout(self):
       if (len(self.so)):

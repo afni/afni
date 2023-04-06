@@ -562,7 +562,7 @@ def write_afni_com_history(fname, length=0, wrap=1):
       if length > 0: limit to that number of entries
    """
    com = BASE.shell_com('hi there')
-   hist = com.shell_history()
+   hist = com.shell_history(nhist=length)
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
@@ -574,7 +574,7 @@ def write_afni_com_log(fname=None, length=0, wrap=1):
       if no fname is given, simply print the log
    """
    com = BASE.shell_com('hi there')
-   log = com.shell_log()
+   log = com.shell_log(nlog=length)
    
    # wrapping will occur *here*, if used
    log2   = proc_log(log, wrap=wrap)
