@@ -565,6 +565,23 @@ def write_afni_com_history(fname, length=0, wrap=1):
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
+def write_afni_com_log(fname=None, length=0, wrap=1):
+   """write the afni_com log to the given file
+
+      if length > 0: limit to that number of entries
+
+      if no fname is given, simply print the log
+   """
+   com = BASE.shell_com('hi there')
+   log = com.shell_log()
+   script = '\n'.join(log)+'\n'
+   if fname is None :
+      if wrap:
+         script = add_line_wrappers(script, wrapstr='\\\n')
+      print(script)
+   else:
+      write_text_to_file(fname, script, wrap=wrap)
+
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""
 
