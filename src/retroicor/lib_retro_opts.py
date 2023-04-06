@@ -574,11 +574,24 @@ Notes on usage and inputs ~1~
 
 Notes on input peculiarities ~1~
 
+With Siemens physiological monitoring, values of 5000, 5003 and 6000 can be 
+used as trigger events to mark the beginning or end of something, like the 
+beginning of a TR.  The meanings, from the Siemens Matlab code are:
+     5000 = cardiac pulse on
+     5003 = cardiac pulse off
+     6000 = cardiac pulse off
+     6002 = phys recording on
+     6003 = phys recording off
+
+It appears that the number is inserted into the series, in which 
+case, 5000 values could simply be removed rather than replaced by an 
+interpolation of the two adjacent values.
+
 {ddashline}
 
-Examples ~1~
+Examples 
 
-  1) 
+  Example ~1~ 
     
     python ~/retroicor/retroicorTaylor.py                                    \\
         -card_file                      physiopy/test000c                    \\
@@ -592,7 +605,7 @@ Examples ~1~
         -out_dir                        $outDir                              \\
         -prefix                         $prefix
 
-  2) 
+  Example ~2~  
     
     python                                                                   \\
         retroicorTaylor.py                                                   \\
@@ -607,7 +620,7 @@ Examples ~1~
         -out_dir            $outDir                                          \\
         -prefix             $prefix
 
-  3) 
+  Example ~3~  
 
     python ~/retroicor/retroicorTaylor.py                                    \\
         -card_file       sub-005_ses-01_task-rest_run-1_physio-ECG.txt       \\
