@@ -11,6 +11,7 @@
 import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
+from afnipy import lib_format_cmd_str as lfcs
 import glob
 import pdb
 import re
@@ -574,13 +575,92 @@ def write_afni_com_log(fname=None, length=0, wrap=1):
    """
    com = BASE.shell_com('hi there')
    log = com.shell_log()
-   script = '\n'.join(log)+'\n'
+   
+   # wrapping will occur *here*, if used
+   log2   = proc_log(log, wrap=wrap)
+   script = '\n'.join(log2)+'\n'
+
    if fname is None :
-      if wrap:
-         script = add_line_wrappers(script, wrapstr='\\\n')
       print(script)
    else:
-      write_text_to_file(fname, script, wrap=wrap)
+      # wrapping will have already occurred, above
+      write_text_to_file(fname, script, wrap=0)
+
+def proc_log(log, wid=78, wrap=1):
+    """Process the log, which is a list of dictionaries (each of cmd,
+status, so and se objects), and prepare it for string output.  The
+output is a list of strings to be concatenated.
+
+    """
+
+    N = len(log)
+    if not(N) :    return ''
+
+    log2 = []
+    for ii in range(N):
+        D = log[ii]
+        topline = not(ii)
+        log2.extend( format_log_dict(D, wid=wid, wrap=wrap,
+                                     topline=topline) )
+    return log2
+
+def format_log_dict(D, wid=78, wrap=1, topline=True):
+    """Each dictionary contains the following keys: cmd, status, so, se.
+Turn these into a list of strings, to be joined when displaying the log.
+
+    """
+
+    L = []
+    if topline :
+        L.append("="*wid)
+
+    # cmd
+    if len(D['cmd'].split()) > 3 and len(D['cmd'].strip()) > 40 :
+       ok, cmd = lfcs.afni_niceify_cmd_str(D['cmd'])
+    else:
+        cmd = D['cmd'].strip()
+        if wrap :
+            cmd = add_line_wrappers(D['cmd'].strip())
+    nline = cmd.count('\n') + 1
+    L.append('cmd: ' + str(nline))
+    L.append(cmd)
+    L.append("-"*wid)
+
+    # status
+    L.append('stat: ' + str(D['status']))
+    L.append("-"*wid)
+
+    # so
+    ooo = some_types_to_str(D['so'])
+    if ooo :
+       if wrap :
+          ooo = add_line_wrappers(ooo, wrapstr='\\\n')
+       nline = ooo.count('\n') + 1
+       L.append('so: ' + str(nline))
+       L.append(ooo)
+    else:
+       L.append('so: 0')
+    L.append("-"*wid)
+
+    # se
+    eee = some_types_to_str(D['se'])
+    if eee :
+       if wrap :
+          eee = add_line_wrappers(eee, wrapstr='\\\n')
+       nline = eee.count('\n') + 1
+       L.append('se: ' + str(nline))
+       L.append(eee)
+    else:
+       L.append('se: 0')
+    L.append("="*wid)
+
+    return L
+
+def some_types_to_str(x):
+    """return a string form of a list, str or 'other' type"""
+    if type(x) == str :      return x
+    elif type(x) == list :   return '\n'.join(x)
+    else:                    return str(x)
 
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""

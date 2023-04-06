@@ -4,8 +4,6 @@
 
 import os, sys, glob, operator, string, re
 
-from afnipy import lib_format_cmd_str as lfcs
-
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 
@@ -650,26 +648,14 @@ class shell_com(object):
       if not self.save_log: return
       if len(self.log) >= MAX_SHELL_LOG:
          self.log = self.log[-SAVE_SHELL_LOG:]
-      wid = 78
-      if not(len(self.log)) :
-          self.log.append("="*wid)
-      if len(self.trimcom.split()) > 3 and len(self.trimcom.strip()) > 40:
-         ok, cmd = lfcs.afni_niceify_cmd_str(self.trimcom)
-         cmd = 'cmd:\n' + cmd
-      else:
-         cmd = 'cmd:\n' + self.trimcom.strip()
-      self.log.append(cmd)
-      self.log.append("-"*wid)
-      self.log.append('stat: ' + str(self.status))
-      self.log.append("-"*wid)
-      self.log.append('so:')
-      if self.so :
-         self.log.append(some_types_to_str(self.so))
-      self.log.append("-"*wid)
-      self.log.append('se:')
-      if self.se :
-         self.log.append(some_types_to_str(self.se))
-      self.log.append("="*wid)
+
+      # Store things about this command
+      D           = {}
+      D['cmd']    = self.trimcom
+      D['status'] = self.status
+      D['so']     = self.so
+      D['se']     = self.se
+      self.log.append(D)
 
    def shell_history(self, nhist=0):
       if nhist == 0 or nhist > len(self.history): return self.history
@@ -677,7 +663,7 @@ class shell_com(object):
 
    def shell_log(self, nlog=0):
       if nlog == 0 or nlog > len(self.log): return self.log
-      else:                                 return self.log[-nhist]
+      else:                                 return self.log[-nlog]
 
    def stdout(self):
       if (len(self.so)):
@@ -727,12 +713,6 @@ class shell_com(object):
       else:
          # return self.so[i].decode()
          return self.so[i]
-
-# return a string form of a list, str or 'other' type
-def some_types_to_str(x):
-    if type(x) == str :      return x
-    elif type(x) == list :   return '\n'.join(x)
-    else:                    return str(x)
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
