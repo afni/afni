@@ -7,9 +7,11 @@ import os, sys, glob, operator, string, re
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 
-# limits for shell_com history
+# limits for shell_com history and log
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
+SAVE_SHELL_LOG = 400
+MAX_SHELL_LOG  = 600
 
 class afni_name(object):
    def __init__(self, name="", do_sel=1, view=None):
@@ -534,16 +536,19 @@ class comopt(object):
       return 1
 
 class shell_com(object):
-   history = []         # shell_com history
+   history   = []       # shell_com history
    save_hist = 1        # whether to record as we go
+   log       = []       # shell_com log (like history, but with so,se,status)
+   save_log  = 1        # whether to record as we go
 
-   def __init__(self, com, eo="", capture=0, save_hist=1):
+   def __init__(self, com, eo="", capture=0, save_hist=1, save_log=1):
       """create instance of shell command class
 
             com         command to execute (or echo, etc)
             eo          echo mode string: echo/dry_run/script/""
             capture     flag: store output from command?
             save_hist   flag: store history of commands across class instances?
+            save_log    flag: store log of commands across class instances?
       """
 
       self.com = com    # command string to be executed
@@ -553,10 +558,11 @@ class shell_com(object):
       self.exc = 0      #command not executed yet
       self.so = ''
       self.se = ''
+      self.status = -10
       if (self.eo == "quiet"):
          self.capture = 1
       else:
-         self.capture = capture; #Want stdout and stderr captured?
+         self.capture = capture; # Want stdout and stderr captured?
       self.save_hist = save_hist
 
       # check if user has requested an overwrite of trimming behavior. If the
@@ -619,6 +625,8 @@ class shell_com(object):
          self.exc = 1
          return 0
       self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
+      if self.save_log:
+         self.add_to_log()
       self.exc = 1
       return self.status
       
@@ -634,9 +642,28 @@ class shell_com(object):
          self.history = self.history[-SAVE_SHELL_HISTORY:]
       self.history.append(self.trimcom)
 
+   def add_to_log(self):
+      """append the current command (trimcom) to the log, *along with so, se
+         and status*, truncating if it is too long"""
+      if not self.save_log: return
+      if len(self.log) >= MAX_SHELL_LOG:
+         self.log = self.log[-SAVE_SHELL_LOG:]
+
+      # Store things about this command
+      D           = {}
+      D['cmd']    = self.trimcom
+      D['status'] = self.status
+      D['so']     = self.so
+      D['se']     = self.se
+      self.log.append(D)
+
    def shell_history(self, nhist=0):
       if nhist == 0 or nhist > len(self.history): return self.history
       else:                                  return self.history[-nhist]
+
+   def shell_log(self, nlog=0):
+      if nlog == 0 or nlog > len(self.log): return self.log
+      else:                                 return self.log[-nlog]
 
    def stdout(self):
       if (len(self.so)):

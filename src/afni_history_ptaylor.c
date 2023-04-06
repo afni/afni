@@ -69,6 +69,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Apr , 2023 , PT , "afni_base.py" , MINOR , TYPE_GENERAL,
+   "Add new attribute/methods for shell_com logging (kinda like history).",
+   "save_log, add_to_log, shell_log, etc.\n"
+},
+
+{ 6, Apr , 2023 , PT , "afni_util.py" , MINOR , TYPE_GENERAL,
+   "Add new functions for shell_com logging (kind like history ).",
+   "write_afni_com_log(), proc_log(), format_log_dict().\n"
+},
+
 { 3, Mar , 2023 , PT , "auto_warp.py" , MINOR , TYPE_NEW_OPT,
    "Put in -hview functionality, to show full help.",
    "Running with no opts will also show FULL help (not annoying short one!).\n"
