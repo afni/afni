@@ -84,10 +84,14 @@
 #ver = '1.96' ; date = 'Feb 10, 2022' 
 # [PT] matplotlib ver check to be >= 2.2, not just >2.2
 #
-ver = '2.00' ; date = 'Jan 6, 2023' 
+#ver = '2.00' ; date = 'Jan 6, 2023' 
 # [PT] apqc_make_tcsh.py updates:
 #      + add -vstat_list opt
 #      + improve opt parsing/error checking
+#
+ver = '2.01' ; date = 'Apr 6, 2023' 
+# [PT] 1dplot.py: add keywords for labeling 3dAllineate params:
+#      + ALLINPAR6, ALLINPAR9, ALLINPAR12, 
 #
 #########################################################################
 
@@ -105,6 +109,13 @@ MAXLEN = 10**7     # can adjust if that is ever necessary!
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
+lallinpar6     = [ 'x-shift\n(mm)',  'y-shift\n(mm)',  'z-shift\n(mm)',
+                   'z-angle\n(deg)', 'x-angle\n(deg)', 'y-angle\n(deg)' ]
+lallinpar9     = copy.deepcopy(lallinpar6)
+lallinpar9.extend([ 'x-scale', 'y-scale', 'z-scale' ])
+lallinpar12    = copy.deepcopy(lallinpar9)
+lallinpar12.extend([ 'y/x-shear', 'z/x-shear', 'z/y-shear' ])
+
 ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf', '.svg' ]
 ok_ftypes_str  = ', '.join(ok_ftypes)
 
@@ -274,13 +285,21 @@ COMMAND OPTIONS ~1~
 -ylabels YL1 YL2 YL3 ...
               :optional text labels for each "infile" column; the
                final number of ylabels *must* match the total number
-               of columns of data from infiles.  For 1D files output
-               by 3dvolreg, one can automatically provide the 6
-               associated ylabels by providing the keyword 'VOLREG'
-               (and this counts as 6 labels).  The order of ylabels
-               should match the order of infiles.
-               These labels are plotted vertically along the y-axis of the
-               plot.
+               of columns of data from infiles.  The order of ylabels
+               should match the order of infiles.  These labels are
+               plotted vertically along the y-axis of the plot.
+               * For 1D files output by 3dvolreg, one can
+               automatically provide the 6 associated ylabels by
+               providing the keyword 'VOLREG' (and this counts as 6
+               labels).  
+               * For 1D files output by '3dAllineate -1Dparam_save ..',
+               if you are using just the 6 rigid body parameters, you
+               can automatically provide the 6 associated ylabels by
+               providing the keyword 'ALLINPAR6' (and this counts as
+               6 labels).  If using the 6 rigid body parameters and 3 
+               scaling, you can use the keyword 'ALLINPAR9' (which counts
+               as 9 labels). If using all 12 affine parameters, you can use 
+               the keyword 'ALLINPAR12' (which counts as 9 labels). 
 
 -ylabels_maxlen MM
               :y-axis labels can get long; this opt allows you to have
@@ -1453,6 +1472,15 @@ def parse_1dplot_args(full_argv):
                 if not(all_opts.__contains__(argv[i])): #aaa != "-":
                     if argv[i] == "VOLREG" :
                         for name in lvolreg:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR6" :
+                        for name in lallinpar6:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR9" :
+                        for name in lallinpar9:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR12" :
+                        for name in lallinpar12:
                             iopts.add_ylabel(name)
                     else:
                         iopts.add_ylabel(argv[i])
