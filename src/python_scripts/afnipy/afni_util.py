@@ -657,10 +657,11 @@ Turn these into a list of strings, to be joined when displaying the log.
     return L
 
 def some_types_to_str(x):
-    """return a string form of a list, str or 'other' type"""
-    if type(x) == str :      return x
-    elif type(x) == list :   return '\n'.join(x)
-    else:                    return str(x)
+    """return a string form of a list, str or 'other' type,
+    ... now implementing Reynoldsian Recursion!"""
+    if type(x) == str :     return x
+    elif type(x) == list :  return '\n'.join([some_types_to_str(v) for v in x])
+    else:                   return str(x)
 
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""
