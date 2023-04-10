@@ -28,7 +28,7 @@
    Mod    :  2 October 1996        Changed memory deallocation.
    Mod    :  9 October 1996        Made changes to improve speed.
 
-   To correct error due to abiguity in identification of clusters,
+   To correct error due to ambiguity in identification of clusters,
    voxel coordinates are now stored as 3 separate short integers.
    BDW  06 March 1997
 

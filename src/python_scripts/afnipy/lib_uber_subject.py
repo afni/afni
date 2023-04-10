@@ -666,7 +666,7 @@ class AP_Subject(object):
       return ostr + rstr
 
    def script_ap_apply_svar_1(self, vname, vtype=None, defval=None, oname=None):
-      """make one AP line based on varable name and type
+      """make one AP line based on variable name and type
            vtype:  if given, check type
            defval: if given, only apply if differs
            oname:  if given, actual afni_proc.py option name
@@ -1158,7 +1158,7 @@ class AP_Subject(object):
       return comment + '\n'.join(clist) + '\n\n'
 
    def subj_str_replace(self, instr):
-      """if appropraite, replace occuraces of sid with ${subj}
+      """if appropriate, replace occuraces of sid with ${subj}
          otherwise, just return input
          (and replace gid with ${gname})
       """
@@ -1697,7 +1697,7 @@ helpstr_howto_program = """
 
       uber_align_test.py -help_howto_program
 
-   Note the secion under "Writing the GUI":
+   Note the section under "Writing the GUI":
 
       The current 'todo' list when adding a new variable interface to the GUI:
 """

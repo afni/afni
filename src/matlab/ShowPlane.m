@@ -4,7 +4,7 @@ function [err,PatchHandles] = ShowPlane (EqPlane,Opt)
 %
 %Purpose:
 %   This function displays a plane with equation ax + by + cz +d = 0
-%   The plane is defined by one sqaure patch
+%   The plane is defined by one square patch
 %   The planes span the current axis limits of the figure.
 %
 %Input Parameters:
@@ -41,7 +41,7 @@ function [err,PatchHandles] = ShowPlane (EqPlane,Opt)
 %Define the function name for easy referencing
 FuncName = 'ShowPlane';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 

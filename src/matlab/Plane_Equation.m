@@ -7,7 +7,7 @@ function [err,Eq] = Plane_Equation (Triplets, verbose)
 %
 %
 %Input Parameters:
-%   Triplets is an Nx1 vector of strucutres. Each structure defines a plane
+%   Triplets is an Nx1 vector of structures. Each structure defines a plane
 %    .XYZ : is a 3x3 matrix containing the XYZ of each of the three points
 %           Each row is a point. ie: XYZ = [0 0 0; 1 0 0; 1 1 1]; is for the
 %           three points (0 0 0), (1 0 0) and (1 1 1).
@@ -41,7 +41,7 @@ function [err,Eq] = Plane_Equation (Triplets, verbose)
 %Define the function name for easy referencing
 FuncName = 'Plane_Equation';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 if (nargin == 1), 	verbose = 1;	end

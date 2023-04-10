@@ -72,7 +72,7 @@ if (1) then
 endif
 
 #Add #include <string.h>
-      ###@ is used a substitue for new line because \n does not work on 
+      ###@ is used a substitute for new line because \n does not work on 
       ### all systems for substitution
 if ( ! -f vector/vrnd.c.orig ) cp  vector/vrnd.c vector/vrnd.c.orig
    sed 's|#include .math.h.|#include <math.h>@#include <string.h>|' \

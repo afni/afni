@@ -811,7 +811,7 @@ double THD_eta_squared_masked( int n, float *x , float *y, byte *mask )
 /*! dice coefficient (allow for mask)          27 Oct 2015 [rickr]
  *  (float input)
  *
- *  dice = 2 * size(interection) / ( size(A) + size(B) )
+ *  dice = 2 * size(intersection) / ( size(A) + size(B) )
  *
  *  Simply count voxels for the 3 cases.
  -----------------------------------------------------------------*/
@@ -2089,7 +2089,7 @@ void rank_order_float_arrays( int nar , int *nn , float **aa )
 
    for( kk=0 ; kk < ntot ; kk++ ){
      jj = b[kk] / nmax ;  /* which array did it come from? */
-     ii = b[kk] % nmax ;  /* which element in that arrary? */
+     ii = b[kk] % nmax ;  /* which element in that array? */
      aa[jj][ii] = c[kk] ; /* replace data with rank */
    }
 

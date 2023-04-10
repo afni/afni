@@ -896,7 +896,7 @@ static char * sonnets[] = {
    "In sequent toil all forwards do contend.\n"
    "Nativity, once in the main of light,\n"
    "Crawls to maturity, wherewith being crown'd,\n"
-   "Crooked elipses 'gainst his glory fight,\n"
+   "Crooked eclipses 'gainst his glory fight,\n"
    "And Time that gave doth now his gift confound.\n"
    "Time doth transfix the flourish set on youth\n"
    "And delves the parallels in beauty's brow,\n"

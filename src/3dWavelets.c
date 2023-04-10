@@ -1316,7 +1316,7 @@ void calculate_results
   int i;                   /* data point index */
 
   float * coefts = NULL;   /* filtered FWT coefficients */
-  float * fitts  = NULL;   /* filterd time series */
+  float * fitts  = NULL;   /* filtered time series */
   float * sgnlts = NULL;   /* signal model fitted time series */
   float * errts  = NULL;   /* residual error time series */
 

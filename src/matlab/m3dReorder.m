@@ -41,7 +41,7 @@ FuncName = 'm3dReorder';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %check for options	

@@ -162,7 +162,7 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-npb_val") then
          if ($cnt == $Narg) then
-            echo "Option -npb_val needs an interger"
+            echo "Option -npb_val needs an integer"
             goto BEND
          endif
          @ cnt ++
@@ -172,13 +172,13 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-npb_range") then
          if ($cnt == $Narg) then
-            echo "Option -npb_range needs 2 interger"
+            echo "Option -npb_range needs 2 integer"
             goto BEND
          endif
          @ cnt ++
          set npb0 = $argv[$cnt]
          if ($cnt == $Narg) then
-            echo "Option -npb_range needs 2 interger"
+            echo "Option -npb_range needs 2 integer"
             goto BEND
          endif
          @ cnt ++

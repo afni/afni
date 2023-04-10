@@ -17,7 +17,7 @@ void usage_SUMA_FSread_annot_Main ()
 "                 [-cmap_1D annot.1D.cmap]\n"
 "                 [show_FScmap]\n"
 "                 [-help]  \n"
-"  Reads a FreeSurfer annotaion file and outputs\n"
+"  Reads a FreeSurfer annotation file and outputs\n"
 "  an equivalent ROI file and/or a colormap file \n"
 "  for use with SUMA.\n"
 "\n"
@@ -76,7 +76,7 @@ void usage_SUMA_FSread_annot_Main ()
 "                           value. \n"
 "     -dset annot.niml.dset: Write the annotation and colormap as a \n"
 "                            niml formatted Label Dset. This type of dset\n"
-"                            gets special treatement in SUMA.\n"
+"                            gets special treatment in SUMA.\n"
 "     -cmap_1D annot.1D.cmap: Write a 4-column 1D color map file.\n"
 "                             The first column is the color index,\n"
 "                             followed by r g b and flag values.\n"
@@ -131,7 +131,7 @@ int main (int argc,char *argv[])
    ver = -1;
    FSdefault = 0;
    hemi=0;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_FSread_annot_Main();

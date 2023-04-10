@@ -13,7 +13,7 @@
       for each stream. You'll also need to make sure relevant NI_write calls
       abide by the settings. You should remove reliance on NI_TALK_MODE
       and the current env used to control it.
-   *- Everytime one deals with SUMA_AFNI_STREAM_INDEX, one should have
+   *- Every time one deals with SUMA_AFNI_STREAM_INDEX, one should have
       a case for    SUMA_TO_MATLAB_STREAM_INDEX . However, one does not
       want to call SE_SendColorMapToAfni twice, once for AFNI and another
       time for matlab. You want to send, not generate, the nel in question twice. */
@@ -1941,7 +1941,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX];
             if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
                if (!SUMA_niml_call (SUMAg_CF, SUMA_AFNI_STREAM_INDEX, YUP)) {
-                  /* conection flag is reset in SUMA_niml_call */
+                  /* connection flag is reset in SUMA_niml_call */
                   break;
                }
 
@@ -2795,7 +2795,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_UpdateTriField(SO);
                   break; }
                case GDSET_type:
-                  SUMA_S_Err("ambigous display method without variant");
+                  SUMA_S_Err("ambiguous display method without variant");
                   break;
                case CDOM_type:
                   SUMA_S_Err("Help me please");
@@ -2879,7 +2879,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* Make slices go to same location */
             SUMA_VO_set_slices_XYZ(NULL, sv->Ch->c_noVisX);
 
-            /* Attempt to update crosshair corrdinates
+            /* Attempt to update crosshair coordinates
                in open surface controllers */
             SUMA_UpdateXhairField(sv);
             break;
@@ -2945,7 +2945,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                CurState =
                   XmToggleButtonGetState (SUMAg_CF->X->SumaCont->LockAllView_tb);
                for (ii=0; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
-                  /* set all buttons accrodingly */
+                  /* set all buttons accordingly */
                   XmToggleButtonSetState (
                      SUMAg_CF->X->SumaCont->LockView_tbg[ii], CurState, NOPE);
                   SUMAg_CF->ViewLocked[ii] = CurState;
@@ -6413,7 +6413,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
          } else { /* this node does not exist in the upcoming thing */
             fprintf(SUMA_STDERR,
                      "\n\aWarning %s: "
-                     "Slected node in precursor state does not exist "
+                     "Selected node in precursor state does not exist "
                      "in current state.\n"
                      "Selected Node is left at previous setting in "
                      "this view state.\n", FuncName);
@@ -6789,7 +6789,7 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 
 /*!
    transform current XYZ to XYZmap
-   The XYZ on an auxilliary surface are of no relevance to the volume.
+   The XYZ on an auxiliary surface are of no relevance to the volume.
    They must be transformed to mappable XYZ (in mm, RAI, in alignment
    with the Parent Volume)
    XYZmap = SUMA_XYZ_XYZmap (XYZ, SO, dov, N_dov, I_C, LDP_only);
@@ -6937,7 +6937,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO,
                   SO surface.
    \param LDP_only (int) if 1, XYZmap is set to XYZ only if SO is the LDP
                             0, XYZmap is set to XYZ is SO is LDP or AnatCorrect
-   \ret XYZ (float *) Equivalent of XYZmap on the auxilliary surface SO.
+   \ret XYZ (float *) Equivalent of XYZmap on the auxiliary surface SO.
                       NULL in case of trouble.
 
    \sa SUMA_XYZ_XYZmap

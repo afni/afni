@@ -185,7 +185,7 @@ int erosion(THD_3dim_dataset * din, float *outImg){
     do {
         objectVoxelsLeft = FALSE;
 
-        // Copy inpout image to buffer
+        // Copy input image to buffer
         for (i=0; i<nvox; ++i) buffer[i] = img[i];
 
         // Erode input

@@ -1866,7 +1866,7 @@ class RegWrap:
             ps.erodelevel = opt.parlist[0]
             
          # the cost function is not as important here because the preprocessing
-         # steps accomodate for dataset differences - least squares,
+         # steps accommodate for dataset differences - least squares,
          # mutual information or local pearson correlation are all good choices
          opt = self.user_opts.find_opt('-cost') 
          if opt == None: self.cost = 'lpa'  # local Pearson absolute correlation

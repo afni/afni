@@ -165,7 +165,7 @@ ENTRY("THD_open_tcat") ;
                                          OBLIQ_ANGLE_THRESH);
        if (angle > 0.0) {
          WARNING_message(
-            "dataset %s has an obliquity difference of %f degress with %s\n",
+            "dataset %s has an obliquity difference of %f degrees with %s\n",
             dset_in[dd] ,
             angle, dset_in[0] );
        }

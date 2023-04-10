@@ -96,7 +96,7 @@ typedef afni_history_struct hist_type;
 #define FIRST_YEAR    1994  /* start of AFNI, just in case (RWCox..)   */
 
 
-/* refereces to the structures in each history file */
+/* references to the structures in each history file */
 extern afni_history_struct bpittman_history[];
 extern afni_history_struct christip_history[];
 extern afni_history_struct dglen_history[];

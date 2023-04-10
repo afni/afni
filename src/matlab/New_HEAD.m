@@ -11,7 +11,7 @@ function [err,Info, opt] = New_HEAD (opt)
 %
 %Input Parameters:
 %   opt is an options structure with the following fields:
-%     .prefix: A string containg the AFNI dataset's prefix
+%     .prefix: A string containing the AFNI dataset's prefix
 %              .prefix and one of .dimen or .master must
 %              be used.
 %     .dimen: A string or array containing the dimensions of
@@ -31,7 +31,7 @@ function [err,Info, opt] = New_HEAD (opt)
 %     .scale: 0/1 This is only meaningful with 'short' data where it
 %             defaults to 1. It defaults to 0 for other types. It is
 %             used when storing float data as shorts to minimize disk
-%             use while preserving numeric percision.
+%             use while preserving numeric precision.
 %     .Overwrite: y/[n] allow header to be created even if one with
 %                 similar name is found on disk
 %Output Parameters:
@@ -66,7 +66,7 @@ FuncName = 'New_HEAD';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 Info = [];
 

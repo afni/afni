@@ -803,7 +803,7 @@ ENTRY("THD_nifti_process_afni_ext") ;
 
    /* if have data, it's long enough, and starts properly, then ... */
 
-   /* if insufficent data, fail */
+   /* if insufficient data, fail */
    if( buf == NULL || nbuf <= 32 || strncmp(buf,"<?xml",5) != 0 )
       RETURN(1);
 

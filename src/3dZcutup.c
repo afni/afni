@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
              "     same thing, but along all 3 axes.\n"
              " * You can glue datasets back together in the z-direction\n"
              "     using program 3dZcat.  A sample C shell script that\n"
-             "     uses these progams to carry out an analysis of a large\n"
+             "     uses these programs to carry out an analysis of a large\n"
              "     dataset is:\n"
              "\n"
              "  #!/bin/csh\n"

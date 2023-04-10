@@ -17,6 +17,7 @@ set diffprog  = xxdiff
 set xxdiff    = 0
 set diffopts  = ()
 
+
 set skip_data = 0 # skip BRIK, dcm
 set ignore_list = ( )
 
@@ -78,11 +79,20 @@ while ( $narg <= $amax )
 end
 
 # if xxdiff is requested, make sure it exists...
+# if not, try mled before failing
 if ( $xxdiff ) then
    which $diffprog >& /dev/null
    if ( $status ) then
-      echo "** missing Unix program $diffprog, please install and try again"
-      exit
+      # try meld, and possibly switch automatically
+      which meld >& /dev/null
+      if ( $status ) then
+         echo "** missing Unix program $diffprog, please install and try again"
+         exit
+      else
+         echo "-- switching to meld for diff prog"
+         set diffprog = meld
+      endif
+
    endif
 endif
 
@@ -93,7 +103,7 @@ if ( $status ) then
     set useps = 1
 endif
 
-# if ignore_list, make compund grep expression
+# if ignore_list, make compound grep expression
 set iglist = ( )
 foreach istr ( $ignore_list )
    set iglist = ( $iglist -e $istr )

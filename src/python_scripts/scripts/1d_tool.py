@@ -1408,7 +1408,7 @@ class A1DInterface:
       self.show_corwarnfull= 0          # show cormat warnings, inc baseline
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_distmat    = 0          # show distmat
-      self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
+      self.show_df_info    = 0          # show xmat degrees of freedom info
       self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
       self.show_group_labels = 0        # show the groups and labels

@@ -2458,7 +2458,7 @@ apply_xform_12piece(ATLAS_XFORM *xf, float x, float y, float z, \
    ww->resam_type = 0;
 
    for (iw=0; iw < 12; ++iw) {
-      /* 12 piece tranformations stored in 12x30 float blocks */
+      /* 12 piece transformations stored in 12x30 float blocks */
       /* each 30 float block is first 3x3 forward, 3x3 backward, 
          3 vector-forward, 3 vector-backward,
          bottom xyz corner, top xyz corner */
@@ -3043,7 +3043,7 @@ just for reference here
 typedef struct {
    /* tdval and tdlev stand for "Talairach Daemon" value and level */
    /* these are kept for historical purposes  */
-   /* perhaps one day making an unusally boring PBS special */
+   /* perhaps one day making an unusually boring PBS special */
    short tdval;         /* Leave this one to be the very first element */
    char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
    short xx,yy,zz,tdlev,okey ; /* xx,yy,zz - RAI position of region */

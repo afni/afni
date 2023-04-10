@@ -33,7 +33,7 @@
 # + [PT] 1dplot.py can output PDF files now, too
 #
 #ver = '1.61' ; date = 'July 26, 2019' 
-# + [PT] Fix py2 incompatability
+# + [PT] Fix py2 incompatibility
 #
 #ver = '1.7' ; date = 'Jan 29, 2020' 
 # + [PT] Fix input with '-xfile ..' opt
@@ -84,10 +84,14 @@
 #ver = '1.96' ; date = 'Feb 10, 2022' 
 # [PT] matplotlib ver check to be >= 2.2, not just >2.2
 #
-ver = '2.00' ; date = 'Jan 6, 2023' 
+#ver = '2.00' ; date = 'Jan 6, 2023' 
 # [PT] apqc_make_tcsh.py updates:
 #      + add -vstat_list opt
 #      + improve opt parsing/error checking
+#
+ver = '2.01' ; date = 'Apr 6, 2023' 
+# [PT] 1dplot.py: add keywords for labeling 3dAllineate params:
+#      + ALLINPAR6, ALLINPAR9, ALLINPAR12, 
 #
 #########################################################################
 
@@ -105,6 +109,13 @@ MAXLEN = 10**7     # can adjust if that is ever necessary!
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
+lallinpar6     = [ 'x-shift\n(mm)',  'y-shift\n(mm)',  'z-shift\n(mm)',
+                   'z-angle\n(deg)', 'x-angle\n(deg)', 'y-angle\n(deg)' ]
+lallinpar9     = copy.deepcopy(lallinpar6)
+lallinpar9.extend([ 'x-scale', 'y-scale', 'z-scale' ])
+lallinpar12    = copy.deepcopy(lallinpar9)
+lallinpar12.extend([ 'y/x-shear', 'z/x-shear', 'z/y-shear' ])
+
 ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf', '.svg' ]
 ok_ftypes_str  = ', '.join(ok_ftypes)
 
@@ -274,13 +285,21 @@ COMMAND OPTIONS ~1~
 -ylabels YL1 YL2 YL3 ...
               :optional text labels for each "infile" column; the
                final number of ylabels *must* match the total number
-               of columns of data from infiles.  For 1D files output
-               by 3dvolreg, one can automatically provide the 6
-               associated ylabels by providing the keyword 'VOLREG'
-               (and this counts as 6 labels).  The order of ylabels
-               should match the order of infiles.
-               These labels are plotted vertically along the y-axis of the
-               plot.
+               of columns of data from infiles.  The order of ylabels
+               should match the order of infiles.  These labels are
+               plotted vertically along the y-axis of the plot.
+               * For 1D files output by 3dvolreg, one can
+               automatically provide the 6 associated ylabels by
+               providing the keyword 'VOLREG' (and this counts as 6
+               labels).  
+               * For 1D files output by '3dAllineate -1Dparam_save ..',
+               if you are using just the 6 rigid body parameters, you
+               can automatically provide the 6 associated ylabels by
+               providing the keyword 'ALLINPAR6' (and this counts as
+               6 labels).  If using the 6 rigid body parameters and 3 
+               scaling, you can use the keyword 'ALLINPAR9' (which counts
+               as 9 labels). If using all 12 affine parameters, you can use 
+               the keyword 'ALLINPAR12' (which counts as 9 labels). 
 
 -ylabels_maxlen MM
               :y-axis labels can get long; this opt allows you to have
@@ -387,7 +406,7 @@ COMMAND OPTIONS ~1~
                 the first RL value).
 
 -censor_trs CS1 CS2 CS3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered using AFNI index
                 notation, such as '0..3,8,25,99..$'.  Note that if you
@@ -400,7 +419,7 @@ COMMAND OPTIONS ~1~
                 background color will be added to all plots of width 1.
 
 -censor_files CF1 CF2 CF3 ...
-               :specify time points where censoring has occured (e.g.,
+               :specify time points where censoring has occurred (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered as 1D files, columns
                 where 0 indicates censoring at that [i]th time point,
@@ -1095,7 +1114,7 @@ class apqc_1dplot_opts:
         self.censor_width = self.all_x[1] - self.all_x[0]
 
         # add to this in different forms, where True values mean
-        # censoring is flagged to have occured
+        # censoring is flagged to have occurred
         cen_arr = [False] * self.npts
 
         # combine all strings of censor lists:
@@ -1453,6 +1472,15 @@ def parse_1dplot_args(full_argv):
                 if not(all_opts.__contains__(argv[i])): #aaa != "-":
                     if argv[i] == "VOLREG" :
                         for name in lvolreg:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR6" :
+                        for name in lallinpar6:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR9" :
+                        for name in lallinpar9:
+                            iopts.add_ylabel(name)
+                    elif argv[i] == "ALLINPAR12" :
+                        for name in lallinpar12:
                             iopts.add_ylabel(name)
                     else:
                         iopts.add_ylabel(argv[i])
@@ -1860,7 +1888,7 @@ class apqc_tcsh_opts:
 
 # -------------------------------------------------------------------
 
-### Keep this list uptodate as new options get added, for parsing 
+### Keep this list up-to-date as new options get added, for parsing 
 list_apqc_tcsh_opts = ['-help', '-h',
                        '-ver',
                        '-uvar_json',
@@ -1936,7 +1964,7 @@ def parse_tcsh_args(argv):
             if i >= Nargm1 :
                 ARG_missing_arg(argv[i])
             while i+1 < Narg :
-                # NB: this requires keeping the list of options uptodate!
+                # NB: this requires keeping the list of options up-to-date!
                 if argv[i+1] in list_apqc_tcsh_opts :
                     break
                 else:

@@ -1661,7 +1661,7 @@ ENTRY("mri_imcount_dicom") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Normally we will find the first occurance of each element in the text.
+/*! Normally we will find the first occurrence of each element in the text.
  *  Maybe the user wants to use the last, instead.     10 Apr 2009 [rickr]
 -----------------------------------------------------------------------------*/
 
@@ -1817,7 +1817,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
      if( cpt-dpt > 16 ) break ;                                 /* too much space */
      if( strncmp(cpt,"sSliceArray.asSlice[",20) != 0 ) break ;   /* bad next line */
      /* 04 Mar 2003 moved this stuff around to allow for locating "fake matches"  *
-      * of the target text in some mosaic files' binary sections                  */
+      * of the target text in the binary sections of some mosaic files     */
 
      /* interpret next string into
          snum = slice subscript (0,1,...)

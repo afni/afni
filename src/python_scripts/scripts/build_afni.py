@@ -772,7 +772,7 @@ class MyInterface:
 
           self.add_final_mesg("")
           self.add_final_mesg("------------------------------")
-          self.add_final_mesg("shell/sytem command history is in:")
+          self.add_final_mesg("shell/system command history is in:")
           self.add_final_mesg("   %s/%s" % (sdir, hfile))
 
           rv, ot = self.run_cmd('cd', cwd, pc=1)
@@ -1069,7 +1069,7 @@ class MyInterface:
       if st: return st
 
       # note the atlas package
-      # (use a local varible in case it later comes from elsewhere)
+      # (use a local variable in case it later comes from elsewhere)
       atlas_pack = g_atlas_pack
 
       # if atlases already exist, use them
@@ -1127,7 +1127,7 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
-      # if the user does not want any udpates, we are done
+      # if the user does not want any updates, we are done
       # (but note what is being used)
       if not self.git_update:
          MESGm("skipping any git updates")

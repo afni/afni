@@ -11,6 +11,7 @@
 import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
+from afnipy import lib_format_cmd_str as lfcs
 import glob
 import pdb
 import re
@@ -561,9 +562,106 @@ def write_afni_com_history(fname, length=0, wrap=1):
       if length > 0: limit to that number of entries
    """
    com = BASE.shell_com('hi there')
-   hist = com.shell_history()
+   hist = com.shell_history(nhist=length)
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
+
+def write_afni_com_log(fname=None, length=0, wrap=1):
+   """write the afni_com log to the given file
+
+      if length > 0: limit to that number of entries
+
+      if no fname is given, simply print the log
+   """
+   com = BASE.shell_com('hi there')
+   log = com.shell_log(nlog=length)
+   
+   # wrapping will occur *here*, if used
+   log2   = proc_log(log, wrap=wrap)
+   script = '\n'.join(log2)+'\n'
+
+   if fname is None :
+      print(script)
+   else:
+      # wrapping will have already occurred, above
+      write_text_to_file(fname, script, wrap=0)
+
+def proc_log(log, wid=78, wrap=1):
+    """Process the log, which is a list of dictionaries (each of cmd,
+status, so and se objects), and prepare it for string output.  The
+output is a list of strings to be concatenated.
+
+    """
+
+    N = len(log)
+    if not(N) :    return ''
+
+    log2 = []
+    for ii in range(N):
+        D = log[ii]
+        topline = not(ii)
+        log2.extend( format_log_dict(D, wid=wid, wrap=wrap,
+                                     topline=topline) )
+    return log2
+
+def format_log_dict(D, wid=78, wrap=1, topline=True):
+    """Each dictionary contains the following keys: cmd, status, so, se.
+Turn these into a list of strings, to be joined when displaying the log.
+
+    """
+
+    L = []
+    if topline :
+        L.append("="*wid)
+
+    # cmd
+    if len(D['cmd'].split()) > 3 and len(D['cmd'].strip()) > 40 :
+       ok, cmd = lfcs.afni_niceify_cmd_str(D['cmd'])
+    else:
+        cmd = D['cmd'].strip()
+        if wrap :
+            cmd = add_line_wrappers(D['cmd'].strip())
+    nline = cmd.count('\n') + 1
+    L.append('cmd: ' + str(nline))
+    L.append(cmd)
+    L.append("-"*wid)
+
+    # status
+    L.append('stat: ' + str(D['status']))
+    L.append("-"*wid)
+
+    # so
+    ooo = some_types_to_str(D['so'])
+    if ooo :
+       if wrap :
+          ooo = add_line_wrappers(ooo, wrapstr='\\\n')
+       nline = ooo.count('\n') + 1
+       L.append('so: ' + str(nline))
+       L.append(ooo)
+    else:
+       L.append('so: 0')
+    L.append("-"*wid)
+
+    # se
+    eee = some_types_to_str(D['se'])
+    if eee :
+       if wrap :
+          eee = add_line_wrappers(eee, wrapstr='\\\n')
+       nline = eee.count('\n') + 1
+       L.append('se: ' + str(nline))
+       L.append(eee)
+    else:
+       L.append('se: 0')
+    L.append("="*wid)
+
+    return L
+
+def some_types_to_str(x):
+    """return a string form of a list, str or 'other' type,
+    ... now implementing Reynoldsian Recursion!"""
+    if type(x) == str :     return x
+    elif type(x) == list :  return '\n'.join([some_types_to_str(v) for v in x])
+    else:                   return str(x)
 
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""
@@ -1509,7 +1607,7 @@ def timing_to_slice_pattern(timing, nplaces=3):
       return status (int), tpattern (string)
         status  -1   invalid timing
                  0   irregular timing (valid, but no time pattern)
-              >= 1   multiband level of regular timing (usuallly 1)
+              >= 1   multiband level of regular timing (usually 1)
         pattern
                  val in g_valid_slice_patterns
                      (or 'irregular')
@@ -1555,7 +1653,7 @@ def timing_to_slice_pattern(timing, nplaces=3):
    # at this point, the sorted list has a regular (multiband?) pattern
    # so now we :
    #   - choose a pattern based on the first nunique entries
-   #   - verify that the patters repeats mblevel times
+   #   - verify that the pattern repeats mblevel times
 
    # variables of importance: timing, tgrid, nunique, mblevel
    # convert timing to ints in range(nunique)
@@ -1730,7 +1828,7 @@ def slice_pattern_to_order(pattern, nslices):
 def slice_pattern_to_timing(pattern, nslices, TR=0):
    """given tpattern, nslices and TR, return a list of slice times
 
-      special case: if TR == 0 (or unspecifiec)
+      special case: if TR == 0 (or unspecific)
          - do not scale (so output is int list, as if TR==nslices)
 
       method:
@@ -2118,7 +2216,7 @@ def make_CENSORTR_string(data, nruns=0, rlens=[], invert=0, asopt=0, verb=1):
       # make a ',' and '..' string listing TR indices
       estr = encode_1D_ints([i for i in range(rlen) if rvals[i]])
 
-      # every ',' separated piece needs to be preceeded by RUN:
+      # every ',' separated piece needs to be preceded by RUN:
       rstr += "%d:%s " % (run+1, estr.replace(',', ',%d:'%(run+1)))
 
    if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
@@ -2150,7 +2248,7 @@ def check_list_2dmat_and_mask(L, mask=None):
 
     # need a [N, nrow, ncol] here
     if len(Ldims) != 3 :   
-        BASE.EP("Matrix fails test for being a list of 2D matrices;\m"
+        BASE.EP("Matrix fails test for being a list of 2D matrices;\n"
                 "instead of having 3 dims, it has {}".format(len(Ldims)))
 
     if mask != None :
@@ -2526,7 +2624,7 @@ def replace_n_squeeze(instr, oldstr, newstr):
    """like string.replace(), but remove all spaces around oldstr
       (so probably want some space in newstr)"""
    # while oldstr is found
-   #   find last preceeding keep posn (before oldstr and spaces)
+   #   find last preceding keep posn (before oldstr and spaces)
    #   find next following keep posn (after oldstr and spaces)
    #   set result = result[0:first] + newstr + result[last:]
    newlen = len(newstr)
@@ -2554,7 +2652,7 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
     """return a string that is a 'cname' command, indented by
          nindent, with nextra indentation for option continuation
 
-       This function taks a command and a list of options with parameters,
+       This function takes a command and a list of options with parameters,
        and furnishes a wrapped command, where each option entry is on its
        own line, and any option entry line wraps includes nextra indentation.
 
@@ -2703,7 +2801,7 @@ def get_next_indentation(command,start=0,end=-1):
 
     spaces = num_leading_line_spaces(command,start,1)
     prefix = command[start:start+spaces]+'    ' # grab those spaces, plus 4
-    # now check for an indention prefix
+    # now check for an indentation prefix
     posn = command.find('\\\n', start)
     pn = command.find('\n', start)      # but don't continue past current line
     if posn >= 0 and posn < pn:
@@ -2747,7 +2845,7 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     return 0        # if we get here, line wrapping is not needed
 
 def find_command_end(command, start=0):
-    """find the next '\n' that is not preceeded by '\\', or return the
+    """find the next '\n' that is not preceded by '\\', or return the
        last valid position (length-1)"""
 
     length = len(command)
@@ -2783,7 +2881,7 @@ def num_leading_line_spaces(istr,start,pound=0):
 
 def find_next_space(istr,start,skip_prefix=0):
     """find (index of) first space after start that isn't a newline
-       (skip any leading indendation if skip_prefix is set)
+       (skip any leading indentation if skip_prefix is set)
        return -1 if none are found"""
 
     length = len(istr)
@@ -3182,7 +3280,7 @@ def get_command_str(args=[], preamble=1, comment=1, quotize=1, wrap=1):
     """return a script generation command
 
         args:           arguments to apply
-        preample:       start with "script generated by..."
+        preamble:       start with "script generated by..."
         comment:        have text '#' commented out
         quotize:        try to quotize any arguments that need it
         wrap:           add line wrappers
@@ -3246,7 +3344,7 @@ def get_rank(data, style='dense', reverse=0, uniq=0):
    dd = [[dd[ind], ind] for ind in range(dlen)]
    dd.sort()
 
-   # invert postion list by repeating above, but with index list as data
+   # invert position list by repeating above, but with index list as data
    # (bring original data along for non-uniq case)
    dd = [[dd[ind][1], ind, dd[ind][0]] for ind in range(dlen)]
 
@@ -3895,7 +3993,7 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
          return None
 
    if len(slist) != len(dsets): # appropriate number of entries
-      if verb > 0: print('** GIFD: length mis-match getting IDs')
+      if verb > 0: print('** GIFD: length mismatch getting IDs')
       return None
 
    if not vals_are_unique(slist):
@@ -4196,7 +4294,7 @@ def demean(vec, ibot=-1, itop=-1):
        tot += vec[ind]
     mm = tot/(itop-ibot+1)
 
-    # now subract it
+    # now subtract it
     for ind in range(ibot,itop+1):
        vec[ind] -= mm
 

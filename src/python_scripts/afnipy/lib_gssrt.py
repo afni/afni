@@ -885,7 +885,7 @@ class MyInterface:
       varyrow = table[2][:]
 
       # do we actually output the keepers, rather than the droppers?
-      # (if so, change subject lable to SHOW_KEEP)
+      # (if so, change subject label to SHOW_KEEP)
       if self.show_keepers:
          if table[0][0] == 'subject' and table[1][0] == 'SHOW':
             table[1][0] = 'SHOW_KEEP'
@@ -1019,7 +1019,7 @@ class MyInterface:
          if fcomp == 0:  return 0
          else:           return 1
          
-      # for case of empty sting, allow for equality as strings
+      # for case of empty string, allow for equality as strings
       # if strings are equal, we do not need float tests
       if scomp:
          if comp == 'LE' or comp == 'GE':

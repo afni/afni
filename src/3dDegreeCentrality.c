@@ -178,7 +178,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistnodes)
     int kout = 0;
 
     /* only try to free the histogram if we have reason
-       to beleive that it exists */
+       to believe that it exists */
     if (histogram != NULL )
     {
         /* iterate through the histogram bins */
@@ -413,7 +413,7 @@ int main( int argc , char *argv[] )
 "               the number of voxels included in the calculation will\n"
 "               significantly speedup the calculation. Consider using\n"
 "               a mask to constrain the calculations to the grey matter\n"
-"               rather than the whole brain. This is also preferrable\n"
+"               rather than the whole brain. This is also preferable\n"
 "               to using -autoclip or -automask.\n"
 "\n"
 "  -prefix p = Save output into dataset with prefix 'p', this file will\n"
@@ -622,7 +622,7 @@ int main( int argc , char *argv[] )
 
 
    /* CC calculate the total number of possible correlations, will be 
-       usefule down the road */
+       useful down the road */
    totPosCor = (.5*((float)nmask))*((float)(nmask-1));
 
    /**  For the case of Pearson correlation, we make sure the  **/

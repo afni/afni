@@ -649,7 +649,7 @@ static int reset_exp_time_series(void)
    if( g_exp_ts ) free(g_exp_ts);
    g_exp_ts = (float *)malloc(g_exp_nvals * sizeof(float));
    if( ! g_exp_ts ) {
-      fprintf(stderr,"** failed to alloc %d floats, buring...\n", g_exp_nvals);
+      fprintf(stderr,"** failed to alloc %d floats, burning...\n", g_exp_nvals);
 
       if( g_saset ) DSET_delete(g_saset);
       g_saset = NULL; /* this blocks analysis */
@@ -969,7 +969,7 @@ static int fill_scaled_farray(float *fdest, int length, THD_3dim_dataset *dsrc,
    nt = DSET_NVALS(dsrc);
 
    if( nx != length ) {
-      fprintf(stderr, "** FSF: nx, len mis-match, %d != %d\n", nx, length);
+      fprintf(stderr, "** FSF: nx, len mismatch, %d != %d\n", nx, length);
       return 1;
    }
 

@@ -1059,7 +1059,7 @@ class OutputDiffer:
             comparison_dir (pathlib.Path): Directory path containing previous
             output that will be compared against.
             files_1d (Iterable[Union[str,int]]): List of AFNI 1D files to compare.
-            fields (list, optional): Only the matrix of numbers is comparied by
+            fields (list, optional): Only the matrix of numbers is compared by
             default. Fields allows the user to specify a list containing the
             elements to compare. Possible values include: 'mat', 'name', 'fname',
             'aname', 'nvec', 'nt', 'tr', 'nrowfull', 'nruns', 'run_len',

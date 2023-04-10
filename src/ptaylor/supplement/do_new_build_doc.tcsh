@@ -5,7 +5,7 @@ set do_push = $1
 set adoc_build  = "$HOME/afni_doc"
 set agit_sphinx = "$HOME/AFNI/afni_doc/"
 
-echo "++ Make sure repo is uptodate ('git pull ...')"
+echo "++ Make sure repo is up-to-date ('git pull ...')"
 cd ${agit_sphinx}
 git pull origin master
 

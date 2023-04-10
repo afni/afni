@@ -26,9 +26,9 @@
  *        -ge_all              display GE header and extras info
  *        -ge_header           display GE header info
  *        -ge_extras           display extra GE image info
- *        -ge_uv17             diplay the value of the uv17 variable
- *        -ge_run              diplay the run number - same as uv17
- *        -ge_off              diplay file offsets for various fields
+ *        -ge_uv17             display the value of the uv17 variable
+ *        -ge_run              display the run number - same as uv17
+ *        -ge_off              display file offsets for various fields
  *
  *     GEMS 4.x options
  *
@@ -120,7 +120,7 @@ static char g_history[] =
  "      - added '-def_ana_hdr' to show the definition of an ANALYZE header\n"
  "      - added '-diff_ana_hdrs' to show differences between 2 headers\n"
  "      - added '-disp_ana_hdr' to display the contents of each header\n"
- "      - added '-hex' to show field output in hexidecimal\n"
+ "      - added '-hex' to show field output in hexadecimal\n"
  "      - file_tool now depends on new files fields.[ch]\n"
  " 3.6  July 1, 2007    - added ability to modify fields of an ANALYZE file\n"
  "      - added '-mod_ana_hdr' to modiefy fields of an ANALYZE header file\n"
@@ -1914,7 +1914,7 @@ help_full( char * prog )
         "      -def_ana_hdr     : display the definition of an ANALYZE header\n"
         "      -diff_ana_hdrs   : display field differences between 2 headers\n"
         "      -disp_ana_hdr    : display ANALYZE headers\n"
-        "      -hex             : display field values in hexidecimal\n"
+        "      -hex             : display field values in hexadecimal\n"
         "      -mod_ana_hdr     : modify ANALYZE headers\n"
         "      -mod_field       : specify a field and value(s) to modify\n"
         "\n"

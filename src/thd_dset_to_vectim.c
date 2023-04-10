@@ -834,7 +834,7 @@ void THD_vectim_quantile( MRI_vectim *mrv , float *vec , float *dp )
 /*---------------------------------------------------------------------*/
 /* 04 May 2012: Distances. */
 /* Special parameters:
-   abs: 0 --> Euclidian distance
+   abs: 0 --> Euclidean distance
         1 --> City Block distance
    xform: String flags for transforming distance.
             If string contains "n_scale", scale distance by number

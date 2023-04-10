@@ -49,7 +49,7 @@ class AfniTiming(LD.AfniData):
       if self.verb > 1: print('++ Timing: adding %d rows' % newdata.nrows)
 
       if self.mtype != newdata.mtype:
-         print('** add rows: mis-match mtypes (%d vs. %d)' \
+         print('** add rows: mismatch mtypes (%d vs. %d)' \
                % (self.mtype, newdata.mtype))
 
       # get data and mdata
@@ -420,7 +420,7 @@ class AfniTiming(LD.AfniData):
             tind = row[ind][0]/tr
             # note that rf = 0 now means floor and 1 means ceil
 
-            # add/subract a tiny fraction even for truncation
+            # add/subtract a tiny fraction even for truncation
             if rf == 1.0   :
                if tind == 0: val = 0.0  # to avoid tiny negatives
                else:         val = math.ceil(tind-tiny) * tr
@@ -571,7 +571,7 @@ class AfniTiming(LD.AfniData):
                 min_tr_frac     : minimum fraction of a TR required to set it
                                   (must be in (0.0, 1.0])
          Note that if they are not TR-locked and min_tr_frac <= 0.5, then
-         one stimulus lasting one TR but occuring on the half TR can result
+         one stimulus lasting one TR but occurring on the half TR can result
          in a pair of consecutive 1s.
          ** end save
 
@@ -1308,7 +1308,7 @@ def parse_Ncol_tsv(fname, hlabels=None,
       return -1, [], []
 
    # ----------------------------------------
-   # decide on column extration indices, based on hlabels and lines[0:2]
+   # decide on column extraction indices, based on hlabels and lines[0:2]
 
    # if nothing passed, set to defaults
    # - let tsv_hlabels_to_col_list append any mod_*

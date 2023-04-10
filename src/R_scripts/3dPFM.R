@@ -197,7 +197,7 @@ Only for the non-casual user !!!:
  For lesser mortals, it is enough to know that the L_infty norm term in the DS is 
  equivalent to the differentiation of the RSS term with respect to s in the LASSO. 
  Actually, in practice the results of 3dPFM with the DS are usually very similar
- to the ones obtained with the LASSO (and viceversa). 
+ to the ones obtained with the LASSO (and vice-versa). 
 
  Algorithms for solving the LASSO and DS
  ---------------------------------------
@@ -260,14 +260,14 @@ Only for the non-casual user !!!:
  Option -nonzeros Q:
  Alternatively, one could also select the regularization parameter such that 
  the estimate only includes Q coefficients with non-zero amplitude, where Q 
- is an arbitrary number given as input. In statistics, the set of nonzero coeffients 
+ is an arbitrary number given as input. In statistics, the set of nonzero coefficients 
  for a given regularization parameter is defined as the active (or support) set. 
  A typical use of this option would be that we hypothesize that our signal 
  only includes Q nonzero coefficients (i.e. haemodynamic events of TR duration)
  but we do not know when they ocurr.
  
 
- IMPORTANT: If two successive events are non-zero, do both coeffients represent one or
+ IMPORTANT: If two successive events are non-zero, do both coefficients represent one or
  two events? Intuitively, one could think that both coefficients model a single event
  that spans several coefficients and, thus, requires several non-zero coefficients to
  to be properly modelled. This case is NOT considered in the program. 
@@ -519,7 +519,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
    "       Otherwise, the program will STOP before starting any calculation.              \n",
    "     * Only positive integers > 0 are allowed in this option.                         \n",
    "     * For instance, this dataset can be created by clustering (e.g. with 3dKmeans)   \n",
-   "       the estimated HRF genereted with option -iresp in 3dDeconvolve.                \n",
+   "       the estimated HRF generated with option -iresp in 3dDeconvolve.                \n",
    "     * In 3dPFM, the HRF response is assumed constant during the acquisition          \n",
    "     * An index equal to 1 will select the first column of the .1D fhrf,              \n",
    "       which is usually column 0 in AFNI nomenclature.                                \n"
@@ -569,7 +569,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
 
       '-nSeg' = apl(n = 1, d = 1, h = paste(
    "-nSeg XX: Divide into nSeg segments of voxels to report progress,        \n",
-   "          e.g. nSeg 5 will report every 20% of proccesed voxels.         \n",
+   "          e.g. nSeg 5 will report every 20% of processed voxels.         \n",
    "          Default = 10                                                   \n"
                     ) ),
 

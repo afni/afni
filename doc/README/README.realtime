@@ -308,7 +308,7 @@ Step 3: Once the data channel to AFNI is open, the image source program
         output command strings to stdout, which will be captured by AFNI.
 
         After the initial command information is sent down the data
-        channel, everthing that follows down the data channel must be
+        channel, everything that follows down the data channel must be
         raw image information - no more commands and no headers.  For
         example, if you have 64x64 images of shorts, then each set of
         8192 bytes (after the terminal '\0' of the initial command

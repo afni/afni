@@ -489,7 +489,7 @@ int process_input_dsets(param_t * params)
       }
 
       /* check for consistency in voxels and grid */
-      if( DSET_NVOX(dset) != nxyz ) ERROR_exit("nvoxel mis-match");
+      if( DSET_NVOX(dset) != nxyz ) ERROR_exit("nvoxel mismatch");
       if( ! EQUIV_GRIDS(dset, params->dfirst) )
          WARNING_message("grid from dset %s does not match that of dset %s",
                          DSET_PREFIX(dset), DSET_PREFIX(params->dfirst));

@@ -78,7 +78,7 @@ library (à la Glib).
 When developping code using GTS you probably want to enable control
 over casting operations between objects of the GTS object
 hierarchy. This can be done easily by defining GTS_CHECK_CASTS either
-in the CFLAGS environement variable (CFLAGS=-DGTS_CHECK_CASTS) or on
+in the CFLAGS environment variable (CFLAGS=-DGTS_CHECK_CASTS) or on
 the command-line of your compiler.
 
 This will slow down your code but will warn you when you try to

@@ -226,7 +226,7 @@ program displays the rigid-body alignment parameters (3 rotations and
 data, more than just subject motion is likely shown via these params.)
 
 This (AFNI) program has been tested on TORTOISE versions 3.1* - 3.2.
-We hope to keep it uptodate on future versions, as well.
+We hope to keep it up-to-date on future versions, as well.
 
 auth = PA Taylor (NIMH, NIH, USA)
 

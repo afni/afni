@@ -177,7 +177,7 @@ STATUS("Editing dataset") ;
      float dt = strtod(ppp,NULL) ; if( dt <= 0.0 ) dt = 1.0 ;
      if (dt > 360) {
       dt *= 0.001;
-      fprintf(stderr,"Warning: ni_timestep appears incorrecly set in msec.\n"
+      fprintf(stderr,"Warning: ni_timestep appears incorrectly set in msec.\n"
                      "Reducing dt by a factor of 1000 to %fsec.\n", dt);
      }
      EDIT_dset_items( dset ,

@@ -20,7 +20,7 @@ if ( $do_help ) then
   echo "and produce a grayplot from the errts dataset(s), combined with"
   echo "a motion magnitude indicator graph."
   echo
-  echo "* NOTE: This script requires various programs from the NETPBM packege"
+  echo "* NOTE: This script requires various programs from the NETPBM package"
   echo "        to run. If those programs are not found, this script will fail."
   echo
   echo "Will produce a plot for each dataset whose name fits the wildcard"

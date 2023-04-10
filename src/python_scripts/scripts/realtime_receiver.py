@@ -132,7 +132,7 @@ realtime_receiver.py - program to receive and display real-time plugin data
         This program listens for connections at TCP port 53214, unless an
         alternate port is specified.  The real-time plugin (or some other
         program) connects at that point, opening a new data socket.  There
-        is a "handshake" on the data socket, and then data is recieved until
+        is a "handshake" on the data socket, and then data is received until
         a termination signal is received (or the socket goes bad).
 
         Data is sent per run, meaning the connection should be terminated

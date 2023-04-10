@@ -761,7 +761,7 @@ typedef struct {
 
 
 /*! TRY TO MAKE DO WITHOUT THIS THING, IF POSSIBLE.
-It is a pain to work with two types of ROI structues
+It is a pain to work with two types of ROI structures
 structure to hold an ROI */
 typedef struct {
    SUMA_ROI_TYPE Type;   /*!< The type of ROI */
@@ -968,20 +968,20 @@ typedef struct {
    SUMA_DATUM_LEVEL dtlvl; /* What does a 'node' refer to? Data can be passed
                               at multiple levels */
 
-   int ShowMode; /*!< negative do not show, postive,
+   int ShowMode; /*!< negative do not show, positive,
                   ShowMode can be +/-SW_SurfCont_DsetViewCol
                   +/-SW_SurfCont_DsetViewCon, and +/-SW_SurfCont_DsetViewC&C
                   It cannot be +/-SW_SurfCont_DsetViewXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETVIEW */
-   int Font; /*!< negative do not show, postive,
+   int Font; /*!< negative do not show, positive,
                   Font can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETFONT
                   It cannot be +/-SW_SurfCont_DsetFontXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETFONT */
-   int NodeRad; /*!< negative do not show, postive,
+   int NodeRad; /*!< negative do not show, positive,
                NodeRad can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD
                   It cannot be +/-SW_SurfCont_DsetNodeRadXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD */
-   int Through; /*!< negative do not show, postive,
+   int Through; /*!< negative do not show, positive,
                Through can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETTHROUGH
                   It cannot be +/-SW_SurfCont_DsetThroughXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETTHROUGH */
@@ -1059,7 +1059,7 @@ typedef struct {
             details.
             In other obscure words, if YUP then plane is part of background.*/
    float DimFact;    /*!< a scaling factor applied to the colors in ColVec
-                           This is overriden by BrightFact in OptScl which is
+                           This is overridden by BrightFact in OptScl which is
                            defined for non-explicitly colored planes*/
    double ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead
          of the true range of values in the dataset.
@@ -1094,7 +1094,7 @@ typedef struct {
 
 
 /*!
-Stucture to hold the contents of the specs file
+Structure to hold the contents of the specs file
 */
 typedef struct {
    char **SurfaceType;    /*!< Type of surface loaded:
@@ -1240,7 +1240,7 @@ typedef struct {
                   2nd column, row i = J is the triangle ( FL[J] ) that the
                         segment belongs to.
                   3rd column, row i = Numer of triangles that contain this edge.
-                     This number is positive for the first occurence
+                     This number is positive for the first occurrence
                      of the edge in EL, it is -1 afterwards. A decent edge has 2
                      hosting triangles, an edge edge
                      has 1 hosting triangle. Bad edges come in all other colors*/
@@ -1270,7 +1270,7 @@ typedef struct {
    float *Le; /*!< Vector N_EL elements long containing
                   the length of each edge in EL */
    float AvgLe; /*!< Average of Le (internodal distance).
-                     This is an approximate average lenght,
+                     This is an approximate average length,
                      since some edges may counted more than others  */
 } SUMA_EDGE_LIST;
 
@@ -1289,7 +1289,7 @@ typedef struct {
    int *IsIn;  /*!< Indices of nodes inside the sphere */
    int nIsIn; /*!< Number of nodes inside the sphere */
    float *d;  /*!< Not implemented Distance of each node to the center
-                   of the shpere */
+                   of the sphere */
    float **dXYZ; /*!< Not implemented */
 } SUMA_ISINSPHERE;
 
@@ -1389,7 +1389,7 @@ typedef struct {
    void *Default_Data; /*!< pointer to data to go with Default_cb. If you pass NULL, the pointer to the List Widget is sent */
    void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */
    void *Select_Data; /*!< pointer to data to go with Select_cb. If you pass NULL, the pointer to the List Widget is sent */
-   void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callbak to make when a selection is made */
+   void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata); /*!< callback to make when a selection is made */
    void *CloseList_Data; /*!< pointer to data to go with CloseList_cb. If you pass NULL, the pointer to the List Widget is sent */
    char *Label;
    SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
@@ -1468,7 +1468,7 @@ typedef struct {
 /*!
    Structure containing widgets and settings of an arrow and or a text field
 
-   - When adding fields to this stucture, make sure you initialize them
+   - When adding fields to this structure, make sure you initialize them
    appropriately in the functions SUMA_CreateTextField and SUMA_CreateArrowField
 */
 typedef struct {
@@ -1483,7 +1483,7 @@ typedef struct {
    float max;  /*!< maximum value */
    SUMA_Boolean wrap; /*!< YUP: wrap value in min-max range, else clip it*/
    float value;   /*!< current value */
-   int cwidth; /*!< charcter spaces to save for widget */
+   int cwidth; /*!< character spaces to save for widget */
    SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
    int direction; /*!< +1 up, -1 down */
 
@@ -1505,7 +1505,7 @@ typedef struct{
    SUMA_Boolean HasRowTit; /*!< YUP = table's 1st col is titles */
    int Ni;   /*!< Number of rows = Number of elements PER COLUMN (1st dim)*/
    int Nj;   /*!< Number of columns = Number of elements PER ROW (2nd dim)*/
-   int *cwidth; /*!< charcter spaces to save for widget per column */
+   int *cwidth; /*!< character spaces to save for widget per column */
    byte *but_flag; /*!< Flags to indicate button status of a cell. That is
                         to allow the highjacking of text fields to make them
                         toggle buttons. This should normally be used for column
@@ -1677,7 +1677,7 @@ typedef struct {
       Replaced with DsetViewModeMenu
       Widget ColPlaneShow_tb; *//*!< show/hide color plane */
    Widget ColPlaneShowOneFore_tb; /*!< show only one color plane at a time*/
-   Widget GDSET_ShowBundles_tb; /*!< show bundles insted of edges*/
+   Widget GDSET_ShowBundles_tb; /*!< show bundles instead of edges*/
    Widget GDSET_ShowUncon_tb; /*!< show unconnected nodes */
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
@@ -1784,7 +1784,7 @@ typedef struct {
    Widget AppFrame;
    Widget quit_pb; /*!< quit push button */
    SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
-   SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio
+   SUMA_rb_group *Lock_rbg; /*!< pointer to structure containing N radio
                                  button groups */
    Widget *LockView_tbg;   /*!< vector of toggleview buttons */
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */
@@ -1844,7 +1844,7 @@ typedef struct {
    char widget_label[64];
 } SUMA_GLCONTEXT_RECORD;
 
-/*! structure containg X vars for surface viewers*/
+/*! structure containing X vars for surface viewers*/
 typedef struct {
    Display *DPY; /*!< display of toplevel widget */
    Widget TOPLEVEL, FORM, FRAME, GLXAREA;
@@ -1881,7 +1881,7 @@ typedef struct {
    SUMA_PROMPT_DIALOG_STRUCT *SetRenderOrder_prmpt;
 }SUMA_X;
 
-/*! structure containg X vars common to all viewers */
+/*! structure containing X vars common to all viewers */
 typedef struct {
    SUMA_X_SumaCont *SumaCont; /*!< structure containing widgets
                                     for Suma's controller */
@@ -1994,7 +1994,7 @@ typedef struct {
 
 
 /*!
-   Structure containg a bunch of segments defined between n0 and n1
+   Structure containing a bunch of segments defined between n0 and n1
 */
 typedef struct {
       /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
@@ -2051,7 +2051,7 @@ typedef struct {
 } SUMA_STRIP;
 
 /*!
-   Structure containg a bunch of spheres
+   Structure containing a bunch of spheres
 */
 typedef struct {
       /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
@@ -2155,7 +2155,7 @@ typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */
 
-      /* Any change below should be reflected in all stucts that
+      /* Any change below should be reflected in all structs that
          can get typecast to SUMA_NB_DO */
    int NodeBased; /*!< flag: 1 if segments are formed by
                         vectors at surface nodes */
@@ -2168,7 +2168,7 @@ typedef struct {
 } SUMA_NB_DO; /*!< generic struct for common fields to Node-Based DOs */
 
 /*!
-   Structure containg a bunch of planes
+   Structure containing a bunch of planes
 */
 typedef struct {
       /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
@@ -2837,7 +2837,7 @@ typedef struct {
    SUMA_ENGINE_SOURCE vp_Source; /*!< OBSOLETE source of fm*/
 
    int N_rows; /*!< Number of rows in fm or im */
-   int N_cols; /*!< Number of colums in fm or im */
+   int N_cols; /*!< Number of columns in fm or im */
 
    NI_group *ngr;
    SUMA_ENGINE_CODE ngr_Dest; /*!<  destination of ngr */
@@ -2985,7 +2985,7 @@ typedef struct {
 typedef struct {
    DList *Xchain;
    int Applied; /*!< Xform has been applied to coords */
-   float *XformedCoords; /*!< Tranformed coords. If NULL and XformApplied,
+   float *XformedCoords; /*!< Transformed coords. If NULL and XformApplied,
                               it means the results of the transform have
                               been stored in the surface's NodeList */
 } SUMA_VIS_XFORM;
@@ -3053,7 +3053,7 @@ typedef struct {
                                     from which VolPar is created.
                                     Except in the case
                                     where you are viewing the surfaces on
-                                    the orignal volume (SurfVol) then this
+                                    the original volume (SurfVol) then this
                                     field and
                                     SurfVol (afni dset *) ->idcode.str and
                                     VolPar->vol_idcode_str should be identical*/
@@ -3120,7 +3120,7 @@ typedef struct {
                            Used in conjunction with PolyMode*/
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill,
                                     SRM_Line, SRM_Points */
-   SUMA_TRANS_MODES TransMode; /*!< transprency */
+   SUMA_TRANS_MODES TransMode; /*!< transparency */
 
    float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior
                               to SUMA 1.2) containing normalized normal
@@ -3462,7 +3462,7 @@ typedef struct {
    char name_coord[SUMA_MAX_NAME_LENGTH];
    int N_Node; /*!< Number of nodes */
    float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
-   int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 but
+   int *NodeId; /*!< Node ID, that's normally from 0..N_Nodes-1 but
                     since it's in .coord file, I keep it anyway */
    byte *allzerocoord;
    char encoding_coord[100];
@@ -3494,7 +3494,7 @@ typedef struct {
 typedef struct {
    char name[SUMA_MAX_NAME_LENGTH];
    int N_Node; /*!< Number of nodes */
-   int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 unless the surface is a patch of another surface see FaceSetIndexInParent*/
+   int *NodeId; /*!< Node ID, that's normally from 0..N_Nodes-1 unless the surface is a patch of another surface see FaceSetIndexInParent*/
    float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
    int N_FaceSet; /*!< Number of polygons making up surface */
    int *FaceSetList; /*!< definition of polygons. For a complete surface, these are indices into NodeList's rows
@@ -3540,7 +3540,7 @@ typedef struct {
    int *FaceSetIndex; /*!< vector (N_FaceSet x 1) containing indices of triangles                            in FaceSetList in the FaceSetList of the surface that
                            the patch was taken from */
    int *nHits; /*!< (N_FaceSet x 1) If patch is created from a set of nodes,
-                     nHits[i] is the number of nodes refering to this Faceset */
+                     nHits[i] is the number of nodes referring to this Faceset */
 } SUMA_PATCH; /*!< A surface patch, typically created from a set of nodes */
 
 /*! structure containing ClientData
@@ -3594,7 +3594,7 @@ typedef struct {
    int N_IntersEdges; /*!< Number of edges intersected by the plane */
    int *IntersEdges;  /*!< Vector containing indices of edges intersected by the plane. The indices
                         are into SO->EL->EL matrix. The space allocate for this vector is SO->EL->N_EL
-                        But that is way more than ususally needed. For this vector and others in
+                        But that is way more than usually needed. For this vector and others in
                         this structure, reallocation is not done to save time. Useful values for IntersEdges
                         are between IntersEdges[0]  and IntersEdges[N_IntersEdges-1]*/
    SUMA_Boolean *isEdgeInters; /*!< Vector specifying if an edge i (index into SO->EL->EL) was intersected. */

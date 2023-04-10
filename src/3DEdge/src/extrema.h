@@ -286,7 +286,7 @@ extern void SetGradientExtremaEpsilon( double epsilon /* epsilon value */ );
  * for M+G are the same (with a permutation) than the
  * ones of M-G. For efficiency, we use them again.
  *
- * However, a probleme may occur when one of the gradient
+ * However, a problem may occur when one of the gradient
  * component is equal to one: using the same coefficients 
  * with a permutation leads to errors. 
  * Thus, if one gradient derivative is larger (in absolute value)

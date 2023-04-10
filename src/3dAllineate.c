@@ -498,7 +498,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "* This program is a generalization of and improvement on the older\n"
      "    software 3dWarpDrive.\n"
      "\n"
-     "* For nonlinear transformations, see progam 3dQwarp.\n"
+     "* For nonlinear transformations, see program 3dQwarp.\n"
      "\n"
      "* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
      "  to produce the transformed output. In this mode of operation, it just\n"
@@ -507,7 +507,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "  writes it out, and stops.\n"
      "\n"
      "* If you are curious about the stepwise process used, see the section below\n"
-     "  titled 'SUMMARY of the Default Allineation Process'.\n"
+     "  titled: SUMMARY of the Default Allineation Process.\n"
      "\n"
      "=====----------------------------------------------------------------------\n"
      "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -963,7 +963,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
 
       printf(
      "\n"
-     " -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
+     " -cmass        = Use the center-of-mass calculation to determine an initial shift\n"
      "                   [This option is OFF by default]\n"
      "                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
      "                 where +a means to try determine automatically in which\n"
@@ -3633,7 +3633,7 @@ int main( int argc , char *argv[] )
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
-       ERROR_exit("no source datset on command line!?") ;
+       ERROR_exit("no source dataset on command line!?") ;
      dset_targ = THD_open_dataset( argv[iarg] ) ;
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
@@ -4928,7 +4928,7 @@ STATUS("zeropad weight dataset") ;
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      /* do not let time info from master confuse things, we'll go back */
-     /* to ntt > 1 later, if approprate             [1 Jun 2020 rickr] */
+     /* to ntt > 1 later, if appropriate             [1 Jun 2020 rickr] */
      if( DSET_NUM_TIMES(dset_out) > 1 )
          EDIT_dset_items( dset_out ,   ADN_ntt , 1 , ADN_none ) ;
 
@@ -5348,7 +5348,7 @@ STATUS("zeropad weight dataset") ;
 
        if( allcostX1D == NULL ){ /* just do init parameters == the old way */
 
-         PAR_CPY(val_init) ;   /* copy init parameters into the allpar arrary */
+         PAR_CPY(val_init) ;   /* copy init parameters into the allpar array */
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          PARINI("initial") ;
          INFO_message("allcost output: init #%d",kk) ;
@@ -5884,7 +5884,7 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
-     /*** Optimzation is done, so do some cleanup and some output ***/
+     /*** Optimization is done, so do some cleanup and some output ***/
 
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
@@ -6852,7 +6852,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does a litte extra general smoothing. --*/
+          then the Gaussian filter does a little extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */

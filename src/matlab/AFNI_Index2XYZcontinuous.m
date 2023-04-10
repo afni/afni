@@ -61,7 +61,7 @@ if (nargin == 3)
 end
 
 
-%initailize return variables
+%initialize return variables
 err = 1;
 XYZmm = [];
 

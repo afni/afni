@@ -208,7 +208,7 @@ GLfloat lightOneColor[] = {0.6, 0.3, 0.2, 1.0};  /* red-tinted */
 void
 contextInit(void)
 {
-  glEnable(GL_CULL_FACE);  /* Up to 50% better perfomance than no
+  glEnable(GL_CULL_FACE);  /* Up to 50% better performance than no
                               back-face culling. */
   glEnable(GL_DEPTH_TEST); /* Enable depth buffering. */
 
