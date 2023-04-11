@@ -496,7 +496,7 @@ USAGE ~1~
                            0 - Do not show graphs
                            1 - Show end results (cardiac peaks, respiratory 
                                peaks and final RVT)
-                           2 - Show intermediate and end results (band-pass 
+                           2 - Show intermediate and end results (bandpass 
                                filter, cardiac peaks, respiratory peaks and 
                                final RVT)
                          (def: SHOWG = 0)
@@ -505,7 +505,7 @@ USAGE ~1~
                            0 - Do not save graphs
                            1 - Save end results (cardiac peaks, respiratory 
                                peaks and final RVT)
-                           2 - Save intermediate and end results (band-pass 
+                           2 - Save intermediate and end results (bandpass 
                                filter, cardiac peaks, respiratory peaks and 
                                final RVT)
                          (def: SAVEG = 1)

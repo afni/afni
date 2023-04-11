@@ -8,7 +8,7 @@ Created on Thu Aug 25 14:46:15 2022
 Peak detection is as follows.
 1. Non-numeric (NaN) data in the input is identified and the gap replaced by a
    inear interpolation from the adjacent valid entries.
-2. The remaining data is band-pass filtered as follows.
+2. The remaining data is bandpass filtered as follows.
     a. The data is Fourier transformed to FT.
     b. The harmonic frequency unit, F0, is determined as the sampling frequency 
        (Hz) divided by the raw data length.
@@ -34,7 +34,7 @@ Peak detection is as follows.
 9. Add missing peaks based on breaks in the periodicity.
 10. Repeat step 7.
 The following steps are subsequently done for the respiratory data.
-11. Troughs initially found as peaks in the inverted band-pass filtered signal.
+11. Troughs initially found as peaks in the inverted bandpass filtered signal.
 12. Repeat steps 4-10 with lower thresholds, for peaks, replaced by upper 
        thresholds for troughs.
 13. Remove peaks/troughs that are also troughs/peaks.
@@ -91,7 +91,7 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
         return []
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied if'+
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if'+
               ' graphing required')
   
     # Get peak values
@@ -174,7 +174,7 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         return []
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -375,7 +375,7 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
     
     if not period:
@@ -439,7 +439,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
 
@@ -595,7 +595,7 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               'if graphing required')
         
     numPeaks = len(peaks)
@@ -737,7 +737,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -850,8 +850,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     NyquistLength = round(rawDataLength/2)
     frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])\
         +lowerCutoffIndex
-    print(dataType + ' band-pass filter frequency peak: ' + 
-          str(F0 * frequencyPeak) + ' Hz')
+    print('++ {} bandpass filter frequency peak: {:.6f} Hz'
+          ''.format(dataType, F0 * frequencyPeak))
     
     # Find bounds based on -3 dB limits
     peakVal = FourierSpectrum[frequencyPeak]
@@ -979,7 +979,7 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -1065,7 +1065,7 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -1138,7 +1138,7 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied if' +
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if' +
               ' graphing required')
     
     # Find period if not supplied
@@ -1279,8 +1279,8 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     # Save plot to file
     if save_graph:
         if not OutDir:
-            print('**WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
-                  '  No output directory specified')
+            print('+* WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
+                  ' No output directory specified')
             if not show_graph: plt.close()  # Close graph after saving
             return 1
         else:
@@ -1311,7 +1311,7 @@ def checkForNans(rawData, dataType, failureThreshold = 100):
     '''    
     
     if (np.isnan(np.sum(rawData))): # If nan's in raw data
-        print('** WARNING. NaN entries at the following indices of the ' +
+        print('+* WARNING. NaN entries at the following indices of the ' +
               dataType + ' data')
         nanIndices = np.argwhere(np.isnan(rawData))
         print(nanIndices)

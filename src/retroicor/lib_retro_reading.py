@@ -33,7 +33,8 @@ derived data.
 
         self.ts_orig   = np.array(ts_orig)   # arr, original time series
         self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
-        self.start_time = start_time  # float, time offset (<=0, in s) from start of MRI
+        self.start_time = start_time         # float, time offset (<=0, in s)
+                                             # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
@@ -112,9 +113,10 @@ regressors for MRI data.
         self.remove_val_list = []      # list of values to be purged
 
         # physio info (-> some now in resp_data and card_data objs)
-        self.start_time   = None       # float, time offset (<=0, in s) from start of MRI
-        self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats per sec
-        self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths per sec
+        self.start_time   = None       # float, time offset (<=0, in s) from 
+                                       # start of MRI
+        self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats/sec
+        self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths/sec
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing

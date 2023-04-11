@@ -899,7 +899,7 @@ def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
     # # If the user has supplied the number of output times points, 
     # # it must not be greater than the determined maximum
     if num_time_pts > max_numTime_pts:    
-        print('WARNING: num_time_pts argument too large ' + \
+        print('+* WARNING: num_time_pts argument too large ' + \
               'for input data')
         print('  Adjusted to maximum allowable value, ', 
               max_numTime_pts)
@@ -1505,7 +1505,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                          font_size = test_retro_obj.font_size)
     else:
         if test_retro_obj.do_out_rvt: 
-            print('WARNING: Cannot determine RVT.  No ' + \
+            print('+* WARNING: Cannot determine RVT.  No ' + \
                   'respiratory data')
         test_retro_obj.do_out_rvt = False
                                       
@@ -1553,7 +1553,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         T = len_resp
     elif len_card :
         T = len_card
-    print('Maximum length of phase array = ', T)
+    print('++ Maximum length of phase array =', T)
 
     nreg = 0              # number of regressors we make
     for t in range(0,T):

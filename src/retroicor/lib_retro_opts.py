@@ -19,6 +19,7 @@ import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
 import borrow_afni_util  as BAU
+from   afnipy     import afni_base as BASE   # or add to BAU?
 
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
@@ -49,6 +50,7 @@ DEF = {
     'volume_tr'         : None,      # (float) TR of MRI
     'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
     'start_time'        : None,      # (float) leave none, bc can be set in json
+    'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
     'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
@@ -95,6 +97,21 @@ for ii in range(len(ALL_AJ_MATCH)):
                                                   ALL_AJ_MATCH[ii][1],
                                                   ALL_AJ_MATCH[ii][2])
     AJM_str+= sss
+
+# for dset_epi matching; following style of aj_match, even though key
+# names don't differ and some things are integer.
+ALL_EPIM_MATCH = [
+    ['volume_tr', 'volume_tr', EPS_TH],
+    ['num_time_points', 'num_time_points', EPS_TH],
+    ['num_slices', 'num_slices', EPS_TH],
+]
+
+EPIM_str = "    {:15s}   {:9s}\n".format('ITEM', 'EPS VAL')
+for ii in range(len(ALL_EPIM_MATCH)):
+    sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH[ii][0],
+                                          ALL_EPIM_MATCH[ii][2])
+    EPIM_str+= sss
+
 
 # quantities that must be >= 0
 all_quant_ge_zero = [
@@ -448,6 +465,47 @@ jdict : dict
 
     return jdict
 
+def read_dset_epi_to_dict(fname, verb=None):
+    """Extra properties from what should be a valid EPI dset and output a
+dictionary.
+
+Parameters
+----------
+fname : str
+    EPI dset filename
+
+Returns
+-------
+epi_dict : dict
+    dictionary of necessary EPI info
+
+    """
+    
+    BAD_RETURN = {}
+
+    if not(os.path.isfile(fname)) :
+        print("** ERROR: cannot read file: {}".format(fname))
+        return BAD_RETURN
+
+    epi_dict = {}
+
+    cmd = '''3dinfo -n4 -tr {}'''.format(fname)
+    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    stat = com.run()
+    lll = com.so[0].split()
+    try:
+        nk = int(lll[2])
+        nv = int(lll[3])
+        tr = float(lll[4])
+        
+        epi_dict['num_slices']   = int(lll[2])
+        epi_dict['num_time_pts'] = int(lll[3])
+        epi_dict['volume_tr']    = float(lll[4])
+    except:
+        print("+* WARN: problem extracting info from dset_epi")
+
+    return epi_dict
+
 def reconcile_phys_json_with_args(jdict, args_dict, verb=None):
     """Go through the jdict created from the command-line given phys_json,
 and pull out any pieces of information like sampling freq, etc. that
@@ -516,6 +574,73 @@ args_dict2 : dict
 # ... and needed with the above to insert a variable into the docstring
 reconcile_phys_json_with_args.__doc__ = \
     reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
+
+
+def reconcile_dset_epi_with_args(args_dict, verb=None):
+    """Go through the args_dict['epi_dict'], which was created from the
+command-line given '-dset_epi ..', and pull out any pieces of
+information like volume_tr, etc. that should be added to the main
+args_dict (dict of all command line opts used). These pieces of info
+get added to the args_dict, but they also have to be checked against
+possible conflict from command line opts.
+
+Matched values include:
+{EPIM_str}
+
+Parameters
+----------
+args_dict : dict
+    the args_dict of input opts (which contains the epi_dict info as a
+    sub-dict, already).
+
+Returns
+-------
+BAD_RECON : int
+    integer signifying bad reconiliation of files (> 1) or a
+    non-problematic one (= 0)
+args_dict2 : dict
+    copy of input args_dict, which should be augmented with other info.
+
+    """ 
+
+    BAD_RETURN = 1, {}
+
+    if not('epi_dict' in args_dict) :    return BAD_RETURN
+
+    args_dict2 = copy.deepcopy(args_dict)
+    epi_dict   = copy.deepcopy(args_dict['epi_dict'])
+
+    # add known items that might be present
+    for epim_match in ALL_EPIM_MATCH:
+        aname   = epim_match[0]
+        ename   = epim_match[1]
+        eps_val = epim_match[2]
+        if ename in epi_dict :
+            val_epi  = epi_dict[ename]
+            val_args = args_dict2[aname]
+            if val_args != None :
+                if abs(val_epi - val_args) > eps_val :
+                    print("** ERROR: inconsistent dset_epi '{}' = {} and "
+                          " input arg '{}' = {}"
+                          "".format(ename, val_epi, aname, val_args))
+                    return BAD_RETURN
+                else:
+                    print("+* WARN: volumetric EPI info provided in two ways,\n"
+                          "   but it may be OK because they are consistent (at "
+                          "eps={}):\n"
+                          "   dset_epi '{}' = {} and input arg '{}' = {}"
+                          "".format(eps_val, ename, val_epi, aname, val_args))
+            else:
+                args_dict2[aname] = val_epi
+
+    # done, and the epi_dict is already part of args_dict2
+
+    return 0, args_dict2
+
+# ... and needed with the above to insert a variable into the docstring
+reconcile_dset_epi_with_args.__doc__ = \
+    reconcile_dset_epi_with_args.__doc__.format(EPIM_str=EPIM_str)
+
 
 # ========================================================================== 
 # PART_03: setup argparse help and arguments/options
@@ -721,6 +846,14 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
+opt = '''dset_epi'''
+hlp = '''Accompanying EPI/FMRI dset to which the physio regressors will be
+applied, for obtaining the volumetric parameters (namely, volume_tr,
+num_slices, num_time_pts)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''
 odict[opt] = hlp
@@ -829,7 +962,7 @@ opt = '''save_graph_level'''
 hlp = '''Integer value for one of the following behaviors:
 0 - Do not save graphs
 1 - Save end results (card and resp peaks, final RVT)
-2 - Save end results and intermediate (band-pass filter)
+2 - Save end results and intermediate (bandpass filter)
 (def: {dopt})'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
@@ -839,7 +972,7 @@ opt = '''show_graph_level'''
 hlp = '''Integer value for one of the following behaviors:
 0 - Do not show graphs
 1 - Show end results (card and resp peaks, final RVT)
-2 - Show end results and intermediate (band-pass filter)
+2 - Show end results and intermediate (bandpass filter)
 (def: {dopt})'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
@@ -976,7 +1109,8 @@ args_dict2 : dict
 
     # for any filename that was provided, check if it actually exists
     # (slice_pattern possible filename checked below)
-    all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json' ]
+    all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json',
+                 'dset_epi' ]
     for fopt in all_fopt:
         if args_dict2[fopt] != None :
             if not(os.path.isfile(args_dict2[fopt])) :
@@ -1000,16 +1134,44 @@ args_dict2 : dict
             print("** ERROR: issue using the JSON")
             sys.exit(5)
 
-    if not(args_dict2['num_slices']) :
-        print("** ERROR: must provide '-num_slices ..' information")
-        sys.exit(4)
+    # if EPI dset name is provided (preferred), read it to get info
+    # that could be otherwise provided separately; because some EPI
+    # info can come either from the command line directly or through
+    # other interpretational file, *don't* add it now, but check it
+    # later
+    if args_dict2['dset_epi'] :
+        epi_dict = read_dset_epi_to_dict(args_dict2['dset_epi'], verb=verb)
+        if not(epi_dict) :
+            print("** ERROR: dset_epi unreadable or problematic")
+            sys.exit(5)
 
-    if not(args_dict2['num_time_pts']) :
-        print("** ERROR: must provide '-num_time_pts ..' information")
-        sys.exit(4)
+        # epi_dict key-value pairs
+        args_dict2['epi_dict'] = copy.deepcopy(epi_dict)
 
-    if not(args_dict2['volume_tr']) :
-        print("** ERROR: must provide '-volume_tr ..' information")
+        # ... and merge in here, because it might be needed by slice
+        # timing interp, but also check again later
+        check_fail, args_dict2 = reconcile_dset_epi_with_args( args_dict2,
+                                                               verb=verb )
+        if check_fail :
+            print("** ERROR: issue merging dset_epi with other opts")
+            sys.exit(5)
+
+    # different ways to provide volumetric EPI info, and ONE must be used
+    if not(args_dict2['dset_epi']) and \
+       not( args_dict2['volume_tr'] and \
+            args_dict2['num_slices'] and \
+            args_dict2['num_time_pts'] ) :
+        print("** ERROR: must provide '-dset_epi ..' information")
+        print("   ... or provide full EPI info individually:")
+
+        if not(args_dict2['num_slices']) :
+            print("** ERROR: must provide '-num_slices ..' information")
+
+        if not(args_dict2['num_time_pts']) :
+            print("** ERROR: must provide '-num_time_pts ..' information")
+
+        if not(args_dict2['volume_tr']) :
+            print("** ERROR: must provide '-volume_tr ..' information")
         sys.exit(4)
 
     if not(args_dict2['freq']) :
@@ -1057,6 +1219,8 @@ args_dict2 : dict
     a copy of the original).
 
     """
+
+    verb = args_dict['verb']
 
     args_dict2 = copy.deepcopy(args_dict)
 
@@ -1138,18 +1302,31 @@ args_dict2 : dict
         if IS_BAD :
             sys.exit(1)
 
+    # this should essentially just be double-checking that no
+    # conflicting info about the EPI dste has come in; this merger of
+    # dset_epi info, which would now be in 'epi_dict' if it exists,
+    # has already been done above (and checked once), but overlapping
+    # info could subsequently have come from other places such as the
+    # slice pattern
+    if args_dict2['dset_epi'] :
+        check_fail, args_dict2 = reconcile_dset_epi_with_args( args_dict2,
+                                                               verb=verb )
+        if check_fail :
+            print("** ERROR: issue merging dset_epi with other opts")
+            sys.exit(5)
+
     if '/' in args_dict2['prefix'] :
         print("** ERROR: Cannot have path information in '-prefix ..'\n"
               "   Use '-out_dir ..' for path info instead")
         sys.exit(4)
 
-    # check many numerical inputs for being >0
+    # check many numerical inputs for being >0; probably leave this
+    # one as last in this function
     for quant in all_quant_ge_zero:
         if args_dict2[quant] <= 0 :
             print("** ERROR: Provided '{}' value ({}) not allowed to be <=0.\n"
                   "".format(quant, args_dict2[quant]))
             sys.exit(4)
-
 
     # successful navigation
     return args_dict2

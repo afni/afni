@@ -998,7 +998,7 @@ def getPhysiologicalNoiseComponents(parameters):
                          font_size = parameters['font_size'])
     else:
         if parameters['rvt_out']: 
-            print('WARNING: Cannot determine RVT.  No ' + \
+            print('+* WARNING: Cannot determine RVT.  No ' + \
                   'respiratory data')
         parameters['rvt_out'] = False
         
@@ -1040,7 +1040,7 @@ def getPhysiologicalNoiseComponents(parameters):
         T = len_resp
     elif len_card :
         T = len_card
-    print('Maximum length of phase array = ', T)
+    print('Maximum length of phase array =', T)
 
     nreg = 0              # number of regressors we make
     for t in range(0,T):
@@ -1121,7 +1121,7 @@ def limitNumOutputTimepoints(rawData, parameters):
     # it must not be greater than the determined maximum
     if parameters['num_time_pts']: 
         if parameters['num_time_pts'] > max_numTime_pts:
-            print('WARNING: num_time_pts argument too large ' + \
+            print('+* WARNING: num_time_pts argument too large ' + \
                   'for input data')
             print('  Adjusted to maximum allowable value, ', 
                   max_numTime_pts)
@@ -1327,7 +1327,7 @@ def getPhysJsonPair(phys_json_arg, phys_file, resp_info,
     if ('StartTime' in phys_meta and "StartTime" not in resp_info):
         startTime = float(phys_meta["StartTime"])
         if (startTime > 0):
-            print('***** WARNING: JSON file gives positive ' + \
+            print('+* WARNING: JSON file gives positive ' + \
                   'start time which is not currently handled')
             print('    Start time must be <= 0')
         else:
