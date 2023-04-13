@@ -1180,6 +1180,18 @@ function colorizeSavingButton(val) {
 colorizeSavingButton(is_served);
 '''
 
+    y+= '''
+/* for the NV button, toggle NiiVue instance on/off by id */
+function toggle_niivue(is_served, id) {
+    let element = document.getElementById(id);
+    let current_disp = element.style.display; // current disp value
+    // toggle between 'block' and 'none'
+    element.style.display = current_disp === 'none' ? 'block' : 'none';
+}
+
+
+'''
+
 
     # --------------- load/reload initialize -----------------
 
@@ -1331,7 +1343,36 @@ async function postJSON(data = {}, quit=false) {
   return qcjson; 
 }
 
+/* used to be able to run pre-built scripts in the AP results 
+   directory.  These are fired up when the AV button by an image
+   is clicked, via doRunAV(...).
+*/
+async function postJSON_AV(data = {}) {
+    let url = origin + '/' + 'run_av'
 
+    // Default options are marked with *
+    const response = await fetch(url, {
+        
+    /* from: *GET, POST, PUT, DELETE, etc. */
+    method: 'POST',
+
+    /* from: *default, no-cache, reload, force-cache,
+    only-if-cached */
+    cache: 'no-cache', 
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    /* from: no-referrer, *no-referrer-when-downgrade, origin,
+    origin-when-cross-origin, same-origin, strict-origin,
+    strict-origin-when-cross-origin, unsafe-url */
+    referrerPolicy: 'no-referrer', 
+
+    /* body data type must match "Content-Type" header */
+    body: JSON.stringify(data) 
+  });
+}
 '''
 
     y+= '''
@@ -1888,6 +1929,31 @@ function doSaveAllInfo() {
 
     postJSON(dataToPost);
 } 
+
+/* Function that is called by AV button to run AFNI script
+   the script should be the name of the script. It basically 
+   provides the script name and the 'remainder' (or 'tail') part
+   of a filepath that is used in open_apqc.py to run the script.
+*/
+function doRunAV(script) {
+
+    // prepare to output all info needed for server
+    pathParts = window.location.pathname.split('/')
+    qcPath = pathParts.slice(1,-1)
+
+    // rem is 'remainder', because this is the (full) remainder
+    // of the path to the APQC JSON file from the end of the 
+    // common abs path used to start the server
+    remJsonFilename = qcPath.join('/') + '/' + jsonfile
+
+    dataToPost = {
+        'remJsonFilename': remJsonFilename,
+        'script': script,
+    }
+
+    postJSON_AV(dataToPost);
+} 
+
 '''
 
     y+= '''
