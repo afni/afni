@@ -17,6 +17,7 @@ version = '1.1'  # adds in Timer functionality, so multiple pages can
                  # load when opened.
                  # Also add '-hview' functionality
 version = '1.11' # add more help text and examples
+version = '2.0'  # add in AV button functionality 
 
 # ==========================================================================
 
@@ -30,7 +31,6 @@ import os
 import argparse   as     argp
 import webbrowser
 import textwrap
-#import signal
 
 from afnipy       import lib_apqc_open as lao
 from afnipy       import afni_base     as BASE
@@ -328,6 +328,78 @@ def save_json():
 #@app.route('/quit', methods=["POST", "GET"])
 #def quit():
 #    os.kill(os.getpid(), signal.SIGTERM)
+
+# for AV button
+@app.route("/run_av", methods=["POST"])
+def run_av():
+    """Using the name of a script passed from the HTML, execute a shell
+command to run that script in the expected, appropriate directory.
+This assumes that the HTML is still in the results directory.
+
+The way that the HTML's location is known is modeled on how the QC
+buttons work (from the button JSON's files name, and using it to find
+the appropriate index.html).
+
+The return is purely pro forma.
+
+    """
+    posted_dict = request.get_json()              # provided by HTML
+    script_name = posted_dict['script']           # name of script to run
+    pjson_fname = posted_dict['remJsonFilename']  # used to figure out dir loc
+
+    curr_dir = os.getcwd()                        # use to jump back
+
+    try:
+        # should be a match from within the initial input list
+        index = rem_apqc_json_list.index(pjson_fname)
+        # open using full path; means this prog can be run from anywhere
+        json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
+        location = os.path.dirname(os.path.dirname(json_to_open))
+
+        # jump to the appropriate AP results directory location, run
+        # the script, and then jump back.
+        os.chdir(location)
+        cmd = 'tcsh ' + script_name
+        com = BASE.shell_com(cmd, capture=1)
+        com.run()
+        os.chdir(curr_dir)
+
+    except Exception as e: 
+        print("** ERROR with script '{}':".format(script_name))
+        print(e)
+
+    return 'something'
+
+### [TH] for finding NiiVue from a more general spot
+# create a new URL to access
+@app.route("/assets/<path:path>", methods=["GET"])
+def assets(path):
+    '''This is used to help find NiiVue from outside the QC directory,
+namely from the AFNI binaries directory (e.g.,
+somewhere/abin/niivue.umd.js).
+
+Parameters
+----------
+path : str 
+    the relative path to a particular asset from the (global)
+    common_abs_path base
+
+Returns
+-------
+something very important, re. the HTML
+
+    '''
+
+    # get location of AFNI binaries dir, which is where niivue.umd.js
+    # will live
+    cmd = 'which afni'
+    com = BASE.shell_com(cmd, capture=1)
+    com.run()
+    afni_fullpath = com.so[0]                 # full path + prog
+    abin_dir = os.path.dirname(afni_fullpath) # full path
+
+    return send_from_directory(abin_dir, path)
+
 
 @app.route("/load", methods=["GET"])
 def load_json():
