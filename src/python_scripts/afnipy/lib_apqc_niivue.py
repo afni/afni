@@ -19,7 +19,6 @@ afni2nv_cmaps = {
 }
 
 
-
 def translate_pbar_dict_afni2nv(pbar_dict):
     """Take a pbar_dict from @chauffeur_afni and translate pieces for NiiVue
 
@@ -128,6 +127,7 @@ nv_olay_txt : str
 
     nv_olay_txt = ''', {{ // olay
         url:"{olay}",
+        frame4D: {idx_olay},  // idx of vol
         colorMap: "{cmap}",'''.format(**nv_dict)
 
     if 'cmap_neg' in nv_dict :
@@ -159,7 +159,8 @@ nv_thr_txt : str
 
     # thr+olay dsets are same, but might be diff subbricks
     nv_thr_txt = ''', {{ // thr
-        url:"{olay}",
+        url:"{olay}",  // same dset as olay
+        frame4D: {idx_thr},  // idx of vol
         colorMap: "{cmap}",'''.format(**nv_dict)
 
     if 'cmap_neg' in nv_dict :
@@ -190,10 +191,7 @@ nv_then_txt : str
 
     """
 
-    # !!!! TODO:  add in negative colorbar stuff, using if conditions
     nv_then_txt = '''
-      {nobj}.setFrame4D({nobj}.volumes[1].id, {idx_olay}); // olay
-      {nobj}.setFrame4D({nobj}.volumes[2].id, {idx_thr});  // thr
       {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
       {nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
       {nobj}.volumes[2].colorbarVisible = false; // no thr bar
@@ -275,25 +273,31 @@ otxt : str
 
     otxt = '''
 <!-- start NiiVue canvas for: {nid} -->
-<div class="class_niivue">
+<div class="class_niivue" id="{nid}_container">
   <canvas id="{nid}" height=480 width=640>
   </canvas>
-  <footer id="intensity" style="color:#fff; ">
+  <footer id="{nid}_xyz" style="color:#fff; ">
     &nbsp;
   </footer>
   <script>
     function reportCoorAndValues(data) {{
       // coord str
+      let x = flt2str0_dir(data.mm[0], 3, 'RL')
+      let y = flt2str0_dir(data.mm[1], 3, 'AP')
+      let z = flt2str0_dir(data.mm[2], 3, 'IS')
       let str_c = '&nbspxyz:[' + 
-                  flt2str0_dir(data.mm[0], 3, 'RL') + ', ' +
-                  flt2str0_dir(data.mm[1], 3, 'AP') + ', ' +
-                  flt2str0_dir(data.mm[2], 3, 'IS') + '], '
+                  x.padStart(8).replace(/ /g, '&nbsp;') + ' ' +
+                  y.padStart(8).replace(/ /g, '&nbsp;') + ' ' +
+                  z.padStart(8).replace(/ /g, '&nbsp;') + '], '
       // value str
+      let u = flt2str0(data.values[0].value, 6)
+      let o = flt2str0(data.values[1].value, 6)
+      let t = flt2str0(data.values[2].value, 6)
       let str_v = 'UOT:[' + 
-                  flt2str0(data.values[0].value, 6) + ', ' + 
-                  flt2str0(data.values[1].value, 6) + ', ' + 
-                  flt2str0(data.values[2].value, 6) + ']' 
-      document.getElementById('intensity').innerHTML = str_c + str_v;
+                  u.padStart(12).replace(/ /g, '&nbsp;') + ' ' + 
+                  o.padStart(12).replace(/ /g, '&nbsp;') + ' ' + 
+                  t.padStart(12).replace(/ /g, '&nbsp;') + ']' 
+      document.getElementById('{nid}_xyz').innerHTML = str_c + str_v;
     }}
 '''.format( nid=nid )
 

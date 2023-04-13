@@ -312,7 +312,37 @@ def coord_to_gen_sys(x, order='RAI'):
 
 # --------------------------------------------------------------------
 
-### TO KEEP
+def rename_label_safely(x):
+    """Make safe string labels that can be used in filenames (so no '#')
+and NiiVue object names (so no '-', '+', etc.; sigh).  
+
+For example, 'vstat_V-A_GLT#0_Coef' -> 'vstat_V__A_GLT_0_Coef'.
+
+The mapping rules are in the text of this function.  This function
+might (likely) update over time.
+
+Parameters
+----------
+x : str
+    a name
+
+Returns
+-------
+y : str
+    a name that has (hopefully) been made safe by various letter 
+    substitutions.
+
+    """
+
+    y = x.replace('#', '_')
+    y = y.replace('-', '__')
+    y = y.replace('+', '___')
+    y = y.replace('.', '____')
+
+    return y
+
+
+
 def read_in_txt_to_dict(fname, tmp_name='__tmp_txt2json.json', DO_CLEAN=True) :
     '''Take a colon-separate file 'fname', convert it to a JSON file
 'tmp_name', and then return the dictionary created thereby.
@@ -3215,6 +3245,9 @@ num : int
     # text below images
     osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
 
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
+
     # Make info below images
     osubdict = {
         'itemtype'    : 'VOL',
@@ -3222,6 +3255,7 @@ num : int
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
+        'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
     with open(osubjson, 'w', encoding='utf-8') as fff:
@@ -3239,8 +3273,9 @@ num : int
     '''.format( opbarrt=opbarrt )
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
-
-    # For AV/NV: get pbar/cmap info as dict
+    
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
     pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
     with open(pbar_json, 'r') as fff:
         pbar_dict = json.load(fff)
@@ -3248,12 +3283,12 @@ num : int
     # Make NiiVue canvas text
     nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
-                                     verb=1 )
-
+                                     verb=0 )
     fff = open(onvhtml, 'w')
     fff.write(nv_txt)
     fff.close()
-    
+    onvhtml_name = onvhtml.split('/')[-1]
+
     return 0
 
 # -----------------------------------------------------------------

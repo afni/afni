@@ -674,6 +674,7 @@ class apqc_item_info:
     title       = ""
     text        = ""
     subtext     = ""
+    nv_html     = ""
     itemtype    = ""
     itemid      = ""
     blockid     = ""
@@ -703,6 +704,10 @@ class apqc_item_info:
     def set_warn_level(self, DICT):
         if 'warn_level' in DICT :
             self.warn_level = DICT['warn_level']
+
+    def set_nv_html(self, DICT):
+        if 'nv_html' in DICT :
+            self.nv_html = DICT['nv_html']
 
     # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
@@ -735,6 +740,7 @@ class apqc_item_info:
         self.set_blockid(DICT)
         self.set_blockid_hov(DICT)
         self.add_text(DICT)
+        self.set_nv_html(DICT)
         self.add_subtext(DICT)
         self.set_warn_level(DICT)
 
@@ -2184,12 +2190,12 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False):
       <td style="white-space:nowrap;" id=td6_NV_{itemid}>
       <button class="button-generic button-RHS btn6"
               title="Run NiiVue" 
-              onclick="colorizeSavingButton(is_served)">NV</button>
+            onclick="toggle_niivue(is_served,'nvcan_{itemid}_container')">NV</button>
       </td>
       <td style="white-space:nowrap;" id=td6_AV_{itemid}>
       <button class="button-generic button-RHS btn6"
               title="Run AFNI-view" 
-              onclick="colorizeSavingButton(is_served)">AV</button>
+              onclick="doRunAV('run_instacorr_errts.tcsh')">AV</button>
       </td>
     </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid )
 
@@ -2197,6 +2203,30 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False):
 </div> <!-- bottom of image -->
 '''
     y+= vpad*'\n'
+
+    return y
+
+# -------------------------------------------------------------------
+
+def wrap_nv_html(fname):
+    """Basically just echo the contents of the HTML file in 
+
+"""
+    
+    y = '''
+'''
+
+    if not(os.path.isfile(fname)) :
+        print("+* WARN: cannot open file", fname)
+    else:
+        fff = open(fname, 'r')
+        X = fff.readlines()
+        fff.close()
+
+        y+= ''.join(X)
+
+        y+= '''
+'''
 
     return y
 
