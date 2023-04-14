@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Apr, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_rocky_8 and OS_notes.linux_rocky_8.txt",
+   "These should work on RHEL/CentOS/Rocky/Almalinux 8."
+ } ,
+
  {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
    "update @diff.tree, @diff.files: possibly switch to meld if no xxdiff",
    "Be automatic, rather than forcing one to use '-diff_prog meld'."
