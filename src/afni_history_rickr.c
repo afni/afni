@@ -53,9 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Apr, 2023, RCR, "APMULTI_Demo1_rest", MINOR, TYPE_ENHANCE,
+   "add do/run_40* scripts",
+   "These are in the apmulti_scripts repo."
+ } ,
+
  { 14, Apr, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add Makefile.linux_rocky_8 and OS_notes.linux_rocky_8.txt",
-   "These should work on RHEL/CentOS/Rocky/Almalinux 8."
+   "These should work on RHEL/CentOS/Rocky/Almalinux 8.\n"
+   "This is now a new build package."
  } ,
 
  {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
