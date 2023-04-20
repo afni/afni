@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Apr, 2023, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with NIFTI-Imaging/nifti_clib",
+   NULL
+ } ,
+
  { 19, Apr, 2023, RCR, "APMULTI_Demo1_rest", MINOR, TYPE_ENHANCE,
    "add do/run_40* scripts",
    "These are in the apmulti_scripts repo."
