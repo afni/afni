@@ -1172,6 +1172,9 @@ def populate_examples():
              they are not actually required for the analysis.
          o Compute average correlation volumes of the errts against the
            the gray matter (aeseg) and ventricle (FSVent) masks.
+         o Run @radial_correlate at the ends of the tcat, volreg and regress
+           blocks.  If ANATICOR is being used to remove a scanner artifact, 
+           the errts radcor images might show the effect of this.
 
            Note: it might be reasonable to use either set of blur estimates
                  here (from epits or errts).  The epits (uncleaned) dataset
@@ -1186,7 +1189,7 @@ def populate_examples():
         ['-subj_id',               ['FT.11.rest']],
         ['-blocks',                ['despike', 'tshift', 'align', 'tlrc',
                           'volreg', 'blur', 'mask', 'scale', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
         ['-copy_anat',             ['anatSS.FT.nii']],
         ['-anat_has_skull',        ['no']],
         ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.FT.nii']],

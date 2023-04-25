@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2023, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "note possibly using the regress block in -radial_correlate_blocks",
+   "This might be particularly useful with ANATICOR."
+ } ,
+
  { 20, Apr, 2023, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "sync with NIFTI-Imaging/nifti_clib",
    NULL
