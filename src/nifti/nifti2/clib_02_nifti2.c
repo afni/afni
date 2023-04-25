@@ -19,7 +19,7 @@
 #include <nifti2_io.h>
 int disp_float(nifti_image * nim, int vol, int slice, int line, int offset);
 
-int show_help( void )
+static int show_help( void )
 {
    printf(
       "clib_02_nifti2: short exmample of reading/writing NIfTI2\n"
@@ -117,7 +117,7 @@ int disp_float(nifti_image * nim, int vol, int slice, int line, int offset)
 {
    float     * dp, * d2;
    long long   lloff;
-   int         nx, nxy, nxyz;
+   int64_t     nx, nxy, nxyz;
 
    if( ! nim ) return 1;
 
