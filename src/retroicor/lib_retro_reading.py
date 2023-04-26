@@ -145,13 +145,13 @@ regressors for MRI data.
         if args_dict != None :
             self.apply_cmd_line_args(args_dict)
 
-        # check, please!
+        # check, please! ... based on final slice of final vol
         if self.resp_data :
-            if not(self.check_end_time_phys_ge_vol('resp')) :
+            if not(self.check_end_time_phys_ge_final_slice('resp')) :
                 print("** ERROR: resp physio data too short for MRI data")
                 sys.exit(3)
         if self.card_data :
-            if not(self.check_end_time_phys_ge_vol('card')) :
+            if not(self.check_end_time_phys_ge_final_slice('card')) :
                 print("** ERROR: card physio data too short for MRI data")
                 sys.exit(3)
                 
