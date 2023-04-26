@@ -428,6 +428,9 @@ regressors for MRI data.
             return False
 
         if phys_end_time < self.vol_final_slice_time :
+            print("** -- Final duration problem -- ")
+            print("   physio end time      : ", phys_end_time)
+            print("   final MRI slice time : ", self.vol_final_slice_time)
             return False
         else:
             return True
