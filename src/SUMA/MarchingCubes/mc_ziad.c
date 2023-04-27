@@ -183,7 +183,7 @@ void compute_data( MCB mc , int obj_type)
   float tx,ty,tz , val = 0 ;
   int i, j, k;
   float r,R, a, b, c, d;
-  int WriteVol = debug;  /* change to function */
+  int WriteVol = get_suma_debug();
   FILE *fid = NULL;
   
   if (obj_type < 0 || obj_type > 9) {

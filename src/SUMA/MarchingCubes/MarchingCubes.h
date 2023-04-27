@@ -125,6 +125,7 @@ MCB *MarchingCubes (  int size_x ,  int size_y ,  int size_z ) ; /* defaults are
 void FreeMarchingCubes (MCB *mcb);
 
 void set_suma_debug(int dbg);
+int  get_suma_debug(void);
 
 
 #endif // _MARCHINGCUBES_H_

@@ -32,6 +32,10 @@ void set_suma_debug(int dbg)
    debug = dbg;
    return;
 }
+int get_suma_debug(void)
+{
+   return debug;
+}
 
 //_____________________________________________________________________________
 // print cube for debug
