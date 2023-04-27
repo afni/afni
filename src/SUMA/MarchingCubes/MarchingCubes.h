@@ -14,6 +14,10 @@
 #ifndef _MARCHINGCUBES_H_
 #define _MARCHINGCUBES_H_
 
+#ifdef NII2MESH
+ #include "meshtypes.h"
+ int marchingCubes(float * img, size_t dim[3], int lo[3], int hi[3], int originalMC, float isolevel, vec3d **vs, vec3i **ts, int *nv, int *nt);
+#endif
 //_____________________________________________________________________________
 // types
 #define false 0
@@ -126,6 +130,5 @@ void FreeMarchingCubes (MCB *mcb);
 
 void set_suma_debug(int dbg);
 int  get_suma_debug(void);
-
 
 #endif // _MARCHINGCUBES_H_

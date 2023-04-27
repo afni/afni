@@ -1,3 +1,4 @@
+
 //------------------------------------------------
 // MarchingCubes
 //------------------------------------------------
@@ -8,10 +9,13 @@
 // Thomas Lewiner thomas.lewiner@polytechnique.org
 // Math Dept, PUC-Rio
 //
-//
 // Translated to C by Ziad S. Saad November 30/04
+//
+// - The original translation was based on the 2002.07.13 code.
+//   This update for the 2002.08.12 code was provided by C Rorden.
 //________________________________________________
 
+#include <stdint.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -19,14 +23,12 @@
 #include <float.h>
 #include <stdlib.h>
 #include <math.h>
-#include "MarchingCubes.h"
 #include "LookUpTable.h"
-
+#include "MarchingCubes.h"
 // step size of the arrays of vertices and triangles
 #define ALLOC_SIZE 65536
 
 static int debug;
-
 void set_suma_debug(int dbg)
 {
    debug = dbg;
@@ -272,10 +274,6 @@ void compute_intersection_points(MCB *mcb )
 }
 //_____________________________________________________________________________
 
-
-
-
-
 //_____________________________________________________________________________
 // Test a face
 // if face>0 return true if the face contains a part of the surface
@@ -292,11 +290,30 @@ int test_face( MCB *mcb, schar face )
   case -4 : case 4 :  A = mcb->cube[3] ;  B = mcb->cube[7] ;  C = mcb->cube[4] ;  D = mcb->cube[0] ;  break ;
   case -5 : case 5 :  A = mcb->cube[0] ;  B = mcb->cube[3] ;  C = mcb->cube[2] ;  D = mcb->cube[1] ;  break ;
   case -6 : case 6 :  A = mcb->cube[4] ;  B = mcb->cube[7] ;  C = mcb->cube[6] ;  D = mcb->cube[5] ;  break ;
+  default : printf( "Invalid face code %d %d %d: %d\n",  mcb->i,  mcb->j,  mcb->k, face ) ;  print_cube(mcb) ;  A = B = C = D = 0 ;
+  };
+
+  if( fabs( A*C - B*D ) < FLT_EPSILON )
+    return face >= 0 ;
+  return face * A * ( A*C - B*D ) >= 0  ;  // face and A invert signs
+}
+/*
+{
+  float A,B,C,D ;
+
+  switch( face )
+  {
+  case -1 : case 1 :  A = mcb->cube[0] ;  B = mcb->cube[4] ;  C = mcb->cube[5] ;  D = mcb->cube[1] ;  break ;
+  case -2 : case 2 :  A = mcb->cube[1] ;  B = mcb->cube[5] ;  C = mcb->cube[6] ;  D = mcb->cube[2] ;  break ;
+  case -3 : case 3 :  A = mcb->cube[2] ;  B = mcb->cube[6] ;  C = mcb->cube[7] ;  D = mcb->cube[3] ;  break ;
+  case -4 : case 4 :  A = mcb->cube[3] ;  B = mcb->cube[7] ;  C = mcb->cube[4] ;  D = mcb->cube[0] ;  break ;
+  case -5 : case 5 :  A = mcb->cube[0] ;  B = mcb->cube[3] ;  C = mcb->cube[2] ;  D = mcb->cube[1] ;  break ;
+  case -6 : case 6 :  A = mcb->cube[4] ;  B = mcb->cube[7] ;  C = mcb->cube[6] ;  D = mcb->cube[5] ;  break ;
   default : printf( "Invalid face code %d\n", face ) ;  print_cube(mcb) ;  A = B = C = D = 0 ;
   };
 
   return (face * A * ( A*C - B*D ) >= 0)  ;  // face and A invert signs
-}
+}*/
 //_____________________________________________________________________________
 
 
@@ -336,10 +353,10 @@ int test_interior( MCB *mcb, schar s )
   case 13 :
     switch( mcb->_case )
     {
-    case  6 : edge = tiling6 [mcb->config][15] ; break ;
-    case  7 : edge = tiling7 [mcb->config][13] ; break ;
-    case 12 : edge = tiling12[mcb->config][14] ; break ;
-    case 13 : edge = tiling13_5_1[mcb->config][mcb->subconfig][2] ; break ;
+    case  6 : edge = test6 [mcb->config][2] ; break ;
+    case  7 : edge = test7 [mcb->config][4] ; break ;
+    case 12 : edge = test12[mcb->config][3] ; break ;
+    case 13 : edge = tiling13_5_1[mcb->config][mcb->subconfig][0] ; break ;
     }
     switch( edge )
     {
@@ -440,30 +457,27 @@ int test_interior( MCB *mcb, schar s )
   if( Dt >= 0 ) test += 8 ;
   switch( test )
   {
-  case  0 : return (s>0) ;
-  case  1 : return (s>0) ;
-  case  2 : return (s>0) ;
-  case  3 : return (s>0) ;
-  case  4 : return (s>0) ;
-  case  5 : if( At * Ct <  Bt * Dt ) return (s>0) ; break ;
-  case  6 : return (s>0) ;
-  case  7 : return (s<0) ;
-  case  8 : return (s>0) ;
-  case  9 : return (s>0) ;
-  case 10 : if( At * Ct >= Bt * Dt ) return (s>0) ; break ;
-  case 11 : return (s<0) ;
-  case 12 : return (s>0) ;
-  case 13 : return (s<0) ;
-  case 14 : return (s<0) ;
-  case 15 : return (s<0) ;
+  case  0 : return s>0 ;
+  case  1 : return s>0 ;
+  case  2 : return s>0 ;
+  case  3 : return s>0 ;
+  case  4 : return s>0 ;
+  case  5 : if( At * Ct - Bt * Dt <  FLT_EPSILON ) return s>0 ; break ;
+  case  6 : return s>0 ;
+  case  7 : return s<0 ;
+  case  8 : return s>0 ;
+  case  9 : return s>0 ;
+  case 10 : if( At * Ct - Bt * Dt >= FLT_EPSILON ) return s>0 ; break ;
+  case 11 : return s<0 ;
+  case 12 : return s>0 ;
+  case 13 : return s<0 ;
+  case 14 : return s<0 ;
+  case 15 : return s<0 ;
   }
 
-  return (s<0) ;
+  return s<0 ;
 }
 //_____________________________________________________________________________
-
-
-
 
 //_____________________________________________________________________________
 // Process a unit cube
@@ -484,7 +498,7 @@ void process_cube( MCB *mcb)
   {
     char nt = 0 ;
     while( casesClassic[mcb->lut_entry][3*nt] != -1 ) nt++ ;
-    add_triangle(mcb, casesClassic[mcb->lut_entry], nt , -1) ;
+    add_triangle(mcb, casesClassic[mcb->lut_entry], nt, -1 ) ;
     return ;
   }
 
@@ -498,92 +512,94 @@ void process_cube( MCB *mcb)
     break ;
 
   case  1 :
-    add_triangle(mcb, tiling1[mcb->config], 1 , -1) ;
+    add_triangle(mcb, tiling1[mcb->config], 1, -1) ;
     break ;
 
   case  2 :
-    add_triangle(mcb, tiling2[mcb->config], 2 , -1) ;
+    add_triangle(mcb, tiling2[mcb->config], 2, -1) ;
     break ;
 
   case  3 :
     if( test_face(mcb, test3[mcb->config]) )
-      add_triangle(mcb, tiling3[mcb->config]     , 4 , -1) ; // 3.2
+      add_triangle(mcb,  tiling3_2[mcb->config], 4, -1) ; // 3.2
     else
-      add_triangle(mcb, tiling3[mcb->config] + 12, 2 , -1) ; // 3.1
+      add_triangle(mcb,  tiling3_1[mcb->config], 2, -1) ; // 3.1
     break ;
 
   case  4 :
     if( test_interior(mcb, test4[mcb->config]) )
-      add_triangle(mcb, tiling4[mcb->config]     , 2 , -1) ; // 4.1.1
+      add_triangle(mcb, tiling4_1[mcb->config], 2, -1) ; // 4.1.1
     else
-      add_triangle(mcb, tiling4[mcb->config] +  6, 6 , -1) ; // 4.1.2
+      add_triangle(mcb, tiling4_2[mcb->config], 6, -1) ; // 4.1.2
     break ;
 
   case  5 :
-    add_triangle(mcb, tiling5[mcb->config], 3 , -1) ;
+    add_triangle(mcb, tiling5[mcb->config], 3, -1) ;
     break ;
 
   case  6 :
     if( test_face(mcb, test6[mcb->config][0]) )
-      add_triangle(mcb, tiling6[mcb->config], 5 , -1) ; // 6.2
+      add_triangle(mcb, tiling6_2[mcb->config], 5, -1) ; // 6.2
     else
     {
       if( test_interior(mcb, test6[mcb->config][1]) )
-        add_triangle(mcb, tiling6[mcb->config] + 15, 3 , -1) ; // 6.1.1
+        add_triangle(mcb, tiling6_1_1[mcb->config], 3, -1) ; // 6.1.1
       else
-        add_triangle(mcb, tiling6[mcb->config] + 24, 7 , -1) ; // 6.1.2
+    {
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling6_1_2[mcb->config], 9 , v12) ; // 6.1.2
+      }
     }
     break ;
-
   case  7 :
     if( test_face(mcb, test7[mcb->config][0] ) ) mcb->subconfig +=  1 ;
     if( test_face(mcb, test7[mcb->config][1] ) ) mcb->subconfig +=  2 ;
     if( test_face(mcb, test7[mcb->config][2] ) ) mcb->subconfig +=  4 ;
-    switch( subconfig7[mcb->subconfig] )
+    switch( mcb->subconfig )
       {
       case 0 :
-        if( test_interior(mcb, test7[mcb->config][3]) )
-          add_triangle(mcb, tiling7[mcb->config] + 15, 9 , -1) ;
-        else
-          add_triangle(mcb, tiling7[mcb->config]     , 5 , -1) ;
-        break ;
+        add_triangle(mcb, tiling7_1[mcb->config], 3, -1) ; break ;
       case 1 :
-        v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  42, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][0], 5, -1) ; break ;
       case 2 :
-        v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  69, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][1], 5, -1) ; break ;
       case 3 :
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  96, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_3[mcb->config][0], 9, v12 ) ; break ;
       case 4 :
-        add_triangle(mcb, tiling7[mcb->config] + 123, 5 , -1) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][2], 5, -1) ; break ;
       case 5 :
-        add_triangle(mcb, tiling7[mcb->config] + 138, 5 , -1) ; break ;
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling7_3[mcb->config][1], 9, v12 ) ; break ;
       case 6 :
-        add_triangle(mcb, tiling7[mcb->config] + 153, 5 , -1) ; break ;
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling7_3[mcb->config][2], 9, v12 ) ; break ;
       case 7 :
-        add_triangle(mcb, tiling7[mcb->config] + 168, 3 , -1) ; break ;
+        if( test_interior(mcb, test7[mcb->config][3]) )
+          add_triangle(mcb, tiling7_4_2[mcb->config], 9, -1) ;
+        else
+          add_triangle(mcb, tiling7_4_1[mcb->config], 5, -1) ;
+        break ;
       };
     break ;
 
   case  8 :
-    add_triangle(mcb, tiling8[mcb->config], 2 , -1) ;
+    add_triangle(mcb, tiling8[mcb->config], 2, -1) ;
     break ;
 
   case  9 :
-    add_triangle(mcb, tiling9[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling9[mcb->config], 4, -1) ;
     break ;
 
   case 10 :
     if( test_face(mcb, test10[mcb->config][0]) )
     {
       if( test_face(mcb, test10[mcb->config][1]) )
-        add_triangle(mcb, tiling10[mcb->config] + 60, 4 , -1) ; // 10.1.1
+        add_triangle(mcb, tiling10_1_1_[mcb->config], 4, -1) ; // 10.1.1
       else
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling10[mcb->config]     , 8, v12 ) ; // 10.2
+        add_triangle(mcb, tiling10_2[mcb->config], 8, v12 ) ; // 10.2
       }
     }
     else
@@ -591,31 +607,31 @@ void process_cube( MCB *mcb)
       if( test_face(mcb, test10[mcb->config][1]) )
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling10[mcb->config] + 24, 8, v12 ) ; // 10.2
+        add_triangle(mcb, tiling10_2_[mcb->config], 8, v12 ) ; // 10.2
       }
       else
       {
         if( test_interior(mcb, test10[mcb->config][2]) )
-          add_triangle(mcb, tiling10[mcb->config] + 48, 4 , -1) ; // 10.1.1
+          add_triangle(mcb, tiling10_1_1[mcb->config], 4, -1) ; // 10.1.1
         else
-          add_triangle(mcb, tiling10[mcb->config] + 72, 8 , -1) ; // 10.1.2
+          add_triangle(mcb, tiling10_1_2[mcb->config], 8, -1) ; // 10.1.2
       }
     }
     break ;
 
   case 11 :
-    add_triangle(mcb, tiling11[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling11[mcb->config], 4, -1) ;
     break ;
 
   case 12 :
     if( test_face(mcb, test12[mcb->config][0]) )
     {
       if( test_face(mcb, test12[mcb->config][1]) )
-        add_triangle(mcb, tiling12[mcb->config] + 60, 4 , -1) ; // 12.1.1
+        add_triangle(mcb, tiling12_1_1_[mcb->config], 4, -1) ; // 12.1.1
       else
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling12[mcb->config]     , 8, v12 ) ; // 12.2
+        add_triangle(mcb, tiling12_2[mcb->config], 8, v12 ) ; // 12.2
       }
     }
     else
@@ -623,79 +639,79 @@ void process_cube( MCB *mcb)
       if( test_face(mcb, test12[mcb->config][1]) )
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling12[mcb->config] + 24, 8, v12 ) ; // 12.2
+        add_triangle(mcb, tiling12_2_[mcb->config], 8, v12 ) ; // 12.2
       }
       else
       {
         if( test_interior(mcb, test12[mcb->config][2]) )
-          add_triangle(mcb, tiling12[mcb->config] + 48, 4 , -1) ; // 12.1.1
+          add_triangle(mcb, tiling12_1_1[mcb->config], 4, -1) ; // 12.1.1
         else
-          add_triangle(mcb, tiling12[mcb->config] + 72, 8 , -1) ; // 12.1.2
+          add_triangle(mcb, tiling12_1_2[mcb->config], 8, -1) ; // 12.1.2
       }
     }
     break ;
 
   case 13 :
-    if( test_face(mcb, test13[mcb->config][0] ) ) mcb->subconfig +=  1 ;
-    if( test_face(mcb, test13[mcb->config][1] ) ) mcb->subconfig +=  2 ;
-    if( test_face(mcb, test13[mcb->config][2] ) ) mcb->subconfig +=  4 ;
-    if( test_face(mcb, test13[mcb->config][3] ) ) mcb->subconfig +=  8 ;
-    if( test_face(mcb, test13[mcb->config][4] ) ) mcb->subconfig += 16 ;
-    if( test_face(mcb, test13[mcb->config][5] ) ) mcb->subconfig += 32 ;
+    if( test_face(mcb,  test13[mcb->config][0] ) ) mcb->subconfig +=  1 ;
+    if( test_face(mcb,  test13[mcb->config][1] ) ) mcb->subconfig +=  2 ;
+    if( test_face(mcb,  test13[mcb->config][2] ) ) mcb->subconfig +=  4 ;
+    if( test_face(mcb,  test13[mcb->config][3] ) ) mcb->subconfig +=  8 ;
+    if( test_face(mcb,  test13[mcb->config][4] ) ) mcb->subconfig += 16 ;
+    if( test_face(mcb,  test13[mcb->config][5] ) ) mcb->subconfig += 32 ;
     switch( subconfig13[mcb->subconfig] )
     {
       case 0 :/* 13.1 */
-        add_triangle(mcb, tiling13_1[mcb->config], 4 , -1) ; break ;
+        add_triangle(mcb,  tiling13_1[mcb->config], 4, -1) ; break ;
 
       case 1 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][0], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][0], 6, -1) ; break ;
       case 2 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][1], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][1], 6, -1) ; break ;
       case 3 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][2], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][2], 6, -1) ; break ;
       case 4 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][3], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][3], 6, -1) ; break ;
       case 5 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][4], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][4], 6, -1) ; break ;
       case 6 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][5], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][5], 6, -1) ; break ;
 
       case 7 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][0], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][0], 10, v12 ) ; break ;
       case 8 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][1], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][1], 10, v12 ) ; break ;
       case 9 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][2], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][2], 10, v12 ) ; break ;
       case 10 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][3], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][3], 10, v12 ) ; break ;
       case 11 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][4], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][4], 10, v12 ) ; break ;
       case 12 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][5], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][5], 10, v12 ) ; break ;
       case 13 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][6], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][6], 10, v12 ) ; break ;
       case 14 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][7], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][7], 10, v12 ) ; break ;
       case 15 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][8], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][8], 10, v12 ) ; break ;
       case 16 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][9], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][9], 10, v12 ) ; break ;
       case 17 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][10], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][10], 10, v12 ) ; break ;
       case 18 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][11], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][11], 10, v12 ) ; break ;
 
       case 19 :/* 13.4 */
         v12 = add_c_vertex(mcb) ;
@@ -713,31 +729,32 @@ void process_cube( MCB *mcb)
       case 23 :/* 13.5 */
         mcb->subconfig = 0 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][0], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][0], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][0], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][0], 10, -1) ;
         break ;
       case 24 :/* 13.5 */
         mcb->subconfig = 1 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][1], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][1], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][1], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][1], 10, -1) ;
         break ;
       case 25 :/* 13.5 */
         mcb->subconfig = 2 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][2], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][2], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][2], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][2], 10, -1) ;
         break ;
       case 26 :/* 13.5 */
         mcb->subconfig = 3 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][3], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][3], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][3], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][3], 10, -1) ;
         break ;
+
 
       case 27 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
@@ -777,20 +794,20 @@ void process_cube( MCB *mcb)
         add_triangle(mcb, tiling13_3_[mcb->config][11], 10, v12 ) ; break ;
 
       case 39 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][0], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][0], 6, -1) ; break ;
       case 40 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][1], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][1], 6, -1) ; break ;
       case 41 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][2], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][2], 6, -1) ; break ;
       case 42 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][3], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][3], 6, -1) ; break ;
       case 43 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][4], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][4], 6, -1) ; break ;
       case 44 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][5], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][5], 6, -1) ; break ;
 
       case 45 :/* 13.1 */
-        add_triangle(mcb, tiling13_1_[mcb->config], 4 , -1) ; break ;
+        add_triangle(mcb, tiling13_1_[mcb->config], 4, -1) ; break ;
 
       default :
         printf("Marching Cubes: Impossible case 13?\n" ) ;  print_cube(mcb) ;
@@ -798,10 +815,11 @@ void process_cube( MCB *mcb)
       break ;
 
   case 14 :
-    add_triangle(mcb, tiling14[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling14[mcb->config], 4, -1) ;
     break ;
   };
 }
+
 //_____________________________________________________________________________
 
 
@@ -812,6 +830,7 @@ void add_triangle( MCB *mcb , const char* trig, char n, int v12 )
 //-----------------------------------------------------------------------------
 {
   int   t, tv[3] ;
+//printf( "+>> %d %d %d\n", mcb->i  , mcb->j , mcb->k);
 
   for( t = 0 ; t < 3*n ; t++ )
   {
@@ -1019,7 +1038,9 @@ int add_z_vertex(MCB *mcb )
   return (mcb->nverts-1) ;
 }
 
+
 int add_c_vertex( MCB *mcb)
+//-----------------------------------------------------------------------------
 {  Vertex *vert, v;
    float u;
    int   vid ;
