@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Apr, 2023, RCR, "Isosurface", MINOR, TYPE_BUG_FIX,
+   "include updates for the 2002.08.12 MarchingCubes code base",
+   "Thanks to C Rorden for providing an updated translation."
+ } ,
+
  { 25, Apr, 2023, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "note possibly using the regress block in -radial_correlate_blocks",
    "This might be particularly useful with ANATICOR."
