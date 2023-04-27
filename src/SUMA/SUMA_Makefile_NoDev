@@ -150,16 +150,16 @@ SUMA_HDRS = SUMA_Color.h SUMA_DOmanip.h SUMA_input.h SUMA_clippingPlanes.h SUMA_
 # library only
 
 # static libSUMA
-libSUMA.a : libply.a libglut.a ${SUMA_OBJS} MarchingCubes.o
+libSUMA.a : libply.a libglut.a ${SUMA_OBJS} MarchingCubes.o mc_ziad.o
 	rm -f ${SUMALIB}
-	ar q ${SUMALIB} ${SUMA_OBJS} MarchingCubes.o
+	ar q ${SUMALIB} ${SUMA_OBJS} MarchingCubes.o mc_ziad.o
 	echo "Rebuilt library libSUMA.a ..."
 	$(RANLIB) ${SUMALIB} 
 
 # shared libSUMA
-libSUMA.so : libply.a libglut.a ${SUMA_OBJS} MarchingCubes.o
+libSUMA.so : libply.a libglut.a ${SUMA_OBJS} MarchingCubes.o mc_ziad.o
 	rm -f ${SUMALIB}
-	${CC} -shared -fPIC -o ${SUMALIB} ${SUMA_OBJS} MarchingCubes.o
+	${CC} -shared -fPIC -o ${SUMALIB} ${SUMA_OBJS} MarchingCubes.o mc_ziad.o
 	echo "Rebuilt library libSUMA.so ..."
 
 ${SUMASLIB} : ${SUMA_SOBJS}
@@ -383,7 +383,7 @@ SurfClust: SUMA_SurfClust.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-IsoSurface: SUMA_IsoSurface.c MarchingCubes.o libgts.a ${SUMAGTSLIB}
+IsoSurface: SUMA_IsoSurface.c MarchingCubes.o mc_ziad.o libgts.a ${SUMAGTSLIB}
 	$(RM) $@
 	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_IsoSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} 	\
 		${AFNI_3dOBJS}                                               \
@@ -686,11 +686,13 @@ SpharmReco: SUMA_SpharmReco.c
 		${AFNI_3dOBJS} 			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+mc_ziad.o: MarchingCubes.o
+
 MarchingCubes.o: MarchingCubes/MarchingCubes.c
 	( cd MarchingCubes ;	\
 	  $(RM) mc	debug/*.o;	\
 	  $(MAKE)  mc	'CC=$(CC)';	\
-	  $(CP) -p debug/$@ .. ; )
+	  $(CP) -p debug/$@ debug/mc_ziad.o .. ; )
      	
 NikoMap: SUMA_NikoMap.c
 	$(RM) $@
