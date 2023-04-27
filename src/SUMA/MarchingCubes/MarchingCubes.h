@@ -14,7 +14,6 @@
 #ifndef _MARCHINGCUBES_H_
 #define _MARCHINGCUBES_H_
 
-
 //_____________________________________________________________________________
 // types
 #define false 0
@@ -72,13 +71,8 @@ Triangle *triangles(MCB *mcb) { return (mcb->triangles) ; }
 Vertex   * vert( MCB *mcb, const int i )  { if( i < 0  || i >= mcb->nverts ) return (( Vertex *)NULL) ; return (mcb->vertices  + i) ; }
 Triangle * trig( MCB *mcb, const int i )  { if( i < 0  || i >= mcb->ntrigs ) return ((Triangle*)NULL) ; return (mcb->triangles + i) ; }
 
-// PLY exportation
-void writePLY( MCB *mcb , const char *fn, int bin) ; /* bin = false is the default */
-
-// VRML / Open Inventor exportation
-void writeIV ( MCB *mcb , const char *fn ) ;
-
 #endif
+
 
 void set_resolution( MCB *mcb, int size_x,  int size_y,  int size_z );
 void set_method    ( MCB *mcb, int originalMC ) ;
@@ -92,13 +86,6 @@ void init_temps (MCB *mcb ) ;
 void init_all   (MCB *mcb ) ;
 void clean_temps(MCB *mcb ) ;
 void clean_all  (MCB *mcb ) ;
-
-
-// Grid exportation
-void writeISO( MCB *mcb, const char *fn ) ;
-
-//1D deal
-void write1Dmcb ( MCB *mcb  );
 
 void run(MCB *mcb ) ;              // Main algorithm
 void process_cube (MCB *mcb ) ;              // Process a unit cube
@@ -137,8 +124,7 @@ void print_cube(MCB *mcb) ;
 MCB *MarchingCubes (  int size_x ,  int size_y ,  int size_z ) ; /* defaults are -1 -1 -1 */
 void FreeMarchingCubes (MCB *mcb);
 
-void compute_data( MCB mc , int obj_type) ;
-void z_compute_data( MCB mc, char *fname ) ;
 void set_suma_debug(int dbg);
+
 
 #endif // _MARCHINGCUBES_H_
