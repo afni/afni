@@ -1046,7 +1046,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
         sind[np.nonzero(sind > (len(time) - 1))] = len(time) - 1 
         
         # Build function that maps time to rawRVT[sind]                                                  
-        rvt_shf = scipy.interpolate._interpolate.interp1d(    
+        rvt_shf = scipy.interpolate.interp1d(    
                                                 
             time, rawRVT[sind], kind = interpolationOrder, 
                 bounds_error=True
@@ -1198,7 +1198,7 @@ def getPeriodLayer(resp_peaks, fullLength, freq,
     
     # Output layer is found by interpoalting the periods among 
     # the critical points
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+    f = scipy.interpolate.interp1d(criticalPoints, 
                 criticalPointPeriods, kind = interpolationOrder)    
     layer = f([x for x in \
                range(criticalPoints[0],criticalPoints[-1])])
@@ -1261,7 +1261,7 @@ def getLayer(rawData, criticalPoints,
     
     # Output layer is found by interpoalting the periods among the 
     # critical pts
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+    f = scipy.interpolate.interp1d(criticalPoints, 
                    criticalPointValues, kind = interpolationOrder)    
     layer = f([x for x in range(0,fullLength)])
     

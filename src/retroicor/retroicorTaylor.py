@@ -17,17 +17,11 @@
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Allow dataset, as input, to determine TR, # slices, # time points and
-            slice pattern.  Command line options could overwrite that. JSON file
-        - EPI data set (Being used in afniproc command)
-        - alt-Z (alternating positive and megative z-direction)
-        - Multiband (multiple slices at same point)
-        - RVT without shifts
-        - Variance in linear model used to assess quality (Convolve RVT with some 
-            function using physiological regressors)
+        - Fix figure flashes in default mode
+        - Variance in linear model used to assess quality 
+        - Convolve RVT with some function using physiological regressors (Catie 
+          Chang)
         - Get percentage of variance accounted for by cardio
-        - Large smoothing to find peaks and troughs
-        - Small smoothing to remove outliers
         - Histogram of model
         - Remove large outliers in cardio
         - Duplicate current code over all slices
@@ -42,11 +36,17 @@
             - Finding peaks
             - Determining phase
             - Determining final output
+        - RVT without shifts (Single regressor for RVT.)
             
     DONE:
         - Offset for every slice relative to TR
             - afnipy/afni_util.py:slice_pattern_to_timing() gets the actual timing
         - Implement slice pattern.  Required option 
+        - Allow dataset, as input, to determine TR, # slices, # time points and
+            slice pattern.  Command line options could overwrite that. JSON file
+        - EPI data set (Being used in afni_proc.py command)
+        - Large smoothing to find peaks and troughs
+        - Small smoothing to remove outliers
 """
 
 import sys
