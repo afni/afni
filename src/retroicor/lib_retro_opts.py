@@ -19,6 +19,9 @@ import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
 import borrow_afni_util  as BAU
+
+#sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
+
 from   afnipy     import afni_base as BASE   # or add to BAU?
 
 # threshold values for some floating point comparisons
@@ -79,6 +82,17 @@ DEF = {
     'hview'             : False,     # (bool) do show help in text ed?
 }
 
+# list of keys for volume-related items, that will get parsed
+# separately so we peel them off when parsing initial opts
+vol_key_list = [
+    'dset_epi',
+    'volume_tr',
+    'num_slices',
+    'num_time_points',
+    'slice_times',
+    'slice_pattern',
+]
+
 # ---- sublists to check for properties ----
 
 # list of lists of corresponding args_dict and phys_json entries,
@@ -98,20 +112,28 @@ for ii in range(len(ALL_AJ_MATCH)):
                                                   ALL_AJ_MATCH[ii][2])
     AJM_str+= sss
 
-# for dset_epi matching; following style of aj_match, even though key
-# names don't differ and some things are integer.
+# for dset_epi matching; following style of aj_match, but key names
+# don't differ and some things are integer.
 ALL_EPIM_MATCH = [
-    ['volume_tr', 'volume_tr', EPS_TH],
-    ['num_time_points', 'num_time_points', EPS_TH],
-    ['num_slices', 'num_slices', EPS_TH],
+    ['volume_tr',  EPS_TH],
+    ['num_time_points', EPS_TH],
+    ['num_slices', EPS_TH],
+]
+# extension of the above if the tested object is a list; the items in
+# the list will be looped over and compared at the given eps
+ALL_EPIM_MATCH_LISTS = [
+    ['slice_times', EPS_TH ],
 ]
 
 EPIM_str = "    {:15s}   {:9s}\n".format('ITEM', 'EPS VAL')
 for ii in range(len(ALL_EPIM_MATCH)):
     sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH[ii][0],
-                                          ALL_EPIM_MATCH[ii][2])
+                                          ALL_EPIM_MATCH[ii][1])
     EPIM_str+= sss
-
+for ii in range(len(ALL_EPIM_MATCH_LISTS)):
+    sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH_LISTS[ii][0],
+                                          ALL_EPIM_MATCH_LISTS[ii][1])
+    EPIM_str+= sss
 
 # quantities that must be >= 0
 all_quant_ge_zero = [
@@ -144,7 +166,9 @@ help_dict = {
 def parser_to_dict(parser, argv, verb=0):
     """Convert an argparse parser object to a dictionary of key (=opt) and
 value pairs.  Also store the argv as a value of returned dict (key =
-'argv').
+'argv').  There is an intermediate dictionary of volumetric-related
+items that is output first, because parsing it is complicated.  That
+will later get merged with the main args_dict
     
 Parameters
 ----------
@@ -159,6 +183,11 @@ args_dict : dict
     dictionary whose keys are option names and values are the
     user-entered values (which might still need separate interpreting
     later)
+vol_dict : dict
+    secondary dictionary whose keys are option names and values are
+    the user-entered values (which might still need separate
+    interpreting later) specifically related to the volume, which will
+    get parsed separately and merged into the main dir later
 
     """
 
@@ -187,7 +216,15 @@ args_dict : dict
 
     args_dict['argv'] = copy.deepcopy(argv)
 
-    return args_dict
+    # pop out the volumetric-related items, to parse separately, and
+    # return later
+    vol_dict = {}
+    for key in vol_key_list:
+        if key in args_dict :
+            val = args_dict.pop(key)
+            vol_dict[key] = copy.deepcopy(val)
+
+    return args_dict, vol_dict
 
 def compare_keys_in_two_dicts(A, B, nameA=None, nameB=None):
     """Compare sets of keys between two dictionaries A and B (which could
@@ -487,8 +524,11 @@ epi_dict : dict
         print("** ERROR: cannot read file: {}".format(fname))
         return BAD_RETURN
 
+    # initialize, and store dset name
     epi_dict = {}
+    epi_dict['dset_epi'] = fname
 
+    # get simple dset info, which should/must exist
     cmd = '''3dinfo -n4 -tr {}'''.format(fname)
     com = BASE.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
@@ -503,6 +543,22 @@ epi_dict : dict
         epi_dict['volume_tr']    = float(lll[4])
     except:
         print("+* WARN: problem extracting info from dset_epi")
+        return BAD_RETURN 
+
+    # try getting timing info from this dset, which might not exist
+    cmd = '''3dinfo -slice_timing {}'''.format(fname)
+    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    stat = com.run()
+    lll = [float(x) for x in com.so[0].strip().split('|')]
+    
+    nslice = len(lll)
+    if nk != nslice :
+        print("** ERROR: number of slice_times in header ({}) "
+              "does not match slice count in k-direction ({})"
+              "".format(nslice, nk))
+        sys.exit(10)
+
+    epi_dict['slice_times'] = copy.deepcopy(lll)
 
     return epi_dict
 
@@ -557,8 +613,8 @@ args_dict2 : dict
                           "".format(jname, val_json, aname, val_args))
                     return BAD_RETURN
                 else:
-                    print("+* WARN: start time provided in two ways, but "
-                          " it may be OK because they are consistent (at "
+                    print("++ Reconciled: input info provided in two ways, "
+                          "which is OK because they are consistent (at "
                           "eps={}):\n"
                           "   JSON '{}' = {} and input arg '{}' = {}"
                           "".format(eps_val, jname, val_json, aname, val_args))
@@ -574,72 +630,6 @@ args_dict2 : dict
 # ... and needed with the above to insert a variable into the docstring
 reconcile_phys_json_with_args.__doc__ = \
     reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
-
-
-def reconcile_dset_epi_with_args(args_dict, verb=None):
-    """Go through the args_dict['epi_dict'], which was created from the
-command-line given '-dset_epi ..', and pull out any pieces of
-information like volume_tr, etc. that should be added to the main
-args_dict (dict of all command line opts used). These pieces of info
-get added to the args_dict, but they also have to be checked against
-possible conflict from command line opts.
-
-Matched values include:
-{EPIM_str}
-
-Parameters
-----------
-args_dict : dict
-    the args_dict of input opts (which contains the epi_dict info as a
-    sub-dict, already).
-
-Returns
--------
-BAD_RECON : int
-    integer signifying bad reconiliation of files (> 1) or a
-    non-problematic one (= 0)
-args_dict2 : dict
-    copy of input args_dict, which should be augmented with other info.
-
-    """ 
-
-    BAD_RETURN = 1, {}
-
-    if not('epi_dict' in args_dict) :    return BAD_RETURN
-
-    args_dict2 = copy.deepcopy(args_dict)
-    epi_dict   = copy.deepcopy(args_dict['epi_dict'])
-
-    # add known items that might be present
-    for epim_match in ALL_EPIM_MATCH:
-        aname   = epim_match[0]
-        ename   = epim_match[1]
-        eps_val = epim_match[2]
-        if ename in epi_dict :
-            val_epi  = epi_dict[ename]
-            val_args = args_dict2[aname]
-            if val_args != None :
-                if abs(val_epi - val_args) > eps_val :
-                    print("** ERROR: inconsistent dset_epi '{}' = {} and "
-                          " input arg '{}' = {}"
-                          "".format(ename, val_epi, aname, val_args))
-                    return BAD_RETURN
-                else:
-                    print("+* WARN: volumetric EPI info provided in two ways,\n"
-                          "   but it may be OK because they are consistent (at "
-                          "eps={}):\n"
-                          "   dset_epi '{}' = {} and input arg '{}' = {}"
-                          "".format(eps_val, ename, val_epi, aname, val_args))
-            else:
-                args_dict2[aname] = val_epi
-
-    # done, and the epi_dict is already part of args_dict2
-
-    return 0, args_dict2
-
-# ... and needed with the above to insert a variable into the docstring
-reconcile_dset_epi_with_args.__doc__ = \
-    reconcile_dset_epi_with_args.__doc__.format(EPIM_str=EPIM_str)
 
 
 # ========================================================================== 
@@ -677,12 +667,24 @@ Notes on usage and inputs ~1~
   - '-card_file ..' and '-resp_file ..'
   - '-phys_file ..' and '-phys_json'
 
-* Exactly one of the following input option must be used:
+* It is preferred to use:
+  - '-dset_epi ..' 
+  to provide EPI dset for which regressors will be made, to provide
+  the volumetric information that would otherwise be provided with:
+  - '-volume_tr ..'   
+  - '-num_slices ..'  
+  - '-num_time_pts ..'
+  ... and the slice timing information
+
+* If '-dset_epi ..' is not used to provide the slice timing (and other
+  useful) volumetric information, then exactly one of the following
+  input option must be used:
   - '-slice_times ..'
   - '-slice_patterns ..'
 
 * Each of the following input options must be provided through some
-  combination of command line input and phys_json file:
+  combination of phys_json file, dset_epi file, or the command line opts
+  themselves:
   - '-freq ..'        
   - '-volume_tr ..'   
   - '-num_slices ..'  
@@ -708,9 +710,10 @@ beginning of a TR.  The meanings, from the Siemens Matlab code are:
      6002 = phys recording on
      6003 = phys recording off
 
-It appears that the number is inserted into the series, in which 
-case, 5000 values could simply be removed rather than replaced by an 
-interpolation of the two adjacent values.
+It appears that the number is inserted into the series, in which case,
+5000 values could simply be removed rather than replaced by an
+interpolation of the two adjacent values, using the option
+'remove_val_list ..'.
 
 {ddashline}
 
@@ -1134,44 +1137,17 @@ args_dict2 : dict
             print("** ERROR: issue using the JSON")
             sys.exit(5)
 
-    # if EPI dset name is provided (preferred), read it to get info
-    # that could be otherwise provided separately; because some EPI
-    # info can come either from the command line directly or through
-    # other interpretational file, *don't* add it now, but check it
-    # later
-    if args_dict2['dset_epi'] :
-        epi_dict = read_dset_epi_to_dict(args_dict2['dset_epi'], verb=verb)
-        if not(epi_dict) :
-            print("** ERROR: dset_epi unreadable or problematic")
-            sys.exit(5)
+     # different ways to provide volumetric EPI info, and ONE must be used
+    if not( args_dict2['volume_tr'] ) :
+        print("** ERROR: must provide '-volume_tr ..' information")
+        sys.exit(4)
 
-        # epi_dict key-value pairs
-        args_dict2['epi_dict'] = copy.deepcopy(epi_dict)
+    if not(args_dict2['num_slices']) :
+        print("** ERROR: must provide '-num_slices ..' information")
+        sys.exit(4)
 
-        # ... and merge in here, because it might be needed by slice
-        # timing interp, but also check again later
-        check_fail, args_dict2 = reconcile_dset_epi_with_args( args_dict2,
-                                                               verb=verb )
-        if check_fail :
-            print("** ERROR: issue merging dset_epi with other opts")
-            sys.exit(5)
-
-    # different ways to provide volumetric EPI info, and ONE must be used
-    if not(args_dict2['dset_epi']) and \
-       not( args_dict2['volume_tr'] and \
-            args_dict2['num_slices'] and \
-            args_dict2['num_time_pts'] ) :
-        print("** ERROR: must provide '-dset_epi ..' information")
-        print("   ... or provide full EPI info individually:")
-
-        if not(args_dict2['num_slices']) :
-            print("** ERROR: must provide '-num_slices ..' information")
-
-        if not(args_dict2['num_time_pts']) :
-            print("** ERROR: must provide '-num_time_pts ..' information")
-
-        if not(args_dict2['volume_tr']) :
-            print("** ERROR: must provide '-volume_tr ..' information")
+    if not(args_dict2['num_time_pts']) :
+        print("** ERROR: must provide '-num_time_pts ..' information")
         sys.exit(4)
 
     if not(args_dict2['freq']) :
@@ -1186,17 +1162,256 @@ args_dict2 : dict
         print("** ERROR: must provide '-out_dir ..' information")
         sys.exit(4)
 
-    if not(args_dict2['slice_times']) and not(args_dict2['slice_pattern']) :
-        print("** ERROR: must exactly one of either slice_times or "
-              "slice_pattern")
+    if not(args_dict2['slice_times']) :
+        print("** ERROR: must provide slice_time info in some way")
         sys.exit(4)
 
-    if args_dict2['slice_times'] and args_dict2['slice_pattern'] :
+    #if args_dict2['slice_times'] and args_dict2['slice_pattern'] :
+    #    print("** ERROR: must use only one of either slice_times or "
+    #          "slice_pattern")
+    #    sys.exit(4)
+
+    return args_dict2
+
+def interpret_vol_info(vol_dict, verb=1):
+    """This function takes a dictionary of all command line-entered items
+that are/might be related to MRI acquistion, and will: 1)
+expand/calculate any info (like slice times); 2) check info for
+conflicts; 3) reduce info down (= reconcile items) where it is OK to do so.
+
+The output of this function can be merged into the main arg_dicts.
+
+Parameters
+----------
+vol_dict : dict
+    The dictionary of volume-related arguments and option values,
+    before any parsing
+
+Returns
+-------
+vol_dict2 : dict
+    A potentially updated vol_dict (if no updates happen, then just
+    a copy of the original).  But likely this will have been parsed in 
+    important ways
+
+    """
+
+    BAD_RETURN = {}
+
+    # initialize what will be output dictionary
+    vol_dict2 = {}
+
+    # first see if a dset_epi has been entered, which might have a lot
+    # of important information (and add to output dict); any/all EPI
+    # info *might* be in here (at least at the time of writing)
+    if 'dset_epi' in vol_dict and vol_dict['dset_epi'] :
+        vol_dict2 = read_dset_epi_to_dict(vol_dict['dset_epi'], verb=verb)
+        if not(vol_dict2) :
+            print("** ERROR: dset_epi unreadable or problematic")
+            sys.exit(5)
+    else:
+        vol_dict2['dset_epi'] = None
+
+    # then check scalar values about volume properties from simple
+    # command line opts; try to reconcile or add each (and add to
+    # output dict)
+    ndiff, nmerge = compare_dict_nums_with_merge(vol_dict2, vol_dict, 
+                                                 L=ALL_EPIM_MATCH, 
+                                                 do_merge=True, verb=1)
+    if ndiff :
+        print("** ERROR: inconsistent dset_epi and command line info")
+        sys.exit(5)
+
+    # next/finally, check about slice timing specifically, which might
+    # use existing scalar values (from dset or cmd line, which would
+    # be in vol_dict2 now) 
+    if vol_dict['slice_times'] and vol_dict['slice_pattern'] :
         print("** ERROR: must use only one of either slice_times or "
               "slice_pattern")
         sys.exit(4)
 
-    return args_dict2
+    if vol_dict['slice_times'] :
+        # the input cmd line string has not been split yet; interpret
+        # this single string to be a list of floats, and replace it in
+        # the dict
+
+        L = vol_dict['slice_times'].split()
+        try:
+            # replace single string of slice times with list of
+            # numerical values
+            slice_times = [float(ll) for ll in L]
+            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+        except:
+            print("** ERROR interpreting slice times from cmd line")
+            sys.exit(1)
+    elif vol_dict['slice_pattern'] :
+        # if pattern, check if it is allowed; elif it is a file, check
+        # if it exists *and* use it to fill in
+        # vol_dict['slice_times']; else, whine.  Use any supplementary
+        # info from the output dict, but edit vol_dict slice times in
+        # place
+
+        pat = vol_dict['slice_pattern']
+        if pat in BAU.g_valid_slice_patterns :
+            print("++ Slice pattern from cmd line: '{}'".format(pat))
+            # check with vol info in vol_dict2 (not in vol_dict) bc
+            # vol_dict2 should be the merged superset of info
+            slice_times = BAU.slice_pattern_to_timing(pat, 
+                                                      vol_dict2['num_slices'],
+                                                      vol_dict2['volume_tr'])
+            if not(slice_times) :
+                print("** ERROR: could not convert slice pattern to timing")
+                sys.exit(8)
+            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+        elif os.path.isfile(pat) :
+            print("++ Found slice_pattern '{}' exists as a file".format(pat))
+            slice_times = read_slice_pattern_file(pat, verb=verb)
+            if not(slice_times) :
+                print("** ERROR: translate slice pattern file to timing")
+                sys.exit(7)
+            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+        else:
+            print("** ERROR: could not match provided slice_pattern '{}' as "
+                  "either a recognized pattern or file".format(pat))
+            sys.exit(3)
+
+    # ... and now that we might have explicit slice times in vol_dict,
+    # reconcile any vol['slice_times'] with vol_dict2['slice_times']
+    if 'slice_times' in vol_dict and vol_dict['slice_times'] != None :
+        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
+            # try to reconcile
+            ndiff = compare_list_items( vol_dict['slice_times'],
+                                        vol_dict2['slice_times'],
+                                        eps=EPS_TH )
+            if ndiff :
+                print("** ERROR: inconsistent slice times entered")
+                sys.exit(5)
+        else:
+            # nothing to reconcile, just copy over
+            vol_dict2['slice_times'] = copy.deepcopy(vol_dict['slice_times'])
+    else:
+        # I believe these cases hold
+        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
+            pass
+        else:
+            # this is a boring one, which will probably lead to an
+            # error exit in a downstream check
+            vol_dict2['slice_times'] = None
+
+    # copy this over just for informational purposes
+    if 'slice_pattern' in vol_dict :
+        vol_dict2['slice_pattern'] = copy.deepcopy(vol_dict['slice_pattern'])
+
+    return vol_dict2
+
+
+def compare_dict_nums_with_merge(A, B, L=[], do_merge=True, verb=1):
+    """Let A and B be dictionaries, each of arbitrary size.  Let L be a
+list of lists, where each sublist contains the name of a possible key
+(which would have a numerical value) and a tolerance for differencing
+its value between A and B.  This function goes through L and 1) sees
+if that element exists in B; 2) if yes, sees if it also exists in A;
+3) if yes, sees if they are the same to within allowed tolerance and
+(if do_merge==True) else if no, adds that value to B.
+
+Parameters
+----------
+A : dict
+    dict of arbitrary size, which main contain numerical elements
+    listed in L
+B : dict
+    dict of arbitrary size, which main contain numerical elements
+    listed in L
+L: list
+    list of 2-element sublists, each of which contains the str name of
+    a parameter to search for in A and B, and a numerical value eps
+    representing the tolerance for checking the element's difference
+do_merge : bool
+    if True, add any found key-value pair in B whose key is in L to A,
+    if the tolerance allows or if it isn't already in A; otherwise, don't
+    try merging
+
+Returns
+-------
+ndiff : int
+    number of different elements
+nmerge : int
+    number of merged elements (may not be useful, but heck, just return it)
+    """
+
+    ndiff  = 0
+    nmerge = 0
+
+    for row in L:
+        ele = row[0]
+        eps = row[1]
+        if ele in B and B[ele] != None :
+            if ele in A and A[ele] != None :
+                valA = A[ele]
+                valB = B[ele]
+                if abs(A[ele] - B[ele]) > eps :
+                    if verb :
+                        print("+* Difference in dictionary elements:")
+                        print('   eps = {}'.format(eps))
+                        print('   A[{}] = {}'.format(ele, A[ele]))
+                        print('   B[{}] = {}'.format(ele, B[ele]))
+                    ndiff+= 1
+                    # ... and cannot merge
+                else:
+                    if verb :
+                        print("++ Reconciled dictionary elements:")
+                        print('   eps = {}'.format(eps))
+                        print('   A[{}] = {}'.format(ele, A[ele]))
+                        print('   B[{}] = {}'.format(ele, B[ele]))
+                    # ... and no need to merge
+            else:
+                if do_merge :
+                    A[ele] = B[ele]
+                    nmerge+= 1
+
+    return ndiff, nmerge
+
+
+def compare_list_items(A, B, eps=0.0, verb=1):
+    """Let A and B be 1D lists of numerical values, each of length N.
+This function goes through and compares elements of the same index,
+checking whether values are equal within a tolerance of eps.  Output
+the number of different elements (so, returning 0 means they are the
+same).
+
+Parameters
+----------
+A : list
+    1D list of numerical-valued elements
+B : list
+    1D list of numerical-valued elements
+eps: float
+    tolerance of elementwise differences
+
+Returns
+-------
+ndiff : int
+    number of different elements, to within tolerance eps
+
+    """
+
+    N = len(A)
+    if len(B) != N :
+        print("** ERROR: unequal length lists:")
+        print(    "len(A) =", N)
+        print(    "len(B) =", len(B))
+        sys.exit(3)
+
+    ndiff = 0
+    for ii in range(N):
+        if abs(A[ii] - B[ii]) > eps :
+            ndiff+= 1
+            if verb :
+                print("+* Difference in list elements:")
+                print(    "A[{}] = {}".format(ii, A[ii]))
+                print(    "B[{}] = {}".format(ii, B[ii]))
+
+    return ndiff
 
 
 def interpret_args(args_dict):
@@ -1228,6 +1443,7 @@ args_dict2 : dict
         print("++ No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
 
+    '''
     if args_dict2['slice_times'] :
         # interpret string to be list of floats
         IS_BAD = 0
@@ -1269,6 +1485,7 @@ args_dict2 : dict
             print("** ERROR: could not match slice_pattern '{}' as "
                   "either a recognized pattern or file".format(pat))
             sys.exit(3)
+    '''
 
     if args_dict2['extra_fix_list'] :
         # Interpret string to be list of ints or floats. NB: written
@@ -1302,19 +1519,6 @@ args_dict2 : dict
         if IS_BAD :
             sys.exit(1)
 
-    # this should essentially just be double-checking that no
-    # conflicting info about the EPI dste has come in; this merger of
-    # dset_epi info, which would now be in 'epi_dict' if it exists,
-    # has already been done above (and checked once), but overlapping
-    # info could subsequently have come from other places such as the
-    # slice pattern
-    if args_dict2['dset_epi'] :
-        check_fail, args_dict2 = reconcile_dset_epi_with_args( args_dict2,
-                                                               verb=verb )
-        if check_fail :
-            print("** ERROR: issue merging dset_epi with other opts")
-            sys.exit(5)
-
     if '/' in args_dict2['prefix'] :
         print("** ERROR: Cannot have path information in '-prefix ..'\n"
               "   Use '-out_dir ..' for path info instead")
@@ -1331,7 +1535,32 @@ args_dict2 : dict
     # successful navigation
     return args_dict2
 
+def add_info_to_dict(A, B):
+    """Simply loop over keys in B and add them to A. Assume nothing
+overlaps (might add checks for that later...).
+
+Parameters
+----------
+A : dict
+    The base dictionary to which new items get entered
+B : dict
+    The source dictionary from which new items are obtained
+
+Returns
+-------
+C : dict
+    The new dict of values (copy of A with B added)
+"""
+
+    C = copy.deepcopy(A)
+    for key in B.keys() :
+        C[key] = B[key]
+
+    return C
+
+
 def main_option_processing(argv):
+
     """This is the main function for running the physio processing
 program.  It executes the first round of option processing: 
 1) Make sure that all necessary inputs are present and accounted for.
@@ -1379,13 +1608,19 @@ args_dict : dict
     # ---------------------------------------------------------------------
     # case of >=1 opt being used: parse!
 
-    # get all opts and values as a dict
-    args_dict = parser_to_dict( parser, argv )
+    # get all opts and values as a main dict and secondary/temporary
+    # dict of volume-related items, separately
+    args_dict, vol_dict = parser_to_dict( parser, argv )
 
     # check for simple-simple cases with a quick exit: ver, help, etc.
     have_simple_opt = check_simple_opts_to_exit(args_dict, parser)
     if have_simple_opt :
         sys.exit(0)
+
+    # parse/merge the volumetric dict items, which can have some
+    # tangled relations.
+    vol_dict  = interpret_vol_info(vol_dict, verb=args_dict['verb'])
+    args_dict = add_info_to_dict(args_dict, vol_dict)
 
     # real work to be done now: check that all required inputs were
     # provided, and do a bit of verification of some of their
