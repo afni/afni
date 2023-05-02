@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, May, 2023, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "numpy.complex() is deprecated, use complex()",
+   NULL
+ } ,
+
  { 27, Apr, 2023, RCR, "Isosurface", MINOR, TYPE_BUG_FIX,
    "include updates for the 2002.08.12 MarchingCubes code base",
    "Thanks to C Rorden for providing an updated translation."
