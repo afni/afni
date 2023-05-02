@@ -408,7 +408,7 @@ def getRespiratoryPeaks(test_retro_obj):
         test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
         OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
         caption = 'Respiratory troughs from band-pass filtered input.',
-         font_size = test_retro_obj.font_size)
+          font_size = test_retro_obj.font_size)
     
     # Remove troughs that are more than the 90th percentile of the 
     # input signal
@@ -485,20 +485,21 @@ def getRespiratoryPeaks(test_retro_obj):
     troughs = lpf.refinePeakLocations(troughs, rawData, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
-             dataType = "Respiratory",  
-             phys_fs = test_retro_obj.resp_data.samp_freq, 
-             Troughs = True, OutDir = OutDir,
-             font_size = test_retro_obj.font_size)
+              dataType = "Respiratory",  
+              phys_fs = test_retro_obj.resp_data.samp_freq, 
+              Troughs = True, OutDir = OutDir,
+              font_size = test_retro_obj.font_size)
     
     # Graph respiratory peaks and troughs against respiratory 
     # time series
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>0, 
-        test_retro_obj.save_graph_level>0, rawData, peaks, 
-        test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
-        caption = 'Respiratory peaks after all filtering.', 
-        OutDir = OutDir, 
-        prefix = 'respiratoryPeaksAndTroughsFinal',
-        font_size = test_retro_obj.font_size)
+    if test_retro_obj.show_graph_level>0 or test_retro_obj.save_graph_level>0:
+        lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>0, 
+            test_retro_obj.save_graph_level>0, rawData, peaks, 
+            test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
+            caption = 'Respiratory peaks after all filtering.', 
+            OutDir = OutDir, 
+            prefix = 'respiratoryPeaksAndTroughsFinal',
+            font_size = test_retro_obj.font_size)
      
     return peaks, troughs, len(rawData)
 
