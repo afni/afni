@@ -206,7 +206,7 @@ pkgLoad <- function(pkgs) {
    # install packages not already loaded:
    pkgs_miss <- pkgs[which(!pkgs %in% installed.packages()[, 1])]
    if (length(pkgs_miss) > 0) {
-      install.packages(pkgs_miss, dep=TRUE, repos='http://watson.nci.nih.gov/cran_mirror/')
+      install.packages(pkgs_miss, dep=TRUE, repos='http://cloud.r-project.org')
    }
     
    # load packages not already loaded:
