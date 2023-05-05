@@ -20,7 +20,7 @@ from   datetime   import datetime
 from   platform   import python_version_tuple
 import borrow_afni_util  as BAU
 
-#sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
+sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
 
 from   afnipy     import afni_base as BASE   # or add to BAU?
 

@@ -4,6 +4,11 @@ import sys, copy
 import numpy as np
 import matplotlib.pyplot as plt
 
+DEF_max_n = 1000
+DEF_lw    = 0.75
+DEF_ms    = 1.25
+
+# =========================================================================
 
 class RetroPlobj:
     """An object for holding one time series or set of points for
@@ -88,7 +93,8 @@ them.
                  ylabel  = 'data',
                  figsize = None,
                  dpi     = 300,
-                 max_n_per_sub = 2000,
+                 fontsize= 10,
+                 max_n_per_sub = DEF_max_n,
                  verb=0):
         """Create object holding data to plot.
 
@@ -103,7 +109,7 @@ them.
         self.figsize       = figsize            # 2-tuple, fig dims
         self.figsize_use   = None               # 2-tuple, fig dims
         self.dpi           = dpi                # int, res for vector img
-
+        self.fontsize      = fontsize           # int/fl, size of most text
         self.list_plobj    = []                 # list, of plot objects
         self.max_n_per_sub = max_n_per_sub      # n, used to split subplots
 
@@ -113,7 +119,7 @@ them.
     # --------------------------------------------------------------------
     # Comment: the condition for calculating whether we need to use
     # multiplots from the following logic. Consider saying we want to
-    # limit each subplot to at most max_n_per_sub=2000 points across
+    # limit each subplot to at most max_n_per_sub=1000 points across
     # one full subplot range.  That establishes a linear density
     # criterion: the max linear density is rho_max = max_n_per_sub/xwidth,
     # where xwidth is our full subplot window width (initially unknown),
@@ -208,6 +214,19 @@ them.
         return list_win
 
     @property
+    def all_range_xlim(self):
+        """Range based on min/max x-values for each subplot (basically, expand
+        min/max by 3%)."""
+        list_win = copy.deepcopy(self.all_sub_xwin)
+
+        list_win = []
+        for ii in range(self.n_subplots):
+            minval, maxval = self.all_sub_xwin[ii]
+            delta = 0.03*(maxval - minval)
+            list_win.append([minval-delta, maxval+delta])
+        return list_win
+
+    @property
     def all_sub_slice(self):
         """Make the pairs of indices for slicing within the plobj x and y
         arrays for each subplot.
@@ -294,9 +313,9 @@ them.
         for ii in range(self.n_plobj):
             self.list_plobj[ii]
             if self.list_plobj[ii].ms == None :
-                self.list_plobj[ii].ms = 1.5 # !!!!!! come back to this
+                self.list_plobj[ii].ms = DEF_ms # !!!!!! come back to this
             if self.list_plobj[ii].lw == None :
-                self.list_plobj[ii].lw = 1 # !!!!!! come back to this
+                self.list_plobj[ii].lw = DEF_lw # !!!!!! come back to this
             if self.list_plobj[ii].color == None :
                 for jj in range(self.n_plobj):
                     color = 'C{}'.format(jj) 
@@ -307,7 +326,7 @@ them.
                     self.list_plobj[ii].color = 'black'
 
         if self.figsize == None :
-            self.figsize_use = (7, self.n_plobj*3.5)
+            self.figsize_use = (7, self.n_subplots*1.0)
         else:
             self.figsize_use = copy.deepcopy(self.figsize)
 
@@ -318,9 +337,9 @@ them.
         self.prep_plotvals()
 
         # create figure and subplot array
-        fff       = plt.figure( self.title, figsize=self.figsize )
+        fff       = plt.figure( self.title, figsize=self.figsize_use )
         a, subpl  = plt.subplots( self.n_subplots, 1, 
-                                  figsize = self.figsize )
+                                  figsize = self.figsize_use )
 
         for ii in range( self.n_subplots ):
             # loop over all plobj and add them
@@ -345,10 +364,11 @@ them.
                               ms   = plobj.ms )
 
                 if not(ii) and not(jj) :
-                    pp.set_title(self.title)
+                    pp.set_title(self.title, fontsize=self.fontsize)
 
             if ii == self.n_subplots - 1 :
-                pp.set_xlabel(self.xlabel)
+                pp.set_xlabel(self.xlabel, fontsize=self.fontsize)
+            pp.set_xlim(self.all_range_xlim[ii])
 
             pp.set_ylim(self.range_ylim)
 
@@ -370,16 +390,16 @@ if __name__ == "__main__" :
 
     print("plot")
 
-    b = np.random.random(1000)
+    b = np.random.random(2000)
     a = np.arange(len(b))
 
-    d = np.random.random(1000)
+    d = np.random.random(2000)
     c = np.arange(len(d))/2.
 
     ret_plobj1 = RetroPlobj(a,b)
     ret_plobj2 = RetroPlobj(c,d, ls='None', marker='o')
 
-    fff = RetroFig(max_n_per_sub=500)
+    fff = RetroFig(max_n_per_sub=1000)
     fff.add_plobj(ret_plobj1)
     fff.add_plobj(ret_plobj2)
     fff.make_plot()

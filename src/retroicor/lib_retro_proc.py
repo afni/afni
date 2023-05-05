@@ -16,6 +16,7 @@ import shutil
 
 # Local libraries
 import libPeakFilters as lpf
+import lib_retro_plot as lrp
 
 # Global constants
 GLOBAL_M = 3
@@ -217,6 +218,26 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
          caption = 'Cardiac peaks after all filtering.',
          font_size = test_retro_obj.font_size)
     
+   # ==== test plot ====
+   tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.card_data.samp_rate
+   tmp_x_p  = np.arange(len(rawData))[peaks] * test_retro_obj.card_data.samp_rate
+
+   tmp_y_p  = rawData[peaks]
+
+   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData)
+   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker='o')
+
+   oname = 'cardiacPeaksFinal_v2.pdf'
+   if OutDir :
+       oname = OutDir + '/' + oname
+   fff = lrp.RetroFig(figname=oname,
+                      max_n_per_sub=5000, 
+                      title='Cardiac peaks')
+   fff.add_plobj(ret_plobj1)
+   fff.add_plobj(ret_plobj2)
+   fff.make_plot()
+   # ==== end test plot ====
+
    return peaks, len(rawData)
 
 
