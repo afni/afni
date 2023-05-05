@@ -267,7 +267,7 @@ SHINY_DIR = shiny
 
 DISCO_SCRIPTS = ClustExp_HistTable.py ClustExp_StatParse.py                    \
                 @ClustExp_CatLab @ClustExp_run_shiny FATCAT_matplot            \
-                3dMVM_validator
+                3dMVM_validator bayes_view
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h     \
