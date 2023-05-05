@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, May, 2023, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "fix error cur_afni error if no AFNI is present",
+   "This was failing to finish setting up dot files."
+ } ,
+
  {  2, May, 2023, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
    "numpy.complex() is deprecated, use complex()",
    NULL
