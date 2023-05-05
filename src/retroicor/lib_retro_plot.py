@@ -22,6 +22,7 @@ plotting.
                  color   = None,     # if None -> calc automatically
                  marker  = None,     # could change to 'o'
                  ms      = None,     # if None -> calc automatically
+                 label   = None,     # legend label
                  verb=0):
         """Create object holding data to plot.
 
@@ -37,6 +38,7 @@ plotting.
         self.lw           = lw                 # str, linewidth
         self.marker       = marker             # str, marker type
         self.ms           = ms                 # str, markersize
+        self.label        = label              # str, label for legend
 
         # ----------------------------
 
@@ -339,7 +341,9 @@ them.
         # create figure and subplot array
         fff       = plt.figure( self.title, figsize=self.figsize_use )
         a, subpl  = plt.subplots( self.n_subplots, 1, 
-                                  figsize = self.figsize_use )
+                                  figsize = self.figsize_use ) 
+
+        list_labels = []
 
         for ii in range( self.n_subplots ):
 
@@ -354,6 +358,9 @@ them.
             for jj in range( self.n_plobj ):
                 plobj = copy.deepcopy(self.list_plobj[jj])
 
+                if not(ii) :
+                    list_labels.append('test_' + str(jj))
+
                 # treat all plots as slices
                 idx = self.all_sub_slice[ii][jj]
                 sp = pp.plot( plobj.x[idx[0]:idx[1]], 
@@ -362,18 +369,25 @@ them.
                               ls    = plobj.ls,
                               lw    = plobj.lw,
                               marker= plobj.marker,
-                              ms   = plobj.ms )
+                              ms    = plobj.ms,
+                              label = plobj.label )
 
                 if not(ii) and not(jj) :
                     pp.set_title(self.title, fontsize=self.fontsize)
 
             if ii == self.n_subplots - 1 :
-                pp.set_xlabel(self.xlabel, fontsize=self.fontsize)
+                pp.set_xlabel(self.xlabel, fontsize=self.fontsize,
+                              loc='left')
             pp.set_xlim(self.all_range_xlim[ii])
 
             pp.set_ylim(self.range_ylim)
 
         if 1 :
+            plt.legend(ncol=self.n_plobj,
+                       loc='upper right', bbox_to_anchor=(1.0, -0.7),
+                       shadow=True, borderpad=0.4, columnspacing=1.5,
+                       borderaxespad=0.1, handletextpad=0.5,
+                       handlelength=0.75)
             plt.tight_layout()
 
         if do_show :
@@ -397,8 +411,8 @@ if __name__ == "__main__" :
     d = np.random.random(2000)
     c = np.arange(len(d))/2.
 
-    ret_plobj1 = RetroPlobj(a,b)
-    ret_plobj2 = RetroPlobj(c,d, ls='None', marker='o')
+    ret_plobj1 = RetroPlobj(a,b, label='line1')
+    ret_plobj2 = RetroPlobj(c,d, ls='None', marker='o', label='dots2')
 
     fff = RetroFig(max_n_per_sub=1000)
     fff.add_plobj(ret_plobj1)
