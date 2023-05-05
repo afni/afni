@@ -97,7 +97,7 @@ them.
     def __init__(self, 
                  figname = 'retro_fig.pdf',
                  title   = 'the plot',
-                 xlabel  = 't (s)',
+                 xlabel  = 'times (s)',
                  ylabel  = 'data',
                  figsize = None,
                  dpi     = 300,
