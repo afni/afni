@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, May, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "distribute prog_list.txt (and _bin and _scripts)",
+   "Later we will (modify) and distribute test.afni.prog.help, perhaps."
+ } ,
+
  {  5, May, 2023, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
    "fix error cur_afni error if no AFNI is present",
    "This was failing to finish setting up dot files."

@@ -2251,7 +2251,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
 # no binaries
-install_text: $(INSTALLDIR) AFNI_version
+install_text: $(INSTALLDIR) AFNI_version prog_list
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_SCRIPTS_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
@@ -2259,6 +2259,7 @@ install_text: $(INSTALLDIR) AFNI_version
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	$(CP) -p $(MISC) $(INSTALLDIR)
+	$(CP) prog_list*.txt $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI_version.txt ]; then $(CP) AFNI_version.txt $(INSTALLDIR); fi;
 
