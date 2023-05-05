@@ -2233,7 +2233,7 @@ afni_doc.tgz:
 
 install_devs: ptaylor_install pkundu_install jzosky_install
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
+install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs prog_list
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
@@ -2241,6 +2241,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) -r $(SHINY_DIR) $(PY_LIB_DIR) $(INSTALLDIR)
 	$(CP) $(DISCO_DIR)/*/* $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
+	$(CP) prog_list*.txt $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
