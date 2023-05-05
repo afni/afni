@@ -22,6 +22,9 @@ plotting.
                  color   = None,     # if None -> calc automatically
                  marker  = None,     # could change to 'o'
                  ms      = None,     # if None -> calc automatically
+                 mec     = None,     # if None -> calc automatically
+                 mew     = None,     #
+                 alpha   = 1,        # alpha transparency
                  label   = None,     # legend label
                  verb=0):
         """Create object holding data to plot.
@@ -38,6 +41,9 @@ plotting.
         self.lw           = lw                 # str, linewidth
         self.marker       = marker             # str, marker type
         self.ms           = ms                 # str, markersize
+        self.mec          = mec                # str, markeredgecolor
+        self.mew          = mew                # int/fl, markeredgewidth
+        self.alpha        = alpha              # int/fl, alpha value
         self.label        = label              # str, label for legend
 
         # ----------------------------
@@ -326,6 +332,9 @@ them.
                         break
                 if self.list_plobj[ii].color == None :
                     self.list_plobj[ii].color = 'black'
+            if self.list_plobj[ii].mec == None : 
+                # just mirror main color
+                self.list_plobj[ii].mec = self.list_plobj[ii].color
 
         if self.figsize == None :
             self.figsize_use = (7, self.n_subplots*1.0)
@@ -370,7 +379,11 @@ them.
                               lw    = plobj.lw,
                               marker= plobj.marker,
                               ms    = plobj.ms,
-                              label = plobj.label )
+                              mec   = plobj.mec,
+                              mew   = plobj.mew,
+                              alpha = plobj.alpha,
+                              label = plobj.label,
+                              fillstyle='full')
 
                 if not(ii) and not(jj) :
                     pp.set_title(self.title, fontsize=self.fontsize)

@@ -224,8 +224,10 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
 
    tmp_y_p  = rawData[peaks]
 
-   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data' )
-   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker='o', label='cardiac peaks')
+   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data', alpha=0.75 )
+   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker='v', label='cardiac peaks')
+   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker=7, label='cardiac peaks',
+                                ms=4, mec='white', mew=0.02)
 
    oname = 'cardiacPeaksFinal_v2.pdf'
    if OutDir :
@@ -531,10 +533,11 @@ def getRespiratoryPeaks(test_retro_obj):
     tmp_y_p  = rawData[peaks]
     tmp_y_t  = rawData[troughs]
 
-    ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data' )
-    ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker='o', label='resp peaks' )
-    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t, ls='None', marker='o', color='tab:red', 
-                                label='resp troughs' )
+    ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data', alpha=0.75 )
+    ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker=7, label='resp peaks',
+                                ms=4, mec='white', mew=0.02)
+    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t, ls='None', marker=6, color='tab:red', 
+                                label='resp troughs', ms=4, mec='white', mew=0.02 )
 
     oname = 'respiratoryPeaksAndTroughsFinal_v2.pdf'
     if OutDir :
