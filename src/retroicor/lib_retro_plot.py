@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 DEF_max_n = 1000
 DEF_lw    = 0.75
-DEF_ms    = 1.25
+DEF_ms    = 1.50
 
 # =========================================================================
 
@@ -342,16 +342,17 @@ them.
                                   figsize = self.figsize_use )
 
         for ii in range( self.n_subplots ):
+
+            # make 'pp' the object for the subplot in question
+            if self.is_multiplot :  pp = subpl[ii]
+            else:                   pp = subpl
+            
+            if 1 :
+                pp.axhline(y=0, c='0.8', ls='-', lw=0.5, zorder=0)
+
             # loop over all plobj and add them
             for jj in range( self.n_plobj ):
                 plobj = copy.deepcopy(self.list_plobj[jj])
-
-                # make 'pp' the object for the subplot in question
-                if self.is_multiplot :  pp = subpl[ii]
-                else:                   pp = subpl
-
-                if 1 :
-                    pp.axhline(y=0, c='0.6', ls='-', lw=0.5)
 
                 # treat all plots as slices
                 idx = self.all_sub_slice[ii][jj]
