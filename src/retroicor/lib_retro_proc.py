@@ -224,10 +224,15 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
 
    tmp_y_p  = rawData[peaks]
 
-   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data', alpha=0.75,
+   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
+                               label='raw input data', 
+                               alpha=1.0,
                                color='tab:orange')
-   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker=7, label='cardiac peaks',
-                                ms=4, color='tab:blue', mec='white', mew=0.02)
+   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
+                               label='cardiac peaks',
+                               ls='None', marker=7,
+                               ms=4, mec='white', mew=0.02,
+                               color='tab:blue')
 
    oname = 'cardiacPeaksFinal_v2.pdf'
    if OutDir :
@@ -237,7 +242,8 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
                       title='Cardiac peaks')
    fff.add_plobj(ret_plobj1)
    fff.add_plobj(ret_plobj2)
-   fff.make_plot()
+   fff.make_plot( do_show = test_retro_obj.show_graph_level,
+                  do_save = test_retro_obj.save_graph_level )
    # ==== end test plot ====
 
    return peaks, len(rawData)
@@ -533,23 +539,33 @@ def getRespiratoryPeaks(test_retro_obj):
     tmp_y_p  = rawData[peaks]
     tmp_y_t  = rawData[troughs]
 
-    ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, label='raw input data', alpha=0.75,
+    ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
+                                label='raw input data', 
+                                alpha=1.0,
                                 color='tab:orange')
-    ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, ls='None', marker=7, label='resp peaks',
-                                ms=4, mec='white', mew=0.02, color='tab:blue')
-    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t, ls='None', marker=6, color='tab:green', 
-                                label='resp troughs', ms=4, mec='white', mew=0.02 )
+    ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
+                                label='resp peaks',
+                                ls='None', marker=7, 
+                                ms=4, mec='white', mew=0.02, 
+                                color='tab:blue')
+    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t,
+                                label='resp troughs',
+                                ls='None', marker=6, 
+                                ms=4, mec='white', mew=0.02,
+                                color='tab:green')
 
     oname = 'respiratoryPeaksAndTroughsFinal_v2.pdf'
     if OutDir :
         oname = OutDir + '/' + oname
     fff = lrp.RetroFig(figname=oname,
                        max_n_per_sub=5000, 
+                       fontsize = test_retro_obj.font_size,
                        title='Respiratory peaks and troughs')
     fff.add_plobj(ret_plobj1)
     fff.add_plobj(ret_plobj2)
     fff.add_plobj(ret_plobj3)
-    fff.make_plot()
+    fff.make_plot( do_show = test_retro_obj.show_graph_level,
+                   do_save = test_retro_obj.save_graph_level )
     # ==== end test plot ====
     
 
