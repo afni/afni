@@ -657,7 +657,7 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         # Save plot to file
         if save_graph:
             plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-            plt.show(block=False)
+            if show_graph: plt.show(block=False)
             
             # Close graph after saving
             if not show_graph: plt.close()  
@@ -918,7 +918,7 @@ def determineRespiratoryPhases(resp_peaks,
             
         # Save plot to file
         plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-        plt.show(block=False)
+        if show_graph: plt.show(block=False)
         if not show_graph: plt.close()  # Close graph after saving
     
         
@@ -1214,7 +1214,7 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq,
          # Save plot to file
          if save_graph:
              plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
-             plt.show(block=False)
+             if show_graph: plt.show(block=False)
              
              # Close graph after saving
              if not show_graph: plt.close()  
