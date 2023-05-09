@@ -44,7 +44,7 @@ nv_dict : dict
     cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
 
     # topval of ulay grayscale cbar
-    nv_dict['ulay_cal_max'] = pbar_dict['ulay_top']
+    nv_dict['cal_max_ulay'] = pbar_dict['ulay_top']
 
     # L/R directionality
     if pbar_dict['is_left_left'].lower() == "yes" :
@@ -76,15 +76,8 @@ nv_dict : dict
             nv_dict['cmap_neg'] = cmap[1]             # cbar name(s)
         nv_dict['idx_olay'] = subbb[1]                # idx of olay subbrick
         nv_dict['idx_thr']  = subbb[2]                # idx of thr subbrick
-        nv_dict['cal_min']  = pbar_dict['vthr']       # thr
-        nv_dict['cal_min_plus'] = pbar_dict['vthr']*1.1  # just >thr
-        nv_dict['cal_max']  = pbar_dict['pbar_top']   # cbar max
-
-        ### !!!! THESE MIGHT NOT BE USED
-        # if pbar range is [-X, X] and not [0, X]
-        if pbar_dict['pbar_bot'] != 0.0 :
-            nv_dict['cal_minNeg'] = - nv_dict['cal_min']
-            nv_dict['cal_maxNeg'] = pbar_dict['pbar_bot']
+        nv_dict['cal_max_thr']  = pbar_dict['vthr']       # thr val
+        nv_dict['cal_max_olay'] = pbar_dict['pbar_top']   # cbar max
 
         if pbar_dict['olay_alpha'] != 'No' :          # use alpha fade?
             nv_dict['do_alpha'] = 'true'
@@ -116,8 +109,7 @@ nv_ulay_txt : str
 
     nv_ulay_txt = '''      {{ // ulay
         url:"{ulay}",
-        cal_max: {ulay_cal_max},
-        opacity: 1,
+        cal_max: {cal_max_ulay},
       }}'''.format( **nv_dict )
 
     return nv_ulay_txt
@@ -189,7 +181,7 @@ nv_olay_txt : str
 
     nv_olay_txt+= '''
         cal_min: 0,
-        cal_max: {cal_max},
+        cal_max: {cal_max_olay},
         opacity: 1,
       }}'''.format(**nv_dict)
 
@@ -224,7 +216,7 @@ nv_thr_txt : str
 
     nv_thr_txt+= '''
         cal_min: 0,
-        cal_max: {cal_min},
+        cal_max: {cal_max_thr},
         opacity: 0,
       }}'''.format(**nv_dict)
 
@@ -247,6 +239,7 @@ nv_then_txt : str
 
     """
 
+    # add back in the modulatePower kwarg, once update is in NiiVue
     nv_then_txt = '''
       {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
       {nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
@@ -258,7 +251,8 @@ nv_then_txt : str
       {nobj}.setModulationImage(
         {nobj}.volumes[1].id,
         {nobj}.volumes[2].id,
-        1
+        modulateAlpha = true //,
+        //modulatePower = 2.0
       );'''.format(**nv_dict)
 
     if nv_dict['coor_type'] == "SET_DICOM_XYZ" :
@@ -401,46 +395,6 @@ otxt : str
         print("-"*len(tmp))
 
     return otxt
-
-
-'''
-<!-- niivue canvas -->
-<div style="width: 90%; aspect-ratio: 5 / 1; margin-left: auto; margin-right: auto;">
-  <canvas id="nv_vis_0_Coef" height=480 width=640>
-  </canvas>
-  <script>
-    const nv_vis_0_Coef = new niivue.Niivue({logging:true, show3Dcrosshair: true})
-    nv_vis_0_Coef.opts.isColorbar = true
-    nv_vis_0_Coef.attachTo('nv_vis_0_Coef')
-    nv_vis_0_Coef.loadVolumes([
-      {url:"../anat_final.sub-001+tlrc.HEAD"},
-      {
-        url:"../stats.sub-001+tlrc.HEAD",
-        colorMap: "redyell",
-        colorMapNegative: "bluegrn",
-        cal_min: 3.37,
-        cal_max: 5.64
-      },
-      {
-        url:"../stats.sub-001+tlrc.HEAD",
-        colorMap: "redyell",
-        colorMapNegative: "bluegrn",
-        cal_min: 3.37,
-        cal_max: 5.64
-      }
-    ]).then(()=>{
-      nv_vis_0_Coef.setFrame4D(nv_vis_0_Coef.volumes[1].id, 1)
-      nv_vis_0_Coef.setFrame4D(nv_vis_0_Coef.volumes[2].id, 2)
-      nv_vis_0_Coef.volumes[1].alphaThreshold = true
-      nv_vis_0_Coef.volumes[2].alphaThreshold = true
-      nv_vis_0_Coef.overlayOutlineWidth = 1
-      nv_vis_0_Coef.volumes[0].colorbarVisible = false; //hide colorbar for anatomical scan
-      nv_vis_0_Coef.volumes[2].colorbarVisible = false; //hide colorbar for tstat scan
-      nv_vis_0_Coef.opts.multiplanarForceRender = true;
-      nv_vis_0_Coef.backgroundMasksOverlays = true
-      nv_vis_0_Coef.updateGLVolume()
-    })
-'''
 
 
 
