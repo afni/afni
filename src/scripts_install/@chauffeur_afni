@@ -2177,6 +2177,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
 
         # make this str bc we will use ',,' as a minor delimiter
         set subbb_str = "${subbb[1]} ,, ${subbb[2]} ,, ${subbb[3]}"
+        set coors_str = "${coors[1]} ,, ${coors[2]} ,, ${coors[3]}"
 
 # [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
 # [PT: Mar 28, 2023] add more info, for APQC outputs
@@ -2192,6 +2193,8 @@ olay_alpha   :: "${olay_alpha}"
 olay_boxed   :: "${olay_boxed}"
 see_olay     :: "${see_olay}"
 subbb        :: ${subbb_str}
+coor_type    :: "${coor_type}"
+coors        :: ${coors_str}
 is_left_left :: "${is_left_left}"
 is_left_post :: "${is_left_post}"
 vthr         :: "${thrnew}"

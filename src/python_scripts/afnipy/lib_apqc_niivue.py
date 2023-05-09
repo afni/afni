@@ -58,6 +58,16 @@ nv_dict : dict
     else:
        nv_dict['sagNoseLeft'] = 'false'
 
+    # possible 'jump to' coords
+    nv_dict['coor_type'] = pbar_dict['coor_type']
+    # coors are XYZ or IJK vals, depending on coor_type
+    if nv_dict['coor_type'] == 'SET_DICOM_XYZ' :
+        # NiiVue always uses RAS notation (what AFNI calls LPI)
+        coors_ras = afni_rai_dicom_to_niivue_ras(pbar_dict['coors'])
+        nv_dict['coors_str'] = ', '.join([str(x) for x in coors_ras])
+    else :
+        nv_dict['coors_str'] = ', '.join([str(x) for x in pbar_dict['coors']])
+    
     # is there an overlay to display?
     nv_dict['see_overlay'] = pbar_dict['see_olay']
     if nv_dict['see_overlay']  == '+' :
@@ -67,8 +77,10 @@ nv_dict : dict
         nv_dict['idx_olay'] = subbb[1]                # idx of olay subbrick
         nv_dict['idx_thr']  = subbb[2]                # idx of thr subbrick
         nv_dict['cal_min']  = pbar_dict['vthr']       # thr
+        nv_dict['cal_min_plus'] = pbar_dict['vthr']*1.1  # just >thr
         nv_dict['cal_max']  = pbar_dict['pbar_top']   # cbar max
 
+        ### !!!! THESE MIGHT NOT BE USED
         # if pbar range is [-X, X] and not [0, X]
         if pbar_dict['pbar_bot'] != 0.0 :
             nv_dict['cal_minNeg'] = - nv_dict['cal_min']
@@ -105,11 +117,52 @@ nv_ulay_txt : str
     nv_ulay_txt = '''      {{ // ulay
         url:"{ulay}",
         cal_max: {ulay_cal_max},
+        opacity: 1,
       }}'''.format( **nv_dict )
 
     return nv_ulay_txt
 
+def afni_rai_dicom_to_niivue_ras(A):
+    """The AFNI GUI by default will report in RAI-DICOM convention, where
+Right/Anterior/Inferior XYZ-coords have negative signs.  NiiVue uses
+RAS+ notation, where Left/Posterior/Inferior are all negative.  This
+function takes an XYZ triplet of numbers A that is RAI-DICOM notation
+and returns an array B of RAS+ coords.
+
+Parameters
+----------
+A : array/list/tuple
+    An ordered collection of len=3 numbers, assumed to be in RAI-DICOM 
+    coordinate notation.
+
+Returns
+-------
+B : list
+    A list of len=3 numbers (floats), which should now be in RAS+ 
+    coordinate notation.
+
+    """
+    
+    N = len(A)
+    if N != 3 :
+        print("** ERROR: ordered collection A should have len=3, not {}"
+              "".format(N))
+
+    B = [0.0] * 3    # to store coord values
+    S = [1.0] * 3    # signum values, +/- 1
+
+    # coords where signs will flip
+    if A[0] > 0 :    S[0] = -1
+    if A[1] > 0 :    S[1] = -1
+
+    for i in range(3):
+        B[i] = S[i] * A[i]
+
+    return B
+
+
 def set_niivue_olay(nv_dict):
+
     """Use the NiiVue dict to build the NVOBJ.loadVolumes([..]) info for
 the olay dset.
 
@@ -135,8 +188,9 @@ nv_olay_txt : str
         colorMapNegative: "{cmap_neg}",'''.format(**nv_dict)
 
     nv_olay_txt+= '''
-        cal_min: {cal_min},
+        cal_min: 0,
         cal_max: {cal_max},
+        opacity: 1,
       }}'''.format(**nv_dict)
 
     return nv_olay_txt
@@ -161,15 +215,17 @@ nv_thr_txt : str
     nv_thr_txt = ''', {{ // thr
         url:"{olay}",  // same dset as olay
         frame4D: {idx_thr},  // idx of vol
-        colorMap: "{cmap}",'''.format(**nv_dict)
-
-    if 'cmap_neg' in nv_dict :
-        nv_thr_txt+= '''
-        colorMapNegative: "{cmap_neg}",'''.format(**nv_dict)
+        colorMap: "blue",'''.format(**nv_dict) # doesn't matter, not shown
+        #colorMap: "{cmap}",'''.format(**nv_dict)
+    ### !!!! UNNECESSARY
+    #if 'cmap_neg' in nv_dict :
+    #    nv_thr_txt+= '''
+    #    colorMapNegative: "{cmap_neg}",'''.format(**nv_dict)
 
     nv_thr_txt+= '''
-        cal_min: {cal_min},
-        cal_max: {cal_max},
+        cal_min: 0,
+        cal_max: {cal_min},
+        opacity: 0,
       }}'''.format(**nv_dict)
 
     return nv_thr_txt
@@ -199,8 +255,20 @@ nv_then_txt : str
       {nobj}.overlayOutlineWidth = {do_boxed};
       {nobj}.opts.multiplanarForceRender = true;
       {nobj}.backgroundMasksOverlays = true;
-      {nobj}.updateGLVolume();'''.format(**nv_dict)
+      {nobj}.setModulationImage(
+        {nobj}.volumes[1].id,
+        {nobj}.volumes[2].id,
+        1
+      );'''.format(**nv_dict)
 
+    if nv_dict['coor_type'] == "SET_DICOM_XYZ" :
+        nv_then_txt+= '''
+        {nobj}.scene.crosshairPos = '''.format(**nv_dict)
+        nv_then_txt+= '''{nobj}.mm2frac([{coors_str}]);'''.format(**nv_dict)
+        nv_then_txt+= ''' // jump to XYZ'''.format(**nv_dict)
+
+    nv_then_txt+= '''
+      {nobj}.updateGLVolume();'''.format(**nv_dict)
 
     return nv_then_txt
 
