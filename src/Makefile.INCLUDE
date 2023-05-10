@@ -12,6 +12,9 @@ CPU_TYPE ?= x86_64
 # LLIBS_X11 can be complete; can remove X from LLIBS    31 Jan 2020 [rickr]
 LLIBS_X11 ?= $(LLIBS)
 
+# netpbm is stored in varying locations under homebrew, allow for that
+NETPBMDIR ?= /usr/include/netpbm
+
 LDFLAGS = $(LFLAGS)
 
 # for compiling with OpenMP, if available
@@ -3821,6 +3824,7 @@ $(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'NETPBMDIR=$(NETPBMDIR)'                                         \
 	'MAKE=$(MAKE)'     \
 	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
@@ -3860,6 +3864,7 @@ libGLws.a:
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
+        'NETPBMDIR=$(NETPBMDIR)'                                         \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
@@ -3899,6 +3904,7 @@ suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                         \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                               \
 	'RANLIB=$(RANLIB)'                                             \
+        'NETPBMDIR=$(NETPBMDIR)'                                       \
         'MAKE=$(MAKE)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)' \
     'CPU_TYPE=$(CPU_TYPE)'                                         \
@@ -3918,6 +3924,7 @@ suma_gts_progs: libgts.a
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
            	'CPU_TYPE=$(CPU_TYPE)'                                           \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -3937,6 +3944,7 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -3957,6 +3965,7 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
             'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                           \
             'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                 \
             'RANLIB=$(RANLIB)'                                               \
+            'NETPBMDIR=$(NETPBMDIR)'                                         \
             'MAKE=$(MAKE)'                                                   \
             'MRI_SHARED=$(MRI_SHARED)'                                       \
             'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'   \
@@ -4118,6 +4127,7 @@ suma_link:
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)'                                 \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)'                                       \
 	'RANLIB=$(RANLIB)'                                                     \
+        'NETPBMDIR=$(NETPBMDIR)'                                               \
         'MAKE=$(MAKE)'                                                     \
 	'MRI_SHARED=$(MRI_SHARED)'                                             \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'         \

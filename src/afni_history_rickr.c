@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2023, RCR, "Makefile.macos_12_x86_64", MINOR, TYPE_NEW_OPT,
+   "add Makefile, updates, and OS_notes",
+   NULL
+ } ,
+
  {  5, May, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "distribute prog_list.txt (and _bin and _scripts)",
    "Later we will (modify) and distribute test.afni.prog.help, perhaps."

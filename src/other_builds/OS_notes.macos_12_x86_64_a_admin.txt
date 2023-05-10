@@ -1,0 +1,32 @@
+
+# ----------------------------------------------------------------------
+# install homebrew   - and python (3.11 currently), X11, netpbm, cmake
+# (command uses bash syntax, not just in script)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew analytics off
+brew install python netpbm cmake gfortran
+brew install --cask xquartz
+
+# and install build packages
+brew install libpng jpeg expat freetype fontconfig openmotif  \
+             libomp gsl glib pkg-config gcc libiconv autoconf \
+             libxt mesa mesa-glu libxpm
+
+# make a cheating link for omp.h
+sudo ln -s /usr/local/opt/libomp/include/omp.h /usr/local/include/omp.h
+
+# ----------------------------------------------------------------------
+# put python in path and install matplotlib via pip
+export PATH=${PATH}:/usr/local/opt/python/libexec/bin
+pip install matplotlib
+
+# ----------------------------------------------------------------------
+# install R
+curl -O https://cran.r-project.org/bin/macosx/base/R-4.2.3.pkg
+sudo installer -pkg R-4.2.3.pkg -target /
+
+
+# ----------------------------------------------------------------------
+# and reboot : sudo reboot
+# ----------------------------------------------------------------------
