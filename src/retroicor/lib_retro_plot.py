@@ -406,6 +406,8 @@ them.
         if do_show :
             plt.ion()
             plt.show(block=True)
+        else:
+            plt.ioff()
 
         if do_save :
             plt.savefig(self.figname, dpi=self.dpi)
