@@ -236,14 +236,16 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
 
    oname = 'cardiacPeaksFinal_v2.pdf'
    if OutDir :
-       oname = OutDir + '/' + oname
+        oname = OutDir + '/' + oname
    fff = lrp.RetroFig(figname=oname,
-                      max_n_per_sub=5000, 
-                      title='Cardiac peaks')
+                       max_n_per_sub=5000, 
+                       title='Cardiac peaks')
    fff.add_plobj(ret_plobj1)
    fff.add_plobj(ret_plobj2)
    fff.make_plot( do_show = test_retro_obj.show_graph_level,
-                  do_save = test_retro_obj.save_graph_level )
+                   do_save = test_retro_obj.save_graph_level )
+   
+   plt.close() # Close empty figure window
    # ==== end test plot ====
 
    return peaks, len(rawData)
@@ -566,6 +568,8 @@ def getRespiratoryPeaks(test_retro_obj):
     fff.add_plobj(ret_plobj3)
     fff.make_plot( do_show = test_retro_obj.show_graph_level,
                    do_save = test_retro_obj.save_graph_level )
+   
+    plt.close() # Close empty figure window
     # ==== end test plot ====
     
 
@@ -643,24 +647,28 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         x = []    
         end = min(len(phases),round(len(phases)*50.0/len(peaks)))
         for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = plt.subplots()
+        ax_left = plt.subplot()
         plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
         plt.ylabel('Input data input value',color='g', 
-                   fontdict={'fontsize': font_size})
+                    fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
         plt.ylabel('Phase (Radians)',color='r')
         plt.title("Cardiac phase (red) and raw input data (green)",
-                         fontdict={'fontsize': font_size})
+                          fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
             plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-            if show_graph: plt.show(block=False)
-            
-            # Close graph after saving
-            if not show_graph: plt.close()  
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+            else:
+                plt.ioff()    
+                
+    # Close graph after saving
+    plt.close('all')  
             
     return phases
 
@@ -918,9 +926,16 @@ def determineRespiratoryPhases(resp_peaks,
             
         # Save plot to file
         plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-        if show_graph: plt.show(block=False)
-        if not show_graph: plt.close()  # Close graph after saving
-    
+        if save_graph:
+            plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+            else:
+                plt.ioff() 
+                
+        # Close graph after saving
+        plt.close()  
         
     return phases
 
@@ -1214,10 +1229,15 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq,
          # Save plot to file
          if save_graph:
              plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
-             if show_graph: plt.show(block=False)
-             
-             # Close graph after saving
-             if not show_graph: plt.close()  
+         if save_graph:
+            plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+         else:
+                plt.ioff()                 
+                # Close graph after saving
+                plt.close()  
 
     
     return rawRVT
@@ -1501,6 +1521,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     
     # Process cardiac data if any
     if test_retro_obj.card_data:
+        print('Debug')
 
         card_peaks, fullLength = getCardiacPeaks(test_retro_obj) 
         
@@ -1523,10 +1544,12 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             if test_retro_obj.card_data.start_phys_idx > 0:
                 card_phases = \
                     card_phases[test_retro_obj.card_data.start_phys_idx:]
+                    
+            plt.close('all') 
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(card_phases, test_retro_obj,
-                                     cardiac_sample_frequency)
+                                      cardiac_sample_frequency)
         
     # Process respiratory data if any
     if test_retro_obj.resp_data:
@@ -1572,6 +1595,8 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                          save_graph = test_retro_obj.save_graph_level>0, 
                          interpolationOrder = 'linear', 
                          font_size = test_retro_obj.font_size)
+        
+        plt.close('all') 
     else:
         if test_retro_obj.do_out_rvt: 
             print('+* WARNING: Cannot determine RVT.  No ' + \

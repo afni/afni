@@ -348,7 +348,7 @@ them.
         self.prep_plotvals()
 
         # create figure and subplot array
-        fff       = plt.figure( self.title, figsize=self.figsize_use )
+        # fff       = plt.figure( self.title, figsize=self.figsize_use )
         a, subpl  = plt.subplots( self.n_subplots, 1, 
                                   figsize = self.figsize_use ) 
 
@@ -405,7 +405,8 @@ them.
 
         if do_show :
             plt.ion()
-            plt.show()
+            plt.show(block=True)
+            plt.title("Sports Watch Data")
 
         if do_save :
             plt.savefig(self.figname, dpi=self.dpi)

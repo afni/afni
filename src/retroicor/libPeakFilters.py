@@ -1288,7 +1288,14 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
             plt.show(block=False)  # If this is left out, output file is 
                                           # blank
         
-    if not show_graph: plt.close()  # Close graph after saving
+    if show_graph: 
+        plt.ion
+        plt.show(block = True)  # Close graph after saving
+    else:
+        plt.ioff
+        
+        
+    plt.close()  # Close graph after saving
     
     return 0
 
