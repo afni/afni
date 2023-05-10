@@ -906,7 +906,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         if save_graph:
             prefix = dataType + 'SelectedFourierTransformPart'
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            plt.show(block=False)
+            if show_graph: plt.show(block=False)
             if not show_graph: plt.close()  # Close graph after saving
     
         # Plot filtered signal agains raw data
@@ -935,7 +935,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
             prefix = dataType + 'BPF_VRawInput'
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
             
-        plt.show(block=False)
+        if show_graph: plt.show(block=False)
         if not show_graph: plt.close()  # Close graph after saving
         
     return filteredRawData
@@ -1285,12 +1285,10 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
             return 1
         else:
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            plt.show(block=False)  # If this is left out, output file is 
-                                          # blank
         
     if show_graph: 
         plt.ion()
-        plt.show(block = True)  # Close graph after saving
+        if show_graph: plt.show(block=True)
     else:
         plt.ioff()
         
