@@ -37,7 +37,7 @@ rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
 # build AFNI, using top level directory $HOME/afni_build
 build_afni.py -build_root $HOME/afni_build -package macos_12_x86_64
 
+# we already have atlases, and don't need ~/afni_build/afni_atlases_dist
 
-# ... to be continued... (e.g. rsync from build, prep for and run ASC.py)
-#
+rsync -av $HOME/afni_build/build_src/macos_12_x86_64/ ~/abin/
 
