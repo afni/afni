@@ -1521,8 +1521,6 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     
     # Process cardiac data if any
     if test_retro_obj.card_data:
-        print('Debug')
-
         card_peaks, fullLength = getCardiacPeaks(test_retro_obj) 
         
         if len(card_peaks) == 0:
