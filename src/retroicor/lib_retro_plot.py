@@ -406,7 +406,6 @@ them.
         if do_show :
             plt.ion()
             plt.show(block=True)
-            plt.title("Sports Watch Data")
 
         if do_save :
             plt.savefig(self.figname, dpi=self.dpi)
