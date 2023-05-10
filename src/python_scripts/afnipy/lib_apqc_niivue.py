@@ -209,10 +209,10 @@ nv_thr_txt : str
         frame4D: {idx_thr},  // idx of vol
         colorMap: "blue",'''.format(**nv_dict) # doesn't matter, not shown
         #colorMap: "{cmap}",'''.format(**nv_dict)
-    ### !!!! UNNECESSARY
-    #if 'cmap_neg' in nv_dict :
-    #    nv_thr_txt+= '''
-    #    colorMapNegative: "{cmap_neg}",'''.format(**nv_dict)
+
+    if 'cmap_neg' in nv_dict :
+        nv_thr_txt+= '''
+        colorMapNegative: "blue",'''.format(**nv_dict) # also not shown
 
     nv_thr_txt+= '''
         cal_min: 0,
@@ -239,7 +239,6 @@ nv_then_txt : str
 
     """
 
-    # add back in the modulatePower kwarg, once update is in NiiVue
     nv_then_txt = '''
       {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
       {nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
@@ -251,9 +250,8 @@ nv_then_txt : str
       {nobj}.setModulationImage(
         {nobj}.volumes[1].id,
         {nobj}.volumes[2].id,
-        modulateAlpha = true //,
-        //modulatePower = 2.0
-      );'''.format(**nv_dict)
+        modulateAlpha = 2.0 
+      ); // activate+specify mapping'''.format(**nv_dict)
 
     if nv_dict['coor_type'] == "SET_DICOM_XYZ" :
         nv_then_txt+= '''
