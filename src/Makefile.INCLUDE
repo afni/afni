@@ -3841,6 +3841,7 @@ libgts.a:
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME)          \
 	   'SUMA_LINK_PATH=$(SUMA_LINK_PATH)'     \
 	   'CPU_TYPE=$(CPU_TYPE)'                 \
+           'NETPBMDIR=$(NETPBMDIR)'               \
        libgts.a ;	                           \
 	cd ../	;	                              \
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; \
