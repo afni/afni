@@ -53,6 +53,52 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2023, RCR, "Makefile.macos_12_x86_64", MINOR, TYPE_NEW_OPT,
+   "add Makefile, updates, and OS_notes",
+   NULL
+ } ,
+
+ {  5, May, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "distribute prog_list.txt (and _bin and _scripts)",
+   "Later we will (modify) and distribute test.afni.prog.help, perhaps."
+ } ,
+
+ {  5, May, 2023, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "fix error cur_afni error if no AFNI is present",
+   "This was failing to finish setting up dot files."
+ } ,
+
+ {  2, May, 2023, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "numpy.complex() is deprecated, use complex()",
+   NULL
+ } ,
+
+ { 27, Apr, 2023, RCR, "Isosurface", MINOR, TYPE_BUG_FIX,
+   "include updates for the 2002.08.12 MarchingCubes code base",
+   "Thanks to C Rorden for providing an updated translation."
+ } ,
+
+ { 25, Apr, 2023, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "note possibly using the regress block in -radial_correlate_blocks",
+   "This might be particularly useful with ANATICOR."
+ } ,
+
+ { 20, Apr, 2023, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with NIFTI-Imaging/nifti_clib",
+   NULL
+ } ,
+
+ { 19, Apr, 2023, RCR, "APMULTI_Demo1_rest", MINOR, TYPE_ENHANCE,
+   "add do/run_40* scripts",
+   "These are in the apmulti_scripts repo."
+ } ,
+
+ { 14, Apr, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_rocky_8 and OS_notes.linux_rocky_8.txt",
+   "These should work on RHEL/CentOS/Rocky/Almalinux 8.\n"
+   "This is now a new build package."
+ } ,
+
  {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
    "update @diff.tree, @diff.files: possibly switch to meld if no xxdiff",
    "Be automatic, rather than forcing one to use '-diff_prog meld'."
