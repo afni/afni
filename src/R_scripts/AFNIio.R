@@ -16,6 +16,9 @@ find.in.path <- function(file) { #Pretty much same as first.in.path
     return(aa) 
 }
 
+## load in dataTable functions
+source(find.in.path('lib_dataTable.R'))
+
 #Return cat's file option to format the help output
 #for TXT or sphinx purposes
 help.cat.file.AFNI <- function (pname=NULL, targ='TXT') {
@@ -573,22 +576,35 @@ exists.AFNI.name <- function(an) {
 #@PPP, the parameters are read from text file PPP and
 #returned as if they were found on the command line  
 dataTable.AFNI.parse <- function(opts) {
-    if (is.null(opts) || length(opts) ==  0) {
-        return(NULL);
-    }
+    
+    if (is.null(opts) || length(opts) ==  0) { return(NULL) }
+    
     if (length(opts) == 1 && length(grep('^@.*$',opts))) {
         ff <- strsplit(opts, '')[[1]]
         ff <- paste(ff[2:length(ff)], sep='', collapse='')
         if (!file.exists(ff)) {
             err.AFNI(paste("table file", ff, "does not exist"));
             return(NULL)
-        }
+        } else { ## jkr 2023: it is a file that exists so try to read it
+            dt.test <- dtCheck_tryRead(ff)
+            if( dt.test != 0 ){
+                dtCheck_err("dataTable is NOT regular and rectangular")
+                dtCheck_write_log("temp_log.txt") ## write out to file
+                q()
+            }
+        }   ## end jkr 2023 file test
+        
         #Can't read as table because users might have EOL \ from shell command
         #opts <- scan(ff, what='character')
+        ## even if it is a file, output as flattened string...
         opts <- scan(ff, what='character', na.strings="") # GC 08/15/2014: modified to allow NA in dataTable
         opts <- opts[grep('[^\\\\]',opts)]
     }
     
+    ## more jkr tests 
+    # test.df <- dtCheck_str2frame(opts)
+    dtCheck_overall(dtCheck_str2frame(opts))
+    dtCheck_write_log("temp_log.txt")
     return(opts);
 }
 

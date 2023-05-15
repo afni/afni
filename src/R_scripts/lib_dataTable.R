@@ -1,18 +1,65 @@
 ## top ##########################
 ## data table checker library
-## Justin Rajendra ~ March 2023
+## Justin Rajendra ~March 2023
 ## all functions to add to dataTable_checker.R 
 ## can add to all Gang stats programs
 
+## load libraries ########
+suppressPackageStartupMessages(library(data.table))
+
+## global log text #############
+log.out <- c()  ## not the greatest method...
+
+## some declared variables #######
+respVar <- c('InputFile','Inputfile','inputFile','inputfile',
+             'Ausgang_val','ausgang_val')   ## for misspellings 
+
 ## mode ########
 mode_func <- function(x) {
-    uniqx <- unique(x)
-    return(uniqx[which.max(tabulate(match(x,uniqx)))])
+    uniqx <- unique(x) ; return(uniqx[which.max(tabulate(match(x,uniqx)))])
+}
+
+## add to log text and print the line ##############
+## put as many \n as you want for the output
+dtCheck_log_print <- function(line.in,cat.out=TRUE){
+    log.out <<- rbind(log.out,line.in)  ## log.out is global
+    if( cat.out ){ cat(line.in) }
+}
+
+## takes a data frame and adds line by line to log.out
+dtCheck_log_df <- function(df.in){
+    for( i in 1:nrow(df.in) ){
+        ## combine all in row then with \n
+        line.out <- paste(as.character(df.in[i,]),collapse="")
+        line.out <- paste0(line.out,"\n")
+        log.out <<- rbind(log.out,line.out)   ## add to global
+    }
+    log.out <<- rbind(log.out,"\n")
+}
+
+## write log.out to file
+dtCheck_write_log <- function(file.out="temp_log.txt"){
+    cat(log.out,file=file.out,sep="")  ## log.out is global
+}
+
+## cat messages #################
+## nl is new line feeds defaults to 2 otherwise 1
+dtCheck_err <- function(msg,nl=2){ 
+    if( nl == 2 ){ end.line <- "!!!\n\n" } else { end.line <- "!!!\n" }
+    dtCheck_log_print(paste0("**ERROR: ",msg,end.line)) 
+}
+dtCheck_warn <- function(msg,nl=2){ 
+    if( nl == 2 ){ end.line <- "!\n\n" } else { end.line <- "!\n" }
+    dtCheck_log_print(paste0("+*Warning: ",msg,end.line)) 
+}
+dtCheck_good <- function(msg,nl=2){   ## need your own ending punctuation
+    if( nl == 2 ){ end.line <- "\n\n" } else { end.line <- "\n" }
+    dtCheck_log_print(paste0("++Good: ",msg,end.line)) 
 }
 
 ## add leading spaces to the data frame to aid in aligning text #########
-## takes a valid data frame and outputs the same frame with padded spaces
-lead_space <- function(data.in){
+## takes a valid data frame and outputs the same NOT FRAME with padded spaces
+dtCheck_lead_space <- function(data.in){
     
     ## empty to fill
     data.temp <- c() ; name.temp <- c()
@@ -27,34 +74,51 @@ lead_space <- function(data.in){
         t.max <- max(c(nchar(t.col),nchar(t.name)))
         
         ## pad with spaces (name is left justified)
-        t.col <- formatC(t.col,width=t.max)
-        t.name <- formatC(t.name,width=t.max,flag="-")
+        t.col <- formatC(t.col,width=t.max+1,flag="-")
+        t.name <- formatC(t.name,width=t.max+1,flag="-")
         
         ## add to output
         data.temp <- cbind(data.temp,t.col)
         name.temp <- cbind(name.temp,t.name)
     }
     
-    ## save as data frame and return
-    data.temp <- as.data.frame(data.temp)
-    names(data.temp) <- name.temp
+    data.temp <- rbind(name.temp,data.temp)
     return(data.temp)
     
-}   ## end lead_space function
+}   ## end dtCheck_lead_space function
 
-## try to read a data table FILE ######################
-## needs the data table file name (with path or relative)
-## does not save the imported data. Just cats info to the screen
-tryRead <- function(file.in){
+## convert command line flat string to data frame ##############
+## taken from 3dMVM (not sure this is the best way to do it...)
+dtCheck_str2frame <- function(flat.in){
+    wd <- which(flat.in %in% respVar) ; len <- length(flat.in)
+    if(len %% wd != 0){
+        dtCheck_err("dataTable is NOT regular and rectangular")
+        dtCheck_write_log("temp_log.txt") ## write out to file
+        q()
+    }
+    
+    data.out <- NULL
+    for(i in 1:wd){
+        data.out <- data.frame(cbind(data.out,flat.in[seq(wd+i, len, wd)]))
+    }
+    names(data.out) <- flat.in[1:wd]
+    return(data.out)
+}   ## end dtCheck_str2frame
+
+
+## try to read a dataTable FILE ######################
+## needs the dataTable file name (with path or relative)
+## does not save the imported data. Just cats info to the screen and log
+dtCheck_tryRead <- function(file.in){
     
     ## check to see if the file is really there
     if( !file.exists(file.in) ){ 
-        cat(paste("**ERROR:",file.in,"not found!!!"))
-        cat("\n\n") ; return(1)
+        cat(paste("**ERROR:",file.in,"not found!!!")) ; cat("\n\n") ; return(1)
     }
     
     ## which file
-    cat(basename(file.in)) ; cat(":\n")
+    dtCheck_log_print("\nChecking dataTable file:\n")
+    dtCheck_log_print(paste0(basename(file.in),"\n\n"))
     
     ## read all by line
     data.str <- readLines(file.in)
@@ -76,11 +140,13 @@ tryRead <- function(file.in){
         ## first without delimiter for csv or either with tsv
         if( length(tmp.line[[1]]) != hdr.len ){
             if( hdr.len - length(tmp.line[[1]]) == 1 ){
-                cat(paste("Missing",hdr.len - length(tmp.line[[1]]),
-                          "element from line",i,"\n"))
+                dtCheck_log_print(paste("Missing",
+                                        hdr.len - length(tmp.line[[1]]),
+                                        "element from line",i,"\n"))
             } else {
-                cat(paste("Missing",hdr.len - length(tmp.line[[1]]),
-                          "elements from line",i,"\n"))
+                dtCheck_log_print(paste("Missing",
+                                        hdr.len - length(tmp.line[[1]]),
+                                        "elements from line",i,"\n"))
             }
             miss.row <- c(miss.row,i)
             miss.num <- c(miss.num,hdr.len - length(tmp.line[[1]]))
@@ -96,11 +162,11 @@ tryRead <- function(file.in){
             ## cat info for missing elements
             if( length(miss.ele) > 0 ){
                 if( length(miss.ele) == 1 ){
-                    cat(paste("Missing",length(miss.ele),
-                              "element from line",i,"\n"))
+                    dtCheck_log_print(paste("Missing",length(miss.ele),
+                                            "element from line",i,"\n"))
                 } else {
-                    cat(paste("Missing",length(miss.ele),
-                              "elements from line",i,"\n"))
+                    dtCheck_log_print(paste("Missing",length(miss.ele),
+                                            "elements from line",i,"\n"))
                 }
                 miss.row <- c(miss.row,i)
                 miss.num <- c(miss.num,length(miss.ele))
@@ -109,7 +175,7 @@ tryRead <- function(file.in){
             
             ## cat info for NAs (may need to change this)
             if( length(found.na) > 0 ){
-                cat(paste("NA's found on line",i,"\n"))
+                dtCheck_log_print(paste("NA's found on line",i,"\n"))
                 na.line <- c(na.line,i)
             }
         }
@@ -117,14 +183,14 @@ tryRead <- function(file.in){
     
     ## check output checks
     if( length(na.line) > 0 ){
-        return(length(na.line))
+        dtCheck_log_print("\n") ; return(length(na.line))
     } else if( length(miss.row) > 0 ){ 
-        return(length(miss.row))
+        dtCheck_log_print("\n") ; return(length(miss.row))
     } else {
-        cat("++Good: Table is regular and rectangular.\n")
+        dtCheck_log_print("++Good: Table is regular and rectangular.\n")
         return(0)
     }
-}   ## end tryRead
+}   ## end dtCheck_tryRead
 
 ## numeric and integer summary text ################
 ## takes valid int or numeric vector and outputs text to screen
@@ -158,12 +224,86 @@ num_int_sum <- function(data.in){
     return(col.detail)
 }   ## end num_int_sum
 
+## check image datasets for various things #################
+
+## afni check if InputFile exists returns 0 for good
+dtCheck_img_exists <- function(data.in){
+    
+    # afni.path <- dirname(system('which afni',intern=TRUE))
+    
+    ## get all of the input files in one long string
+    in.dsets <- paste0(data.in$InputFile,collapse=" ")
+    
+    ## make afni command and save out result
+    afni.cmd <- paste0("3dinfo -exists ",in.dsets)
+    cmd.num <- system(afni.cmd,intern=TRUE)
+    
+    if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
+        dtCheck_good('All InputFiles exist.')
+        return(0)
+    } else {
+        bad.dsets <- data.in$InputFile[which(cmd.num == 0)]
+        dtCheck_err("Datasets not found:\n")
+        cat(paste0(as.character(bad.dsets),collapse="\n"))
+        cat('\n\n')
+        return(1)
+    }
+}   ## end dtCheck_img_exists
+
+## afni check if all InputFiles have only 1 volume
+dtCheck_1_vol <- function(data.in){
+    
+    # afni.path <- dirname(system('which afni',intern=TRUE))
+    
+    ## get all of the input files in one long string
+    in.dsets <- paste0(data.in$InputFile,collapse=" ")
+    
+    ## make afni command and save out result
+    afni.cmd <- paste0("3dinfo -nv ",in.dsets)
+    cmd.num <- system(afni.cmd,intern=TRUE)
+    
+    if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
+        dtCheck_good('All InputFiles have exactly 1 volume.')
+        return(0)
+    } else {
+        bad.dsets <- data.in$InputFile[which(cmd.num != 1)]
+        dtCheck_err("Datasets have more than 1 volume",1)
+        dtCheck_log_print(paste0(paste0(as.character(bad.dsets),
+                                        collapse="\n"),"\n\n"))
+        return(1)
+    }
+}   ## end dtCheck_1_vol
+
+## afni check if all InputFiles are in the same grid
+dtCheck_same_grid <- function(data.in){
+    
+    # afni.path <- dirname(system('which afni',intern=TRUE))
+    
+    ## get all of the input files in one long string
+    in.dsets <- paste0(data.in$InputFile,collapse=" ")
+    
+    ## make afni command and save out result
+    afni.cmd <- paste0("3dinfo -same_grid  ",in.dsets)
+    cmd.num <- system(afni.cmd,intern=TRUE)
+    
+    if( sum(as.numeric(cmd.num)) == nrow(data.in) ){
+        dtCheck_good('All InputFiles are on the same grid.')
+        return(0)
+    } else {
+        bad.dsets <- data.in$InputFile[which(cmd.num == 0)]
+        dtCheck_err("Datasets not on the same grid",1)
+        dtCheck_log_print(paste0(paste0(as.character(bad.dsets),
+                                        collapse="\n"),"\n\n"))
+        return(1)
+    }
+}   ## end dtCheck_same_grid
+
 ## a little summary #########################
 ## takes a valid data frame
 ## prints a bunch of stuff to screen and returns nothing
-printSummary <- function(data.in){
+dtCheck_printSummary <- function(data.in){
     
-    cat("Data summary: \n")
+    dtCheck_log_print("Data summary: \n")
     
     data.detail <- c()
     ## collect some info on each variable
@@ -224,10 +364,14 @@ printSummary <- function(data.in){
     ## print the data frame to screen
     print.data.frame(data.summary,row.names=FALSE,right=FALSE)
     
+    ## save output to log.out global
+    df.print <- dtCheck_lead_space(data.summary)
+    dtCheck_log_df(df.print)
+    
     # options(oldoptions) ## change the options back (not sure if this is necessary)
     
     cat("\n") ; return(0)
-}   ## end printSummary
+}   ## end dtCheck_printSummary
 
 ## check for common user errors ####################
 subj_first <- function(data.in){
@@ -240,7 +384,7 @@ subj_first <- function(data.in){
 }   ## end subj_first
 
 InFile_last <- function(data.in){
-    if( ! (names(data.in)[length(data.in)] %in% c("InputFile","Ausgang_val")) ){
+    if( ! (names(data.in)[length(data.in)] %in% respVar) ){
         cat(paste0('\n**ERROR: Last column header is "',
                    names(data.in)[length(data.in)],'"'))
         cat('\n         The last column must be "InputFile" or "Ausgang_val" !!!\n')
@@ -327,8 +471,117 @@ rule_error <- function(data.in){
     }
     
     ## give warning about input files per subject
-    file_subj_check(data.in)
+    if( err.check == 0 ){ file_subj_check(data.in) }
     
     if( err.check > 0 ){ cat("\n") } ; return(err.check)
 }   ## end rule_error function
+
+## read in a regular, rectangular table file and send to summary #########
+## not used
+dtCheck_test_read_Table <- function(data.in){
+    
+    ## get data and split it out
+    data.df <- fread(data.in,stringsAsFactors=TRUE)
+    
+    ## print out dimensions
+    dim.tab <- dim(data.df)
+    cat("rows: ") ; cat(dim.tab[1]) ; cat(" ")
+    cat("columns: ") ; cat(dim.tab[2]) ; cat("\n")
+    
+    ## check for errors
+    r.e <- rule_error(data.df)
+    if( r.e != 0 ){ return(1) } # else { cat("\n") }
+    
+    ## print out the brief summary
+    dtCheck_printSummary(data.df)
+    
+    return(data.df)
+    
+}   ## end dtCheck_test_read_Table
+
+## test for after conversion to data frame ##############
+
+## takes a good data frame, checks it and returns the same exact frame
+dtCheck_testDF <- function(data.in){
+    
+    ## convert characters to factors 
+    data.in <- as.data.frame(unclass(data.in),stringsAsFactors = TRUE)
+    
+    ## grep the +/- numeric variables and convert to numeric
+    num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
+    data.in[ , num.cols] <- apply(data.in[,num.cols],2,
+                                  function(x) as.numeric(as.character(x)))
+    
+    ## print out dimensions
+    dim.tab <- dim(data.in)
+    dtCheck_log_print("\nDimensions: \n")
+    dtCheck_log_print(paste0("rows: ",dim.tab[1]," | columns: ",
+                             dim.tab[2],"\n\n"))
+    
+    ## check for errors
+    r.e <- rule_error(data.in)
+    if( r.e != 0 ){ return(1) } #else { cat("\n") }
+    
+    ## print out the brief summary
+    dtCheck_printSummary(data.in)
+    
+    return(data.in)
+    
+}   ## end dtCheck_testDF
+
+## overall check after you get a good data frame ############
+dtCheck_overall <- function(data.in){
+    
+    ## get a print out a summary and get a data frame
+    tableTest.df <- dtCheck_testDF(data.in)
+    
+    if( length(tableTest.df) == 1 ){ return(1) }
+    
+    ## make sure all InputFiles exist on disk
+    exists.val <- dtCheck_img_exists(tableTest.df)
+    
+    if( exists.val == 0 ){
+        test.vols <- dtCheck_1_vol(tableTest.df)
+        test.grid <- dtCheck_same_grid(tableTest.df)
+        
+        ## exit on either failure
+        if( test.vols + test.grid != 0 ){
+            dtCheck_err("One or more tests failed. See above")
+            return(1)
+        }
+    }
+    
+    return(0)
+    
+}   ## end dtCheck_overall
+
+# dtCheck_overall <- function(file.in){
+#     
+#     try.read <- dtCheck_tryRead(file.in)
+#     if( try.read != 0 ){
+#         dtCheck_err("dataTable is NOT regular and rectangular")
+#         return(1)
+#     } else {
+#         ## get a print out a summary and get a data frame
+#         tableTest.df <- dtCheck_testTable(file.in)
+#         
+#         if( length(tableTest.df) == 1 ){ return(1) }
+#         
+#         ## make sure all InputFiles exist on disk
+#         exists.val <- dtCheck_img_exists(tableTest.df)
+#         
+#         if( exists.val == 0 ){
+#             test.vols <- dtCheck_1_vol(tableTest.df)
+#             test.grid <- dtCheck_same_grid(tableTest.df)
+#             
+#             ## exit on either failure
+#             if( test.vols + test.grid != 0 ){
+#                 dtCheck_err("One or more tests failed. See above")
+#                 return(1)
+#             }
+#         }
+#     }
+#     return(0)
+#     
+# }   ## end dtCheck_overall
 
