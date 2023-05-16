@@ -602,7 +602,6 @@ dataTable.AFNI.parse <- function(opts) {
     }
     
     ## more jkr tests 
-    # test.df <- dtCheck_str2frame(opts)
     dtOverall <- dtCheck_overall(dtCheck_str2frame(opts))
     dtCheck_write_log("temp_log.txt")
     if( dtOverall != 0 ){ q() }

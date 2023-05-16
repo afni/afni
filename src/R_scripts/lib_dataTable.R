@@ -9,6 +9,7 @@ suppressPackageStartupMessages(library(data.table))
 
 ## global log text #############
 log.out <- c()  ## not the greatest method...
+log.name <- ""
 
 ## some declared variables #######
 respVar <- c('InputFile','Inputfile','inputFile','inputfile',
@@ -41,6 +42,7 @@ dtCheck_log_df <- function(df.in){
 ## must have some bad files
 ## takes data frame, output of some 3dinfo
 ## a number to compare against and if it should equal or not equal (T/F)
+## returns nothing, prints to screen and adds to log.out
 dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
     
     ## get the bad indices
@@ -70,8 +72,7 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
     dtCheck_log_df(tab.out)  ## save to log
     cat(tab.out,sep="\n")    ## print to screen
     cat('\n')
-
-}
+}   ## end dtCheck_bad_files
 
 ## write log.out to file
 dtCheck_write_log <- function(file.out="temp_log.txt"){
@@ -140,7 +141,6 @@ dtCheck_str2frame <- function(flat.in){
     names(data.out) <- flat.in[1:wd]
     return(data.out)
 }   ## end dtCheck_str2frame
-
 
 ## try to read a dataTable FILE ######################
 ## needs the dataTable file name (with path or relative)
