@@ -111,6 +111,7 @@ regressors for MRI data.
         self.do_fix_outliers = False   # exit if null values in data files?
         self.extra_fix_list = []       # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
+        self.RVT_lags = []             # TVT start time, end time and number
 
         # physio info (-> some now in resp_data and card_data objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -194,6 +195,7 @@ regressors for MRI data.
         self.do_fix_outliers = args_dict['do_fix_outliers']
         self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
         self.remove_val_list = copy.deepcopy(args_dict['remove_val_list'])
+        self.RVT_lags = copy.deepcopy(args_dict['RVT_lags'])
 
         # run these file reads+checks last, because they use option
         # items from above

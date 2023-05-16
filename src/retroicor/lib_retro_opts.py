@@ -80,6 +80,7 @@ DEF = {
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
+    'RVT_lags'          : [],        # (dict) start, end and number of RVTs 
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -921,6 +922,20 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
 
+opt = '''RVT_lags'''
+hlp = '''This optional argument is followed the three values: the start
+time, end time and number of RVTs.  The (unshifted single regressor) RVT sample 
+times are currently 0, TR, 2*TR, 3*TR, etc.  By default we output 5 shifted 
+versions of this single regressor, at offsets 0, -5, -10, -15, -20.  So the 
+start time is the earliest offset, the end time is the latest offset, and the 
+number of RVT's (or regressors) is how many total offsets to include.  So the 
+default parameterization would be as:  -rvt_lags -20 0 5 .  It is supposed to
+be as: -rvt_lags 0 20 5 (which includes a starting time of 0 s relative to the
+sampled RVT regressors.)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=3, type=str) # parse later
+
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
 odict[opt] = hlp
@@ -1514,6 +1529,22 @@ args_dict2 : dict
             args_dict2['remove_val_list'] = copy.deepcopy(lll)
         except:
             print("** ERROR interpreting remove_val_list")
+            IS_BAD = 1
+
+        if IS_BAD :
+            sys.exit(1)
+
+    if args_dict2['RVT_lags'] :
+        # Interpret string to be list of ints or floats. NB: written
+        # as floats, but these are OK for equality checks in this case
+        IS_BAD = 0
+
+        L = args_dict2['RVT_lags'].split()
+        try:
+            lll = [float(ll) for ll in L]
+            args_dict2['RVT_lags'] = copy.deepcopy(lll)
+        except:
+            print("** ERROR interpreting RVT_lags")
             IS_BAD = 1
 
         if IS_BAD :

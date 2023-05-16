@@ -17,8 +17,20 @@
     along with "retroicorLauren".  If not, see <http://www.gnu.org/licenses/>.
     
     TODO:
-        - Fix figure flashes in default mode
-        - Variance in linear model used to assess quality 
+        - Variance in linear model used to assess quality.  (How it affects the
+            variance in linear model. Ratio of variance with/without regressors)
+            - Does it explain more of the variance in the data (which would be 
+              a good thing) - (Permanent item)
+        - Lags.  Number of lags.  Direction and size
+            - Add -oldRVT (current retroicorTaylor) option, and ability to flip 
+               RVT direction
+            - Add RVT_lags option with 3 paramaters:
+                - (Relative (to onset of aqcuisition)) start time.  Beginning
+                   of leftmost shift.  (Earliest time - currently -20 but is 
+                   supposed) to be zero.  Currently beginnin of -20 but ends at 0
+                   due to 4 intervals of 5 seconds
+                - (Relative) end time
+                - # RVTs
         - Convolve RVT with some function using physiological regressors (Catie 
           Chang)
         - Get percentage of variance accounted for by cardio
@@ -29,7 +41,7 @@
         - Try weird examples from physio dB
         - Options that might change do not have default
         - Add options for Peter Lauren-written alternatives for
-            - Findging peaks
+            - Finding peaks
             - Determining phase
             - Determining final output
         - Write alternative functions for
@@ -39,6 +51,7 @@
         - RVT without shifts (Single regressor for RVT.)
             
     DONE:
+        - Fix figure flashes in default mode
         - Offset for every slice relative to TR
             - afnipy/afni_util.py:slice_pattern_to_timing() gets the actual timing
         - Implement slice pattern.  Required option 

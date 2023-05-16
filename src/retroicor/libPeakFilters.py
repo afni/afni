@@ -1277,6 +1277,12 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     # mpl.text.Text(.5, .05, caption, ha='center')
 
     # Save plot to file
+    if show_graph: 
+        plt.ion()
+        plt.show(block=True)
+    else:
+        plt.ioff()
+        
     if save_graph:
         if not OutDir:
             print('+* WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
@@ -1285,12 +1291,6 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
             return 1
         else:
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-        
-    if show_graph: 
-        plt.ion()
-        if show_graph: plt.show(block=True)
-    else:
-        plt.ioff()
         
         
     plt.close()  # Close graph after saving
