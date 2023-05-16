@@ -26,7 +26,7 @@ dtCheck_log_print <- function(line.in,cat.out=TRUE){
     if( cat.out ){ cat(line.in) }
 }
 
-## takes a data frame and adds line by line to log.out
+## takes a data frame and adds line by line to log.out. Does not print to screen
 dtCheck_log_df <- function(df.in){
     for( i in 1:nrow(df.in) ){
         ## combine all in row then with \n
@@ -35,6 +35,42 @@ dtCheck_log_df <- function(df.in){
         log.out <<- rbind(log.out,line.out)   ## add to global
     }
     log.out <<- rbind(log.out,"\n")
+}
+
+## create output of bad files with index and new lines
+## must have some bad files
+## takes data frame, output of some 3dinfo
+## a number to compare against and if it should equal or not equal (T/F)
+dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
+    
+    ## get the bad indices
+    if( equals ){
+        bad.ind <- which(cmd.num == bad.num)
+    } else {
+        bad.ind <- which(cmd.num != bad.num)
+    }
+    
+    ## get the longest number of digits and pad the index
+    max.dig <- max(nchar(bad.ind))
+    ind.out <- paste0("[",bad.ind,"] ")
+    ind.out <- formatC(ind.out,width=max.dig+1,flag="-")
+
+    ## get the file names at the bad indices
+    bad.dsets <- data.in$InputFile[bad.ind]
+
+    ## create lines
+    tab.out <- c()
+    for( i in 1:length(bad.ind) ){
+        temp.line <- paste0(ind.out[i],data.in$InputFile[bad.ind[i]])
+        tab.out <- rbind(tab.out,temp.line)
+    }
+    
+    ## output
+    dtCheck_err("Datasets not found",1)
+    dtCheck_log_df(tab.out)  ## save to log
+    cat(tab.out,sep="\n")    ## print to screen
+    cat('\n')
+
 }
 
 ## write log.out to file
@@ -73,7 +109,7 @@ dtCheck_lead_space <- function(data.in){
         ## get max number of characters
         t.max <- max(c(nchar(t.col),nchar(t.name)))
         
-        ## pad with spaces (name is left justified)
+        ## pad with spaces (left justified)
         t.col <- formatC(t.col,width=t.max+1,flag="-")
         t.name <- formatC(t.name,width=t.max+1,flag="-")
         
@@ -242,10 +278,7 @@ dtCheck_img_exists <- function(data.in){
         dtCheck_good('All InputFiles exist.')
         return(0)
     } else {
-        bad.dsets <- data.in$InputFile[which(cmd.num == 0)]
-        dtCheck_err("Datasets not found:\n")
-        cat(paste0(as.character(bad.dsets),collapse="\n"))
-        cat('\n\n')
+        dtCheck_bad_files(data.in,cmd.num,0,TRUE)
         return(1)
     }
 }   ## end dtCheck_img_exists
@@ -549,6 +582,9 @@ dtCheck_overall <- function(data.in){
             dtCheck_err("One or more tests failed. See above")
             return(1)
         }
+    } else {
+        dtCheck_err("One or more tests failed. See above")
+        return(1)
     }
     
     return(0)
