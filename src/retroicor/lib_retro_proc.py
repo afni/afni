@@ -1108,12 +1108,12 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     
     if len(RVT_lags) == 0:
         start_time = 0
-        end_time = 0
+        end_time = 20
         num_rvt = NUM_RVT
     else:
-        start_time = RVT_lags[0]
-        end_time = RVT_lags[1]
-        num_rvt = RVT_lags[2]
+        start_time = int(RVT_lags[0])
+        end_time = int(RVT_lags[1])
+        num_rvt = int(RVT_lags[2])
        
     time = []    
     end = len(rawRVT)
@@ -1125,12 +1125,13 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     
     rvt_shifts = []
-    for i in range(0,NUM_RVT): rvt_shifts.append(i * NUM_RVT)
+    increment = -(round((end_time-start_time)/num_rvt) + 1)
+    for i in range(end_time, start_time - 1, increment): rvt_shifts.append(i)
 
     # 2D array of zeros
     output = np.zeros((len(rvt_shifts), num_time_pts)) 
     
-    for i in range(0, NUM_RVT):    # Process each row
+    for i in range(0, num_rvt):    # Process each row
         shf = rvt_shifts[i]                # i-th RVT 
         
         # i-th RVT times sample frequency
