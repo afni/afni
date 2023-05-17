@@ -993,7 +993,7 @@ def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
 
 def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts, 
            TR, show_graph = False, save_graph = True, 
-           interpolationOrder = 'linear', font_size = 10):
+           interpolationOrder = 'linear', font_size = 10, RVT_lags = []):
     """
     NAME
         getRVT 
@@ -1051,12 +1051,13 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
     # Get RVT regressors
     NUM_RVT = 5
     rvtRegressors = getRvtRegressors(rawRVT, NUM_RVT, freq, 
-                    num_time_pts, TR, interpolationOrder)
+                    num_time_pts, TR, interpolationOrder,
+                    RVT_lags = RVT_lags)
     
     return rvtRegressors
 
 def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, 
-                     interpolationOrder = 'linear'):
+                     interpolationOrder = 'linear', RVT_lags = []):
     """
     NAME
         getRvtRegressors 
@@ -1094,10 +1095,25 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
                                ‘nearest-up’, ‘zero’, ‘slinear’, 
                                ‘previous’, or ‘next’. ‘zero’, 
                                ‘slinear’.
+                               
+        RVT_lags: (dtype = <class 'list'>) List with three floating point 
+                  elements in this order:
+                      0: Start time (s)
+                      1: End time (s)
+                      2: Number of RVTs
                        
     AUTHOR
        Peter Lauren  and Joshua Zosky
     """
+    
+    if len(RVT_lags) == 0:
+        start_time = 0
+        end_time = 0
+        num_rvt = NUM_RVT
+    else:
+        start_time = RVT_lags[0]
+        end_time = RVT_lags[1]
+        num_rvt = RVT_lags[2]
        
     time = []    
     end = len(rawRVT)
@@ -1120,7 +1136,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
         # i-th RVT times sample frequency
         nsamp = int(round(shf * freq))  
         
-        # array of integers fromnsampto nsamp times the number of 
+        # array of integers from nsamp to nsamp times the number of 
         # samples
         sind = np.add(list(range(0, len(time))), nsamp) 
                                      
@@ -1592,7 +1608,8 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                          show_graph = test_retro_obj.show_graph_level>0, 
                          save_graph = test_retro_obj.save_graph_level>0, 
                          interpolationOrder = 'linear', 
-                         font_size = test_retro_obj.font_size)
+                         font_size = test_retro_obj.font_size,
+                         RVT_lags = test_retro_obj.RVT_lags)
         
         plt.close('all') 
     else:
