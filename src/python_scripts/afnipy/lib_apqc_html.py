@@ -221,7 +221,6 @@ with the grayplot series.
 '''
 
 qcb_helps["mecho"]  = '''
-
 There are many ways to process multi-echo (ME) EPI data.  Fortunately,
 afni_proc.py provides the ability to include most of them in your FMRI
 processing.  Please see the afni_proc.py help for the full argument
@@ -528,28 +527,21 @@ def write_help_html_file( ofile, ocss ):
 
     # -------------- start ---------------------
 
-    ht  = '''
-    <html>
-    '''
+    ht  = '''<html>\n'''
 
     # -------------- head ---------------------
 
     # use same style sheet as main pages
     ht+= '''
-    <head>
+<head>
     <title>APQC help</title>
     <link rel="stylesheet" type="text/css" href="{ocss}" />
-    <link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq.jpg"> 
-    '''.format( ocss=ocss )
-
-    ht+= '''
-    </head>
-    '''
+    <link rel="icon" type="icon.svg" href="extra_info/apqc_logo_help.svg"> 
+</head>\n\n'''.format( ocss=ocss )
 
     # -------------- body ---------------------
 
-    ht+= '''
-    <body>
+    ht+= '''<body>
     '''
 
     Nsec = len(apqc_help)
@@ -560,10 +552,11 @@ def write_help_html_file( ofile, ocss ):
         ht+= wrap_block_title( x[0],
                                vpad=1,
                                addclass=" class='padtop' ",
-                               blockid='' )
+                               blockid='',
+                               do_close_prev_div=bool(ii))
 
         ht+= wrap_block_text( x[1],
-                              addclass=" class='container' " )
+                              addclass="class='container' " )
 
 
 

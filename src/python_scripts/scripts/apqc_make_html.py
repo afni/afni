@@ -111,7 +111,7 @@ if __name__ == "__main__":
 <head>
 <title>{subj}</title>
 <link rel="stylesheet" type="text/css" href="{ocss}" />
-<link rel="icon" type="icon.jpg" href="extra_info/apqc_logo_sq_128.jpg"> 
+<link rel="icon" type="icon.svg" href="extra_info/apqc_logo_main.svg"> 
 '''.format( subj=titlepg_dict['subj'], ocss=ocss )
 
     # javascript functions
