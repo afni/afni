@@ -1124,9 +1124,11 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     # for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     
-    rvt_shifts = []
-    increment = -(round((end_time-start_time)/num_rvt) + 1)
-    for i in range(end_time, start_time - 1, increment): rvt_shifts.append(i)
+    # rvt_shifts = []
+    # increment = -(round((end_time-start_time)/num_rvt) + 1)
+    # for i in range(end_time, start_time - 1, increment): rvt_shifts.append(i)
+    rvt_shifts = [start_time+i*(end_time-start_time)/(num_rvt-1) 
+                  for i in range(num_rvt)]
 
     # 2D array of zeros
     output = np.zeros((len(rvt_shifts), num_time_pts)) 
@@ -1135,7 +1137,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
         shf = rvt_shifts[i]                # i-th RVT 
         
         # i-th RVT times sample frequency
-        nsamp = int(round(shf * freq))  
+        nsamp = -int(round(shf * freq))  
         
         # array of integers from nsamp to nsamp times the number of 
         # samples
