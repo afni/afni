@@ -20,7 +20,24 @@ mode_func <- function(x) {
     uniqx <- unique(x) ; return(uniqx[which.max(tabulate(match(x,uniqx)))])
 }
 
+## cat messages #################
+## nl is new line feeds defaults to 2 otherwise 1
+dtCheck_err <- function(msg,nl=2){ 
+    if( nl == 2 ){ end.line <- "!!!\n\n" } else { end.line <- "!!!\n" }
+    dtCheck_log_print(paste0("**ERROR: ",msg,end.line)) 
+}
+dtCheck_warn <- function(msg,nl=2){ 
+    if( nl == 2 ){ end.line <- "!\n\n" } else { end.line <- "!\n" }
+    dtCheck_log_print(paste0("+*Warning: ",msg,end.line)) 
+}
+dtCheck_good <- function(msg,nl=2){   ## need your own ending punctuation
+    if( nl == 2 ){ end.line <- "\n\n" } else { end.line <- "\n" }
+    dtCheck_log_print(paste0("++Good: ",msg,end.line)) 
+}
+
 ## log file prefix name #################
+## takes some string from pprefix.AFNI.name in AFNIio.R
+## returns nothing but overwrites the log.name global variable
 dtCheck_log_name <- function(name.in=log.name){
     
     ## split file and path
@@ -46,7 +63,7 @@ dtCheck_log_name <- function(name.in=log.name){
     
     ## combine and save out to global variable...
     log.name <<- paste0(temp.dir,"/",temp.name,"_log.txt")
-
+    
 }   ## end dtCheck_log_name
 
 ## add to log text and print the line ##############
@@ -85,10 +102,10 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
     max.dig <- max(nchar(bad.ind))
     ind.out <- paste0("[",bad.ind,"] ")
     ind.out <- formatC(ind.out,width=max.dig+1,flag="-")
-
+    
     ## get the file names at the bad indices
     bad.dsets <- data.in$InputFile[bad.ind]
-
+    
     ## create lines
     tab.out <- c()
     for( i in 1:length(bad.ind) ){
@@ -105,23 +122,14 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
 
 ## write log.out to file
 dtCheck_write_log <- function(file.out=log.name){
-    cat(log.out,file=file.out,sep="")  ## log.out is global
+    if( file.exists(log.name) ){
+        dtCheck_warn(paste0("Log file: ",log.name," exists! NOT OVERWRITING"))
+    } else {
+        cat(log.out,file=file.out,sep="")  ## log.out is global
+    }
 }
 
-## cat messages #################
-## nl is new line feeds defaults to 2 otherwise 1
-dtCheck_err <- function(msg,nl=2){ 
-    if( nl == 2 ){ end.line <- "!!!\n\n" } else { end.line <- "!!!\n" }
-    dtCheck_log_print(paste0("**ERROR: ",msg,end.line)) 
-}
-dtCheck_warn <- function(msg,nl=2){ 
-    if( nl == 2 ){ end.line <- "!\n\n" } else { end.line <- "!\n" }
-    dtCheck_log_print(paste0("+*Warning: ",msg,end.line)) 
-}
-dtCheck_good <- function(msg,nl=2){   ## need your own ending punctuation
-    if( nl == 2 ){ end.line <- "\n\n" } else { end.line <- "\n" }
-    dtCheck_log_print(paste0("++Good: ",msg,end.line)) 
-}
+
 
 ## add leading spaces to the data frame to aid in aligning text #########
 ## takes a valid data frame and outputs the same NOT FRAME with padded spaces
