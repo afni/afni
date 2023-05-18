@@ -239,7 +239,8 @@ if __name__ == "__main__":
                 if AAII.text :        add_nvbtn = True
                 else:                 add_nvbtn = False
                 ht+=lah.wrap_img( img, itemid=AAII.itemid,
-                                  vpad=True, add_nvbtn=add_nvbtn )
+                                  vpad=True, add_nvbtn=add_nvbtn,
+                                  av_file=AAII.av_file )
 
                 if AAII.nv_html :
                     fname = lah.dir_img + '/' + AAII.nv_html

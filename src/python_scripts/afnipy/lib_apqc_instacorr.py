@@ -67,6 +67,7 @@ echo "++ seedcorr radius: ${ic_seedrad}"
 # ===========================================================================
 # parameters set by default
 
+setenv AFNI_IMSAVE_WARNINGS    NO
 setenv AFNI_THRESH_INIT_EXPON  0
 setenv AFNI_NOSPLASH           YES
 setenv AFNI_SPLASH_MELT        NO
@@ -159,7 +160,8 @@ if ("$l" != "1") then
     echo "+* Warn: InstaCorr guidance message failed to open"
 endif
 
-@Quiet_Talkers -npb_val ${portnum}
+echo "++ Quiet talkers"
+@Quiet_Talkers -quiet -npb_val ${portnum}
 
 cat << EOF
 ===========================================

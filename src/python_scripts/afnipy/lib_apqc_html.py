@@ -668,6 +668,7 @@ class apqc_item_info:
     text        = ""
     subtext     = ""
     nv_html     = ""
+    av_file     = ""
     itemtype    = ""
     itemid      = ""
     blockid     = ""
@@ -702,6 +703,10 @@ class apqc_item_info:
         if 'nv_html' in DICT :
             self.nv_html = DICT['nv_html']
 
+    def set_av_file(self, DICT):
+        if 'av_file' in DICT :
+            self.av_file = DICT['av_file']
+
     # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
         if 'text' in DICT :
@@ -734,6 +739,7 @@ class apqc_item_info:
         self.set_blockid_hov(DICT)
         self.add_text(DICT)
         self.set_nv_html(DICT)
+        self.set_av_file(DICT)
         self.add_subtext(DICT)
         self.set_warn_level(DICT)
 
@@ -2159,7 +2165,8 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False):
+def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
+             av_file=''):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
@@ -2188,9 +2195,10 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False):
       <td style="white-space:nowrap;" id=td6_AV_{itemid}>
       <button class="button-generic button-RHS btn6"
               title="Run AFNI-view" 
-              onclick="doRunAV('run_instacorr_errts.tcsh')">AV</button>
+              onclick="doRunAV('{av_file}')">AV</button>
       </td>
-    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid )
+    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid,
+                                                 av_file=av_file )
 
     y+= '''
 </div> <!-- bottom of image -->

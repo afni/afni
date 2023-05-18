@@ -1186,9 +1186,13 @@ ap_ssdict : dict
         com  = ab.shell_com(cmd, capture=do_cap)
         stat = com.run()
 
+        # only include path to template if it is *not* '.'
+        if com.so[0] != '.' :    path2dset = com.so[0] + '/'
+        else:                    path2dset = ''
+
         if not(stat) and len(com.so) :
             HAVE_MAIN = 1
-            ap_ssdict['main_dset'] = com.so[0] + '/' + btemp
+            ap_ssdict['main_dset'] = path2dset + btemp
         else:
             # search using basename of template only (no path)
             cmd  = '''@FindAfniDsetPath {}'''.format( btemp )
@@ -1197,7 +1201,7 @@ ap_ssdict : dict
 
             if not(stat) and len(com.so) :
                 HAVE_MAIN = 1
-                ap_ssdict['main_dset'] = com.so[0] + '/' + btemp
+                ap_ssdict['main_dset'] = path2dset + btemp
             else:
                 print("** ERROR: Cannot find specified template: {}"
                       "".format(ap_ssdict['template'] ))
@@ -2988,6 +2992,7 @@ num : int
     osubjson = opref + '.sag.json'
     opbarrt  = opref + '.pbar'
     onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
         print("++ APQC create:", oname, flush=True)
@@ -3200,13 +3205,16 @@ num : int
         -label_mode        1                                                 \
         -label_size        4                                                 \
         -no_cor                                                              \
+        -cmd2script        {odoafni}                                         \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
                 cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
                 olay_topval=olay_topval, thr_thresh=thr_thresh,
                 olaybrick=olaybrick, thrbrick=thrbrick,
                 opbarrt=opbarrt, pbar_comm_range=pbar_comm_range, 
-                pbar_comm_thr=pbar_comm_thr, opref=opref )
+                pbar_comm_thr=pbar_comm_thr, opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
@@ -3238,6 +3246,7 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'av_file'     : odoafni,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
