@@ -589,7 +589,7 @@ dataTable.AFNI.parse <- function(opts) {
             dt.test <- dtCheck_tryRead(ff)
             if( dt.test != 0 ){
                 dtCheck_err("dataTable is NOT regular and rectangular")
-                dtCheck_write_log("temp_log.txt") ## write out to file
+                dtCheck_write_log(log.name) ## write out to file
                 q()
             }
         }   ## end jkr 2023 file test
@@ -603,7 +603,7 @@ dataTable.AFNI.parse <- function(opts) {
     
     ## more jkr tests 
     dtOverall <- dtCheck_overall(dtCheck_str2frame(opts))
-    dtCheck_write_log("temp_log.txt")
+    dtCheck_write_log(log.name)
     if( dtOverall != 0 ){ q() }
     
     return(opts);
@@ -625,6 +625,7 @@ used.AFNI.prefix <- function(an) {
 
 pprefix.AFNI.name <- function(an) {
     if (is.character(an)) an <- parse.AFNI.name(an);
+    dtCheck_log_name(an$pprefix)   ## jkr 2023 save prefix out for log file
     return(an$pprefix);
 }
 

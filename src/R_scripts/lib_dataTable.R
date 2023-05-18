@@ -9,7 +9,7 @@ suppressPackageStartupMessages(library(data.table))
 
 ## global log text #############
 log.out <- c()  ## not the greatest method...
-log.name <- ""
+log.name <- "temp_log.txt"
 
 ## some declared variables #######
 respVar <- c('InputFile','Inputfile','inputFile','inputfile',
@@ -19,6 +19,35 @@ respVar <- c('InputFile','Inputfile','inputFile','inputfile',
 mode_func <- function(x) {
     uniqx <- unique(x) ; return(uniqx[which.max(tabulate(match(x,uniqx)))])
 }
+
+## log file prefix name #################
+dtCheck_log_name <- function(name.in=log.name){
+    
+    ## split file and path
+    temp.name <- basename(name.in)
+    temp.dir <- dirname(name.in)   ## returns "." if there is no path
+    
+    ## strip off the extension if there is one (must be a better way to do this)
+    if( endsWith(temp.name,".nii") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar(".nii"))
+    } else if( endsWith(temp.name,".nii.gz") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar(".nii.gz"))
+    } else if( endsWith(temp.name,"+orig") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar("+orig"))
+    } else if( endsWith(temp.name,"+tlrc") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar("+tlrc"))
+    } else if( endsWith(temp.name,"+orig.gz") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar("+orig.gz"))
+    } else if( endsWith(temp.name,"+tlrc.gz") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar("+tlrc.gz"))
+    } else if( endsWith(temp.name,".niml") ){
+        temp.name <- substr(temp.name,1,nchar(temp.name)-nchar(".niml"))
+    }
+    
+    ## combine and save out to global variable...
+    log.name <<- paste0(temp.dir,"/",temp.name,"_log.txt")
+
+}   ## end dtCheck_log_name
 
 ## add to log text and print the line ##############
 ## put as many \n as you want for the output
@@ -75,7 +104,7 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
 }   ## end dtCheck_bad_files
 
 ## write log.out to file
-dtCheck_write_log <- function(file.out="temp_log.txt"){
+dtCheck_write_log <- function(file.out=log.name){
     cat(log.out,file=file.out,sep="")  ## log.out is global
 }
 
@@ -130,7 +159,7 @@ dtCheck_str2frame <- function(flat.in){
     wd <- which(flat.in %in% respVar) ; len <- length(flat.in)
     if(len %% wd != 0){
         dtCheck_err("dataTable is NOT regular and rectangular")
-        dtCheck_write_log("temp_log.txt") ## write out to file
+        dtCheck_write_log(log.name) ## write out to file
         q()
     }
     
