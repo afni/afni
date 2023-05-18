@@ -272,6 +272,11 @@ page_title_json = '__page_title'
 fname_vlines_img = 'QC_var_lines.jpg'
 fname_vlines_txt = 'QC_var_lines.txt'
 
+# logo files
+all_logo = [ 'apqc_logo_main.svg',
+             'apqc_logo_help.svg',
+]
+
 # ----------------------------------------------------------------------
 
 coord_opp = { 'R' : 'L',
@@ -383,9 +388,11 @@ def read_in_txt_to_dict(fname, tmp_name='__tmp_txt2json.json', DO_CLEAN=True) :
 
 def get_path_abin():
     
-    cmd = '''dirname `which apqc_make_tcsh.py`'''
-    com = ab.shell_com(cmd, capture=1, save_hist=0)
-    com.run()
+    do_cap = True
+
+    cmd  = '''dirname `which apqc_make_tcsh.py`'''
+    com  = ab.shell_com(cmd, capture=do_cap)
+    stat = com.run()
     abin_path = com.so[0]
 
     return abin_path
@@ -808,6 +815,8 @@ def set_apqc_dirs(ap_ssdict):
     """Set the names for the QC/ and subdirs for images, etc. in the
 dict ap_ssdict.  These are fixed names, basically. 
 
+Also include the path location of the abin dir.
+
 Parameters
 ----------
 ap_ssdict : dict
@@ -822,6 +831,8 @@ ap_ssdict : dict
     ap_ssdict['odir_qc']   = qcbase + '_' + ap_ssdict['subj']
     ap_ssdict['odir_img']  = ap_ssdict['odir_qc'] + '/' + lah.dir_img
     ap_ssdict['odir_info'] = ap_ssdict['odir_qc'] + '/' + dir_info
+
+    ap_ssdict['abin_dir']  = get_path_abin()
 
     return ap_ssdict
 
@@ -902,6 +913,44 @@ num : int
 
     return 0
 
+
+def copy_apqc_logos(ap_ssdict):
+    """Copy APQC logos to the correct directory in the APQC HTML.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    do_cap = True
+    com    = ab.shell_com('# copy logos to QC info dir', capture=do_cap)
+    stat   = com.run()
+
+    for logo in all_logo:
+        logo_file = ap_ssdict['abin_dir'] + '/' + logo
+        if os.path.isfile( logo_file ) :
+            cmd     = '''\\cp {} {}'''.format(logo_file, 
+                                              ap_ssdict['odir_info'])
+            com    = ab.shell_com(cmd, capture=do_cap)
+            stat   = com.run()
+        else:
+            print("+* WARNING: cannot find logo file:\n   {}"
+                  "".format(logo_file))
+
+    # TEMPORARY !!!!!!
+    cmd     = '''\\cp {} {}'''.format(ap_ssdict['abin_dir'] + '/' + 'niivue.umd.js',
+                                      ap_ssdict['odir_qc'])
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    return 0
 
 def set_apqc_sundry(ap_ssdict, ssrev_dict):
     """Get number of TRs per run from the ss_review dictionary ssrev_dict,

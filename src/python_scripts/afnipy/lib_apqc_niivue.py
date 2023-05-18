@@ -239,10 +239,13 @@ nv_then_txt : str
 
     """
 
+    ### NB: these colorbarVisible calls could be used, but we turn off
+    ### using the extra NiiVue cbar now, because there is one below
+    ### anyways:
+    #{nobj}.volumes[0].colorbarVisible = false; // no ulay bar
+    #{nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
+    #{nobj}.volumes[2].colorbarVisible = false; // no thr bar
     nv_then_txt = '''
-      {nobj}.volumes[0].colorbarVisible = false; // no ulay bar
-      {nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
-      {nobj}.volumes[2].colorbarVisible = false; // no thr bar
       {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
       {nobj}.overlayOutlineWidth = {do_boxed};
       {nobj}.opts.multiplanarForceRender = true;
@@ -368,7 +371,7 @@ otxt : str
         onLocationChange: reportCoorAndValues,
       }}
     )
-    {nobj}.opts.isColorbar = true;
+    {nobj}.opts.isColorbar = false; // just use from HTML
     {nobj}.opts.sagittalNoseLeft = {sagNoseLeft};
     {nobj}.opts.isRadiologicalConvention = {isRadCon};
     {nobj}.opts.isCornerOrientationText = true;

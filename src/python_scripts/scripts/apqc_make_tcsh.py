@@ -439,6 +439,8 @@ if __name__ == "__main__":
     tmp = lat.make_apqc_dirs( ap_ssdict, ow_mode=iopts.ow_mode, 
                               bup_dir=iopts.bup_dir )
 
+    tmp2 = lat.copy_apqc_logos(ap_ssdict)
+
     # --------------------------------------------------------------------
     # pagetop info
 
@@ -675,15 +677,14 @@ if __name__ == "__main__":
             focusbox = 'AMASK_FOCUS_ULAY' 
 
         if DO_VSTAT_SEED_REST :
-            abin_dir     = lat.get_path_abin()
-            SPECIAL_FILE = abin_dir + '/' + 'afni_seeds_per_space.txt'
+            SEED_FILE = ap_ssdict['abin_dir'] + '/' + 'afni_seeds_per_space.txt'
 
             if 0 :
                 print("This branch will be for a user-entered file. Someday.")
-            elif os.path.isfile(SPECIAL_FILE) :
+            elif os.path.isfile(SEED_FILE) :
                 if lat.check_dep(ap_ssdict, ldep2) :
                     tspace    = lat.get_space_from_dset(ap_ssdict['template'])
-                    seed_list = UTIL.read_afni_seed_file(SPECIAL_FILE, 
+                    seed_list = UTIL.read_afni_seed_file(SEED_FILE, 
                                                          only_from_space=tspace)
                     Nseed = len(seed_list)
                 else:
