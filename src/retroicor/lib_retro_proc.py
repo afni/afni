@@ -1107,8 +1107,8 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     """
     
     if len(RVT_lags) == 0:
-        start_time = 0
-        end_time = 20
+        start_time = -20
+        end_time = 0
         num_rvt = NUM_RVT
     else:
         start_time = int(RVT_lags[0])
