@@ -2407,15 +2407,24 @@ endif
         # avoiding use of tmpdir. NB: each 'real' var below to which these
         # are assigned must be preceded by a backslash
         if ( ${DO_echo4apqc} ) then
-            set e_ulay = "${ulay}"  
-            set e_olay = "${olay}"  
-            set e_read_dir = "."
+            set e_ulay = `basename "${ulay}"` # list dirnames, below
+            set e_olay = `basename "${olay}"`
             set e_crossh   = "SINGLE"
+            set use_ad = "-all_dsets"
+            
+            # might need additional read_dir, based on dsets
+            set e_read_dir = ( "." )
+            foreach dset ( "${ulay}" "${olay}" )
+                set e_read_dir = ( ${e_read_dir} `dirname "${dset}"` )
+            end
+            set e_read_dir = ( `echo ${e_read_dir} | fmt -1 | sort | uniq` )
+
         else
             set e_ulay = "${read_ulay}"  
             set e_olay = "${read_olay}"  
             set e_read_dir = "${read_dir}"  
             set e_crossh   = "${crossh}"  
+            set use_ad = ""
         endif
 
         cat <<EOF >! "${oechocmd}"
@@ -2496,7 +2505,7 @@ set portnum = `afni -available_npb_quiet`
 
 # the drive command itself (without quitting)
 afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
-    -npb \${portnum}                                                  \
+    -npb \${portnum}  ${use_ad}                                      \
     -com "SWITCH_UNDERLAY \${read_ulay}"                              \
     -com "SWITCH_OVERLAY  \${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
@@ -2522,7 +2531,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
     -com "$coor_type $coors"                                         \
     \${view_planes:q}                                                 \
-    "\${read_dir}" &
+    \${read_dir} &
 
 set l = \`prompt_user -pause \
 "${txt_oechocmd}\n\n\

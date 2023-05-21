@@ -5020,11 +5020,14 @@ num : int
         # output name. NB: all other prefixes done below in loop here.
         # NB: *This* radcor oname formulation differs from other
         # functions, bc of the looping
-        oname    = '_'.join([obase, qcb, qci]) + "_" + rnum  # output name
+        qci_num  = qci + "_" + rnum                    # special qci, use here
+        oname    = '_'.join([obase, qcb, qci_num])     # output name for [ii]th
         opref    = ap_ssdict['odir_img'] + '/' + oname # prefix = path + name
         otopjson = opref + '.axi.json'
         #osubjson = opref + '.sag.json'
         opbarrt  = opref + '.pbar'
+        onvhtml  = opref + '.niivue.html'                # output niivue canvas
+        odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
         if 1 :
             print(' '*16 + 'run: {}/{}'.format(rnum, Nolay))
@@ -5070,8 +5073,11 @@ num : int
             -label_mode        1                                             \
             -label_size        4                                             \
             -no_cor -no_sag                                                  \
+            -cmd2script        {odoafni}                                     \
+            -c2s_text          'APQC, {qcb}: {qci}'                          \
             -do_clean
-        '''.format( **chauff_params, opbarrt=opbarrt, opref=opref )
+        '''.format( **chauff_params, opbarrt=opbarrt, opref=opref,
+                    odoafni=odoafni, qcb=qcb, qci=qci_num )
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -5087,31 +5093,8 @@ num : int
         if ttt2 :
             otoptxt = [otoptxt, ttt2]
 
-        # Make info below images 
-        otopdict = {
-            'itemtype'    : 'VOL',
-            'itemid'      : qci,
-            'blockid'     : qcb,
-            'blockid_hov' : lah.qc_blocks[qcb][0],
-            'title'       : lah.qc_blocks[qcb][1],
-            'text'        : otoptxt,
-            'subtext'     : osubtxt,
-        }
-        with open(otopjson, 'w', encoding='utf-8') as fff:
-            json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
-
-
-        # Make info above images
-        otopdict = {
-            'itemtype'    : 'VOL',
-            'itemid'      : qci,
-            'blockid'     : qcb,
-            'blockid_hov' : lah.qc_blocks[qcb][0],
-            'title'       : lah.qc_blocks[qcb][1],
-            'text'        : otoptxt,
-        }
-        with open(otopjson, 'w', encoding='utf-8') as fff:
-            json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+        # store name of NiiVue html
+        onvhtml_name = onvhtml.split('/')[-1]
 
         # conditions for top text
         olay_title = 'olay: ' + olay_pref
@@ -5134,16 +5117,20 @@ num : int
             # Make info above+below images
             otopdict = {
                 'itemtype'    : 'VOL',
-                'itemid'      : qci,
+                'itemid'      : qci_num,
                 'blockid'     : qcb,
                 'blockid_hov' : lah.qc_blocks[qcb][0],
                 'title'       : lah.qc_blocks[qcb][1],
                 'text'        : otoptxt,
+                'nv_html'     : onvhtml_name,
+                'av_file'     : odoafni,
                 'subtext'     : osubtxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
                 json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
+            ### PT: now always make pbar text for AV/NV buttons
+            """
             # Make pbar text
             cmd = '''
             abids_json_tool.py                                               \
@@ -5156,22 +5143,52 @@ num : int
             '''.format( opbarrt=opbarrt )
             com    = ab.shell_com(cmd, capture=do_cap)
             com.run()
+            """
         else:
             # Make text above image only
 
             # Make info below images
             otopdict = {
                 'itemtype'    : 'VOL',
-                'itemid'      : qci,
+                'itemid'      : qci_num,
                 'blockid'     : qcb,
                 'blockid_hov' : lah.qc_blocks[qcb][0],
                 'title'       : lah.qc_blocks[qcb][1],
+                'nv_html'     : onvhtml_name,
+                'av_file'     : odoafni,
                 'text'        : otoptxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
                 json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
+        # Make pbar text (always done now, for AV/NV buttons)
+        cmd = '''
+        abids_json_tool.py                                               \
+            -overwrite                                                   \
+            -txt2json                                                    \
+            -delimiter_major  '::'                                       \
+            -delimiter_minor  ',,'                                       \
+            -input            "{opbarrt}.txt"                            \
+            -prefix           "{opbarrt}.json"
+        '''.format( opbarrt=opbarrt )
+        com    = ab.shell_com(cmd, capture=do_cap)
+        com.run()
 
+        # For AV/NV: get pbar/cmap info as dict (so must be done after
+        # pbar text is made)
+        pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+        with open(pbar_json, 'r') as fff:
+            pbar_dict = json.load(fff)
+
+        # Make NiiVue canvas text
+        nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                         olay_name=olay, itemid=qci_num,
+                                         verb=0 )
+        fff = open(onvhtml, 'w')
+        fff.write(nv_txt)
+        fff.close()
+        onvhtml_name = onvhtml.split('/')[-1]
+        
 
     return 0
 
