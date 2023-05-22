@@ -366,7 +366,7 @@ dtCheck_same_grid <- function(data.in){
     } else {
         
         dtCheck_bad_files(data.in,cmd.num,0,TRUE,
-                          "Datasets have more than 1 volume",
+                          "Datasets are NOT on the same grid",
                           "Grids are compared to the 1st InputFile.")
         # bad.dsets <- data.in$InputFile[which(cmd.num == 0)]
         # dtCheck_err("Datasets not on the same grid",1)
