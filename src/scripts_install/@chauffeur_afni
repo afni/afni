@@ -2205,6 +2205,7 @@ pbar_comm    :: "${pbar_comm}"
 pbar_sign    :: "${pbar_sign}"
 olay_alpha   :: "${olay_alpha}"
 olay_boxed   :: "${olay_boxed}"
+olay_opacity :: "${opac}"
 see_olay     :: "${see_olay}"
 subbb        :: ${subbb_str}
 coor_type    :: "${coor_type}"

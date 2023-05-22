@@ -41,7 +41,11 @@ nv_dict : dict
     subbb   = copy.deepcopy(pbar_dict['subbb'])
 
     # cmap or cmaps in niivue
-    cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
+    if '=' in pbar_dict['cbar']:
+        # currently, special case of discrete 'one-off' cbar
+        cmap = ['jet']
+    else:
+        cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
 
     # topval of ulay grayscale cbar
     nv_dict['cal_max_ulay'] = pbar_dict['ulay_top']
@@ -76,8 +80,13 @@ nv_dict : dict
             nv_dict['cmap_neg'] = cmap[1]             # cbar name(s)
         nv_dict['idx_olay'] = subbb[1]                # idx of olay subbrick
         nv_dict['idx_thr']  = subbb[2]                # idx of thr subbrick
-        nv_dict['cal_max_thr']  = pbar_dict['vthr']       # thr val
         nv_dict['cal_max_olay'] = pbar_dict['pbar_top']   # cbar max
+        nv_dict['cal_max_thr']  = pbar_dict['vthr']       # thr val
+        # if thresholding, use AFNI-like alpha thresholding; else, don't
+        if float(nv_dict['cal_max_thr']) != 0.0 :
+            nv_dict['modAlpha'] = 2.0
+        else:
+            nv_dict['modAlpha'] = 0
 
         if pbar_dict['olay_alpha'] != 'No' :          # use alpha fade?
             nv_dict['do_alpha'] = 'true'
@@ -88,6 +97,10 @@ nv_dict : dict
             nv_dict['do_boxed'] = 1
         else:
             nv_dict['do_boxed'] = 0
+        if 'olay_opacity' in pbar_dict :
+            nv_dict['olay_opacity'] = float(pbar_dict['olay_opacity'])/9.
+        else:
+            nv_dict['olay_opacity'] = 1
 
     return nv_dict
 
@@ -182,7 +195,7 @@ nv_olay_txt : str
     nv_olay_txt+= '''
         cal_min: 0,
         cal_max: {cal_max_olay},
-        opacity: 1,
+        opacity: {olay_opacity},
       }}'''.format(**nv_dict)
 
     return nv_olay_txt
@@ -253,7 +266,7 @@ nv_then_txt : str
       {nobj}.setModulationImage(
         {nobj}.volumes[1].id,
         {nobj}.volumes[2].id,
-        modulateAlpha = 2.0 
+        modulateAlpha = {modAlpha} 
       ); // activate+specify mapping'''.format(**nv_dict)
 
     if nv_dict['coor_type'] == "SET_DICOM_XYZ" :

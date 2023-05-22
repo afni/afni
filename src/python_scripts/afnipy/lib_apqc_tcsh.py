@@ -3412,6 +3412,8 @@ num : int
     otopjson = opref + '.axi.json'
     osubjson = opref + '.sag.json'
     opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
         print("++ APQC create:", oname, flush=True)
@@ -3459,11 +3461,14 @@ num : int
             -mask         {mask_dset}                                        \
             -blowup       2                                                  \
             -no_cor                                                          \
+            -cmd2script   {odoafni}                                          \
+            -c2s_text     'APQC, {qcb}: {qci}'                               \
             -prefix       {opref}                                            \
             -prefix_cbar  {opbarrt}
         '''.format( ulay=ulay, olay=olay, focusbox=focusbox, 
                     mask_dset=ap_ssdict['mask_dset'], 
-                    opref=opref, opbarrt=opbarrt )
+                    opref=opref, opbarrt=opbarrt,
+                    odoafni=odoafni, qcb=qcb, qci=qci )
         com    = ab.shell_com(cmd, capture=do_cap)
         com.run()
 
@@ -3475,13 +3480,16 @@ num : int
             -focus        {focusbox}                                         \
             -blowup       2                                                  \
             -no_cor                                                          \
+            -cmd2script   {odoafni}                                          \
+            -c2s_text     'APQC, {qcb}: {qci}'                               \
             -prefix       {opref}                                            \
             -prefix_cbar  {opbarrt}
         '''.format( ulay=ulay, olay=olay, focusbox=focusbox, 
-                    opref=opref, opbarrt=opbarrt )
+                    opref=opref, opbarrt=opbarrt,
+                    odoafni=odoafni, qcb=qcb, qci=qci )
         com    = ab.shell_com(cmd, capture=do_cap)
         com.run()
-
+    print("HEY:\n", cmd)
     if ttt2 :
         otoptxt = [otoptxt, ttt2] 
 
@@ -3493,12 +3501,16 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'av_file'     : odoafni,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
     osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
+
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
 
     # Make info below images
     osubdict = {
@@ -3507,6 +3519,7 @@ num : int
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
+        'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
     with open(osubjson, 'w', encoding='utf-8') as fff:
@@ -3524,6 +3537,21 @@ num : int
     '''.format( opbarrt=opbarrt )
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
+
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=olay, itemid=qci,
+                                     verb=0 )
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+    onvhtml_name = onvhtml.split('/')[-1]
 
     return 0
 
