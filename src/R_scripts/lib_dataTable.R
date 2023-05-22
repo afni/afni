@@ -20,6 +20,16 @@ mode_func <- function(x) {
     uniqx <- unique(x) ; return(uniqx[which.max(tabulate(match(x,uniqx)))])
 }
 
+## pad extra spaces #########
+## for indices [1] [10] etc. Takes vector, adds [] and pads the spaces
+## get the longest number of digits and pad the index
+dtCheck_pad_index <- function(ind.in){
+    max.dig <- max(nchar(ind.in))
+    ind.out <- paste0("[",ind.in,"] ")
+    ind.out <- formatC(ind.out,width=max.dig+1,flag="-")
+    return(ind.out)
+}
+
 ## cat messages #################
 ## nl is new line feeds defaults to 2 otherwise 1
 dtCheck_err <- function(msg,nl=2){ 
@@ -105,10 +115,8 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE,
         bad.ind <- which(cmd.num != bad.num)
     }
     
-    ## get the longest number of digits and pad the index
-    max.dig <- max(nchar(bad.ind))
-    ind.out <- paste0("[",bad.ind,"] ")
-    ind.out <- formatC(ind.out,width=max.dig+1,flag="-")
+    ## pad the index
+    ind.out <- dtCheck_pad_index(bad.ind)
     
     ## get the file names at the bad indices
     bad.dsets <- data.in$InputFile[bad.ind]
@@ -364,15 +372,9 @@ dtCheck_same_grid <- function(data.in){
         dtCheck_good('All InputFiles are on the same grid.')
         return(0)
     } else {
-        
         dtCheck_bad_files(data.in,cmd.num,0,TRUE,
                           "Datasets are NOT on the same grid",
                           "Grids are compared to the 1st InputFile.")
-        # bad.dsets <- data.in$InputFile[which(cmd.num == 0)]
-        # dtCheck_err("Datasets not on the same grid",1)
-        # dtCheck_note("Grids are compared to the 1st InputFile.",1)
-        # dtCheck_log_print(paste0(paste0(as.character(bad.dsets),
-        #                                 collapse="\n"),"\n\n"))
         return(1)
     }
 }   ## end dtCheck_same_grid
@@ -480,20 +482,26 @@ InFile_dups <- function(data.in){
         cat('\n         The last column must be "InputFile" for this check !!!\n')
         return(1)
     }
-    ## get the list of dup files and the line number of the files
+    ## get the list of dup files 
     dup.i.file <- data.in$InputFile[duplicated(data.in$InputFile)]
-    dup.index <- duplicated(data.in$InputFile)
-    
-    ## combine line number with names
-    dup.index <- paste0("[",which(dup.index),"]")
-    dup.out <- paste(dup.index,dup.i.file)
-    dup.out <- paste(dup.out,collapse="\n         ")
-    
     if( length(dup.i.file) > 0 ){
-        cat('\n**ERROR: Duplicates found in "InputFile" column:\n')
-        cat("         ") ;cat(dup.out) ; cat("\n\n")
+        ## what line number
+        dup.index <- duplicated(data.in$InputFile)
+
+        ## combine line number [] with names
+        dup.index <- dtCheck_pad_index(which(dup.index))
+        dup.out <- paste(dup.index,dup.i.file)
+        dup.out <- paste(dup.out,collapse="\n")
+
+        ## output 
+        dtCheck_err('Duplicates found in "InputFile" column',1)
+        dtCheck_note("Listed files are the 1st instance of the duplicates.",1)
+        for( d in 1:length(dup.i.file)-1 ){ dtCheck_log_print(dup.out[d]) }
+        cat("\n")
         return(1)
+        
     } else { return(0) }
+    
 }   ## end InFile_dups
 
 file_subj_check <- function(data.in){
