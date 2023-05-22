@@ -487,17 +487,17 @@ InFile_dups <- function(data.in){
     if( length(dup.i.file) > 0 ){
         ## what line number
         dup.index <- duplicated(data.in$InputFile)
-
+        
         ## combine line number [] with names
         dup.index <- dtCheck_pad_index(which(dup.index))
         dup.out <- paste(dup.index,dup.i.file)
         dup.out <- paste(dup.out,collapse="\n")
-
+        
         ## output 
         dtCheck_err('Duplicates found in "InputFile" column',1)
-        dtCheck_note("Listed files are the 1st instance of the duplicates.",1)
-        for( d in 1:length(dup.i.file)-1 ){ dtCheck_log_print(dup.out[d]) }
-        cat("\n")
+        dtCheck_note(
+            "Listed files are AFTER the 1st instance of the duplicates.",1)
+        dtCheck_log_print(dup.out) ; dtCheck_log_print("\n")
         return(1)
         
     } else { return(0) }
