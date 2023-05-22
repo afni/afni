@@ -88,8 +88,9 @@ dtCheck_log_df <- function(df.in){
 ## must have some bad files
 ## takes data frame, output of some 3dinfo
 ## a number to compare against and if it should equal or not equal (T/F)
+## msg gets passed to the err message function
 ## returns nothing, prints to screen and adds to log.out
-dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
+dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE,msg=""){
     
     ## get the bad indices
     if( equals ){
@@ -114,7 +115,7 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE){
     }
     
     ## output
-    dtCheck_err("Datasets not found",1)
+    dtCheck_err(msg,1)
     dtCheck_log_df(tab.out)  ## save to log
     cat(tab.out,sep="\n")    ## print to screen
     cat('\n')
@@ -128,8 +129,6 @@ dtCheck_write_log <- function(file.out=log.name){
         cat(log.out,file=file.out,sep="")  ## log.out is global
     }
 }
-
-
 
 ## add leading spaces to the data frame to aid in aligning text #########
 ## takes a valid data frame and outputs the same NOT FRAME with padded spaces
@@ -315,7 +314,7 @@ dtCheck_img_exists <- function(data.in){
         dtCheck_good('All InputFiles exist.')
         return(0)
     } else {
-        dtCheck_bad_files(data.in,cmd.num,0,TRUE)
+        dtCheck_bad_files(data.in,cmd.num,0,TRUE,"Datasets not found")
         return(1)
     }
 }   ## end dtCheck_img_exists
@@ -336,10 +335,12 @@ dtCheck_1_vol <- function(data.in){
         dtCheck_good('All InputFiles have exactly 1 volume.')
         return(0)
     } else {
-        bad.dsets <- data.in$InputFile[which(cmd.num != 1)]
-        dtCheck_err("Datasets have more than 1 volume",1)
-        dtCheck_log_print(paste0(paste0(as.character(bad.dsets),
-                                        collapse="\n"),"\n\n"))
+        dtCheck_bad_files(data.in,cmd.num,1,FALSE,
+                          "Datasets have more than 1 volume")
+        # bad.dsets <- data.in$InputFile[which(cmd.num != 1)]
+        # dtCheck_err("Datasets have more than 1 volume",1)
+        # dtCheck_log_print(paste0(paste0(as.character(bad.dsets),
+        #                                 collapse="\n"),"\n\n"))
         return(1)
     }
 }   ## end dtCheck_1_vol
