@@ -2,7 +2,7 @@
 
 import sys, copy
 import string
-import afni_base as ab
+from   afnipy import afni_base as ab
 
 # This is a small library of inelegant functions for writing out a
 # command in nicely vertically-spaced fashion over multiple lines.
