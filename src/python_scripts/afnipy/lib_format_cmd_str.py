@@ -180,7 +180,6 @@ M : list
 
 # Primarily a suppl function of split_str_outside_quotes()
 def find_next_quote_in_str( sss, quote_pair_list=AD['quote_pair_list'] ):
-
     '''Find the first instance of ' or " appearing in the string, by
 default.  The user can optionally specify a different list of strings
 to search for (e.g., just one particular quote); the quote_pair_list must
@@ -725,10 +724,9 @@ def afni_niceify_cmd_str( sss, big_list=None,
             print("** ERROR: need sss to be a string")
             return 1, ''
 
-        if not(list_cmd_args) and use_auto_args :
+        if not(len(list_cmd_args)) and use_auto_args :
             pname = sss.strip().split()[0]          # get name of program
-            lopt  = guess_prog_opt_list(pname)
-            list_cmd_args = copy.deepcopy(lopt)
+            list_cmd_args = guess_prog_opt_list(pname)
 
             if verb :
                 print("++ Auto arg search found {} args for prog: {}"
