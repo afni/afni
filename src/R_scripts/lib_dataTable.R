@@ -175,24 +175,6 @@ dtCheck_lead_space <- function(data.in){
     
 }   ## end dtCheck_lead_space function
 
-## convert command line flat string to data frame ##############
-## taken from 3dMVM (not sure this is the best way to do it...)
-dtCheck_str2frame <- function(flat.in){
-    wd <- which(flat.in %in% respVar) ; len <- length(flat.in)
-    if(len %% wd != 0){
-        dtCheck_err("dataTable is NOT regular and rectangular")
-        dtCheck_write_log(log.name) ## write out to file
-        q()
-    }
-    
-    data.out <- NULL
-    for(i in 1:wd){
-        data.out <- data.frame(cbind(data.out,flat.in[seq(wd+i, len, wd)]))
-    }
-    names(data.out) <- flat.in[1:wd]
-    return(data.out)
-}   ## end dtCheck_str2frame
-
 ## try to read a dataTable FILE ######################
 ## needs the dataTable file name (with path or relative)
 ## does not save the imported data. Just cats info to the screen and log
@@ -466,9 +448,14 @@ subj_first <- function(data.in){
 
 InFile_last <- function(data.in){
     if( ! (names(data.in)[length(data.in)] %in% respVar) ){
-        cat(paste0('\n**ERROR: Last column header is "',
-                   names(data.in)[length(data.in)],'"'))
-        cat('\n         The last column must be "InputFile" or "Ausgang_val" !!!\n')
+        
+        dtCheck_err(paste("Last column header is",
+                          names(data.in)[length(data.in)]),1)
+        dtCheck_note(paste("The last column must be",
+                           paste(respVar,collapse=" ")),)
+        # cat(paste0('\n**ERROR: Last column header is "',
+        #            names(data.in)[length(data.in)],'"'))
+        # cat('\n         The last column must be "InputFile" or "Ausgang_val" !!!\n')
         return(1)
     } else { return(0) }
 }   ## end InFile_last
@@ -562,6 +549,37 @@ rule_error <- function(data.in){
     
     if( err.check > 0 ){ cat("\n") } ; return(err.check)
 }   ## end rule_error function
+
+## convert command line flat string to data frame ##############
+## taken from 3dMVM (not sure this is the best way to do it...)
+dtCheck_str2frame <- function(flat.in){
+    
+    ## check for a correct last variable name
+    wd <- which(flat.in %in% respVar)
+    if( length(wd) == 0 ){
+        dtCheck_log_print("\n")
+        dtCheck_err('The last column must be "InputFile" (or "Ausgang_val" in some cases)')
+        dtCheck_write_log(log.name) ## write out to file
+        q()
+    }
+    
+    ## check for rectangularization
+    len <- length(flat.in)
+    if(len %% wd != 0){
+        dtCheck_err("dataTable is NOT regular and rectangular")
+        dtCheck_write_log(log.name) ## write out to file
+        q()
+    }
+    
+    ## make a data frame
+    data.out <- NULL
+    for(i in 1:wd){
+        data.out <- data.frame(cbind(data.out,flat.in[seq(wd+i, len, wd)]))
+    }
+    names(data.out) <- flat.in[1:wd]
+    return(data.out)
+    
+}   ## end dtCheck_str2frame
 
 ## read in a regular, rectangular table file and send to summary #########
 ## not used
