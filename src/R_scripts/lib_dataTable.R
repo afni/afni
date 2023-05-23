@@ -448,14 +448,10 @@ subj_first <- function(data.in){
 
 InFile_last <- function(data.in){
     if( ! (names(data.in)[length(data.in)] %in% respVar) ){
-        
         dtCheck_err(paste("Last column header is",
                           names(data.in)[length(data.in)]),1)
         dtCheck_note(paste("The last column must be",
                            paste(respVar,collapse=" ")),)
-        # cat(paste0('\n**ERROR: Last column header is "',
-        #            names(data.in)[length(data.in)],'"'))
-        # cat('\n         The last column must be "InputFile" or "Ausgang_val" !!!\n')
         return(1)
     } else { return(0) }
 }   ## end InFile_last
@@ -491,26 +487,27 @@ InFile_dups <- function(data.in){
     
 }   ## end InFile_dups
 
+## should have InputFile and Subj check already done AND be a valid data frame
 file_subj_check <- function(data.in){
     
-    ## make sure we have InputFiles and Subj
-    if( names(data.in)[length(data.in)] != "InputFile" ){
-        cat(paste0('\n**ERROR: Last column header is "',
-                   names(data.in)[length(data.in)],'"'))
-        cat('\n         The last column must be "InputFile" for this check !!!\n')
-        return(1)
-    }
-    if( subj_first(data.in) != 0 ){
-        cat(paste0('\n**ERROR: First column header is "',
-                   names(data.in)[1],'"'))
-        cat('\n         The first column must be "Subj" for this check !!!\n')
-        return(1)
-    }
+    # ## make sure we have InputFiles and Subj
+    # if( names(data.in)[length(data.in)] != "InputFile" ){
+    #     cat(paste0('\n**ERROR: Last column header is "',
+    #                names(data.in)[length(data.in)],'"'))
+    #     cat('\n         The last column must be "InputFile" for this check !!!\n')
+    #     return(1)
+    # }
+    # if( subj_first(data.in) != 0 ){
+    #     cat(paste0('\n**ERROR: First column header is "',
+    #                names(data.in)[1],'"'))
+    #     cat('\n         The first column must be "Subj" for this check !!!\n')
+    #     return(1)
+    # }
     
     ## need to fix this here ################
-    ## check if InputFiles are divisible by subjects
-    file.subj <- length(levels(data.in$InputFile)) / length(levels(data.in$Subj))
-    
+    ## check if the last column is divisible by subjects
+    file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
+
     ## if not an integer
     if( file.subj%%1 != 0 ){
         ## get the counts, mode and list of differing subj
@@ -520,13 +517,20 @@ file_subj_check <- function(data.in){
             Subj=levels(data.in$Subj)[which(file.counts != file.mode)],
             NumInputFiles=as.numeric(file.counts[which(file.counts != file.mode)]))
         
-        cat('\n+*Warning: Each "Subj" does not have the same ')
-        cat('number of "InputFiles" !\n')
-        cat(paste0("Most Subj have ",file.mode," InputFiles. \n"))
-        cat("The following Subj differ:\n")
+        ## output errors and quit?
+        dtCheck_err('Each "Subj" does not have the same number of "InputFiles"',1)
+        dtCheck_log_print(paste0("Most Subj have ",file.mode,
+                                 " InputFiles. The following Subj differ:\n"))
+        
+        ## print to screen
         print.data.frame(nonmode.df,row.names=FALSE,right=FALSE)
-        cat("\n")
-        return(1)
+        
+        ## align the data frame, and write to log
+        nonmode.df <- dtCheck_lead_space(nonmode.df)
+        dtCheck_log_df(nonmode.df) ; dtCheck_log_print("\n")
+        dtCheck_write_log(log.name)
+        q()
+        # return(1)
     } 
     return(0) 
 }
@@ -540,7 +544,7 @@ rule_error <- function(data.in){
     if( InFile_last(data.in) != 0 ){
         err.check <- err.check + 1
     } else if( names(data.in)[length(data.in)] == "InputFile" ){
-        ## check dups in InputFile
+        ## check dupes in InputFile
         if( InFile_dups(data.in) != 0 ){ err.check <- err.check + 1 }
     }
     
