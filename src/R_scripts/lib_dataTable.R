@@ -211,8 +211,15 @@ dtCheck_tryRead <- function(file.in){
     
     ## get info from the first line assuming it is a header
     hdr.line <- strsplit(data.str[1], "[, ]|[[:space:]]+")
-    hdr.len <- length(hdr.line[[1]])
     
+    ## check for trailing slash and remove
+    if( hdr.line[[1]][length(hdr.line[[1]])] == "\\" ){
+        hdr.line[[1]] <- hdr.line[[1]][1:(length(hdr.line[[1]])-1)]
+    }
+    
+    ## get length
+    hdr.len <- length(hdr.line[[1]])
+
     ## empty to fill
     miss.row <- miss.num <- miss.line <- na.line <- c()
     
@@ -221,6 +228,11 @@ dtCheck_tryRead <- function(file.in){
         
         ## split line by comma or some spaces
         tmp.line <- strsplit(data.str[i], "[, ]|[[:space:]]+")
+       
+        ## check for trailing slash
+        if( tmp.line[[1]][length(tmp.line[[1]])] == "\\" ){
+            tmp.line[[1]] <- tmp.line[[1]][1:(length(tmp.line[[1]])-1)]
+        }
         
         ## check to see if there is a missing element
         ## first without delimiter for csv or either with tsv
