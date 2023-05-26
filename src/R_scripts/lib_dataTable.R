@@ -197,9 +197,9 @@ dtCheck_lead_space <- function(data.in){
 ## does not save the imported data. Just cats info to the screen and log
 dtCheck_tryRead <- function(file.in){
     
-    ## check to see if the file is really there
+    ## check to see if the file is really there (AFNIio.R does this already)
     if( !file.exists(file.in) ){ 
-        cat(paste("**ERROR:",file.in,"not found!!!")) ; cat("\n\n") ; return(1)
+        dtCheck_err(paste(file.in,"not found")) ; return(1)
     }
     
     ## which file
@@ -456,9 +456,9 @@ dtCheck_printSummary <- function(data.in){
 ## check for common user errors ####################
 subj_first <- function(data.in){
     if( names(data.in)[1] != "Subj" ){
-        cat(paste0('\n**ERROR: First column header is "',
-                   names(data.in)[1],'"'))
-        cat('\n         The first column must be "Subj" !!!\n')
+        dtCheck_err(paste0('First column header is "',
+                           names(data.in)[1],'" '),1)
+        dtCheck_log_print('The first column must be "Subj".\n')
         return(1)
     } else { return(0) }
 }   ## end subj_first
