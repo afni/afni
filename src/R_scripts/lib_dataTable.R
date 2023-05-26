@@ -20,6 +20,23 @@ mode_func <- function(x) {
     uniqx <- unique(x) ; return(uniqx[which.max(tabulate(match(x,uniqx)))])
 }
 
+## check and convert numerics #####################
+dtCheck_convert_num <- function(data.in){
+    
+    ## fix here grep the +/- numeric variables and convert to numeric ###### 
+    num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
+
+    if( length(which(num.cols)) == 1 ){
+        data.in[,num.cols] <- as.numeric(as.character(data.in[,num.cols]))
+    } else if( length(which(num.cols)) > 1 ){
+        data.in[,num.cols] <- apply(data.in[,num.cols],2,
+                                    function(x) as.numeric(as.character(x)))
+    } else if( length(which(num.cols)) == 0 ){ return(data.in) }
+
+    return(data.in)
+    
+}   ## end dtCheck_convert_num
+
 ## pad extra spaces #########
 ## for indices [1] [10] etc. Takes vector, adds [] and pads the spaces
 ## get the longest number of digits and pad the index
@@ -616,10 +633,12 @@ dtCheck_testDF <- function(data.in){
     ## convert characters to factors 
     data.in <- as.data.frame(unclass(data.in),stringsAsFactors = TRUE)
     
-    ## grep the +/- numeric variables and convert to numeric
-    num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
-    data.in[ , num.cols] <- apply(data.in[,num.cols],2,
-                                  function(x) as.numeric(as.character(x)))
+    data.in <- dtCheck_convert_num(data.in)
+    
+    # ## fix here grep the +/- numeric variables and convert to numeric ###### 
+    # num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
+    # data.in[,num.cols] <- apply(data.in[,num.cols],2,
+    #                               function(x) as.numeric(as.character(x)))
     
     ## print out dimensions
     dim.tab <- dim(data.in)
