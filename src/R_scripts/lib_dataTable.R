@@ -475,13 +475,11 @@ InFile_last <- function(data.in){
 
 InFile_dups <- function(data.in){
     
-    ## make sure we have InputFiles
-    if( names(data.in)[length(data.in)] != "InputFile" ){
-        cat(paste0('\n**ERROR: Last column header is "',
-                   names(data.in)[length(data.in)],'"'))
-        cat('\n         The last column must be "InputFile" for this check !!!\n')
-        return(1)
-    }
+    ## make sure we have InputFiles  just in case
+    InFile.check <- InFile_last(data.in)
+    if( InFile.check == 1 ){ return(1) }
+    
+    
     ## get the list of dup files 
     dup.i.file <- data.in$InputFile[duplicated(data.in$InputFile)]
     if( length(dup.i.file) > 0 ){
@@ -507,20 +505,6 @@ InFile_dups <- function(data.in){
 ## should have InputFile and Subj check already done AND be a valid data frame
 file_subj_check <- function(data.in){
     
-    # ## make sure we have InputFiles and Subj
-    # if( names(data.in)[length(data.in)] != "InputFile" ){
-    #     cat(paste0('\n**ERROR: Last column header is "',
-    #                names(data.in)[length(data.in)],'"'))
-    #     cat('\n         The last column must be "InputFile" for this check !!!\n')
-    #     return(1)
-    # }
-    # if( subj_first(data.in) != 0 ){
-    #     cat(paste0('\n**ERROR: First column header is "',
-    #                names(data.in)[1],'"'))
-    #     cat('\n         The first column must be "Subj" for this check !!!\n')
-    #     return(1)
-    # }
-    
     ## need to fix this here ################
     ## check if the last column is divisible by subjects
     file.subj <- length(levels(data.in[,length(data.in)])) / length(levels(data.in$Subj))
@@ -535,7 +519,7 @@ file_subj_check <- function(data.in){
             NumInputFiles=as.numeric(file.counts[which(file.counts != file.mode)]))
         
         ## output errors and quit?
-        dtCheck_err('Each "Subj" does not have the same number of "InputFiles"',1)
+        dtCheck_warn('Each "Subj" does not have the same number of "InputFiles"',1)
         dtCheck_log_print(paste0("Most Subj have ",file.mode,
                                  " InputFiles. The following Subj differ:\n"))
         
@@ -546,8 +530,8 @@ file_subj_check <- function(data.in){
         nonmode.df <- dtCheck_lead_space(nonmode.df)
         dtCheck_log_df(nonmode.df) ; dtCheck_log_print("\n")
         dtCheck_write_log(log.name)
-        q()
-        # return(1)
+        # q()
+        return(1)
     } 
     return(0) 
 }
@@ -603,27 +587,27 @@ dtCheck_str2frame <- function(flat.in){
 }   ## end dtCheck_str2frame
 
 ## read in a regular, rectangular table file and send to summary #########
-## not used
-dtCheck_test_read_Table <- function(data.in){
-    
-    ## get data and split it out
-    data.df <- fread(data.in,stringsAsFactors=TRUE)
-    
-    ## print out dimensions
-    dim.tab <- dim(data.df)
-    cat("rows: ") ; cat(dim.tab[1]) ; cat(" ")
-    cat("columns: ") ; cat(dim.tab[2]) ; cat("\n")
-    
-    ## check for errors
-    r.e <- rule_error(data.df)
-    if( r.e != 0 ){ return(1) } # else { cat("\n") }
-    
-    ## print out the brief summary
-    dtCheck_printSummary(data.df)
-    
-    return(data.df)
-    
-}   ## end dtCheck_test_read_Table
+## NOT USED
+# dtCheck_test_read_Table <- function(data.in){
+#     
+#     ## get data and split it out
+#     data.df <- fread(data.in,stringsAsFactors=TRUE)
+#     
+#     ## print out dimensions
+#     dim.tab <- dim(data.df)
+#     cat("rows: ") ; cat(dim.tab[1]) ; cat(" ")
+#     cat("columns: ") ; cat(dim.tab[2]) ; cat("\n")
+#     
+#     ## check for errors
+#     r.e <- rule_error(data.df)
+#     if( r.e != 0 ){ return(1) } # else { cat("\n") }
+#     
+#     ## print out the brief summary
+#     dtCheck_printSummary(data.df)
+#     
+#     return(data.df)
+#     
+# }   ## end dtCheck_test_read_Table
 
 ## test for after conversion to data frame ##############
 
