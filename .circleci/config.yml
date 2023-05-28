@@ -220,6 +220,9 @@ commands:
 
             # Python3.9 currently causes failure so 3.8 keg needs to be used:
             brew install python@3.8
+            # [PT: May 28, 2023] To fix the macos_build, try using
+            # this first echo to not cleanup older deps
+            echo 'export HOMEBREW_NO_INSTALL_CLEANUP=TRUE' >> /Users/distiller/.bash_profile
             export PATH="/usr/local/opt/python@3.8/bin:$PATH"
             echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
             export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
