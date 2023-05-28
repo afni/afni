@@ -223,6 +223,8 @@ commands:
             ### Python3.11:---so try using more consistent vers
             ### 
             brew install python@3.11
+            # usin this first echo to not cleanup older deps
+            echo 'export HOMEBREW_NO_INSTALL_CLEANUP=TRUE' >> /Users/distiller/.bash_profile
             export PATH="/usr/local/opt/python@3.11/bin:$PATH"
             echo 'export PATH="/usr/local/opt/python@3.11/bin:$PATH"' >> /Users/distiller/.bash_profile
             export LDFLAGS="-L/usr/local/opt/python@3.11/lib $LDFLAGS"
