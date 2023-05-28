@@ -193,10 +193,17 @@ commands:
           command: |
             echo \
               python@3.11 \
-              cmake ninja llvm pkgconfig  \
+              cmake ninja  pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
               tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
+      ### NB: have removed 'llvm' from list above, because macos_build
+      ### test says it has it already:
+      ###   llvm is keg-only, which means it was not symlinked into
+      ###   /usr/local, because macOS already provides this software
+      ###   and installing another version in parallel can cause all
+      ###   kinds of trouble.  
+      ### ... and trying to install its dependency 'six' causes an Error.
       # circleci caching works with files owned by user (distiller on osx
       # machines on circleci). If caching for macos is desired, homebrew files
       # should be stored in home or /usr/local chowned. One thread mentioned
