@@ -1132,7 +1132,7 @@ void AFNI_syntax(void)
      "\n"
     "* For indvidualized help with AFNI problems, and to keep up with AFNI news, please\n"
     "   use the AFNI Message Board:\n"
-    " https://afni.nimh.nih.gov/afni/community/board/\n"
+    " https://discuss.afni.nimh.nih.gov\n"
      "\n"
     "* If an AFNI program crashes, please include the EXACT error messages it outputs\n"
     "   in your message board posting, as well as any other information needed to\n"
