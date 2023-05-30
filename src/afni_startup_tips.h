@@ -466,7 +466,7 @@ static char *tip[] = {
 /*----------------- tips below here are for non-GUI programs -----------------*/
  ,
    "Questions about AFNI? Problems with a program? Try our Message Board at\n"
-   "  https://afni.nimh.nih.gov/afni/community/board/\n"
+   "  https://discuss.afni.nimh.nih.gov\n"
    "* Please be specific and focused, as generic questions without\n"
    "   details are very hard to answer well on a Web forum.\n"
    "* If you have a problem with a particular program, give the exact\n"

@@ -34,7 +34,7 @@ It has graphical displays for both slice-wise and surface-based viewing.  In bot
 |
 
 | For questions on using AFNI programs, our Message Board is here:  
-| https://afni.nimh.nih.gov/afni/community/board/list.php?1 .
+| https://discuss.afni.nimh.nih.gov .
 
 
 Getting started with AFNI: quick guide links
