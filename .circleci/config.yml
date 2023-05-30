@@ -192,7 +192,7 @@ commands:
           name: Write osx dependencies to a file
           command: |
             echo \
-              python@3.11 \
+              python  \
               cmake ninja  pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
@@ -202,6 +202,9 @@ commands:
       ### install its 'six' dependency
       #### [PT: May 30, 2023] explicitly install more modern Python
       #### 3.11, instead of 3.8
+      ##### [PT: May 30, 2023] be *non*explicit about Python version
+      ##### now---let CircleCI figure what it wants (previous style:
+      ##### 'python@3.11')
       # circleci caching works with files owned by user (distiller on osx
       # machines on circleci). If caching for macos is desired, homebrew files
       # should be stored in home or /usr/local chowned. One thread mentioned
