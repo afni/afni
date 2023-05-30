@@ -192,7 +192,7 @@ commands:
           name: Write osx dependencies to a file
           command: |
             echo \
-              python@3.8 \
+              python@3.11 \
               cmake ninja  pkgconfig  \
               jpeg gsl gts openmotif libpng expat \
               freetype fontconfig netpbm git-annex | \
@@ -200,6 +200,8 @@ commands:
       ### [PT: May 28, 2023] leave out explicit llvm installation
       ### above, because it leads to conflict issues when trying to
       ### install its 'six' dependency
+      #### [PT: May 30, 2023] explicitly install more modern Python
+      #### 3.11, instead of 3.8
       # circleci caching works with files owned by user (distiller on osx
       # machines on circleci). If caching for macos is desired, homebrew files
       # should be stored in home or /usr/local chowned. One thread mentioned
@@ -221,14 +223,17 @@ commands:
             brew upgrade --force git || true
             set -o pipefail
 
-            # Python3.9 currently causes failure so 3.8 keg needs to be used:
-            brew install python@3.8
-            export PATH="/usr/local/opt/python@3.8/bin:$PATH"
-            echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
-            export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
-            echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
-            export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
-            echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
+### [PT: May 30, 2023] this might no longer be necessary, so we are
+### commenting it out. Above, we specify installing Python 3.11,
+### anyways
+#            # Python3.9 currently causes failure so 3.8 keg needs to be used:
+#            brew install python@3.8
+#            export PATH="/usr/local/opt/python@3.8/bin:$PATH"
+#            echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
+#            export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
+#            echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
+#            export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
+#            echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
 
             # Install dependency list
             cat /tmp/macos_dependencies_version.txt | xargs brew install
