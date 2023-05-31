@@ -1063,7 +1063,7 @@ static float viridis_data[3*viridis_num] =
   https://colorcet.com/
 */
 #define cet_l17_num  256
-#define cet_l17_name "CET_l17"
+#define cet_l17_name "CET_L17"
 static float cet_l17_data[3*cet_l17_num] = {
           0.996078, 1.000000, 1.000000,
           0.996078, 0.996078, 0.988235,
