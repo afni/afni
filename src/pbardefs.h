@@ -715,6 +715,42 @@ static char HEX_Viridis_256_CMD[] = {
 };
 
 
+static char HEX_CET_L17_256_CMD[] = {
+    "CET_L17 "
+    "#feffff #fefefc #fefdf9 #fdfcf6 #fdfbf3 #fcfbf0 #fcfaee #fbf9eb "
+    "#fbf8e8 #faf8e5 #faf7e2 #f9f6e0 #f9f5dd #f8f4da #f7f4d7 #f7f3d4 "
+    "#f6f2d2 #f6f1cf #f5f1cc #f4f0c9 #f4efc7 #f3eec4 #f3eec1 #f2edbe "
+    "#f2ecbc #f2ebbb #f2eab9 #f2e9b7 #f2e8b6 #f2e7b4 #f2e6b2 #f2e5b1 "
+    "#f2e4af #f2e2ad #f2e1ac #f2e0aa #f2dfa8 #f2dea7 #f2dda5 #f2dca3 "
+    "#f2dba2 #f2daa0 #f2d99e #f2d89d #f2d79b #f2d699 #f1d598 #f2d496 "
+    "#f2d395 #f2d194 #f2d093 #f2cf92 #f2ce90 #f2cd8f #f2cc8e #f3cb8d "
+    "#f3c98c #f3c88a #f3c789 #f3c688 #f3c587 #f3c486 #f3c284 #f3c183 "
+    "#f3c082 #f3bf81 #f3be80 #f4bd7e #f4bb7d #f4ba7c #f4b97b #f4b87a "
+    "#f4b77a #f4b579 #f4b478 #f4b378 #f4b277 #f4b076 #f4af75 #f4ae75 "
+    "#f4ad74 #f4ac73 #f5aa73 #f5a972 #f5a871 #f5a771 #f5a570 #f5a46f "
+    "#f5a36f #f5a16e #f5a06d #f59f6c #f59e6c #f59c6b #f59b6b #f59a6b "
+    "#f5996b #f5976a #f4966a #f4956a #f4936a #f4926a #f49169 #f49069 "
+    "#f48e69 #f48d69 #f48c68 #f48a68 #f48968 #f38868 #f38668 #f38567 "
+    "#f38467 #f38267 #f38167 #f38066 #f37e66 #f27d66 #f27c67 #f27a67 "
+    "#f17967 #f17867 #f17767 #f07568 #f07468 #f07368 #ef7168 #ef7068 "
+    "#ef6f69 #ee6d69 #ee6c69 #ee6b69 #ed6969 #ed6869 #ed6669 #ec656a "
+    "#ec646a #ec626a #eb616a #eb5f6a #ea5e6b #ea5d6b #e95c6c #e95a6c "
+    "#e8596d #e7586d #e7576d #e6556e #e5546e #e5536f #e4516f #e45070 "
+    "#e34f70 #e24d71 #e24c71 #e14b71 #e04972 #e04872 #df4773 #de4573 "
+    "#de4474 #dd4274 #dc4174 #db4075 #da3f76 #d93e76 #d83c77 #d73b77 "
+    "#d63a78 #d53979 #d43879 #d3377a #d2367b #d1357b #d0337c #cf327c "
+    "#ce317d #cd307d #cc2f7e #cb2d7f #ca2c7f #c92b80 #c82a80 #c72881 "
+    "#c62782 #c52682 #c42583 #c22483 #c12484 #bf2385 #be2285 #bd2286 "
+    "#bb2187 #ba2187 #b82088 #b71f89 #b51f89 #b41e8a #b21e8b #b11d8b "
+    "#af1c8c #ae1c8d #ac1b8d #ab1b8e #a91a8f #a8198f #a61990 #a41890 "
+    "#a31891 #a11892 #9f1892 #9d1893 #9b1993 #991994 #971995 #951a95 "
+    "#931a96 #911a96 #8f1b97 #8d1b97 #8b1b98 #891c99 #871c99 #851c9a "
+    "#821d9a #801d9b #7e1d9b #7c1d9c #791e9d #771e9d #751e9e #721e9e "
+    "#701f9f #6d209f #6a20a0 #6721a0 #6522a0 #6222a1 #5e23a1 #5b23a1 "
+    "#5824a2 #5524a2 #5125a2 #4e25a3 #4a26a3 #4626a4 #4227a4 #3e27a4 "
+    "#3927a5 #3428a5 #2e28a5 #2828a6 #2129a6 #1829a6 #0929a7 #002aa7 "
+};
+
 // [PT: Aug 16, 2017] New(ish) colorbar.  Took "Reds_and_Blues",
 // inverted each of the halves individually, and made this.
 static char R_AND_B_INV_256_CMD[] = {
