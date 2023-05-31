@@ -1239,7 +1239,7 @@ class SysInfo:
 
       # make generic but pretty
       print("instances of various programs found in PATH:")
-      proglist = ['afni', 'R', 'python', 'python2', 'python3']
+      proglist = ['afni', 'R', 'python', 'python2', 'python3', 'Xvfb']
       ml = UTIL.max_len_in_list(proglist)
       for prog in proglist:
          rv, files = UTIL.search_path_dirs(prog, mtype=1)
@@ -1255,6 +1255,9 @@ class SysInfo:
                if len(files) > 0:
                   if os.stat(files[0]).st_uid == 0:
                      self.comments.append("'afni' executable is owned by root")
+            elif prog == 'Xvfb' :
+               if not(len(files)) :
+                  self.comments.append("missing 'Xvfb', please install")
 
       print('')
 

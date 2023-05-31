@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, May, 2023, RCR, "Makefile.macos_13_ARM_clang", MICRO, TYPE_MODIFY,
+   "comment out EXTRA_INSTALL_FILES",
+   "Might vary, and is not needed for non-distribution system."
+ } ,
+
+ { 12, May, 2023, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "R-3.6.3.nn.pkg has been moved to cran-archive.r-project.org",
+   "Thanks to Sally D for letting us know."
+ } ,
+
  { 10, May, 2023, RCR, "Makefile.macos_12_x86_64", MINOR, TYPE_NEW_OPT,
    "add Makefile, updates, and OS_notes",
    NULL
