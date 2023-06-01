@@ -3294,16 +3294,6 @@ num : int
     otoptxt.append(" thr: [{}] '{}' (df = {})".format( thrbrick, thrlabel,
                                                        thr_dof ))
 
-##### PT: use something like this for NiiVue
-#    dtext_u = '''"dset: ${ulay_dset}"'''
-#    dtext_o = '''"dset: ${stats_dset}" ,, '''
-#    dtext_o+= '''"olay_idx: ${olaybrick}" ,, '''
-#    dtext_o+= '''"olay_label: ${olaylabel}" ,, '''
-#    dtext_o+= '''"thr_idx: ${thrbrick}" ,, '''
-#    dtext_o+= '''"thr_label: ${thrlabel}"'''
-#    dset_ulay   :: {}
-#    dset_olay   :: {}
-
     # Make info above images
     otopdict = {
         'itemtype'    : 'VOL',
@@ -3443,53 +3433,85 @@ num : int
 
     otoptxt = "olay: {} {}".format(olay_pref, descrip)
     ttt2    = ''                   # stuff to (maybe) go on second line
+    cbar    = 'CET_L17'
+    olay_minval_str = '-pbar_posonly'
 
     if HAVE_MASK :
+        loc   = 'in mask'
+        lperc = [5, 95]
+
         # get mask prefix
         cmd    = '3dinfo -prefix ' + ap_ssdict['mask_dset']
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
         mask_pref = com.so[0].strip()
+        ttt2   = "mask: {} (for percentile range)".format(mask_pref)
 
-        ttt2 = "mask: {} (for percentile range)".format(mask_pref)
-
-        cmd = '''
-        adjunct_apqc_tsnr_general                                            \
-            -ulay         {ulay}                                             \
-            -olay         {olay}                                             \
-            -focus        {focusbox}                                         \
-            -mask         {mask_dset}                                        \
-            -blowup       2                                                  \
-            -no_cor                                                          \
-            -cmd2script   {odoafni}                                          \
-            -c2s_text     'APQC, {qcb}: {qci}'                               \
-            -prefix       {opref}                                            \
-            -prefix_cbar  {opbarrt}
-        '''.format( ulay=ulay, olay=olay, focusbox=focusbox, 
-                    mask_dset=ap_ssdict['mask_dset'], 
-                    opref=opref, opbarrt=opbarrt,
-                    odoafni=odoafni, qcb=qcb, qci=qci )
-        com    = ab.shell_com(cmd, capture=do_cap)
-        com.run()
+        # get percentile range values
+        cmd = '3dBrickStat -slow -non-zero -perc_quiet '
+        cmd+= '-mask {mask_dset} '.format(mask_dset=ap_ssdict['mask_dset'])
+        cmd+= '-perclist {} {} {} '.format(len(lperc), lperc[0], lperc[1])
+        cmd+= '{olay}'.format(olay=olay)
 
     else:
-        cmd = '''
-        adjunct_apqc_tsnr_general                                            \
-            -ulay         {ulay}                                             \
-            -olay         {olay}                                             \
-            -focus        {focusbox}                                         \
-            -blowup       2                                                  \
-            -no_cor                                                          \
-            -cmd2script   {odoafni}                                          \
-            -c2s_text     'APQC, {qcb}: {qci}'                               \
-            -prefix       {opref}                                            \
-            -prefix_cbar  {opbarrt}
-        '''.format( ulay=ulay, olay=olay, focusbox=focusbox, 
-                    opref=opref, opbarrt=opbarrt,
-                    odoafni=odoafni, qcb=qcb, qci=qci )
-        com    = ab.shell_com(cmd, capture=do_cap)
-        com.run()
-    print("HEY:\n", cmd)
+        loc   = 'in dset vol'
+        lperc = [90, 98]
+
+        # get percentile range values
+        cmd = '3dBrickStat -slow -non-zero -perc_quiet '
+        cmd+= '-perclist {} {} {} '.format(len(lperc), lperc[0], lperc[1])
+        cmd+= '{olay}'.format(olay=olay)
+
+    # run whichever 3dBrickStat cmd is appropriate
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    percvalA = int(float(lll[0]))    # int for simpler reporting
+    percvalB = int(float(lll[1]))
+    olay_topval = percvalB
+    pbar_comm_range = "{}%ile {}".format(lperc[1], loc)
+    pbar_comm_gen   = " info: {}-{}%ile ".format(lperc[0], lperc[1])
+    pbar_comm_gen  += "TSNR {}: {} - {}".format(loc, percvalA, percvalB)
+
+    cmd = '''
+    @chauffeur_afni                                                      \
+        -ulay              {ulay}                                        \
+        -box_focus_slices  {focusbox}                                    \
+        -olay              {olay}                                        \
+        -cbar              {cbar}                                        \
+        {olay_minval_str}                                                \
+        -ulay_range        0% 120%                                       \
+        -func_range        {olay_topval}                                 \
+        -olay_alpha        No                                            \
+        -olay_boxed        No                                            \
+        -set_subbricks     0 0 0                                         \
+        -opacity           5                                             \
+        -pbar_saveim       "{opbarrt}.jpg"                               \
+        -pbar_comm_range   "{pbar_comm_range}"                           \
+        -pbar_comm_gen     "{pbar_comm_gen}"                             \
+        -prefix            "{opref}"                                     \
+        -save_ftype        JPEG                                          \
+        -blowup            2                                             \
+        -montx             7                                             \
+        -monty             1                                             \
+        -montgap           1                                             \
+        -montcolor         black                                         \
+        -set_xhairs        OFF                                           \
+        -label_mode        1                                             \
+        -label_size        4                                             \
+        -no_cor                                                          \
+        -cmd2script        {odoafni}                                     \
+        -c2s_text          'APQC, {qcb}: {qci}'                          \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
+                cbar=cbar, olay_minval_str=olay_minval_str, 
+                olay_topval=olay_topval, 
+                opbarrt=opbarrt, pbar_comm_range=pbar_comm_range, 
+                pbar_comm_gen=pbar_comm_gen, opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
     if ttt2 :
         otoptxt = [otoptxt, ttt2] 
 

@@ -13,7 +13,8 @@ import copy, json
 # name(s). Note that NiiVue will split bi-directional pbars into 2
 # cmaps (pos first, then neg), so we always make a list of any mapping.
 afni2nv_cmaps = {
-    'Plasma' : ['plasma'],
+    'Plasma'  : ['plasma'],
+    'CET_L17' : ['cet_l17'],
     'Reds_and_Blues_Inv' : ['afni_reds_inv', 'afni_blues_inv'],
     #'Reds_and_Blues_Inv' : ['redyell', 'bluegrn'],
 }
