@@ -30,6 +30,9 @@ g_site_install_mac  = '%s/steps_mac.html' % g_site_install_root
 g_fs_space_checked  = []
 g_fs_space_whine    = 1         # do we whine about fs space? (only once)
 
+# indentation
+g_indent  = '%8s' % ' '
+
 # ------------------------------ main class  ------------------------------
 
 class SysInfo:
@@ -1112,6 +1115,11 @@ class SysInfo:
 
       print(UTIL.section_divider('eval dot files', hchar='-'))
 
+      print()
+      print(UTIL.section_divider('AFNI $HOME files', maxlen=40, hchar='-'))
+      self.check_home_files()
+
+      print(UTIL.section_divider('shell startup files', maxlen=40, hchar='-'))
       # start with a minimum list, then append for current and login shells
       # (is bash needed?)
       shell_list = ['tcsh']
@@ -1227,11 +1235,22 @@ class SysInfo:
       return evalue.split(sep)
 
    def show_general_afni_info(self, header=1):
-      print(UTIL.section_divider('AFNI and related program tests', hchar='-'))
+      if header:
+         print(UTIL.section_divider('AFNI and related program tests',hchar='-'))
+
+      self.show_main_progs_and_paths()
+      self.check_select_AFNI_progs()
+
+   def check_dependent_progs(self, header=1):
+      if header:
+         print(UTIL.section_divider('dependent program tests',hchar='-'))
+
+      self.check_R_libs()
+
+   def show_main_progs_and_paths(self):
 
       self.afni_dir = self.get_afni_dir()
-      check_list = ['afni', 'afni label', 'AFNI_version.txt',
-                    'python', 'R', 'tcsh']
+      check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
          self.comments.append('failure under initial ' \
@@ -1239,7 +1258,7 @@ class SysInfo:
 
       # make generic but pretty
       print("instances of various programs found in PATH:")
-      proglist = ['afni', 'R', 'python', 'python2', 'python3', 'Xvfb']
+      proglist = ['afni', 'R', 'python', 'python2', 'python3']
       ml = UTIL.max_len_in_list(proglist)
       for prog in proglist:
          rv, files = UTIL.search_path_dirs(prog, mtype=1)
@@ -1268,15 +1287,53 @@ class SysInfo:
          print("** have python3 but not python2")
       print('')
 
+   def check_select_AFNI_progs(self):
       # try select AFNI programs
       print('testing ability to start various programs...')
-      ind = '%8s' % ' '
-      indn = '\n%8s' % ' '
-      proglist = ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate', '3dRSFC', 'SurfMesh', '3dClustSim', '3dMVM']
+
+      # progs: binary only (need libraries)
+      plist_bin = ['afni', 'suma', '3dSkullStrip', '3dAllineate', '3dRSFC',
+                   'SurfMesh', '3dClustSim']
+      # progs: scripts
+      plist_script = ['uber_subject.py', '3dMVM']
+
+      # all
+      proglist = plist_bin + plist_script
+
+      fcount = self.check_running_AFNI_progs(proglist)
+      if fcount > 0:
+         self.afni_fails = fcount
+         self.comments.append('AFNI programs show FAILURE')
+
+      # if complete failure, retry from exec dir
+      pfailure = fcount == len(proglist)
+      ascdir = UTIL.executable_dir()
+      if pfailure and self.afni_dir != ascdir:
+         print('none working, testing programs under implied %s...' % ascdir)
+         fcount = self.check_running_AFNI_progs(proglist, execdir=ascdir)
+         if fcount < len(proglist):
+            self.comments.append('consider adding %s to your PATH' % ascdir)
+      # if afni_dir is not set, use ascdir
+      if self.afni_dir == '': self.afni_dir = ascdir
+
+   def check_running_AFNI_progs(self, proglist, execdir=None):
+      """for each prog in proglist, run "prog -help"
+         - if set, use execdir/prog
+         - side effect: possibly set self.ok_openmp
+
+         return number of failures
+      """
+
+      indn = '\n' + g_indent
       fcount = 0
       for prog in proglist:
-         st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)
+         # possibly add a path to prog
+         if execdir is not None:
+            fullprog = '%s/%s' % (execdir, prog)
+         else:
+            fullprog = prog
+
+         st, so, se = BASE.shell_exec2('%s -help'%fullprog, capture=1)
          # if 3dMVM, status will be 0 on failed library load (fix that, too)
          if prog == '3dMVM' and not st:
             mesg = ''.join(se)
@@ -1284,38 +1341,22 @@ class SysInfo:
                st = 1
          if st:
             print('    %-20s : FAILURE' % prog)
-            print(ind + indn.join(se))
+            print(g_indent + indn.join(se))
             fcount += 1
          else:
             print('    %-20s : success' % prog)
 
-            # no OpenMP problem
+            # check for OpenMP success
             if prog == '3dAllineate': self.ok_openmp = 1
+
       print('')
-      pfailure = fcount == len(proglist)
-      if fcount > 0:
-         self.afni_fails = fcount
-         self.comments.append('AFNI programs show FAILURE')
 
-      # if complete failure, retry from exec dir
-      ascdir = UTIL.executable_dir()
-      if pfailure and self.afni_dir != ascdir:
-         fcount = 0
-         print('none working, testing programs under implied %s...' % ascdir)
-         for prog in proglist:
-            st, so, se = BASE.shell_exec2('%s/%s -help'%(ascdir,prog),capture=1)
-            if st:
-               print('    %-20s : FAILURE' % prog)
-               print(ind + indn.join(se))
-               fcount += 1
-            else: print('    %-20s : success' % prog)
-         print('')
-         if fcount < len(proglist):
-            self.comments.append('consider adding %s to your PATH' % ascdir)
-      # if afni_dir is not set, use ascdir
-      if self.afni_dir == '': self.afni_dir = ascdir
+      return fcount
 
+   def check_R_libs(self):
       print('checking for R packages...')
+
+      indn = '\n' + g_indent
       cmd = 'rPkgsInstall -pkgs ALL -check'
       st, so, se = BASE.shell_exec2(cmd, capture=1)
       if st or len(se) < 2: okay = 0
@@ -1332,7 +1373,7 @@ class SysInfo:
          print('    %-20s : success' % cmd)
       else:
          print('    %-20s : FAILURE' % cmd)
-         print(ind + indn.join(se))
+         print(g_indent + indn.join(se))
          self.comments.append('missing R packages (see rPkgsInstall)')
       print('')
 
@@ -1340,7 +1381,8 @@ class SysInfo:
       print('R RHOME : %s' % cout.strip())
       print('')
 
-      print('checking for $HOME files...')
+   def check_home_files(self):
+      print()
       flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
       for ff in flist:
          if os.path.isfile('%s/%s'%(self.home_dir, ff)): fstr = 'found'
@@ -1695,6 +1737,7 @@ class SysInfo:
 
       self.show_general_sys_info()
       self.show_general_afni_info()
+      self.check_dependent_progs()
       self.show_python_lib_info()
       self.show_env_vars()
       self.show_dot_file_check()
