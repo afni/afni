@@ -1117,7 +1117,7 @@ class SysInfo:
 
       print()
       print(UTIL.section_divider('AFNI $HOME files', maxlen=40, hchar='-'))
-      self.check_home_files()
+      self.check_home_afni_files()
 
       print(UTIL.section_divider('shell startup files', maxlen=40, hchar='-'))
       # start with a minimum list, then append for current and login shells
@@ -1381,37 +1381,46 @@ class SysInfo:
       print('R RHOME : %s' % cout.strip())
       print('')
 
-   def check_home_files(self):
+   def check_home_afni_files(self):
       print()
-      flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
-      for ff in flist:
-         if os.path.isfile('%s/%s'%(self.home_dir, ff)): fstr = 'found'
-         else:                                           fstr = 'missing'
-         print('    %-25s : %s' % (ff, fstr))
 
-      # add to comments
+      # prep file/comment list, starting with .afnirc, which depends on abin
       if self.afni_dir:
          ccc = 'run: cp %s/AFNI.afnirc ~/.afnirc' % self.afni_dir
       else:
          ccc = 'copy AFNI.afnirc to ~/.afnirc'
-      self.add_file_comment(None, '.afnirc', 'please %s' % ccc)
 
-      self.add_file_comment(None, '.sumarc',
-                            'please run: "suma -update_env" for .sumarc')
-      self.add_file_comment(None, '.afni/help/all_progs.COMP',
-                            'please run: apsearch -update_all_afni_help')
+      fclist = [ [ '.afnirc', 'please %s' % ccc ],
+                 [ '.sumarc', 'please run: "suma -update_env" for .sumarc' ],
+                 [ '.afni/help/all_progs.COMP',
+                              'please run: apsearch -update_all_afni_help'],
+               ]
+
+      # for each file and comment, report on existence
+      for fc in fclist:
+         ff = fc[0] # file name
+         cc = fc[1] # comment
+
+         isfile = self.add_isfile_comment(None, ff, cc)
+         if isfile: fstr = 'found'
+         else:      fstr = 'missing'
+
+         print('    %-25s : %s' % (ff, fstr))
 
       print('')
 
-   def add_file_comment(self, fdir, fname, comment):
+   def add_isfile_comment(self, fdir, fname, comment):
       """if fname is not found in 'pre' dir, add comment
+         return isfile()
       """
       if   fdir == None: pre = '%s/' % self.home_dir
       elif fdir:         pre = '%s/' % fdir
       else:              pre = ''
 
-      if not os.path.isfile('%s%s' % (pre, fname)):
+      isfile = os.path.isfile('%s%s' % (pre, fname))
+      if not isfile:
          self.comments.append(comment)
+      return isfile
 
    def get_python_ver_float(self):
       """just return the python version in A.B format
