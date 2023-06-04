@@ -2551,7 +2551,7 @@ num : int
         -olay_alpha        No                                                \
         -olay_boxed        No                                                \
         -set_subbricks     0 0 0                                             \
-        -opacity           4                                                 \
+        -opacity           9                                                 \
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \
@@ -2738,7 +2738,7 @@ num : int
         -olay_alpha        No                                                \
         -olay_boxed        No                                                \
         -set_subbricks     0 0 0                                             \
-        -opacity           4                                                 \
+        -opacity           9                                                 \
         -pbar_saveim       "{opbarrt}.jpg"                                   \
         -prefix            "{opref}"                                         \
         -save_ftype        JPEG                                              \

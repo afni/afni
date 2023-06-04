@@ -16,7 +16,7 @@ afni2nv_cmaps = {
     'Plasma'      : ['plasma'],
     'CET_L17'     : ['cet_l17'],
     'gray_scale'  : ['gray'],
-    'gray_scale flip'  : ['turbo'],
+    'gray_scale flip' : ['gray'],    # special case for ve2a
     'GoogleTurbo' : ['turbo'],
     'Reds_and_Blues_Inv' : ['afni_reds_inv', 'afni_blues_inv'],
 }
@@ -49,6 +49,13 @@ nv_dict : dict
         cmap = ['jet']
     else:
         cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
+
+    # show/hide olay button for alignment checks
+    if pbar_dict['pbar_fname'].endswith('_va2t_anat2temp.pbar.jpg') or \
+       pbar_dict['pbar_fname'].endswith('_ve2a_epi2anat.pbar.jpg') :
+        nv_dict['olay_btn_sh'] = True
+    else:
+        nv_dict['olay_btn_sh'] = False
 
     # topval of ulay grayscale cbar
     nv_dict['cal_max_ulay'] = pbar_dict['ulay_top']
@@ -358,7 +365,20 @@ otxt : str
   <footer id="{nid}_xyz" style="color:#fff; ">
     &nbsp;
   </footer>
-  <script>
+'''.format( nid=nid )
+
+    # for align checks, can have show/hide button
+    if nv_dict['olay_btn_sh'] :
+        otxt+= '''  
+  <button class="button-generic "
+          id="{nid}_btnTog" 
+          onclick="niivue_ShowHideOlay({nobj}, {nid}_btnTog)">
+  Hide Olay
+  </button>
+
+'''.format( nid=nid, nobj=nobj )
+
+    otxt+= '''  <script>
     function reportCoorAndValues(data) {{
       // coord str
       let x = flt2str0_dir(data.mm[0], 3, 'RL')

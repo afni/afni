@@ -1194,6 +1194,20 @@ function toggle_niivue(is_served, id) {
     element.style.display = current_disp === 'none' ? 'block' : 'none';
 }
 
+/* show/hide olay in NV (for align checks)
+    obj : NV object ID
+    bid : button ID in that object's NV canvas
+*/
+function niivue_ShowHideOlay(obj, bid) {
+  let element = document.getElementById(bid);
+  if (obj.volumes[1].opacity) {
+    obj.setOpacity(1, 0);
+    element.innerText = "View Olay";
+  } else {
+    obj.setOpacity(1, 1);
+    element.innerText = "Hide Olay";
+  }
+}
 
 '''
 
