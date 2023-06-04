@@ -465,6 +465,22 @@ css_text+= '''
     margin-right: auto;
 }
 
+/* NV canvas button: show/hide olay (for align) */
+.btn7 {
+    color:            #000;
+    background-color: #ccc; /*#029a64;*/
+    margin: 0px;
+    padding: 0px 0px;
+    height: 26px;  /* set size, so no shifting */
+    width: 116px;  /* set size, so no shifting */
+    border: 2px solid;
+    border-color:  #fff #aaa #aaa #fff;
+    border-radius: 5px;
+    text-decoration: none;
+    font-family: Arial, "courier new", courier, monospace;
+    font-size: 21px;
+    font-weight: normal; /* bold; */
+}
 '''
 
 css_text+= '''

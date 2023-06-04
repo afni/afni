@@ -370,9 +370,9 @@ otxt : str
     # for align checks, can have show/hide button
     if nv_dict['olay_btn_sh'] :
         otxt+= '''  
-  <button class="button-generic "
-          id="{nid}_btnTog" 
-          onclick="niivue_ShowHideOlay({nobj}, {nid}_btnTog)">
+  <button class="button-generic btn7"
+          id="{nid}_btnSHO" 
+          onclick="niivue_ShowHideOlay({nobj}, '{nid}_btnSHO')">
   Hide Olay
   </button>
 
