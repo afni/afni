@@ -2684,6 +2684,9 @@ num : int
     opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
     otopjson = opref + '.axi.json'
     osubjson = opref + '.sag.json'
+    opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
         print("++ APQC create:", oname, flush=True)
@@ -2721,6 +2724,46 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
+
+    # Make QC images: *dry run only*, for AV/NV
+    cmd = '''
+    @chauffeur_afni                                                          \
+        -ulay              "{ulay}"                                          \
+        -box_focus_slices  "{focusbox}"                                      \
+        -olay              "{olay}"                                          \
+        -cbar              "{cbar}"                                          \
+        -ulay_range        0% 120%                                           \
+        -func_range_perc   98                                                \
+        -pbar_posonly                                                        \
+        -olay_alpha        No                                                \
+        -olay_boxed        No                                                \
+        -set_subbricks     0 0 0                                             \
+        -opacity           4                                                 \
+        -pbar_saveim       "{opbarrt}.jpg"                                   \
+        -prefix            "{opref}"                                         \
+        -save_ftype        JPEG                                              \
+        -blowup            1                                                 \
+        -montx             7                                                 \
+        -monty             1                                                 \
+        -montgap           1                                                 \
+        -montcolor         black                                             \
+        -set_xhairs        OFF                                               \
+        -label_mode        1                                                 \
+        -label_size        4                                                 \
+        -no_cor                                                              \
+        -cmd2script        "{odoafni}"                                       \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -dry_run                                                             \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
+                opbarrt=opbarrt, 
+                cbar='gray_scale', opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
+
     # minor formatting
     olay_desc = 'template edges, {} space'.format(ap_ssdict['main_dset_sp'])
 
@@ -2737,9 +2780,13 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'av_file'     : odoafni,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
 
     # Make info below images (leads to sag mont being shown)
     osubdict = {
@@ -2748,25 +2795,38 @@ num : int
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
+        'nv_html'     : onvhtml_name,
     }
     with open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
+    # Make pbar text
+    cmd = '''
+    abids_json_tool.py                                                       \
+        -overwrite                                                           \
+        -txt2json                                                            \
+        -delimiter_major  '::'                                               \
+        -delimiter_minor  ',,'                                               \
+        -input            "{opbarrt}.txt"                                    \
+        -prefix           "{opbarrt}.json"
+    '''.format( opbarrt=opbarrt )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
 
-#### [PT] add this dtext info later for NiiVue
-#    dtext_u = '''"dset: ${final_anat}"'''
-#    dtext_o = '''"dset: ${main_dset}"'''
-#    dset_ulay   :: {}
-#    dset_olay   :: {}
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
 
-    ### [PT: Aug 18, 2022] ignore this for now---the patterns are more
-    ### important
-    ## Dice coef info
-    #if dice_file :
-    #    dice = lah.read_dat(dice_file)
-    #else:
-    #    dice = 'unknown'
-    #osubtext2 = "Dice coefficient (anatomical-template masks): {}".format(dice)
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=olay, itemid=qci,
+                                     verb=0 )
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+    onvhtml_name = onvhtml.split('/')[-1]
 
     return 0
 
