@@ -234,10 +234,11 @@ if __name__ == "__main__":
                 ht+=lah.wrap_img( img, vpad=True,
                                   addclass=" class='bordered' " )
             elif AAII.itemtype == 'VOL':
-                # [PT] make a more general condition here !!!!
-                #if '.axi.' in img :   add_nvbtn = True
-                if AAII.text :        add_nvbtn = True
-                else:                 add_nvbtn = False
+                # decide when to put AV/NV buttons (or not)
+                if AAII.text and AAII.itemid != 'olap' :
+                    add_nvbtn = True
+                else:
+                    add_nvbtn = False
                 ht+=lah.wrap_img( img, itemid=AAII.itemid,
                                   vpad=True, add_nvbtn=add_nvbtn,
                                   av_file=AAII.av_file )
