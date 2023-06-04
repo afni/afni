@@ -509,6 +509,11 @@ set clust_wami = ""               # [PT: Sep 22, 2022] whereami on clusts
 set oechocmd  = ""               # [PT: May 17, 2023] output driving cmd
 set DO_echo4apqc = 1             # [PT: May 17, 2023] do things for APQC
 set txt_oechocmd = ""
+set txt_oechocmd2 = ""
+
+set DO_DRY_RUN = 0               # [PT: Jun 3, 2023] to run and just get text
+set read_olay  = ""
+set read_ulay  = ""
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -1110,6 +1115,11 @@ while ( $ac <= $#argv )
         @ ac += 1
         set txt_oechocmd = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-c2s_text2" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set txt_oechocmd2 = "${argv[$ac]:q}"
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
@@ -1123,6 +1133,9 @@ while ( $ac <= $#argv )
     # they might contain subbrickselectors
     else if ( "$argv[$ac]" == "-pass" ) then
         echo ""
+
+    else if ( "$argv[$ac]" == "-dry_run" ) then
+        set DO_DRY_RUN = 1
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -1783,14 +1796,14 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         || ( $urange == "YES" ) ) then
 
-        if ( $USER_ULAY_RANGE ) then
+        if ( $USER_ULAY_RANGE ) then  ### start USER ULAY RAN
             echo "++ Copy ulay to visualize (volumetric) within user's range:"
 
             # will be 0 if no percent; otherwise, >0 if percent
             set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
             set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
 
-            if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
+            if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then ### start PERC COND
                 # percentages
 
                 set pmin  = "$umin"
@@ -1900,13 +1913,13 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
             else
                 echo "++ Ulay to be visualized within user range:"
                 echo "   [${umin}, ${umax}]"
-            endif
+            endif  ### end PERC COND
 
             # need to unset this variable for this drive command to be
             # effective
             unsetenv AFNI_IMAGE_GLOBALRANGE 
             set com_ulay_str = "SET_ULAY_RANGE A.all $umin $umax"  
-        endif
+        endif ### end USER ULAY RAN
 
         # Special behavior if ulay max %ile is > 100; copy over
         # *ceilinged* version to temporary read dir
@@ -1944,7 +1957,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
                 -expr "a"                                 \
                 -prefix $read_dir/$read_ulay
         endif
-    else 
+    else ### [PT] Can this ever be reached, bc of preceding 'else' in parallel?
         echo "** ERROR: Var 'urange' not set somehow-- bad."
         goto BAD_EXIT
     endif
@@ -1959,7 +1972,7 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
         set olay = ""
         # don't need to copy anything, just set this for scripty purposes,
         # doesn't affect visualization.
-        set read_olay = $read_ulay
+        set read_olay = "$read_ulay"
         set Dim  = `3dinfo -n4 "$ulay"`
     else
         set read_olay = tmp_olay.nii
@@ -2042,31 +2055,6 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
     set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
     set all_ori = ( $ori0 $ori1 $ori2 )
 
-    #### [PT: Oct 18, 2018] this stuff now moved to separate prog
-    #### "@djunct_template_focuser" because it will be needed more
-    #### than once.
-
-    #set order  = ()
-    #foreach oo ( $all_ori )
-    #    foreach i ( `seq 1 1 ${#listori}` )
-    #        if ( $oo == "$listori[${i}]" ) then
-    #            set order  = ( $order ${listind[$i]} )
-    #            break
-    #        endif
-    #    end
-    #end
-    #echo "++ Cryptic info: $ori -> $all_ori -> $order"
-    #
-    #echo "++ Dimensions (xyzt): $Dim"
-    #
-    #foreach i ( `seq 1 1 3` )
-    #    if ( $gapord[$order[$i]] <= 0 ) then
-    #        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
-    #        if ( $gapord[$order[$i]] <= 0 ) then
-    #            @ gapord[$order[$i]] = 1
-    #        endif
-    #    endif
-    #end
     ## -----------------------------------------------------------------
 
     # [PT: Nov 6, 2018] we only want this set here for 3D; for 4D,
@@ -2276,7 +2264,7 @@ EOF
     # -------------------------------------------------------------------
     # ---------------- The actual, driven command ----------------------
 
-    if ( $MODE_4D ) then
+    if ( $MODE_4D ) then # start of 4D MODE COND
 
 # commenting out for now
 if ( 0 ) then
@@ -2385,7 +2373,7 @@ endif
                     blowup=${bufac}"                                        \
              -com "${do_quit}"                                              \
              "${read_dir}"
-    else
+    else   ### branch for being NOT 4D MODE
 
     # [PT: Sep 21, 2021] By default, view all planes, but user can turn
     # some off, too.  This will be useful for the APQC, to populate fewer
@@ -2401,7 +2389,7 @@ endif
         set view_planes = ( ${view_planes:q} -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" )
     endif
 
-# commenting out for now
+
     if ( "${oechocmd}" != "" ) then  # start of OECHOCMD
 
         # Change some things, specifically for APQC from AP; mainly
@@ -2409,7 +2397,12 @@ endif
         # are assigned must be preceded by a backslash
         if ( ${DO_echo4apqc} ) then
             set e_ulay = `basename "${ulay}"` # list dirnames, below
-            set e_olay = `basename "${olay}"`
+            if ( "${olay}" != "" ) then
+                set e_olay = `basename "${olay}"`
+            else
+                # it won't be seen, so for script, just load this
+                set e_olay = `basename "${ulay}"`
+            endif
             set e_crossh   = "SINGLE"
             set use_ad = "-all_dsets"
             
@@ -2422,6 +2415,12 @@ endif
 
         else
             set e_ulay = "${read_ulay}"  
+            if ( "${read_olay}" != "" ) then
+                set e_olay = "${read_olay}"
+            else
+                # it won't be seen, so for script, just load this
+                set e_olay = "${read_ulay}"
+            endif
             set e_olay = "${read_olay}"  
             set e_read_dir = "${read_dir}"  
             set e_crossh   = "${crossh}"  
@@ -2536,7 +2535,7 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
 
 set l = \`prompt_user -pause \
 "${txt_oechocmd}\n\n\
-\n\
+${txt_oechocmd2:q}\n\n\
 Initial ulay dataset : \${read_ulay}\n\
 Initial olay dataset : \${read_olay} (\${see_olay})\n\
 \n\
@@ -2559,35 +2558,44 @@ EOF
 
     endif # end of OECHOCMD
 
+    if ( ${DO_DRY_RUN} ) then
+        # skip actually *running* the command---can just get intermed
+        # files and text
+        goto END_DRY_RUN
+    endif
+
+
 
     # the command run with xvfb; same as above but different spacing;
     # at some point just run via the command script with xvfb
     # [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing
     # done, before values are calc'ed for ranges---thanks, RWC
-    afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu      \
-    -com "SWITCH_UNDERLAY ${read_ulay}"                              \
-    -com "SWITCH_OVERLAY  ${read_olay}"                              \
-    -com "SEE_OVERLAY     ${see_olay}"                               \
+    afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu \
+    -com "SWITCH_UNDERLAY ${read_ulay}" \
+    -com "SWITCH_OVERLAY  ${read_olay}" \
+    -com "SEE_OVERLAY     ${see_olay}" \
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]} ${butpress}" \
     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]} ${butpress}" \
     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]} ${butpress}" \
-    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
-    -com "$com_pbar_str"                                             \
-    -com "SET_SUBBRICKS   ${subbb}"                                  \
-    -com "$com_ulay_str"                                             \
-    -com "SET_FUNC_RANGE  ${frange}"                                 \
-    -com "SET_THRESHNEW   $thrnew $thrflag"                          \
-    -com "SET_FUNC_ALPHA  $olay_alpha"                               \
-    -com "SET_FUNC_BOXED  $olay_boxed"                               \
-    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
-    -com "SET_XHAIRS      ${crossh}"                                 \
-    -com "SET_XHAIR_GAP   ${xh_gap}"                                 \
-    -com "$coor_type $coors"                                         \
-    ${view_planes:q}                                                 \
-    -com "${do_quit}"                                                \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+    -com "$com_pbar_str" \
+    -com "SET_SUBBRICKS   ${subbb}" \
+    -com "$com_ulay_str" \
+    -com "SET_FUNC_RANGE  ${frange}" \
+    -com "SET_THRESHNEW   $thrnew $thrflag" \
+    -com "SET_FUNC_ALPHA  $olay_alpha" \
+    -com "SET_FUNC_BOXED  $olay_boxed" \
+    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}" \
+    -com "SET_XHAIRS      ${crossh}" \
+    -com "SET_XHAIR_GAP   ${xh_gap}" \
+    -com "$coor_type $coors" \
+    ${view_planes:q} \
+    -com "${do_quit}" \
     "${read_dir}"
 
-    endif
+    endif ### end of NOT 4D MODE
+
+END_DRY_RUN:
 
 end ### ... of BIG loop
 
@@ -3175,6 +3183,21 @@ COMMAND OPTIONS ~1~
                     (see ENV: AFNI_IMAGE_LABEL_IJK)
 
 -pass              :does nothing (no, really).
+
+-cmd2script C2S    :output a script that can drive AFNI to make
+                    (essentially) the same image being output here.
+
+-c2s_text   C2ST   :when using '-cmd2script ..', then this option can
+                    be used to add text in the (top of the) script's 
+                    pop-up message.
+
+-c2s_text2  C2ST   :when using '-cmd2script ..', then this option can
+                    be used to add a second line of text in the script's 
+                    pop-up message.
+
+-dry_run           :run all the parts of the chauffeur *except* making 
+                    the images; this is useful if we just want the
+                    '-cmd2script ..' script, for example.
 
 -no_clean          :by default, the temporary directory of copying
                     files and such is now (as of July 8, 2018)
