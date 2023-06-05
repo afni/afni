@@ -89,9 +89,13 @@
 #      + add -vstat_list opt
 #      + improve opt parsing/error checking
 #
-ver = '2.01' ; date = 'Apr 6, 2023' 
+#ver = '2.01' ; date = 'Apr 6, 2023' 
 # [PT] 1dplot.py: add keywords for labeling 3dAllineate params:
 #      + ALLINPAR6, ALLINPAR9, ALLINPAR12, 
+#
+ver = '2.10' ; date = 'June 5, 2023' 
+# [PT] default APQC revstyle is now 'pythonic'
+#      + will downgrade to 'basic' if needed, with warning
 #
 #########################################################################
 
@@ -1861,7 +1865,7 @@ class apqc_tcsh_opts:
     def __init__(self):
         self.json             = ""
         self.subjdir          = ""
-        self.revstyle         = "basic"
+        self.revstyle         = "pythonic"
         self.pythonic2basic   = 0
 
         self.ow_mode          = 'backup'   # overwrite mode 
