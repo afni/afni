@@ -5406,6 +5406,44 @@ def read_afni_seed_file(fname, only_from_space=None):
 
     return dat
 
+# [PT: June 5, 2023] For APQC HTML generation, and likely other
+# things.
+def rename_label_safely(x, only_hash=False):
+    """Make safe string labels that can be used in filenames (so no '#')
+and NiiVue object names (so no '-', '+', etc.; sigh).  
+
+For example, 'vstat_V-A_GLT#0_Coef' -> 'vstat_V__A_GLT_0_Coef'.
+
+The mapping rules are in the text of this function.  This function
+might (likely) update over time.
+
+Parameters
+----------
+x : str
+    a name
+only_hash : bool
+    simpler renaming, only replacing the hash symbol (that appears
+    in stat outputs)
+
+Returns
+-------
+y : str
+    a name that has (hopefully) been made safe by various letter 
+    substitutions.
+
+    """
+
+    y = x.replace('#', '_')
+
+    if only_hash :
+        return y
+
+    y = y.replace('-', '__')
+    y = y.replace('+', '___')
+    y = y.replace('.', '____')
+
+    return y
+
 # ----------------------------------------------------------------------
 
 if __name__ == '__main__':

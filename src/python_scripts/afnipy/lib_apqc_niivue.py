@@ -9,6 +9,8 @@
 import os, sys
 import copy, json
 
+from   afnipy import afni_util as au
+
 # Dictionary for converting an AFNI cbar name (keys) to NiiVue cmap
 # name(s). Note that NiiVue will split bi-directional pbars into 2
 # cmaps (pos first, then neg), so we always make a list of any mapping.
@@ -333,9 +335,9 @@ otxt : str
         ulay  = pdata + '/' + ulay_name
     if olay_name :  olay = pdata + '/' + olay_name
 
-    # NiiVue canvas ID
+    # NiiVue canvas ID and object name (*NB: latter can't have '-' chars)
     nid = 'nvcan_' + itemid
-    nobj = 'nvobj_' + itemid
+    nobj = 'nvobj_' + au.rename_label_safely(itemid) 
 
     # Setup a NiiVue dict for loading and displaying volumes, based on
     # the AFNI pbar.  Translate names of things, and load in various

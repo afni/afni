@@ -645,7 +645,8 @@ if __name__ == "__main__":
         for ii in range(Nobj):
             # the object to use, and a cleaner version of name
             vso      = all_vstat_obj[ii]
-            vsname   = lat.rename_label_safely(vso.olay_label)
+            vsname   = UTIL.rename_label_safely( vso.olay_label, 
+                                                 only_hash=True )
 
             obase    = 'qc_{:02d}'.format(idx)
             cmd      = lat.apqc_vstat_stvol( ap_ssdict, obase, "vstat", 

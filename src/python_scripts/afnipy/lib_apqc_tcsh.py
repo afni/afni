@@ -317,37 +317,6 @@ def coord_to_gen_sys(x, order='RAI'):
 
 # --------------------------------------------------------------------
 
-def rename_label_safely(x):
-    """Make safe string labels that can be used in filenames (so no '#')
-and NiiVue object names (so no '-', '+', etc.; sigh).  
-
-For example, 'vstat_V-A_GLT#0_Coef' -> 'vstat_V__A_GLT_0_Coef'.
-
-The mapping rules are in the text of this function.  This function
-might (likely) update over time.
-
-Parameters
-----------
-x : str
-    a name
-
-Returns
--------
-y : str
-    a name that has (hopefully) been made safe by various letter 
-    substitutions.
-
-    """
-
-    y = x.replace('#', '_')
-    y = y.replace('-', '__')
-    y = y.replace('+', '___')
-    y = y.replace('.', '____')
-
-    return y
-
-
-
 def read_in_txt_to_dict(fname, tmp_name='__tmp_txt2json.json', DO_CLEAN=True) :
     '''Take a colon-separate file 'fname', convert it to a JSON file
 'tmp_name', and then return the dictionary created thereby.
@@ -3049,6 +3018,8 @@ num : int
     otopjson = opref + '.axi.json'
     osubjson = opref + '.sag.json'
     opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
         print("++ APQC create:", oname, flush=True)
@@ -3141,10 +3112,13 @@ num : int
         -label_mode        1                                                 \
         -label_size        4                                                 \
         -no_cor                                                              \
+        -cmd2script        {odoafni}                                         \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
         -do_clean
     '''.format( ulay=ulay, focusbox=focusbox, tcorrvol=tcorrvol, cbar=cbar,
                 opbarrt=opbarrt, pbar_cr=pbar_cr, pbar_tr=pbar_tr,
-                opref=opref )
+                opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
@@ -3170,12 +3144,16 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'av_file'     : odoafni,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
     osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
+
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
 
     # Make info below images
     osubdict = {
@@ -3185,6 +3163,7 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'subtext'     : osubtxt,
+        'nv_html'     : onvhtml_name,
     }
     with open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
@@ -3201,6 +3180,21 @@ num : int
     '''.format( opbarrt=opbarrt )
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
+
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text; **special case for seedcorr map
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=tcorrvol, itemid=qci,
+                                     verb=0 )
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+    onvhtml_name = onvhtml.split('/')[-1]
 
     return 0
     
