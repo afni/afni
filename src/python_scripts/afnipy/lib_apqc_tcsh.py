@@ -3126,10 +3126,13 @@ num : int
     if seed.netw :    netw_str = """'{}' in {}""".format(seed.roi_label, 
                                                          seed.netw)
     else:             netw_str = """'{}'""".format(seed.roi_label)
+
     loc_str = """rad = {:.2f} mm ({}, {}, {})""".format(seed_rad, 
                                                         seed_loc_gen[0],
                                                         seed_loc_gen[1],
                                                         seed_loc_gen[2])
+    coords  = ' '.join([str(cc) for cc in seed.xyz])
+
 
     # text above images
     otoptxt = []
@@ -3145,6 +3148,8 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
         'av_file'     : odoafni,
+        'ic_file'     : 'run_instacorr_errts.tcsh',
+        'ic_args'     : coords,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
@@ -3490,6 +3495,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
         'av_file'     : odoafni,
+        'ic_file'     : 'run_instacorr_errts.tcsh',
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )

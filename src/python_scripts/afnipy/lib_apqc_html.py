@@ -669,6 +669,8 @@ class apqc_item_info:
     subtext     = ""
     nv_html     = ""
     av_file     = ""
+    ic_file     = ""
+    ic_args     = ""
     itemtype    = ""
     itemid      = ""
     blockid     = ""
@@ -707,6 +709,14 @@ class apqc_item_info:
         if 'av_file' in DICT :
             self.av_file = DICT['av_file']
 
+    def set_ic_file(self, DICT):
+        if 'ic_file' in DICT :
+            self.ic_file = DICT['ic_file']
+
+    def set_ic_args(self, DICT):
+        if 'ic_args' in DICT :
+            self.ic_args = DICT['ic_args']
+
     # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
         if 'text' in DICT :
@@ -740,6 +750,8 @@ class apqc_item_info:
         self.add_text(DICT)
         self.set_nv_html(DICT)
         self.set_av_file(DICT)
+        self.set_ic_file(DICT)
+        self.set_ic_args(DICT)
         self.add_subtext(DICT)
         self.set_warn_level(DICT)
 
@@ -2180,11 +2192,14 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
 # -------------------------------------------------------------------
 
 def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
-             av_file=''):
+             av_file='', ic_file='', ic_args=''):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
     # [PT: Mar 15, 2023] add in items for NiiVue button
+    # [PT: June 5, 2023] add in items for InstaCorr (IC) button, which only
+    #                    exists in add_nvbtn is True; ic_args are optional
+    #                    seed location coords (3 numbers)
 
     y = ''
     y+= vpad*'\n'
@@ -2210,9 +2225,18 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
       <button class="button-generic button-RHS btn6"
               title="Run AFNI-view" 
               onclick="doRunAV('{av_file}')">AV</button>
-      </td>
-    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid,
-                                                 av_file=av_file )
+      </td>'''.format( itemid=itemid, av_file=av_file )
+
+        if ic_file :
+            y+= '''
+      <td style="white-space:nowrap;" id=td6_IC_{itemid}>
+      <button class="button-generic button-RHS btn6"
+              title="Run InstaCorr" 
+              onclick="doRunAV('{ic_file} {ic_args}')">IC</button>
+      </td>'''.format( itemid=itemid, ic_file=ic_file, ic_args=ic_args )
+
+        y+= '''
+    </div> <!-- bot AV/NV buttons -->'''
 
     y+= '''
 </div> <!-- bottom of image -->

@@ -10,8 +10,11 @@ auth = 'PA Taylor'
 #ver = 1.1 # date: Oct 16, 2022
 # + allow 1D files (e.g., ideal stim files) and plugins in the GUI
 #
-ver = 1.2 # date: Nov 15, 2022
+#ver = 1.2 # date: Nov 15, 2022
 # + tweak pop-up msg text and minor function fix
+#
+ver = 1.3 # date: June 5, 2023
+# + add in ability to take 3 cmd line args to represent initial seed loc
 #
 #########################################################################
 
@@ -45,6 +48,9 @@ text_ic_top     = """#!/bin/tcsh
 # (dragging or re-clicking).  Watch the correlation patterns to that
 # seed location change, and this often provides an excellent way to
 # understand the data.
+#
+# Now, one can also provide three numbers on the command line to represent
+# the starting location (RAI coordinate notation) of the initial seed.
 
 # ver = {ver}
 # -------------------------------------------------------------------------
@@ -56,7 +62,16 @@ text_ic_top     = """#!/bin/tcsh
 
 text_ic_bot = """
 
-set coord       = `3dinfo -dc3 "${ic_dset}"`
+# possible starting seed coordinate (in RAI notation)
+set xcoor = "$1"
+set ycoor = "$2"
+set zcoor = "$3"
+
+if ( "${zcoor}" != "" ) then
+    set coord = ( "${xcoor}" "${ycoor}" "${zcoor}" )
+else
+    set coord = `3dinfo -dc3 "${ic_dset}"`
+endif
 
 set voxvol      = `3dinfo -voxvol "${ic_dset}"`
 set ic_seedrad  = `echo "${voxvol}"                                      \\
@@ -201,16 +216,16 @@ def make_apqc_ic_ulay_and_ic_dset( ap_ssdict ):
     # list of uvars, in decreasing order of preference
     ldep = ['tcat_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        otxt  = """set dset_ulay = {}\n""".format(ap_ssdict[ldep[0]])
+        otxt  = """set dset_ulay = "{}"\n""".format(ap_ssdict[ldep[0]])
     else:
         all_pb00 = glob.glob('pb00*HEAD')
         all_pb00.sort()
         if not(len(all_pb00)) :
             print("** ERROR: Could not find ulay for instacorr tcat?")
             return BAD_RETURN
-        otxt  = """set dset_ulay = {}\n""".format(all_pb00[0])
+        otxt  = """set dset_ulay = "{}"\n""".format(all_pb00[0])
 
-    otxt+= """set ic_dset   = ${dset_ulay}\n"""
+    otxt+= """set ic_dset   = "${dset_ulay}"\n"""
 
     return otxt
 
