@@ -1115,7 +1115,7 @@ if __name__ == "__main__":
 
     # write out log/history of what has been done
     olog = ap_ssdict['odir_info'] + '/' + 'log_apqc_tcsh.txt'
-    UTIL.write_afni_com_history(olog)
+    UTIL.write_afni_com_log(olog)
 
     # note where we are in the AP results dir
     pwd_res   = os.getcwd()
