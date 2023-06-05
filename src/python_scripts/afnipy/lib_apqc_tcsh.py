@@ -4781,8 +4781,13 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     olay_pref_o  = com.so[0].strip()
+    oname_o      = oname + '_0'
     opref_o      = opref + '_0'
     otopjson_o   = opref_o + '.axi.json'
+    opbarrt_o    = opref_o + '.pbar'
+    onvhtml_o    = opref_o + '.niivue.html'           # output niivue canvas
+    odoafni_o    = 'run_' + oname_o + '.tcsh'         # AV script name
+    qci_o        = qci + '_o'
 
     # get olay name 'flipped'
     olay_f = fdict['flip_dset_flipped']
@@ -4790,8 +4795,13 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
     olay_pref_f  = com.so[0].strip()
+    oname_f      = oname + '_1'
     opref_f      = opref + '_1'
     otopjson_f   = opref_f + '.axi.json'
+    opbarrt_f    = opref_f + '.pbar'
+    onvhtml_f    = opref_f + '.niivue.html'           # output niivue canvas
+    odoafni_f    = 'run_' + oname_f + '.tcsh'         # AV script name
+    qci_f        = qci + '_f'
 
     # text above data
     otoptxt = "Left-right flip check warnings"
@@ -4829,6 +4839,44 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # Make QC images: *dry run only*, for AV/NV
+    cmd = '''
+    @chauffeur_afni                                                          \
+        -ulay              "{ulay}"                                          \
+        -box_focus_slices  "{focusbox}"                                      \
+        -olay              "{olay}"                                          \
+        -cbar              "{cbar}"                                          \
+        -ulay_range        0% 120%                                           \
+        -func_range_perc   98                                                \
+        -pbar_posonly                                                        \
+        -olay_alpha        No                                                \
+        -olay_boxed        No                                                \
+        -set_subbricks     0 0 0                                             \
+        -opacity           9                                                 \
+        -pbar_saveim       "{opbarrt}.jpg"                                   \
+        -prefix            "{opref}"                                         \
+        -save_ftype        JPEG                                              \
+        -blowup            1                                                 \
+        -montx             7                                                 \
+        -monty             1                                                 \
+        -montgap           1                                                 \
+        -montcolor         black                                             \
+        -set_xhairs        OFF                                               \
+        -label_mode        1                                                 \
+        -label_size        4                                                 \
+        -no_cor                                                              \
+        -cmd2script        "{odoafni}"                                       \
+        -c2s_text          'APQC, {qcb}: {qci}  '                            \
+        -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -dry_run                                                             \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay_o,
+                opbarrt=opbarrt_o, 
+                cbar='gray_scale flip', opref=opref_o,
+                odoafni=odoafni_o, qcb=qcb, qci=qci_o )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
     # ... followed by "flipped" one
     cmd = '''
     @djunct_edgy_align_check                                                 \
@@ -4846,21 +4894,64 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # Make QC images: *dry run only*, for AV/NV
+    cmd = '''
+    @chauffeur_afni                                                          \
+        -ulay              "{ulay}"                                          \
+        -box_focus_slices  "{focusbox}"                                      \
+        -olay              "{olay}"                                          \
+        -cbar              "{cbar}"                                          \
+        -ulay_range        0% 120%                                           \
+        -func_range_perc   98                                                \
+        -pbar_posonly                                                        \
+        -olay_alpha        No                                                \
+        -olay_boxed        No                                                \
+        -set_subbricks     0 0 0                                             \
+        -opacity           9                                                 \
+        -pbar_saveim       "{opbarrt}.jpg"                                   \
+        -prefix            "{opref}"                                         \
+        -save_ftype        JPEG                                              \
+        -blowup            1                                                 \
+        -montx             7                                                 \
+        -monty             1                                                 \
+        -montgap           1                                                 \
+        -montcolor         black                                             \
+        -set_xhairs        OFF                                               \
+        -label_mode        1                                                 \
+        -label_size        4                                                 \
+        -no_cor                                                              \
+        -cmd2script        "{odoafni}"                                       \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_text2     "++ Hover over image, hit 'o' to toggle olay on/off"  \
+        -dry_run                                                             \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay_f,
+                opbarrt=opbarrt_f, 
+                cbar='gray_scale flip', opref=opref_f,
+                odoafni=odoafni_f, qcb=qcb, qci=qci_f )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
 
     # text above+below 'orig' image
     otoptxt_o = "... original anat edges ({})".format(state_o)
     osubtxt_o = "olay: {} (over EPI, {})".format(olay_pref_o, ulay_pref)
 
+    # store name of NiiVue html
+    onvhtml_name_o = onvhtml_o.split('/')[-1]
+
     # Make info above+below 'orig' image
     otopdict_o = {
         'itemtype'    : 'VOL',
-        'itemid'      : qci,
+        'itemid'      : qci_o,
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt_o,
         'subtext'     : osubtxt_o,
-    }
+        'av_file'     : odoafni_o,
+        'nv_html'     : onvhtml_name_o,
+   }
     with open(otopjson_o, 'w', encoding='utf-8') as fff:
         json.dump( otopdict_o, fff, ensure_ascii=False, indent=4 )
 
@@ -4869,18 +4960,79 @@ num : int
     otoptxt_f = "... flipped anat edges ({})".format(state_f)
     osubtxt_f = "olay: {} (over EPI, {})".format(olay_pref_f, ulay_pref)
 
+    # store name of NiiVue html
+    onvhtml_name_f = onvhtml_f.split('/')[-1]
+
     # Make info above+below 'flipped' image
     otopdict_f = {
         'itemtype'    : 'VOL',
-        'itemid'      : qci,
+        'itemid'      : qci_f,
         'blockid'     : qcb,
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt_f,
         'subtext'     : osubtxt_f,
+        'av_file'     : odoafni_f,
+        'nv_html'     : onvhtml_name_f,
     }
     with open(otopjson_f, 'w', encoding='utf-8') as fff:
         json.dump( otopdict_f, fff, ensure_ascii=False, indent=4 )
+
+
+    # Make pbar text
+    cmd = '''
+    abids_json_tool.py                                                       \
+        -overwrite                                                           \
+        -txt2json                                                            \
+        -delimiter_major  '::'                                               \
+        -delimiter_minor  ',,'                                               \
+        -input            "{opbarrt}.txt"                                    \
+        -prefix           "{opbarrt}.json"
+    '''.format( opbarrt=opbarrt_o )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt_o)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=olay_o, itemid=qci_o,
+                                     verb=0 )
+    fff = open(onvhtml_o, 'w')
+    fff.write(nv_txt)
+    fff.close()
+
+
+    # Make pbar text
+    cmd = '''
+    abids_json_tool.py                                                       \
+        -overwrite                                                           \
+        -txt2json                                                            \
+        -delimiter_major  '::'                                               \
+        -delimiter_minor  ',,'                                               \
+        -input            "{opbarrt}.txt"                                    \
+        -prefix           "{opbarrt}.json"
+    '''.format( opbarrt=opbarrt_f )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt_f)
+    with open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+                                     olay_name=olay_f, itemid=qci_f,
+                                     verb=0 )
+    fff = open(onvhtml_f, 'w')
+    fff.write(nv_txt)
+    fff.close()
 
     return 0
 

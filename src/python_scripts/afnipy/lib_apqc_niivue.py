@@ -50,9 +50,11 @@ nv_dict : dict
     else:
         cmap = copy.deepcopy(afni2nv_cmaps[pbar_dict['cbar']])
 
-    # show/hide olay button for alignment checks
+    # show/hide olay button for alignment/flip checks
     if pbar_dict['pbar_fname'].endswith('_va2t_anat2temp.pbar.jpg') or \
-       pbar_dict['pbar_fname'].endswith('_ve2a_epi2anat.pbar.jpg') :
+       pbar_dict['pbar_fname'].endswith('_ve2a_epi2anat.pbar.jpg') or \
+       pbar_dict['pbar_fname'].endswith('_warns_flip_0.pbar.jpg') or \
+       pbar_dict['pbar_fname'].endswith('_warns_flip_1.pbar.jpg') :
         nv_dict['olay_btn_sh'] = True
     else:
         nv_dict['olay_btn_sh'] = False
