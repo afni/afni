@@ -1,4 +1,6 @@
 
+# this applies to both ARM and Intel
+
 # ----------------------------------------------------------------------
 # install homebrew   - and python (3.11 currently), X11, netpbm, cmake
 # (command uses bash syntax, not just in script)
@@ -13,8 +15,8 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
              libomp gsl glib pkg-config gcc libiconv autoconf \
              libxt mesa mesa-glu libxpm
 
-# make a cheating link for omp.h
-sudo ln -s /usr/local/opt/libomp/include/omp.h /usr/local/include/omp.h
+# make a cheating link for omp.h (no longer needed?)
+# sudo ln -s /usr/local/opt/libomp/include/omp.h /usr/local/include/omp.h
 
 # ----------------------------------------------------------------------
 # put python in path and install matplotlib via pip
