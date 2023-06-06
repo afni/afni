@@ -311,7 +311,7 @@ apqc_help = [
 Some useful links:
 + The APQC HTML's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html" target="_blank">online tutorial</a></urlin>
 + The afni_proc.py (AP) program's <urlin><a href="https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html" target="_blank">online help file</a></urlin>
-+ The AFNI Message Board <urlin><a href="https://afni.nimh.nih.gov/afni/community/board/list.php?1" target="_blank">homepage</a></urlin>
++ The AFNI Message Board <urlin><a href="https://discuss.afni.nimh.nih.gov" target="_blank">homepage</a></urlin>
 '''], 
 ['OVERVIEW', 
 '''QC organization

@@ -5402,8 +5402,13 @@ num : int
     stat   = com.run()
 
     # get ulay and olay names
-    all_ulay = sorted(glob.glob(rcdir + "/" + "epi.ulay*HEAD"))
-    all_olay = sorted(glob.glob(rcdir + "/" + "radcor.*.corr*HEAD"))
+    if rcdir.endswith('regress') :
+        # should only be a single errts file
+        all_ulay = [ap_ssdict['main_dset']]     # bc errts makes a poor ulay
+        all_olay = sorted(glob.glob(rcdir + "/" + "radcor.*.errts.corr*.HEAD"))
+    else:
+        all_ulay = sorted(glob.glob(rcdir + "/" + "epi.ulay*HEAD"))
+        all_olay = sorted(glob.glob(rcdir + "/" + "radcor.*.corr*HEAD"))
 
     Nulay = len( all_ulay )
     Nolay = len( all_olay )
@@ -5420,7 +5425,10 @@ num : int
     chauff_params['thr_val']  = 0.4
     chauff_params['olay_top'] = 0.7
     chauff_params['cbar']     = "Reds_and_Blues_Inv"
-    chauff_params['pbar_cr']  = "ulay is 0th vol of EPI"
+    if rcdir.endswith('regress') :
+        chauff_params['pbar_cr']  = "ulay is " + ap_ssdict['main_dset']
+    else:
+        chauff_params['pbar_cr']  = "ulay is 0th vol of EPI"
     chauff_params['pbar_tr']  = "alpha on"
 
     for ii in range(Nolay):
@@ -5526,6 +5534,12 @@ num : int
             # text below images
             osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
 
+            # some IC driving scripts
+            if rcdir.endswith('regress') :
+                ic_file = 'run_instacorr_errts.tcsh'
+            else:
+                ic_file = ''
+
             # Make info above+below images
             otopdict = {
                 'itemtype'    : 'VOL',
@@ -5536,26 +5550,12 @@ num : int
                 'text'        : otoptxt,
                 'nv_html'     : onvhtml_name,
                 'av_file'     : odoafni,
+                'ic_file'     : ic_file,
                 'subtext'     : osubtxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
                 json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
-            ### PT: now always make pbar text for AV/NV buttons
-            """
-            # Make pbar text
-            cmd = '''
-            abids_json_tool.py                                               \
-                -overwrite                                                   \
-                -txt2json                                                    \
-                -delimiter_major  '::'                                       \
-                -delimiter_minor  ',,'                                       \
-                -input            "{opbarrt}.txt"                            \
-                -prefix           "{opbarrt}.json"
-            '''.format( opbarrt=opbarrt )
-            com    = ab.shell_com(cmd, capture=do_cap)
-            com.run()
-            """
         else:
             # Make text above image only
 
