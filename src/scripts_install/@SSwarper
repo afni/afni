@@ -536,6 +536,11 @@ if ( ! -f "${dset_cp}" ) then
     3dTcat                        \
         -prefix "${dset_cp}"      \
         "$Adataset"
+
+    if ( ${status} ) then
+        echo "** ERROR: in getting dset"
+        goto BAD_EXIT
+    endif
 endif
 
 if ( "${mask_ss}" != "" ) then
@@ -544,6 +549,11 @@ if ( "${mask_ss}" != "" ) then
         3dTcat                           \
             -prefix "${mask_ss_cp}"      \
             "${mask_ss}"
+
+        if ( ${status} ) then
+            echo "** ERROR: in getting dset"
+            goto BAD_EXIT
+        endif
     endif
 endif
 
