@@ -299,10 +299,18 @@ order.
 
     # initialize
     otxt = """\n"""
-    otxt+= """set all_load  = ( "${dset_ulay}" "${ic_dset}"        \\\n"""
+    otxt+= """set all_load  = ( "${dset_ulay}" "${ic_dset}"             \\\n"""
     # indentation index for below
     nindent = otxt.index('(') + 2
     nfinal  = otxt.index('\\') - 1
+
+    # add corr_brain, and vert align COL char
+    line = '''{}corr_brain*HEAD'''.format(' '*nindent)
+    npad = nfinal - len(line)
+    if npad > 0 :
+        line+= ' '*npad
+    line+= '''\\\n'''
+    otxt+= line
 
     for ldep in list_ldep:
         if lat.check_dep(ap_ssdict, [ldep]) :

@@ -2919,6 +2919,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
         'av_file'     : odoafni,
+        'ic_file'     : 'run_instacorr_errts.tcsh',
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
