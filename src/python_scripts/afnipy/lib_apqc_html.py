@@ -956,17 +956,21 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
                 onmousedown="btn1Clicked(event, this)" 
         onkeypress="if ( event.keyCode == 13 ) {{ btn1Clicked(event, this); }}" 
         {txt}</button>
-      </td>'''.format( ll=ll, txt=NULL_BTN1 )
+      </td>
+    </tr>
+'''.format( ll=ll, txt=NULL_BTN1 )
         else:
             bhelp  = 'HELP'
             y+= '''
-      <!-- bot button for block={lab} -->
-    <td>
-    <button class="button-generic button-RHS btn3saving" id=td3_{lab}
-            title="{hov}"   
-            onclick="colorizeSavingButton(is_served)">
-    {txt}</button>
-    </td>
+     <!-- bot button for block={lab} -->
+    <tr>
+      <td>
+        <button class="button-generic button-RHS btn3saving" id=td3_{lab}
+                title="{hov}"   
+              onclick="colorizeSavingButton(is_served)">
+        {txt}</button>
+      </td>
+    </tr>
 '''.format( lab=bsaving, hov=bsaving_hover, txt=bsaving )
 
 
@@ -983,6 +987,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
             # ... and hitting "Esc" (event.keyCode == 27) is like
             # canceling.
             y+= '''
+</table>
 <!-- top of QC button comment form for block={ll} -->
 <div class="form-popup" id="cform_{ll}" > 
     <form class="form-container" onsubmit="return false;"> 
