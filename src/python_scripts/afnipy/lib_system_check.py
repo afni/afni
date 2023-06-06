@@ -65,11 +65,15 @@ class SysInfo:
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
-   def get_afni_dir(self):
-      s, so, se = BASE.simple_shell_exec('which afni', capture=1)
+   def get_prog_dir(self, prog):
+      """return path to prog from 'which prog'"""
+
+      s, so, se = BASE.simple_shell_exec('which %s' % prog, capture=1)
       if s: return ''
       adir = so.strip()
-      if adir[-5:] == '/afni': return adir[0:-5]
+      tail = '/%s' % prog
+      tlen = len(tail)
+      if adir[-tlen:] == tail: return adir[0:-tlen]
       else:                    return ''
 
    def show_general_sys_info(self, header=1):
@@ -1249,7 +1253,7 @@ class SysInfo:
 
    def show_main_progs_and_paths(self):
 
-      self.afni_dir = self.get_afni_dir()
+      self.afni_dir = self.get_prog_dir('afni')
       check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
@@ -1297,35 +1301,71 @@ class SysInfo:
       # progs: scripts
       plist_script = ['uber_subject.py', '3dMVM']
 
-      # all
-      proglist = plist_bin + plist_script
+      nprogs = len(plist_bin) + len(plist_script)
 
-      fcount = self.check_running_AFNI_progs(proglist)
+      # try separately, to track library dependency issues with binaries
+      bfailures = self.check_running_AFNI_progs(plist_bin)
+      sfailures = self.check_running_AFNI_progs(plist_script)
+      fcount = len(bfailures) + len(sfailures)
       if fcount > 0:
          self.afni_fails = fcount
          self.comments.append('AFNI programs show FAILURE')
+      print()
 
-      # if complete failure, retry from exec dir
-      pfailure = fcount == len(proglist)
+      # if ANY programs failed and we are not running from `where afni` dir,
+      # try with the directory implied by this program
       ascdir = UTIL.executable_dir()
-      if pfailure and self.afni_dir != ascdir:
-         print('none working, testing programs under implied %s...' % ascdir)
-         fcount = self.check_running_AFNI_progs(proglist, execdir=ascdir)
-         if fcount < len(proglist):
+      if fcount > 0 and self.afni_dir != ascdir:
+         print('have failures, testing programs under implied %s...' % ascdir)
+         bfailures = self.check_running_AFNI_progs(plist_bin, execdir=ascdir)
+         sfailures = self.check_running_AFNI_progs(plist_script, execdir=ascdir)
+         fcount = len(bfailures) + len(sfailures)
+         if fcount < nprogs:
             self.comments.append('consider adding %s to your PATH' % ascdir)
+         print()
+
+      # if we have binary failures, check for existence but lib failures
+      # (report in self.comments)
+      self.check_binary_libs(bfailures, ascdir)
+
       # if afni_dir is not set, use ascdir
       if self.afni_dir == '': self.afni_dir = ascdir
+
+   def check_binary_libs(self, proglist, execdir=None):
+      """try to find all missing shared libs from proglist
+         - report them in self.comments
+      """
+
+      if len(proglist) == 0:
+         return
+
+      return
+
+   def missing_libs(self, fname):
+      """for given file, return a list of missing libraries
+
+         if linux, use ldd and search for 'not found'
+         if mac, well, I am not yet sure (otool -L does not show it)
+      """
+      if not os.path.isfile(fname):
+         return []
+
+      # handle only known linux for now
+      if self.system != 'Linux':
+         return []
+
+      return []
 
    def check_running_AFNI_progs(self, proglist, execdir=None):
       """for each prog in proglist, run "prog -help"
          - if set, use execdir/prog
          - side effect: possibly set self.ok_openmp
 
-         return number of failures
+         return list of failed progs
       """
 
       indn = '\n' + g_indent
-      fcount = 0
+      failures = []
       for prog in proglist:
          # possibly add a path to prog
          if execdir is not None:
@@ -1342,16 +1382,14 @@ class SysInfo:
          if st:
             print('    %-20s : FAILURE' % prog)
             print(g_indent + indn.join(se))
-            fcount += 1
+            failures.append(prog)
          else:
             print('    %-20s : success' % prog)
 
             # check for OpenMP success
             if prog == '3dAllineate': self.ok_openmp = 1
 
-      print('')
-
-      return fcount
+      return failures
 
    def check_R_libs(self):
       print('checking for R packages...')
