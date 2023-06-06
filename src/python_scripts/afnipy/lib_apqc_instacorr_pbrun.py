@@ -13,8 +13,13 @@ auth = 'PA Taylor'
 #ver = 1.2 # date: Nov 15, 2022
 # + tweak pop-up msg text and minor function fix
 #
-ver = 1.3 # date: June 5, 2023
+#ver = 1.3 # date: June 5, 2023
 # + add in ability to take 3 cmd line args to represent initial seed loc
+#
+ver = 1.4 # date: June 6, 2023
+# + create this script to be a general InstaCorr script for all pb*HEAD 
+#   files.  It requires cmd line args to run, but it can be used by the
+#   APQC HTML relatively conveniently
 #
 #########################################################################
 
@@ -29,7 +34,7 @@ from afnipy import lib_apqc_tcsh       as lat
 
 # ----------------------------------------------------------------------
 
-scriptname = 'run_instacorr_tcat.tcsh'         # output file, tcsh script
+scriptname = 'run_instacorr_pbrun.tcsh'         # output file, tcsh script
 
 # ===========================================================================
 # ===========================================================================
@@ -49,8 +54,12 @@ text_ic_top     = """#!/bin/tcsh
 # seed location change, and this often provides an excellent way to
 # understand the data.
 #
-# Now, one can also provide three numbers on the command line to represent
-# the starting location (RAI coordinate notation) of the initial seed.
+# In this script, one *must* provide 2 command line args: a pb label (pb00, 
+# pb01, etc.), and a run number (r01, r02, r03, etc.).
+#
+# Additionally, one *can* also add three numbers on the command line
+# to represent the starting location (RAI coordinate notation) of the 
+# initial seed.
 
 # ver = {ver}
 # -------------------------------------------------------------------------
@@ -62,10 +71,67 @@ text_ic_top     = """#!/bin/tcsh
 
 text_ic_bot = """
 
+
+set pb  = "$1"
+set run = "$2"
+
+if ( "${run}" == "" ) then
+    echo "** Exiting: this program requires 2 cmd line args to run:"
+    echo "   + a pb label (pb00, pb01, etc.)"
+    echo "   + a run number (r01, r02, r03, etc.)."
+    echo "   Additionally, you can then put 3 numbers as an initial"
+    echo "   seed location coordinate"
+    exit 1
+endif
+
+# ----- find main dset of IC
+set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3-`
+
+if ( ${#dset_ulay} == 0 ) then
+    echo "** Exiting: could not find dset: ${pb}.*.${run}.*.HEAD"
+    exit 1
+else if ( ${#dset_ulay} == 1 ) then
+    echo "++ Found IC dset: ${dset_ulay}"
+    set ic_dset   = "${dset_ulay}"
+else
+    echo "** Exiting: too many (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
+    exit 1
+endif
+
+# ----- find associated vline file, if exists
+set dset_vline = ""
+set dir_vline  = `find . -maxdepth 1 -type d        \\
+                      -name "vlines.${pb}.*"        \\
+                      | cut -b3-`
+if ( ${#dir_vline} == 1 ) then
+    set dset_vline  = `find ./${dir_vline} -maxdepth 1 -type f        \\
+                           -name "var.1.*${run}*"                     \\
+                           | cut -b3-`
+endif
+
+# ----- find associated radcor file, if exists
+set dset_radcor = ""
+set dir_radcor  = `find . -maxdepth 1 -type d       \\
+                     -name "radcor.${pb}.*"         \\
+                     | cut -b3-`
+if ( ${#dir_radcor} == 1 ) then
+    set dset_radcor  = `find ./${dir_radcor} -maxdepth 1 -type f     \\
+                            -name "radcor.*.${run}*HEAD"             \\
+                            | cut -b3-`
+endif
+
+# ----- make ordered list of dsets to load
+set all_load  = ( "${dset_ulay}" "${ic_dset}"       \\
+                   ${pb}*HEAD                       \\
+                   ${dset_vline} ${dset_radcor}     \\
+                   *.HEAD *.nii* )
+
+# ----- finalize remaining parameters
+
 # possible starting seed coordinate (in RAI notation)
-set xcoor = "$1"
-set ycoor = "$2"
-set zcoor = "$3"
+set xcoor = "$3"
+set ycoor = "$4"
+set zcoor = "$5"
 
 if ( "${zcoor}" != "" ) then
     set coord = ( "${xcoor}" "${ycoor}" "${zcoor}" )
@@ -192,106 +258,6 @@ exit 0
 
 # ===========================================================================
 # ===========================================================================
-# 
-
-def make_apqc_ic_ulay_and_ic_dset( ap_ssdict ):
-    """Decide which 3D or 4D dataset should be the underlay in the APQC
-    run_instacorr* script.  This just involves going through a list of
-    possible items, in order.  
-
-    This dataset will be both the ulay and olay.
-
-    Parameters
-    ----------
-    ap_ssdict : dict
-                the dictionary of 'uvar' elements for a given subject
-
-    Return
-    ------
-    otxt  : str
-                the tcsh-syntax string that sets the variable with the
-                chosen dset's value.
-    """
-
-    # default return, if error exiting
-    BAD_RETURN = ""
-
-    # list of uvars, in decreasing order of preference
-    ldep = ['tcat_dset']
-    if lat.check_dep(ap_ssdict, ldep) :
-        otxt  = """set dset_ulay = "{}"\n""".format(ap_ssdict[ldep[0]])
-    else:
-        all_pb00 = glob.glob('pb00*HEAD')
-        all_pb00.sort()
-        if not(len(all_pb00)) :
-            print("** ERROR: Could not find ulay for instacorr tcat?")
-            return BAD_RETURN
-        otxt  = """set dset_ulay = "{}"\n""".format(all_pb00[0])
-
-    otxt+= """set ic_dset   = "${dset_ulay}"\n"""
-
-    return otxt
-
-def make_apqc_ic_all_load( ap_ssdict, do_check_vlines=True ):
-    """All results directory dsets get loaded in, to be available to be
-used.  We build the list order so that the most useful to explore with
-InstaCorr are first, and then everything follows in alphabetical
-order.  This just involves going through a list of possible items, in
-order.
-
-    Parameters
-    ----------
-    ap_ssdict : dict
-                the dictionary of 'uvar' elements for a given subject
-    do_check_vline : bool
-                check if the vlines_tcat_dir exists, and then load its
-                contents as well
-
-    Return
-    ------
-    otxt  : str
-                the tcsh-syntax string that sets the variable with the
-                list.
-
-    """
-
-    # default return, if error exiting
-    BAD_RETURN = ""
-
-    # initialize---even though the ulay and ic_dset here are likely to
-    # be same file, leave script like this in case they are not (in
-    # the future)
-    otxt = """\n"""
-    otxt+= """set all_load  = ( "${dset_ulay}" "${ic_dset}"        \\\n"""
-
-    # indentation index for below
-    nindent = otxt.index('(') + 2
-    nfinal  = otxt.index('\\') - 1
-
-    list_ldep = ['vlines_tcat_dir']
-    if do_check_vlines and lat.check_dep(ap_ssdict, list_ldep) :
-        vline_dsets = ap_ssdict[list_ldep[0]] + '/' + '*.nii*'
-        # don't put quotes if using wildcard
-        line = '''{}{} '''.format(' '*nindent, vline_dsets)
-        npad = nfinal - len(line)
-        if npad > 0 :
-            line+= ' '*npad
-        line+= '''\\\n'''
-        otxt+= line
-    
-    if len(glob.glob('pb00*HEAD')) > 1 :
-        # don't put quotes if using wildcard
-        line = '''{}{} '''.format(' '*nindent, 'pb00*HEAD' )
-        npad = nfinal - len(line)
-        if npad > 0 :
-            line+= ' '*npad
-        line+= '''\\\n'''
-        otxt+= line
-
-    otxt+= """{}*.HEAD *.nii* )""".format(' '*nindent)
-    otxt+= """\n"""
-
-    return otxt
 
 def make_apqc_ic_script( ap_ssdict ):
     """Make the full text (string) of the InstaCorr script
@@ -311,15 +277,6 @@ def make_apqc_ic_script( ap_ssdict ):
 
     # start of script text, default text (above)
     otxt = text_ic_top
-
-    # get the text for the underlay and "input" dset for InstaCorr
-    text_ulay_and_ic = make_apqc_ic_ulay_and_ic_dset( ap_ssdict )
-
-    # ... and make list of all dsets to load
-    text_all_load = make_apqc_ic_all_load( ap_ssdict )
-
-    otxt+= text_ulay_and_ic
-    otxt+= text_all_load
 
     # and finish, with default text (above)
     otxt+= text_ic_bot

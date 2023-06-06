@@ -5414,6 +5414,7 @@ num : int
     Nolay = len( all_olay )
     Ncbar = Nolay - 1                # the idx of volume to get cbar under
 
+    pb       = rcdir.split(".")[1]
     rc_block = rcdir.split(".")[2]
 
     if Nulay != Nolay :
@@ -5527,18 +5528,20 @@ num : int
         else:
             otoptxt = olay_title
 
+        # some IC driving scripts
+        if rcdir.endswith('regress') :
+            ic_file = 'run_instacorr_errts.tcsh'
+            ic_args = ''
+        else:
+            ic_file = 'run_instacorr_pbrun.tcsh'
+            ic_args = '{} {}'.format(pb, rnum)
+
         # conditions for placing text and cbar
         if ii == Ncbar :
             # Make a cbar and text below image, *only* for last one in set
 
             # text below images
             osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
-
-            # some IC driving scripts
-            if rcdir.endswith('regress') :
-                ic_file = 'run_instacorr_errts.tcsh'
-            else:
-                ic_file = ''
 
             # Make info above+below images
             otopdict = {
@@ -5551,6 +5554,7 @@ num : int
                 'nv_html'     : onvhtml_name,
                 'av_file'     : odoafni,
                 'ic_file'     : ic_file,
+                'ic_args'     : ic_args,
                 'subtext'     : osubtxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
@@ -5568,6 +5572,8 @@ num : int
                 'title'       : lah.qc_blocks[qcb][1],
                 'nv_html'     : onvhtml_name,
                 'av_file'     : odoafni,
+                'ic_file'     : ic_file,
+                'ic_args'     : ic_args,
                 'text'        : otoptxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
