@@ -21,8 +21,7 @@ version = '2.0'  # add in AV button functionality
 
 # ==========================================================================
 
-from flask        import Flask, send_from_directory, request, jsonify
-from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+# primary imports (flask* mods imported below, after help parsing)
 from threading    import Timer
 import json
 import pprint     as     pp
@@ -53,7 +52,7 @@ control (APQC) HTML files.
 
 It is designed to allow saving QC ratings and notes as the files are
 browsed, by using a local server.  **This functionality requires
-Python's Flask module to be installed.**
+Python's Flask and Flask-CORS modules to both be installed.**
 
 {ddashline}
 
@@ -196,6 +195,8 @@ do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
 verb             = int(args.verb[0])
 
+# ---------------------------- help stuff -------------------------------
+
 # hview functionality
 if do_hview :
     prog = str(sys.argv[0]).split('/')[-1]
@@ -213,8 +214,25 @@ if do_ver :
     print(version)
     sys.exit(0)
 
-# ---------------------------------
-# process opts slightly
+# ----------------------- import flask -----------------------------------
+# put import here, so users can get help info without it
+try:
+    from flask        import Flask, send_from_directory, request, jsonify
+    from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+except (ImportError,NotImplementedError):
+    emsg = """** ERROR. To be able to run this program, please install the 
+   following Python modules:
+      flask (v>= ***)
+      flask_cors (v>= ***)
+   For example, this could be done with a package manager or conda."""
+    print(emsg)
+    sys.exit(3)
+
+# !!! (perhaps) TO DO: add in a non-flask-driven open option, perhaps,
+# !!! though this is annoying/tricky/unstable with browser+OS variation
+
+# ------------------------------------------------------------------------
+# continue on: process opts slightly
 
 if verb > 2 :
     print("++ do_new_tabs_only:", do_new_tabs_only)
