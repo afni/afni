@@ -1334,12 +1334,47 @@ class SysInfo:
    def check_binary_libs(self, proglist, execdir=None):
       """try to find all missing shared libs from proglist
          - report them in self.comments
+
+         return 1 if something was missing
       """
 
       if len(proglist) == 0:
-         return
+         return 0
 
-      return
+      libs_missing = []     # list of all missing libraries
+      libs_programs = []    # list of programs with missing libraries
+      for prog in proglist:
+         # note directory of choice
+         if execdir: pdir = execdir
+         else:       pdir = self.get_prog_dir(prog)
+
+         # if none, skip
+         if not pdir:
+            continue
+
+         # does it (exist and) have missing libs?
+         missing = self.missing_libs('%s/%s' % (pdir, prog))
+
+         if len(missing) == 0:
+            continue
+
+         libs_missing.extend(missing)
+         libs_programs.append(prog)
+
+      # if nothing was found, we are done
+      if len(libs_missing) == 0:
+         return 0
+
+      libs_missing = UTIL.get_unique_sublist(libs_missing)
+
+      # report the failure
+      print("** missing %d binary library(ies) across %d program(s)\n" \
+            % (len(libs_missing), len(libs_programs)))
+
+      for lib in libs_missing:
+         self.comments.append("missing binary library: %s" % lib)
+
+      return 1
 
    def missing_libs(self, fname):
       """for given file, return a list of missing libraries
@@ -1354,7 +1389,23 @@ class SysInfo:
       if self.system != 'Linux':
          return []
 
-      return []
+      search_str = 'not found'
+
+      status, lines = UTIL.exec_tcsh_command("ldd %s"%fname, lines=1)
+      if self.verb > 2:
+         print("-- check for libs in %s\n"      \
+               "         status %s, nlines %d"  \
+               % (fname, status, len(lines)))
+
+      missing = []
+      for line in lines:
+         if line.find(search_str) > 0:
+            lname = line.split()[0]
+            missing.append(lname)
+            if self.verb > 2:
+               print("   missing: %s" % lname)
+
+      return missing
 
    def check_running_AFNI_progs(self, proglist, execdir=None):
       """for each prog in proglist, run "prog -help"
