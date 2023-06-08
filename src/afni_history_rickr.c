@@ -54,7 +54,7 @@
 afni_history_struct rickr_history[] = {
 
  {  8, Jun, 2023, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
-   "add maker to AFNI_version.txt",
+   "add build maker to AFNI_version.txt",
    NULL
  } ,
 
