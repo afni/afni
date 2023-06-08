@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Jun, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "start looking for dependent libraries (under linux for now)",
+   "Also, rearranged some of the output.\n"
+   "Done at the behest of P Taylor."
+ } ,
+
  { 12, May, 2023, RCR, "Makefile.macos_13_ARM_clang", MICRO, TYPE_MODIFY,
    "comment out EXTRA_INSTALL_FILES",
    "Might vary, and is not needed for non-distribution system."
