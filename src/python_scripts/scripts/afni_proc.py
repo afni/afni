@@ -750,9 +750,10 @@ g_history = """
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
     7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
     7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
+    7.56 Jun  2, 2023: fix -regress_errts_prefix with surface analysis
 """
 
-g_version = "version 7.55, March 1, 2023"
+g_version = "version 7.56, June 2, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

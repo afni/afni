@@ -59,6 +59,12 @@ afni_history_struct rickr_history[] = {
    "Done at the behest of P Taylor."
  } ,
 
+ {  2, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix -regress_errts_prefix for surface analysis",
+   "It was missing $hemi to specify the hemisphere.\n"
+   "Thanks to A Gilemore for bringing up the issue."
+ } ,
+
  { 12, May, 2023, RCR, "Makefile.macos_13_ARM_clang", MICRO, TYPE_MODIFY,
    "comment out EXTRA_INSTALL_FILES",
    "Might vary, and is not needed for non-distribution system."

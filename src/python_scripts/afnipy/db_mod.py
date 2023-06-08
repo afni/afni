@@ -6235,12 +6235,12 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregsOI == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.${subj}%s' % suff]
+        opt.parlist = ['errts.${subj}']
 
     if not opt or not opt.parlist: errts = ''
     else:
         # note and apply
-        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre_3dd = '%s%s' % (opt.parlist[0], suff)
         proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
