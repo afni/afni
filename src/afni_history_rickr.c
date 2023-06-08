@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Jun, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "start looking for dependent libraries (under linux for now)",
+   "Also, rearranged some of the output.\n"
+   "Done at the behest of P Taylor."
+ } ,
+
  {  2, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix -regress_errts_prefix for surface analysis",
    "It was missing $hemi to specify the hemisphere.\n"
