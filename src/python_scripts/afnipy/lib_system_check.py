@@ -899,8 +899,12 @@ class SysInfo:
       # check for programs
       nfound = 0
       for prog in plist:
+         # show_comment: if show_missing, we might not want a comment
+         show_comment = 1
+
          # the version file is treated specially here
          if prog == 'AFNI_version.txt':
+            show_comment = 0 # no comments.append()
             vinfo = UTIL.read_AFNI_version_file()
             if vinfo != '':
                nfound += 1
@@ -911,6 +915,7 @@ class SysInfo:
 
          # as is afni
          elif prog == 'afni label':
+            show_comment = 0 # no comments.append()
             nfound += 1   # do not call this an error yet
             s, v = self.get_prog_version('afni')
             print('%-20s : %s' % ('', self.afni_label))
@@ -952,7 +957,10 @@ class SysInfo:
                
             nfound += 1
          elif show_missing:
-            print('%-20s : %s' % (cmd, se))
+            self.comments.append("missing program: %s" % prog)
+            print('%-20s :' % cmd)
+            if self.verb > 2:
+               print('%-20s : %s' % (cmd, se))
 
       print('')
 
@@ -1249,11 +1257,12 @@ class SysInfo:
       if header:
          print(UTIL.section_divider('dependent program tests',hchar='-'))
 
+      self.check_other_dep_progs()
       self.check_R_libs()
 
    def show_main_progs_and_paths(self):
 
-      self.afni_dir = self.get_prog_dir('afni')
+      self.afni_dir = self.get_prog_dir('afni_system_check.py')
       check_list = ['afni', 'afni label', 'AFNI_version.txt', 'python', 'R']
       nfound = self.check_for_progs(check_list, show_missing=1)
       if nfound < len(check_list):
@@ -1442,6 +1451,12 @@ class SysInfo:
 
       return failures
 
+   def check_other_dep_progs(self):
+      print('checking for dependent programs...\n')
+
+      check_list = ['tcsh', 'Xvfb']
+      nfound = self.check_for_progs(check_list, show_missing=1)
+
    def check_R_libs(self):
       print('checking for R packages...')
 
@@ -1568,6 +1583,9 @@ class SysInfo:
       elif prog == 'tcsh':      # no version
          return 0, ''
 
+      elif prog == 'Xvfb':      # no version
+         return 0, ''
+
       elif prog == 'port':      # no dashes for version
          cmd = '%s version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
@@ -1600,7 +1618,8 @@ class SysInfo:
 
          return 1, (dstr+vstr)
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git',
+                    'R']:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
