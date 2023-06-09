@@ -296,7 +296,7 @@ vastness:all plugins install install_plugins install_lib
 ### Make many things
 
 all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libtracktools.a $(EXLIBS) \
-             R_io.so programs ptaylor_all AFNI_version
+             R_io.so programs ptaylor_all
 
 ### Make afni binaries
 
@@ -2255,7 +2255,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs prog_list
 	echo "===== AFNI install finished (fondly do we hope, fervently we do pray) ====="
 
 # no binaries
-install_text: $(INSTALLDIR) AFNI_version prog_list
+install_text: $(INSTALLDIR) AFNI_version.txt prog_list
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_SCRIPTS_DIR)/*.py  $(R_DIR)/*.R $(R_TCSH_DIR)/* $(INSTALLDIR)
@@ -4219,10 +4219,10 @@ R_io.so: R_io.c $(LIBMRI_OBJ) $(R_MAKEVARS_DEP)
 # version system:
 #    AFNI_version_base.txt: updated by build scripts (dist_src)
 #    libmri.h depends on AFNI_version.h, which depends on AFNI_version_base.txt
+#                                        and on AFNI_version.txt
 #
-#    AFNI_version.txt: depends on AFNI_version_base.txt and programs
+#    AFNI_version.txt: also depends on AFNI_version_base.txt
 #             - this is just an install file
-#    all:     depends on AFNI_version.txt
 #    install: installs AFNI_version.txt
 
 mrilib.h: Startup_Commands AFNI_version.h
@@ -4235,7 +4235,7 @@ mrilib.h: Startup_Commands AFNI_version.h
 Startup_Commands:
 	$(STARTUP_COMMANDS)
 
-AFNI_version.h: AFNI_version_base.txt
+AFNI_version.h: AFNI_version.txt AFNI_version_base.txt
 	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \
 	echo '#define AFNI_VERSION_LABEL    "'`cat AFNI_version_base.txt`'"' \
              >> AFNI_version.h ;                                             \
@@ -4243,10 +4243,14 @@ AFNI_version.h: AFNI_version_base.txt
 	echo '#define AFNI_VERSION_PLATFORM "'$(SYSTEM_NAME)'"'              \
              >> AFNI_version.h ;
 
+# allow specifying who is doing the build
+AFNI_WHOMADEIT ?= local
+
 # no .txt in target, so that it always updates the file when invoked
-AFNI_version:
+AFNI_version.txt: AFNI_version_base.txt
 	( $(CP) AFNI_version_base.txt AFNI_version.txt ; \
 	echo $(SYSTEM_NAME) >> AFNI_version.txt ;        \
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
+	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
 
