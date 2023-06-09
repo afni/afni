@@ -30,8 +30,6 @@ import glob
 import json
 import subprocess
 
-from afnipy import lib_apqc_tcsh       as lat
-
 # ----------------------------------------------------------------------
 
 scriptname = 'run_instacorr_pbrun.tcsh'         # output file, tcsh script
@@ -213,32 +211,32 @@ afni -q  -no_detach                                                     \\
 
 sleep 1
 
-set l = `prompt_user -pause \\
-"      Run InstaCorr on the initial (tcat) dataset\\n\\n\\
+set l = `prompt_popup -message \\
+"      Run InstaCorr on AP results data\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
 \\n\\
-Wait briefly for the initial correlation patterns to appear.\\n\\
+Wait briefly for the initial correlation patterns to appear.  \\n\\
 \\n\\
 To use InstaCorr:\\n\\
-Hold down Ctrl+Shift, and Left-click anywhere in the dataset.\\n\\
-You can hold down Left-click and drag the cursor around, too.\\n\\
+First, hold down Ctrl+Shift. Then Left-click anywhere in  \\n\\
+the dataset, and even drag the cursor around.\\n\\
 \\n\\
-You will see the (unmasked) wholebrain correlation patterns\\n\\
-from each clicked 'seed' location, updating instantly.\\n\\
-Transparent+boxed thresholding is ON (via 'A' and 'B' buttons).\\n\\
+Correlation patterns from each clicked seed location\\n\\
+update instantly.\\n\\
 \\n\\
 To jump to particular coordinates:\\n\\
 + Right-click -> 'Jump to (xyz)' \\n\\
 + Enter 3 space-separated coords\\n\\
-+ Then, Right-click -> 'InstaCorr set',\\n\\
-  or use standard Ctrl+Shift and Left-click.\\n\\
++ Right-click -> 'InstaCorr set'\\n\\
+... or use standard Ctrl+Shift and Left-click.\\n\\
 \\n\\
-Alpha (transparent) thresholding is on. To show boxes (outlines),\\n\\
-click the 'B' button above the colorbar in the GUI.\\n\\
-\\n\\
-When done, hit 'OK' to exit.\\n"`
+Alpha (transparent) thresholding is ON. To put boxes\\n\\
+around suprathreshold voxels, click 'B' above the colorbar  \\n\\
+in the GUI.\\n\\
+\\n"\\
+-b '          Done - Close AFNI GUI          '`
 
 
 if ("$l" != "1") then
@@ -259,13 +257,12 @@ exit 0
 # ===========================================================================
 # ===========================================================================
 
-def make_apqc_ic_script( ap_ssdict ):
+def make_apqc_ic_script( ):
     """Make the full text (string) of the InstaCorr script
 
     Parameters
     ----------
-    ap_ssdict : dict
-                the dictionary of 'uvar' elements for a given subject
+    (none)
 
     Return
     ------
