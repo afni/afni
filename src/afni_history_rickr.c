@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Jun, 2023, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
+   "add build maker to AFNI_version.txt",
+   NULL
+ } ,
+
  {  7, Jun, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "start looking for dependent libraries (under linux for now)",
    "Also, rearranged some of the output.\n"
