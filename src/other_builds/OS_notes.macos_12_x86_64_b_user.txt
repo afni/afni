@@ -10,7 +10,7 @@ defaults write org.x.X11 wm_ffm -bool true
 defaults write com.apple.Terminal FocusFollowsMouse -string YES
 
 # ----------------------------------------------------------------------
-# intstall initial AFNI package (no binaries), to be able to run AFNI scripts
+# install initial AFNI package (no binaries), to be able to run AFNI scripts
 # install under initial abin (relevant if we -do_extras)
 
 curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
