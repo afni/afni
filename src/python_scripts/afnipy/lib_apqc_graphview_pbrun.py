@@ -1,23 +1,11 @@
 #!/usr/bin/env python
 
-# This library contains functions for creating an InstaCorr driver
+# This library contains functions for creating a Graph View driver
 # script for the AP results directory.
 #
 auth = 'PA Taylor'
-# ver : 0.1 || date: Oct 5, 2022
-# + some level of written-ness
-#
-#ver = 1.1 # date: Oct 16, 2022
-# + allow 1D files (e.g., ideal stim files) and plugins in the GUI
-#
-#ver = 1.2 # date: Nov 15, 2022
-# + tweak pop-up msg text and minor function fix
-#
-#ver = 1.3 # date: June 5, 2023
-# + add in ability to take 3 cmd line args to represent initial seed loc
-#
-ver = 1.4 # date: June 6, 2023
-# + create this script to be a general InstaCorr script for all pb*HEAD 
+ver = 1.4 # date: June 9, 2023
+# + create this script to be a general Graph View script for all pb*HEAD 
 #   files.  It requires cmd line args to run, but it can be used by the
 #   APQC HTML relatively conveniently
 #
@@ -32,13 +20,13 @@ import subprocess
 
 # ----------------------------------------------------------------------
 
-DEF_scriptname = 'run_instacorr_pbrun.tcsh'        # output file, tcsh script
+DEF_scriptname = 'run_graphview_pbrun.tcsh'        # output file, tcsh script
 
 # ===========================================================================
 # ===========================================================================
 # main text defaults: most of the script is type-cast
 
-text_ic_top     = """#!/bin/tcsh
+text_gv_top     = """#!/bin/tcsh
 
 # This script was created by the afni_proc.py quality control (APQC)
 # generator.  
@@ -65,10 +53,9 @@ text_ic_top     = """#!/bin/tcsh
 """.format(ver=ver)
 
 # ... and functions to define a few quantities are given below:
-#     make_apqc_ic_*( ... ) ...
+#     make_apqc_gv_*( ... ) ...
 
-text_ic_bot = """
-
+text_gv_bot = """
 
 set pb  = "$1"
 set run = "$2"
@@ -82,15 +69,14 @@ if ( "${run}" == "" ) then
     exit 1
 endif
 
-# ----- find main dset of IC
+# ----- find main dset 
 set dset_ulay = `find . -maxdepth 1 -name "${pb}.*.${run}.*.HEAD" | cut -b3-`
 
 if ( ${#dset_ulay} == 0 ) then
     echo "** Exiting: could not find dset: ${pb}.*.${run}.*.HEAD"
     exit 1
 else if ( ${#dset_ulay} == 1 ) then
-    echo "++ Found IC dset: ${dset_ulay}"
-    set ic_dset   = "${dset_ulay}"
+    echo "++ Found ulay dset: ${dset_ulay}"
 else
     echo "** Exiting: too many (${#dset_ulay}) dsets: ${pb}.*.${run}.*.HEAD"
     exit 1
@@ -119,8 +105,8 @@ if ( ${#dir_radcor} == 1 ) then
 endif
 
 # ----- make ordered list of dsets to load
-set all_load  = ( "${dset_ulay}" "${ic_dset}"       \\
-                   ${pb}*HEAD                       \\
+set all_load  = ( "${dset_ulay}"                    \\
+                   *.${run}.*HEAD                   \\
                    ${dset_vline} ${dset_radcor}     \\
                    *.HEAD *.nii* )
 
@@ -134,16 +120,8 @@ set zcoor = "$5"
 if ( "${zcoor}" != "" ) then
     set coord = ( "${xcoor}" "${ycoor}" "${zcoor}" )
 else
-    set coord = `3dinfo -dc3 "${ic_dset}"`
+    set coord = `3dinfo -dc3 "${dset_ulay}"`
 endif
-
-set voxvol      = `3dinfo -voxvol "${ic_dset}"`
-set ic_seedrad  = `echo "${voxvol}"                                      \\
-                        | awk '{printf "%0.2f",(2*($1)^0.3334);}'`
-echo "++ seedcorr radius: ${ic_seedrad}"
-set ic_blur     = `echo "${voxvol}"                                      \\
-                        | awk '{printf "%0.2f",(1.5*($1)^0.3334);}'`
-echo "++ blurring radius: ${ic_blur}"
 
 # ===========================================================================
 # parameters set by default
@@ -155,30 +133,13 @@ setenv AFNI_STARTUP_WARNINGS   NO
 setenv AFNI_NIFTI_TYPE_WARN    NO
 setenv AFNI_NO_OBLIQUE_WARNING YES
 
-# InstaCorr parameters
-
-set ic_ignore   = 0
-set ic_blur     = ${ic_blur}           # bc the data be unprocessed
-set ic_automask = no
-set ic_despike  = no
-set ic_bandpass = 0,99999
-set ic_polort   = 3                    # bc the data be unprocessed
-set ic_method   = P
-
 # GUI visualization parameters
 
-set pbar_sign   = "-"
-set ncolors     = 99
-set topval      = 0.6
-set cbar        = "Reds_and_Blues_Inv"
-set olay_alpha  = "Quadratic"
-set olay_boxed  = "No"
-set thresh      = 0.3
-set frange      = ${topval}
 set crossh      = MULTI
 set xh_gap      = -1
 set opacity     = 7
 set OW          = "OPEN_WINDOW"
+set graxis      = "axial"
 
 # port communication
 set portnum = `afni -available_npb_quiet`
@@ -188,66 +149,43 @@ set portnum = `afni -available_npb_quiet`
 afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
      -com "SWITCH_UNDERLAY    ${dset_ulay}"                             \\
-     -com "INSTACORR INIT                                               \\
-                     DSET=${ic_dset}                                    \\
-                   IGNORE=${ic_ignore}                                  \\
-                     BLUR=${ic_blur}                                    \\
-                 AUTOMASK=${ic_automask}                                \\
-                  DESPIKE=${ic_despike}                                 \\
-                 BANDPASS=${ic_bandpass}                                \\
-                   POLORT=${ic_polort}                                  \\
-                  SEEDRAD=${ic_seedrad}                                 \\
-                   METHOD=${ic_method}"                                 \\
-     -com "INSTACORR SET      ${coord} J"                               \\
-     -com "SET_THRESHNEW      ${thresh}"                                \\
-     -com "SET_PBAR_ALL       ${pbar_sign}${ncolors} ${topval} ${cbar}" \\
-     -com "SET_FUNC_RANGE     ${frange}"                                \\
      -com "SET_XHAIRS         ${crossh}"                                \\
      -com "SET_XHAIR_GAP      ${xh_gap}"                                \\
-     -com "SET_FUNC_ALPHA     ${olay_alpha}"                            \\
-     -com "SET_FUNC_BOXED     ${olay_boxed}"                            \\
      -com "$OW sagittalimage  opacity=${opacity}"                       \\
+     -com "$OW ${graxis}graph keypress=M keypress=M"                    \\
      ${all_load:q}  &
 
 sleep 1
 
 set l = `prompt_popup -message \\
-"      Run InstaCorr on AP results data\\n\\n\\
+"   View time series graphs of AP EPI data\\n\\n\\
 \\n\\
-InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
+Initial graph shown  : ${gaxis}\\n\\
 \\n\\
-Wait briefly for the initial correlation patterns to appear.  \\n\\
-\\n\\
-To use InstaCorr:\\n\\
-First, hold down Ctrl+Shift. Then Left-click anywhere in  \\n\\
-the dataset, and even drag the cursor around.\\n\\
-\\n\\
-Correlation patterns from each clicked seed location\\n\\
-update instantly.\\n\\
-\\n\\
-To jump to particular coordinates:\\n\\
-+ Right-click -> 'Jump to (xyz)' \\n\\
-+ Enter 3 space-separated coords\\n\\
-+ Right-click -> 'InstaCorr set'\\n\\
-... or use standard Ctrl+Shift and Left-click.\\n\\
-\\n\\
-Alpha (transparent) thresholding is ON. To put boxes\\n\\
-around suprathreshold voxels, click 'B' above the colorbar  \\n\\
-in the GUI.\\n\\
+Some useful graph keyboard shortcuts:\\n\\
++ g/G = decrease/increase vertical grid spacing\\n\\
++ m/M = reduce/increase matrix size of sub-graphs by 1  \\n\\
++ v/V = 'video' scroll forward/backward in time\\n\\
++ spacebar = pause scrolling\\n\\
++ a/A = autoscale graphs once/always\\n\\
++ z/Z = change slice number down/up by 1\\n\\
++ -/+ = scale graphs down/up vertically\\n\\
++ S   = save view of graph to image file\\n\\
++ w   = write higlighted time series as *.1D text file  \\n\\
 \\n"\\
 -b '          Done - Close AFNI GUI          '`
 
 
 if ("$l" != "1") then
-    echo "+* Warn: InstaCorr guidance message failed to open"
+    echo "+* Warn: AFNI Graph Viewer guidance message failed to open"
 endif
 
 @Quiet_Talkers -npb_val ${portnum}
 
 cat << EOF
 ===========================================
-++ Goodbye, and thank you for InstaCorring.
+++ Goodbye, and thank you for graph viewing.
 
 EOF
 exit 0
@@ -257,8 +195,8 @@ exit 0
 # ===========================================================================
 # ===========================================================================
 
-def make_apqc_ic_script( ):
-    """Make the full text (string) of the InstaCorr script
+def make_apqc_graphview_script( ):
+    """Make the full text (string) of the Graph Viewing script
 
     Parameters
     ----------
@@ -267,21 +205,21 @@ def make_apqc_ic_script( ):
     Return
     ------
     otxt  : str
-                the tcsh-syntax string (=full script) for the InstaCorr
-                run script
+            the tcsh-syntax string (=full script) for the Graph Viewing
+            run script
 
     """
 
     # start of script text, default text (above)
-    otxt = text_ic_top
+    otxt = text_gv_top
 
     # and finish, with default text (above)
-    otxt+= text_ic_bot
+    otxt+= text_gv_bot
 
     return otxt
 
-def write_apqc_ic_script(pname = '' ):
-    """Write out the text file of the InstaCorr script.
+def write_apqc_graphview_script(pname = '' ):
+    """Write out the text file of the Graph View script.
 
 Parameters
 ----------
@@ -296,7 +234,7 @@ okay : int
     """
 
     # get text of script
-    otext = make_apqc_ic_script()
+    otext = make_apqc_graphview_script()
 
     # write the text file in the results directory
     ofile = ''
@@ -324,3 +262,5 @@ okay : int
     print( msg )
 
     return 0
+
+    

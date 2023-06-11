@@ -265,6 +265,7 @@ from afnipy import lib_apqc_io         as laio
 from afnipy import lib_apqc_instacorr  as laic
 from afnipy import lib_apqc_instacorr_tcat  as laict
 from afnipy import lib_apqc_instacorr_pbrun as laipb
+from afnipy import lib_apqc_graphview_pbrun as lagpb
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -404,34 +405,15 @@ if __name__ == "__main__":
         msg = lat.commandize(msg, ALLEOL=False)
         print( msg )
 
-    # ... and we'll just assume there is at least one pb* file present.
+    # pb+run instacorr script
     if 1 :
-        # make the full text
-        script_text_insta = laipb.make_apqc_ic_script(ap_ssdict)
+        stat = laipb.write_apqc_ic_script()
 
-        # write the text file in the results directory
-        otcsh_insta  = laipb.scriptname
-        fff = open(otcsh_insta, 'w')
-        fff.write(script_text_insta)
-        fff.close()
+    # pb+run graphview script
+    if 1 :
+        stat = lagpb.write_apqc_graphview_script()
 
-        # make executable, a la rcr
-        try: code = eval('0o755')
-        except: code = eval('0755')
-        try:
-            os.chmod(otcsh_insta, code)
-        except:
-            omsg = "failed: chmod {} {}".format(code, otcsh_insta)
-            print(omsg)
-
-        msg = '''
-        ++ Done making (executable) InstaCorr script:
-        {}
-        '''.format(otcsh_insta)
-        msg = lat.commandize(msg, ALLEOL=False)
-        print( msg )
-
-
+    sys.exit()
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0
