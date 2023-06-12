@@ -172,7 +172,7 @@ Some useful graph keyboard shortcuts:\\n\\
 + z/Z = change slice number down/up by 1\\n\\
 + -/+ = scale graphs down/up vertically\\n\\
 + S   = save view of graph to image file\\n\\
-+ w   = write higlighted time series as *.1D text file  \\n\\
++ w   = write highlighted time series as *.1D text file  \\n\\
 \\n"\\
 -b '          Done - Close AFNI GUI          '`
 
