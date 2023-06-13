@@ -1002,7 +1002,7 @@ class SysInfo:
       if warn:
          wstr = 'need maptplotlib version 2.2+ for APQC'
          print("** %s\n" % wstr)
-         self.comments.append('check for partial install of PyQt4')
+         self.comments.append(wstr)
 
    def get_ver_matplotlib(self):
       """simply return a matplotlib version string, and "None" on failure.
