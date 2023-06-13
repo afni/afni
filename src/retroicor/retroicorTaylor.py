@@ -40,17 +40,17 @@
         - Per slice with cardio to deal with temporal offsets across slices
         - Try weird examples from physio dB
         - Options that might change do not have default
-        - Add options for Peter Lauren-written alternatives for
-            - Finding peaks
-            - Determining phase
-            - Determining final output
+            
+    DONE:
+        - RVT without shifts (Single regressor for RVT.) 
         - Write alternative functions for
             - Finding peaks
             - Determining phase
             - Determining final output
-        - RVT without shifts (Single regressor for RVT.)
-            
-    DONE:
+        - Add options for Peter Lauren-written alternatives for
+            - Finding peaks
+            - Determining phase
+            - Determining final output
         - Fix figure flashes in default mode
         - Offset for every slice relative to TR
             - afnipy/afni_util.py:slice_pattern_to_timing() gets the actual timing
