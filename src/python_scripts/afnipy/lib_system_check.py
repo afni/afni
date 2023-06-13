@@ -59,6 +59,9 @@ class SysInfo:
       self.login_shell     = ''
       self.rc_file         = ''
 
+      # misc control
+      self.test_pyqt4      = 0  # should we even test for PyQt4
+
       self.repo_prog       = '' # e.g. yum or brew
       self.have_matplotlib = 0
       self.have_pyqt4      = 0
@@ -1016,6 +1019,12 @@ class SysInfo:
       return ver
 
    def test_python_lib_pyqt4(self, verb=2):
+      # do we even care to be here?
+      if not self.test_pyqt4:
+         # pretend that all is well
+         self.have_pyqt4 = 1
+         return 0
+
       # actual lib test
       libname = 'PyQt4'
       rv = MT.simple_import_test(libname, verb=verb)
