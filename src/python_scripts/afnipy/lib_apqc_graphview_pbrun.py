@@ -124,14 +124,24 @@ else
 endif
 
 # ===========================================================================
-# parameters set by default
+# general GUI parameters
 
-setenv AFNI_THRESH_INIT_EXPON  0
-setenv AFNI_NOSPLASH           YES
-setenv AFNI_SPLASH_MELT        NO
-setenv AFNI_STARTUP_WARNINGS   NO
-setenv AFNI_NIFTI_TYPE_WARN    NO
-setenv AFNI_NO_OBLIQUE_WARNING YES
+setenv AFNI_THRESH_INIT_EXPON    0
+setenv AFNI_NOSPLASH             YES
+setenv AFNI_SPLASH_MELT          NO
+setenv AFNI_STARTUP_WARNINGS     NO
+setenv AFNI_NIFTI_TYPE_WARN      NO
+setenv AFNI_NO_OBLIQUE_WARNING   YES
+setenv AFNI_ENVIRON_WARNINGS     NO
+setenv AFNI_COMPRESSOR           NONE
+setenv AFNI_NEVER_SAY_GOODBYE    YES
+setenv AFNI_MOTD_CHECK           NO
+
+# graph specific parameters (faster to do here than with driving)
+
+setenv AFNI_graph_width     800  # initial width of graph window
+setenv AFNI_graph_height    500  # initial height of graph window
+setenv AFNI_graph_matrix    5    # initial number of sub-graphs
 
 # GUI visualization parameters
 
@@ -152,7 +162,7 @@ afni -q  -no_detach                                                     \\
      -com "SET_XHAIRS         ${crossh}"                                \\
      -com "SET_XHAIR_GAP      ${xh_gap}"                                \\
      -com "$OW sagittalimage  opacity=${opacity}"                       \\
-     -com "$OW ${graxis}graph keypress=M keypress=M"                    \\
+     -com "$OW ${graxis}graph"                                          \\
      ${all_load:q}  &
 
 sleep 1
@@ -161,7 +171,7 @@ set l = `prompt_popup -message \\
 "   View time series graphs of AP EPI data\\n\\n\\
 \\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
-Initial graph shown  : ${gaxis}\\n\\
+Initial graph shown  : ${graxis}\\n\\
 \\n\\
 Some useful graph keyboard shortcuts:\\n\\
 + g/G = decrease/increase vertical grid spacing\\n\\
@@ -173,7 +183,7 @@ Some useful graph keyboard shortcuts:\\n\\
 + -/+ = scale graphs down/up vertically\\n\\
 + S   = save view of graph to image file\\n\\
 + w   = write highlighted time series as *.1D text file  \\n\\
-\\n"\\
+\\n" \\
 -b '          Done - Close AFNI GUI          '`
 
 
