@@ -136,7 +136,9 @@ setenv AFNI_ENVIRON_WARNINGS     NO
 setenv AFNI_COMPRESSOR           NONE
 setenv AFNI_NEVER_SAY_GOODBYE    YES
 setenv AFNI_MOTD_CHECK           NO
-
+setenv AFNI_VERSION_CHECK        NO
+setenv AFNI_IMAGE_DATASETS       NO
+ 
 # graph specific parameters (faster to do here than with driving)
 
 setenv AFNI_graph_width     800  # initial width of graph window

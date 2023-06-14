@@ -148,12 +148,23 @@ echo "++ blurring radius: ${ic_blur}"
 # ===========================================================================
 # parameters set by default
 
+setenv AFNI_ENVIRON_WARNINGS   NO
 setenv AFNI_THRESH_INIT_EXPON  0
 setenv AFNI_NOSPLASH           YES
 setenv AFNI_SPLASH_MELT        NO
 setenv AFNI_STARTUP_WARNINGS   NO
 setenv AFNI_NIFTI_TYPE_WARN    NO
 setenv AFNI_NO_OBLIQUE_WARNING YES
+setenv AFNI_COMPRESSOR         NONE
+setenv AFNI_NEVER_SAY_GOODBYE  YES
+setenv AFNI_MOTD_CHECK         NO
+setenv AFNI_VERSION_CHECK      NO
+setenv AFNI_IMAGE_DATASETS     NO
+
+# GUI params, set here for speed, perhaps 
+setenv AFNI_DEFAULT_OPACITY    7
+setenv AFNI_FUNC_BOXED         NO
+setenv AFNI_THRESH_AUTO        NO
 
 # InstaCorr parameters
 
@@ -172,12 +183,10 @@ set ncolors     = 99
 set topval      = 0.6
 set cbar        = "Reds_and_Blues_Inv"
 set olay_alpha  = "Quadratic"
-set olay_boxed  = "No"
 set thresh      = 0.3
 set frange      = ${topval}
 set crossh      = MULTI
 set xh_gap      = -1
-set opacity     = 7
 set OW          = "OPEN_WINDOW"
 
 # port communication
@@ -205,8 +214,7 @@ afni -q  -no_detach                                                     \\
      -com "SET_XHAIRS         ${crossh}"                                \\
      -com "SET_XHAIR_GAP      ${xh_gap}"                                \\
      -com "SET_FUNC_ALPHA     ${olay_alpha}"                            \\
-     -com "SET_FUNC_BOXED     ${olay_boxed}"                            \\
-     -com "$OW sagittalimage  opacity=${opacity}"                       \\
+     -com "$OW sagittalimage"                                           \\
      ${all_load:q}  &
 
 sleep 1
