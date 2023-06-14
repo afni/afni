@@ -541,7 +541,7 @@ file_subj_check <- function(data.in){
         ## align the data frame, and write to log
         nonmode.df <- dtCheck_lead_space(nonmode.df)
         dtCheck_log_df(nonmode.df) ; dtCheck_log_print("\n")
-        dtCheck_write_log(log.name)
+        # dtCheck_write_log(log.name)
         # q()
         return(1)
     } 
