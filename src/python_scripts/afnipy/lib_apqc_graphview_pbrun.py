@@ -147,7 +147,6 @@ setenv AFNI_graph_matrix    5    # initial number of sub-graphs
 
 set crossh      = MULTI
 set xh_gap      = -1
-set opacity     = 7
 set OW          = "OPEN_WINDOW"
 set graxis      = "axial"
 
@@ -161,7 +160,7 @@ afni -q  -no_detach                                                     \\
      -com "SWITCH_UNDERLAY    ${dset_ulay}"                             \\
      -com "SET_XHAIRS         ${crossh}"                                \\
      -com "SET_XHAIR_GAP      ${xh_gap}"                                \\
-     -com "$OW sagittalimage  opacity=${opacity}"                       \\
+     -com "$OW sagittalimage"                                           \\
      -com "$OW ${graxis}graph"                                          \\
      ${all_load:q}  &
 
