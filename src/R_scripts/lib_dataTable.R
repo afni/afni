@@ -398,8 +398,14 @@ dtCheck_printSummary <- function(data.in){
     dtCheck_log_print("Data summary: \n")
     
     data.detail <- c()
+    
+    ## do the Subj column first
+    Subj.nums <- length(levels(data.in$Subj))
+    Subj.txt <- paste0("Num Subjects=",Subj.nums)
+    data.detail <- c(data.detail,Subj.txt)
+    
     ## collect some info on each variable
-    for( i in 1:length(data.in) ){
+    for( i in 2:length(data.in) ){
         
         ## get the variable class and get a little summary
         col.class <- class(data.in[[i]])
@@ -445,6 +451,9 @@ dtCheck_printSummary <- function(data.in){
             class.out <- c(class.out,"Quantitative")
         }
     }
+    ## change the names of the first and last classes
+    class.out[1] <- "Subjects"
+    class.out[length(class.out)] <- "Data"
     
     ## combine all stuff
     data.summary <- data.frame(Variable=names(data.in),
