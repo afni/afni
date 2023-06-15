@@ -110,13 +110,13 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
                 phys_fs, dataType, troughs = peaks,
                 OutDir = OutDir, prefix = dataType + 
-                    'AdjustTroughsAfterPctlFilt', 
+                    'PctlFilt', 
                 caption = 'Filter troughs based on percentile of raw data.',
                 font_size = font_size)
         else:
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, 
-                OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterPctlFilt', 
+                OutDir = OutDir, prefix = dataType + 'PctlFilt', 
                 caption = 'Filter peaks based on percentile of raw data.',
                 font_size = font_size)
 
@@ -203,7 +203,7 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     if (show_graph or save_graph) and phys_fs:
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
+            prefix = dataType + 'LocalPctlFilt', 
             caption = 'Filter peaks based on local percentile of raw data.',
             font_size = font_size)
        
@@ -1096,7 +1096,7 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     if (show_graph or save_graph) and phys_fs:
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
+            prefix = dataType + 'AddMissingPeaksPerPeriodicity', 
             caption = 'Add missing peaks.', font_size = font_size)
     
     return peaks

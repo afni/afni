@@ -187,7 +187,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
                 show_graph = max(test_retro_obj.show_graph_level-1,0), 
                 save_graph = max(test_retro_obj.save_graph_level-1,0), 
                 phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
-                font_size = test_retro_obj.font_size)   
+                font_size = test_retro_obj.font_size, dataType = "Cardiac")   
    
    # Remove "peaks" that are less than the raw input a quarter of 
    # a period on right side
