@@ -694,6 +694,11 @@ AFNI.command.history <- function(ExecName=NULL, args=NULL, ohist=NULL) {
         return(NULL);
     }
     an <- .Call("R_SUMA_HistString", ExecName, args, ohist)
+    
+    ## jkr 6/2023 trying to get overwrite for the log file (global not good...)
+    ## not sure where to put this but it works here
+    if( "-overwrite" %in% args ){ dtCheck.overwrite <<- TRUE }
+    
     return(an)
 }
 
@@ -1080,6 +1085,7 @@ AFNI.new.options.list <- function(history = '', parsed_args = NULL) {
         switch(opname,
                overwrite = lop$overwrite <- TRUE )
     }
+    
     return(lop)
 }
 

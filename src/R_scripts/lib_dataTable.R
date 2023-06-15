@@ -7,9 +7,10 @@
 ## load libraries ########
 suppressPackageStartupMessages(library(data.table))
 
-## global log text #############
+## global variables #############
 log.out <- c()  ## not the greatest method...
 log.name <- "temp_log.txt"
+dtCheck.overwrite <- FALSE
 
 ## some declared variables #######
 respVar <- c('InputFile','Inputfile','inputFile','inputfile',
@@ -155,10 +156,22 @@ dtCheck_bad_files <- function(data.in,cmd.num,bad.num=0,equals=TRUE,
 
 ## write log.out to file
 dtCheck_write_log <- function(file.out=log.name){
-    if( file.exists(log.name) ){
-        dtCheck_warn(paste0("Log file: ",log.name," exists! NOT OVERWRITING"))
+    if( file.exists(file.out) & !(dtCheck.overwrite) ){
+        dtCheck_warn(paste0("Log file: ",file.out," exists! NOT OVERWRITING!"))
+        
+    } else if( file.exists(file.out) & (dtCheck.overwrite) ){
+        dtCheck_warn(paste0("Log file: ",file.out," exists! OVERWRITING!"))
+        
     } else {
-        cat(log.out,file=file.out,sep="")  ## log.out is global
+        ## print the output name and date first
+        log.name.base <- substr(file.out,1,nchar(file.out)-8)
+        log.name.base <- paste0(basename(log.name.base),"\n")
+        date.stamp <- paste0(date(),"\n")
+        log.out <<- rbind(date.stamp,log.out)
+        log.out <<- rbind(log.name.base,log.out) 
+        
+        ## write out
+        cat(log.out,file=file.out,sep="")
     }
 }
 
