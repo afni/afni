@@ -1277,11 +1277,11 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     # mpl.text.Text(.5, .05, caption, ha='center')
 
     # Save plot to file
-    if show_graph: 
-        plt.ion()
-        plt.show(block=True)
-    else:
-        plt.ioff()
+    # if show_graph: 
+    #     plt.ion()
+    #     plt.show(block=True)
+    # else:
+    #     plt.ioff()
         
     if save_graph:
         if not OutDir:
@@ -1291,10 +1291,10 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
             return 1
         else:
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-        
-        
-    plt.close()  # Close graph after saving
-    
+            
+    if show_graph: plt.show(block=True)
+    if not show_graph: plt.close()  # Close graph after saving
+
     return 0
 
 def checkForNans(rawData, dataType, failureThreshold = 100):

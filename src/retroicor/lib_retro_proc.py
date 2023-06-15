@@ -330,7 +330,7 @@ def getRespiratoryPeaks(test_retro_obj):
                               width=int(test_retro_obj.resp_data.samp_freq/4))
    
     # Graph initial peaks and save graph to disk
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>1, 
+    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>1, 
         test_retro_obj.save_graph_level>1, rawData, peaks, 
         test_retro_obj.resp_data.samp_freq, "Respiratory", OutDir = OutDir, 
         prefix = 'respiratoryPeaksFromBPFInput', 
@@ -434,7 +434,7 @@ def getRespiratoryPeaks(test_retro_obj):
                               width=int(test_retro_obj.resp_data.samp_freq/8))
    
     # Graph initial peaks and save graph to disk
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>1, 
+    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>1, 
         test_retro_obj.save_graph_level>1, rawData, peaks, 
         test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
         OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
