@@ -208,10 +208,10 @@ static char g_version[] = "2.13";
 static char g_version_date[] = "February 27, 2022";
 static int  g_debug = 1;
 
+#include <limits.h>
 #include <string.h>
 #include <stdint.h>
 
-#define _NIFTI_TOOL_C_
 #include "nifti2_io.h"
 #include "nifti_tool.h"
 
@@ -401,11 +401,15 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       /* begin normal execution options... */
       else if( ! strcmp(argv[ac], "-add_ext") )
       {
-         int new_ecode;
+         int64_t new_ecode;
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-add_ext");
-         new_ecode = atoll(argv[ac]);
-         if( add_int(&opts->etypes, new_ecode) ) return -1;
+         new_ecode = strtol(argv[ac], NULL, 10);
+         if (new_ecode <= 0 || new_ecode > INT_MAX) {
+           fprintf(stderr,"** invalid -add_ext code, %s\n", argv[ac]);
+           return -1;
+         }
+         if( add_int(&opts->etypes, (int)new_ecode) ) return -1;
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-add_ext");
          if( add_string(&opts->elist, argv[ac]) ) return -1; /* add extension */
@@ -842,17 +846,19 @@ int verify_opts( nt_opts * opts, char * prog )
 
 /*----------------------------------------------------------------------
  * re-assemble the command string into opts->command
+ * (commands are currently limited to 2048 bytes)
  *----------------------------------------------------------------------*/
 int fill_cmd_string( nt_opts * opts, int argc, char * argv[])
 {
    char * cp;
-   int    len, remain = sizeof(opts->command);  /* max command len */
+   int    len, remain = (int)sizeof(opts->command);  /* max command len */
    int    c, ac;
    int    has_space;  /* arguments containing space must be quoted */
    int    skip = 0;   /* counter to skip some of the arguments     */
 
    /* get the first argument separately */
-   len = snprintf( opts->command, sizeof(opts->command), "\n  command: %s", argv[0] );
+   len = snprintf( opts->command, sizeof(opts->command),
+                   "\n  command: %s", argv[0] );
    if( len < 0 || len >= (int)sizeof(opts->command) ) {
       fprintf(stderr,"FCS: no space remaining for command, continuing...\n");
       return 1;
@@ -865,7 +871,7 @@ int fill_cmd_string( nt_opts * opts, int argc, char * argv[])
    {
       if( skip ){ skip--;  continue; }  /* then skip these arguments */
 
-      len = strlen(argv[ac]);
+      len = (int)strlen(argv[ac]);
       if( len + 3 >= remain ) {  /* extra 3 for space and possible '' */
          fprintf(stderr,"FCS: no space remaining for command, continuing...\n");
          return 1;
@@ -2136,9 +2142,8 @@ int use_full(void)
    "  ------------------------------\n"
    "\n"
    "  R. Reynolds\n"
-   "  compiled: %s\n"
    "  version %s (%s)\n\n",
-   __DATE__, g_version, g_version_date );
+   g_version, g_version_date );
 
    return 1;
 }
@@ -2259,7 +2264,7 @@ int act_add_exts( nt_opts * opts )
 
       for( ec = 0; ec < opts->elist.len; ec++ ){
          ext = opts->elist.list[ec];
-         elen = strlen(ext);
+         elen = (int)strlen(ext);
          if( !strncmp(ext,"file:",5) ){
             edata = read_file_text(ext+5, &elen);
             if( !edata || elen <= 0 ) {
@@ -2284,7 +2289,7 @@ int act_add_exts( nt_opts * opts )
       }
 
       if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                             (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
          fprintf(stderr,"** failed to add command to image as extension\n");
 
       if( opts->prefix &&
@@ -2320,18 +2325,22 @@ int act_add_exts( nt_opts * opts )
  *----------------------------------------------------------------------*/
 static char * read_file_text(const char * filename, int * length)
 {
-   FILE * fp;
-   char * text;
-   int    len, bytes;
+   FILE    * fp;
+   char    * text;
+   int64_t   len64;
+   size_t    bytes;
 
    if( !filename || !length ) {
       fprintf(stderr,"** bad params to read_file_text\n");
       return NULL;
    }
 
-   len = nifti_get_filesize(filename);
-   if( len <= 0 ) {
+   len64 = nifti_get_filesize(filename);
+   if( len64 <= 0 ) {
       fprintf(stderr,"** RFT: file '%s' appears empty\n", filename);
+      return NULL;
+   } else if( len64 > INT_MAX ) {
+      fprintf(stderr,"** RFT: file '%s' size exceeds 32-bit limit\n", filename);
       return NULL;
    }
 
@@ -2343,19 +2352,19 @@ static char * read_file_text(const char * filename, int * length)
 
    /* allocate the bytes, and fill them with the file contents */
 
-   text = (char *)malloc(len * sizeof(char));
+   text = (char *)malloc(len64 * sizeof(char));
    if( !text ) {
-      fprintf(stderr,"** RFT: failed to allocate %d bytes\n", len);
+      fprintf(stderr,"** RFT: failed to allocate %" PRId64 " bytes\n", len64);
       fclose(fp);
       return NULL;
    }
 
-   bytes = fread(text, sizeof(char), len, fp);
+   bytes = fread(text, sizeof(char), len64, fp);
    fclose(fp); /* in any case */
 
-   if( bytes != len ) {
-      fprintf(stderr,"** RFT: read only %d of %d bytes from %s\n",
-                     bytes, len, filename);
+   if( bytes != len64 ) {
+      fprintf(stderr,"** RFT: read only %zu of %" PRId64 " bytes from %s\n",
+                     bytes, len64, filename);
       free(text);
       return NULL;
    }
@@ -2363,13 +2372,13 @@ static char * read_file_text(const char * filename, int * length)
    /* success */
 
    if( g_debug > 1 ) {
-      fprintf(stderr,"++ found extension of length %d in file %s\n",
-              len, filename);
+      fprintf(stderr,"++ found extension of length %" PRId64 " in file %s\n",
+              len64, filename);
       if( g_debug > 2 )
          fprintf(stderr,"++ text is:\n%s\n", text);
    }
 
-   *length = len;
+   *length = (int)len64;
 
    return text;
 }
@@ -2481,7 +2490,7 @@ int act_rm_ext( nt_opts * opts )
          return 1;
 
       if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                             (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
          fprintf(stderr,"** failed to add command to image as extension\n");
 
       if( opts->prefix &&
@@ -3349,7 +3358,7 @@ int act_mod_hdrs( nt_opts * opts )
          }
 
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                                strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                                (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
             fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
@@ -3466,7 +3475,7 @@ int act_mod_hdr2s( nt_opts * opts )
             return 1;
          }
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                                strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                                (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
                fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
@@ -3612,7 +3621,7 @@ int act_swap_hdrs( nt_opts * opts )
             return 1;
          }
          if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                                strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                                (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
                fprintf(stderr,"** failed to add command to image as extension\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
@@ -3678,7 +3687,7 @@ int act_mod_nims( nt_opts * opts )
 
       /* add command as COMMENT extension */
       if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                             (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
          fprintf(stderr,"** failed to add command to image as extension\n");
 
       /* possibly duplicate the current dataset before writing new header */
@@ -6160,8 +6169,6 @@ const char * field_type_str( int type )
    return "DT_UNKNOWN";  /* for DT_UNKNOWN, or as an else */
 }
 
-#define NT_MAX_DT_STR_LEN 14
-
 /*----------------------------------------------------------------------
  * display the contents of all of the field structures
  *----------------------------------------------------------------------*/
@@ -6639,7 +6646,8 @@ int act_disp_ci( nt_opts * opts )
    nifti_image *  nim;
    void        *  data = NULL;
    char           space = ' ';  /* use space or newline */
-   int            filenum, len, err;
+   int            filenum, err;
+   int64_t        len64;
 
    if( opts->dci_lines ) space = '\n';  /* then use newlines as separators */
 
@@ -6687,10 +6695,15 @@ int act_disp_ci( nt_opts * opts )
 
       if( err ) { nifti_image_free(nim);  continue; }
 
-      len = nifti_read_collapsed_image(nim, opts->ci_dims, &data);
-      if( len < 0 || !data )
+      len64 = nifti_read_collapsed_image(nim, opts->ci_dims, &data);
+      if( len64 < 0 || !data )
       {
          fprintf(stderr,"** FAILURE for dataset '%s'\n", nim->fname);
+         if( data ) { free(data); data = NULL; }
+         err++;
+      } else if ( len64/nim->nbyper > INT_MAX ) {
+         fprintf(stderr,"** %" PRId64 " is too many values to display\n",
+                 len64/nim->nbyper);
          if( data ) { free(data); data = NULL; }
          err++;
       }
@@ -6708,7 +6721,8 @@ int act_disp_ci( nt_opts * opts )
          fprintf(stdout,")\n");
       }
 
-      disp_raw_data(data, nim->datatype, len / nim->nbyper, space, 1);
+      /* should we change disp_raw_data to allow for 64-bit nvalues? */
+      disp_raw_data(data, nim->datatype, len64 / nim->nbyper, space, 1);
 
       nifti_image_free(nim);
    }
@@ -6818,13 +6832,14 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
 
 /*----------------------------------------------------------------------
  * remove trailing zeros from string of printed float
+ * (of a max NT_LOC_MAX_FLOAT_BUF (32) string)
  * return  1 if something was cleared
  *         0 if not
  *----------------------------------------------------------------------*/
 int clear_float_zeros( char * str )
 {
-   char * dp  = strchr(str, '.'), * valp;
-   int    len;
+   char   * dp  = strchr(str, '.'), * valp;
+   size_t   len;
 
    if( !dp ) return 0;      /* nothing to clear */
 
@@ -7142,7 +7157,7 @@ int act_cbl( nt_opts * opts )
 
    /* add command as COMMENT extension */
    if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                          strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                          (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
       fprintf(stderr,"** failed to add command to image as extension\n");
 
    /* replace filenames using prefix */
@@ -7255,7 +7270,7 @@ int act_cci( nt_opts * opts )
 
    /* add command as COMMENT extension */
    if( opts->keep_hist && nifti_add_extension(nim, opts->command,
-                          strlen(opts->command), NIFTI_ECODE_COMMENT) )
+                          (int)strlen(opts->command), NIFTI_ECODE_COMMENT) )
       fprintf(stderr,"** failed to add command to image as extension\n");
 
    /* replace filenames using prefix */

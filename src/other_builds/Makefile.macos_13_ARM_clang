@@ -104,14 +104,14 @@ INSTALLDIR = $(SYSTEM_NAME)
 BREWLIBDIR = /opt/homebrew/lib
 BREWINCDIR = /opt/homebrew/include
 
-EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
-		      $(BREWLIBDIR)/libjpeg.9.dylib			          \
-		      $(BREWLIBDIR)/libgsl.dylib                      \
-		      $(BREWLIBDIR)/libglib-2.0.0.dylib		          \
-		      $(BREWLIBDIR)/libgslcblas.0.dylib		          \
-		      $(BREWLIBDIR)/libpng16.16.dylib			      \
-		      $(BREWLIBDIR)/libintl.8.dylib                   \
-              /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
+# EXTRA_INSTALL_FILES = $(BREWLIBDIR)/libXm.4.dylib			  \
+# 		      $(BREWLIBDIR)/libjpeg.9.dylib			          \
+# 		      $(BREWLIBDIR)/libgsl.dylib                      \
+# 		      $(BREWLIBDIR)/libglib-2.0.0.dylib		          \
+# 		      $(BREWLIBDIR)/libgslcblas.0.dylib		          \
+# 		      $(BREWLIBDIR)/libpng16.16.dylib			      \
+# 		      $(BREWLIBDIR)/libintl.8.dylib                   \
+#              /opt/homebrew/opt/libiconv/lib/libiconv.2.dylib 
 
 # this is called a hack - command to convert dyname -lXm to static for R_io.so
 #RLIB_CONVERT = | sed 's/-lXm/\/usr\/lib\/libXm.a/'

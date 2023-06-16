@@ -615,12 +615,18 @@ Turn these into a list of strings, to be joined when displaying the log.
         L.append("="*wid)
 
     # cmd
-    if len(D['cmd'].split()) > 3 and len(D['cmd'].strip()) > 40 :
-       ok, cmd = lfcs.afni_niceify_cmd_str(D['cmd'])
+    cmd = D['cmd'].strip()
+    if cmd[0] == '#' :
+       # comment dumping, essentially
+       if wrap :
+          cmd = add_line_wrappers(cmd, wrapstr='\\\n#')
+    elif not(len(cmd.split()) > 3 and len(cmd) > 40) :
+       # short commands
+       if wrap :
+          cmd = add_line_wrappers(cmd)
     else:
-        cmd = D['cmd'].strip()
-        if wrap :
-            cmd = add_line_wrappers(D['cmd'].strip())
+       # long/general commands
+       ok, cmd = lfcs.afni_niceify_cmd_str(cmd)
     nline = cmd.count('\n') + 1
     L.append('cmd: ' + str(nline))
     L.append(cmd)

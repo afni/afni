@@ -167,8 +167,8 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, volexists, i, j, Doinv, randseed, Domergesurfs=0, pciref;
-   float DoR2S, fv[3], *pcxyzref;
+	int kar, volexists, i, Doinv, randseed, Domergesurfs=0, pciref;
+   float DoR2S, *pcxyzref;
    double xcen[3], sc[3];
    double xform[4][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
@@ -182,7 +182,7 @@ int main (int argc,char *argv[])
    SUMA_SO_File_Format iForm = SUMA_FF_NOT_SPECIFIED, 
                         iparForm = SUMA_FF_NOT_SPECIFIED, 
                         oFormat = SUMA_FF_NOT_SPECIFIED;
-   SUMA_SurfaceObject *SO = NULL, *SOpar = NULL, *SOsurf = NULL;
+   SUMA_SurfaceObject *SO = NULL, *SOpar = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
@@ -190,7 +190,7 @@ int main (int argc,char *argv[])
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Do_flip;
-   SUMA_Boolean Doxmat, Do_wind, Do_p2s, onemore, Do_native, Do_PolDec;
+   SUMA_Boolean Doxmat, Do_wind, Do_p2s, Do_native, Do_PolDec;
    int Do_PCproj, Do_PCrot, Do_NodeDepth;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
@@ -232,7 +232,6 @@ int main (int argc,char *argv[])
    Do_NodeDepth = 0;
    Doinv = 0;
    Domergesurfs = 0;
-   onemore = NOPE;
 	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {

@@ -6235,12 +6235,12 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregsOI == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.${subj}%s' % suff]
+        opt.parlist = ['errts.${subj}']
 
     if not opt or not opt.parlist: errts = ''
     else:
         # note and apply
-        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre_3dd = '%s%s' % (opt.parlist[0], suff)
         proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
@@ -9722,6 +9722,9 @@ EXAMPLES (options can be provided in any order): ~1~
          they are not actually required for the analysis.
      o Compute average correlation volumes of the errts against the
        the gray matter (aeseg) and ventricle (FSVent) masks.
+     o Run @radial_correlate at the ends of the tcat, volreg and regress
+       blocks.  If ANATICOR is being used to remove a scanner artifact, 
+       the errts radcor images might show the effect of this.
 
        Note: it might be reasonable to use either set of blur estimates
              here (from epits or errts).  The epits (uncleaned) dataset
@@ -9734,6 +9737,7 @@ EXAMPLES (options can be provided in any order): ~1~
         afni_proc.py -subj_id FT.11.rest                                 \\
           -blocks despike tshift align tlrc volreg blur mask             \\
                   scale regress                                          \\
+          -radial_correlate_blocks tcat volreg regress                   \\
           -copy_anat anatSS.FT.nii                                       \\
           -anat_has_skull no                                             \\
           -anat_follower anat_w_skull anat anatU.FT.nii                  \\
@@ -12183,6 +12187,7 @@ OPTIONS:  ~2~
     -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
 
             e.g. -radial_correlate_blocks tcat volreg
+            e.g. -radial_correlate_blocks tcat volreg regress
 
         With this option set, @radial_correlate will be run at the end of
         each listed block.  It computes, for each voxel, the correlation
@@ -12193,7 +12198,7 @@ OPTIONS:  ~2~
 
         Valid blocks include:
 
-            tcat, tshift, volreg, blur, scale
+            tcat, tshift, volreg, blur, scale, regress
 
         The @radial_correlate command will produce an output directory of
         the form radcor.pbAA.BBBB, where 'AA' is the processing block index
@@ -12207,6 +12212,9 @@ OPTIONS:  ~2~
                                epi.ulay.r01+tlrc.HEAD
                                radcor.20.r01.corr+tlrc.BRIK
                                radcor.20.r01.corr+tlrc.HEAD
+
+        For the regress block, radcor results will be generated for the
+        all_runs and errts datasets.
 
         See also -radial_correlate_opts.
         See '@radial_correlate -help' for more details.
