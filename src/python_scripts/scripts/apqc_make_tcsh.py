@@ -362,9 +362,6 @@ if __name__ == "__main__":
     if 1 :
         stat = lagpb.write_apqc_graphview_script()
 
-
-    sys.exit("tmp early exit")
-
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0

@@ -31,8 +31,8 @@ text_gv_top     = """#!/bin/tcsh
 # This script was created by the afni_proc.py quality control (APQC)
 # generator.  
 #
-# It's purpose is to facilitate investigating the properties of the
-# raw/unprocessed input data, using the AFNI GUI's InstaCorr functionality.  
+# Its purpose is to facilitate investigating the properties of time
+# series data, using the AFNI GUI's Graph Viewer functionality.  
 #
 # As described in the popup help, users should just need to hold down
 # the Ctrl+Shift keys and then left-click and move the mouse around
@@ -40,8 +40,9 @@ text_gv_top     = """#!/bin/tcsh
 # seed location change, and this often provides an excellent way to
 # understand the data.
 #
-# In this script, one *must* provide 2 command line args: a pb label (pb00, 
-# pb01, etc.), and a run number (r01, r02, r03, etc.).
+# In this script, one *must* provide 2 command line args: 
+# + a pb label (pb00, pb01, etc.), 
+# + a run number (r01, r02, r03, etc.).
 #
 # Additionally, one *can* also add three numbers on the command line
 # to represent the starting location (RAI coordinate notation) of the 
@@ -67,6 +68,8 @@ if ( "${run}" == "" ) then
     echo "   Additionally, you can then put 3 numbers as an initial"
     echo "   seed location coordinate"
     exit 1
+else
+    set ic_label = "${pb} ${run}"
 endif
 
 # ----- find main dset 
@@ -126,19 +129,19 @@ endif
 # ===========================================================================
 # general GUI parameters
 
-setenv AFNI_THRESH_INIT_EXPON    0
-setenv AFNI_NOSPLASH             YES
-setenv AFNI_SPLASH_MELT          NO
-setenv AFNI_STARTUP_WARNINGS     NO
-setenv AFNI_NIFTI_TYPE_WARN      NO
-setenv AFNI_NO_OBLIQUE_WARNING   YES
-setenv AFNI_ENVIRON_WARNINGS     NO
-setenv AFNI_COMPRESSOR           NONE
-setenv AFNI_NEVER_SAY_GOODBYE    YES
-setenv AFNI_MOTD_CHECK           NO
-setenv AFNI_VERSION_CHECK        NO
-setenv AFNI_IMAGE_DATASETS       NO
- 
+setenv AFNI_ENVIRON_WARNINGS   NO
+setenv AFNI_THRESH_INIT_EXPON  0
+setenv AFNI_NOSPLASH           YES
+setenv AFNI_SPLASH_MELT        NO
+setenv AFNI_STARTUP_WARNINGS   NO
+setenv AFNI_NIFTI_TYPE_WARN    NO
+setenv AFNI_NO_OBLIQUE_WARNING YES
+setenv AFNI_COMPRESSOR         NONE
+setenv AFNI_NEVER_SAY_GOODBYE  YES
+setenv AFNI_MOTD_CHECK         NO
+setenv AFNI_VERSION_CHECK      NO
+setenv AFNI_IMAGE_DATASETS     NO
+
 # graph specific parameters (faster to do here than with driving)
 
 setenv AFNI_graph_width     800  # initial width of graph window
@@ -169,7 +172,7 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"   View time series graphs of AP EPI data\\n\\n\\
+"   View graphs+images of AP results data:  ${ic_label}\\n\\n\\
 \\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
 Initial graph shown  : ${graxis}\\n\\
