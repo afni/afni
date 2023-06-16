@@ -52,19 +52,19 @@ dtCheck_pad_index <- function(ind.in){
 ## nl is new line feeds defaults to 2 otherwise 1
 dtCheck_err <- function(msg,nl=2){ 
     if( nl == 2 ){ end.line <- "!!!\n\n" } else { end.line <- "!!!\n" }
-    dtCheck_log_print(paste0("**ERROR: ",msg,end.line)) 
+    dtCheck_log_print(paste0("** ERROR: ",msg,end.line)) 
 }
 dtCheck_warn <- function(msg,nl=2){ 
     if( nl == 2 ){ end.line <- "!\n\n" } else { end.line <- "!\n" }
-    dtCheck_log_print(paste0("+*Warning: ",msg,end.line)) 
+    dtCheck_log_print(paste0("+* Warning: ",msg,end.line)) 
 }
 dtCheck_good <- function(msg,nl=2){   ## need your own ending punctuation
     if( nl == 2 ){ end.line <- "\n\n" } else { end.line <- "\n" }
-    dtCheck_log_print(paste0("++Good: ",msg,end.line)) 
+    dtCheck_log_print(paste0("++ Good: ",msg,end.line)) 
 }
 dtCheck_note <- function(msg,nl=2){   ## need your own ending punctuation
     if( nl == 2 ){ end.line <- "\n\n" } else { end.line <- "\n" }
-    dtCheck_log_print(paste0("--Note: ",msg,end.line)) 
+    dtCheck_log_print(paste0("-- Note: ",msg,end.line)) 
 }
 
 ## log file prefix name #################
