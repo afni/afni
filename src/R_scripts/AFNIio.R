@@ -203,25 +203,25 @@ libLoad <- function(myLib) {
 }
 
 pkgLoad <- function(pkgs) { 	
-   # install packages not already loaded:
-   pkgs_miss <- pkgs[which(!pkgs %in% installed.packages()[, 1])]
-   if (length(pkgs_miss) > 0) {
-      install.packages(pkgs_miss, dep=TRUE, repos='http://cloud.r-project.org')
-   }
+    # install packages not already loaded:
+    pkgs_miss <- pkgs[which(!pkgs %in% installed.packages()[, 1])]
+    if (length(pkgs_miss) > 0) {
+        install.packages(pkgs_miss, dep=TRUE, repos='http://cloud.r-project.org')
+    }
     
-   # load packages not already loaded:
-   attached <- search()
-   attached_pkgs <- attached[grepl("package", attached)]
-   need_to_attach <- pkgs[which(!pkgs %in% gsub("package:", "", attached_pkgs))]
+    # load packages not already loaded:
+    attached <- search()
+    attached_pkgs <- attached[grepl("package", attached)]
+    need_to_attach <- pkgs[which(!pkgs %in% gsub("package:", "", attached_pkgs))]
     
-   if (length(need_to_attach) > 0) {
-      for (i in 1:length(need_to_attach)) if(require(need_to_attach[i], character.only = TRUE))
-         cat('Package ', need_to_attach[i], ' loaded successfully!\n\n', sep='')
-   }
-	
-   if (length(need_to_attach) == 0) {
-      message("\n ...All required packages were already loaded!\n")
-   }
+    if (length(need_to_attach) > 0) {
+        for (i in 1:length(need_to_attach)) if(require(need_to_attach[i], character.only = TRUE))
+            cat('Package ', need_to_attach[i], ' loaded successfully!\n\n', sep='')
+    }
+    
+    if (length(need_to_attach) == 0) {
+        message("\n ...All required packages were already loaded!\n")
+    }
 }
 
 #------------------------------------------------------------------
