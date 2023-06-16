@@ -29,7 +29,7 @@ from afnipy import lib_apqc_tcsh       as lat
 
 # ----------------------------------------------------------------------
 
-scriptname = 'run_instacorr_errts.tcsh'         # output file, tcsh script
+DEF_scriptname = 'run_instacorr_errts.tcsh'        # output file, tcsh script
 
 # ===========================================================================
 # ===========================================================================
@@ -40,18 +40,20 @@ text_ic_top     = """#!/bin/tcsh
 # This script was created by the afni_proc.py quality control (APQC)
 # generator.  
 #
-# It's purpose is to facilitate investigating the properties of the
-# processing's residual dataset (errts*HEAD) file, by using the AFNI
-# GUI's InstaCorr functionality.  
+# Its purpose is to facilitate investigating the properties of time 
+# series data, using the AFNI GUI's InstaCorr functionality. 
 #
-# As described in the popup help, users should just need to hold down
-# the Ctrl+Shift keys and then left-click and move the mouse around
-# (dragging or re-clicking).  Watch the correlation patterns to that
-# seed location change, and this often provides an excellent way to
-# understand the data.
+# Additionally, one *can* also add three numbers on the command line
+# to represent the starting location (RAI coordinate notation) of the 
+# initial seed.
 #
-# Now, one can also provide three numbers on the command line to represent
-# the starting location (RAI coordinate notation) of the initial seed.
+# Using InstaCorr:
+# As described in the popup help, once the GUI is open and InstaCorr
+# has been set up, users should just need to hold down the Ctrl+Shift
+# keys and then left-click and move the mouse around (dragging or
+# re-clicking).  Watch the correlation patterns to that seed location
+# change, and this often provides an excellent way to understand the
+# data.
 
 # ver = {ver}
 # -------------------------------------------------------------------------
@@ -62,6 +64,8 @@ text_ic_top     = """#!/bin/tcsh
 #     make_apqc_ic_*( ... ) ...
 
 text_ic_bot = """
+
+set ic_label = 'errts (residuals)'
 
 # possible starting seed coordinate (in RAI notation)
 set xcoor = "$1"
@@ -79,21 +83,33 @@ set ic_seedrad  = `echo "${voxvol}"                                      \\
                         | awk '{printf "%0.2f",(2*($1)^0.3334);}'`
 echo "++ seedcorr radius: ${ic_seedrad}"
 
+set ic_blur = 0
+echo "++ blurring radius: ${ic_blur}"
+
 # ===========================================================================
 # parameters set by default
 
-setenv AFNI_IMSAVE_WARNINGS    NO
+setenv AFNI_ENVIRON_WARNINGS   NO
 setenv AFNI_THRESH_INIT_EXPON  0
 setenv AFNI_NOSPLASH           YES
 setenv AFNI_SPLASH_MELT        NO
 setenv AFNI_STARTUP_WARNINGS   NO
 setenv AFNI_NIFTI_TYPE_WARN    NO
 setenv AFNI_NO_OBLIQUE_WARNING YES
+setenv AFNI_COMPRESSOR         NONE
+setenv AFNI_NEVER_SAY_GOODBYE  YES
+setenv AFNI_MOTD_CHECK         NO
+setenv AFNI_VERSION_CHECK      NO
+setenv AFNI_IMAGE_DATASETS     NO
+
+# GUI params, set here for speed, perhaps 
+setenv AFNI_DEFAULT_OPACITY    7
+setenv AFNI_FUNC_BOXED         YES               # bc ulay is ~high res
+setenv AFNI_THRESH_AUTO        NO
 
 # InstaCorr parameters
 
 set ic_ignore   = 0
-set ic_blur     = 0
 set ic_automask = no
 set ic_despike  = no
 set ic_bandpass = 0,99999
@@ -107,12 +123,10 @@ set ncolors     = 99
 set topval      = 0.6
 set cbar        = "Reds_and_Blues_Inv"
 set olay_alpha  = "Quadratic"
-set olay_boxed  = "Yes"
 set thresh      = 0.3
 set frange      = ${topval}
 set crossh      = MULTI
 set xh_gap      = -1
-set opacity     = 7
 set OW          = "OPEN_WINDOW"
 
 # port communication
@@ -140,35 +154,40 @@ afni -q  -no_detach                                                     \\
      -com "SET_XHAIRS         ${crossh}"                                \\
      -com "SET_XHAIR_GAP      ${xh_gap}"                                \\
      -com "SET_FUNC_ALPHA     ${olay_alpha}"                            \\
-     -com "SET_FUNC_BOXED     ${olay_boxed}"                            \\
-     -com "$OW sagittalimage  opacity=${opacity}"                       \\
+     -com "$OW sagittalimage"                                           \\
      ${all_load:q}  &
 
 sleep 1
 
-set l = `prompt_user -pause \\
-"      Run InstaCorr on the residuals (errts) dataset\\n\\n\\
+set l = `prompt_popup -message \\
+"   Run InstaCorr on AP results data:  ${ic_label}\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
+         IC seed rad : ${ic_seedrad} mm\\n\\
+         IC blur rad : ${ic_blur} mm\\n\\
+         IC polort N : ${ic_polort}\\n\\
 \\n\\
-Wait briefly for the initial correlation patterns to appear.\\n\\
+Wait briefly for the initial correlation patterns to appear.  \\n\\
 \\n\\
 To use InstaCorr:\\n\\
-Hold down Ctrl+Shift, and Left-click anywhere in the dataset.\\n\\
-You can hold down Left-click and drag the cursor around, too.\\n\\
+First, hold down Ctrl+Shift. Then Left-click anywhere in  \\n\\
+the dataset, and even drag the cursor around.\\n\\
 \\n\\
-You will see the (unmasked) wholebrain correlation patterns\\n\\
-from each clicked 'seed' location, updating instantly.\\n\\
-Transparent thresholding is used (via 'A' and 'B' buttons).\\n\\
+Correlation patterns from each clicked seed location\\n\\
+update instantly.\\n\\
 \\n\\
 To jump to particular coordinates:\\n\\
 + Right-click -> 'Jump to (xyz)' \\n\\
 + Enter 3 space-separated coords\\n\\
-+ Then, Right-click -> 'InstaCorr set',\\n\\
-  or use standard Ctrl+Shift and Left-click.\\n\\
++ Right-click -> 'InstaCorr set'\\n\\
+... or use standard Ctrl+Shift and Left-click.\\n\\
 \\n\\
-When done, hit 'OK' to exit.\\n"`
+Alpha (transparent) thresholding is ON. To put boxes\\n\\
+around suprathreshold voxels, click 'B' above the colorbar  \\n\\
+in the GUI.\\n\\
+\\n"\\
+-b '          Done - Close AFNI GUI          '`
 
 
 if ("$l" != "1") then
@@ -364,3 +383,48 @@ def make_apqc_ic_script( ap_ssdict ):
     otxt+= text_ic_bot
 
     return otxt
+
+def write_apqc_ic_script(ap_ssdict, pname = '' ):
+    """Write out the text file of the InstaCorr script.
+
+Parameters
+----------
+pname : str
+    optional path name to prepend to the default filename
+
+Return
+------
+okay : int
+    success or not of writing file: 0 = success, else = failure
+
+    """
+
+    # get text of script
+    otext = make_apqc_ic_script(ap_ssdict)
+
+    # write the text file in the results directory
+    ofile = ''
+    if pname :
+        ofile = pname + '/'
+    ofile+= DEF_scriptname
+
+    fff = open(ofile, 'w')
+    fff.write(otext)
+    fff.close()
+    
+    # make executable, a la rcr
+    try: code = eval('0o755')
+    except: code = eval('0755')
+    try:
+        os.chmod(ofile, code)
+    except:
+        omsg = "failed: chmod {} {}".format(code, ofile)
+        print(omsg)
+        return 1
+
+    msg = '''++ Done making (executable) InstaCorr script: 
+    {}
+    '''.format(ofile)
+    print( msg )
+
+    return 0

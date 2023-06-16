@@ -43,21 +43,24 @@ text_ic_top     = """#!/bin/tcsh
 # This script was created by the afni_proc.py quality control (APQC)
 # generator.  
 #
-# It's purpose is to facilitate investigating the properties of the
-# raw/unprocessed input data, using the AFNI GUI's InstaCorr functionality.  
+# Its purpose is to facilitate investigating the properties of time 
+# series data, using the AFNI GUI's InstaCorr functionality. 
 #
-# As described in the popup help, users should just need to hold down
-# the Ctrl+Shift keys and then left-click and move the mouse around
-# (dragging or re-clicking).  Watch the correlation patterns to that
-# seed location change, and this often provides an excellent way to
-# understand the data.
-#
-# In this script, one *must* provide 2 command line args: a pb label (pb00, 
-# pb01, etc.), and a run number (r01, r02, r03, etc.).
+# In this script, one *must* provide 2 command line args: 
+# + a pb label (pb00, pb01, etc.), 
+# + a run number (r01, r02, r03, etc.).
 #
 # Additionally, one *can* also add three numbers on the command line
 # to represent the starting location (RAI coordinate notation) of the 
 # initial seed.
+#
+# Using InstaCorr:
+# As described in the popup help, once the GUI is open and InstaCorr
+# has been set up, users should just need to hold down the Ctrl+Shift
+# keys and then left-click and move the mouse around (dragging or
+# re-clicking).  Watch the correlation patterns to that seed location
+# change, and this often provides an excellent way to understand the
+# data.
 
 # ver = {ver}
 # -------------------------------------------------------------------------
@@ -69,7 +72,6 @@ text_ic_top     = """#!/bin/tcsh
 
 text_ic_bot = """
 
-
 set pb  = "$1"
 set run = "$2"
 
@@ -80,6 +82,8 @@ if ( "${run}" == "" ) then
     echo "   Additionally, you can then put 3 numbers as an initial"
     echo "   seed location coordinate"
     exit 1
+else
+    set ic_label = "${pb} ${run}"
 endif
 
 # ----- find main dset of IC
@@ -141,8 +145,17 @@ set voxvol      = `3dinfo -voxvol "${ic_dset}"`
 set ic_seedrad  = `echo "${voxvol}"                                      \\
                         | awk '{printf "%0.2f",(2*($1)^0.3334);}'`
 echo "++ seedcorr radius: ${ic_seedrad}"
-set ic_blur     = `echo "${voxvol}"                                      \\
+
+# apply blur in IC if pb is not 'blur' or 'scale' block
+set bind = `echo "${ic_dset}" | awk '{print index($0, "blur")}'`
+set sind = `echo "${ic_dset}" | awk '{print index($0, "scale")}'`
+if ( ${bind} || ${sind} ) then
+    echo "++ Apply no blur for 'blur' or 'scale' blocks"
+    set ic_blur = 0
+else
+    set ic_blur = `echo "${voxvol}"                                      \\
                         | awk '{printf "%0.2f",(1.5*($1)^0.3334);}'`
+endif
 echo "++ blurring radius: ${ic_blur}"
 
 # ===========================================================================
@@ -169,7 +182,6 @@ setenv AFNI_THRESH_AUTO        NO
 # InstaCorr parameters
 
 set ic_ignore   = 0
-set ic_blur     = ${ic_blur}           # bc the data be unprocessed
 set ic_automask = no
 set ic_despike  = no
 set ic_bandpass = 0,99999
@@ -220,10 +232,13 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"      Run InstaCorr on AP results data\\n\\n\\
+"   Run InstaCorr on AP results data:  ${ic_label}\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
+         IC seed rad : ${ic_seedrad} mm\\n\\
+         IC blur rad : ${ic_blur} mm\\n\\
+         IC polort N : ${ic_polort}\\n\\
 \\n\\
 Wait briefly for the initial correlation patterns to appear.  \\n\\
 \\n\\
@@ -251,7 +266,8 @@ if ("$l" != "1") then
     echo "+* Warn: InstaCorr guidance message failed to open"
 endif
 
-@Quiet_Talkers -npb_val ${portnum}
+echo "++ Quiet talkers"
+@Quiet_Talkers -quiet -npb_val ${portnum}
 
 cat << EOF
 ===========================================

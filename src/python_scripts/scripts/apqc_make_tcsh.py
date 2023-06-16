@@ -352,58 +352,7 @@ if __name__ == "__main__":
     ldep     = ['errts_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
-
-            # make the full text
-            script_text_insta = laic.make_apqc_ic_script(ap_ssdict)
-
-            # write the text file in the results directory
-            otcsh_insta  = laic.scriptname
-            fff = open(otcsh_insta, 'w')
-            fff.write(script_text_insta)
-            fff.close()
-
-            # make executable, a la rcr
-            try: code = eval('0o755')
-            except: code = eval('0755')
-            try:
-                os.chmod(otcsh_insta, code)
-            except:
-                omsg = "failed: chmod {} {}".format(code, otcsh_insta)
-                print(omsg)
-
-            msg = '''
-            ++ Done making (executable) InstaCorr script:
-            {}
-            '''.format(otcsh_insta)
-            msg = lat.commandize(msg, ALLEOL=False)
-            print( msg )
-
-    ldep     = ['tcat_dset']
-    if lat.check_dep(ap_ssdict, ldep) :
-        # make the full text
-        script_text_insta = laict.make_apqc_ic_script(ap_ssdict)
-
-        # write the text file in the results directory
-        otcsh_insta  = laict.scriptname
-        fff = open(otcsh_insta, 'w')
-        fff.write(script_text_insta)
-        fff.close()
-
-        # make executable, a la rcr
-        try: code = eval('0o755')
-        except: code = eval('0755')
-        try:
-            os.chmod(otcsh_insta, code)
-        except:
-            omsg = "failed: chmod {} {}".format(code, otcsh_insta)
-            print(omsg)
-
-        msg = '''
-        ++ Done making (executable) InstaCorr script:
-        {}
-        '''.format(otcsh_insta)
-        msg = lat.commandize(msg, ALLEOL=False)
-        print( msg )
+            stat = laic.write_apqc_ic_script(ap_ssdict)
 
     # pb+run instacorr script
     if 1 :
@@ -413,7 +362,9 @@ if __name__ == "__main__":
     if 1 :
         stat = lagpb.write_apqc_graphview_script()
 
-    sys.exit()
+
+    sys.exit("tmp early exit")
+
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0
@@ -1126,7 +1077,7 @@ if __name__ == "__main__":
     # finishing text
 
     # write out log/history of what has been done
-    olog = ap_ssdict['odir_info'] + '/' + 'log_apqc_tcsh.txt'
+    olog = 'log_apqc_tcsh.txt'
     UTIL.write_afni_com_log(olog)
 
     # note where we are in the AP results dir
