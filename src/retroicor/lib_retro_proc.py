@@ -17,6 +17,7 @@ import shutil
 # Local libraries
 import libPeakFilters as lpf
 import lib_retro_plot as lrp
+import lib_retro_graph as lrg
 
 # Global constants
 GLOBAL_M = 3
@@ -180,7 +181,14 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         rawData, show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  phys_fs = test_retro_obj.card_data.samp_freq, 
-        OutDir = OutDir, font_size = test_retro_obj.font_size)
+        OutDir = OutDir, font_size = test_retro_obj.font_size)   
+   
+   filePrefix = 'removeLowPeaks_v2'
+   Title = 'Cardiac Peaks After Removing Peaks near Minimum'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   
+   
+   
 
    # Add missing peaks
    peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 

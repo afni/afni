@@ -403,11 +403,13 @@ them.
                        handlelength=0.75)
             plt.tight_layout()
 
-        if do_show :
-            plt.ion()
-            plt.show(block=True)
-        else:
-            plt.ioff()
+        # This block is (temporally) removed because it causes the output PDFs
+        #   to be blank when the program is run in spider
+        # if do_show :
+        #     plt.ion()
+        #     plt.show(block=True)
+        # else:
+        #     plt.ioff()
 
         if do_save :
             plt.savefig(self.figname, dpi=self.dpi)

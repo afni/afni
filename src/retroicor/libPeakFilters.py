@@ -1288,7 +1288,7 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
             print('+* WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
                   ' No output directory specified')
             if not show_graph: plt.close()  # Close graph after saving
-            return 1
+            # return 1
         else:
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
             
