@@ -68,6 +68,8 @@ class SysInfo:
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
+      self.libs_missing    = [] # missing shared libraries
+
    def get_prog_dir(self, prog):
       """return path to prog from 'which prog'"""
 
@@ -1346,8 +1348,17 @@ class SysInfo:
       # (report in self.comments)
       self.check_binary_libs(bfailures, ascdir)
 
+      # automatically check R_io.so
+      self.check_binary_libs(['R_io.so'], ascdir)
+
       # if afni_dir is not set, use ascdir
       if self.afni_dir == '': self.afni_dir = ascdir
+
+      # report cumulative set of unique missing libraries
+      for lib in self.libs_missing:
+         self.comments.append("missing binary library: %s" % lib)
+
+      print()
 
    def check_binary_libs(self, proglist, execdir=None):
       """try to find all missing shared libs from proglist
@@ -1386,11 +1397,22 @@ class SysInfo:
       libs_missing = UTIL.get_unique_sublist(libs_missing)
 
       # report the failure
-      print("** missing %d binary library(ies) across %d program(s)\n" \
-            % (len(libs_missing), len(libs_programs)))
+      if len(libs_missing) == 1:
+         mlstr = "binary library '%s'" % libs_missing[0]
+      else:
+         mlstr = "%d binary libraries" % len(libs_missing)
 
-      for lib in libs_missing:
-         self.comments.append("missing binary library: %s" % lib)
+      if len(libs_programs) <= 1:
+         mpstr = "in program %s" % libs_programs[0]
+      else:
+         mpstr = "across %d programs" % len(libs_programs)
+
+      # report in terminal
+      print("** missing %s %s" % (mlstr, mpstr))
+
+      # and adjust self.libs_missing (to expand across calls)
+      libs_missing.extend(self.libs_missing)
+      self.libs_missing = UTIL.get_unique_sublist(libs_missing)
 
       return 1
 
@@ -1401,6 +1423,8 @@ class SysInfo:
          if mac, well, I am not yet sure (otool -L does not show it)
       """
       if not os.path.isfile(fname):
+         if self.verb > 1:
+            print("-- ** cannot check for libs on missing file %s" % fname)
          return []
 
       # handle only known linux for now

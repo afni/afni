@@ -326,9 +326,10 @@ g_history = """
    1.20 Feb  6, 2023 - include output from init_user_dotfiles.py -test
    1.21 Jun  7, 2023 - start looking for missing binary libraries
    1.22 Jun 13, 2023 - turn off check for PyQt4 (add option)
+   1.23 Jun 20, 2023 - under linux: check for R_io.so shared dependencies
 """
 
-g_version = "afni_system_check.py version 1.22, June 13, 2023"
+g_version = "afni_system_check.py version 1.23, June 20, 2023"
 
 
 class CmdInterface:
