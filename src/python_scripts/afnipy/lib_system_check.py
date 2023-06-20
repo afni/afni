@@ -1358,7 +1358,8 @@ class SysInfo:
       for lib in self.libs_missing:
          self.comments.append("missing binary library: %s" % lib)
 
-      print()
+      if len(self.libs_missing) > 0:
+         print()
 
    def check_binary_libs(self, proglist, execdir=None):
       """try to find all missing shared libs from proglist
