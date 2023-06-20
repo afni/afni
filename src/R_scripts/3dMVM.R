@@ -1389,9 +1389,9 @@ if(lop$SS_type != 2 & lop$SS_type != 3) errex.AFNI(c("The type for the sums of s
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
 
-library("afex")
-library("phia")
-if(lop$robust) library("robustbase")
+suppressPackageStartupMessages(library("afex"))
+suppressPackageStartupMessages(library("phia"))
+if(lop$robust) suppressPackageStartupMessages(library("robustbase"))
 #if(lop$robust) pkgLoad(c('car', 'robustbase', 'phia')) else pkgLoad(c('afex', 'phia'))
 options(contrasts = c("contr.sum", "contr.poly"))
 
@@ -1855,10 +1855,10 @@ if(any(is.na(suppressWarnings(as.numeric(lop$dataStr[, FileCol]))))) {  # not el
             pkgLoad('snow')
             cl <- makeCluster(lop$nNodes, type = "SOCK")
             if(lop$robust) {
-                clusterEvalQ(cl, library(robustbase))
-                clusterEvalQ(cl, library(car))
-            } else clusterEvalQ(cl, library(afex))
-            clusterEvalQ(cl, library(phia))
+                clusterEvalQ(cl, suppressPackageStartupMessages(library(robustbase)))
+                clusterEvalQ(cl, suppressPackageStartupMessages(library(car)))
+            } else clusterEvalQ(cl, suppressPackageStartupMessages(library(afex)))
+            clusterEvalQ(cl, suppressPackageStartupMessages(library(phia)))
             clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
             clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
             for(kk in 1:nSeg) {
@@ -1895,9 +1895,9 @@ if(any(is.na(suppressWarnings(as.numeric(lop$dataStr[, FileCol]))))) {  # not el
         if (lop$nNodes>1) {
             pkgLoad('snow')
             cl <- makeCluster(lop$nNodes, type = "SOCK")
-            if(lop$robust) clusterEvalQ(cl, library(robustbase))
-            clusterEvalQ(cl, library(afex))
-            clusterEvalQ(cl, library(phia))
+            if(lop$robust) clusterEvalQ(cl, suppressPackageStartupMessages(library(robustbase)))
+            clusterEvalQ(cl, suppressPackageStartupMessages(library(afex)))
+            clusterEvalQ(cl, suppressPackageStartupMessages(library(phia)))
             clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
             clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
             #clusterCall(cl, maov) # let all clusters access to function maov()
