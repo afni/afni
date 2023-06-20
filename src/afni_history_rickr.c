@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "under linux, check for shared dependencies of R_io.so",
+   NULL
+ } ,
+
  { 14, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "default to -radial_correlate_blocks errts, if none given",
    NULL
