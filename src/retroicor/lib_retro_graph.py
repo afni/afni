@@ -29,7 +29,7 @@ def plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp):
    # plt.ion() This causes the fig to flash, when show fig false and is not 
    #    necessary to show fig
 
-   oname = 'AAAAAAAA' + filePrefix + '.pdf'
+   oname = filePrefix + '.pdf'
    if OutDir :
         oname = OutDir + '/' + oname
    fff = lrp.RetroFig(figname=oname,
@@ -38,7 +38,7 @@ def plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp):
    fff = lrp.RetroFig(figname=oname,
                        max_n_per_sub=5000, 
                        fontsize = test_retro_obj.font_size,
-                       title='Respiratory peaks and troughs')
+                       title=Title)
    fff.add_plobj(ret_plobj1)
    fff.add_plobj(ret_plobj2)
    fff.make_plot( do_show = test_retro_obj.show_graph_level > 0,
