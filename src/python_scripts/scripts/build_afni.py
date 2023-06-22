@@ -251,10 +251,11 @@ g_history = """
    0.0  Feb  8, 2023 - getting started
    0.1  Feb 18, 2023 - initial release, but have features to add
    0.2  Mar  2, 2023 - rename -root_dir to -build_root (as ordered by PT)
+   0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.2, March 2, 2023" % g_prog
+g_version = "%s, version 0.3, June 22, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -993,7 +994,12 @@ class MyInterface:
 
       # -----------------------------------------------------------------
       # actually run the main build
-      st, ot = self.run_cmd('make %s >& %s' % (self.make_target, logfile))
+      # expected AFNI_WHOMADEIT values:
+      #    local    : default
+      #    build    : from this (build_afni.py)
+      #    official : official distributed binaires
+      who = 'AFNI_WHOMADEIT=build'
+      st, ot = self.run_cmd('make %s %s >& %s' % (who,self.make_target,logfile))
 
       if st: tmesg = 'FAILURE'
       else:  tmesg = 'SUCCESS'
