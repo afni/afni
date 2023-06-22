@@ -37,13 +37,6 @@ rsync -av $HOME/afni_build/build_src/macos_12_x86_64/ ~/abin/
 rsync -av $HOME/afni_build/build_src/macos_13_ARM_clang/ ~/abin/
 
 # ----------------------------------------------------------------------
-# misc, for ASC whining
-
-cp ~/abin/AFNI.afnirc ~/.afnirc
-suma -update_env
-apsearch -update_all_afni_help
-
-# ----------------------------------------------------------------------
 # install R packages
 # (here it is under home directory, but might want at system or conda)
 # (going this route, R_LIBS must be set in shell)
@@ -52,6 +45,13 @@ export R_LIBS=$HOME/sw/R-4.2.3
 mkdir -p $R_LIBS
 
 rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
+
+# ----------------------------------------------------------------------
+# misc, for ASC whining
+
+cp ~/abin/AFNI.afnirc ~/.afnirc
+suma -update_env
+apsearch -update_all_afni_help
 
 # ----------------------------------------------------------------------
 # check the state of things
