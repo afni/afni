@@ -8739,7 +8739,8 @@ def ap_uvars_table(proc):
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
     if proc.tlrc_base:
-       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
+       # tlrc_base is called template
+       aptab.append(['template', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jun, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "pass tlrc_base uvar as template",
+   "Sorry, PT."
+ } ,
+
  { 20, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "under linux, check for shared dependencies of R_io.so",
    NULL
