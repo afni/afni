@@ -2134,7 +2134,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text; **special case: olay_name=ulay!
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=ulay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -2410,7 +2411,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -2598,7 +2600,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -2789,7 +2792,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -2963,7 +2967,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -3194,7 +3199,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text; **special case for seedcorr map
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=tcorrvol, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -3540,7 +3546,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -3761,7 +3768,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
     fff = open(onvhtml, 'w')
@@ -5000,7 +5008,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay_o, itemid=qci_o,
                                      verb=0 )
     fff = open(onvhtml_o, 'w')
@@ -5028,7 +5037,8 @@ num : int
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
                                      olay_name=olay_f, itemid=qci_f,
                                      verb=0 )
     fff = open(onvhtml_f, 'w')
@@ -5600,7 +5610,8 @@ num : int
             pbar_dict = json.load(fff)
 
         # Make NiiVue canvas text
-        nv_txt = lanv.make_niivue_2dset( ulay, pbar_dict, 
+        nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                         ulay, pbar_dict, 
                                          olay_name=olay, itemid=qci_num,
                                          verb=0 )
         fff = open(onvhtml, 'w')

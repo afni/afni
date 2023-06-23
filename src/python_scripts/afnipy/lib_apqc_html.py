@@ -1143,8 +1143,7 @@ def make_javascript_btn_func(subj ):
 
     y = ''
 
-    y+= '''<script src="./niivue.umd.js"> </script>
-<script type="text/javascript">
+    y+= '''<script type="text/javascript">
 '''
 
     y+= '''
@@ -1208,8 +1207,27 @@ function toggle_niivue(is_served, id) {
     let element = document.getElementById(id);
     let current_disp = element.style.display; // current disp value
     // toggle between 'block' and 'none'
-    element.style.display = current_disp === 'none' ? 'block' : 'none';
+    element.style.display = current_disp === '' ? 'block' : '';
+    if (element.style.display == ''){
+      // remove all children from the element
+      while (element.firstChild) {
+          element.removeChild(element.firstChild);
+      }
+    } else {
+      // add an iframe to the element. The iframe will load its 
+      // own niivue js and images
+      let html_name = './' + id + '.html';
+      let nv_iframe = document.createElement('iframe');
+      nv_iframe.src = html_name;
+      nv_iframe.frameBorder = '0';
+      nv_iframe.style.display = 'block';
+      nv_iframe.style.width = '100%';
+      nv_iframe.style.height = 'auto';
+      nv_iframe.style.aspectRatio = '5/1';
+      element.appendChild(nv_iframe);
+    }
 }
+
 
 /* show/hide olay in NV (for align checks)
     obj : NV object ID

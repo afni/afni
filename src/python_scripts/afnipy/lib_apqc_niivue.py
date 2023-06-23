@@ -297,12 +297,16 @@ nv_then_txt : str
 
 # =======================================================================
 
-def make_niivue_2dset(ulay_name, pbar_dict, olay_name=None, itemid='',
+def make_niivue_2dset(qcdir, ulay_name, pbar_dict, olay_name=None, itemid='',
                       path='..', verb=0):
-    """
+    """This function creates the mini-html for each dataset(s) that can be
+viewed in NiiVue.  It also creates the text that gets inserted into
+the primary index.html, where NiiVue will actually open when toggled on.
 
 Parameters
 ----------
+qcdir : str
+    name of QC directory (QC_<subj>/)
 ulay_name : str
     name of ulay dataset
 pbar_dict : dict
@@ -315,7 +319,7 @@ olay_name : str
 itemid : str
     ID of the div that will be activated using this NiiVue instance
 path : str
-    path to the data, which will typically be the default
+    path to the data (from QC_*/), which will typically be the default
 verb : str
     verbosity level whilst processing
 
@@ -355,13 +359,67 @@ otxt : str
     nv_thr_txt  = set_niivue_thr(nv_dict)
     nv_then_txt = set_niivue_then(nv_dict)
 
+    # top of mini-html: the typecast part
+    ohtml = '''
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="extra_info/styles.css" />
+  <script src="./niivue.umd.js"> </script>
+  <script type="text/javascript">
 
-    # !!! TODO:  *** ADD NEAR TOP of HTML, and change path to abin***
-    '''
-    <script src="./niivue.umd.js"> </script>
-    '''
+    /* show/hide olay in NV (for align checks)
+        obj : NV object ID
+        bid : button ID in that object's NV canvas
+    */
+    function niivue_ShowHideOlay(obj, bid) {
+      let element = document.getElementById(bid);
+      if (obj.volumes[1].opacity) {
+        obj.setOpacity(1, 0);
+        element.innerText = "View Olay";
+      } else {
+        obj.setOpacity(1, 1);
+        element.innerText = "Hide Olay";
+      }
+    }
 
-    otxt = '''
+    // used for string formatting numbers (C Rorden), below
+    function flt2str0(flt, ndec = 0) {
+      //retain trailing zero
+      return flt.toFixed(ndec); //return string
+    }
+
+    /* more string formatting numbers, below ... WITH directionality here,
+       assuming the coords are what AFNI calls LPI (and what some other
+       software call RAS); basically, L/P/I are neg coords, and R/A/S are
+       positive.  
+    */
+    function flt2str0_dir(flt, ndec = 0, dir = '') {
+      //retain trailing zero
+      if (dir == '') {
+        return flt.toFixed(ndec); //return string
+      } else if (dir == 'RL') {
+        let aflt = Math.abs(flt);
+        let lab = (flt < 0) ? 'L' : 'R';
+        return aflt.toFixed(ndec) + lab;
+      } else if (dir == 'AP') {
+        let aflt = Math.abs(flt);
+        let lab = (flt < 0) ? 'P' : 'A';
+        return aflt.toFixed(ndec) + lab;
+      } else if (dir == 'IS') {
+        let aflt = Math.abs(flt);
+        let lab = (flt < 0) ? 'I' : 'S';
+        return aflt.toFixed(ndec) + lab;
+      } else {
+        return '';
+      }
+    }
+
+  </script>
+</head>
+<body>
+'''
+
+    ohtml+= '''
 <!-- start NiiVue canvas for: {nid} -->
 <div class="class_niivue" id="{nid}_container">
   <canvas id="{nid}" height=480 width=640>
@@ -373,7 +431,7 @@ otxt : str
 
     # for align checks, can have show/hide button
     if nv_dict['olay_btn_sh'] :
-        otxt+= '''  
+        ohtml+= '''  
   <button class="button-generic btn7"
           id="{nid}_btnSHO" 
           onclick="niivue_ShowHideOlay({nobj}, '{nid}_btnSHO')">
@@ -382,7 +440,7 @@ otxt : str
 
 '''.format( nid=nid, nobj=nobj )
 
-    otxt+= '''  <script>
+    ohtml+= '''  <script>
     function reportCoorAndValues(data) {{
       // coord str
       let x = flt2str0_dir(data.mm[0], 3, 'RL')
@@ -404,7 +462,7 @@ otxt : str
     }}
 '''.format( nid=nid )
 
-    otxt+= '''
+    ohtml+= '''
     const {nobj} = new niivue.Niivue(
       {{ logging: true, 
         show3Dcrosshair: true,
@@ -424,16 +482,24 @@ otxt : str
                    nv_thr_txt=nv_thr_txt, nv_then_txt=nv_then_txt,
                    **nv_dict )
 
-    otxt+= '''
+    ohtml+= '''
   </script>
 </div>
+</body>
+</html>
 '''
 
-    if verb :
-        tmp = "="*20 + ' NiiVue canvas ' + "="*20
-        print("-"*len(tmp))
-        print(otxt)
-        print("-"*len(tmp))
+    # write out the html to the main QC_*/ dir
+    fname = "{qcdir}/{nid}_container.html".format(qcdir=qcdir, nid=nid)
+    fff   = open(fname, 'w')
+    fff.write(ohtml)
+    fff.close()
+
+    otxt = '''
+<!-- placeholder for NiiVue canvas: {nid} -->
+<div id="{nid}_container" class="">
+</div> 
+'''.format(nid=nid)
 
     return otxt
 
