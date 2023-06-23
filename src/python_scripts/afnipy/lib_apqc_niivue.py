@@ -422,7 +422,7 @@ otxt : str
     ohtml+= '''
 <!-- start NiiVue canvas for: {nid} -->
 <div class="class_niivue" id="{nid}_container">
-  <canvas id="{nid}" height=480 width=640>
+  <canvas id="{nid}">
   </canvas>
   <footer id="{nid}_xyz" style="color:#fff; ">
     &nbsp;

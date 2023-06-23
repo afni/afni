@@ -1223,7 +1223,7 @@ function toggle_niivue(is_served, id) {
       nv_iframe.style.display = 'block';
       nv_iframe.style.width = '100%';
       nv_iframe.style.height = 'auto';
-      nv_iframe.style.aspectRatio = '5/1';
+      nv_iframe.style.aspectRatio = '4.5/1'; // accommodate hide olay btn
       element.appendChild(nv_iframe);
     }
 }
