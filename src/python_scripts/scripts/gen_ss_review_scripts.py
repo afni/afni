@@ -236,6 +236,7 @@ def add_field_help(fname, hshort='', hlong=[]):
    g_basic_help_fields.append(vo)
 
 def disp_field_help(full=1, update=1):
+   """describe fields in ss_review_basic table"""
    global g_basic_help_fields
    if update: update_field_help()
    if full:

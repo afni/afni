@@ -53,6 +53,43 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jun, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "pass tlrc_base uvar as template",
+   "Sorry, PT."
+ } ,
+
+ { 20, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "under linux, check for shared dependencies of R_io.so",
+   NULL
+ } ,
+
+ { 14, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "default to -radial_correlate_blocks errts, if none given",
+   NULL
+ } ,
+
+ {  8, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "turn off check for PyQt4",
+   NULL
+ } ,
+
+ {  8, Jun, 2023, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
+   "add build maker to AFNI_version.txt",
+   NULL
+ } ,
+
+ {  7, Jun, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "start looking for dependent libraries (under linux for now)",
+   "Also, rearranged some of the output.\n"
+   "Done at the behest of P Taylor."
+ } ,
+
+ {  2, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix -regress_errts_prefix for surface analysis",
+   "It was missing $hemi to specify the hemisphere.\n"
+   "Thanks to A Gilemore for bringing up the issue."
+ } ,
+
  { 12, May, 2023, RCR, "Makefile.macos_13_ARM_clang", MICRO, TYPE_MODIFY,
    "comment out EXTRA_INSTALL_FILES",
    "Might vary, and is not needed for non-distribution system."

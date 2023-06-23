@@ -6235,12 +6235,12 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregsOI == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.${subj}%s' % suff]
+        opt.parlist = ['errts.${subj}']
 
     if not opt or not opt.parlist: errts = ''
     else:
         # note and apply
-        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre_3dd = '%s%s' % (opt.parlist[0], suff)
         proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
@@ -8739,7 +8739,8 @@ def ap_uvars_table(proc):
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
     if proc.tlrc_base:
-       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
+       # tlrc_base is called template
+       aptab.append(['template', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
