@@ -159,8 +159,6 @@ qc_link_final       = [ "FINAL",
 qcb_helps           = coll.OrderedDict()
 qcb_helps["vorig"]  = '''
 Volumetric mages of data (EPI and anat) in original/native space.
-
-(EPI should now be shown;  anat vol will be along shortly.)
 '''
 
 qcb_helps["ve2a" ]  = '''
@@ -177,16 +175,19 @@ volumes.
 
 qcb_helps["vstat"]  = '''
 Volumetric images of statistics results (and, where available, effect
-estimates).  These images are only created for task data sets, i.e.,
-where GLTs or stimuli are specified (so not for resting state data).
+estimates).  
 
-By default, the (full) F-stat of an overall regression model is shown.
-Additionally, one can specify labels of stimuli or GLTs used in the
-afni_proc.py command, and statistical results will be shown.  For
-stimuli with effect estimates, the 'Coef' vales will be displayed as
-the olay colors (preferably with the 'scale' block having been used in
+For task-based datasets (where stimulus timing was used in AP), the
+(full) F-stat of an overall regression model is shown.  Additionally,
+one can specify labels of stimuli or GLTs used in the afni_proc.py
+command, and statistical results will be shown.  For stimuli with
+effect estimates, the 'Coef' vales will be displayed as the olay
+colors (preferably with the 'scale' block having been used in
 afni_proc.py, producing meaningful units of BOLD % signal change in
 the 'Coef' volumes).
+
+For resting-state and naturalistic scans, seedbased correlation maps are
+displayed (when the final space is recognized).
 
 Colorbar ranges and thresholds are chosen from either percentile
 values within the data set (preferably from within a WB mask,

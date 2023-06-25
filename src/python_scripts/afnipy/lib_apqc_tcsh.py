@@ -3155,6 +3155,8 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
         'av_file'     : odoafni,
+        'ic_file'     : 'run_instacorr_errts.tcsh',
+        'ic_args'     : coords,
         'gv_file'     : 'run_graphview_errts.tcsh',
         'gv_args'     : coords,
     }
@@ -3724,11 +3726,16 @@ num : int
         ic_args = ''
         gv_file = 'run_graphview_errts.tcsh'
         gv_args = ''
-    else:
-        ic_file = 'run_instacorr_pbrun.tcsh'
-        ic_args = '{} {}'.format(pb, rnum)
-        gv_file = 'run_graphview_pbrun.tcsh'
-        gv_args = '{} {}'.format(pb, rnum)
+    elif oname.endswith('vreg') :
+        # have to figure out pb number for vreg (and AP uses r01 here)
+        all_volreg = glob.glob("pb*volreg*HEAD")
+        if len(all_volreg) :
+            pb = all_volreg[0].split('.')[0]
+            print('++ pb for volreg is:', pb)
+            ic_file = 'run_instacorr_pbrun.tcsh'
+            ic_args = '{} {}'.format(pb, 'r01')
+            gv_file = 'run_graphview_pbrun.tcsh'
+            gv_args = '{} {}'.format(pb, 'r01')
 
     # Make info above images
     otopdict = {
