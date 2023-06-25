@@ -450,17 +450,37 @@ css_text+= '''
 }
 /* ... and the container/div holding the buttons */
 .container_avnv {
-    width: 160px; 
+    width: 160px;  /* if more btns added, make wider */
     white-space:nowrap; 
     position: absolute; 
     top: -34; 
     right: 5%;
 }
 
-/* Formatting for NiiVue canvas */
+/* For Graphview (GV) and InstaCorr (IC) buttons; 
+   these know if server is serving */
+.btn6b {
+    color:            var(--SavingTextColB6);
+    background-color: var(--SavingBkgdColB6);
+    margin: 4px 2px 0px 3px;
+    height: 26px;
+    width: 40px;
+    padding: 0px 2px;
+    float: left;
+}
+/* ... and the container/div holding the IC/GV buttons */
+.container_icgv {
+    width: 160px; 
+    white-space:nowrap; 
+    position: absolute; 
+    top: -34; 
+    left: 5%;
+}
+
+/* Formatting for NiiVue (NV) canvas */
 .class_niivue {
     width: 90%; 
-    aspect-ratio: 5 / 1; 
+    aspect-ratio: 5 / 1; /* bit higher than value in toggle NV func */
     margin-left: auto; 
     margin-right: auto;
 }
@@ -470,15 +490,15 @@ css_text+= '''
     color:            #000;
     background-color: #ccc; /*#029a64;*/
     margin: 0px;
-    padding: 0px 0px;
-    height: 26px;  /* set size, so no shifting */
-    width: 116px;  /* set size, so no shifting */
-    border: 2px solid;
+    padding: 0px 0px 0px 0px;
+    height: 24px;  /* set size, so no shifting */
+    width: 96px;  /* set size, so no shifting */
+    border: 1px solid;
     border-color:  #fff #aaa #aaa #fff;
     border-radius: 5px;
     text-decoration: none;
     font-family: Arial, "courier new", courier, monospace;
-    font-size: 21px;
+    font-size: 18px;
     font-weight: normal; /* bold; */
 }
 '''

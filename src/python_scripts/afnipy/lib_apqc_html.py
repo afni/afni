@@ -671,6 +671,8 @@ class apqc_item_info:
     av_file     = ""
     ic_file     = ""
     ic_args     = ""
+    gv_file     = ""
+    gv_args     = ""
     itemtype    = ""
     itemid      = ""
     blockid     = ""
@@ -717,6 +719,14 @@ class apqc_item_info:
         if 'ic_args' in DICT :
             self.ic_args = DICT['ic_args']
 
+    def set_gv_file(self, DICT):
+        if 'gv_file' in DICT :
+            self.gv_file = DICT['gv_file']
+
+    def set_gv_args(self, DICT):
+        if 'gv_args' in DICT :
+            self.gv_args = DICT['gv_args']
+
     # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
         if 'text' in DICT :
@@ -752,6 +762,8 @@ class apqc_item_info:
         self.set_av_file(DICT)
         self.set_ic_file(DICT)
         self.set_ic_args(DICT)
+        self.set_gv_file(DICT)
+        self.set_gv_args(DICT)
         self.add_subtext(DICT)
         self.set_warn_level(DICT)
 
@@ -2214,8 +2226,9 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
-             av_file='', ic_file='', ic_args=''):
+def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", 
+             add_nvbtn=False,
+             av_file='', ic_file='', ic_args='', gv_file='', gv_args='' ):
     # [PT: Nov 20, 2018] needed this next line to center the text, and
     # needed "display: inline-block" in the img {} def to not have
     # whole line be a link.
@@ -2223,6 +2236,8 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
     # [PT: June 5, 2023] add in items for InstaCorr (IC) button, which only
     #                    exists in add_nvbtn is True; ic_args are optional
     #                    seed location coords (3 numbers)
+    # [PT: June 24, 2023] add in items for GraphView (GV) buttons, which are
+    #                    used whenever IC ones are
 
     y = ''
     y+= vpad*'\n'
@@ -2248,18 +2263,33 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="", add_nvbtn=False,
       <button class="button-generic button-RHS btn6"
               title="Run AFNI-view" 
               onclick="doRunAV('{av_file}')">AV</button>
-      </td>'''.format( itemid=itemid, av_file=av_file )
+      </td>
+    </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid, 
+                                                 av_file=av_file )
+
+    if ic_file or gv_file :
+        y+= '''
+    <!-- top InstaCorr and Graph-View buttons (IC/GV) -->
+    <div class="container_icgv">'''
 
         if ic_file :
             y+= '''
       <td style="white-space:nowrap;" id=td6_IC_{itemid}>
-      <button class="button-generic button-RHS btn6"
+      <button class="button-generic button-RHS btn6b"
               title="Run InstaCorr" 
               onclick="doRunAV('{ic_file} {ic_args}')">IC</button>
       </td>'''.format( itemid=itemid, ic_file=ic_file, ic_args=ic_args )
 
+        if gv_file :
+            y+= '''
+      <td style="white-space:nowrap;" id=td6_GV_{itemid}>
+      <button class="button-generic button-RHS btn6b"
+              title="Run AFNI graph-view" 
+              onclick="doRunAV('{gv_file} {gv_args}')">GV</button>
+      </td>'''.format( itemid=itemid, gv_file=gv_file, gv_args=gv_args )
+
         y+= '''
-    </div> <!-- bot AV/NV buttons -->'''
+    </div> <!-- bot IC/GV buttons -->'''
 
     y+= '''
 </div> <!-- bottom of image -->

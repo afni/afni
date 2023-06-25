@@ -83,7 +83,7 @@ if ( "${run}" == "" ) then
     echo "   seed location coordinate"
     exit 1
 else
-    set ic_label = "${pb} ${run}"
+    set label = "${pb} ${run}"
 endif
 
 # ----- find main dset of IC
@@ -232,7 +232,7 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"   Run InstaCorr on AP results data:  ${ic_label}\\n\\n\\
+"   Run InstaCorr on AP results data:  ${label}\\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
@@ -240,25 +240,24 @@ Initial ulay dataset : ${dset_ulay}\\n\\
          IC blur rad : ${ic_blur} mm\\n\\
          IC polort N : ${ic_polort}\\n\\
 \\n\\
-Wait briefly for the initial correlation patterns to appear.  \\n\\
+Wait briefly for initial correlation patterns to appear.  \\n\\
 \\n\\
 To use InstaCorr:\\n\\
-First, hold down Ctrl+Shift. Then Left-click anywhere in  \\n\\
-the dataset, and even drag the cursor around.\\n\\
-\\n\\
-Correlation patterns from each clicked seed location\\n\\
-update instantly.\\n\\
++ Hold down Ctrl+Shift\\n\\
++ Left-click in the dataset\\n\\
++ Drag the cursor around.\\n\\
+... and correlation patterns instantly update\\n\\
+from each new seed location.\\n\\
 \\n\\
 To jump to particular coordinates:\\n\\
 + Right-click -> 'Jump to (xyz)' \\n\\
 + Enter 3 space-separated coords\\n\\
 + Right-click -> 'InstaCorr set'\\n\\
-... or use standard Ctrl+Shift and Left-click.\\n\\
 \\n\\
 Alpha (transparent) thresholding is ON. To put boxes\\n\\
-around suprathreshold voxels, click 'B' above the colorbar  \\n\\
+around suprathreshold regions, click 'B' above the colorbar  \\n\\
 in the GUI.\\n\\
-\\n"\\
+\\n" \\
 -b '          Done - Close AFNI GUI          '`
 
 

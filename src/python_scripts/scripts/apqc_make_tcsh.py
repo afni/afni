@@ -262,10 +262,7 @@ from afnipy import lib_apqc_tcsh       as lat
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
-from afnipy import lib_apqc_instacorr  as laic
-from afnipy import lib_apqc_instacorr_tcat  as laict
-from afnipy import lib_apqc_instacorr_pbrun as laipb
-from afnipy import lib_apqc_graphview_pbrun as lagpb
+from afnipy import lib_apqc_run_icgv   as lari     # make run_*tcsh scripts
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -348,19 +345,21 @@ if __name__ == "__main__":
 
     # [PT: Oct 5, 2022] make an instacorr run script in the main
     # results directory
+    # [PT: June 25 2023] now both IC and GV (for pbrun and errts) from
+    # single library
 
     ldep     = ['errts_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
-            stat = laic.write_apqc_ic_script(ap_ssdict)
+            stat_ic_errts = lari.write_apqc_icgv_script('IC', 'errts', 
+                                                        ap_ssdict)
+            stat_gv_errts = lari.write_apqc_icgv_script('GV', 'errts', 
+                                                        ap_ssdict)
 
-    # pb+run instacorr script
+    # pbrun instacorr and graphview scripts
     if 1 :
-        stat = laipb.write_apqc_ic_script()
-
-    # pb+run graphview script
-    if 1 :
-        stat = lagpb.write_apqc_graphview_script()
+        stat_ic_pbrun = lari.write_apqc_icgv_script('IC', 'pbrun', ap_ssdict)
+        stat_gv_pbrun = lari.write_apqc_icgv_script('GV', 'pbrun', ap_ssdict)
 
     # ----------------- initialize some params/switches ----------------
 

@@ -69,7 +69,7 @@ if ( "${run}" == "" ) then
     echo "   seed location coordinate"
     exit 1
 else
-    set ic_label = "${pb} ${run}"
+    set label = "${pb} ${run}"
 endif
 
 # ----- find main dset 
@@ -172,7 +172,7 @@ afni -q  -no_detach                                                     \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"   View graphs+images of AP results data:  ${ic_label}\\n\\n\\
+"   View graphs+images of AP results data:  ${label}\\n\\n\\
 \\n\\
 Initial ulay dataset : ${dset_ulay}\\n\\
 Initial graph shown  : ${graxis}\\n\\

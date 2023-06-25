@@ -2924,6 +2924,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
         'ic_file'     : 'run_instacorr_errts.tcsh',
+        'gv_file'     : 'run_graphview_errts.tcsh',
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
@@ -3154,8 +3155,8 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
         'av_file'     : odoafni,
-        'ic_file'     : 'run_instacorr_errts.tcsh',
-        'ic_args'     : coords,
+        'gv_file'     : 'run_graphview_errts.tcsh',
+        'gv_args'     : coords,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
@@ -3503,6 +3504,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
         'ic_file'     : 'run_instacorr_errts.tcsh',
+        'gv_file'     : 'run_graphview_errts.tcsh',
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
@@ -5543,9 +5545,13 @@ num : int
         if rcdir.endswith('regress') :
             ic_file = 'run_instacorr_errts.tcsh'
             ic_args = ''
+            gv_file = 'run_graphview_errts.tcsh'
+            gv_args = ''
         else:
             ic_file = 'run_instacorr_pbrun.tcsh'
             ic_args = '{} {}'.format(pb, rnum)
+            gv_file = 'run_graphview_pbrun.tcsh'
+            gv_args = '{} {}'.format(pb, rnum)
 
         # conditions for placing text and cbar
         if ii == Ncbar :
@@ -5566,6 +5572,8 @@ num : int
                 'av_file'     : odoafni,
                 'ic_file'     : ic_file,
                 'ic_args'     : ic_args,
+                'gv_file'     : gv_file,
+                'gv_args'     : gv_args,
                 'subtext'     : osubtxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
@@ -5585,6 +5593,8 @@ num : int
                 'av_file'     : odoafni,
                 'ic_file'     : ic_file,
                 'ic_args'     : ic_args,
+                'gv_file'     : gv_file,
+                'gv_args'     : gv_args,
                 'text'        : otoptxt,
             }
             with open(otopjson, 'w', encoding='utf-8') as fff:
