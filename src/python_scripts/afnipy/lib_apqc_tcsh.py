@@ -3718,6 +3718,18 @@ num : int
     if ttt2 :
         otoptxt = [otoptxt, ttt2] 
 
+    # some IC+GV driving scripts
+    if oname.endswith('fin') :
+        ic_file = 'run_instacorr_errts.tcsh'
+        ic_args = ''
+        gv_file = 'run_graphview_errts.tcsh'
+        gv_args = ''
+    else:
+        ic_file = 'run_instacorr_pbrun.tcsh'
+        ic_args = '{} {}'.format(pb, rnum)
+        gv_file = 'run_graphview_pbrun.tcsh'
+        gv_args = '{} {}'.format(pb, rnum)
+
     # Make info above images
     otopdict = {
         'itemtype'    : 'VOL',
@@ -3726,6 +3738,10 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'ic_file'     : ic_file,
+        'ic_args'     : ic_args,
+        'gv_file'     : gv_file,
+        'gv_args'     : gv_args,
         'av_file'     : odoafni,
     }
     with open(otopjson, 'w', encoding='utf-8') as fff:
