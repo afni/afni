@@ -112,6 +112,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         caption = 'Cardiac peaks from band-pass filtered input.',
         font_size = test_retro_obj.font_size)
    
+   # Graph initial cardiac peaks found by scipy
+   filePrefix = 'initialCardiacPeaks_v2'
+   Title = 'Initial Cardiac Peaks Found By scipy'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, 
             dataType = "Cardiac",  
@@ -120,6 +125,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
             save_graph = test_retro_obj.save_graph_level>1, 
             OutDir = OutDir,
             font_size = test_retro_obj.font_size)
+   
+   # Graph cardiac peaks adjusted for uniform spacing
+   filePrefix = 'cardiacPeaksAdjustedForUniformSpacing_v2'
+   Title = 'Cardiac Peaks Adjusted for Uniform Spacing'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # Remove peaks less than the required percentile of the local 
    # input signal
@@ -134,6 +144,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         print('*** ERROR: Failure to local percentile filter ' + \
               'cardiac peaks')
         return [], 0
+   
+   # Graph cardiac peaks filtered by local percentile
+   filePrefix = 'cardiacPeaksFilteredByLocalPctl_v2'
+   Title = 'Cardiac Peaks Filtered by Local Percentile'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
 
    # Estimate the overall typical period using filtered cardiac 
    # time series
@@ -152,6 +167,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
         font_size = test_retro_obj.font_size)
    
+   # Graph cardiac peaks merged based on periodicity
+   filePrefix = 'cardiacMergePeaksBasedOnPeriodicity_v2'
+   Title = 'Merge Cardiac Peaks Closer then 1/4 of Typical Period'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   
    # Remove "peaks" that are less than the raw input a quarter of 
    # a period on right side
    # This is tomove false peaks on the upstroke
@@ -165,6 +185,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
+   
+   # Graph cardiac peaks merged if closer than a quarter of the typical period
+   filePrefix = 'cardiacMergePeaksBasedOnPeriodicity_v2'
+   Title = 'Merge Cardiac Peaks Closer then 1/4 of Typical Period'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
@@ -174,6 +199,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         dataType = "Cardiac",  
         phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
         font_size = test_retro_obj.font_size)
+   
+   # Graph cardiac peaks after false peaks on downside removed
+   filePrefix = 'removeFalseCardiacPeaksOnDownside_v2'
+   Title = 'Remove False Cardiac Peaks On Downside'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # Remove peaks that are less than a quarter as far from the 
    # local minimum to the adjacent peaks
@@ -183,6 +213,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         dataType = "Cardiac",  phys_fs = test_retro_obj.card_data.samp_freq, 
         OutDir = OutDir, font_size = test_retro_obj.font_size)   
    
+   # Graph cardiac peaks after removing peaks near minimum
    filePrefix = 'removeLowCardiacPeaks_v2'
    Title = 'Cardiac Peaks After Removing Peaks near Minimum'
    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
@@ -194,6 +225,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
                 phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
                 font_size = test_retro_obj.font_size, dataType = "Cardiac")   
    
+   # Graph cardiac peaks after adding peaks to maintain periodicity
    filePrefix = 'addMissingCardiacPeaks_v2'
    Title = 'Cardiac Peaks After Adding Peaks to Maintain Preiodicity'
    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
@@ -210,6 +242,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
+   
+   # Graph cardiac peaks after removing peaks LT local min. on right
+   filePrefix = 'removeCardiacPeaksLessThanRightLocalMin_v2'
+   Title = 'Remove Cardiac Peaks LT Local Min. On Right'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
@@ -218,6 +255,11 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac", phys_fs = test_retro_obj.card_data.samp_freq, 
         OutDir = OutDir, font_size = test_retro_obj.font_size)
+   
+   # Graph cardiac peaks after removing false  peaks on downstroke
+   filePrefix = 'removeFalseCardiacPeaksOnDownStroke_v2'
+   Title = 'Remove False Cardiac Peaks On Downstroke'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
       
    # Graph cardiac peaks against respiratory time series
    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>0, 
@@ -226,35 +268,40 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
          "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
          caption = 'Cardiac peaks after all filtering.',
          font_size = test_retro_obj.font_size)
+   
+   # Graph final cardiac peaks 
+   filePrefix = 'FinalCardiacPeaks_v2'
+   Title = 'Final Cardiac Peaks'
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # ==== test plot ====
-   tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.card_data.samp_rate
-   tmp_x_p  = np.arange(len(rawData))[peaks] * test_retro_obj.card_data.samp_rate
+   # tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.card_data.samp_rate
+   # tmp_x_p  = np.arange(len(rawData))[peaks] * test_retro_obj.card_data.samp_rate
 
-   tmp_y_p  = rawData[peaks]
+   # tmp_y_p  = rawData[peaks]
 
-   ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
-                               label='raw input data', 
-                               alpha=1.0,
-                               color='tab:orange')
-   ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
-                               label='cardiac peaks',
-                               ls='None', marker=7,
-                               ms=4, mec='white', mew=0.02,
-                               color='tab:blue')
+   # ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
+   #                             label='raw input data', 
+   #                             alpha=1.0,
+   #                             color='tab:orange')
+   # ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
+   #                             label='cardiac peaks',
+   #                             ls='None', marker=7,
+   #                             ms=4, mec='white', mew=0.02,
+   #                             color='tab:blue')
 
-   oname = 'cardiacPeaksFinal_v2.pdf'
-   if OutDir :
-        oname = OutDir + '/' + oname
-   fff = lrp.RetroFig(figname=oname,
-                       max_n_per_sub=5000, 
-                       title='Cardiac peaks')
-   fff.add_plobj(ret_plobj1)
-   fff.add_plobj(ret_plobj2)
-   fff.make_plot( do_show = test_retro_obj.show_graph_level,
-                   do_save = test_retro_obj.save_graph_level )
+   # oname = 'cardiacPeaksFinal_v2.pdf'
+   # if OutDir :
+   #      oname = OutDir + '/' + oname
+   # fff = lrp.RetroFig(figname=oname,
+   #                     max_n_per_sub=5000, 
+   #                     title='Cardiac peaks')
+   # fff.add_plobj(ret_plobj1)
+   # fff.add_plobj(ret_plobj2)
+   # fff.make_plot( do_show = test_retro_obj.show_graph_level,
+   #                 do_save = test_retro_obj.save_graph_level )
    
-   plt.close() # Close empty figure window
+   # plt.close() # Close empty figure window
    # ==== end test plot ====
 
    return peaks, len(rawData)
@@ -411,6 +458,10 @@ def getRespiratoryPeaks(test_retro_obj):
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
              OutDir = OutDir, font_size = test_retro_obj.font_size)
+   
+    filePrefix = 'removeCloseRespiratoryPeaks_v2'
+    Title = 'Respiratory Peaks After Removing Close Peaks'
+    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
 
     # Add missing peaks
     peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
@@ -419,6 +470,10 @@ def getRespiratoryPeaks(test_retro_obj):
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
              OutDir = OutDir, font_size = test_retro_obj.font_size)   
+   
+    filePrefix = 'addRespiratoryPeaksPerPeriodicity_v2'
+    Title = 'Respiratory Peaks After Adding Peaks per Periodicity'
+    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
     # Remove "peaks" that are less than the raw input a quarter of 
     # a period on right side.  This is tomove false peaks on the 
