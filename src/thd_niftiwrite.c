@@ -612,6 +612,8 @@ ENTRY("populate_nifti_image") ;
   /* init type and offset per NIFTI type            [26 Jun 2023 rickr] */
   if( use_nifti2 ) {
      /* need NIFTI-2 */
+     if( options.debug_level > 1)
+        fprintf(stderr,"-- dimensions require writing as NIFTI-2\n");
      nim->nifti_type = NIFTI_FTYPE_NIFTI2_1 ;
      nim->iname_offset = sizeof(nifti_2_header) ; /* without extensions */
   } else {
