@@ -760,14 +760,26 @@ To jump to particular coordinates:\\n\\
 + Right-click -> 'Jump to (xyz)' \\n\\
 + Enter 3 space-separated coords\\n\\
 + Right-click -> 'InstaCorr set'\\n\\
-\\n\\
+\\n\\'''
+
+    if input_type == 'errts' :
+        otxt+= '''
+Alpha (transparent) thresholding is ON, and boxes have\\n\\
+been placed around suprathreshold regions.\\n\\
+\\n" \\
+-b '          Done - Close AFNI GUI          '`
+'''
+    elif input_type == 'pbrun' :
+        otxt+= '''
 Alpha (transparent) thresholding is ON. To put boxes\\n\\
-around suprathreshold regions, click 'B' above the colorbar  \\n\\
-in the GUI.\\n\\
+around suprathreshold regions, click 'B' above the   \\n\\
+colorbar in the GUI.\\n\\
 \\n" \\
 -b '          Done - Close AFNI GUI          '`
 
+'''
 
+    otxt+= '''
 if ("$l" != "1") then
     echo "+* Warn: InstaCorr guidance message failed to open"
 endif
