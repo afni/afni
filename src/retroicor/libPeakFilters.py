@@ -47,10 +47,11 @@ The following steps are subsequently done for the respiratory data.
 import numpy             as np
 import matplotlib.pyplot as plt
 import bisect
+import lib_retro_graph as lrg
 
-def percentileFilter(peaks, rawData, percentile, upperThreshold=False, 
-        phys_fs = None, dataType = "Cardiac", show_graph = False, 
-        save_graph = True, OutDir = None, font_size = 10):
+def percentileFilter(peaks, rawData, test_retro_obj, lrp, percentile = 10, 
+        upperThreshold=False, phys_fs = None, dataType = "Cardiac", 
+        show_graph = False, save_graph = True, OutDir = None, font_size = 10):
     """
     NAME
         percentileFilter
@@ -107,25 +108,34 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
     # Graph (and save) results as required
     if show_graph or save_graph:
         if upperThreshold:
+           Caption = 'Filter troughs based on percentile of raw data.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
                 phys_fs, dataType, troughs = peaks,
                 OutDir = OutDir, prefix = dataType + 
                     'PctlFilt', 
-                caption = 'Filter troughs based on percentile of raw data.',
+                caption = Caption,
                 font_size = font_size)
         else:
+           Caption = 'Filter peaks based on percentile of raw data.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, 
                 OutDir = OutDir, prefix = dataType + 'PctlFilt', 
-                caption = 'Filter peaks based on percentile of raw data.',
+                caption = Caption,
                 font_size = font_size)
+   
+        # New graph format
+        if upperThreshold:
+           filePrefix = dataType + 'TroughsPctlFiltered_v2'
+        else:
+           filePrefix = dataType + 'PeaksPctlFiltered_v2'
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
 
     return peaks
 
-def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, 
-            upperThreshold=False, show_graph = False, save_graph = True, 
-            phys_fs = None, dataType = "Cardiac", OutDir = None, 
-            font_size = 10):
+def localPercentileFilter(peaks, rawData, percentile, test_retro_obj, lrp,
+            period=None, numPeriods=4, upperThreshold=False, show_graph = False, 
+            save_graph = True, phys_fs = None, dataType = "Cardiac", 
+            OutDir = None, font_size = 10):
     """
     NAME
         localPercentileFilter
@@ -198,14 +208,17 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     # Apply local percentile filter
     if upperThreshold: peaks = peaks[np.array(peakVals) <= np.array(thresholds)]
     else: peaks = peaks[np.array(peakVals) >= np.array(thresholds)]
-            
-    # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption =  'Filter ' + dataType + ' peaks based on local percentile of raw data.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'LocalPctlFilt', 
-            caption = 'Filter peaks based on local percentile of raw data.',
+            caption = Caption,
             font_size = font_size)
+            
+       # Graph (and save) results as required
+       filePrefix = dataType + 'PeaksLocallyPctlFiltered_v2'
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
        
     return peaks
 
@@ -698,7 +711,8 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
         
     return peaks, troughs
 
-def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
+def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
+                     Troughs = False, denominator=4, 
                      show_graph = 0, save_graph = 1, phys_fs = None, 
                      dataType = "Cardiac", OutDir = None, font_size = 10):
     """
@@ -761,15 +775,16 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     if Troughs: # Processing troughs instead of peaks
         peaks = np.array(peaks)
         for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, period = period, 
-                Troughs = True, show_graph = max(show_graph-1,0), 
+            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = period, Troughs = True, 
+                show_graph = max(show_graph-1,0), 
                 save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
                 OutDir = OutDir, font_size = font_size)
     else:   # Processing peaks
         peaks = np.array(peaks)
         for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, period = period, 
-                    show_graph = max(show_graph-1,0), 
+            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                    period = period, show_graph = max(show_graph-1,0), 
                     save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
                     OutDir = OutDir, font_size = font_size)
             
@@ -783,19 +798,26 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
         if Troughs:
+           Caption = 'Merge ' + dataType + ' troughs that are closer than' + \
+                           ' one quarter of the overall typical period.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
                 phys_fs, dataType, troughs = peaks, OutDir = OutDir, 
                 prefix = dataType + 'MergeCloseTroughs', 
-                caption = 'Merge troughs that are closer than one quarter' + 
-                                ' of the overall typical period.',
-                font_size = font_size)
+                caption = Caption, font_size = font_size)
         else:
+           Caption = 'Merge ' + dataType + ' peaks that are closer than' + \
+                           ' one quarter of the overall typical period.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, OutDir = OutDir, 
                 prefix = dataType + 'MergeClosePeaks', 
-                caption = 'Merge peaks that are closer than one quarter' + 
-                                             ' of the overall typical period.',
-                font_size = font_size)
+                caption = Caption, font_size = font_size)
+   
+       # New graph format
+        if Troughs:
+           filePrefix = dataType + 'TroughsAfterRemovingCloseTroughs_v2'
+        else:
+           filePrefix = dataType + 'PeaksAfterRemovingClosePeaks_v2'
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
     
     return peaks
 
@@ -940,8 +962,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         
     return filteredRawData
 
-def refinePeakLocations(peaks, rawData, period = None, Troughs = False, 
-        show_graph = False, save_graph = True, phys_fs = None, 
+def refinePeakLocations(peaks, rawData, test_retro_obj, lrp, period = None, 
+        Troughs = False, show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
@@ -1014,26 +1036,33 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
             
     # Graph (and save) results as required
     if Troughs:
-        Caption = 'Adjust troughs from uniform spacing.'
-        Troughs = peaks
+        Caption = 'Adjust ' + dataType + '  troughs from uniform spacing.'
+        troughs = peaks
         Peaks = []
     else:
-        Caption = 'Adjust peaks from uniform spacing.'
-        Troughs = []
+        Caption = 'Adjust ' + dataType + ' peaks from uniform spacing.'
+        troughs = []
         Peaks = peaks
     if (show_graph or save_graph) and phys_fs:
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, Peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AdjustPeaksFromUniformSpacing', 
-            caption = Caption, troughs = Troughs,
+            caption = Caption, troughs = troughs,
             font_size = font_size)
+   
+       # New graph format
+       if Troughs:
+           filePrefix = dataType + 'TroughsAdjustedForUniformSpacing_v2'
+       else:
+           filePrefix = dataType + 'PeaksAdjustedForUniformSpacing_v2'
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
            
     # Apply offsets
     return peaks
 
-def addMissingPeaks(peaks, rawData, period=None, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
-        font_size = 10):
+def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None, 
+        show_graph = False, save_graph = True, phys_fs = None, 
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         addMissingPeaks
@@ -1087,8 +1116,8 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
                                            for j in range(1,additionPlus1)])
    
     # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, period = period, 
-                show_graph = show_graph, 
+    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = period, show_graph = show_graph, 
                 save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir,
                 font_size = font_size)
             
@@ -1102,8 +1131,8 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     return peaks
 
 
-def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
-        show_graph = False, save_graph = True, phys_fs = None, 
+def addMissingPeaksAndTroughs(peaks, troughs, rawData, test_retro_obj, lrp, 
+        period=None, show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
@@ -1189,11 +1218,12 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
                 troughs = np.insert(troughs, i+1, newTroughs)
    
     # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, period = np.median(intervals)/2, 
+    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = np.median(intervals)/2, 
                 show_graph = max(show_graph - 1, 0), 
                 save_graph = max(save_graph - 1, 0),
                 phys_fs = phys_fs, OutDir = OutDir)
-    troughs = refinePeakLocations(troughs, rawData, 
+    troughs = refinePeakLocations(troughs, rawData, test_retro_obj, lrp, 
        period = np.median(intervals)/2, Troughs = True, 
        show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
        phys_fs = phys_fs, OutDir = OutDir)

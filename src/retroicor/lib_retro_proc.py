@@ -118,7 +118,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
    
    # Adjust peaks from uniform spacing
-   peaks = lpf.refinePeakLocations(peaks, rawData, 
+   peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp,
             dataType = "Cardiac",  
             phys_fs = test_retro_obj.card_data.samp_freq, 
             show_graph = test_retro_obj.show_graph_level>1, 
@@ -126,15 +126,15 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
             OutDir = OutDir,
             font_size = test_retro_obj.font_size)
    
-   # Graph cardiac peaks adjusted for uniform spacing
-   filePrefix = 'cardiacPeaksAdjustedForUniformSpacing_v2'
-   Title = 'Cardiac Peaks Adjusted for Uniform Spacing'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   # # Graph cardiac peaks adjusted for uniform spacing
+   # filePrefix = 'cardiacPeaksAdjustedForUniformSpacing_v2'
+   # Title = 'Cardiac Peaks Adjusted for Uniform Spacing'
+   # lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
     
    # Remove peaks less than the required percentile of the local 
    # input signal
-   peaks = lpf.localPercentileFilter(peaks, rawData, 
-            filterPercentile, numPeriods=3, 
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, 
+            test_retro_obj, lrp, numPeriods=3, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Cardiac",  
@@ -146,9 +146,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         return [], 0
    
    # Graph cardiac peaks filtered by local percentile
-   filePrefix = 'cardiacPeaksFilteredByLocalPctl_v2'
-   Title = 'Cardiac Peaks Filtered by Local Percentile'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   # filePrefix = 'cardiacPeaksFilteredByLocalPctl_v2'
+   # Title = 'Cardiac Peaks Filtered by Local Percentile'
+   # lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
 
    # Estimate the overall typical period using filtered cardiac 
    # time series
@@ -160,7 +160,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
     
    # Merge peaks that are closer than one quarter of the overall 
    # typical period
-   peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+   peaks = lpf.removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  
@@ -168,9 +168,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         font_size = test_retro_obj.font_size)
    
    # Graph cardiac peaks merged based on periodicity
-   filePrefix = 'cardiacMergePeaksBasedOnPeriodicity_v2'
-   Title = 'Merge Cardiac Peaks Closer then 1/4 of Typical Period'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   # filePrefix = 'cardiacMergePeaksBasedOnPeriodicity_v2'
+   # Title = 'Merge Cardiac Peaks Closer then 1/4 of Typical Period'
+   # lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
    
    # Remove "peaks" that are less than the raw input a quarter of 
    # a period on right side
@@ -219,7 +219,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
 
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
+   peaks = lpf.addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=period, 
                 show_graph = max(test_retro_obj.show_graph_level-1,0), 
                 save_graph = max(test_retro_obj.save_graph_level-1,0), 
                 phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
@@ -394,8 +394,13 @@ def getRespiratoryPeaks(test_retro_obj):
             'input.',
         font_size = test_retro_obj.font_size)
    
+    # Graph initial respiratory peaks found by scipy
+    filePrefix = 'initialRespiratoryPeaks_v2'
+    Title = 'Initial Respiratory Peaks Found By scipy'
+    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   
     # Adjust peaks from uniform spacing
-    peaks = lpf.refinePeakLocations(peaks, rawData, 
+    peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
             dataType = "Respiratory",  
             phys_fs = test_retro_obj.resp_data.samp_freq, 
             show_graph = test_retro_obj.show_graph_level>1, 
@@ -411,8 +416,8 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove peaks that are less than the 10th percentile of the 
     # input signal
-    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
-             dataType = "Respiratory",  
+    peaks = lpf.percentileFilter(peaks, rawData, test_retro_obj, lrp, 
+             percentile=10.0, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -452,7 +457,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Merge peaks that are closer than one quarter of the overall 
     # typical period
-    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+    peaks = lpf.removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
              dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
@@ -464,8 +469,8 @@ def getRespiratoryPeaks(test_retro_obj):
     lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
 
     # Add missing peaks
-    peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
-             dataType = "Respiratory",  
+    peaks = lpf.addMissingPeaks(peaks, rawData, test_retro_obj, lrp, 
+             period=period, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -507,7 +512,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove troughs that are more than the 90th percentile of the 
     # input signal
-    troughs = lpf.percentileFilter(troughs, rawData, 
+    troughs = lpf.percentileFilter(troughs, rawData, test_retro_obj, lrp, 
             percentile=90.0, upperThreshold=True, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
@@ -551,7 +556,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Merge troughs that are closer than a quarter of the overall 
     # typical period
-    troughs = lpf.removeClosePeaks(troughs, period, rawData, 
+    troughs = lpf.removeClosePeaks(troughs, period, rawData, test_retro_obj, lrp, 
         Troughs = True, show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -569,7 +574,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Add missing peaks and troughs
     peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, 
-        rawData, period=None, 
+        rawData, test_retro_obj, lrp, period=None, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -577,7 +582,7 @@ def getRespiratoryPeaks(test_retro_obj):
         font_size = test_retro_obj.font_size)
    
     # Adjust troughs from uniform spacing
-    troughs = lpf.refinePeakLocations(troughs, rawData, 
+    troughs = lpf.refinePeakLocations(troughs, rawData, test_retro_obj, lrp, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
               dataType = "Respiratory",  
