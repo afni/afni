@@ -25,6 +25,7 @@ DEF = {
     'host'    : '127.0.0.1',    # hostname
     'jump_to' : None,           # hash to jump to in APQC page
     'open_pages'    : True,     # T/F: open pages in browser?
+    'disp_jump_ids' : False,    # T/F: display jump IDs in index.html
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
     'pause_time'    : 2.0,      # time (s) to pause to let pages load
@@ -192,6 +193,46 @@ def construct_url( host, portnum, rem_path,
 
 # ==========================================================================
 
+def disp_jump_ids_file(all_inpath):
+    """From list of input index.html files, display list of possible IDs
+for jumping, which is stored in extra_info.
+
+"""
+    
+    if not(len(all_inpath)) :
+        print("** ERROR: no index.html files were input, so I cannot list\n"
+              "   any IDs.\n"
+              "   Please use '-infiles ..' to input at least one file.")
+        sys.exit(1)
+
+    is_valid = verify_all_paths_to_html(all_inpath)
+    if not(is_valid) :
+        print("** ERROR: invalid input paths, cannot proceed")
+        sys.exit(1)
+
+    common_abs_path, rem_html_list = \
+        find_common_and_remainder_paths(all_inpath, min_rem_len=2)
+
+    # get full path to index.html
+    ppp = common_abs_path + '/' + rem_html_list[0]
+    # get full path *except* index.html
+    qqq = '/'.join(ppp.split('/')[:-1])
+    # get file of interest
+    rrr = qqq + '/' + 'extra_info/list_ids.txt'
+    # check that it exists
+    if not(os.path.isfile(os.path.expanduser(rrr))) :
+        print("+* WARN: cannot find file listing IDs:", rrr)
+        return 1
+    
+    fff = open(rrr, 'r')
+    X   = fff.read()
+    fff.close()
+    print('\n' + X)
+
+    return 0
+
+# ==========================================================================
+
 ### [PT: Aug 8, 2022] this function is no longer used
 def parse_qc_html_path(pstr):
     """Take in a string pstr that should be the path to an APQC index.html
@@ -259,7 +300,7 @@ def calc_nstep_path(pstr):
     RETURN_IF_BAD = -1
 
     if type(pstr) != str :
-        print("**ERROR: need to a string of a path name")
+        print("** ERROR: need to a string of a path name")
         return RETURN_IF_BAD
 
     N = len(pstr) 
@@ -327,7 +368,7 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
     RETURN_IF_BAD = "", []
 
     if type(inp_path_list) != list :
-        print("**ERROR: need to input a list of paths")
+        print("** ERROR: need to input a list of paths")
         return RETURN_IF_BAD
 
     N = len(inp_path_list)
@@ -471,10 +512,10 @@ rem_ssrev_json_list : list (of str)
     RETURN_IF_BAD = [], []
 
     if type(rem_html_list) != list :
-        print("**ERROR: need to input a list of paths 'rem_html_list'")
+        print("** ERROR: need to input a list of paths 'rem_html_list'")
         return RETURN_IF_BAD
     if type(common_abs_path ) != str :
-        print("**ERROR: need to input a str pathname 'common_ab_path'")
+        print("** ERROR: need to input a str pathname 'common_ab_path'")
         return RETURN_IF_BAD
 
     N = len(rem_html_list)
@@ -542,7 +583,7 @@ def verify_all_paths_to_html( inp_path_list ):
     RETURN_IF_BAD = 0
 
     if type(inp_path_list) != list :
-        print("**ERROR: need to input a list of paths")
+        print("** ERROR: need to input a list of paths")
         return RETURN_IF_BAD
 
     N = len(inp_path_list)
@@ -552,11 +593,11 @@ def verify_all_paths_to_html( inp_path_list ):
     # run the gauntlet
     for path in inp_path_list:
         if not(path.endswith('index.html')) :
-            print("**ERROR: path+file name '{}' does not end with index.html"
+            print("** ERROR: path+file name '{}' does not end with index.html"
             "".format(path))
             return RETURN_IF_BAD
         if not(os.path.isfile(os.path.expanduser(path))) :
-            print("**ERROR: path+file name '{}' does not exist"
+            print("** ERROR: path+file name '{}' does not exist"
             "".format(path))
             return RETURN_IF_BAD
 

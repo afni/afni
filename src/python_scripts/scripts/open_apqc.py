@@ -122,6 +122,12 @@ parser.add_argument('-jump_to', nargs=1,
                     help='when opening the APQC HTML, jump to the provided '
                     'QC block or sub-block name (e.g., "ve2a", "qsumm", etc.)')
 
+parser.add_argument('-disp_jump_ids', action="store_true", 
+                    default=lao.DEF['disp_jump_ids'],
+                    help='display list of IDs within first index.html file '
+                    'that can be jumped to with the "-jump_to .." option '
+                    '(must be used with "-infiles ..")')
+
 parser.add_argument('-new_tabs_only', action="store_true", 
                     default=lao.DEF['new_tabs_only'],
                     help='open each page in new tab '
@@ -190,6 +196,7 @@ do_open_pages    = args.open_pages_off
 do_ver           = args.ver
 do_help          = args.help
 do_hview         = args.hview
+do_disp_jump_ids = args.disp_jump_ids
 do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
@@ -212,6 +219,11 @@ if len(sys.argv) == 1 or do_help :
 # if nothing, show help
 if do_ver :
     print(version)
+    sys.exit(0)
+
+# show jump_to IDs
+if do_disp_jump_ids :
+    lao.disp_jump_ids_file(all_inpath)
     sys.exit(0)
 
 # ----------------------- import flask -----------------------------------
