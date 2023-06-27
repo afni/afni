@@ -845,6 +845,20 @@ def write_json_file( ll, fname ):
 
 # --------------------------------------------------------------------
 
+def write_list_ids_file(oids, list_ids):
+    otxt = ''
+    N = len(list_ids)
+    for ii in range(N):
+        otxt+= ' ' * (list_ids[ii][0] == 'itemid') * 4
+        otxt+= list_ids[ii][1] + '\n'
+    
+    fff = open( oids, "w" )
+    fff.write( otxt )
+    fff.close()
+
+
+# --------------------------------------------------------------------
+
 # !!! UNUSED
 #def wrap_block_lab(x, vpad=0):
 #    y = """<h3><center>block: """+x+"""</center></h3>"""

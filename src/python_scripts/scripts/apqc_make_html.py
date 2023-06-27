@@ -68,6 +68,7 @@ from afnipy import lib_apqc_io         as laio
 ohtml     = lat.ohtml                # output file, HTML page
 ocss      = lat.dir_info + '/styles.css' # CSS of formats/attributes/etc.
 ohelp     = 'help.html'              # output help file, also html
+oids      = lat.dir_info + '/list_ids.txt' # list of jump_to-able IDs
 tobetable = "IHAVEACUNNINGPLAN!"     # string to be replaced later
 ftypes    = [ 'jpg', 'dat', 'txt' ]  # types of data to populate HTML page
 allblocks = lah.qc_blocks.keys()    # SHOULD be ordered list of QC blocks
@@ -96,6 +97,10 @@ if __name__ == "__main__":
     # it, for easier identification
     oapqcjson = 'apqc_{}.json'.format( titlepg_dict['subj'] )
 
+    # make a list of lists: each sublist is either 'blockid' or
+    # 'itemid', and then the id. E.g.: ['blockid', 'regr'], 
+    # ['itemid', 'tsnr_vreg']
+    list_ids = []
 
     # ========================= HTML: start =========================== #
 
@@ -219,7 +224,9 @@ if __name__ == "__main__":
                                            do_close_prev_div=dcpd )
                 list_links.append( [AAII.blockid, AAII.blockid_hov] )
                 DID_START_QC_BLOCKS = True
-                
+                list_ids.append( ['blockid', AAII.blockid] )
+                list_ids.append( ['itemid', AAII.itemid] )
+
             # 2) Try to add text above it
             if AAII.text :
                 ht+= lah.wrap_block_text( AAII.text,
@@ -227,6 +234,8 @@ if __name__ == "__main__":
                                           itemid=AAII.itemid,
                                           padmarg=PADMARG_VAL,
                                           vpad=1 )
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             # 3) Try to add image or dat
             if AAII.itemtype == '1D':
@@ -250,6 +259,8 @@ if __name__ == "__main__":
                 if AAII.nv_html :
                     fname = lah.dir_img + '/' + AAII.nv_html
                     ht+= lah.wrap_nv_html(fname)
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'WARN':
                 ht+=lah.wrap_dat( lah.read_dat(img),
@@ -259,10 +270,14 @@ if __name__ == "__main__":
                 if lahc.wlevel_ranks[AAII.warn_level] > MAX_WLEVEL_RANK :
                     MAX_WLEVEL = AAII.warn_level
                     MAX_WLEVEL_RANK = lahc.wlevel_ranks[MAX_WLEVEL]
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'DAT':
                 ht+=lah.wrap_dat( lah.read_dat(img),
                                   addclass=" class='datbord' ")
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'BUTTON':
                 ht+=lah.wrap_button( lah.read_dat(img),
@@ -312,6 +327,9 @@ if __name__ == "__main__":
 
     # output help html file; reuse same external CSS file
     lah.write_help_html_file( ohelp, ocss ) 
+
+    # output list of IDs to a text file, to display 
+    lah.write_list_ids_file( oids, list_ids ) 
 
     # silly check, so no doubling of slash in path (not harmful, but
     # annoyingly unaesthetic)
