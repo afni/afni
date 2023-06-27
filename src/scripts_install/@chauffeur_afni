@@ -2533,13 +2533,13 @@ afni -q -no1D ${XXX_NPANE} -noplugins -no_detach  -echo_edu          \
     \${view_planes:q}                                                 \
     \${read_dir} &
 
-set l = \`prompt_user -pause \
+set l = \`prompt_popup -message \
 "${txt_oechocmd}\n\n\
 ${txt_oechocmd2:q}\n\n\
 Initial ulay dataset : \${read_ulay}\n\
 Initial olay dataset : \${read_olay} (\${see_olay})\n\
-\n\
-When done, hit 'OK' to exit.\n"\`
+\n" \
+-b '          Done - Close AFNI GUI          '\`
 
 
 if ("\$l" != "1") then
