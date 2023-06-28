@@ -406,7 +406,7 @@ The return is purely pro forma.
 def assets(path):
     '''This is used to help find NiiVue from outside the QC directory,
 namely from the AFNI binaries directory (e.g.,
-somewhere/abin/niivue.umd.js).
+somewhere/abin/niivue_afni.umd.js).
 
 Parameters
 ----------
@@ -420,7 +420,7 @@ something very important, re. the HTML
 
     '''
 
-    # get location of AFNI binaries dir, which is where niivue.umd.js
+    # get location of AFNI binaries dir, which is where niivue_afni.umd.js
     # will live
     cmd = 'which afni'
     com = BASE.shell_com(cmd, capture=1)

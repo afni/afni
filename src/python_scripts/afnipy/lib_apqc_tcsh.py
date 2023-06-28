@@ -914,7 +914,7 @@ num : int
                   "".format(logo_file))
 
     # TEMPORARY !!!!!!
-    cmd     = '''\\cp {} {}'''.format(ap_ssdict['abin_dir'] + '/' + 'niivue.umd.js',
+    cmd     = '''\\cp {} {}'''.format(ap_ssdict['abin_dir'] + '/' + 'niivue_afni.umd.js',
                                       ap_ssdict['odir_qc'])
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
