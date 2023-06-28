@@ -199,10 +199,14 @@ for jumping, which is stored in extra_info.
 
 """
     
-    if not(len(all_inpath)) :
-        print("** ERROR: no index.html files were input, so I cannot list\n"
-              "   any IDs.\n"
-              "   Please use '-infiles ..' to input at least one file.")
+    # bc of how argparse works, if no infiles are input, then:
+    # all_inpath == [[]].  So, it is never an empty list, and check
+    # len of zeroth element to see if none were input
+    if not(len(all_inpath[0])) :
+        print("** ERROR: no index.html files were input, so I cannot list "
+              "any IDs.\n"
+              "   Please use '-infiles ..' to input at least one index.html "
+              "file.")
         sys.exit(1)
 
     is_valid = verify_all_paths_to_html(all_inpath)
