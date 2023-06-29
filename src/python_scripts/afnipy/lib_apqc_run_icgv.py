@@ -560,11 +560,13 @@ set voxvol      = `3dinfo -voxvol "${ic_dset}"`
 set ic_seedrad  = `echo "${voxvol}"                                      \\
                         | awk '{printf "%0.2f",(2*($1)^0.3334);}'`
 echo "++ seedcorr radius: ${ic_seedrad}"
-
-set ic_blur = 0
 '''
 
-        if input_type == 'pbrun' :
+        if input_type == 'errts' :
+            otxt+= '''
+set ic_blur = 0
+'''
+        elif input_type == 'pbrun' :
             otxt+= '''
 # apply blur in IC if pb is not 'blur' or 'scale' block
 set bind = `echo "${ic_dset}" | awk '{print index($0, "blur")}'`
