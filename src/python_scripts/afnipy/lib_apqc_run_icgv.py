@@ -564,7 +564,7 @@ echo "++ seedcorr radius: ${ic_seedrad}"
 set ic_blur = 0
 '''
 
-        if input_type == 'errts' :
+        if input_type == 'pbrun' :
             otxt+= '''
 # apply blur in IC if pb is not 'blur' or 'scale' block
 set bind = `echo "${ic_dset}" | awk '{print index($0, "blur")}'`

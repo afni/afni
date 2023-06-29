@@ -18,6 +18,7 @@ version = '1.1'  # adds in Timer functionality, so multiple pages can
                  # Also add '-hview' functionality
 version = '1.11' # add more help text and examples
 version = '2.0'  # add in AV button functionality 
+version = '3.0'  # run with or without server going
 
 # ==========================================================================
 
@@ -39,7 +40,18 @@ dent = '\n' + 5*' '
 help_dict = {
     'ddashline' : '='*76,
     'ver'       : version,
+    'flask_deps' : """      
+     flask (ver >= 2.1.2)
+     flask_cors (ver >= 3.0.10)"""
 }
+
+flask_warn = """
++* WARNING: The following Python modules are not installed:"""
+flask_warn+= help_dict['flask_deps']
+flask_warn+= """
+   These could/should be installed with a package manager, Conda, etc.
+   We continue on, but the fancy APQC buttons will not be enabled.
+"""
 
 # ========================================================================== 
 # setup help and options
@@ -51,8 +63,13 @@ This program is used to open one or more of afni_proc.py's quality
 control (APQC) HTML files.
 
 It is designed to allow saving QC ratings and notes as the files are
-browsed, by using a local server.  **This functionality requires
-Python's Flask and Flask-CORS modules to both be installed.**
+browsed, as well as the execution of 'interactive QC' scripts, by
+using a local server.  **This functionality requires Python's Flask
+and Flask-CORS modules to both be installed.**  You can still run this
+script without those modules and view the QC images, but the fancy
+buttons will not work.  It is highly recommended to install those
+modules before using this program, to greatly improve your QC
+experience.
 
 {ddashline}
 
@@ -72,6 +89,13 @@ While running/viewing the HTMLs:
 When finished:
   When you are doing viewing the APQC HTMLs, you can close all of
   them, and type 'Ctrl+c' in the terminal (to cancel/exit the server).
+
+Notes on dependencies ~1~
+
+To get the most information (and fun!) when using the program, the 
+following Python modules should be installed, to enable a local server
+to be up and running: {flask_deps}
+These could/should be installed with a package manager, Conda, etc.
 
 {ddashline}
 
@@ -226,23 +250,6 @@ if do_disp_jump_ids :
     lao.disp_jump_ids_file(all_inpath)
     sys.exit(0)
 
-# ----------------------- import flask -----------------------------------
-# put import here, so users can get help info without it
-try:
-    from flask        import Flask, send_from_directory, request, jsonify
-    from flask_cors   import CORS   # to circumvent 'no access issues from UI'
-except (ImportError,NotImplementedError):
-    emsg = """** ERROR. To be able to run this program, please install the 
-   following Python modules:
-      flask (v>= ***)
-      flask_cors (v>= ***)
-   For example, this could be done with a package manager or conda."""
-    print(emsg)
-    sys.exit(3)
-
-# !!! (perhaps) TO DO: add in a non-flask-driven open option, perhaps,
-# !!! though this is annoying/tricky/unstable with browser+OS variation
-
 # ------------------------------------------------------------------------
 # continue on: process opts slightly
 
@@ -285,155 +292,172 @@ if verb :
     print("++ Number of paths:", npath)
     print("++ common_abs_path:" + dent + common_abs_path)
     print("++ rem index.html:" + dent + dent.join(rem_html_list))
+if verb>2 :
     print("++ rem apqc_json:" + dent + dent.join(rem_apqc_json_list))
     print("++ rem ssrev_json:" + dent + dent.join(rem_ssrev_json_list))
 
 # ===========================================================================
 # ========================== flask/decorator stuff ==========================
 
-app = Flask(__name__)           # initialize flask app
-CORS(app)                       # let CORS package upgrade app
+# We will first try to use Flask, but if it isn't available we will
+# continue in a more simple mode (in the latter case, the HTML buttons
+# won't work)
 
-@app.route("/<path:path>", methods=["GET"])
-def index(path):
-    '''comment this...
+DO_HAVE_FLASK = 0
 
-    'path' is the relative path to a particular index.html from the
-    common_abs_path base
+try:
+    from flask        import Flask, send_from_directory, request, jsonify
+    from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+    DO_HAVE_FLASK = 1
+except (ImportError,NotImplementedError):
+    print(flask_warn)
 
-    '''
-    print("++ path is:", path)
-    return send_from_directory(common_abs_path, path)
+if DO_HAVE_FLASK :
+    app = Flask(__name__)           # initialize flask app
+    CORS(app)                       # let CORS package upgrade app
 
-@app.route("/save", methods=["POST"])
-def save_json():
-    """
-    Function to save the QC button/rating info to the apqc*.json file.
-    """
+    @app.route("/<path:path>", methods=["GET"])
+    def index(path):
+        '''comment this...
 
-    # [TH] javascript needs to send the url parts, so that we can
-    # parse them here and know which subject json to update
-    posted_dict = request.get_json()
-    pjson_fname = posted_dict['remJsonFilename']
-    pjson_ssrev = posted_dict['remJson_ssrev']
-    pjson_data  = posted_dict['JsonFileContents']
+        'path' is the relative path to a particular index.html from the
+        common_abs_path base
 
-    # save the form information to apqc_{subj}.json
-    try:
-        # should be a match from within the initial input list
-        index = rem_apqc_json_list.index(pjson_fname)
-        # open using full path; means this prog can be run from anywhere
-        json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
-        with open(json_to_open, 'w', encoding='utf-8') as fff:
-            json.dump( pjson_data, fff, 
-                       ensure_ascii=False, indent=4 )
-    except:
-        print(f'** ERROR: could not find index for path {pjson_fname}')
+        '''
+        print("++ path is:", path)
+        return send_from_directory(common_abs_path, path)
 
-    # add+save the form information to extra_info/out.ss_review.{subj}.json
-    try:
-        # should be a match from within the initial input list
-        index = rem_ssrev_json_list.index(pjson_ssrev)
+    @app.route("/save", methods=["POST"])
+    def save_json():
+        """
+        Function to save the QC button/rating info to the apqc*.json file.
+        """
 
-        # open using full path; means this prog can be run from anywhere
-        json_to_open = common_abs_path + '/' + rem_ssrev_json_list[index]
-        with open(json_to_open, 'r', encoding='utf-8') as fff:
-            ssrev_dict = json.load(fff)
+        # [TH] javascript needs to send the url parts, so that we can
+        # parse them here and know which subject json to update
+        posted_dict = request.get_json()
+        pjson_fname = posted_dict['remJsonFilename']
+        pjson_ssrev = posted_dict['remJson_ssrev']
+        pjson_data  = posted_dict['JsonFileContents']
 
-        # turn the list into a dict
-        pjson_dict = lao.apqc_list_to_dict(pjson_data)
+        # save the form information to apqc_{subj}.json
+        try:
+            # should be a match from within the initial input list
+            index = rem_apqc_json_list.index(pjson_fname)
+            # open using full path; means this prog can be run from anywhere
+            json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
+            with open(json_to_open, 'w', encoding='utf-8') as fff:
+                json.dump( pjson_data, fff, 
+                           ensure_ascii=False, indent=4 )
+        except:
+            print(f'** ERROR: could not find index for path {pjson_fname}')
 
-        # add the rating dictionary to the ssrev dict
-        mdict = lao.merge_two_dicts(ssrev_dict, pjson_dict)
+        # add+save the form information to extra_info/out.ss_review.{subj}.json
+        try:
+            # should be a match from within the initial input list
+            index = rem_ssrev_json_list.index(pjson_ssrev)
 
-        with open(json_to_open, 'w', encoding='utf-8') as fff:
-            json.dump( mdict, fff, 
-                       ensure_ascii=False, indent=4 )
-    except:
-        print(f'** ERROR: could not find index for path {pjson_ssrev}')
+            # open using full path; means this prog can be run from anywhere
+            json_to_open = common_abs_path + '/' + rem_ssrev_json_list[index]
+            with open(json_to_open, 'r', encoding='utf-8') as fff:
+                ssrev_dict = json.load(fff)
 
-    return jsonify(pjson_data)
+            # turn the list into a dict
+            pjson_dict = lao.apqc_list_to_dict(pjson_data)
+
+            # add the rating dictionary to the ssrev dict
+            mdict = lao.merge_two_dicts(ssrev_dict, pjson_dict)
+
+            with open(json_to_open, 'w', encoding='utf-8') as fff:
+                json.dump( mdict, fff, 
+                           ensure_ascii=False, indent=4 )
+        except:
+            print(f'** ERROR: could not find index for path {pjson_ssrev}')
+
+        return jsonify(pjson_data)
 
 
-#@app.route('/quit', methods=["POST", "GET"])
-#def quit():
-#    os.kill(os.getpid(), signal.SIGTERM)
+    #@app.route('/quit', methods=["POST", "GET"])
+    #def quit():
+    #    os.kill(os.getpid(), signal.SIGTERM)
 
-# for AV button
-@app.route("/run_av", methods=["POST"])
-def run_av():
-    """Using the name of a script passed from the HTML, execute a shell
-command to run that script in the expected, appropriate directory.
-This assumes that the HTML is still in the results directory.
+    # for AV button
+    @app.route("/run_av", methods=["POST"])
+    def run_av():
+        """Using the name of a script passed from the HTML, execute a shell
+    command to run that script in the expected, appropriate directory.
+    This assumes that the HTML is still in the results directory.
 
-The way that the HTML's location is known is modeled on how the QC
-buttons work (from the button JSON's files name, and using it to find
-the appropriate index.html).
+    The way that the HTML's location is known is modeled on how the QC
+    buttons work (from the button JSON's files name, and using it to find
+    the appropriate index.html).
 
-The return is purely pro forma.
+    The return is purely pro forma.
 
-    """
-    posted_dict = request.get_json()              # provided by HTML
-    script_name = posted_dict['script']           # name of script to run
-    pjson_fname = posted_dict['remJsonFilename']  # used to figure out dir loc
+        """
+        posted_dict = request.get_json()              # provided by HTML
+        script_name = posted_dict['script']           # name of script to run
+        pjson_fname = posted_dict['remJsonFilename']  # used to figure out dir loc
 
-    curr_dir = os.getcwd()                        # use to jump back
+        curr_dir = os.getcwd()                        # use to jump back
 
-    try:
-        # should be a match from within the initial input list
-        index = rem_apqc_json_list.index(pjson_fname)
-        # open using full path; means this prog can be run from anywhere
-        json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
-        location = os.path.dirname(os.path.dirname(json_to_open))
+        try:
+            # should be a match from within the initial input list
+            index = rem_apqc_json_list.index(pjson_fname)
+            # open using full path; means this prog can be run from anywhere
+            json_to_open = common_abs_path + '/' + rem_apqc_json_list[index]
+            location = os.path.dirname(os.path.dirname(json_to_open))
 
-        # jump to the appropriate AP results directory location, run
-        # the script, and then jump back.
-        os.chdir(location)
-        cmd = 'tcsh ' + script_name
+            # jump to the appropriate AP results directory location, run
+            # the script, and then jump back.
+            os.chdir(location)
+            cmd = 'tcsh ' + script_name
+            com = BASE.shell_com(cmd, capture=1)
+            com.run()
+            os.chdir(curr_dir)
+
+        except Exception as e: 
+            print("** ERROR with script '{}':".format(script_name))
+            print(e)
+
+        return 'something'
+
+    ### [TH] for finding NiiVue from a more general spot
+    # create a new URL to access
+    @app.route("/assets/<path:path>", methods=["GET"])
+    def assets(path):
+        '''This is used to help find NiiVue from outside the QC directory,
+    namely from the AFNI binaries directory (e.g.,
+    somewhere/abin/niivue_afni.umd.js).
+
+    Parameters
+    ----------
+    path : str 
+        the relative path to a particular asset from the (global)
+        common_abs_path base
+
+    Returns
+    -------
+    something very important, re. the HTML
+
+        '''
+
+        # get location of AFNI binaries dir, which is where niivue_afni.umd.js
+        # will live
+        cmd = 'which afni'
         com = BASE.shell_com(cmd, capture=1)
         com.run()
-        os.chdir(curr_dir)
+        afni_fullpath = com.so[0]                 # full path + prog
+        abin_dir = os.path.dirname(afni_fullpath) # full path
 
-    except Exception as e: 
-        print("** ERROR with script '{}':".format(script_name))
-        print(e)
-
-    return 'something'
-
-### [TH] for finding NiiVue from a more general spot
-# create a new URL to access
-@app.route("/assets/<path:path>", methods=["GET"])
-def assets(path):
-    '''This is used to help find NiiVue from outside the QC directory,
-namely from the AFNI binaries directory (e.g.,
-somewhere/abin/niivue_afni.umd.js).
-
-Parameters
-----------
-path : str 
-    the relative path to a particular asset from the (global)
-    common_abs_path base
-
-Returns
--------
-something very important, re. the HTML
-
-    '''
-
-    # get location of AFNI binaries dir, which is where niivue_afni.umd.js
-    # will live
-    cmd = 'which afni'
-    com = BASE.shell_com(cmd, capture=1)
-    com.run()
-    afni_fullpath = com.so[0]                 # full path + prog
-    abin_dir = os.path.dirname(afni_fullpath) # full path
-
-    return send_from_directory(abin_dir, path)
+        return send_from_directory(abin_dir, path)
 
 
-@app.route("/load", methods=["GET"])
-def load_json():
-    print('loading json')
+    @app.route("/load", methods=["GET"])
+    def load_json():
+        print('loading json')
+
+# ------------------ remaining (non-Flask-using) functions ---------------
 
 def open_all_browser_pages( portnum ):
     """This function loops over the list of HTML pages (rem_html_list) and
@@ -450,9 +474,18 @@ def open_all_browser_pages( portnum ):
 
     """
     page_code = first_page_code
+    if verb>1 :
+        print('++ URL for browser:')
     for rem_html in rem_html_list:
-        url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
-        print('''++ URL for browser: '{}' '''.format( url ))
+        if DO_HAVE_FLASK :
+            url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
+        else:
+            ttt = ''
+            if jump_to :
+                ttt = '#' + jump_to
+            url = 'file://' + common_abs_path + '/' + rem_html + ttt
+            if verb>1 :
+                print('       {}'.format( url ))
         if do_open_pages :
             webbrowser.open(url, new = page_code)
             page_code = other_page_code
@@ -461,13 +494,12 @@ def open_all_browser_pages( portnum ):
 
 if __name__ == "__main__":
 
-    # find/verify an open port for the given host
-    portnum = lao.find_open_port( portnum=portnum,
-                                  nsearch=port_nsearch,
-                                  host=host,
-                                  verb=verb )
-
-    if 1 :
+    if DO_HAVE_FLASK :
+        # find/verify an open port for the given host
+        portnum = lao.find_open_port( portnum=portnum,
+                                      nsearch=port_nsearch,
+                                      host=host,
+                                      verb=verb )
         print("++ NB: Ignore the 'This is a development server ...' warning")
 
     # construct the web address for each page to be opened, and if
@@ -475,9 +507,10 @@ if __name__ == "__main__":
     # in new tab)
     Timer(pause_time, open_all_browser_pages, [portnum]).start() 
     
-    # start the flask application---have to refresh above pages?
-    app.run(host=host, port=portnum) #, debug=True)
+    if DO_HAVE_FLASK :
+        # start the flask application---have to refresh above pages?
+        app.run(host=host, port=portnum) #, debug=True)
 
-    print("++ DONE.  Goodbye.")
+        print("++ DONE.  Goodbye.")
 
     sys.exit(0)
