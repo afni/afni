@@ -1494,6 +1494,9 @@ class SysInfo:
    def check_R_libs(self):
       print('checking for R packages...')
 
+      # strings that imply library failure or possibly bad version
+      badstr = ['not installed', 'segfault', 'Traceback']
+
       indn = '\n' + g_indent
       cmd = 'rPkgsInstall -pkgs ALL -check'
       st, so, se = BASE.shell_exec2(cmd, capture=1)
@@ -1504,9 +1507,14 @@ class SysInfo:
          # do not require "verified", but fail on "not installed"
          # (to avoid failing on 'unknown timezone' warnings)
          for estr in se:
-            if estr != '' and estr.find('not installed') >= 0:
-               okay = 0   # any failure is terminal
-               break
+            if estr == '':
+               continue
+
+            for bstr in badstr:
+               if estr.find(bstr) >= 0:
+                  okay = 0   # any failure is terminal
+                  break
+
       if okay:
          print('    %-20s : success' % cmd)
       else:
