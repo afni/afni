@@ -254,9 +254,10 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
      return  F0/frequencyModeIndex
 
  
-def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
-        portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+def removePeaksCloseToHigherPointInRawData(peaks, rawData, test_retro_obj, lrp, 
+        direction='right', portion=0.25, period=None, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removePeaksCloseToHigherPointInRawData
@@ -330,16 +331,25 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
         if direction=='right':
-            prefix = dataType + 'RemoveUpsideFalsePeaks'
-            caption = 'Remove "peaks" that are less than the raw input a' + \
+            Caption = 'Remove ' + dataType + ' "peaks" that are less than the raw input a' + \
                 ' quarter of a period on right side.'
+            prefix = dataType + 'RemoveUpsideFalsePeaks'
+            caption = Caption
         else:
-            prefix = dataType + 'RemoveDownsideFalsePeaks'
-            caption = 'Remove "peaks" that are less than the raw input a' +\
+            Caption = 'Remove ' + dataType + ' "peaks" that are less than the raw input a' +\
                 'quarter of a period on left side.'
+            prefix = dataType + 'RemoveDownsideFalsePeaks'
+            caption = Caption
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, prefix = prefix, 
             caption = caption, font_size = font_size)
+   
+       # New graph format
+        if direction=='right':
+           filePrefix = dataType + 'RemoveFalsePeaksOnUpside_v2'
+        else:
+           filePrefix = dataType + 'RemoveFalsePeaksOnDownside_v2'
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
     
     return peaks
 
@@ -416,8 +426,9 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     return troughs
 
 def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-        denominator=4.0, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removePeaksCloserToLocalMinsThanToAdjacentPeaks
@@ -475,12 +486,17 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption = 'Remove peaks that are less than a quarter as far' + \
+           ' from the local minimum to the adjacent peaks.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'RemovePeaksCloseToMinimum', 
-            caption = 'Remove peaks that are less than a quarter as far' + 
-                ' from the local minimum to the adjacent peaks.',
+            caption = Caption,
                 font_size = font_size)
+   
+       # New graph format
+       filePrefix = dataType + 'RemovePeaksCloseToMinimum'
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
     
     return peaks
 
@@ -1123,10 +1139,15 @@ def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None,
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption = 'Add missing ' + dataType + ' peaks per periodicity.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AddMissingPeaksPerPeriodicity', 
-            caption = 'Add missing peaks.', font_size = font_size)
+            caption = Caption, font_size = font_size)
+   
+       # New graph format
+       filePrefix = dataType + 'AddMissingPeaksPerPeriodicity_v2'
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
     
     return peaks
 
