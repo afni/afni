@@ -1,0 +1,1263 @@
+#!/bin/tcsh
+
+# authors - Ben Jung, Adam Messinger
+# converts data from CIVET output for use by SUMA
+
+# mod - drg added version number, changed contact info
+set version = 5
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# make surface spec files from the surface files
+#
+# usage @SUMA_Make_Spec_CIVET [options]
+#
+# options:
+#       -sid    subject_id      : specify subject ID
+#       -civetpath civet_path   : specify path to CIVET files
+#       -debug  level           : display extra output
+#				-hires 									: look for high-resolution surfaces
+#				-no_dsets 							: do not convert CIVET output txt files to GIFTI dset format
+#				-gzip										: save space by gzipping NIFTI files
+#				-VBM										: convert data in VBM/ directory
+#				-segment								: convert data in segment/ directory
+#				-sphere									: for each -inflate value, project inflated surface onto a sphere
+
+#---------------------------------------------------------------------
+goto L_INIT_VARS
+	L_INIT_VARS_DONE:
+
+goto L_CHECK_USAGE
+	L_CHECK_USAGE_DONE:
+
+goto L_PARSE_COMMAND
+	L_PARSE_COMMAND_DONE:
+
+goto L_VERIFY_PROGRAMS
+	L_VERIFY_PROGRAMS_DONE:
+
+goto L_SET_SURF_DIRS
+	L_SET_SURF_DIRS_DONE:
+
+goto L_SET_FILE_LISTS
+	L_SET_FILE_LISTS_DONE:
+
+goto L_CHECK_FOR_OVERWRITE
+	L_CHECK_FOR_OVERWRITE_DONE:
+
+goto L_LOOK_FOR_SURF
+	L_LOOK_FOR_SURF_DONE:
+
+goto L_CONVERT_SURFACES
+	L_CONVERT_SURFACES_DONE:
+
+goto L_CREATE_SPEC
+	L_CREATE_SPEC_DONE:
+goto L_CREATE_NIFTI
+  L_CREATE_NIFTI_DONE:
+
+goto L_CREATE_DSETS
+	L_CREATE_DSETS_DONE:
+
+goto L_TEST_SURF_VOL
+	L_TEST_SURF_VOL_DONE:
+
+goto L_GOOD_END   # finished, woohooo!
+
+
+####################################################################
+# variable initialization
+
+L_INIT_VARS:
+
+set prog_name = $0:t
+set endstr = "$prog_name ... finished"
+set debug     = 0
+
+set inflates = ()
+set no_dsets = 0
+set res = '81920'
+set gzip = 0
+set sphere = 0
+set vbm = 0
+set segment = 0
+goto L_INIT_VARS_DONE
+
+
+####################################################################
+# check usage, and possibly print help
+
+L_CHECK_USAGE:
+
+if ( $#argv == 0 ) then
+# show help on no args   28 Feb 2017 [rickr]
+	echo "usage: $prog_name [options] -sid SUBJECT_ID"
+	echo "usage: $prog_name -help"
+	set endstr = ""
+	goto L_HELP_END
+endif
+
+goto L_CHECK_USAGE_DONE
+
+
+####################################################################
+# parse the command line
+
+L_PARSE_COMMAND:
+
+# init command line arg values
+
+set civet_dir      = "."
+set subj_id      = ""
+set sex = 'gii'
+set stp = 'GIFTI'
+set args     = $#argv
+set count    = 1
+while ( $count <= $args )
+	switch ( "$argv[$count]" )
+
+	# ----------------------------------------------------------
+	# usage: -help
+	case "-h":
+	case "-help":
+
+	goto L_HELP_END      # and don't ya' come back, neither
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage: -sid SUBJECT_ID
+	case "-sid":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -sid SUBJECT_ID"
+		goto L_BAD_END
+	endif
+	@ count ++
+	set subj_id  = $argv[$count]
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage: -civetpath civet_PATH
+	case "-civetpath":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -civetpath civet_PATH"
+		goto L_BAD_END
+	endif
+
+	@ count ++
+	set civet_dir  = $argv[$count]
+
+	if ( ! -d $civet_dir ) then
+		set endstr = "failure: directory not found - '$civet_dir'"
+		goto L_BAD_END
+	endif
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -debug DEBUG_LEVEL
+	case "-debug":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -debug DEBUG_LEVEL"
+		goto L_BAD_END
+	endif
+
+	set debug = $argv[$count]
+
+	if ( "$debug" > 2 ) set debug = 2
+	if ( "$debug" < 0 ) set debug = 0
+
+	breaksw
+	# ----------------------------------------------------------
+	# usage : -hires
+	case "-hires":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -hires"
+		goto L_BAD_END
+	endif
+
+	set res = '327680'
+
+	breaksw
+	# ----------------------------------------------------------
+	# usage : -no_dsets
+	case "-no_dsets":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -no_dsets"
+		goto L_BAD_END
+	endif
+
+	set no_dsets = 1
+
+	breaksw
+	# ----------------------------------------------------------
+	# usage : -gzip
+	case "-gzip":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -gzip"
+		goto L_BAD_END
+	endif
+
+	set gzip = 1
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -inflate VAL
+	case "-inflate":
+
+	if ( $count > $args ) then
+		set endstr = "arg usage: -inflate INF"
+		goto L_BAD_END
+	endif
+
+	@ count ++
+	set ff = 0
+	foreach inf ($inflates)
+		if ($inf == "$argv[$count]") set ff = 1
+	end
+	if ($ff == 0) set inflates = ($inflates $argv[$count])
+
+	breaksw
+
+	# ----------------------------------------------------------
+	# usage : -sphere VAL
+	case "-sphere":
+
+		if ( $count > $args ) then
+			set endstr = "arg usage: -sphere"
+			goto L_BAD_END
+		endif
+
+		set sphere = 1
+
+	breaksw
+
+		# ----------------------------------------------------------
+		# usage : -sphere VAL
+		case "-vbm":
+
+			if ( $count > $args ) then
+				set endstr = "arg usage: -vbm"
+				goto L_BAD_END
+			endif
+
+			set vbm = 1
+
+		breaksw
+			# ----------------------------------------------------------
+			# usage : -sphere VAL
+			case "-segment":
+
+				if ( $count > $args ) then
+					set endstr = "arg usage: -segment"
+					goto L_BAD_END
+				endif
+
+				set segment = 1
+
+			breaksw
+	# ----------------------------------------------------------
+	# bad argument
+	default:
+
+	set endstr = "invalid option: '$argv[$count]'"
+	apsearch -popt `basename $0` -word $argv[$count]
+	goto L_BAD_END
+
+	breaksw
+	endsw
+
+	@ count ++
+end
+
+if ($#inflates == 0 && $sphere == 1) then
+	set endstr = "option -sphere requires option -inf"
+	goto L_BAD_END
+endif
+
+if ( $subj_id == "" ) then
+	set endstr = "missing required option: -sid"
+	goto L_BAD_END
+endif
+
+if ( $debug ) echo "-- usage okay"
+if ( $debug > 1 ) set echo
+
+set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec {$subj_id}_rsl_lh.spec {$subj_id}_rsl_rh.spec )
+cd $civet_dir
+set start_dir = $cwd
+
+if ( $debug ) echo "-- using start_dir '$start_dir'"
+
+goto L_PARSE_COMMAND_DONE
+
+
+####################################################################
+# make sure programs exist
+
+L_VERIFY_PROGRAMS:
+
+set failed_pgms = 0
+
+# check that programs are in the path
+set commands = ( afni suma ConvertSurface mnc2nii 3drefit)
+#MINC to NIFTI conversion requires minctoolkit to be in the PATH.
+
+if (! $no_dsets) then
+		set commands = ( $commands ConvertDset )
+endif
+
+#check each
+foreach test_command ( $commands )
+		(which $test_command) >& /dev/null
+
+		if ( $status ) then
+				echo "program not found in path: $test_command"
+				@ failed_pgms ++
+		endif
+end
+
+if ( $failed_pgms ) then
+		set endstr = "$failed_pgms program(s) not found"
+		goto L_BAD_END
+endif
+
+# check that a couple of commands actually work
+foreach test_command ( afni )
+		$test_command --version >& /dev/null
+
+		if ( $status ) then
+				echo "program failure: $test_command"
+					@ failed_pgms ++
+		endif
+end
+
+if ( $failed_pgms ) then
+		set endstr = "$failed_pgms program(s) not working correctly"
+		goto L_BAD_END
+endif
+
+if ( $debug ) echo "-- all programs found"
+
+goto L_VERIFY_PROGRAMS_DONE
+
+
+####################################################################
+# 1. set all directories relevant for CIVET to SUMA conversion- check cwd and parent
+# 2. create SUMA directory at the same level as surf_dir and store the results there
+# 3. create all necessary output directories inside the newly created SUMA directory
+
+L_SET_SURF_DIRS:
+set civet_directories = ( 'classify' 'final' 'mask' 'native' 'temp' 'thickness' 'transforms' 'transforms/nonlinear/')
+#find path for CIVET files
+if ( -d surfaces ) then
+		echo "surfaces directory found at ./surfaces"
+		set surf_dir = ./surfaces
+		foreach dir ( $civet_directories )
+				if (-d $dir ) then
+						echo "${dir} directory found at ./${dir}"
+				else
+						set endstr = "failure: could not find ${dir} directory at same location as surfaces directory."
+						goto L_BAD_END
+				endif
+		end
+		set dir_path = ./
+else if ( $cwd:t == surfaces ) then
+		echo "surfaces directory found at ${cwd:t}"
+		set surf_dir = .
+		foreach dir ( $civet_directories )
+				if (-d ../$dir ) then
+						echo "${dir} directory found at ../$dir"
+				else
+						set endstr =  "failure: could not find ${dir} directory at same location as surfaces directory."
+						goto L_BAD_END
+				endif
+		end
+		set dir_path = ../
+else if ( -d ../surfaces ) then
+		echo "surfaces directory found at ../"
+		set surf_dir = ../surfaces
+		foreach dir ( $civet_directories )
+				if (-d ../$dir ) then
+						echo "${dir} directory found at ../${dir}"
+				else
+						set endstr =  "failure: could not find ${dir} directory at same location as surfaces directory."
+						goto L_BAD_END
+				endif
+		end
+		set dir_path = ../
+else
+		#this is a general failure case, even if we find one
+		set surf_dirs = ( `find . -maxdepth 4 -type d -name surfaces -print` )
+		if ( $#surf_dirs == 0 ) then
+				echo "failure: cannot find directory 'surf' under '$civet_dir'"
+				echo "(subject to a maximum search depth of 4 subdirectories)"
+
+				set endstr = ""
+		else if ( $#surf_dirs == 1 ) then
+				echo "surf directory found at '$surf_dirs[1]'"
+				set endstr = "consider running program from '$surf_dirs[1]:h'"
+		else
+				echo "multiple surf directories found:"
+				set count = 1
+				while ( $count <= $#surf_dirs )
+						echo "     $surf_dirs[$count]"
+						@ count ++
+				end
+
+				set endstr = ( "consider running program from one of the" \
+				"surf directories" )
+		endif
+
+		goto L_BAD_END
+
+endif
+
+set suma_dir = ${dir_path}SUMA
+
+#Set supplementary directories
+#set supp_directories  = ()
+#if (! $no_dsets ) then
+#		set surfaces_dir = "${dir_path}surfaces/"
+#		set thickness_dir = "${dir_path}thickness/"
+#endif
+
+
+
+
+
+# verify surf dir permissions
+if ( ! -w $surf_dir ) then
+		set endstr = "failure: no write permissions for directory '$surf_dir'"
+		goto L_BAD_END
+endif
+
+if ( $debug ) echo "-- using surf directory '$surf_dir'..."
+
+# decide whether we need to make surf/SUMA directory
+if ( -d $suma_dir ) then
+		if ( $debug ) echo "-- $suma_dir already exists, continuing..."
+		else
+				echo "++ creating directory '$suma_dir' for results..."
+				mkdir $suma_dir
+		if ( $status ) then
+				set endstr = "failure: cannot create directory '$suma_dir'"
+				goto L_BAD_END
+		endif
+endif
+
+# find all relevant MNC file directories
+# list all relevant directories
+
+if ( -d VBM) then
+		set civet_directories = ( ${civet_directories} 'VBM' )
+endif
+if ( -d segment) then
+		set civet_directories = ( ${civet_directories} 'segment' )
+endif
+
+foreach dir ( $civet_directories surfaces)
+		if ( -d ${suma_dir}/${dir} ) then
+				if ( $debug ) echo "-- ${suma_dir}/${dir} already exists, continuing..."
+		else
+				echo "++ creating directory '${suma_dir}/${dir}' for results..."
+				mkdir ${suma_dir}/${dir}
+				if ( $status ) then
+						set endstr = "failure: cannot create directory '${suma_dir}/${dir}'"
+						goto L_BAD_END
+				endif
+		endif
+end
+
+goto L_SET_SURF_DIRS_DONE
+
+L_SET_FILE_LISTS:
+
+#define surface attributes
+set surf_attribs = (white_surface      \
+		mid_surface		\
+		gray_surface		)
+
+
+
+
+
+
+
+#Define list of .txt files that will be searched for by @SUMA_Make_Spec_CIVET.
+#These are stereotyped outputs of CIVET and should not be changed.
+if (! $no_dsets) then
+		#define list of surface dset files
+		set dset_path = ()
+		echo "Node-Based TXT Files: "
+		foreach dset (*/*.txt)
+				set dir = `dirname ${dset}`
+				echo $civet_directories surfaces | grep -w ${dir} >& /dev/null
+				if (! $status ) then
+						set pref = `basename ${dset} .txt`
+						set dset_path = (${dset_path} ${dir}/${pref})
+						echo "        '$dset'"
+				endif
+		end
+endif
+
+#Define list of .mnc files that will be searched for by @SUMA_Make_Spec_CIVET.
+#These are stereotyped outputs of CIVET and should not be changed.
+set nifti_path = ()
+#define list of final mnc files
+set nifti_path = ()
+echo "Volumetric MINC Files: "
+foreach minc_file (*/*.mnc */*/*.mnc)
+    set dir = `dirname ${minc_file}`
+    echo $civet_directories surfaces | grep -w ${dir} >& /dev/null
+    if (! $status ) then
+        set pref = `basename ${minc_file} .mnc`
+        set nifti_path = (${nifti_path} ${dir}/${pref})
+        echo "        '$minc_file'"
+    endif
+end
+
+#Define list of .txt files that will be searched for by @SUMA_Make_Spec_CIVET.
+#These are stereotyped outputs of CIVET and should not be changed.
+#define list of surface dset files
+set surf_path = ()
+echo "Surface OBJ Files: "
+foreach surf (*/*.obj)
+		set dir = `dirname ${surf}`
+		echo $civet_directories | grep -w ${dir} >& /dev/null
+		if (! $status ) then
+				set pref = `basename ${surf} .obj`
+				set surf_path = (${surf_path} ${dir}/${pref})
+				echo "        '$surf'"
+		endif
+end
+
+goto L_SET_FILE_LISTS_DONE
+
+####################################################################
+# verify non-existence of spec files, NIFTI files, GIFTI files and GIFTI DSET files
+
+L_CHECK_FOR_OVERWRITE:
+
+set test_failures = 0
+set failure_flag = 0
+
+#Check for existence of spec files
+foreach test_file ( $spec_files )
+		if ( -f $suma_dir/surfaces/$test_file ) then
+				if ( $failure_flag == 0 ) then
+					echo "failure: will not overwrite spec files: "
+					set test_failures = 1
+					set failure_flag = 1
+				endif
+				echo "        '$test_file'"
+		endif
+end
+
+#Check for existence of all files
+#cd ${start_dir}
+#cd ${suma_dir}
+#set failure_flag = 0
+#foreach attrib ( $surf_attribs )
+#		foreach hand ( 'left' 'right')
+#				foreach rsl ('rsl_' '')
+#						set test_file = surfaces/${subj_id}_${attrib}_${rsl}${hand}_${res}.gii
+#						if ( -f $test_file ) then
+#								if ( $failure_flag == 0 ) then
+#										echo "failure: will not overwrite GIFTI files: "
+#										set test_failures = 1
+#										set failure_flag = 1
+#								endif
+#								echo "        '$test_file'"
+#						endif
+#				end
+#		end
+#end
+
+#Check for existence of surface files
+cd ${start_dir}
+cd ${suma_dir}
+set failure_flag = 0
+foreach test_file ( ${surf_path} )
+		set file = ${test_file}.gii
+		if ( -f $file ) then
+				if ( $failure_flag == 0 ) then
+						echo "failure: will not overwrite surface GIFTI files: "
+						set test_failures = 1
+						set failure_flag = 1
+				endif
+				echo "        '$test_file'"
+		endif
+end
+
+#Check for existence of dset files
+cd ${start_dir}
+cd ${suma_dir}
+set failure_flag = 0
+foreach test_file ( ${dset_path} )
+		set file = ${test_file}.gii.dset
+		if ( -f $file ) then
+				if ( $failure_flag == 0 ) then
+						echo "failure: will not overwrite gifti dset files: "
+						set test_failures = 1
+						set failure_flag = 1
+				endif
+				echo "        '$test_file'"
+		endif
+end
+
+
+#Check for existence of NIFTI files
+cd ${start_dir}
+cd ${suma_dir}
+set failure_flag = 0
+foreach test_file ( ${nifti_path} )
+		set file = ${test_file}.nii
+		if ( -f $test_file ) then
+			set file = ${test_file}.nii.gz
+				if ( -f $test_file ) then
+						if ( $failure_flag == 0 ) then
+								echo "failure: will not overwrite nifti files: "
+								set test_failures = 1
+								set failure_flag = 1
+						endif
+						echo "        '$test_file'"
+					endif
+		endif
+end
+
+#End program if overwrite failures
+if ( $test_failures ) then
+		set endstr = "please remove these files if you want to rerun the script."
+		goto L_BAD_END
+endif
+
+cd ${start_dir}
+
+goto L_CHECK_FOR_OVERWRITE_DONE
+
+####################################################################
+# find surface files and organize them based on hand and resampling.
+
+L_LOOK_FOR_SURF:
+
+cd ${start_dir}
+cd $surf_dir
+
+set files = ()
+
+foreach rsl ( '' '_rsl' )
+		foreach hand ( 'left' 'right')
+				set files  = ($files 'X' ) #insert an 'X' between each category, useful for splitting results.
+				foreach attrib ( $surf_attribs )
+						#echo ${subj_id}_${attrib}${rsl}_${hand}_${res}.obj
+						#if ( -f ${subj_id}_${attrib}${rsl}_${hand}_${res}.obj ) then
+						#echo ${subj_id}_${attrib}${rsl}_${hand}_${res}.obj
+						if ( -f ${subj_id}_${attrib}${rsl}_${hand}.obj ) then
+								set files = ($files ${attrib} )
+						endif
+				end
+		end
+end
+#separate surface files
+set surf_files_left = `echo $files | cut -d X -f 2-2`
+set surf_files_right = `echo $files | cut -d X -f 3-3`
+set surf_rsl_files_left = `echo $files | cut -d X -f 4-4`
+set surf_rsl_files_right = `echo $files | cut -d X -f 5-5`
+
+
+
+#check to make sure each category has surface fo;es
+if ( $#surf_files_left == 0 && $#surf_files_right == 0 \
+		&& $#surf_rsl_files_left == 0 && $#surf_rsl_files_right == 0 ) then
+		set endstr = "found no LH or RH surface files under '$surf_dir'"
+		goto L_BAD_END
+endif
+
+#list all found surface files
+if ( $#surf_files_left > 0 ) then
+		echo "-- found $#surf_files_left LH surfaces"
+		if ( $debug ) echo "    --" $surf_files_left
+endif
+
+if ( $#surf_files_right > 0 ) then
+		echo "-- found $#surf_files_right RH surfaces"
+		if ( $debug ) echo "    --" $surf_files_right
+endif
+
+if ( $#surf_rsl_files_left > 0 ) then
+		echo "-- found $#surf_rsl_files_left LH resampled surfaces"
+		if ( $debug ) echo "    --" $surf_rsl_files_left
+endif
+
+if ( $#surf_rsl_files_right > 0 ) then
+		echo "-- found $#surf_rsl_files_right RH resampled surfaces"
+		if ( $debug ) echo "    --" $surf_rsl_files_right
+endif
+
+cd $start_dir
+
+goto L_LOOK_FOR_SURF_DONE
+
+####################################################################
+# convert to GIFTI using ConvertSurface
+
+L_CONVERT_SURFACES:
+cd $start_dir/$surf_dir
+
+#create temporary affine file to transform surfaces.
+echo '-1 0 0 0' > tmp_affine.1D
+echo '0 -1 0 0' >> tmp_affine.1D
+echo '0 0 1 0' >> tmp_affine.1D
+
+foreach hand (left right)
+		foreach rsl ('' '_rsl')
+				#Get a copy of surfaces for each category
+				if ( $hand == left  && $rsl == '') then
+						set list_cur = ( $surf_files_left )
+				else if ( $hand == left  && $rsl == _rsl) then
+						set list_cur = ( $surf_rsl_files_left )
+				else if ( $hand == right  && $rsl == '') then
+						set list_cur = ( $surf_files_right )
+				else if ( $hand == right  && $rsl == _rsl ) then
+						set list_cur = ( $surf_rsl_files_right )
+				endif
+
+
+				foreach attrib ($list_cur)
+						cd $start_dir/$surf_dir
+						set surf = ${subj_id}_${attrib}${rsl}_${hand}#_${res}
+						#set surf_path = ("${(@)surf_path:#${surf}}")
+						# run ConvertSurface and verify
+						echo "running -- ConvertSurface"
+
+						ConvertSurface  -i_mni ${surf}.obj -native -xmat_1D tmp_affine.1D -o_gii $start_dir/${suma_dir}/surfaces/${surf}.${sex} >& ___out
+						tail ___out ; \rm -f ___out
+
+						if ( ! -f $start_dir/${suma_dir}/surfaces/${surf}.${sex} ) then
+								echo "failure: could not create surface $surf.${sex}"
+
+								if ( ! -w $start_dir/${suma_dir}/surfaces/ ) then
+									set endstr = "--> no write permissions in this directory"
+								else
+									set endstr = "--> Unknown error?"
+								endif
+
+								goto L_BAD_END
+						endif
+
+						if ( $debug ) then
+								echo "++ $surf.${sex} created"
+						endif
+				end
+		end
+end
+rm tmp_affine.1D
+cd $start_dir
+#create temporary affine file to transform surfaces.
+echo '-1 0 0 0' > tmp_affine.1D
+echo '0 -1 0 0' >> tmp_affine.1D
+echo '0 0 1 0' >> tmp_affine.1D
+
+foreach surf ($surf_path) #Convert any remaining surfaces not part of the spec file
+		if (! -f $start_dir/${suma_dir}/${surf}.${sex}) then
+			echo "++ creating ${surf}.gii"
+			set out_file = $start_dir/${suma_dir}/${surf}.${sex}
+			echo $start_dir/${surf}.obj
+			ConvertSurface  -i_mni $start_dir/${surf}.obj -native -xmat_1D tmp_affine.1D -o_gii ${out_file}
+
+
+			if ( ! -f ${out_file} ) then
+					echo "WARNING: could not create GIFTI dset ${out_file} "
+					echo "program will not consider this error a fail state"
+					echo "due to the optional nature of some txt files."
+			endif
+
+			if ( $debug ) then
+					echo "++ $surf.${sex} created"
+			endif
+		endif
+end
+rm tmp_affine.1D
+
+
+cd $start_dir
+
+#make semi inflated surfaces (if prompted)
+cd $suma_dir/surfaces/
+
+set inflate_surface_files = ()
+
+if ($#inflates > 0) then
+		foreach rsl ( '' 'rsl_' )
+				foreach hand ( 'left' 'right')
+						set inflate_surface_files = ( $inflate_surface_files 'X' )
+						foreach attrib ( $surf_attribs )
+								foreach inf ($inflates)
+										#if ( -f ${subj_id}_${attrib}_${rsl}${hand}_${res}.gii ) then
+										#		set iis = ${subj_id}_${attrib}_${rsl}${hand}_${res}.gii
+										if ( -f ${subj_id}_${attrib}_${rsl}${hand}.gii ) then
+												set iis = ${subj_id}_${attrib}_${rsl}${hand}.gii
+										else
+												set endstr = ( "failure: Could not ${surf} for inflation" )
+												goto L_BAD_END
+										endif
+										echo "running -- Inflating ${iis} using SurfSmooth"
+										#SurfSmooth  -i ${iis}    -met NN_geom -Niter $inf \
+										#		-o_gii   -surf_out ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}_${res}.gii \
+										#		-match_center #-match_vol 0.01
+										SurfSmooth  -i ${iis}    -met NN_geom -Niter $inf \
+												-o_gii   -surf_out ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}.gii \
+												-match_center #-match_vol 0.01
+										set inflate_surface_files = ( $inflate_surface_files "${attrib}_inf_${inf}")
+
+										#if ( ! -f ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}_${res}.gii ) then
+										if ( ! -f ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}.gii ) then
+												#echo "failure: could not create surface ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}_${res}.gii"
+												echo "failure: could not create surface ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}.gii"
+												if ( ! -w . ) then
+													set endstr = "--> no write permissions in this directory"
+												else
+													set endstr = "--> Unknown error?"
+												endif
+
+												goto L_BAD_END
+										endif
+										if ( $sphere ) then
+												echo "running -- Projecting ${iis} onto sphere using SurfSmooth"
+												#SurfSmooth  -i ${iis}    -met NN_geom -Niter $inf \
+												#		-o_gii   -surf_out ${subj_id}_${attrib}_sphere_${inf}_${rsl}${hand}_${res}.gii \
+												#		-match_sphere 4 -match_center
+												SurfSmooth  -i ${iis}    -met NN_geom -Niter $inf \
+														-o_gii   -surf_out ${subj_id}_${attrib}_sphere_${inf}_${rsl}${hand}.gii \
+														-match_sphere 4 -match_center
+												set inflate_surface_files = ( $inflate_surface_files "${attrib}_sphere_${inf}")
+										endif
+										if ( $debug ) then
+												#echo "++ ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}_${res}.gii created"
+												echo "++ ${subj_id}_${attrib}_inf_${inf}_${rsl}${hand}.gii created"
+										endif
+								end
+						end
+				end
+		end
+		foreach attrib ( $surf_attribs )
+				foreach inf ($inflates)
+						set surf_attribs = ( $surf_attribs "${attrib}_inf_${inf}" )
+				end
+				if ( $sphere ) then
+						foreach inf ($inflates)
+								set surf_attribs = ( $surf_attribs "${attrib}_sphere_${inf}" )
+						end
+				endif
+		end
+		#define new semi_inflated surfaces
+		set inflate_surf_files_left = `echo $inflate_surface_files | cut -d X -f 2-2`
+		set inflate_surf_files_right = `echo $inflate_surface_files | cut -d X -f 3-3`
+		set inflate_surf_rsl_files_left = `echo $inflate_surface_files | cut -d X -f 4-4`
+		set inflate_surf_rsl_files_right = `echo $inflate_surface_files | cut -d X -f 5-5`
+else
+	set inflate_surf_files_left = ()
+	set inflate_surf_files_right = ()
+	set inflate_surf_rsl_files_left = ()
+	set inflate_surf_rsl_files_right = ()
+endif
+
+
+cd $start_dir
+
+
+goto L_CONVERT_SURFACES_DONE
+
+####################################################################
+# actually create the spec file
+
+L_CREATE_SPEC:
+cd $suma_dir
+foreach rsl ( 0 1 )
+		foreach hand ( left right both )
+				set both = 0
+				if ( $hand == left  && $rsl == 0) then
+						set list_cur = ( $surf_files_left )      # get a current list copy
+						set inflate_list_cur = ( $inflate_surf_files_left )
+						set spec_file = {$subj_id}_lh.spec
+				else if ( $hand == left  && $rsl == 1) then
+						set list_cur = ( $surf_rsl_files_left )      # get a current list copy
+						set inflate_list_cur = ( $inflate_surf_rsl_files_left )
+						set spec_file = {$subj_id}_rsl_lh.spec
+				else if ( $hand == right  && $rsl == 0) then
+						set list_cur = ( $surf_files_right )      # get a current list copy
+						set inflate_list_cur = ( $inflate_surf_files_right )
+						set spec_file = {$subj_id}_rh.spec
+				else if ( $hand == right  && $rsl == 1) then
+						set list_cur = ( $surf_rsl_files_right )      # get a current list copy
+						set inflate_list_cur = ( $inflate_surf_rsl_files_right )
+						set spec_file = {$subj_id}_rsl_rh.spec
+				else if ( $hand == both  && $rsl == 1) then
+						set list_cur_left = ($surf_rsl_files_left)     # get a current list copy
+						set list_cur_right = ($surf_rsl_files_right)
+						set inflate_list_cur_left = ($inflate_surf_rsl_files_left)
+						set inflate_list_cur_right = ($inflate_surf_rsl_files_right)
+						set spec_file = {$subj_id}_rsl_both.spec
+						set both = 1
+				else
+						set list_cur_left = ($surf_files_left)     # get a current list copy
+						set list_cur_right = ($surf_files_right)
+						set inflate_list_cur_left = ($inflate_surf_files_left)
+						set inflate_list_cur_right = ($inflate_surf_files_right)
+						set spec_file = {$subj_id}_both.spec
+						set both = 1
+				endif
+				set count = 0
+				set spec_file = ./surfaces/$spec_file
+				if ( $debug ) echo "++ creating spec file '$spec_file'..."
+
+				(echo "# delimits comments" > $spec_file) >& /dev/null
+
+				if ( $status ) then
+						set endstr = ( "failure: no permissions to create spec file" \
+						"'$suma_dir/$spec_file'" )
+						goto L_BAD_END
+				endif
+				# note user, date, machine, pwd, command line
+				echo ""                     >> $spec_file
+				echo "# Creation information:"            >> $spec_file
+				echo "#     user    : $user"            >> $spec_file
+				echo "#     date    : `date`"            >> $spec_file
+				echo "#     machine : `uname -n`"         >> $spec_file
+				echo "#     pwd     : $cwd"            >> $spec_file
+				echo "#     command : $prog_name $argv"         >> $spec_file
+				echo ""                     >> $spec_file
+				# define the group
+				echo "# define the group"            >> $spec_file
+				if ( $rsl ) then
+						echo "        Group = ${subj_id} Resampled"            >> $spec_file
+				else
+						echo "        Group = ${subj_id}"            >> $spec_file
+				endif
+				echo ""                     >> $spec_file
+				# define the states
+				echo "# define various States"            >> $spec_file
+				foreach attrib ( $surf_attribs )
+						# 03/30/2018: Spherical surfaces are removed from the whole
+						# brain spec files. When both spherical hemispheres
+						# are displayed, they appear to be very far apart.
+						if ( !($hand == both && $attrib =~ *_sphere*)) then
+								echo "        StateDef = $attrib"         >> $spec_file
+						endif
+
+				end
+				echo ""               >> $spec_file
+				while ( $count <= $both )
+						if ( $both ) then
+								if ($count == 0) then
+										set list_cur = ($list_cur_left)
+										set inflate_list_cur = ($inflate_list_cur_left)
+										set cur_hand = left
+								else
+										set list_cur = ($list_cur_right)
+										set inflate_list_cur = ($inflate_list_cur_right)
+										set cur_hand = right
+								endif
+						else
+							set cur_hand = ${hand}
+						endif
+					foreach attribute ( $list_cur $inflate_list_cur )
+							# 03/30/2018: spherical surfaces removed from both.spec
+							if ( $hand == both && $attribute =~ *_sphere*) then
+									continue
+							endif
+							set s_state = $attribute
+							#set surf = ${subj_id}_${attribute}_${cur_hand}_${res}
+							set surf = ${subj_id}_${attribute}_${cur_hand}
+							# Local Domain Parent and Anatomical Flag
+							if ( $attribute =~ *_inf_* || $attribute =~ *_sphere* ) then
+									set attribute = `echo $attribute | cut -d _ -f -2`
+									set anatomical = N
+
+
+							else
+									set anatomical = Y
+							endif
+
+							#set map_ref = ${subj_id}_${attribute}_${cur_hand}_${res}.gii
+							set map_ref = ${subj_id}_${attribute}_${cur_hand}.gii
+
+
+
+							# EmbedDimension is 2 for .flat surfaces, else 3
+							if ( $surf =~ *.flat* ) then
+									set embed_ref = 2
+							else
+									set embed_ref = 3
+							endif
+
+							echo "NewSurface"               >> $spec_file
+							echo "        SurfaceFormat = ASCII"      >> $spec_file
+							echo "        SurfaceType = ${stp}"      >> $spec_file
+							echo "        SurfaceName = ${surf}.gii"      >> $spec_file
+							echo "        LocalDomainParent = ${map_ref}"      >> $spec_file
+							echo "        SurfaceState = $s_state"      >> $spec_file
+							echo "        EmbedDimension = $embed_ref"      >> $spec_file
+							echo "        Anatomical = $anatomical" >> $spec_file
+							echo ""                  >> $spec_file
+					end
+					set count = ( $count + 1 )
+				end
+				echo "++ created spec file'$suma_dir/$spec_file'"
+		end    # foreach hand
+end
+
+cd $start_dir
+
+goto L_CREATE_SPEC_DONE
+
+####################################################################
+# actually create NIFTI files from MNC files
+
+L_CREATE_NIFTI:
+
+cd $start_dir
+foreach file ($nifti_path)
+		# create NIFTI with mnc2nii
+		set out_file = ${suma_dir}/${file}.nii
+		echo "++ creating ${file}.nii"
+		mnc2nii ${dir_path}${file}.mnc ${out_file}
+
+		if ( ! -f ${out_file} ) then
+				echo "WARNING: could not create NIFTI file ${out_file} "
+				echo "program will not consider this error a fail state"
+				echo "due to the optional nature of some mnc files."
+				continue
+		endif
+
+		if ( $debug ) then
+				echo "++ ${out_file} created"
+		endif
+end
+set ref_orientation = `3dinfo -orient ${suma_dir}/final/${subj_id}_t1_final.nii`
+foreach file (${nifti_path})
+		set out_file = ${suma_dir}/${file}.nii
+		#Gzip NIFTI files to save space if prompted
+		if ( $gzip ) then
+				echo "++ gzipping ${file}.nii"
+				gzip ${out_file}
+				set out_file = ${out_file}.gz
+				if ( ! -f ${out_file} ) then
+						set endstr = ( "failure: could not properly gzip NIFTI file")
+						goto L_BAD_END
+				endif
+
+				if ( $debug ) then
+						echo "++ ${out_file} created"
+				endif
+		endif
+		#if ( `dirname $file` == 'classify') | ( `dirname $file` == 'mask') | ( `dirname $file` == 'temp') then
+		#
+		#endif
+		#reorient non-standard orientations to LPI
+		#set orientation = `3dinfo -orient ${out_file}`
+		#if ( ${orientation} != 'LPI' && ${orientation} != 'RAI') then
+		#		3drefit -orient LPI ${out_file}
+		#endif
+		#reorient Inferior-Superior axis
+		#if ( $orientation:q =~ *'I'* ) then
+		#		echo "Switching I to S"
+		#		set orientation = `echo $orientation | sed 's/I/S/g'`
+		#		echo ${orientation}
+		#else if ( $orientation:q =~ *'S'* ) then
+		#		echo "Switching S to I"
+		#		set orientation = `echo $orientation | sed 's/S/I/g'`
+		#		echo ${orientation}
+		#else
+		#		echo "INVALID orientation code"
+		#endif
+		if ( `dirname $file` != 'native') then
+			3drefit -orient ${ref_orientation} ${out_file}
+		endif
+end
+
+goto L_CREATE_NIFTI_DONE
+
+####################################################################
+# actually create GIFTI DSET files from CIVET txt files
+
+L_CREATE_DSETS:
+
+cd $start_dir
+if (! $no_dsets ) then
+		foreach file ($dset_path)
+				echo "++ creating ${file}.gii.dset"
+				set out_file = ${suma_dir}/${file}
+				if ( -f ${dir_path}${file}.txt ) then
+						ConvertDset -o_gii -add_node_index -input ${dir_path}${file}.txt \
+								-o_gii_asc -prefix ${out_file}
+				endif
+
+				set out_file = ${suma_dir}/${file}.gii.dset
+				if ( ! -f ${out_file} ) then
+						echo "WARNING: could not create GIFTI dset ${out_file} "
+						echo "program will not consider this error a fail state"
+						echo "due to the optional nature of some txt files."
+				endif
+
+				if ( $debug ) then
+						echo "++ ${file}.gii.dset created"
+				endif
+		end
+endif
+
+
+goto L_CREATE_DSETS_DONE
+
+####################################################################
+# echo details for the user to launch suma and afni, in order to
+# check the alignment
+
+L_TEST_SURF_VOL:
+
+echo ""
+echo "------------------------------------------------------------------"
+echo "Please verify that the datasets are aligned properly in both"
+echo "afni and suma.  You may do this by running the following commands:"
+echo ""
+echo "    cd $civet_dir	"
+if ( $gzip ) then
+	echo "    suma -spec ${suma_dir}/surfaces/${subj_id}_both.spec -sv ${suma_dir}/final/${subj_id}_t1_tal.nii.gz & "
+	echo "    afni -niml -dset ${suma_dir}/final/${subj_id}_t1_final.nii.gz "
+else
+	echo "    suma -spec ${suma_dir}/surfaces/${subj_id}_both.spec -sv ${suma_dir}/final/${subj_id}_t1_tal.nii & "
+	echo "    afni -niml -dset ${suma_dir}/final/${subj_id}_t1_final.nii "
+endif
+
+goto L_TEST_SURF_VOL_DONE
+
+####################################################################
+# display help and exit
+
+L_HELP_END:
+
+echo ""
+echo "$prog_name - prepare for surface viewing in SUMA"
+echo ""
+echo "    This script goes through the following steps:"
+echo "      - verify existence of necessary programs "
+echo "        (afni, suma, ConvertSurface, etc)"
+echo "      - determine the location of surface files"
+echo "      - creation of GIFTI surface files via 'ConvertSurface'"
+echo "      - creation of left and right hemisphere SUMA spec files"
+echo "			- conversion of minc2 files to nifti format"
+echo "			- creation of various GIFTI datasets "
+echo ""
+echo "      - all created surface files are stored in a new SUMA directory"
+echo "			- all created volume files are stored in a new nifti directory"
+echo ""
+echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
+echo ""
+echo "  examples:"
+echo ""
+echo "    $prog_name -help"
+echo "    $prog_name -sid subject1"
+echo "    $prog_name -civetpath subject1/surface_stuff -sid subject1"
+echo "    $prog_name -sid 3.14159265 -debug 1"
+echo ""
+echo "  options:"
+echo ""
+echo "    -help    : show this help information"
+echo ""
+echo "    -sid SUBJECT_ID : required subject ID for file naming"
+echo ""
+echo "    -civetpath PATH    : path to 'surf' and 'orig' directories"
+echo "          e.g. -fspath subject1/surface_info"
+echo "          the default PATH value is './', the current directory"
+echo ""
+echo "          This is generally the location of the 'surf' directory,"
+echo "          though having PATH end in surf is OK.  The mri/orig"
+echo "          directory should also be located here."
+echo ""
+echo "          Note: when this option is provided, all file/path"
+echo "          messages will be with respect to this directory."
+echo ""
+echo "    -inflate INF: Create modereately inflated surfaces using"
+echo "                  SurfSmooth. INF controls the amount of smoothness"
+echo "                  in the final image. It is the number of iterations"
+echo "                  in the command such as: "
+echo "             SurfSmooth  -i lh.white.asc    -met NN_geom \\"
+echo "                    -Niter 200  -o_gii  -surf_out lh.inf_200 \\"
+echo "                    -match_vol 0.01"
+echo "                  You can use multiple instances of -inflate to create"
+echo "                  inflations of various levels."
+echo "		-sphere: for each -inflate value, project inflated surface onto a sphere"
+echo "    -hires: will only convert high resolution CIVET surfaces (suffix _327680)"
+echo "    			Default behavior is to search for low resolution surfaces (suffix _81920)"
+echo "    -gzip: gzip all output nifti files."
+echo ""
+echo "    -no_dsets: will not convert txt files to GIFTI compatible dset files"
+echo ""
+echo "    -debug LEVEL    : print debug information along the way"
+echo "          e.g. -debug 1"
+echo "          the default level is 0, max is 2"
+echo ""
+echo "  notes:"
+echo ""
+echo "    0. More help may be found at:"
+echo "           https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+echo "		1. @SUMA_Make_Spec_CIVET is designed to work with the stereotyped outputs"
+echo " 			 of CIVET. As such, modifications to CIVET output files names or directory"
+echo "			 are not recommended and may result in @SUMA_Make_Spec_CIVET failure."
+echo "		2. Outputs will be stored in a newly created directory called SUMA/, "
+echo "			 located in the same directory as the CIVET output directories."
+echo "    3. Surface file names should look like "
+echo "			 '[subject_id]_gray_surface_left_81920.obj' and be stored in "
+echo "			 the surfaces/ directory"
+echo "		4. Volume file names should look like '[subject_id]_t1_final.mnc' "
+echo " 			 and be stored in the final/ and mask/ directories."
+echo "    5. You can tailor the script to your needs. Just make sure you"
+echo "       rename it or risk having your modifications overwritten with"
+echo "       the next SUMA version you install."
+echo "		6. @SUMA_Make_Spec_CIVET is a modified version of @SUMA_Make_Spec_FS."
+echo "    7. You can tailor the script to your needs. Just make sure you"
+echo "       rename it or risk having your modifications overwritten with"
+echo "       the next SUMA version you install."
+echo ""
+echo "     Based on @SUMA_Make_Spec_FS code"
+echo "     Ben Jung (benjamin.jung@nih.gov), Adam Messinger (messinga@nih.gov)"
+echo ""
+
+exit
+
+####################################################################
+# failure!
+
+L_BAD_END:
+
+echo ""
+if ( "$endstr" != "" ) echo "$endstr"
+echo program failure: exiting...
+echo ""
+cd $start_dir
+echo "####################################################################"
+exit
+
+####################################################################
+# finished!
+
+L_GOOD_END:
+cd $start_dir
+if ( $debug > 1 ) unset echo
+
+echo ""
+if ( "$endstr" != "" ) then
+	echo "$endstr"
+	echo ""
+endif
+
+exit   # just to be consistent
