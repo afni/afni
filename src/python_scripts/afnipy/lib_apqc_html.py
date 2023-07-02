@@ -426,7 +426,8 @@ just use filler buttons to save yourself click time, and then just
 click any individual buttons that are different.  '''],
 ['''COMMENT''',
 '''
-Use ctrl+click on a QC button to open (or close) a comment window.  
+Use ctrl+click (or cmd+click, on Macs) on a QC button to toggle a comment
+window open/closed.
 
 Save a comment with the green (left) button, or hit Enter at any point.
 Remove a comment with the pink (right) button, or hit Esc at any point.
@@ -476,8 +477,8 @@ Click the QC button below each label to rate it, toggling through:
     +  :  good.
     X  :  bad,
     ?  :  other/revisit,
-Use ctrl+click on a QC button to provide a comment.  Close the comment 
-panel with ctrl+click or one of its buttons.
+Use ctrl+click (or cmd+click, on Macs) on a QC button to toggle a comment
+window open/closed. Comments also have save/clear buttons.
 
 SPEEDIFY
 There are 'filler buttons' for each rating: |A+|, |Ax|, |A?|.
@@ -1589,9 +1590,13 @@ function setTd1Border(ii, bkgdcol) {
   A click on the QC buttons will scroll through the color values;
   ctrl+click on the QC buttons will toggle between the comment
   form being open or closed (saving what is in form when closing).
+  [PT: July 2, 2023] also recognize meta+click (= command+click on Mac)
+  like a ctrl+click, because of Mac webpage behavior---thanks, DRG.
 */
 function btn1Clicked(event, button) {
-    if (event.ctrlKey) {
+    if (event.metaKey) {
+       btn1ClickedWithCtrl(event, button);
+    }  else if (event.ctrlKey) {
        btn1ClickedWithCtrl(event, button);
     }  else {
        changeColor(button); //alert("The CTRL key was NOT pressed!");
