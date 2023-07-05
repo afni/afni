@@ -27,6 +27,10 @@ dtCheck_convert_num <- function(data.in){
     ## fix here grep the +/- numeric variables and convert to numeric ###### 
     num.cols <- sapply(data.in, function(x) !any(grepl("[^0-9.-]", x)))
 
+    ## check to see if the Subj variable is all numeric
+    if( num.cols[1] ){ num.cols[1] <- FALSE }
+    
+    ## convert stuff
     if( length(which(num.cols)) == 1 ){
         data.in[,num.cols] <- as.numeric(as.character(data.in[,num.cols]))
     } else if( length(which(num.cols)) > 1 ){
