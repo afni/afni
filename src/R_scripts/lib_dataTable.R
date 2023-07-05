@@ -436,7 +436,10 @@ dtCheck_printSummary <- function(data.in){
                                  paste(pos.num,collapse=" "))
             }
             ## if there are not too many levels, print them out
-            if( length(levels(data.in[[i]])) < 4 ){
+            if( i == length(data.in) ) {
+              col.detail <- paste0("Number of InputFiles=",
+                                     length(levels(data.in[[i]]))," ",pos.num)
+            } else if( length(levels(data.in[[i]])) < 4 ){
                 lev.var <- tapply(data.in[[i]],data.in[[i]],length)
                 lev.out <- paste0(names(lev.var),"=",lev.var,collapse=" | ")
                 col.detail <- paste0(lev.out," ",pos.num) 
