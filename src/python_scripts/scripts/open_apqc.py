@@ -191,7 +191,13 @@ parser.add_argument('-host', nargs=1,
                     default=[lao.DEF['host']],
                     help='(not typically needed) '
                     'specify hostname '
-                    'def: {})'.format(lao.DEF['host']))
+                    '(def: {})'.format(lao.DEF['host']))
+
+parser.add_argument('-nv_dir', nargs=1,
+                    default=[lao.DEF['nv_dir']],
+                    help='(not typically needed) '
+                    'path to directory containing "niivue_afni.umd.js" '
+                    '(def: {})'.format('use the location of "afni" program'))
 
 parser.add_argument('-verb', nargs=1,
                     default=[lao.DEF['verb']],
@@ -215,6 +221,7 @@ all_inpath       = args.infiles
 portnum          = int(args.portnum[0])
 port_nsearch     = int(args.port_nsearch[0])
 host             = args.host[0]
+nv_dir           = args.nv_dir[0]
 jump_to          = args.jump_to[0]
 do_open_pages    = args.open_pages_off
 do_ver           = args.ver
@@ -315,6 +322,26 @@ except (ImportError,NotImplementedError):
 if DO_HAVE_FLASK :
     app = Flask(__name__)           # initialize flask app
     CORS(app)                       # let CORS package upgrade app
+
+    if not(nv_dir) :
+        # get location of AFNI binaries dir, which is where
+        # niivue_afni.umd.js will live by default; this info is needed
+        # for NV button to work
+        cmd = 'which afni'
+        com = BASE.shell_com(cmd, capture=1)
+        com.run()
+        afni_fullpath = com.so[0]                 # full path + prog
+        nv_dir = os.path.dirname(afni_fullpath)   # full path
+    else :
+        # check user-entered NiiVue directory (must use abs path)
+        nv_dir = os.path.abspath(os.path.expanduser(nv_dir))
+        nnn = nv_dir + '/' + 'niivue_afni.umd.js'
+        if not(os.path.isfile(nnn)) :
+            print("** ERROR: cannot find user-specified NiiVue, looking for:")
+            print("  ", nnn)
+            sys.exit(6)
+        print("++ Using user-specified NiiVue:")
+        print("  ", nnn)
 
     @app.route("/<path:path>", methods=["GET"])
     def index(path):
@@ -442,15 +469,7 @@ if DO_HAVE_FLASK :
 
         '''
 
-        # get location of AFNI binaries dir, which is where niivue_afni.umd.js
-        # will live
-        cmd = 'which afni'
-        com = BASE.shell_com(cmd, capture=1)
-        com.run()
-        afni_fullpath = com.so[0]                 # full path + prog
-        abin_dir = os.path.dirname(afni_fullpath) # full path
-
-        return send_from_directory(abin_dir, path)
+        return send_from_directory(nv_dir, path)
 
 
     @app.route("/load", methods=["GET"])

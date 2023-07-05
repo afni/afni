@@ -23,6 +23,7 @@ DEF = {
     'portnum' : 5000,           # port number to start trying
     'nsearch' : 500,            # number of ports to search for an open one
     'host'    : '127.0.0.1',    # hostname
+    'nv_dir'  : '',             # hostname
     'jump_to' : None,           # hash to jump to in APQC page
     'open_pages'    : True,     # T/F: open pages in browser?
     'disp_jump_ids' : False,    # T/F: display jump IDs in index.html
