@@ -377,6 +377,7 @@ setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
 setenv AFNI_STARTUP_WARNINGS     NO
 setenv AFNI_MOTD_CHECK           NO
 setenv AFNI_NIFTI_TYPE_WARN      NO
+setenv AFNI_MESSAGE_COLORIZE     NO      # [PT: Jul 06, 2023]
 
 # -------------------------------------------------------------------
 
@@ -512,8 +513,6 @@ set txt_oechocmd = ""
 set txt_oechocmd2 = ""
 
 set DO_DRY_RUN = 0               # [PT: Jun 3, 2023] to run and just get text
-set read_olay  = ""
-set read_ulay  = ""
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
