@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jun, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "write NIFTI-2 if dimensions require it",
+   NULL
+ } ,
+
  { 22, Jun, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "pass tlrc_base uvar as template",
    "Sorry, PT."

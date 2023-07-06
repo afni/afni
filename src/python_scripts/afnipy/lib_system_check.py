@@ -518,8 +518,12 @@ class SysInfo:
          # self.comments.append('consider installing fink')
          print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
-      if self.get_macos_ver() < 7:
+      maj, min = self.get_macos_ver()
+      if maj < 10 or (maj == 10 and min < 7):
          self.comments.append('OS X version might be old')
+
+      if self.verb > 1:
+         print("-- have mac version (major, minor) = %s, %s" % (maj, min))
 
       # add PyQt4 comment, if missing (check for brew and fink packages)
       if not self.have_pyqt4:
@@ -609,8 +613,8 @@ class SysInfo:
       if self.afni_fails < 2: return
             
       # this check only applis to OS X 10.7 through 10.10 (and if that)
-      osver = self.get_macos_ver()
-      if osver < 7 or osver > 10:
+      maj, min = self.get_macos_ver()
+      if maj != 10 or min < 7 or min > 10:
          return
 
       # count AFNI dylib files
@@ -684,7 +688,8 @@ class SysInfo:
          return 0
 
       # require 10.11, unless being verbose
-      if self.get_macos_ver() < 11 and self.verb <= 1:
+      maj, min = self.get_macos_ver()
+      if maj == 10 and min < 11 and self.verb <= 1:
          return 0
 
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
@@ -782,7 +787,8 @@ class SysInfo:
          print('   (so afni and suma might fail)')
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         if self.get_macos_ver() >= 11:
+         maj, min = self.get_macos_ver()
+         if maj > 10 or minor >= 11:
             self.check_evar_path_for_val(edir, flatdir)
             if self.cur_shell.find('csh') < 0:
                self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
@@ -878,22 +884,25 @@ class SysInfo:
       return s, so
 
    def get_macos_ver(self):
-      if self.system != "Darwin": return 0
+      """return major and minor version number (was just minor)"""
+
+      if self.system != "Darwin": return 0, 0
       verlist = self.os_dist.split()
-      if len(verlist) < 1: return 0
+      if len(verlist) < 1: return 0, 0
       verlist = verlist[0].split('.')
-      if len(verlist) < 2: return 0
-      if verlist[0] != '10': return 0
+      if len(verlist) < 2: return 0, 0
+      # if verlist[0] != '10': return 0, 0
 
       # get version
       try:
-         vint = int(verlist[1])
+         vmaj = int(verlist[0])
+         vmin = int(verlist[1])
       except:
          print("** OSX ver: have Darwin, but dist = %s" % self.os_dist)
          return 0
 
       # have something useful
-      return vint
+      return vmaj, vmin
 
    def check_for_progs(self, plist, repos=0, show_missing=0):
       """see whether the programs seem to be found, and show version
@@ -1114,13 +1123,14 @@ class SysInfo:
 
    def show_env_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))
+      maj, min = self.get_macos_ver()
       for evar in ['PATH', 'PYTHONPATH', 'R_LIBS',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if evar in os.environ:
             if self.verb > 2: print("-- SEV: getting var from current env ...")
             print("%s = %s\n" % (evar, os.environ[evar]))
-         elif evar.startswith('DY') and self.get_macos_ver() >= 11:
+         elif evar.startswith('DY') and maj > 10 or (maj == 10 and min >= 11):
             if self.verb > 2:
                print("-- SEV: get DY var from macos child env (cur shell)...")
             s, so = self.get_shell_value(self.cur_shell, evar)
@@ -1494,6 +1504,9 @@ class SysInfo:
    def check_R_libs(self):
       print('checking for R packages...')
 
+      # strings that imply library failure or possibly bad version
+      badstr = ['not installed', 'segfault', 'Traceback']
+
       indn = '\n' + g_indent
       cmd = 'rPkgsInstall -pkgs ALL -check'
       st, so, se = BASE.shell_exec2(cmd, capture=1)
@@ -1504,9 +1517,14 @@ class SysInfo:
          # do not require "verified", but fail on "not installed"
          # (to avoid failing on 'unknown timezone' warnings)
          for estr in se:
-            if estr != '' and estr.find('not installed') >= 0:
-               okay = 0   # any failure is terminal
-               break
+            if estr == '':
+               continue
+
+            for bstr in badstr:
+               if estr.find(bstr) >= 0:
+                  okay = 0   # any failure is terminal
+                  break
+
       if okay:
          print('    %-20s : success' % cmd)
       else:

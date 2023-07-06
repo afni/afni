@@ -666,13 +666,15 @@
 
 # Haskins Pediatric atlas (nonlinear version only)
 <ATLAS
- atlas_name="Haskins_Pediatric_Nonlinear_1.0"
- dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
+ atlas_name="Haskins_Pediatric_Nonlinear_1.01"
+ dset_name="HaskinsPeds_NL_atlas1.01+tlrc.HEAD"
  template_space="HaskinsPeds"
- description="Version 1.0"
- comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June).
-     The Haskins Pediatric Brain Atlas. 
-     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
+ description="Version 1.01"
+   comment="Haskins Pediatric Atlas 1.01 Nonlinearly aligned group template.
+     Please cite:
+     Molfese PJ, et al, The Haskins pediatric atlas:
+     a magnetic-resonance-imaging-based pediatric template and atlas.
+     Pediatr Radiol. 2021 Apr;51(4):628-639. doi: 10.1007/s00247-020-04875-y"
 ></ATLAS>
 
 #*******Template datasets ************************
@@ -784,17 +786,11 @@
 <TEMPLATE
    template_name="HaskinsPeds_NL_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas. 
-     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="HaskinsPeds_aff_template1.0+tlrc"
-   template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, Cox (2015, June). 
-     The Haskins Pediatric Brain Atlas
-     Poster presented at the Organization for Human Brain Mapping, Honolulu, HI"
+   comment="Haskins Pediatric Atlas 1.0 Nonlinearly aligned group template.
+     Please cite:
+     Molfese PJ, et al, The Haskins pediatric atlas:
+     a magnetic-resonance-imaging-based pediatric template and atlas.
+     Pediatr Radiol. 2021 Apr;51(4):628-639. doi: 10.1007/s00247-020-04875-y"
 ></TEMPLATE>
 
 #**********************************************
