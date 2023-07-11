@@ -115,7 +115,8 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Graph initial cardiac peaks found by scipy
    filePrefix = 'initialCardiacPeaks_v2'
    Title = 'Initial Cardiac Peaks Found By scipy'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Cardiac', 
+                 test_retro_obj, lrp)
    
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp,
@@ -228,7 +229,8 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Graph final cardiac peaks 
    filePrefix = 'FinalCardiacPeaks_v2'
    Title = 'Final Cardiac Peaks'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Respiratory', 
+                 test_retro_obj, lrp)
     
    # ==== test plot ====
    # tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.card_data.samp_rate
@@ -353,7 +355,8 @@ def getRespiratoryPeaks(test_retro_obj):
     # Graph initial respiratory peaks found by scipy
     filePrefix = 'initialRespiratoryPeaks_v2'
     Title = 'Initial Respiratory Peaks Found By scipy'
-    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, test_retro_obj, lrp)
+    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Respiratory', 
+                  test_retro_obj, lrp)
    
     # Adjust peaks from uniform spacing
     peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
@@ -450,13 +453,19 @@ def getRespiratoryPeaks(test_retro_obj):
     troughs, _ = sps.find_peaks(-np.array(filterData), 
                               width=int(test_retro_obj.resp_data.samp_freq/8))
    
-    # Graph initial peaks and save graph to disk
+    # Graph initial peaks and troughs and save graph to disk
     lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>1, 
         test_retro_obj.save_graph_level>1, rawData, peaks, 
         test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
         OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
         caption = 'Respiratory troughs from band-pass filtered input.',
           font_size = test_retro_obj.font_size)
+   
+    # Graph initial respiratory peaks and troughs found by scipy
+    filePrefix = 'initialRespiratoryPeaksAndTroughs_v2'
+    Title = 'Initial Respiratory Peaks and Troughs Found By scipy'
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, Title, 
+                            'Respiratory', test_retro_obj, lrp)
     
     # Remove troughs that are more than the 90th percentile of the 
     # input signal
@@ -476,7 +485,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # quarter of a period on right side.  This is to remove false 
     # troughs on the downstroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, 
-            rawData, period=period, 
+            rawData, test_retro_obj, lrp, period=period, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Respiratory",  
@@ -485,7 +494,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove false troughs on the uptroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, 
-            rawData, period=period, direction = 'left', 
+            rawData, test_retro_obj, lrp, period=period, direction = 'left', 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Respiratory",  
@@ -496,7 +505,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # local maximum to the adjacent troughs
     troughs = \
         lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs( \
-        troughs, rawData, 
+        troughs, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory", phys_fs = test_retro_obj.resp_data.samp_freq, 
@@ -513,7 +522,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove peaks/troughs that are also troughs/peaks
     peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, 
-        troughs, rawData, 
+        troughs, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -548,46 +557,52 @@ def getRespiratoryPeaks(test_retro_obj):
             OutDir = OutDir, 
             prefix = 'respiratoryPeaksAndTroughsFinal',
             font_size = test_retro_obj.font_size)
+   
+    # Graph initial respiratory peaks and troughs found by scipy
+    filePrefix = 'finalRespiratoryPeaksAndTroughs_v2'
+    Title = 'Final Respiratory Peaks and Troughs'
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, Title, 
+                            'Respiratory', test_retro_obj, lrp)
 
     
-    # ==== test plot ====
-    tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.resp_data.samp_rate
-    tmp_x_p  = np.arange(len(rawData))[peaks] * test_retro_obj.resp_data.samp_rate
-    tmp_x_t  = np.arange(len(rawData))[troughs] * test_retro_obj.resp_data.samp_rate
+    # # ==== test plot ====
+    # tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.resp_data.samp_rate
+    # tmp_x_p  = np.arange(len(rawData))[peaks] * test_retro_obj.resp_data.samp_rate
+    # tmp_x_t  = np.arange(len(rawData))[troughs] * test_retro_obj.resp_data.samp_rate
 
-    tmp_y_p  = rawData[peaks]
-    tmp_y_t  = rawData[troughs]
+    # tmp_y_p  = rawData[peaks]
+    # tmp_y_t  = rawData[troughs]
 
-    ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
-                                label='raw input data', 
-                                alpha=1.0,
-                                color='tab:orange')
-    ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
-                                label='resp peaks',
-                                ls='None', marker=7, 
-                                ms=4, mec='white', mew=0.02, 
-                                color='tab:blue')
-    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t,
-                                label='resp troughs',
-                                ls='None', marker=6, 
-                                ms=4, mec='white', mew=0.02,
-                                color='tab:green')
+    # ret_plobj1 = lrp.RetroPlobj(tmp_x_rD, rawData, 
+    #                             label='raw input data', 
+    #                             alpha=1.0,
+    #                             color='tab:orange')
+    # ret_plobj2 = lrp.RetroPlobj(tmp_x_p, tmp_y_p, 
+    #                             label='resp peaks',
+    #                             ls='None', marker=7, 
+    #                             ms=4, mec='white', mew=0.02, 
+    #                             color='tab:blue')
+    # ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t,
+    #                             label='resp troughs',
+    #                             ls='None', marker=6, 
+    #                             ms=4, mec='white', mew=0.02,
+    #                             color='tab:green')
 
-    oname = 'respiratoryPeaksAndTroughsFinal_v2.pdf'
-    if OutDir :
-        oname = OutDir + '/' + oname
-    fff = lrp.RetroFig(figname=oname,
-                       max_n_per_sub=5000, 
-                       fontsize = test_retro_obj.font_size,
-                       title='Respiratory peaks and troughs')
-    fff.add_plobj(ret_plobj1)
-    fff.add_plobj(ret_plobj2)
-    fff.add_plobj(ret_plobj3)
-    fff.make_plot( do_show = test_retro_obj.show_graph_level,
-                   do_save = test_retro_obj.save_graph_level )
+    # oname = 'respiratoryPeaksAndTroughsFinal_v2.pdf'
+    # if OutDir :
+    #     oname = OutDir + '/' + oname
+    # fff = lrp.RetroFig(figname=oname,
+    #                    max_n_per_sub=5000, 
+    #                    fontsize = test_retro_obj.font_size,
+    #                    title='Respiratory peaks and troughs')
+    # fff.add_plobj(ret_plobj1)
+    # fff.add_plobj(ret_plobj2)
+    # fff.add_plobj(ret_plobj3)
+    # fff.make_plot( do_show = test_retro_obj.show_graph_level,
+    #                do_save = test_retro_obj.save_graph_level )
    
-    plt.close() # Close empty figure window
-    # ==== end test plot ====
+    # plt.close() # Close empty figure window
+    # # ==== end test plot ====
     
 
     return peaks, troughs, len(rawData)

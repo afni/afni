@@ -128,7 +128,8 @@ def percentileFilter(peaks, rawData, test_retro_obj, lrp, percentile = 10,
            filePrefix = dataType + 'TroughsPctlFiltered_v2'
         else:
            filePrefix = dataType + 'PeaksPctlFiltered_v2'
-        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                      test_retro_obj, lrp, Troughs = upperThreshold)
 
     return peaks
 
@@ -218,7 +219,8 @@ def localPercentileFilter(peaks, rawData, percentile, test_retro_obj, lrp,
             
        # Graph (and save) results as required
        filePrefix = dataType + 'PeaksLocallyPctlFiltered_v2'
-       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                     test_retro_obj, lrp)
        
     return peaks
 
@@ -349,13 +351,15 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, test_retro_obj, lrp,
            filePrefix = dataType + 'RemoveFalsePeaksOnUpside_v2'
         else:
            filePrefix = dataType + 'RemoveFalsePeaksOnDownside_v2'
-        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                      test_retro_obj, lrp)
     
     return peaks
 
-def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', 
-        portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+def removeTroughsCloseToLowerPointInRawData(troughs, rawData, test_retro_obj, 
+        lrp, direction='right', portion=0.25, period=None, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removeTroughsCloseToLowerPointInRawData
@@ -415,13 +419,21 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     if (show_graph or save_graph) and phys_fs:
         if direction=='right':
             caption = 'Remove downstroke false troughs.'
-            prefix = dataType + 'RemoveDpwnstrokeFalseTroughsFilt'
+            prefix = dataType + 'RemoveDownstrokeFalseTroughsFilt'
         else: 
             caption = 'Remove upstroke false troughs.'
             prefix = dataType + 'RemoveUpstrokeFalseTroughsFilt'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], phys_fs, 
             dataType, troughs = troughs, OutDir = OutDir, prefix = prefix, 
             caption = caption, font_size = font_size)
+   
+       # New graph format
+        if direction=='right':
+           filePrefix = dataType + 'RemoveFalseTroughOnDownside_v2'
+        else:
+           filePrefix = dataType + 'RemoveFalseTroughsOnUpside_v2'
+        lrg.plotPeaks(rawData, troughs, OutDir, filePrefix, caption, dataType, 
+                      test_retro_obj, lrp, Troughs = True)
     
     return troughs
 
@@ -496,12 +508,14 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
    
        # New graph format
        filePrefix = dataType + 'RemovePeaksCloseToMinimum'
-       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                     test_retro_obj, lrp)
     
     return peaks
 
 def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-        denominator=4.0, show_graph = False, save_graph = True, phys_fs = None,
+        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
+        save_graph = True, phys_fs = None,
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
@@ -558,14 +572,20 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
-                phys_fs, dataType, troughs = troughs,
-                OutDir = OutDir, 
-                prefix = dataType + 
-                    'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
-                caption = 'Remove troughs closer to local max than to' + 
-                    ' adjacent troughs.',
-                font_size = font_size)
+        Caption = 'Remove troughs closer to local max than to adjacent troughs.'
+        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
+             phys_fs, dataType, troughs = troughs,
+             OutDir = OutDir, 
+             prefix = dataType + 
+                 'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
+             caption = Caption,
+             font_size = font_size)
+   
+        # New graph format
+        filePrefix = dataType + \
+               'RemoveTroughsCloserToLocalMaxsThanToAdjacentTroughs_v2'
+        lrg.plotPeaks(rawData, troughs, OutDir, filePrefix, Caption, dataType, 
+                      test_retro_obj, lrp, Troughs = True)
     
     return troughs
 
@@ -589,6 +609,7 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
 def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
+        test_retro_obj, lrp,
         show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
@@ -651,11 +672,18 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
     troughs = np.delete(troughs,troughsToDelete)
     
     if (show_graph or save_graph) and phys_fs:
+        Caption = 'Remove overlapping peaks and troughs.'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
              phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
              prefix = dataType + 'removeOverlappingPeaksAndTroughs', 
-             caption = 'Remove overlapping peaks and troughs.',
+             caption = Caption,
              font_size = font_size)
+   
+        # New graph format
+        filePrefix = dataType + \
+               'RemoveOverlappingPeaksAndTroughs_v2'
+        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, 
+            Caption, dataType, test_retro_obj, lrp)
                 
     return peaks, troughs
 
@@ -833,7 +861,8 @@ def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp,
            filePrefix = dataType + 'TroughsAfterRemovingCloseTroughs_v2'
         else:
            filePrefix = dataType + 'PeaksAfterRemovingClosePeaks_v2'
-        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+        lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                      test_retro_obj, lrp, Troughs = Troughs)
     
     return peaks
 
@@ -1071,7 +1100,8 @@ def refinePeakLocations(peaks, rawData, test_retro_obj, lrp, period = None,
            filePrefix = dataType + 'TroughsAdjustedForUniformSpacing_v2'
        else:
            filePrefix = dataType + 'PeaksAdjustedForUniformSpacing_v2'
-       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                     test_retro_obj, lrp, Troughs = Troughs)
            
     # Apply offsets
     return peaks
@@ -1147,7 +1177,8 @@ def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None,
    
        # New graph format
        filePrefix = dataType + 'AddMissingPeaksPerPeriodicity_v2'
-       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, test_retro_obj, lrp)
+       lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Caption, dataType, 
+                     test_retro_obj, lrp)
     
     return peaks
 
@@ -1254,11 +1285,16 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, test_retro_obj, lrp,
                                                            rawData)
     
     if (show_graph or save_graph) and phys_fs:
+        Caption = 'Add missing peaks and troughs.'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
             prefix = dataType + 'addMissingPeaksAndTroughs', 
-            caption = 'Add missing peaks and troughs.',
-            font_size = font_size)
+            caption = Caption, font_size = font_size)
+   
+       # New graph format
+        filePrefix = dataType + 'AddMissingPeaksAndTroughs_v2'
+        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, 
+                Caption, dataType, test_retro_obj, lrp)
     
     return peaks, troughs
 
