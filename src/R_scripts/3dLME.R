@@ -1012,7 +1012,7 @@ runLME <- function(inData, dataframe, ModelForm) {
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
       dataframe <- assVV2(dataframe, lop$vQV, inData[(length(inData)/2+1):length(inData)], all(is.na(lop$vVarCenters)))
    }
-   if (!all(na.omit(abs(inData) < 1e-8))) {        
+   if (!all(abs(na.omit(inData)) < 1e-8)) {        
       dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
       if(lop$ML) {
@@ -1101,7 +1101,7 @@ runLME <- function(inData, dataframe, ModelForm) {
 runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       try(fmAOV<-lmer(ModelForm, data=dataframe), tag<-1)
       if(tag != 1) {    
@@ -1117,7 +1117,7 @@ runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
 runREMLb <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       #try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma), tag<-1)
       try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma(shape = 2, rate = 0.5, posterior.scale = 'sd')), tag<-1)  
@@ -1158,7 +1158,7 @@ assVV2 <- function(DF, vQV, value, c) {
 
 runGLM <- function(inData, dataframe, ModelForm) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1193,7 +1193,7 @@ runGLM <- function(inData, dataframe, ModelForm) {
 
 runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1245,7 +1245,7 @@ runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {
 
 runGLM0 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
