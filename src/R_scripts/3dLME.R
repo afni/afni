@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.3, Jan 19, 2023
+Version 2.1.4, July 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1012,7 +1012,7 @@ runLME <- function(inData, dataframe, ModelForm) {
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
       dataframe <- assVV2(dataframe, lop$vQV, inData[(length(inData)/2+1):length(inData)], all(is.na(lop$vVarCenters)))
    }
-   if (!all(abs(inData) < 10e-8)) {        
+   if (!all(na.omit(abs(inData) < 1e-8))) {        
       dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
       if(lop$ML) {
