@@ -218,7 +218,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         dataType = "Cardiac", phys_fs = test_retro_obj.card_data.samp_freq, 
         OutDir = OutDir, font_size = test_retro_obj.font_size)
       
-   # Graph cardiac peaks against respiratory time series
+   # Graph cardiac peaks against cardiac time series
    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>0, 
          test_retro_obj.save_graph_level>0, rawData, peaks, 
          test_retro_obj.card_data.samp_freq, 
@@ -229,7 +229,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Graph final cardiac peaks 
    filePrefix = 'FinalCardiacPeaks_v2'
    Title = 'Final Cardiac Peaks'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Respiratory', 
+   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Cardiac', 
                  test_retro_obj, lrp)
     
    # ==== test plot ====
