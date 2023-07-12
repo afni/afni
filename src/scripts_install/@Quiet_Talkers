@@ -9,9 +9,10 @@ set pname = `basename $0`
 goto PARSE
 RET_PARSE:
 
+set alist=()
 foreach prog ($proglist)
    if ("$pif" == '') then
-      echo "searching for talking $prog..."
+      if ($quiet == 0) echo "searching for talking $prog..."
       if ($no_npb == 1) then
          set pidl = `ps ${psopt} |  \grep -w $prog |\
                               \grep -v grep |\
@@ -19,8 +20,8 @@ foreach prog ($proglist)
                               \sed 's/^[ \t]*//g' | \
                               \cut -d ' ' -f 1`   
          if ($list == 1) then
-            echo $pidl
-            goto END
+            set alist = ( $alist $pidl )
+            goto NEXT_PROG
          endif
          if ($#pidl > 0) then
             foreach pid ($pidl)
@@ -45,8 +46,8 @@ foreach prog ($proglist)
                                  \sed 's/^[ \t]*//g' | \
                                  \cut -d ' ' -f 1`
             if ($list == 1) then
-               echo $pidl
-               goto END
+               set alist = ( $alist $pidl )
+               goto NEXT_PROG
             endif
             if ($#pidl > 0) then
                foreach pid ($pidl)
@@ -70,8 +71,8 @@ foreach prog ($proglist)
                            \sed 's/^[ \t]*//g' | \
                            \cut -d ' ' -f 1`   
       if ($list == 1) then
-         echo $pidl
-         goto END
+         set alist = ( $alist $pidl )
+         goto NEXT_PROG
       endif
       if ($#pidl > 0) then
          foreach pid ($pidl)
@@ -85,7 +86,12 @@ foreach prog ($proglist)
          end 
       endif     
    endif
+   NEXT_PROG:
 end
+if ($list == 1) then
+   echo $alist | tr ' ' '\n'
+   goto END
+endif
 
 goto END
 

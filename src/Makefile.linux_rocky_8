@@ -1,7 +1,10 @@
-# This Makefile was written for the Linux OS, Fedora 35.
-# It is the same as that for 28, but links to libpython3.
+# This Makefile was written for the Linux OS, Rocky 8.
+# It should work on RHEL/CentOS/Rocky/Almalinux 8.
+#
+# It is identical to Makefile.linux_centos_7_64
+# (except for SYSTEM_NAME).
 
-SYSTEM_NAME = linux_fedora_35_shared
+SYSTEM_NAME = linux_rocky_8
 SYSTEM_TYPE = Linux
 
 # CPROF = -pg -g
@@ -10,8 +13,9 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
+
 # -----------------------------------
-# use shared libriaries (libmri.so)?
+#  # use shared libriaries (libmri.so)?
 MRI_SHARED = $(SYSTEM_TYPE)
 
 # use linux-style R_io.so building
@@ -19,8 +23,8 @@ R_IO_MODIFY_LINUX = yes
 
 # ------------------------------
 # python from C
-# IPYTHON  = -DSELENIUM_READY -I/usr/include/python3.10
-# LDPYTHON = -lpython3
+# IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
+# LDPYTHON = -lpython2.7
 
 # ----------------------------------------------------------------------
 # X configuration
@@ -30,7 +34,7 @@ XLIBS = -lXm -lXt
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) \
-     	 -DDONT_USE_XTDESTROY -D_GNU_SOURCE -DREPLACE_XT
+         -DDONT_USE_XTDESTROY -D_GNU_SOURCE -DREPLACE_XT
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = $(CC)
@@ -91,9 +95,10 @@ EXPROGS = $(GSLPROGS)
 
 # link choices are made above
 
-LLIBS  = -lmri -lf2c $(LDPYTHON) $(LZLIB) $(LGIFTI) -lm  -ldl -lc
-LLIBS_X11  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
-         $(LDPYTHON) -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+# separate X11 libs from non-X11 ones
+LLIBS  = -lmri -lf2c $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS_X11 = -lmri -lf2c $(XLIBS) -lXft -lXpm -lXext -lXmu -lSM -lICE -lX11 \
+         $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -116,12 +121,11 @@ SUMA_GLIB_VER = -2.0
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
 # GLw_IPATH  = -IGLw_local
-# GLw_LIB = libGLws.a
 GLw_LIB = -lGLw
 
-SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src \
-    -I/usr/lib64/glib-2.0/include -I/usr/include/glib-2.0           \
-    -I/usr/lib64/glib/include -I/usr/include/glib-1.2
+SUMA_INCLUDE_PATH = $(IFLAGS) -I.. -I../niml -Igts/src 		\
+    -I/usr/lib64/glib-2.0/include -I/usr/lib64/glib/include	\
+    -I/usr/include/glib-2.0 -I/usr/include/glib-1.2
 SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw

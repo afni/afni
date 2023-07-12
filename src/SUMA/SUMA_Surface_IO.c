@@ -415,7 +415,7 @@ SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO)
    char *fl=NULL, *flp = NULL;
    int ii=0, Found = 0, nread=0;
    double num = 0;
-   int LocalHead = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -530,7 +530,6 @@ SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO)
    int ii=0;
    char *f_name=NULL, *f_name2=NULL;
    FILE *fid = NULL;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -638,7 +637,6 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
    int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
    char stmp[100], head_strt[100], head_end[100],
         s[1000], delimstr[] = {' ', '\0'}, *st;
-   byte *isallzeros=NULL;
    int LocalHead = 0;
 
    SUMA_ENTRY;
@@ -793,11 +791,10 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
    static char FuncName[]={"SUMA_SureFit_Read_Topo"};
-   int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk,
-      i, ip, NP, nread=0, iwarn=0;
-   char stmp[100], head_strt[100], head_end[100], s[1000],
-         delimstr[] = {' ', '\0'}, *st, *eop, *fl0, *fl1, *op2, *fl,
-         *fleh, *flns, *flbh;
+   int ex = 0, cnt,
+      i, NP, nread=0, iwarn=0;
+   char  *eop, *fl1, *op2, *fl,
+         *fleh, *flbh;
    int LocalHead = 0,  Found=0;
    double tmpdbl;
 
@@ -820,7 +817,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    sprintf(SF->name_topo, "%s", f_name);
 
    /* find BeginHeader and EndHeader tags*/
-   fl0 = fl; /* beginning */
+   // fl0 = fl; /* beginning */
    fl1 = fl + nread; /* end */
 
    eop = SUMA_MIN_PAIR(fl1, fl+5000);
@@ -1220,7 +1217,7 @@ SUMA_RETURN (YUP);
 Show data structure containing SureFit surface object
 */
 void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
-{  int cnt, id, ND, NP;
+{  int cnt, ND, NP;
    static char FuncName[]={"SUMA_Show_SureFit"};
 
    SUMA_ENTRY;
@@ -1911,7 +1908,7 @@ SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
    char *fl=NULL, *fl2=NULL, *colfile=NULL, *florig=NULL, *name=NULL, *fle=NULL;
    double dum;
    float mxcol;
-   int i, r, g, b, v, nalloc, nchar, ok, ans, cnt, ism=0;
+   int nalloc, nchar, ok, ans, cnt, ism=0;
    SUMA_Boolean state = YUP;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2053,7 +2050,6 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname,
    static char FuncName[]={"SUMA_FScolutToColorMap"};
    SUMA_FS_COLORTABLE *ct=NULL;
    SUMA_COLOR_MAP *SM=NULL;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -2075,9 +2071,8 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap_eng(SUMA_FS_COLORTABLE *ct,
 {
    static char FuncName[]={"SUMA_FScolutToColorMap_eng"};
    SUMA_COLOR_MAP *SM=NULL;
-   int cnt =0, cntmax = 0, ism = 0, suc= 0;
+   int cnt =0, cntmax = 0, ism = 0;
    char stmp[256]={""};
-   NI_group *ngr = NULL;
    SUMA_COLOR_MAP_HASH_DATUM *hd=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2228,7 +2223,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                                SUMA_DSET **dsetp)
 {
    static char FuncName[]={"SUMA_readFSannot"};
-   int n_labels = -1, ex, ni, chnk, j, annot, r, g, b, imap;
+   int n_labels = -1, ex, ni, chnk, j, annot, imap;
    int tg, len, nbins, i;
    FILE *fl=NULL;
    FILE *fr=NULL;
@@ -2617,10 +2612,9 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols,
 {
    static char FuncName[]={"SUMA_readFScurv"};
    MRI_IMAGE *im = NULL;
-   float *v = NULL, jnk, *far;
-   int cnt, ex, id, i, ncol, nvec;
-   char c, comment[SUMA_MAX_STRING_LENGTH];
-   FILE *fs_file = NULL;
+   float *v = NULL, *far;
+   int id, i, ncol, nvec;
+
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -2768,7 +2762,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
    static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
    char stmp[50];
    FILE *fs_file;
-   int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
+   int ex, cnt, jnki, maxamax, maxamax2, id, id2, ip, *NodeId;
    float jnkf, *NodeList;
    char c;
    SUMA_Boolean LocalHead = NOPE;
@@ -2919,7 +2913,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
       #else
       {
          char *fl=NULL, *eop=NULL, *florig=NULL;
-         int ans, pnodes, ptri, Found, nchar;
+         int ans, Found, nchar;
          double dbuf;
 
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch new way...\n", FuncName);
@@ -2938,8 +2932,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
             SUMA_SL_Err("Expected comment line....");
          }
          /* read in first two nums */
-         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); pnodes = (int)dbuf;
-         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); ptri = (int)dbuf;
+         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); // not used - pnodes = (int)dbuf;
+         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); // not used - ptri = (int)dbuf;
 
          /* Node IDs are a reference to those in the parent surface */
          Found = 1;
@@ -3114,10 +3108,8 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
 SUMA_Boolean SUMA_FreeSurfer_ReadBin_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
 {/*SUMA_FreeSurfer_ReadBin_eng*/
    static char FuncName[]={"SUMA_FreeSurfer_ReadBin_eng"};
-   char stmp[50];
    FILE *fs_file;
-   int ex, End, rmax,  chnk, cnt, i, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId, magic;
-   float jnkf, *NodeList;
+   int ex, End, rmax,  chnk, i, magic;
    char c;
    byte m1, m2, m3;
    SUMA_Boolean bs;
@@ -3254,7 +3246,6 @@ SUMA_Boolean SUMA_Free_FreeSurfer (SUMA_FreeSurfer_struct *FS)
 void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 {
    static char FuncName[]={"SUMA_Show_FreeSurfer"};
-   int ND = 3, id, ip;
 
    SUMA_ENTRY;
 
@@ -3327,7 +3318,7 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 int * SUMA_BYU_PolyFaceToTriFace(int *face, int *N)
 {
    static char FuncName[]={"SUMA_BYU_PolyFaceToTriFace"};
-   int i, k, N_alloc, iface, iface0, iFS3;
+   int N_alloc, iface, iface0, iFS3;
    int *FaceSetList=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -3442,7 +3433,7 @@ SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO,
                            int debug, byte hide_negcols)
 {
    static char FuncName[]={"SUMA_BYU_Read"};
-   int ok, nread, i, k, lessen=0, nodemin, nodemax,
+   int ok, nread, i, lessen=0, nodemin, nodemax,
       *face=NULL, n = -1, nalloc=-1;
    double dum;
    char *fl=NULL, *fli;
@@ -3643,8 +3634,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read"};
    float FileVersion, cx, cy, cz, *fbuf = NULL;
-   int i, ii, chnk, ex, surf_type, n_neighbors, bs, cnt_inmesh=0, *ibuf=NULL;
-   char buffer[256];
+   int i, chnk, ex, surf_type, n_neighbors, bs, cnt_inmesh=0, *ibuf=NULL;
    float fbuffer[256];
    FILE *fl=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -3906,7 +3896,7 @@ typedef struct Vertex {
 } Vertex;
 
 typedef struct Face {
-  unsigned char intensity; /* this user attaches intensity to faces */
+//  unsigned char intensity; /* this user attaches intensity to faces */
   unsigned char nverts;    /* number of vertex indices in list */
   int *verts;              /* vertex index list */
 } Face;
@@ -3920,7 +3910,7 @@ PlyProperty vert_props[] = { /* list of property information for a vertex */
 };
 
 PlyProperty face_props[] = { /* list of property information for a vertex */
-  {"intensity", PLY_UCHAR, PLY_UCHAR, offsetof(Face,intensity), 0, 0, 0, 0},
+//  {"intensity", PLY_UCHAR, PLY_UCHAR, offsetof(Face,intensity), 0, 0, 0, 0},
   {"vertex_indices", PLY_INT, PLY_INT, offsetof(Face,verts),
    1, PLY_UCHAR, PLY_UCHAR, offsetof(Face,nverts)},
 };
@@ -4050,7 +4040,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       /* set up for getting face elements */
 
       ply_get_property (ply, elem_name, &face_props[0]);
-      ply_get_property (ply, elem_name, &face_props[1]);
+//      ply_get_property (ply, elem_name, &face_props[1]);
 
       /* grab all the face elements */
       for (j = 0; j < num_elems; j++) {
@@ -4061,8 +4051,8 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
 
         /* print out face info, for debugging */
         if (LocalHead) {
-         fprintf (SUMA_STDERR,"%s face: %d, list = ",
-                              FuncName, flist[j]->intensity);
+//         fprintf (SUMA_STDERR,"%s face: %d, list = ",
+//                              FuncName, flist[j]->intensity);
          for (k = 0; k < flist[j]->nverts; k++)
             fprintf (SUMA_STDERR,"%d ", flist[j]->verts[k]);
          fprintf (SUMA_STDERR,"\n");
@@ -4171,10 +4161,8 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
 SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Ply_Write"};
-   int i,j;
+   int i;
    PlyFile *ply = NULL;
-   int nelems;
-   int file_type;
    float version;
    int nverts ;
    int nfaces ;
@@ -4182,7 +4170,6 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    int n_elem_names = 2;
    Vertex **verts = NULL;
    Face *faces = NULL;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -4223,7 +4210,8 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    }
 
    for (i = 0; i < nfaces; i++) {
-      faces[i].intensity = '\001';
+// ****  removed intensity property, github issue. mod drg - 04 May 2023
+//      faces[i].intensity = '\001';  
       faces[i].nverts = SO->FaceSetDim;
       faces[i].verts = &(SO->FaceSetList[SO->FaceSetDim*i]);
    }
@@ -4279,7 +4267,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
 
    ply_element_count (ply, "face", nfaces);
    ply_describe_property (ply, "face", &face_props[0]);
-   ply_describe_property (ply, "face", &face_props[1]);
+//   ply_describe_property (ply, "face", &face_props[1]);
 
    /* write a comment and an object information field */
    ply_put_comment (ply, "author: Greg Turk");
@@ -4296,6 +4284,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
 
    /* set up and write the face elements */
    ply_put_element_setup (ply, "face");
+
    for (i = 0; i < nfaces; i++)
     ply_put_element (ply, (void *) &faces[i]);
 
@@ -4612,7 +4601,6 @@ SUMA_Boolean SUMA_STL_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    int i, i3, j3[3];
    char *f_name, *f_name2;
    FILE *fout = NULL;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -4859,12 +4847,10 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
                                  SUMA_SO_File_Format forceencode)
 {
    static char FuncName[]={"SUMA_GIFTI_Write"};
-   int i, j, gii_encode=-1;
+   int gii_encode=-1;
    float *NodeList=NULL;
    double xform[4][4];
-   NI_group *aSO=NULL;
    NI_element *nel=NULL;
-   FILE *outFile = NULL;
    SUMA_Boolean suc = YUP;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -5884,7 +5870,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
       int Value, N_Node, *Node=NULL;
       float fillcolor[3], edgecolor[3];
       int edgethickness;
-      char stmp[20], *Label=NULL;
+      char stmp[200], *Label=NULL;
       SUMA_PARSED_NAME *NewName=NULL;
 
       edgethickness = 3;
@@ -6706,10 +6692,8 @@ SUMA_ROI_EXTRACT *SUMA_GetROIExtractLabeled(DList *ddl, int i)
 DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups)
 {
    static char FuncName[]={"SUMA_ROIv2NodeLists"};
-   int ii, i, nn, cnt, nodemin=9999999, nodemax=-1, MaxNodeIndex=-1,
-      N_NodesMax=0;
+   int ii, i, cnt, nodemin=9999999, nodemax=-1, MaxNodeIndex=-1;
    byte *visited=NULL;
-   SUMA_DSET *dset =NULL;
    DList *ddl=NULL;
    DListElmt *Elm=NULL, *eldd=NULL;
    SUMA_ROI_EXTRACT *dd=NULL;
@@ -6722,7 +6706,7 @@ DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups)
    /* count the total number of nodes */
    ddl = (DList *)SUMA_calloc(1, sizeof(DList));
    dlist_init(ddl, SUMA_free_ROI_Extract);
-   N_NodesMax = 0; nodemin=100000; nodemax=0, MaxNodeIndex=0;
+   nodemin=100000; nodemax=0, MaxNodeIndex=0;
    for (ii=0; ii < N_ROIv; ++ii) {
       if ((cnt=SUMA_NodeRange_DrawnROI (ROIv[ii], &nodemin, &nodemax)) >= 0) {
          if (LocalHead) {
@@ -6802,7 +6786,7 @@ SUMA_DSET *SUMA_ROIv2MultiDset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
 {
    static char FuncName[]={"SUMA_ROIv2MultiDset"};
    int ii, i, nn, cnt, nodemin=9999999, nodemax=-1, MaxIndex=-1,
-      N_NodesMax=0, iicol, new_col = 0, icol = 0, rnode=-1;
+      iicol, new_col = 0, icol = 0, rnode=-1;
    int *ivec=NULL, *NodesTotal=NULL, N_NodesTotal;
    SUMA_DSET *dset =NULL;
    DList *ddl=NULL;
@@ -6818,7 +6802,7 @@ SUMA_DSET *SUMA_ROIv2MultiDset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
    /* get list of values to work with */
    ddl = (DList *)SUMA_calloc(1, sizeof(DList));
    dlist_init(ddl, SUMA_free_ROI_Extract);
-   N_NodesMax = 0; nodemin=100000; nodemax=0, MaxIndex=0;
+   nodemin=100000; nodemax=0, MaxIndex=0;
    for (ii=0; ii < N_ROIv; ++ii) {
       if ((cnt=SUMA_NodeRange_DrawnROI (ROIv[ii], &nodemin, &nodemax)) >= 0) {
          if (LocalHead) {
@@ -7161,7 +7145,7 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
    /* sort NodesTotal and rearrange LabelsTotal accordingly */
    {  int *isort = NULL, *LabelsTotal_r = NULL,
          *NodesTotal_u = NULL, N_NodesTotal_u, *iu = NULL;
-      char report[100];
+      char report[200];
 
       isort = SUMA_z_dqsort(NodesTotal, N_NodesTotal);
       LabelsTotal_r = SUMA_reorder (LabelsTotal, isort, N_NodesTotal);
@@ -7783,7 +7767,6 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    SUMA_ROI_DATUM *ROI_Datum=NULL;
    DListElmt *Elm = NULL;
    int i = -1, cnt = 0, *isort=NULL, *iLabel=NULL, *iNode=NULL;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -7890,7 +7873,6 @@ int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max)
    SUMA_ROI_DATUM *ROI_Datum=NULL;
    DListElmt *Elm = NULL;
    int i = -1, cnt = 0;
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -7933,7 +7915,6 @@ int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max)
 SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI_1D)
 {
    static char FuncName[]={"SUMA_Free_1DDrawROI"};
-   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -8134,8 +8115,8 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals,
    short *sbr=NULL, fval_short, dval_short;
    char *orcode=NULL;
    float xxdown =0.0,xxup=0.0 , yydown=0.0,yyup=0.0 , zzdown=0.0,zzup=0.0 ;
-   SUMA_Boolean LocalHead = NOPE;
    THD_3dim_dataset *dset=NULL, *mset=NULL, *maskset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -8832,7 +8813,7 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
 {
    static char FuncName[]={"SUMA_nimlSO2SO"};
    NI_element *nel = NULL;
-   char stmp[500], *tmp;
+   char *tmp;
    int ip;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -9205,8 +9186,7 @@ SUMA_OPEN_DX_STRUCT *SUMA_Find_OpenDX_Object_Class(SUMA_OPEN_DX_STRUCT **dxv, in
 char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int LoadData)
 {
    static char FuncName[]={"SUMA_OpenDX_Read_CruiseVolHead"};
-   int i = 0, nf, iop, chunk, End, bs, doff, data_type=SUMA_notypeset;
-   THD_ivec3 iv3;
+   int i = 0, nf, iop, chunk, End, doff, data_type=SUMA_notypeset;
    THD_mat33 m33;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
@@ -9317,11 +9297,9 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
    }
    /* byte ordering */
    SUMA_WHAT_ENDIAN(End);
-   bs = 0;
    swp[0] = '\0';
    if (End != dxa->data_format) {
       SUMA_LH("swapping needed");
-      bs = 1;
       switch (chunk) {
          case 1:
             break;
@@ -9447,7 +9425,6 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    int i = 0, nf, iop;
    SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc = NULL, *dxf = NULL,
                        *dxo = NULL;
-   SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -9560,8 +9537,6 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    }
 
    /* all is well here */
-   ans = YUP;
-
    CLEAN_EXIT:
    SUMA_LH("Frenching dxv");
    for (i=0; i<iop; ++i) {
@@ -9596,7 +9571,7 @@ SUMA_OBJ_STRUCT *SUMA_Free_OBJ(SUMA_OBJ_STRUCT *obj)
 SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
 {
    static char FuncName[]={"SUMA_OBJ_Read"};
-   int nread = 0, i = 0,  good=0;
+   int nread = 0, good=0;
    int nwarn_face=0;
    char *fl=NULL, *op = NULL,sbuf[256]={""},
         *oc, *op2;

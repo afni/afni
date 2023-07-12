@@ -11,6 +11,7 @@
 import sys, os, math, copy
 from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
+from afnipy import lib_format_cmd_str as lfcs
 import glob
 import pdb
 import re
@@ -561,9 +562,112 @@ def write_afni_com_history(fname, length=0, wrap=1):
       if length > 0: limit to that number of entries
    """
    com = BASE.shell_com('hi there')
-   hist = com.shell_history()
+   hist = com.shell_history(nhist=length)
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
+
+def write_afni_com_log(fname=None, length=0, wrap=1):
+   """write the afni_com log to the given file
+
+      if length > 0: limit to that number of entries
+
+      if no fname is given, simply print the log
+   """
+   com = BASE.shell_com('hi there')
+   log = com.shell_log(nlog=length)
+   
+   # wrapping will occur *here*, if used
+   log2   = proc_log(log, wrap=wrap)
+   script = '\n'.join(log2)+'\n'
+
+   if fname is None :
+      print(script)
+   else:
+      # wrapping will have already occurred, above
+      write_text_to_file(fname, script, wrap=0)
+
+def proc_log(log, wid=78, wrap=1):
+    """Process the log, which is a list of dictionaries (each of cmd,
+status, so and se objects), and prepare it for string output.  The
+output is a list of strings to be concatenated.
+
+    """
+
+    N = len(log)
+    if not(N) :    return ''
+
+    log2 = []
+    for ii in range(N):
+        D = log[ii]
+        topline = not(ii)
+        log2.extend( format_log_dict(D, wid=wid, wrap=wrap,
+                                     topline=topline) )
+    return log2
+
+def format_log_dict(D, wid=78, wrap=1, topline=True):
+    """Each dictionary contains the following keys: cmd, status, so, se.
+Turn these into a list of strings, to be joined when displaying the log.
+
+    """
+
+    L = []
+    if topline :
+        L.append("="*wid)
+
+    # cmd
+    cmd = D['cmd'].strip()
+    if cmd[0] == '#' :
+       # comment dumping, essentially
+       if wrap :
+          cmd = add_line_wrappers(cmd, wrapstr='\\\n#')
+    elif not(len(cmd.split()) > 3 and len(cmd) > 40) :
+       # short commands
+       if wrap :
+          cmd = add_line_wrappers(cmd)
+    else:
+       # long/general commands
+       ok, cmd = lfcs.afni_niceify_cmd_str(cmd)
+    nline = cmd.count('\n') + 1
+    L.append('cmd: ' + str(nline))
+    L.append(cmd)
+    L.append("-"*wid)
+
+    # status
+    L.append('stat: ' + str(D['status']))
+    L.append("-"*wid)
+
+    # so
+    ooo = some_types_to_str(D['so'])
+    if ooo :
+       if wrap :
+          ooo = add_line_wrappers(ooo, wrapstr='\\\n')
+       nline = ooo.count('\n') + 1
+       L.append('so: ' + str(nline))
+       L.append(ooo)
+    else:
+       L.append('so: 0')
+    L.append("-"*wid)
+
+    # se
+    eee = some_types_to_str(D['se'])
+    if eee :
+       if wrap :
+          eee = add_line_wrappers(eee, wrapstr='\\\n')
+       nline = eee.count('\n') + 1
+       L.append('se: ' + str(nline))
+       L.append(eee)
+    else:
+       L.append('se: 0')
+    L.append("="*wid)
+
+    return L
+
+def some_types_to_str(x):
+    """return a string form of a list, str or 'other' type,
+    ... now implementing Reynoldsian Recursion!"""
+    if type(x) == str :     return x
+    elif type(x) == list :  return '\n'.join([some_types_to_str(v) for v in x])
+    else:                   return str(x)
 
 def get_process_depth(pid=-1, prog=None, fast=1):
    """print stack of processes up to init"""

@@ -750,9 +750,12 @@ g_history = """
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
     7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
     7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
+    7.56 Jun  2, 2023: fix -regress_errts_prefix with surface analysis
+    7.57 Jun 14, 2023: default to -radial_correlate_blocks errts, if none given
+    7.58 Jun 21, 2023: fix: pass tlrc_base as uvar template
 """
 
-g_version = "version 7.55, March 1, 2023"
+g_version = "version 7.58, June 22, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2431,7 +2434,13 @@ class SubjProcSream:
             rcblocks, rv = self.user_opts.get_string_list(oname)
             if rv: return 1
 
-            # now vlines becomes special, make 'tcat' the default
+            # for radcor, make 'regress' the default
+            if oname == '-radial_correlate_blocks' and rcblocks is None:
+               if self.find_block('regress'):
+                 print("-- including default: -radial_correlate_blocks regress")
+                 rcblocks = ['regress']
+
+            # for vlines, make 'tcat' the default
             if oname == '-find_var_line_blocks' and rcblocks is None:
                print("-- including default: -find_var_line_blocks tcat")
                rcblocks = ['tcat']

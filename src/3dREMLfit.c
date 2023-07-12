@@ -1769,7 +1769,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
                  "   for which -slibase_sm is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        https://afni.nimh.nih.gov/afni/community/board");
+                 "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
@@ -1805,7 +1805,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
                  "   for which -slibase is more appropriate. If this is\n"
                  "   not clear, search for it on the AFNI Message Board:\n"
-                 "        https://afni.nimh.nih.gov/afni/community/board");
+                 "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
                  "   were made via 'RetroTS' you are probably okay.");

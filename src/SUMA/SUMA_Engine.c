@@ -1742,9 +1742,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                }
 
-               // Added by PDL to prevent extra clip plane being partially generated
-               //   when user maniulates default plane when first enetering clipping plane
-               //   mode or using the zero key
+               // Added by PDL to prevent extra clip plane being partially
+               //   generated when user manipulates default plane when first
+               //   entering clipping plane mode or using the zero key
                 if (strlen(EngineData->s)<1) iplane = 0;
 
                /* stick equation where it belongs */

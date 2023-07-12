@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, Jan 17, 2023
+Version 1.0.5, Julyy 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -759,7 +759,7 @@ process.ISC.opts <- function (lop, verb = 0) {
 # LME: bare-bone approach with LME for ISC: some voxels may have 0 ISC values: effect estimates as input only
 runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
    #browser()
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)
@@ -790,7 +790,7 @@ runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
 runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
    #browser()
    #myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)

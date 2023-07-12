@@ -64,7 +64,7 @@ static char * readme_afnigui[] = {
    "       CD.tgz (more than 1 Gbyte) at\n" ,
    "          https://afni.nimh.nih.gov/pub/dist/edu/data\n" ,
    "       And don't forget the AFNI message board at\n" ,
-   "          https://afni.nimh.nih.gov/afni/community/board\n" ,
+   "          https://discuss.afni.nimh.nih.gov\n" ,
    "--------------------------------------------------------------------------------\n" ,
    "             ***** Cursor Shapes and Right-Click Popup Menus *****\n" ,
    "\n" ,

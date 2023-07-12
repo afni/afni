@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.4,  March 13, 2023
+Version 4.1.5,  July 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1119,7 +1119,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
    #if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
    if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, lop$nResid)
    options(warn = -1)
-   if (!all(abs(inData) < 10e-8)) {  # not all 0s
+   if (!all(abs(na.omit(inData)) < 10e-8)) {  # not all 0s
       dataframe$Beta<-inData[1:lop$NoFile]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData[(lop$NoFile+1):(lop$NoFile+lop$nSubj)], all(is.na(lop$vVarCenters)))
