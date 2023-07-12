@@ -313,7 +313,7 @@ if verb>2 :
 DO_HAVE_FLASK = 0
 
 try:
-    from flask        import Flask, send_from_directory, request, jsonify
+    from flask        import Flask, send_from_directory, request, jsonify, cli
     from flask_cors   import CORS   # to circumvent 'no access issues from UI'
     DO_HAVE_FLASK = 1
 except (ImportError,NotImplementedError):
@@ -322,6 +322,8 @@ except (ImportError,NotImplementedError):
 if DO_HAVE_FLASK :
     app = Flask(__name__)           # initialize flask app
     CORS(app)                       # let CORS package upgrade app
+
+    cli.show_server_banner = lambda *_: None   # disable warning @ dev server
 
     if not(nv_dir) :
         # get location of AFNI binaries dir, which is where
@@ -519,7 +521,6 @@ if __name__ == "__main__":
                                       nsearch=port_nsearch,
                                       host=host,
                                       verb=verb )
-        print("++ NB: Ignore the 'This is a development server ...' warning")
 
     # construct the web address for each page to be opened, and if
     # asked for open the browser (first page in new window and others
