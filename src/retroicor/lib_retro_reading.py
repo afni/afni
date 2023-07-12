@@ -38,6 +38,7 @@ derived data.
         self.min_bps    = min_bps            # float, min beats/breaths per sec
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
+        self.img_idx   = 0                   # int, for naming QC plots
 
         # ----------------------------
 
