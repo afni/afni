@@ -1176,7 +1176,7 @@ def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None,
     peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
                 period = period, show_graph = show_graph, 
                 save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir,
-                font_size = font_size)
+                font_size = font_size, dataType = dataType )
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:

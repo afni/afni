@@ -116,7 +116,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    processName = 'Initial'
    Title = 'Initial Cardiac Peaks Found By scipy'
    lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
-                 test_retro_obj, lrp)
+                 test_retro_obj, lrp, 
+                 saveGraph = test_retro_obj.save_graph_level>0, 
+                 showGraph = test_retro_obj.show_graph_level>0)
    
    # Adjust peaks from uniform spacing
    peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp,
@@ -230,7 +232,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    processName = 'Final'
    Title = 'Final Cardiac Peaks'
    lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
-                 test_retro_obj, lrp)
+                 test_retro_obj, lrp, 
+                 saveGraph = test_retro_obj.save_graph_level>0, 
+                 showGraph = test_retro_obj.show_graph_level>0)
     
    # ==== test plot ====
    # tmp_x_rD = np.arange(len(rawData)) * test_retro_obj.card_data.samp_rate
@@ -335,7 +339,7 @@ def getRespiratoryPeaks(test_retro_obj):
         dataType = "Respiratory", 
         font_size = test_retro_obj.font_size)
     if len(filterData) == 0:
-       print('Failed to band-pass filter cardiac data')   
+       print('Failed to band-pass filter respiratory data')   
        return []
    
     # Get initial peaks using window that is eighth of a second  
@@ -356,7 +360,9 @@ def getRespiratoryPeaks(test_retro_obj):
     processName = 'Initial'
     Title = 'Initial Respiratory Peaks Found By scipy'
     lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Respiratory', 
-                  test_retro_obj, lrp)
+                  test_retro_obj, lrp, 
+                  saveGraph = test_retro_obj.save_graph_level>0, 
+                  showGraph = test_retro_obj.show_graph_level>0)
    
     # Adjust peaks from uniform spacing
     peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
@@ -465,7 +471,9 @@ def getRespiratoryPeaks(test_retro_obj):
     processName = 'Initial'
     Title = 'Initial Respiratory Peaks and Troughs Found By scipy'
     lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
-                            'Respiratory', test_retro_obj, lrp)
+                            'Respiratory', test_retro_obj, lrp, 
+                            saveGraph = test_retro_obj.save_graph_level>1, 
+                            showGraph = test_retro_obj.show_graph_level>1)
     
     # Remove troughs that are more than the 90th percentile of the 
     # input signal
@@ -562,7 +570,9 @@ def getRespiratoryPeaks(test_retro_obj):
     processName = 'Final'
     Title = 'Final Respiratory Peaks and Troughs'
     lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
-                            'Respiratory', test_retro_obj, lrp)
+                            'Respiratory', test_retro_obj, lrp, 
+                            saveGraph = test_retro_obj.save_graph_level>0, 
+                            showGraph = test_retro_obj.show_graph_level>0)
 
     
     # # ==== test plot ====
