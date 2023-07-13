@@ -113,9 +113,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         font_size = test_retro_obj.font_size)
    
    # Graph initial cardiac peaks found by scipy
-   filePrefix = 'initialCardiacPeaks_v2'
+   processName = 'Initial'
    Title = 'Initial Cardiac Peaks Found By scipy'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Cardiac', 
+   lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
                  test_retro_obj, lrp)
    
    # Adjust peaks from uniform spacing
@@ -227,9 +227,9 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
          font_size = test_retro_obj.font_size)
    
    # Graph final cardiac peaks 
-   filePrefix = 'FinalCardiacPeaks_v2'
+   processName = 'Final'
    Title = 'Final Cardiac Peaks'
-   lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Cardiac', 
+   lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
                  test_retro_obj, lrp)
     
    # ==== test plot ====
@@ -353,9 +353,9 @@ def getRespiratoryPeaks(test_retro_obj):
         font_size = test_retro_obj.font_size)
    
     # Graph initial respiratory peaks found by scipy
-    filePrefix = 'initialRespiratoryPeaks_v2'
+    processName = 'Initial'
     Title = 'Initial Respiratory Peaks Found By scipy'
-    lrg.plotPeaks(rawData, peaks, OutDir, filePrefix, Title, 'Respiratory', 
+    lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Respiratory', 
                   test_retro_obj, lrp)
    
     # Adjust peaks from uniform spacing
@@ -462,9 +462,9 @@ def getRespiratoryPeaks(test_retro_obj):
           font_size = test_retro_obj.font_size)
    
     # Graph initial respiratory peaks and troughs found by scipy
-    filePrefix = 'initialRespiratoryPeaksAndTroughs_v2'
+    processName = 'Initial'
     Title = 'Initial Respiratory Peaks and Troughs Found By scipy'
-    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, Title, 
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
                             'Respiratory', test_retro_obj, lrp)
     
     # Remove troughs that are more than the 90th percentile of the 
@@ -559,9 +559,9 @@ def getRespiratoryPeaks(test_retro_obj):
             font_size = test_retro_obj.font_size)
    
     # Graph initial respiratory peaks and troughs found by scipy
-    filePrefix = 'finalRespiratoryPeaksAndTroughs_v2'
+    processName = 'Final'
     Title = 'Final Respiratory Peaks and Troughs'
-    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, filePrefix, Title, 
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
                             'Respiratory', test_retro_obj, lrp)
 
     
