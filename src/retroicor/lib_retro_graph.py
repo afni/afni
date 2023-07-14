@@ -16,22 +16,20 @@ def plotPeaks(rawData, peaks, OutDir, processName, Title, dataType,
    '''
     NAME
         plotPeaks
-        Graph raw input data along with peaks
+        Graph raw input data along with peaks or troughs
     TYPE
          <void>
     ARGUMENTS
         rawData: (array, dType = float) Raw input data
         
-        peaks: (array dType = int64) Array of peaks to be refined
+        peaks: (array dType = int64) Array of peaks to be displayed
         
         OutDir: (dType = str) String defining the directory to which the graph
                               is written. Not used if it is not required to save
                               the graph to disk.
         
-        filePrefix: (dType = str) String defining the prefix of the filename
-                              within the directory to which the graph
-                              is written. Not used if it is not required to save
-                              the graph to disk.
+        processName: (dType = str) String defining the name of the process, the
+                     effect of which the graph displays.
                               
         Title: (dType = str) String defining the title shown on the graph
         
@@ -118,6 +116,51 @@ def plotPeaks(rawData, peaks, OutDir, processName, Title, dataType,
 def plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
                         dataType, test_retro_obj, lrp, saveGraph = True, 
                         showGraph = False):
+   '''
+    NAME
+        plotPeaksAndTroughs
+        Graph raw input data along with peaks and troughs
+    TYPE
+         <void>
+    ARGUMENTS
+        rawData: (array, dType = float) Raw input data
+        
+        peaks: (array dType = int64) Array of peaks to be displayed
+        
+        troughs: (array dType = int64) Array of troughs to be displayed
+        
+        OutDir: (dType = str) String defining the directory to which the graph
+                              is written. Not used if it is not required to save
+                              the graph to disk.
+        
+        processName: (dType = str) String defining the name of the process, the
+                     effect of which the graph displays.
+                              
+        Title: (dType = str) String defining the title shown on the graph
+        
+        dataType: (dType = str) String defining the physiological data type.
+                                May be "Cardiac" or "Respiratory"
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
+        
+        saveGraph:   (dType = bool) Whether to graph the results
+        
+        saveGraph: (dType = bool) Whether to save graoh to disk
+
+    AUTHOR
+        Peter Lauren
+   '''
            
    # Determine file index
    img_idx = popFileIndex(test_retro_obj, dataType)

@@ -64,6 +64,19 @@ def percentileFilter(peaks, rawData, test_retro_obj, lrp, percentile = 10,
                  indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         percentile: (dType = float) Minimum (or maximum) percentile of raw data 
                  for a peak value to imply a valid peak (or trough)
@@ -151,6 +164,19 @@ def localPercentileFilter(peaks, rawData, percentile, test_retro_obj, lrp,
         
         percentile: (dType = float) Minimum (or maximum) percentile of raw data 
                     for a peak value to imply a valid peak (or trough)
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
                             
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
@@ -274,6 +300,19 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, test_retro_obj, lrp,
                                        indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         direction: (dType = str) Direction to look for higher point in raw data.  
             Options are 'right' or 'left'.  Default = 'right'.  That is, it aims
@@ -375,6 +414,19 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, test_retro_obj,
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         direction: (dType = str) Direction to look for lower point in raw data.
                    Options are 'right' or 'left'.  Default = 'right'.  That is,
@@ -457,6 +509,19 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
                                        indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         denominator: (dType = float) Number by which to divide the current 
                      amplitude to determine the lower threshold of the 
@@ -534,6 +599,19 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         denominator: (dType = float) Number by which to divide the current 
                                      amplitude to determine the upper threshold
@@ -631,6 +709,19 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         show_graph:   (dType = bool) Whether to graph the results
         
@@ -778,6 +869,21 @@ def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp,
         
         period:   (dType = numpy.float64) Overall typical period of raw data in 
                                           time series index units.
+
+        rawData: (array, dType = float) Raw input data
+                                      
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         Troughs:  (dType = bool) Whether processing troughs instead of peaks
         
@@ -1033,6 +1139,19 @@ def refinePeakLocations(peaks, rawData, test_retro_obj, lrp, period = None,
         
         rawData: (array, dType = float) Raw input data
         
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
+        
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
                 determined from the raw data.
@@ -1131,6 +1250,19 @@ def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None,
         
         rawData: (array, dType = float) Raw input data
         
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
+        
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
                 determined from the raw data.
@@ -1211,6 +1343,19 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, test_retro_obj, lrp,
         troughs: (array dType = int64) Array of troughs to be refined
         
         rawData: (array, dType = float) Raw input data
+        
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         period: (dType = NoneType) Overall typical period of raw data in time 
             series index units.  Default is none, meaning the period is 
