@@ -106,10 +106,12 @@ def plotPeaks(rawData, peaks, OutDir, processName, Title, dataType,
                        title=Title)
    fff.add_plobj(ret_plobj1)
    fff.add_plobj(ret_plobj2)
-   if showGraph:
-       fff.make_plot( do_show = True, do_save = False)
-   if saveGraph:
-       fff.make_plot( do_show = False, do_save = True)
+   fff.make_plot( do_show = showGraph, do_save = saveGraph)
+
+   # if showGraph:
+   #     fff.make_plot( do_show = True, do_save = False)
+   # if saveGraph:
+   #     fff.make_plot( do_show = False, do_save = True)
     
    plt.close() # Close empty figure window
 
