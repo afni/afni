@@ -82,6 +82,16 @@ wlevel_str = ' '.join(list(wlevel_ranks.keys()))
 
 # The CSS!
 css_text = '''
+/* Include nice (open) font for reading */
+@font-face {
+  font-family: 'myFiraCode';
+  src: url('FiraCode-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'myFiraCode';
+  src: url('FiraCode-Bold.woff2') format('woff2');
+  font-weight: bold;
+}
 
 h1 {
     padding-top: 80px;
@@ -92,7 +102,7 @@ h1 {
     font-weight: bold;
     text-decoration: underline;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 
 h2 {
@@ -102,7 +112,7 @@ h2 {
     color: #fff; /* #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 
 h3 {
@@ -112,7 +122,7 @@ h3 {
     color: #ccc; /* #FFC310; #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 '''
 
@@ -133,7 +143,7 @@ img {
 }
 
 pre {
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #FFC310;
 }
@@ -183,6 +193,8 @@ css_text+= '''
     margin-right: auto;
     width: 90%; 
     text-align: left;
+    font-family: "courier new", courier, monospace;
+    font-weight: bold;
 }}
 
 .wcol_none {{
@@ -221,6 +233,8 @@ css_text+= '''
     margin-right: auto;
     width:90%; 
     text-align: left;
+    font-family: "courier new", courier, monospace;
+    font-weight: bold;
 }}
 '''.format(**wlevel_colors)
 
@@ -274,7 +288,7 @@ css_text+= '''
     white-space: pre;
     display: inline-block;
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #FFC310;
 }
@@ -291,7 +305,7 @@ css_text+= '''
     white-space: pre;
     display: inline-block;
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #ccc;
 }
@@ -329,7 +343,7 @@ table, tr {
     border-collapse: collapse;
     border-bottom:  0px solid #ccc;
     top: 0;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     /* color: #ccc; */
 }
@@ -367,11 +381,10 @@ td a:active {
 
 css_text+= '''
 
+/* slightly lighter color and boldness for hyperlinks */
 urlin a {
-    /*padding: 2px;*/
-    border:  2px solid #FFC310;
-    color:  #014E33;
-    background-color: #FFC310;
+    color: #ffea00;
+    font-weight: bold;
 }
 
 urlin a:hover:not(.active) {
@@ -508,11 +521,10 @@ css_text+= '''
 .subj_text {
     color: #000; 
     background-color: #ccc; 
-    padding: 0px 4px; 
-    margin: 2px 0px 0px 8px; 
+    padding: 0px 2px; 
+    margin: 2px 0px 0px 6px; 
     border: 0px 0px 0px 0px solid #000; 
-    font-size: 24px; 
-    font-weight: bold;
+    font-size: 22px; 
 }
 
 '''

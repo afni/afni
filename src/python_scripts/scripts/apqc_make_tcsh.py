@@ -394,10 +394,11 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
     # create output dir (can backup any old one)
 
-    tmp = lat.make_apqc_dirs( ap_ssdict, ow_mode=iopts.ow_mode, 
-                              bup_dir=iopts.bup_dir )
+    tmp1 = lat.make_apqc_dirs( ap_ssdict, ow_mode=iopts.ow_mode, 
+                               bup_dir=iopts.bup_dir )
 
     tmp2 = lat.copy_apqc_logos(ap_ssdict)
+    tmp3 = lat.copy_apqc_fonts(ap_ssdict)
 
     # --------------------------------------------------------------------
     # pagetop info

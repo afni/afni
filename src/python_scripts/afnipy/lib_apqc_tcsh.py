@@ -277,6 +277,11 @@ all_logo = [ 'apqc_logo_main.svg',
              'apqc_logo_help.svg',
 ]
 
+# font info
+all_font = [ 'FiraCode-Bold.woff2',
+             'FiraCode-Regular.woff2',
+]
+
 # ----------------------------------------------------------------------
 
 coord_opp = { 'R' : 'L',
@@ -914,10 +919,43 @@ num : int
                   "".format(logo_file))
 
     # TEMPORARY !!!!!!
-    cmd     = '''\\cp {} {}'''.format(ap_ssdict['abin_dir'] + '/' + 'niivue_afni.umd.js',
-                                      ap_ssdict['odir_qc'])
-    com    = ab.shell_com(cmd, capture=do_cap)
+    #cmd     = '''\\cp {} {}'''.format(ap_ssdict['abin_dir'] + '/' + 'niivue_afni.umd.js',
+    #                                  ap_ssdict['odir_qc'])
+    #com    = ab.shell_com(cmd, capture=do_cap)
+    #stat   = com.run()
+
+    return 0
+
+def copy_apqc_fonts(ap_ssdict):
+    """Copy fonts used in the HTML to the correct directory in the APQC
+HTML.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    do_cap = True
+    com    = ab.shell_com('# copy font files to QC info dir', capture=do_cap)
     stat   = com.run()
+
+    for font in all_font:
+        font_file = ap_ssdict['abin_dir'] + '/' + font
+        if os.path.isfile( font_file ) :
+            cmd     = '''\\cp {} {}'''.format(font_file, 
+                                              ap_ssdict['odir_info'])
+            com    = ab.shell_com(cmd, capture=do_cap)
+            stat   = com.run()
+        else:
+            print("+* WARNING: cannot find font file:\n   {}"
+                  "".format(font_file))
 
     return 0
 

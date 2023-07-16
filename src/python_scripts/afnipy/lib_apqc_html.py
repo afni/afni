@@ -516,7 +516,7 @@ Automatic saving is:
 + OFF, if the text is gray with red strikethrough
 '''
 
-bsaving  = 'SAVE:'
+bsaving  = 'RATE:'
 bhelp  = 'HELP'
 
 #bhelp_hover = '''Open help page.
@@ -539,7 +539,16 @@ def write_help_html_file( ofile, ocss ):
     <title>APQC help</title>
     <link rel="stylesheet" type="text/css" href="{ocss}" />
     <link rel="icon" type="icon.svg" href="extra_info/apqc_logo_help.svg"> 
-</head>\n\n'''.format( ocss=ocss )
+</head>\n'''.format( ocss=ocss )
+
+    ht+= '''
+<!-- set background color of page -->
+<style>
+  body {
+    background-color: #333333; /* dark grey */
+  }
+</style>
+\n\n'''
 
     # -------------- body ---------------------
 
@@ -2234,7 +2243,9 @@ def wrap_block_text( x, vpad=0, addclass="", dobold=True, itemid='',
      {addclass}>
 '''.format( addid=addid, padmarg=padmarg, addclass=addclass )
     if dobold :
-        y+= '''  <pre><b>'''+x+'''</b></pre>
+#        y+= '''  <pre><b>'''+x+'''</b></pre>
+#</div> <!-- bot of text -->'''
+        y+= '''  <pre>'''+x+'''</pre>
 </div> <!-- bot of text -->'''
     else:
         y+= '''  <pre>'''+x+'''</pre>
@@ -2365,8 +2376,11 @@ def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
     
     y = ''
     y+= vpad*'\n'
+#    y+= '''<div> 
+#    <pre {} ><left><b>{}{}</b></left></pre>
+#</div>'''.format(addclass, top_line, newx)
     y+= '''<div> 
-    <pre {} ><left><b>{}{}</b></left></pre>
+    <pre {} ><left>{}{}</left></pre>
 </div>'''.format(addclass, top_line, newx)
     y+= vpad*'\n'
 
