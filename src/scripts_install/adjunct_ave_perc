@@ -1,0 +1,161 @@
+#!/bin/tcsh
+
+# estimate mean of percentile results for multiple dsets
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "0.0";  set rev_dat   = "July 5, 2022"
+# [PT] creation of this script, which will assist the
+#      chauffeur_suma.py program for the APQC HTML
+#
+# ----------------------------------------------------------------
+
+# ----------------------- set defaults --------------------------
+
+set perc      = ""
+set all_dset  = ()
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
+    # ----------- required
+
+    else if ( "$argv[$ac]" == "-perc" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set perc = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-inset" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set all_dset = ( ${all_dset:q} "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo "$argv[$i0]" | awk '{print substr($0,1,1)}'`
+                endif
+            end
+        endif
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+if ( "${perc}" == "" ) then
+    echo "** ERROR: missing percentile value. Use '-perc ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${#all_dset}" == "0" ) then
+    echo "** ERROR: missing any dsets. Use '-inset ..'"
+    goto BAD_EXIT
+#else if ( "${#all_dset}" == "1" ) then
+#    echo "+* WARNING: Only 1 dset input?  Well, OK, I can average one value..."
+endif
+
+# ======================= main program work ===========================
+
+set run_sum = 0.0
+
+foreach dset ( ${all_dset:q} )
+    set vals    = `3dBrickStat -percentile ${perc} 1 {$perc} "${dset}"`
+    set run_sum = `echo "scale=6; (${run_sum} + ${vals[2]})/1.0" | bc`
+end
+
+set run_sum = `echo "scale=6; ${run_sum} / ${#all_dset}" | bc`
+
+printf "%0.6f" "${run_sum}"
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+**Just an adjunct program**
+
+This program is primarily for chauffeur_suma.py to use in its APQC
+HTML image generation.  It reads in multiple dsets (each with subbrick
+selectors, if they have multiple subbricks), as well as a percentile
+value.  That percentile is calculated on each input item, and the
+average of the result is displayed (the only output of this program).
+
+ver   : ${version}
+date  : ${rev_dat}
+auth  : PA Taylor (SSCC, NIMH, NIH)
+
+
+OPTION LIST ~1~
+
+-h 
+-help
+-ver 
+-echo
+
+-perc                  PERC  (req)
+-inset                 inA inB ...  (req)
+
+EXAMPLES ~1~
+
+  1) Make a Viridis cbar image, with (hopefully appropriate) ranges
+    adjunct_make_cbar2                                                       \
+        -cbar_name  Viridis                                                  \
+        -prefix     img_Viridis                                              \
+        -pbar_saveim_pbar_bot  -3                                            \
+        -pbar_saveim_pbar_top   1
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

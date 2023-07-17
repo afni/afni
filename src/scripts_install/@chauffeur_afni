@@ -347,6 +347,10 @@ set version   = "6.52";   set rev_dat   = "Jan 11, 2023"
 #    + [PT] check '-left_is_* ..' opt args more carefully, exit if 
 #      correct key word is not used
 #
+set version   = "6.42";   set rev_dat   = "July 4, 2022"
+#     + [PT] some new under-the-hood opts for chauffeur_suma.py to use
+#            via adjunct_make_cbar (or whatever final prog name is)
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -498,6 +502,11 @@ set DO_COR    = 1
 
 set clust_cmd  = ""               # [PT: Sep 22, 2021] clusterize with A/B
 set clust_wami = ""               # [PT: Sep 22, 2022] whereami on clusts
+
+set saveim_pbar_bot = ""         # [PT: July 4, 2022] see the opt for setting
+set saveim_pbar_top = ""         # these for more description
+set saveim_ulay_bot = ""         
+set saveim_ulay_top = ""         
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -1102,6 +1111,32 @@ while ( $ac <= $#argv )
     # they might contain subbrickselectors
     else if ( "$argv[$ac]" == "-pass" ) then
         echo ""
+
+    # [PT: July 4, 2022] these -pbar_saveim_* are hidden opts right now,
+    # basically/indirectly for the chauffeur_suma.py to save cbar
+    # values properly.  Because of how SUMA doesn't output a cbar
+    # easily, we have this roundabout way, at present (and SUMA can
+    # have cbar ranges that are not symmetric, hence we have to be
+    # able to report more generically like this)
+    else if ( "$argv[$ac]" == "-pbar_saveim_pbar_bot" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_pbar_bot = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-pbar_saveim_pbar_top" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_pbar_top = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-pbar_saveim_ulay_bot" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_ulay_bot = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-pbar_saveim_ulay_top" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set saveim_ulay_top = "$argv[$ac]"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -2152,22 +2187,46 @@ foreach rrr ( ${all_reps} )  ### the BIG loop starts
             set bot_frange = "-$frange"
         endif
         
-        ## [PT: May 8, 2019] older pbar info format, byeeeeeee.
-        #echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
+        # [PT: July 4, 2022] see the help opt where ${saveim_pbar_bot}
+        # etc. can be set about why these values might be overwritten
+        # like this
+        if ( "${saveim_pbar_bot}" == "" ) then
+            set pbar_bot = "${bot_frange}"
+        else
+            set pbar_bot = "${saveim_pbar_bot}"
+        endif
+
+        if ( "${saveim_pbar_top}" == "" ) then
+            set pbar_top = "${frange}"
+        else
+            set pbar_top = "${saveim_pbar_top}"
+        endif
+
+        if ( "${saveim_ulay_bot}" == "" ) then
+            set ulay_bot = "${umin}"
+        else
+            set ulay_bot = "${saveim_ulay_bot}"
+        endif
+
+        if ( "${saveim_ulay_top}" == "" ) then
+            set ulay_top = "${umax}"
+        else
+            set ulay_top = "${saveim_ulay_top}"
+        endif
 
 # [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
 cbar         :: "${my_cbar}"
 pbar_fname   :: "${pbar_fname:t}"
-pbar_bot     :: "${bot_frange}"
-pbar_top     :: "${frange}"
+pbar_bot     :: "${pbar_bot}"
+pbar_top     :: "${pbar_top}"
 pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
 gen_comm     :: "${gen_comm}"
-ulay_bot     :: "${umin}"
-ulay_top     :: "${umax}"
+ulay_bot     :: "${ulay_bot}"
+ulay_top     :: "${ulay_top}"
 ulay_globran :: "${urange}"
 ulay_comm    :: "${ulay_comm}"
 ${pbar_for}
