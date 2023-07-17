@@ -364,7 +364,7 @@ otxt : str
 <html>
 <head>
   <link rel="stylesheet" type="text/css" href="extra_info/styles.css" />
-  <script src="./niivue_afni.umd.js"> </script>
+  <script src="/assets/niivue_afni.umd.js"> </script>
   <script type="text/javascript">
 
     /* show/hide olay in NV (for align checks)
