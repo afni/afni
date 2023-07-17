@@ -1239,8 +1239,69 @@ colorizeSavingButton(is_served);
 '''
 
     y+= '''
+
+/*
+   Do both checking of server status and resetting of the is_served
+   var if it is no longer running.  Also, ensure button colors are 
+   uptodate.
+*/
+function checkServerStatus() {
+  return fetch(url, { method: 'GET' })
+    .then(response => {
+      if (is_served && response.ok) { 
+        // Server is alive
+        return true;
+      } else {
+        // Server is not alive
+        return false;
+      }
+    })
+    .catch(error => {
+      // Server is not alive or there was an error
+      console.log('+* Warning: the server is not serving: ' + error);
+      return false;
+    });
+}
+
+async function updateServerStatus() {
+  let isAlive = await checkServerStatus()
+      if (isAlive) {
+        console.log("Server is up");
+      } else {
+        is_served = false;
+        colorizeSavingButton(is_served);
+      }
+   console.log("Report on update. Server status is: "+is_served);
+}
+
+/* Different than checking server status; this returns OK if: 1) the
+   page was started with a server running and the server is still
+   running now; 2) the page was started without a server at all. 
+   
+   This is useful for the help button to work, for example.
+*/
+function checkPageStatus() {
+  return fetch(url, { method: 'GET' })
+    .then(response => {
+      if (response.ok) { 
+        // started as non-server, or started with server AND still okay
+        return true;
+      } else {
+        // started with server AND server not okay
+        return false;
+      }
+    })
+    .catch(error => {
+      // Server is not alive or there was an error
+      console.log('+* Warning: the page has some issue: ' + error);
+      return false;
+    });
+}
+
 /* for the NV button, toggle NiiVue instance on/off by id */
-function toggle_niivue(is_served, id) {
+async function toggle_niivue(is_served, id) {
+  await updateServerStatus();
+  if ( is_served ) {
     let element = document.getElementById(id);
     let current_disp = element.style.display; // current disp value
     // toggle between 'block' and 'none'
@@ -1263,6 +1324,7 @@ function toggle_niivue(is_served, id) {
       nv_iframe.style.aspectRatio = '4.5/1'; // accommodate hide olay btn
       element.appendChild(nv_iframe);
     }
+  }
 }
 
 
@@ -1290,21 +1352,16 @@ function niivue_ShowHideOlay(obj, bid) {
     y+= '''
 //window.onload = function() {
 async function RunAtStart() {
-    // initialize arrays and location
-    initializeParams();
+  // initialize arrays and location
+  initializeParams();
 
-    // read in JSON
-    /*
-    loadJSON(jsonfile, function(unparsed_json) {
-      // give the global variable values
-      qcjson = JSON.parse(unparsed_json);
-      console.log(window.qcjosn)
-    });
-    */
+  // read in JSON, if we have server running
+  if ( is_served ) {
     qcjson = await loadJSON(jsonfile)
     console.log(qcjson)
     CheckJsonfileMatchesQcbuttons();
     ApplyJsonfileToQcbuttons();
+  }
 };
 
 '''
@@ -1602,7 +1659,9 @@ function setTd1Border(ii, bkgdcol) {
   [PT: July 2, 2023] also recognize meta+click (= command+click on Mac)
   like a ctrl+click, because of Mac webpage behavior---thanks, DRG.
 */
-function btn1Clicked(event, button) {
+async function btn1Clicked(event, button) {
+  await updateServerStatus();
+  if ( is_served ) {  
     if (event.metaKey) {
        btn1ClickedWithCtrl(event, button);
     }  else if (event.ctrlKey) {
@@ -1610,6 +1669,7 @@ function btn1Clicked(event, button) {
     }  else {
        changeColor(button); //alert("The CTRL key was NOT pressed!");
     }
+  }
 }
 '''
 
@@ -1744,15 +1804,18 @@ function thisButtonGetsAComment(bid, comm) {
   "ALL OTHER" fill button, here to set every btn1-button value to
   "+" or "x", depending on input arg 'ii' (index in list)
 */
-function allYourBaseAreBelongToUs(ii) {{ 
-   for( var i=0; i<allBtn1.length; i++ ) {{ 
-     var bid = allBtn1[i].id; 
-     var ival = document.getElementById(bid).textContent; 
-     if ( ival == "{}" ) {{ 
-       setThisButtonRating(bid, ii); 
-     }}
-   }} 
-   doSaveAllInfo();
+async function allYourBaseAreBelongToUs(ii) {{ 
+  await updateServerStatus();
+  if ( is_served ) {{
+    for( var i=0; i<allBtn1.length; i++ ) {{ 
+      var bid = allBtn1[i].id; 
+      var ival = document.getElementById(bid).textContent; 
+      if ( ival == "{}" ) {{ 
+        setThisButtonRating(bid, ii); 
+      }}
+    }} 
+    doSaveAllInfo();
+  }}
 }}
 '''.format( NULL_BTN1 )
 
@@ -1762,16 +1825,19 @@ function allYourBaseAreBelongToUs(ii) {{
   btn1-button value to "+" or "x", depending on input arg 'ii'
   (index in list); that is, this overruns earlier button values
 */
-function reallyAllYourBaseAreBelongToUs(ii) { 
-   for( var i=0; i<allBtn1.length; i++ ) { 
-     var bid = allBtn1[i].id; 
-     var ival = document.getElementById(bid).textContent; 
-     setThisButtonRating(bid, ii);
-     if ( ii < 0 ) {
-        sendCommentToButtonAndForm("", bid);
-     }
-   }
-   doSaveAllInfo();
+async function reallyAllYourBaseAreBelongToUs(ii) { 
+  await updateServerStatus();
+  if ( is_served ) {
+    for( var i=0; i<allBtn1.length; i++ ) { 
+      var bid = allBtn1[i].id; 
+      var ival = document.getElementById(bid).textContent; 
+      setThisButtonRating(bid, ii);
+      if ( ii < 0 ) {
+         sendCommentToButtonAndForm("", bid);
+      }
+    }
+    doSaveAllInfo();
+  }
 } 
 '''
 
@@ -2030,8 +2096,9 @@ function doSaveAllInfo() {
    provides the script name and the 'remainder' (or 'tail') part
    of a filepath that is used in open_apqc.py to run the script.
 */
-function doRunAV(script) {
-
+async function doRunAV(script) {
+  await updateServerStatus();
+  if ( is_served ) {  
     // prepare to output all info needed for server
     pathParts = window.location.pathname.split('/')
     qcPath = pathParts.slice(1,-1)
@@ -2047,6 +2114,7 @@ function doRunAV(script) {
     }
 
     postJSON_AV(dataToPost);
+  }
 } 
 
 '''
@@ -2061,14 +2129,23 @@ function doQuit() {
 
     y+= '''
 // The Helper
-function doShowHelp() {
+async function doShowHelp() {
+  let is_ok = await checkPageStatus();
+  if ( is_ok ) {
     window.open('help.html', '_blank');
-
+  } else {
+    await updateServerStatus();
+  }
 } 
 
 // Link to mtedana QC page, if present
-function doShowMtedana(link) {
+async function doShowMtedana(link) {
+  let is_ok = await checkPageStatus();
+  if ( is_ok ) {
     window.open(link, '_blank');
+  } else {
+    await updateServerStatus();
+  }
 } 
 
 
