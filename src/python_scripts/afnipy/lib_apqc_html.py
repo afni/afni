@@ -1243,7 +1243,7 @@ colorizeSavingButton(is_served);
 /*
    Do both checking of server status and resetting of the is_served
    var if it is no longer running.  Also, ensure button colors are 
-   uptodate.
+   up-to-date.
 */
 function checkServerStatus() {
   return fetch(url, { method: 'GET' })
