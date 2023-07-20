@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jul, 2023, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "fix use of min instead of minor",
+   "Thanks to @dojoonyi for letting us know."
+ } ,
+
  { 26, Jun, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "write NIFTI-2 if dimensions require it",
    NULL
