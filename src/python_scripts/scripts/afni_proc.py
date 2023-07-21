@@ -753,6 +753,8 @@ g_history = """
     7.56 Jun  2, 2023: fix -regress_errts_prefix with surface analysis
     7.57 Jun 14, 2023: default to -radial_correlate_blocks errts, if none given
     7.58 Jun 21, 2023: fix: pass tlrc_base as uvar template
+    7.59 Jul 21, 2023: fix: update help for -regress_make_corr_vols
+                            (it is now corr vs ave, rather than ave corr)
 """
 
 g_version = "version 7.58, June 22, 2023"

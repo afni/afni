@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix help for -regress_make_corr_vols",
+   "It WAS ave corr, but as of Jan 2020, it is corr of voxels vs ave.\n"
+   "Thanks to D Glen for noting the discrepancy."
+ } ,
+
  { 19, Jul, 2023, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
    "fix use of min instead of minor",
    "Thanks to @dojoonyi for letting us know."

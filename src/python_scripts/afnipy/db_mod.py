@@ -10363,7 +10363,7 @@ or image files.
        corr_brain
 
           This AFNI dataset shows the correlation of every voxel with the
-          global signal (brain average time series).
+          global signal (average time series over brain mask).
 
           One can request other corr_* datasets, based on any tissue or ROI
           mask.  See -regress_make_corr_vols for details.
@@ -14521,15 +14521,14 @@ OPTIONS:  ~2~
         What is a such a correlation volume?
 
            Given: errts     : the residuals from the linear regression
-                  a mask    : to correlate over, e.g. full_mask
+                  a mask    : to correlate over, e.g. full_mask == 'brain'
 
-           Compute: for each voxel (in the errts, say), compute the average
-              correlation over all voxels within the given mask.  In some
-              sense, this is a measure of self correlation over a specified
-              region.
+           Compute: for each voxel (in the errts, say), compute the correlation
+              against the average over all voxels within the given mask.
 
-           This is a mean correlation rather than a correlation with the
-           mean.
+         * This is a change (as of Jan, 2020).  This WAS a mean correlation
+           (across masked voxels), but now it is a correlation of the mean
+           (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
         via -anat_follower_ROI, -regress_ROI_PC, or from the automatic
