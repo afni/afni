@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if -tlrc_NL_warped_dsets, require -tlrc_base",
+   "Require user to verify which template was used to make warped dsets.\n"
+   "Requested by D Glen."
+ } ,
+
  { 21, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fix help for -regress_make_corr_vols",
    "It WAS ave corr, but as of Jan 2020, it is corr of voxels vs ave.\n"

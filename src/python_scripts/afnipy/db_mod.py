@@ -8021,9 +8021,8 @@ def db_cmd_regress_censor_motion(proc, block):
 # --------------- tlrc (anat) ---------------
 
 def db_mod_tlrc(block, proc, user_opts):
-    if len(block.opts.olist) == 0:      # then init to defaults
-        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
+    # --------------------------------------------------
     # verify that anatomical dataset exists
     opt_anat = user_opts.find_opt('-copy_anat')
     if not opt_anat:
@@ -8041,7 +8040,19 @@ def db_mod_tlrc(block, proc, user_opts):
     # --------------------------------------------------
     # handle the template dataset: verify existence, etc
 
-    apply_uopt_to_block('-tlrc_base', user_opts, block)
+    # check before template init: if -tlrc_NL_warped_dsets, require -tlrc_base
+    if user_opts.find_opt('-tlrc_NL_warped_dsets') and \
+       not user_opts.find_opt('-tlrc_base'):
+       print("** error: -tlrc_NL_warped_dsets requires option -tlrc_base")
+       print("   (please verify which template was used to make warped_dsets)")
+       return
+
+    # set template
+    oname = '-tlrc_base'
+    if user_opts.find_opt(oname):
+        apply_uopt_to_block('-tlrc_base', user_opts, block)
+    else:
+        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
     prepare_tlrc_base(proc, block)
 
