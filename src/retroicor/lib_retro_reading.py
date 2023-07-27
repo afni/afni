@@ -911,7 +911,7 @@ x_fixed : np.ndarray
     # deal with possible streaks at either end of time series, special
     # case: just replace with closest non-bad element, and remove
     # streak from list
-    if all_strk[0][0] == 0 :            # first streak, starting index
+    if len(all_strk) > 0 and all_strk[0][0] == 0 :            # first streak, starting index
         if verb :
             nnn = len(all_strk[0])
             print("+* WARN: replace badness at start with simple fill, N : {}"
@@ -924,7 +924,7 @@ x_fixed : np.ndarray
         for ii in range(good_ind):
             x_fixed[ii] = val
         tmp = all_strk.pop(0)
-    if all_strk[-1][-1] == N-1 :         # last streak, ending index
+    if len(all_strk) > 0 and all_strk[-1][-1] == N-1 :         # last streak, ending index
         if verb :
             nnn = len(all_strk[-1])
             print("+* WARN: replace badness at end with simple fill, N : {}"
