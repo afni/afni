@@ -83,13 +83,17 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Lower bound, of heartbeats per second based based on minimum HR
    minBeatsPerSecond = test_retro_obj.card_data.min_bps
    
+   # Upper bound, of heartbeats per second based based on the highest observed 
+   # level of tachycardia (250 BPM)
+   maxBeatsPerSecond = test_retro_obj.card_data.max_bps
+   
    # Initialise graph index
    graphIndex = 0
     
    # Band pass filter raw data
    filterData = \
         lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
-        minBeatsPerSecond,
+        minBeatsPerSecond, maxBeatsPerSecond,
          test_retro_obj.card_data.samp_freq,\
          show_graph = test_retro_obj.show_graph_level>1,\
          save_graph = test_retro_obj.save_graph_level>1, OutDir=OutDir,\

@@ -22,7 +22,8 @@ derived data.
 
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
-                 min_bps = 0.0, start_time = 0.0, verb=0):
+                 min_bps = 0.0, max_bps = sys.float_info.max, start_time = 0.0, 
+                 verb=0):
         """Create object holding a physio time series data.
 
         """
@@ -36,6 +37,7 @@ derived data.
         self.start_time = start_time         # float, time offset (<=0, in s)
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
+        self.max_bps    = max_bps            # float, max beats/breaths per sec
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
         self.img_idx   = 0                   # int, for naming QC plots
@@ -119,6 +121,8 @@ regressors for MRI data.
                                        # start of MRI
         self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats/sec
         self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths/sec
+        self.max_bps_card = lro.DEF_max_bpm_card/60. # float, max beats/sec
+        self.max_bps_resp = lro.DEF_max_bpm_resp/60. # float, max breaths/sec
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
@@ -174,7 +178,9 @@ regressors for MRI data.
 
         self.start_time      = args_dict['start_time']
         self.min_bps_card    = args_dict['min_bpm_card']/60.
-        self.min_bps_resp    = args_dict['min_bpm_resp']/60.
+        self.min_bps_resp    = args_dict['max_bpm_resp']/60.
+        self.max_bps_card    = args_dict['max_bpm_card']/60.
+        self.max_bps_resp    = args_dict['max_bpm_resp']/60.
 
         self.out_dir     = args_dict['out_dir']
         self.prefix      = args_dict['prefix']
@@ -254,6 +260,7 @@ regressors for MRI data.
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_resp']/60.,
+                                         max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
                                          verb=self.verb)
         elif label == 'card' :
@@ -262,6 +269,7 @@ regressors for MRI data.
                                          label=label, fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_card']/60.,
+                                         max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
                                          verb=self.verb)
 
@@ -307,6 +315,7 @@ regressors for MRI data.
                                          label='resp', fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_resp']/60.,
+                                         max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
@@ -333,6 +342,7 @@ regressors for MRI data.
                                          label='card', fname=fname, 
                                          ts_unfilt = ts_unfilt,
                                          min_bps = args_dict['min_bpm_card']/60.,
+                                         max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
                                          verb=self.verb)
         if not(USE_COL) :

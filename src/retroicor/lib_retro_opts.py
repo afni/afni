@@ -31,6 +31,10 @@ EPS_TH = 1.e-3
 DEF_min_bpm_card = 25.0
 DEF_min_bpm_resp = 6.0   
 
+# max beats or breaths per minute
+DEF_max_bpm_card = 250.0
+DEF_max_bpm_resp = 60.0   
+
 # ==========================================================================
 # PART_01: default parameter settings
 
@@ -66,6 +70,8 @@ DEF = {
     'no_resp_out'       : False,     # (bool) do not output resp info
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
+    'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
+    'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
     'font_size'         : 10,        # (float) font size for plots 
     'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
     'do_save_ab'        : False,     # (bool) save a,b coeffs to file
@@ -142,6 +148,8 @@ all_quant_ge_zero = [
     'freq',
     'min_bpm_card',
     'min_bpm_resp',
+    'max_bpm_card',
+    'max_bpm_resp',
     'num_slices',
     'num_time_pts',
     'volume_tr',
@@ -955,9 +963,23 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
+opt = '''max_bpm_resp'''
+hlp = '''Set the maximum breaths per minute for respiratory proc (def: {})
+'''.format(DEF_max_bpm_resp)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
 opt = '''min_bpm_card'''
 hlp = '''Set the minimum beats per minute for cardiac proc (def: {})
 '''.format(DEF_min_bpm_card)
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''max_bpm_card'''
+hlp = '''Set the maximum beats per minute for cardiac proc (def: {})
+'''.format(DEF_max_bpm_card)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)

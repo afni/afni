@@ -981,9 +981,9 @@ def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp,
     
     return peaks
 
-def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
-        phys_fs, dataType = "Cardiac", show_graph = False, save_graph = True, 
-        OutDir = None, graphIndex = None, font_size = 10) :
+def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
+        maxBeatsPerSecond, phys_fs, dataType = "Cardiac", show_graph = False, 
+        save_graph = True, OutDir = None, graphIndex = None, font_size = 10) :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -995,6 +995,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         rawData: (array, dType = float) Raw input data
         
         minBeatsPerSecond: (dType = float) Minimum expected beats per second
+        
+        maxBeatsPerSecond: (dType = float) Maximum expected beats per second
         
         phys_fs: (dType = float) Sampling frequency in Hz.  Required if graph 
                                  True
@@ -1024,12 +1026,15 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     # Get lower cutoff index
     lowerCutoffIndex = round(minBeatsPerSecond/F0)
     
+    # Get lower cutoff index
+    upperCutoffIndex = round(maxBeatsPerSecond/F0)
+    
     # Get Fourier transform
     FourierTransform = np.fft.fft(rawData)
     FourierSpectrum = abs(FourierTransform)
     
     # Determine frequency peak
-    NyquistLength = round(rawDataLength/2)
+    NyquistLength = min(round(rawDataLength/2), upperCutoffIndex)
     frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])\
         +lowerCutoffIndex
     print('++ {} bandpass filter frequency peak: {:.6f} Hz'
