@@ -55,7 +55,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, Jul, 2023, RCR, "afni-general", MINOR, TYPE_NEW_PROG,
    "distribute niiview as niiview_afni.umd.js",
-   "This is indended to be used via P Taylor's APQC HTML report.\n"
+   "This is intended to be used via P Taylor's APQC HTML report.\n"
    "Requested by P Taylor."
  } ,
 
@@ -1758,7 +1758,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
-   "fix copy-and-paste erro and missing endif",
+   "fix copy-and-paste error and missing endif",
    "Thanks to R Kampe for noting the problem."
  } ,
 
@@ -4533,7 +4533,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
-   "3dMEMA no longer allows for a paied test",
+   "3dMEMA no longer allows for a paired test",
    "One must now input contrast/stat from original regression."
  } ,
 
