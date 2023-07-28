@@ -787,7 +787,7 @@ class SysInfo:
          print('   (so afni and suma might fail)')
          self.comments.append('consider appending %s with %s' % (edir,flatdir))
       else:
-         maj, min = self.get_macos_ver()
+         maj, minor = self.get_macos_ver()
          if maj > 10 or minor >= 11:
             self.check_evar_path_for_val(edir, flatdir)
             if self.cur_shell.find('csh') < 0:

@@ -53,6 +53,29 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Jul, 2023, RCR, "afni-general", MINOR, TYPE_NEW_PROG,
+   "distribute niiview as niiview_afni.umd.js",
+   "This is intended to be used via P Taylor's APQC HTML report.\n"
+   "Requested by P Taylor."
+ } ,
+
+ { 24, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if -tlrc_NL_warped_dsets, require -tlrc_base",
+   "Require user to verify which template was used to make warped dsets.\n"
+   "Requested by D Glen."
+ } ,
+
+ { 21, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix help for -regress_make_corr_vols",
+   "It WAS ave corr, but as of Jan 2020, it is corr of voxels vs ave.\n"
+   "Thanks to D Glen for noting the discrepancy."
+ } ,
+
+ { 19, Jul, 2023, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "fix use of min instead of minor",
+   "Thanks to @dojoonyi for letting us know."
+ } ,
+
  { 26, Jun, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "write NIFTI-2 if dimensions require it",
    NULL
@@ -1735,7 +1758,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
-   "fix copy-and-paste erro and missing endif",
+   "fix copy-and-paste error and missing endif",
    "Thanks to R Kampe for noting the problem."
  } ,
 
@@ -4510,7 +4533,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
-   "3dMEMA no longer allows for a paied test",
+   "3dMEMA no longer allows for a paired test",
    "One must now input contrast/stat from original regression."
  } ,
 
