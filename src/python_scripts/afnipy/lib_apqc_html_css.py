@@ -10,6 +10,14 @@ ver = '2.21' ; date = 'May 22, 2019'
 # + [PT] sectionize the CSS for putting in vars easier to parts
 # + [PT] warning level color specification
 #
+ver = '2.30' ; date = 'Aug 2, 2022' 
+# + [PT] Save -> Srvr button, for noting/checking whether server is on
+# + [PT] color for button based on serving
+# + [PT] 'SAVING' button reflects whether server is active or not
+#
+ver = '2.31' ; date = 'Aug 2, 2022' 
+# + [PT] forgot some pieces from last update; adding now
+# + [PT] also rename 'srvr' to 'saving'
 # --------------------------------------------------------------------
 
 
@@ -74,6 +82,16 @@ wlevel_str = ' '.join(list(wlevel_ranks.keys()))
 
 # The CSS!
 css_text = '''
+/* Include nice (open) font for reading */
+@font-face {
+  font-family: 'myFiraCode';
+  src: url('FiraCode-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'myFiraCode';
+  src: url('FiraCode-Bold.woff2') format('woff2');
+  font-weight: bold;
+}
 
 h1 {
     padding-top: 80px;
@@ -84,7 +102,7 @@ h1 {
     font-weight: bold;
     text-decoration: underline;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 
 h2 {
@@ -94,7 +112,7 @@ h2 {
     color: #fff; /* #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 
 h3 {
@@ -104,7 +122,7 @@ h3 {
     color: #ccc; /* #FFC310; #ccc; #FFC310; */
     font-weight: bold;
     font-size: 26px;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
 }
 '''
 
@@ -125,7 +143,7 @@ img {
 }
 
 pre {
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #FFC310;
 }
@@ -174,6 +192,9 @@ css_text+= '''
     margin-left: auto;
     margin-right: auto;
     width: 90%; 
+    text-align: left;
+    font-family: "courier new", courier, monospace;
+    font-weight: bold;
 }}
 
 .wcol_none {{
@@ -211,6 +232,9 @@ css_text+= '''
     margin-left: auto;
     margin-right: auto;
     width:90%; 
+    text-align: left;
+    font-family: "courier new", courier, monospace;
+    font-weight: bold;
 }}
 '''.format(**wlevel_colors)
 
@@ -264,7 +288,7 @@ css_text+= '''
     white-space: pre;
     display: inline-block;
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #FFC310;
 }
@@ -281,7 +305,7 @@ css_text+= '''
     white-space: pre;
     display: inline-block;
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     color: #ccc;
 }
@@ -319,7 +343,7 @@ table, tr {
     border-collapse: collapse;
     border-bottom:  0px solid #ccc;
     top: 0;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode, "courier new", courier, monospace;
     font-size: 20px;
     /* color: #ccc; */
 }
@@ -357,11 +381,10 @@ td a:active {
 
 css_text+= '''
 
+/* slightly lighter color and boldness for hyperlinks */
 urlin a {
-    /*padding: 2px;*/
-    border:  2px solid #FFC310;
-    color:  #014E33;
-    background-color: #FFC310;
+    color: #ffea00;
+    font-weight: bold;
 }
 
 urlin a:hover:not(.active) {
@@ -399,7 +422,7 @@ css_text+= '''
     border: none;
     border-radius: 0px;
     font-family: "courier new", courier, monospace;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -427,6 +450,87 @@ css_text+= '''
 '''
 
 css_text+= '''
+/* For NiiVue (NV) and AfniView (AV) buttons; 
+   these know if server is serving */
+.btn6 {
+    color:            var(--SavingTextColB6);
+    background-color: var(--SavingBkgdColB6);
+    margin: 4px 2px 0px 3px;
+    height: 26px;
+    width: 40px;
+    padding: 0px 2px;
+    float: right;
+}
+/* ... and the container/div holding the buttons */
+.container_avnv {
+    width: 160px;  /* if more btns added, make wider */
+    white-space:nowrap; 
+    position: absolute; 
+    top: -34; 
+    right: 5%;
+}
+
+/* For Graphview (GV) and InstaCorr (IC) buttons; 
+   these know if server is serving */
+.btn6b {
+    color:            var(--SavingTextColB6);
+    background-color: var(--SavingBkgdColB6);
+    margin: 4px 2px 0px 3px;
+    height: 26px;
+    width: 40px;
+    padding: 0px 2px;
+    float: left;
+}
+/* ... and the container/div holding the IC/GV buttons */
+.container_icgv {
+    width: 160px; 
+    white-space:nowrap; 
+    position: absolute; 
+    top: -34; 
+    left: 5%;
+}
+
+/* Formatting for NiiVue (NV) canvas */
+.class_niivue {
+    width: 90%; 
+    aspect-ratio: 5 / 1; /* bit higher than value in toggle NV func */
+    margin-left: auto; 
+    margin-right: auto;
+}
+
+/* NV canvas button: show/hide olay (for align) */
+.btn7 {
+    color:            #000;
+    background-color: #ccc; /*#029a64;*/
+    margin: 0px;
+    padding: 0px 0px 0px 0px;
+    height: 24px;  /* set size, so no shifting */
+    width: 96px;  /* set size, so no shifting */
+    border: 1px solid;
+    border-color:  #fff #aaa #aaa #fff;
+    border-radius: 5px;
+    text-decoration: none;
+    font-family: Arial, "courier new", courier, monospace;
+    font-size: 18px;
+    font-weight: normal; /* bold; */
+}
+'''
+
+css_text+= '''
+/* add subj ID to navbar*/
+.subj_text {
+    color: #000; 
+    background-color: #ccc; 
+    padding: 0px 2px; 
+    margin: 2px 0px 0px 6px; 
+    border: 0px 0px 0px 0px solid #000; 
+    font-size: 22px; 
+}
+
+'''
+
+
+css_text+= '''
 
 /* see: https://fvsch.com/styling-buttons/ */
 /* Firefox: removes the inner border shown on focus */
@@ -434,7 +538,7 @@ css_text+= '''
   border: none;
 }
 
-/* Applies to .btn2* (A+, Ax) and .btn3save (Save) */
+/* Applies to .btn2* (A+, Ax) and .btn3saving (Server) */
 .button-RHS {
     border: solid 1px transparent;
     border-radius: 4px;
@@ -472,15 +576,49 @@ css_text+= '''
     padding: 0px 0px;
 }
 
-.btn3save, .btn3help {
+.btn3help {
     background-color: #F0F0F0;
     float: left;
-    color: #000;
-    margin: 2;
+    margin: 3;
     width: 86px;
     height: 28px;
     padding: 2px 2px;
 }
+
+/* Now, server button color is from a variable that can be re-set by 
+   whether the server is running or not
+*/
+.btn3saving {
+    color:            var(--SavingTextCol);
+    background-color: var(--SavingBkgdCol);
+    text-decoration:  var(--SavingTextDec);
+    text-decoration-thickness: 10%;
+    text-decoration-color: #d7191c;
+    float: left;
+    margin: 3;
+    /*width: 86px;*/
+    width: 74px;
+    height: 28px;
+    padding: 0px 2px;
+    font-size: 24px;
+    border-radius: 0px;
+    cursor: auto;
+}
+
+
+/* Use this so that the saving/rating button is passive, nonclickable
+*/
+.disabled {
+    pointer-events: none; 
+}
+
+
+/* help button color just on its own */
+.btn3help {
+    background-color: #F0F0F0;
+    color: #000;
+}
+
 
 button:hover:not(.active) {
     background-color: #333;
@@ -568,6 +706,8 @@ css_text+= '''
 }
 
 '''
+
+
 
 # --------------------------------------------------------------------
 

@@ -372,6 +372,9 @@ STATUS("init pval_save") ;
 #ifdef plasma_num
    PBAR_define_bigmap_float( plasma_num , plasma_data , plasma_name  ) ;
 #endif
+#ifdef cet_l17_num
+   PBAR_define_bigmap_float( cet_l17_num, cet_l17_data, cet_l17_name ) ;
+#endif
 #ifdef googleturbo_num
    PBAR_define_bigmap_float( googleturbo_num , googleturbo_data , googleturbo_name  ) ;
 #endif

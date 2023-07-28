@@ -3593,18 +3593,18 @@ class SubjProcSream:
         if user_opts != '':
            user_opts = '%s    %s \\\n' % (istr, user_opts)
 
+        # [PT: Mar 13, 2023] remove '@ss_review_html' line; no longer created
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
               '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
               '%s'                                                            \
               '%s    -uvar_json %s\n'                                         \
-              '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
                  istr, self.html_rev_style,
                  user_opts,
                  istr, self.ssr_uvars,
-                 istr, istr)
+                 istr)
 
         cmd = add_line_wrappers(cmd)
 

@@ -13,6 +13,9 @@
 ##     '-delimiter_minor ..'  to allow for key-value and value-value
 ##     separation to occur at  different chars.
 ## 
+## Aug 8, 2022: PA Taylor
+## + write out in 'w' mode, not in 'wb' mode
+##
 ########################################################################
 
 ## system libraries
@@ -272,7 +275,7 @@ if json2txt:
     max_char = max([len(i) for i in json_data.keys()])
 
     ## write out
-    with open(prefix,'wb') as csv_file:
+    with open(prefix,'w') as csv_file:
         writer = csv.writer(csv_file,delimiter=":")
         for key, value in json_data.items():
             trailing = max_char - len(key) + 2  ## spacing
