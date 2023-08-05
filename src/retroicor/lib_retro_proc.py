@@ -333,10 +333,14 @@ def getRespiratoryPeaks(test_retro_obj):
     # Lower bound, of breaths per second based based on maximum period for 
     # breath
     minBreathsPerSecond = test_retro_obj.resp_data.min_bps
+      
+    # Upper bound, of breaths per second based based on minimum period for 
+    # breath
+    maxBreathsPerSecond = test_retro_obj.resp_data.max_bps
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, 
-        minBreathsPerSecond,
+        minBreathsPerSecond, maxBreathsPerSecond,
         test_retro_obj.resp_data.samp_freq, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, OutDir=OutDir, 

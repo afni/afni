@@ -23,7 +23,7 @@ derived data.
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
                  min_bps = 0.0, max_bps = sys.float_info.max, start_time = 0.0, 
-                 verb=0):
+                 verb=0, maxDisplayRawDataLen = 10000, maxDisplaySampleLen = 200):
         """Create object holding a physio time series data.
 
         """
@@ -41,6 +41,10 @@ derived data.
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
         self.img_idx   = 0                   # int, for naming QC plots
+        
+        # Downsampling parameters
+        self.maxDisplayRawDataLen = maxDisplayRawDataLen 
+        self.maxDisplaySampleLen = maxDisplaySampleLen 
 
         # ----------------------------
 
