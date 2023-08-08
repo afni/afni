@@ -791,6 +791,8 @@ ENTRY("THD_localstat") ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
                       ADN_nvals     , nvout       ,
+                      /* make output bucket only  [8 Aug 2023 rickr] */
+                      ADN_ntt       , 0           ,
                       ADN_datum_all , MRI_float   ,
                       ADN_nsl       , 0           ,
                       ADN_brick_fac , NULL        ,
