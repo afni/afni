@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Aug, 2023, RCR, "3dLocalstat", MINOR, TYPE_BUG_FIX,
+   "when creating bucket output, clear time dimension",
+   "Thanks to Philip on MB for noting the problem."
+ } ,
+
  { 27, Jul, 2023, RCR, "afni-general", MINOR, TYPE_NEW_PROG,
    "distribute niiview as niiview_afni.umd.js",
    "This is intended to be used via P Taylor's APQC HTML report.\n"
