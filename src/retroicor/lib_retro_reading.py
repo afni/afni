@@ -23,7 +23,7 @@ derived data.
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
                  min_bps = 0.0, max_bps = sys.float_info.max, start_time = 0.0, 
-                 verb=0, maxDisplayRawDataLen = 10000, maxDisplaySampleLen = 200):
+                 verb=0, maxDisplayRawDataLen = 10000, maxDisplaySampleFreq = 200):
         """Create object holding a physio time series data.
 
         """
@@ -44,7 +44,7 @@ derived data.
         
         # Downsampling parameters
         self.maxDisplayRawDataLen = maxDisplayRawDataLen 
-        self.maxDisplaySampleLen = maxDisplaySampleLen 
+        self.maxDisplaySampleFreq = maxDisplaySampleFreq 
 
         # ----------------------------
 
@@ -127,6 +127,11 @@ regressors for MRI data.
         self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths/sec
         self.max_bps_card = lro.DEF_max_bpm_card/60. # float, max beats/sec
         self.max_bps_resp = lro.DEF_max_bpm_resp/60. # float, max breaths/sec
+        
+        self.maxDisplayRawRespDataLen = 10000
+        self.maxDisplayRespSampleFreq = 200
+        self.maxDisplayRawCardDataLen = 10000
+        self.maxDisplayCardSampleFreq = 200
 
         # MRI EPI volumetric info
         self.vol_slice_times = []         # list of floats for slice timing
@@ -199,6 +204,11 @@ regressors for MRI data.
         self.do_out_resp = not(args_dict['no_resp_out'])
         self.do_calc_ab  = args_dict['do_calc_ab']
         self.do_save_ab  = args_dict['do_save_ab']
+        
+        self.maxDisplayRawRespDataLen = args_dict['maxDisplayRawRespDataLen']
+        self.maxDisplayRespSampleFreq = args_dict['maxDisplayRespSampleFreq']
+        self.maxDisplayRawCardDataLen = args_dict['maxDisplayRawCardDataLen']
+        self.maxDisplayCardSampleFreq = args_dict['maxDisplayCardSampleFreq']
 
         #self.exit_on_rag -> NB: prob never try to fix
         self.exit_on_nan     = not(args_dict['do_fix_nan'])
@@ -266,6 +276,10 @@ regressors for MRI data.
                                          min_bps = args_dict['min_bpm_resp']/60.,
                                          max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
+                                         maxDisplayRawDataLen = 
+                                           args_dict['maxDisplayRawRespDataLen'],
+                                         maxDisplaySampleFreq = 
+                                           args_dict['maxDisplayRespSampleFreq'],
                                          verb=self.verb)
         elif label == 'card' :
             self.card_data = phys_ts_obj(arr_fixed,
@@ -275,8 +289,11 @@ regressors for MRI data.
                                          min_bps = args_dict['min_bpm_card']/60.,
                                          max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
+                                         maxDisplayRawDataLen = 
+                                           args_dict['maxDisplayRawCardDataLen'],
+                                         maxDisplaySampleFreq = 
+                                           args_dict['maxDisplayCardSampleFreq'],
                                          verb=self.verb)
-
 
     def set_data_from_phys_file_and_json(self, args_dict):
         """Using information stored in args_dict, try opening and reading the
@@ -321,6 +338,10 @@ regressors for MRI data.
                                          min_bps = args_dict['min_bpm_resp']/60.,
                                          max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
+                                         maxDisplayRawDataLen = 
+                                           args_dict['maxDisplayRawRespDataLen'],
+                                         maxDisplaySampleFreq = 
+                                           args_dict['maxDisplayRespSampleFreq'],
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
             if self.verb:
@@ -348,6 +369,10 @@ regressors for MRI data.
                                          min_bps = args_dict['min_bpm_card']/60.,
                                          max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
+                                         maxDisplayRawDataLen = 
+                                           args_dict['maxDisplayRawCardDataLen'],
+                                         maxDisplaySampleFreq = 
+                                           args_dict['maxDisplayCardSampleFreq'],
                                          verb=self.verb)
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "

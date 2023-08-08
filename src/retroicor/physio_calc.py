@@ -91,17 +91,4 @@ if __name__ == "__main__":
         print('** ERROR outputting SliBase file')
         sys.exit()
 
-    # if RET.outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
-    #     print('** ERROR outputting SliBase file')
-    #     sys.exit()
-    
-    # if len(physiologicalNoiseComponents['resp_phases']) > 0 and\
-    #     (test_retro_obj.save_graph_level > 1 or 
-    #      test_retro_obj.show_graph_level > 1):
-    #     status = RET.show_rvt_peak(physiologicalNoiseComponents, test_retro_obj)
-    #     if status == 1:
-    #         print('*** Error in retro_ts')
-    #         print('Failure to show RVT peak')
-    #         sys.exit()
-
     print("++ DONE.  Goodbye.")

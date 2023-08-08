@@ -87,6 +87,14 @@ DEF = {
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
     'RVT_lags'          : [],        # (dict) start, end and number of RVTs 
+    'maxDisplayRawRespDataLen' : 10000, # Maximum respiratory raw data length 
+                                     # used for display
+    'maxDisplayRespSampleFreq' : 200, # Maximum respiratory sampling frequency 
+                                     # used for display
+    'maxDisplayRawCardDataLen' : 10000, # Maximum cardiac raw data length 
+                                     # used for display
+    'maxDisplayCardSampleFreq' : 200, # Maximum cardiac sampling frequency 
+                                     # used for display
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -1013,6 +1021,42 @@ hlp = '''Integer value for one of the following behaviors:
 0 - Do not show graphs
 1 - Show end results (card and resp peaks, final RVT)
 2 - Show end results and intermediate (bandpass filter)
+(def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''maxDisplayRawRespDataLen'''
+hlp = '''Integer value giving the maximum length of respiratory raw data values
+to be used in displays.  Default: 10,000.  Only takes effect if 
+maxDisplayRespSampleFreq a;sp greater than threshold
+(def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''maxDisplayRespSampleFreq'''
+hlp = '''Integer value giving the maximum length of respiratory raw data values
+to be used in displays.  Default: 200.  Only takes effect if 
+maxDisplayRawRespDataLen a;sp greater than threshold
+(def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''maxDisplayRawCardDataLen'''
+hlp = '''Integer value giving the maximum length of cardiac raw data values
+to be used in displays.  Default: 10,000.  Only takes effect if 
+maxDisplayCardSampleFreq a;sp greater than threshold
+(def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''maxDisplayCardSampleFreq'''
+hlp = '''Integer value giving the maximum length of cardiac raw data values
+to be used in displays.  Default: 200.  Only takes effect if 
+maxDisplayRawCardDataLen a;sp greater than threshold
 (def: {dopt})'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,

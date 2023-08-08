@@ -62,13 +62,13 @@ def plotPeaks(rawData, peaks, OutDir, processName, Title, dataType,
    # Downsample display if too many points
    if dataType == "Respiratory":
        maxDisplayRawDataLen = test_retro_obj.resp_data.maxDisplayRawDataLen
-       maxDisplaySampleLen = test_retro_obj.resp_data.maxDisplaySampleLen
+       maxDisplaySampleFreq = test_retro_obj.resp_data.maxDisplaySampleFreq
        samp_freq = test_retro_obj.resp_data.samp_freq
    else:
        maxDisplayRawDataLen = test_retro_obj.card_data.maxDisplayRawDataLen
-       maxDisplaySampleLen = test_retro_obj.card_data.maxDisplaySampleLen
+       maxDisplaySampleFreq = test_retro_obj.card_data.maxDisplaySampleFreq
        samp_freq = test_retro_obj.card_data.samp_freq
-   if len(rawData) > maxDisplayRawDataLen and samp_freq >  maxDisplaySampleLen:
+   if len(rawData) > maxDisplayRawDataLen and samp_freq >  maxDisplaySampleFreq:
             stepSize = round(samp_freq/200)
             rawData = rawData[::stepSize] 
             peaks = np.round(peaks/stepSize).astype(int)
@@ -179,13 +179,13 @@ def plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title,
    # Downsample display if too many points
    if dataType == "Respiratory":
        maxDisplayRawDataLen = test_retro_obj.resp_data.maxDisplayRawDataLen
-       maxDisplaySampleLen = test_retro_obj.resp_data.maxDisplaySampleLen
+       maxDisplaySampleFreq = test_retro_obj.resp_data.maxDisplaySampleFreq
        samp_freq = test_retro_obj.resp_data.samp_freq
    else:
        maxDisplayRawDataLen = test_retro_obj.card_data.maxDisplayRawDataLen
-       maxDisplaySampleLen = test_retro_obj.card_data.maxDisplaySampleLen
+       maxDisplaySampleFreq = test_retro_obj.card_data.maxDisplaySampleFreq
        samp_freq = test_retro_obj.card_data.samp_freq
-   if len(rawData) > maxDisplayRawDataLen and samp_freq >  maxDisplaySampleLen:
+   if len(rawData) > maxDisplayRawDataLen and samp_freq >  maxDisplaySampleFreq:
             stepSize = round(samp_freq/200)
             rawData = rawData[::stepSize] 
             peaks = np.round(peaks/stepSize).astype(int)
