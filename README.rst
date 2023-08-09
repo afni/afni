@@ -94,6 +94,36 @@ tests/
     tests for AFNI codebase
 
 
+Additional software collaborations
+--------------------------------------
+
+AFNI benefits from integration and collaboration with several other actively developed 
+neuroimaging software packages.  We greatly appreciate the work of (and often the
+discussions with) their developers.
+
+The following software are distributed within AFNI directly:
+
+* `dcm2niix <https://github.com/rordenlab/dcm2niix>`_,
+  included as ``dcm2niix_afni``
+  
+* `NiiVue <https://github.com/niivue/niivue>`_,
+  included as ``niivue_afni.umd.js``
+  
+* `NIFTI I/O libraries <https://github.com/NIFTI-Imaging/nifti_clib>`_
+
+* `GIFTI I/O libraries <https://github.com/NIFTI-Imaging/gifti_clib>`_ 
+
+AFNI also has several programs and features that 
+complement directly with the following projects:
+
+* `FreeSurfer <https://surfer.nmr.mgh.harvard.edu/>`_,
+  via ``@SUMA_Make_Spec_FS`` and ``afni_proc.py``
+
+* `tedana <https://tedana.readthedocs.io/en/stable/>`_,
+  via ``afni_proc.py``
+
+Further useful dependencies are noted within the codebase.
+
 Relevant git-ology for AFNI
 ---------------------------
 
