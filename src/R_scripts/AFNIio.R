@@ -571,10 +571,11 @@ exists.AFNI.name <- function(an) {
     return(ans);
 }
 
-#Read parameters for -dataTable options (e.g. 3dLME)
-#If opts is just one string starting with '@' such as
-#@PPP, the parameters are read from text file PPP and
-#returned as if they were found on the command line  
+## MODIFIED by jkr for datatable validation
+## Read parameters for -dataTable options (e.g. 3dLME)
+## If opts is just one string starting with '@' such as
+## @PPP, the parameters are read from text file PPP and
+## returned as if they were found on the command line  
 dataTable.AFNI.parse <- function(opts) {
     
     if (is.null(opts) || length(opts) ==  0) { return(NULL) }
@@ -586,6 +587,7 @@ dataTable.AFNI.parse <- function(opts) {
             err.AFNI(paste("table file", ff, "does not exist"));
             return(NULL)
         } else { ## jkr 2023: it is a file that exists so try to read it
+          print(ExecName)
             dt.test <- dtCheck_tryRead(ff)
             if( dt.test != 0 ){
                 dtCheck_err("dataTable is NOT regular and rectangular")
@@ -607,6 +609,31 @@ dataTable.AFNI.parse <- function(opts) {
     if( dtOverall != 0 ){ q() }
     
     return(opts);
+}
+
+## ORIGINAL UNEDITTED for 3dMSS prediction table reading etc
+## Read parameters for -dataTable options (e.g. 3dLME)
+## If opts is just one string starting with '@' such as
+## @PPP, the parameters are read from text file PPP and
+## returned as if they were found on the command line  
+dataTable.AFNI.parse.orig <- function(opts) {
+   if (is.null(opts) || length(opts) ==  0) {
+      return(NULL);
+   }
+   if (length(opts) == 1 && length(grep('^@.*$',opts))) {
+      ff <- strsplit(opts, '')[[1]]
+      ff <- paste(ff[2:length(ff)], sep='', collapse='')
+      if (!file.exists(ff)) {
+         err.AFNI(paste("table file", ff, "does not exist"));
+         return(NULL)
+      }
+      #Can't read as table because users might have EOL \ from shell command
+      #opts <- scan(ff, what='character')
+      opts <- scan(ff, what='character', na.strings="") # GC 08/15/2014: modified to allow NA in dataTable
+      opts <- opts[grep('[^\\\\]',opts)]
+   }
+
+   return(opts);
 }
 
 used.AFNI.prefix <- function(an) {
