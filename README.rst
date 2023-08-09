@@ -109,9 +109,9 @@ The following software are distributed within AFNI directly:
 * `NiiVue <https://github.com/niivue/niivue>`_,
   included as ``niivue_afni.umd.js``
   
-* `NIFTI I/O libraries <https://github.com/NIFTI-Imaging/nifti_clib>`_
+* `NIFTI library <https://github.com/NIFTI-Imaging/nifti_clib>`_
 
-* `GIFTI I/O libraries <https://github.com/NIFTI-Imaging/gifti_clib>`_ 
+* `GIFTI library <https://github.com/NIFTI-Imaging/gifti_clib>`_ 
 
 AFNI also has several programs and features that 
 complement directly with the following projects:
