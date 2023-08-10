@@ -99,7 +99,8 @@ Additional software collaborations
 
 AFNI benefits from integration and collaboration with several other actively developed 
 neuroimaging software packages.  We greatly appreciate the work of (and often the
-discussions with) their developers.
+discussions with) their developers, and note some of these projects here.
+Further useful dependencies are cited within the codebase.
 
 The following software are distributed within AFNI directly:
 
@@ -122,7 +123,19 @@ complement directly with the following projects:
 * `tedana <https://tedana.readthedocs.io/en/stable/>`_,
   via ``afni_proc.py``
 
-Further useful dependencies are noted within the codebase.
+There are also several software projects that include AFNI as a 
+dependency, such as:
+
+* `NeuroDebian <https://neuro.debian.net/>`_
+
+* `NeuroDesk <https://www.neurodesk.org/>`_
+
+* `fMRIPrep <https://github.com/nipreps/fmriprep>`_
+
+* `ENIGMA HALFpipe <https://enigma.ini.usc.edu/protocols/functional-protocols/>`_
+
+* `Nipype <https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.afni.html>`_
+
 
 Relevant git-ology for AFNI
 ---------------------------
