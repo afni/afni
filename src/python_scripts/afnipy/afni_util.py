@@ -1931,26 +1931,44 @@ def slice_pattern_to_order(pattern, nslices):
 
    return order
 
-def slice_pattern_to_timing(pattern, nslices, TR=0):
-   """given tpattern, nslices and TR, return a list of slice times
+def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
+   """given tpattern, nslices, TR, and multiband level,
+         return a list of slice times
 
-      special case: if TR == 0 (or unspecific)
-         - do not scale (so output is int list, as if TR==nslices)
+      parameters:
+         pattern    : (string) one of g_valid_slice_patterns :
+                                  'zero',  'simult',
+                                  'seq+z', 'seqplus',
+                                  'seq-z', 'seqminus',
+                                  'alt+z', 'altplus',     'alt+z2',    
+                                  'alt-z', 'altminus',    'alt-z2',    
+         nslices    : (int)    total number of output slice times
+         TR         : (float)  total time to acquire all slices
+         mblevel    : (int)    multiband level (number of repeated time sets)
+         verb       : (int)    verbosity level
+
+      special case: if TR == 0 (or unspecified)
+         - do not scale (so output is int list, as if TR==nslices/mblevel)
 
       method:
-         - get slice_pattern_to_order()
-           - this is a list of slice indexes in the order acquired
-         - attach the consecutive index list, range(nslices)
-           - i.e, make list of [ [slice_index, acquisition_index] ]
-         - sort() - i.e. by slice_index
-           - so element [0] values will be the sorted list of slices
-         - grab element [1] from each
-           - this is the order the given slice was acquired in
-         - scale all by TR/nslices
+         - verify that nslices is a multiple of mblevel
+         - get result for ntimes = nslices/mblevel
+            - get slice_pattern_to_order()
+              - this is a list of slice indexes in the order acquired
+            - attach the consecutive index list, range(nslices)
+              - i.e, make list of [ [slice_index, acquisition_index] ]
+            - sort() - i.e. by slice_index
+              - so element [0] values will be the sorted list of slices
+            - grab element [1] from each
+              - this is the order the given slice was acquired in
+            - scale all by TR/nslices
+         - duplicate the result across other levels
 
       return a list of slice times, or an empty list on error
    """
-   if nslices <= 0 or TR < 0.0:
+   # ---------- sanity checks  ----------
+
+   if nslices <= 0 or TR < 0.0 or mblevel <= 0:
       return []
    if nslices == 1:
       return [0]
@@ -1963,23 +1981,36 @@ def slice_pattern_to_timing(pattern, nslices, TR=0):
    if pattern in ['zero', 'simult']:
       return [0] * nslices
 
+   # ---------- check for multiband  ----------
+
+   ntimes = int(nslices/mblevel)
+   if mblevel > 1:
+      if nslices != ntimes*mblevel:
+         print("** error: nslices (%d) not multiple of mblevel (%d)" \
+               % (nslices, mblevel))
+      return []
+
+   # ---------- get result for ntimes ----------
+
    # first get the slice order
-   order = slice_pattern_to_order(pattern, nslices)
+   order = slice_pattern_to_order(pattern, ntimes)
    if order is None:
       return []
 
    # attach index and sort
-   slice_ordering = [ [order[ind], ind] for ind in range(nslices)]
+   slice_ordering = [ [order[ind], ind] for ind in range(ntimes)]
    slice_ordering.sort()
 
-   # grab each element [1] and scale by TR/nslices
+   # grab each element [1] and scale by TR/ntimes
    # (if TR == 0, do not scale)
    if TR == 0:
-      stimes = [so[1]            for so in slice_ordering]
+      stimes = [so[1]           for so in slice_ordering]
    else:
-      stimes = [so[1]*TR/nslices for so in slice_ordering]
+      stimes = [so[1]*TR/ntimes for so in slice_ordering]
 
-   return stimes
+   # ---------- duplicate results to mblevel ----------
+
+   return stimes*mblevel
 
 # ----------------------------------------------------------------------
 # begin matrix functions

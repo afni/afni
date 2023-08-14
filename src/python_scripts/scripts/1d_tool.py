@@ -1120,21 +1120,65 @@ general options: ~2~
         cases, people have an ordered list of slices.  So the sorting needs
         to change.
 
-        If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+           input:  a file with TIME-SORTED slice indices
+           output: a SLICE-SORTED list of slice times
 
+      * Note, this is a list of slice indices over time (one TR interval).
+        Across one TR, this lists each slice index as acquired.
+
+        It IS a per-slice-time index of acquired slices.
+        It IS **NOT** a per-slice index of its acquisition position.
+           (this latter case could be output by -slice_pattern_to_times)
+
+        If TR=2 and the slice order is alt+z:  0  2  4  6  8  1  3  5  7  9
         Then the slices/times ordered by time (as input) are:
 
-           slices: 0    2    4    6    8    1    3    5    7    9
            times:  0.0  0.2  0.4  0.6  0.8  1.0  1.2  1.4  1.6  1.8
+  input->  slices: 0    2    4    6    8    1    3    5    7    9
+                   (slices across time)
 
         And the slices/times ordered instead by slice index are:
 
            slices: 0    1    2    3    4    5    6    7    8    9
-           times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+  output-> times:  0.0  1.0  0.2  1.2  0.4  1.4  0.6  1.6  0.8  1.8
+                   (timing across slices)
 
         It is this final list of times that is output.
 
+        For kicks, note that one can convert from per-time slice indices to
+        per-slice acquisition indices by setting TR=nslices.
+
         See example 28.
+
+   -slice_pattern_to_times PAT NS MB : output slice timing, given:
+                                       slice pattern, nslices, MBlevel
+                                       (TR is optionally set via -set_tr)
+
+        e.g. -slice_pattern_to_times alt+z 30 1
+             -set_tr                 2.0
+
+        Given:
+            - a valid to3d-style slice timing pattern
+            - the number of slices (int > 0)
+            - the multiband level ( int >= 1 )
+            - [optional] a TR (set via -set_tr)
+
+        Output the appropriate slice times that should correspond.
+        Note that if TR is not specified, the output will be as if TR=nslices,
+           which means the output is order index of each slice.
+
+        Input description:
+
+            PAT     : a valid to3d-style slice timing pattern, one of:
+                        zero   simult
+                        seq+z  seqplus  seq-z   seqminus
+                        alt+z  altplus  alt+z2
+                        alt-z  altminus alt-z2
+
+
+        If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+
+        Then the slices/times ordered by time (as input) are:
 
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -1432,6 +1476,7 @@ class A1DInterface:
       self.show_xmat_stim_info = ''     # show xmat stimulus information
       self.show_xmat_stype_cols = []    # show columns of given stim types
       self.slice_order_to_times = 0     # re-sort slices indices to times
+      self.slice_pattern_to_times = []  # slice time parameters (pat, NS, MB)
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
@@ -1766,6 +1811,9 @@ class A1DInterface:
                       helpstr='display xmat stim class info for class')
 
       self.valid_opts.add_opt('-slice_order_to_times', 0, [], 
+                   helpstr='convert slice indices to slice times')
+
+      self.valid_opts.add_opt('-slice_pattern_to_times', 3, [], 
                    helpstr='convert slice indices to slice times')
 
       self.valid_opts.add_opt('-sort', 0, [], 
@@ -2254,6 +2302,9 @@ class A1DInterface:
          elif opt.name == '-slice_order_to_times':
             self.slice_order_to_times = 1
 
+         elif opt.name == '-slice_pattern_to_times':
+            self.slice_pattern_to_times = opt.parlist
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -2537,6 +2588,9 @@ class A1DInterface:
       if self.slice_order_to_times:
          self.adata.slice_order_to_times(verb=self.verb)
 
+      if len(self.slice_pattern_to_times) > 0:
+         self.show_slice_pattern_times()
+
       if self.show_num_runs: self.show_nruns()
 
       if self.show_regs != '': self.show_regressors(show=self.show_regs)
@@ -2607,6 +2661,59 @@ class A1DInterface:
       if self.verb > 1: pstr = 'number of runs: '
       else:             pstr = ''
       print('%s%s' % (pstr, self.adata.nruns))
+
+   def show_slice_pattern_times(self):
+      """display slice timing, given:
+           pattern, nslices, MBlevel (and optional TR)
+           (stored in self.slice_pattern_to_times)
+
+         return status (0 on success)
+      """
+      if len(self.slice_pattern_to_times) != 3:
+         print("** error: -slice_pattern_to_times requires 3 parameters:\n"
+               "          PATTERN  NSLICES  MBlevel")
+         return 1
+
+      # ----- set and test the parameters from the option parlist -----
+
+      # pattern
+      errs = 0
+      pattern = self.slice_pattern_to_times.parlist[0]
+      if pattern not in UTIL.g_valid_slice_patterns:
+         print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
+         print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
+         print("   see 'tpattern' examples from 'to3d -help'")
+         errs += 1
+
+      # nslices
+      try :
+         nslices = int(self.slice_pattern_to_times.parlist[1])
+         if nslices <= 0:
+            print("** -slice_pattern_to_times: nslices must be positive")
+            print("   example(34): -slice_pattern_to_times alt+z 34 2")
+            errs += 1
+      except:
+         print("** -slice_pattern_to_times: nslices must be an integer > 0")
+         print("   example(34): -slice_pattern_to_times alt+z 34 2")
+         errs += 1
+
+      # mblevel
+      try :
+         mblevel = int(self.slice_pattern_to_times.parlist[2])
+         if mblevel <= 0:
+            print("** -slice_pattern_to_times: mblevel must be positive")
+            print("   example(2): -slice_pattern_to_times alt+z 34 2")
+            errs += 1
+      except:
+         print("** -slice_pattern_to_times: mblevel must be an integer > 0")
+         print("   example(2): -slice_pattern_to_times alt+z 34 2")
+         errs += 1
+
+      if errs > 0:
+         return 1
+
+      return 0
+
 
    def show_TR_run_counts(self):
       """display list of TRs per run, according to self.show_tr_run_counts
