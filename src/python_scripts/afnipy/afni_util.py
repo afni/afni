@@ -1988,7 +1988,7 @@ def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
       if nslices != ntimes*mblevel:
          print("** error: nslices (%d) not multiple of mblevel (%d)" \
                % (nslices, mblevel))
-      return []
+         return []
 
    # ---------- get result for ntimes ----------
 

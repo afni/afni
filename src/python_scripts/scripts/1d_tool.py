@@ -1814,7 +1814,7 @@ class A1DInterface:
                    helpstr='convert slice indices to slice times')
 
       self.valid_opts.add_opt('-slice_pattern_to_times', 3, [], 
-                   helpstr='convert slice indices to slice times')
+                   helpstr='show timing, given pattern, nslices, MBlevel')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -2408,6 +2408,19 @@ class A1DInterface:
    def process_data(self):
       """return None on completion, else error code (0 being okay)"""
 
+      # ---- handle any options without input -----
+
+      # do we do any non-input processing?
+      noinput = 0
+
+      if len(self.slice_pattern_to_times) > 0:
+         self.show_slice_pattern_times()
+         noinput = 1
+
+      # if we have done something and there is no input, return
+      if noinput and not self.infile:
+         return 0
+
       # ---- data input options -----
 
       if self.incheck and not self.infile:
@@ -2588,9 +2601,6 @@ class A1DInterface:
       if self.slice_order_to_times:
          self.adata.slice_order_to_times(verb=self.verb)
 
-      if len(self.slice_pattern_to_times) > 0:
-         self.show_slice_pattern_times()
-
       if self.show_num_runs: self.show_nruns()
 
       if self.show_regs != '': self.show_regressors(show=self.show_regs)
@@ -2669,16 +2679,17 @@ class A1DInterface:
 
          return status (0 on success)
       """
+
+      # ----- set and test the parameters from the option parlist -----
+
       if len(self.slice_pattern_to_times) != 3:
          print("** error: -slice_pattern_to_times requires 3 parameters:\n"
                "          PATTERN  NSLICES  MBlevel")
          return 1
 
-      # ----- set and test the parameters from the option parlist -----
-
       # pattern
       errs = 0
-      pattern = self.slice_pattern_to_times.parlist[0]
+      pattern = self.slice_pattern_to_times[0]
       if pattern not in UTIL.g_valid_slice_patterns:
          print("** -slice_pattern_to_times: invalid slice pattern %s" % pattern)
          print("   example (alt+z): -slice_pattern_to_times alt+z 34 2")
@@ -2687,7 +2698,7 @@ class A1DInterface:
 
       # nslices
       try :
-         nslices = int(self.slice_pattern_to_times.parlist[1])
+         nslices = int(self.slice_pattern_to_times[1])
          if nslices <= 0:
             print("** -slice_pattern_to_times: nslices must be positive")
             print("   example(34): -slice_pattern_to_times alt+z 34 2")
@@ -2699,7 +2710,7 @@ class A1DInterface:
 
       # mblevel
       try :
-         mblevel = int(self.slice_pattern_to_times.parlist[2])
+         mblevel = int(self.slice_pattern_to_times[2])
          if mblevel <= 0:
             print("** -slice_pattern_to_times: mblevel must be positive")
             print("   example(2): -slice_pattern_to_times alt+z 34 2")
@@ -2711,6 +2722,17 @@ class A1DInterface:
 
       if errs > 0:
          return 1
+
+      if self.verb > 1:
+         print("-- pattern to timing: pat %s, nslices %d, TR %g, mb %d" \
+               % (pattern, nslices, self.set_tr, mblevel))
+
+      # ----- okay, inputs seem usable, generate the actual results -----
+
+      timing = UTIL.slice_pattern_to_timing(pattern, nslices, TR=self.set_tr,
+                                            mblevel=mblevel, verb=self.verb)
+
+      print(UTIL.gen_float_list_string(timing))
 
       return 0
 
