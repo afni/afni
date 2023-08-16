@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20230411",
+   "Thanks to C Rorden for the update."
+ } ,
+
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "turn off local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
  {  8, Aug, 2023, RCR, "3dLocalstat", MINOR, TYPE_BUG_FIX,
    "when creating bucket output, clear time dimension",
    "Thanks to Philip on MB for noting the problem."
