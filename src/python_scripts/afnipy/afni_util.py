@@ -1721,7 +1721,7 @@ def timing_to_slice_pattern(timing, verb=1):
    for ind in range(nunique):
       if ind != tround[ind]:
          if verb > 1:
-            print("** timing is not muliples of expected %s" % tgrid)
+            print("** timing is not multiples of expected %s" % tgrid)
          return 1, defpat
    del(tround) # finished
 
