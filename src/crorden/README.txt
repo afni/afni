@@ -3,7 +3,7 @@ of the 'console' directory from:
 
    https://github.com/rordenlab/dcm2niix
 
-current version: v1.0.20211006
+current version: v1.0.20230411
 (as defined by kDCMdate in nii_dicom.h)
 
 
