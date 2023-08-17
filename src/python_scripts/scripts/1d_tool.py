@@ -602,20 +602,40 @@ examples (very basic for now): ~1~
             1d_tool.py -show_regs set -infile zerocols.X.xmat.1D \\
                        -select_groups POS -verb 0
 
-   Example 31. Determine slice timing pattern for EPI data ~2~
+   Example 31. Determine slice timing pattern (for EPI data) ~2~
 
        Determine the slice timing pattern from a list of slice times.
        The output is :
             - multiband level (usually 1) 
-            - tpattern, one from those in 'to3d -help'
+            - tpattern, one such pattern from those in 'to3d -help'
 
        a. where slice times are in a file
 
-          1d_tool.py -show_slice_timing_pattern -infile slice_times.1D
+            1d_tool.py -show_slice_timing_pattern -infile slice_times.1D
 
        b. or as a filter
 
-         3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
+            3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
+                   | 1d_tool.py -show_slice_timing_pattern -infile -
+
+   Example 32. Display slice timing ~2~
+
+       Display slice timing given a to3d timing pattern, the number of
+       slices, the multiband level, and optionally the TR.
+
+       a. pattern alt+z, 40 slices, multiband 1, TR 2s
+          (40 slices in 2s means slices are acquired every 0.05 s)
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 1 -set_tr 2
+
+       b. same, but multiband 2
+          (so slices are acquired every 0.1 s, and there are 2 such sets)
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 2 -set_tr 2
+
+       c. test this by feeding the output to -show_slice_timing_pattern
+
+            1d_tool.py -slice_pattern_to_times alt+z 40 2 -set_tr 2 \\
                 | 1d_tool.py -show_slice_timing_pattern -infile -
 
 ---------------------------------------------------------------------------
@@ -1058,9 +1078,15 @@ general options: ~2~
 
    -show_slice_timing_pattern   : display the to3d tpattern for the data
 
+        e.g. -show_slice_timing_pattern -infile slice_times.txt
+
         The output will be 2 values, the multiband level (the number of
         sets of unique slice times) and the tpattern for those slice times.
         The tpattern will be one of those from 'to3d -help', such as alt+z.
+
+        This operation is the reverse of -slice_pattern_to_times.
+        See also -slice_pattern_to_times.
+        See example 31 and example 32
 
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
@@ -1157,28 +1183,34 @@ general options: ~2~
         e.g. -slice_pattern_to_times alt+z 30 1
              -set_tr                 2.0
 
-        Given:
-            - a valid to3d-style slice timing pattern
-            - the number of slices (int > 0)
-            - the multiband level ( int >= 1 )
-            - [optional] a TR (set via -set_tr)
-
-        Output the appropriate slice times that should correspond.
-        Note that if TR is not specified, the output will be as if TR=nslices,
-           which means the output is order index of each slice.
-
         Input description:
 
             PAT     : a valid to3d-style slice timing pattern, one of:
+
                         zero   simult
                         seq+z  seqplus  seq-z   seqminus
                         alt+z  altplus  alt+z2
                         alt-z  altminus alt-z2
 
+            NS      : the total number of slices (MB * nunique_times)
 
-        If TR=2 and the slice order is:  0  2  4  6  8  1  3  5  7  9
+            MB      : the multiband level
 
-        Then the slices/times ordered by time (as input) are:
+                      For a volume with NS slices and multiband MB and a
+                      slice timing pattern PAT with NST unique slice times,
+                      we must have:  NS = MB * NST
+
+            TR      : (optional) the volume repetition time
+                      TR is specified via -set_tr.
+
+        Output the appropriate slice times for the timing pattern, also given
+        the number of slices, multiband level and TR.  If TR is not specified,
+        the output will be as if TR=NST (number of unique slice times), which
+        means the output is order index of each slice.
+
+        This operation is the reverse of -show_slice_timing_pattern.
+        See also -show_slice_timing_pattern.
+        See example 32.
 
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
