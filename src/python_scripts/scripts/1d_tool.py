@@ -1414,9 +1414,12 @@ g_history = """
    2.14 Jan 27, 2022 - added -write_sep, -write_style
    2.15 Aug  9, 2022 - minor update for get_max_displacement (no effect)
    2.16 Feb  4, 2023 - added -show_slice_timing_pattern
+   2.17 Aug 17, 2023
+        - added -slice_pattern_to_times
+        - rewrote -show_slice_timing_pattern to be more forgiving
 """
 
-g_version = "1d_tool.py version 2.16, February 4, 2023"
+g_version = "1d_tool.py version 2.17, August 17, 2023"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
