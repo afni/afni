@@ -1684,7 +1684,7 @@ def timing_to_slice_pattern(timing, verb=1):
    TR = tgrid*nunique
 
    # note multiband level (number of repeated times)
-   mblevel = round(ntimes/nunique)
+   mblevel = int(round(ntimes/nunique))
 
    if verb > 2:
       print("-- TR %g, MB %g, nunique %g, med slice diff: %g" \
