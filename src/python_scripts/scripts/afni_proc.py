@@ -3886,7 +3886,7 @@ class SubjProcSream:
     #         3dDetrend -polort 2 -prefix t.3.det pb02.FT.ospace.r03.volreg
     #     - catenate runs
     #         3dTcat -prefix rm.vr.det.all.runs t.?.det*.HEAD
-    #     - create censored time series via $keep_trs
+    #     - create censored time series via $keep_trs_file
     #         keep = 1d_tool.py -infile $mfile -show_trs_uncensored encoded
     #         3dpc -mask $mset -pcsave 3 -prefix P3_ det.all.runs+orig"[$keep]"
     #
