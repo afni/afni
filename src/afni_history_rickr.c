@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Aug, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "apply uncensored TRs via a text file rather than command line",
+   "With a long encoded TR list, file names might exceed the allowable limit\n"
+   "(currently about 5100 bytes), e.g. data+tlrc'[3,5..7,10..13,23]'.\n"
+   "Instead, use the 1dcat functionality to get those volume indices from\n"
+   "a text file.  So if trs.txt contains 3 5 6 7 10 11 12 13 23,\n"
+   "then one can read the volumes using data+tlrc'[1dcat trs.txt]'.\n"
+   "Thanks to G Edwards and S Japee for diagnosing the issue."
+ } ,
+
  { 17, Aug, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -slice_pattern_to_times",
    "Output timing given known to3d tpattern, nslices, multiband level, and TR."

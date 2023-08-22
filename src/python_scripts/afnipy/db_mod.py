@@ -5974,6 +5974,7 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # last censoring is done, so possibly generate keep_trs as $ktrs
+    # (also, generate keep_trs as $ktrs)
     newcmd = get_keep_trs_cmd(proc)
     if newcmd: cmd += newcmd
 
@@ -6908,12 +6909,29 @@ def db_cmd_regress_anaticor(proc, block):
 def get_keep_trs_cmd(proc):
     # sub-brick selection, in case of censoring
     # (only return this once)
+    #
+    # note: this is currently used only in TSNR computation
+    #     : 3dpc is used after 3dTproject -cenmode KILL
+    #     : blur estimation does $trs per run, so it might also need changing
+
     if proc.censor_file and proc.keep_trs == '':
-       c1 = '1d_tool.py -infile %s \\\n'                        \
-            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
-       cs = '# note TRs that were not censored\n'               \
-            'set ktrs = `%s`\n\n' % c1
+
+       # ** 21 Aug 2023: Shruti reports failure to read sub-brick selectors
+       #                 because a lot of censoring leads to file names that
+       #                 are beyond our size limits.  Use text files, instead.
+       #               : so do not use encoded trs, but unencoded from a file
+       
+       ktr_text = 'out.keep_trs_rall.txt'
+
+       cs = '# note TRs that were not censored\n'                         \
+            '# (apply from a text file, in case of a lot of censoring)\n' \
+            '1d_tool.py -infile %s \\\n'                                  \
+            '           -show_trs_uncensored space \\\n'                  \
+            '           > %s\n'                                           \
+            'set ktrs = "1dcat %s"\n\n'                                   \
+            % (proc.censor_file, ktr_text, ktr_text)
        proc.keep_trs = '"[$ktrs]"'
+
     else:
        cs = ''
 
