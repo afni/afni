@@ -756,9 +756,10 @@ g_history = """
     7.59 Jul 21, 2023: fix: update help for -regress_make_corr_vols
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
+    7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
 """
 
-g_version = "version 7.60, July 24, 2023"
+g_version = "version 7.60, August 21, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -3886,7 +3887,7 @@ class SubjProcSream:
     #         3dDetrend -polort 2 -prefix t.3.det pb02.FT.ospace.r03.volreg
     #     - catenate runs
     #         3dTcat -prefix rm.vr.det.all.runs t.?.det*.HEAD
-    #     - create censored time series via $keep_trs_file
+    #     - create censored time series via $keep_trs (file)
     #         keep = 1d_tool.py -infile $mfile -show_trs_uncensored encoded
     #         3dpc -mask $mset -pcsave 3 -prefix P3_ det.all.runs+orig"[$keep]"
     #
