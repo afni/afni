@@ -184,7 +184,7 @@ def construct_url( host, portnum, rem_path,
         'rem_path' : rem_path,
     }
 
-    url = f'''http://{host}:{portnum}/{rem_path}'''.format( **dpieces )
+    url = '''http://{host}:{portnum}/{rem_path}'''.format( **dpieces )
 
     # add a hash/location?
     if jump_to :
@@ -391,7 +391,12 @@ def find_common_and_remainder_paths( inp_path_list, min_rem_len = None,
     # calc the common path, and check it quickly.  NB: it is possible
     # that the path list could include a path on an OS and one on a
     # USB, which would lead to the common path being just '/'
-    common_abs_path = os.path.commonpath(abs_path_list)
+    try: 
+        common_abs_path = os.path.commonpath(abs_path_list)
+    except:
+        # Py2 doesn't have os.path.commonpath(), so work with this;
+        # should be OK as input is already abs paths
+        common_abs_path = os.path.commonprefix(abs_path_list)
     common_nstep    = calc_nstep_path(common_abs_path)
     if common_nstep < 1 :
         print("** ERROR: common *abs* path '{}' is nonexistent?"
