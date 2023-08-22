@@ -236,10 +236,13 @@ auth = 'PA Taylor'
 #ver = '4.1' ; date = 'Nov 15, 2022'
 # [PT] many new parts for var_lines (AKA vlines) and tcat QC
 #
-ver = '5.0' ; date = 'Mar 05, 2023'
+#ver = '5.0' ; date = 'Mar 05, 2023'
 # [PT] move toward Python-only implementation, rather than generating
 #      a script intermediately, to simplify flexibility, additions and
 #      apqc2/NiiVue functionality
+#
+ver = '5.1' ; date = 'Aug 22, 2023'
+# [PT] fix Py2-Py3 compatability: flush print funcs separately
 #
 #########################################################################
 
@@ -1321,7 +1324,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# volreg motion pars, and censoring'''
@@ -1425,7 +1428,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# outlier frac and censoring'''
@@ -1533,7 +1536,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# mot enorm and censoring'''
@@ -1639,7 +1642,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# mot enorm plus outlier frac, and censoring'''
@@ -1729,7 +1732,7 @@ num : int
     odir_mtedana = ap_ssdict['odir_qc'] + '/' + 'dir_mtedana'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# multi-echo (mecho) processing via MEICA group TEDANA'''
@@ -1820,7 +1823,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# individual regressors of interest in X-matrix'''
@@ -1927,7 +1930,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# sum of regressors of interest in X-matrix'''
@@ -2043,7 +2046,7 @@ num : int
     cbar            = "gray_scale"
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# Check {} (ulay) in orig space ({} %ile topval for pbar)
@@ -2219,7 +2222,7 @@ num : int
     otopdeobtxt2_bup = opref + '.sag_DEOB.txt_info'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# init overlap between EPI (ulay) and anatomical (olay)'
@@ -2335,7 +2338,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     com    = ab.shell_com('# check EPI mask over main_dset', capture=do_cap)
@@ -2502,7 +2505,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# alignment of EPI (ulay) and anatomical (olay) in final sp'
@@ -2699,7 +2702,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# alignment of anatomical (ulay) and template (olay) in final sp'
@@ -2885,7 +2888,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# check ave errts corr through brain'
@@ -3067,7 +3070,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# view errts seed-based correlation: {}'.format(seed.roi_label)
@@ -3301,7 +3304,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# peruse statistical results: '
@@ -3649,7 +3652,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# calc TSNR ' + descrip
@@ -3883,7 +3886,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# grayplot of residuals'''
@@ -4110,7 +4113,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# degree of freedom (df) check for processing'''
@@ -4173,7 +4176,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# summary quantities (ss_review_basic) from processing'''
@@ -4238,7 +4241,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring per stim'''
@@ -4357,7 +4360,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring (total)'''
@@ -4439,7 +4442,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for correlation matrix warnings'''
@@ -4515,7 +4518,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for 3dDeconvolve warnings'''
@@ -4597,7 +4600,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for pre-steady state warnings'''
@@ -4678,7 +4681,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for any TENT warnings from timing_tool.py'''
@@ -4789,7 +4792,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check LR-flip warnings'''
@@ -5298,7 +5301,7 @@ num : int
     osubjson = opref + '_0' + '.sag.json'  
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create:", oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check variance lines (var_line) warnings'''
@@ -5468,7 +5471,8 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create:", '_'.join([obase, qcb, qci]), flush=True)
+        print("++ APQC create:", '_'.join([obase, qcb, qci]))
+        sys.stdout.flush()
 
     do_cap = True
     cmd    = '# @radial_correlate images for: ' + rcdir
@@ -5716,7 +5720,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy jsons to info dir", flush=True)
+        print("++ APQC create: copy jsons to info dir"); sys.stdout.flush()
 
     do_cap = True
     cmd    = '''# copy subj json(s)'''
@@ -5752,7 +5756,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy ss_review_basic file", flush=True)
+        print("++ APQC create: copy ss_review_basic file"); sys.stdout.flush()
 
     do_cap = True
     cmd    = '''# copy review basic text file to QC dir'''
@@ -5804,14 +5808,15 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: display ss_review_basic info", flush=True)
+        print("++ APQC create: display ss_review_basic info")
+        sys.stdout.flush()
 
     do_cap = False
     cmd    = '''# disp basic information from processing'''
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
-    ptext = "# ++++++++++++++++ Check output of @ss_review_basic ++++++++++++++++ #"
+    ptext = "# ++++++++++++++ Check output of @ss_review_basic ++++++++++++++ #"
     print("\n" + ptext)
     print('-'*len(ptext))
     cmd    = '''\\cat {} '''.format(ap_ssdict['ss_review_dset'])
