@@ -160,7 +160,7 @@ them.
                  title   = 'the plot',
                  xlabel  = 'time (s)',
                  ylabel  = 'data',
-                 figsize = None,
+                 figsize = [],
                  dpi     = 300,
                  fontsize= 10,
                  max_n_per_line = DEF_max_n,
@@ -178,8 +178,8 @@ them.
         self.ylabel        = ylabel             # str, data label
 
         self.figsize       = figsize            # 2-tuple, fig dims
-        self.figsize_use   = None               # 2-tuple, fig dims
-        self.figsize_rem   = None               # 2-tuple, fig dims for remndr
+        self.figsize_use   = []                 # 2-tuple, fig dims
+        self.figsize_rem   = []                 # 2-tuple, fig dims for remndr
         self.dpi           = dpi                # int, res for vector img
         self.fontsize      = fontsize           # int/fl, size of most text
         self.list_plobj    = []                 # list, of plot objects
@@ -477,7 +477,7 @@ them.
                 # just mirror main color
                 self.list_plobj[ii].mec = self.list_plobj[ii].color
 
-        if self.figsize == None :
+        if len(self.figsize) == 0 :
             self.figsize_use = (7, 1.0+self.n_subplots_per_fig*1.0)
             # for plot of 'remainder' lines, if applicable
             self.figsize_rem = (7, 1.0+self.n_subplots_per_fig_rem*1.0)
@@ -488,7 +488,7 @@ them.
             tmp*= self.n_subplots_per_fig_rem / self.n_subplots_per_fig
             tmp+= 1
             self.figsize_rem = (self.figsize_use[0], tmp)
-            if verb > 2 :
+            if self.verb > 2 :
                 print("   figsize_use:", self.figsize_use)
                 print("   figsize_rem:", self.figsize_rem)
       
@@ -635,7 +635,8 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 phases = [],
                                 upper_env=[], lower_env=[],
                                 title='', fname='', retobj=None,
-                                add_ibandT = False, add_ibandB = False):
+                                add_ibandT = False, add_ibandB = False,
+                                verb=0):
     """A script to plot time series, as well as peaks and/or troughs.  The
 idea is to keep the plotting as uniform as possible.
 
@@ -678,18 +679,27 @@ Returns
     if not(fname) :
         fname = 'physio_calc_plot.pdf'
 
-    if retobj :    fontsize = retobj.font_size
-    else:          fontsize = None
+    # start figure, either with retobj options or more simply
+    if retobj :    
+        fff = RetroFig( figname        = fname,
+                        max_n_per_line = 5000,
+                        title          = title,
+                        figsize        = retobj.img_figsize,
+                        fontsize       = retobj.img_fontsize,
+                        max_t_per_line = retobj.img_line_time,
+                        verb           = verb,
+        )
+    else: 
+        # simple fig, all defaults
+        fff = RetroFig( figname=fname,
+                        max_n_per_line=5000,
+                        title=title,
+                        verb=verb )
 
     # control alpha of ts and peaks/troughs like this
     if len(phases) :    ts_alpha = 0.5
     else:               ts_alpha = 1.0
 
-    # start figure
-    fff = RetroFig(figname=fname,
-                   max_n_per_line=5000,
-                   title=title,
-                   fontsize=fontsize)
 
     #### !!!!! DOWNSAMPLING TIME SERIES, FOR PURPOSE OF PLOTTING
     #### !!!!! TIME/SPACE!  FIGURE OUT MORE SYSTEMATIC/CONTROLLED WAY

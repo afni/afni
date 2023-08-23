@@ -363,7 +363,8 @@ is_ok : int
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
-                                          retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
     # --------------
     count+= 1
@@ -385,7 +386,8 @@ is_ok : int
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
-                                          retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
     # --------------
     count+= 1
@@ -417,7 +419,8 @@ is_ok : int
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
-                                          retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
     # --------------
     count+= 1
@@ -443,7 +446,8 @@ is_ok : int
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
-                                          retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
 
     # !!! add in more refinement steps, and prob trough estimation, too
@@ -473,7 +477,8 @@ is_ok : int
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
-                                              retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
 
 
@@ -499,7 +504,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
         # --------------
         count+= 1
@@ -523,7 +529,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks, 
                                               troughs=troughs,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
         # !!! can leave out here separate trough merger checks for
         # !!! left and right individually, for the global case?  Right
@@ -555,7 +562,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
 
         # --------------
@@ -578,7 +586,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
 
     # ----- DONE with peak+trough estimation+refinement: add to obj -----
@@ -604,7 +613,8 @@ is_ok : int
                                               add_ibandT=True,
                                               add_ibandB=True,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
     else:
         lab_title = 'Final peaks ($\Delta t_{{\\rm med}}$ = {:0.3f} s)'.format(p_ival)
         lab_short = 'final_peaks'
@@ -616,7 +626,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               add_ibandT=True,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
     return 0
 
@@ -676,7 +687,8 @@ is_ok : int
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
                                               phases=phases,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
     elif label == 'resp' :
         # use Method 1 phase finding for card peaks/time series
@@ -693,7 +705,8 @@ is_ok : int
                                               troughs=phobj.troughs,
                                               phases=phases,
                                               title=title, fname=fname,
-                                              retobj=retobj)
+                                              retobj=retobj,
+                                              verb=verb)
 
 
     # ----- DONE with phase estimation: add to obj -----
@@ -747,7 +760,8 @@ intervals to estimate 'instantaneous period'.
                                           upper_env=upper_env,
                                           lower_env=lower_env,
                                           title=title, fname=fname,
-                                          retobj=retobj)
+                                          retobj=retobj,
+                                          verb=verb)
 
 
     # actual RVT

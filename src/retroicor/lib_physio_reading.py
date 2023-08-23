@@ -180,7 +180,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.prefix       = None       # str, prefix of output filenames
         self.show_graph_level = 0      # int, amount of graphs to show
         self.save_graph_level = 1      # int, amount of graphs to save
-        self.font_size    = 10         # float, FS for output images
         self.niml         = False      # bool, use niml in output ***
         self.demo         = False      # bool, show demo?
         self.debug        = False      # bool, do debugging?
@@ -189,6 +188,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_resp  = True       # bool, flag
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
         self.do_save_ab   = False      # bool, save a,b coeffs to file
+        self.img_fontsize = 10         # float, FS for output images
+
 
         # -----------------------------------------------------------------
 
@@ -230,7 +231,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.prefix      = args_dict['prefix']
         self.show_graph_level = args_dict['show_graph_level']
         self.save_graph_level = args_dict['save_graph_level']
-        self.font_size   = args_dict['font_size']
+        self.img_figsize   = copy.deepcopy(args_dict['img_figsize'])
+        self.img_fontsize  = args_dict['img_fontsize']
+        self.img_line_time = args_dict['img_line_time']
         self.niml        = args_dict['niml']
         self.demo        = args_dict['demo']
         self.debug       = args_dict['debug']

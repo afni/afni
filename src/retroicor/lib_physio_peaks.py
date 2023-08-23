@@ -177,9 +177,6 @@ xfilt : np.ndarray
 #    peaks = lpf.refinePeakLocations(peaks, rawData, 
 #            dataType = "Respiratory",  
 #            phys_fs = parameters["phys_fs"], 
-#            show_graph = parameters['show_graphs']>1, 
-#            save_graph = parameters["save_graphs"]>1, 
-#            OutDir = OutDir, font_size = parameters['font_size'])
 
 def refinePeakLocations(peaks, x, is_troughs = False, label='', verb=0):
     """Adjust peaks to correspond to local maxima.  This is usually

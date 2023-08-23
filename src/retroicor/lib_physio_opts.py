@@ -44,6 +44,11 @@ DEF_max_bpm_resp = 60.0
 # RVT shifts: gets treated as np.linspace(0,4,5)
 DEF_rvt_shifts   = '0 4 5'
 
+# some QC image plotting options that the user can change
+DEF_img_figsize   = []
+DEF_img_fontsize  = 10
+DEF_img_line_time = 30               # units = seconds
+
 # ==========================================================================
 # PART_01: default parameter settings
 
@@ -81,7 +86,6 @@ DEF = {
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
-    'font_size'         : 10,        # (float) font size for plots 
     'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
     'do_save_ab'        : False,     # (bool) save a,b coeffs to file
     'niml'              : False,     # (bool)
@@ -95,7 +99,10 @@ DEF = {
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
-    'rvt_shifts'        : DEF_rvt_shifts # (dict) start|stop|step, RVT shift 
+    'rvt_shifts'        : DEF_rvt_shifts, # (dict) start|stop|step, RVT shift 
+    'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
+    'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
+    'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -153,7 +160,6 @@ for ii in range(len(ALL_EPIM_MATCH_LISTS)):
 
 # quantities that must be >= 0
 all_quant_ge_zero = [
-    'font_size',
     'freq',
     'min_bpm_card',
     'min_bpm_resp',
@@ -162,6 +168,8 @@ all_quant_ge_zero = [
     'num_slices',
     'num_time_pts',
     'volume_tr',
+    'img_line_time',
+    'img_fontsize',
 ]
 
 
@@ -1029,13 +1037,6 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-opt = '''font_size'''
-hlp = '''Font size used for graphics (def: {dopt})
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
 opt = '''save_graph_level'''
 hlp = '''Integer value for one of the following behaviors:
 0 - Do not save graphs
@@ -1069,6 +1070,27 @@ needed'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
+
+opt = '''img_figsize'''
+hlp = '''Figure dimensions used for QC images (def: {dopt})
+'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs='+', type=str) # parse later
+
+opt = '''img_fontsize'''
+hlp = '''Font size used for QC images (def: {dopt})
+'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''img_line_time'''
+hlp = '''Maximum time duration per line in the QC images, in units of sec
+(def: {dopt}) '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
 
 opt = '''niml'''
 hlp = '''Output ***what?*** in NIML format, instead of CSV format'''
@@ -1570,6 +1592,21 @@ args_dict2 : dict
         except:
             print("** ERROR interpreting '-rvt_shifts ..' args: '{}'"
                   "".format(args_dict2['rvt_shifts']))
+            IS_BAD = 1
+
+        if IS_BAD :
+            sys.exit(1)
+
+    if args_dict2['img_figsize'] :
+        # Interpret string to be list of floats.
+        IS_BAD = 0
+
+        L = args_dict2['img_figsize'].split()
+        try:
+            aaa = [float(ll) for ll in L]
+            args_dict2['img_figsize'] = copy.deepcopy(aaa)
+        except:
+            print("** ERROR interpreting img_figsize")
             IS_BAD = 1
 
         if IS_BAD :
