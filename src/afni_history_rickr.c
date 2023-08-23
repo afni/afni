@@ -53,6 +53,162 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Aug, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "apply uncensored TRs via a text file rather than command line",
+   "With a long encoded TR list, file names might exceed the allowable limit\n"
+   "(currently about 5100 bytes), e.g. data+tlrc'[3,5..7,10..13,23]'.\n"
+   "Instead, use the 1dcat functionality to get those volume indices from\n"
+   "a text file.  So if trs.txt contains 3 5 6 7 10 11 12 13 23,\n"
+   "then one can read the volumes using data+tlrc'[1dcat trs.txt]'.\n"
+   "Thanks to G Edwards and S Japee for diagnosing the issue."
+ } ,
+
+ { 17, Aug, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -slice_pattern_to_times",
+   "Output timing given known to3d tpattern, nslices, multiband level, and TR."
+ } ,
+
+ { 17, Aug, 2023, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "rewrite -show_slice_timing_pattern",
+   "Be more forgiving in timing when trying to detect a pattern."
+ } ,
+
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20230411",
+   "Thanks to C Rorden for the update."
+ } ,
+
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "turn off local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
+ {  8, Aug, 2023, RCR, "3dLocalstat", MINOR, TYPE_BUG_FIX,
+   "when creating bucket output, clear time dimension",
+   "Thanks to Philip on MB for noting the problem."
+ } ,
+
+ { 27, Jul, 2023, RCR, "afni-general", MINOR, TYPE_NEW_PROG,
+   "distribute niiview as niiview_afni.umd.js",
+   "This is intended to be used via P Taylor's APQC HTML report.\n"
+   "Requested by P Taylor."
+ } ,
+
+ { 24, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if -tlrc_NL_warped_dsets, require -tlrc_base",
+   "Require user to verify which template was used to make warped dsets.\n"
+   "Requested by D Glen."
+ } ,
+
+ { 21, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix help for -regress_make_corr_vols",
+   "It WAS ave corr, but as of Jan 2020, it is corr of voxels vs ave.\n"
+   "Thanks to D Glen for noting the discrepancy."
+ } ,
+
+ { 19, Jul, 2023, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "fix use of min instead of minor",
+   "Thanks to @dojoonyi for letting us know."
+ } ,
+
+ { 26, Jun, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "write NIFTI-2 if dimensions require it",
+   NULL
+ } ,
+
+ { 22, Jun, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "pass tlrc_base uvar as template",
+   "Sorry, PT."
+ } ,
+
+ { 20, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "under linux, check for shared dependencies of R_io.so",
+   NULL
+ } ,
+
+ { 14, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "default to -radial_correlate_blocks errts, if none given",
+   NULL
+ } ,
+
+ {  8, Jun, 2023, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "turn off check for PyQt4",
+   NULL
+ } ,
+
+ {  8, Jun, 2023, RCR, "Makefile.INCLUDE", MINOR, TYPE_ENHANCE,
+   "add build maker to AFNI_version.txt",
+   NULL
+ } ,
+
+ {  7, Jun, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "start looking for dependent libraries (under linux for now)",
+   "Also, rearranged some of the output.\n"
+   "Done at the behest of P Taylor."
+ } ,
+
+ {  2, Jun, 2023, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fix -regress_errts_prefix for surface analysis",
+   "It was missing $hemi to specify the hemisphere.\n"
+   "Thanks to A Gilemore for bringing up the issue."
+ } ,
+
+ { 12, May, 2023, RCR, "Makefile.macos_13_ARM_clang", MICRO, TYPE_MODIFY,
+   "comment out EXTRA_INSTALL_FILES",
+   "Might vary, and is not needed for non-distribution system."
+ } ,
+
+ { 12, May, 2023, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "R-3.6.3.nn.pkg has been moved to cran-archive.r-project.org",
+   "Thanks to Sally D for letting us know."
+ } ,
+
+ { 10, May, 2023, RCR, "Makefile.macos_12_x86_64", MINOR, TYPE_NEW_OPT,
+   "add Makefile, updates, and OS_notes",
+   NULL
+ } ,
+
+ {  5, May, 2023, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "distribute prog_list.txt (and _bin and _scripts)",
+   "Later we will (modify) and distribute test.afni.prog.help, perhaps."
+ } ,
+
+ {  5, May, 2023, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "fix error cur_afni error if no AFNI is present",
+   "This was failing to finish setting up dot files."
+ } ,
+
+ {  2, May, 2023, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
+   "numpy.complex() is deprecated, use complex()",
+   NULL
+ } ,
+
+ { 27, Apr, 2023, RCR, "Isosurface", MINOR, TYPE_BUG_FIX,
+   "include updates for the 2002.08.12 MarchingCubes code base",
+   "Thanks to C Rorden for providing an updated translation."
+ } ,
+
+ { 25, Apr, 2023, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "note possibly using the regress block in -radial_correlate_blocks",
+   "This might be particularly useful with ANATICOR."
+ } ,
+
+ { 20, Apr, 2023, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "sync with NIFTI-Imaging/nifti_clib",
+   NULL
+ } ,
+
+ { 19, Apr, 2023, RCR, "APMULTI_Demo1_rest", MINOR, TYPE_ENHANCE,
+   "add do/run_40* scripts",
+   "These are in the apmulti_scripts repo."
+ } ,
+
+ { 14, Apr, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_rocky_8 and OS_notes.linux_rocky_8.txt",
+   "These should work on RHEL/CentOS/Rocky/Almalinux 8.\n"
+   "This is now a new build package."
+ } ,
+
  {  3, Apr, 2023, RCR, "@diff.tree", MINOR, TYPE_ENHANCE,
    "update @diff.tree, @diff.files: possibly switch to meld if no xxdiff",
    "Be automatic, rather than forcing one to use '-diff_prog meld'."
@@ -1637,7 +1793,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
-   "fix copy-and-paste erro and missing endif",
+   "fix copy-and-paste error and missing endif",
    "Thanks to R Kampe for noting the problem."
  } ,
 
@@ -4412,7 +4568,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
-   "3dMEMA no longer allows for a paied test",
+   "3dMEMA no longer allows for a paired test",
    "One must now input contrast/stat from original regression."
  } ,
 

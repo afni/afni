@@ -750,9 +750,16 @@ g_history = """
     7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
     7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
     7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
+    7.56 Jun  2, 2023: fix -regress_errts_prefix with surface analysis
+    7.57 Jun 14, 2023: default to -radial_correlate_blocks errts, if none given
+    7.58 Jun 21, 2023: fix: pass tlrc_base as uvar template
+    7.59 Jul 21, 2023: fix: update help for -regress_make_corr_vols
+                            (it is now corr vs ave, rather than ave corr)
+    7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
+    7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
 """
 
-g_version = "version 7.55, March 1, 2023"
+g_version = "version 7.60, August 21, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2431,7 +2438,13 @@ class SubjProcSream:
             rcblocks, rv = self.user_opts.get_string_list(oname)
             if rv: return 1
 
-            # now vlines becomes special, make 'tcat' the default
+            # for radcor, make 'regress' the default
+            if oname == '-radial_correlate_blocks' and rcblocks is None:
+               if self.find_block('regress'):
+                 print("-- including default: -radial_correlate_blocks regress")
+                 rcblocks = ['regress']
+
+            # for vlines, make 'tcat' the default
             if oname == '-find_var_line_blocks' and rcblocks is None:
                print("-- including default: -find_var_line_blocks tcat")
                rcblocks = ['tcat']
@@ -3581,18 +3594,18 @@ class SubjProcSream:
         if user_opts != '':
            user_opts = '%s    %s \\\n' % (istr, user_opts)
 
+        # [PT: Mar 13, 2023] remove '@ss_review_html' line; no longer created
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
               '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
               '%s'                                                            \
               '%s    -uvar_json %s\n'                                         \
-              '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
                  istr, self.html_rev_style,
                  user_opts,
                  istr, self.ssr_uvars,
-                 istr, istr)
+                 istr)
 
         cmd = add_line_wrappers(cmd)
 
@@ -3874,7 +3887,7 @@ class SubjProcSream:
     #         3dDetrend -polort 2 -prefix t.3.det pb02.FT.ospace.r03.volreg
     #     - catenate runs
     #         3dTcat -prefix rm.vr.det.all.runs t.?.det*.HEAD
-    #     - create censored time series via $keep_trs
+    #     - create censored time series via $keep_trs (file)
     #         keep = 1d_tool.py -infile $mfile -show_trs_uncensored encoded
     #         3dpc -mask $mset -pcsave 3 -prefix P3_ det.all.runs+orig"[$keep]"
     #

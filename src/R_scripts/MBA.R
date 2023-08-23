@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.6, Feb 13, 2022
+Version 1.0.7, Apr 17, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -894,11 +894,11 @@ cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 ns <- lop$iterations*lop$chains/2
 #nR <- nlevels(lop$dataTable$ROI1)
-aa <- fixef(fm, summary = FALSE) # Population-Level Estimates
-bb <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
+pe <- fixef(fm, summary = FALSE) # Population-Level Estimates
+ge <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
 
 # region labels
-rL <- dimnames(bb$mmROI1ROI2)[[2]]
+rL <- dimnames(ge$mmROI1ROI2)[[2]]
 
 if(nR != length(rL)) 
    cat('\n***** Warning: something strange about the ROIs! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -907,25 +907,25 @@ if(nR != length(rL))
 cnt <- function(x, ns) return(sum(x>0)/ns)
 
 # extract region-pair posterior samples for an effect 'tm'
-ww <- function(aa, bb, tm, nR) {
-  ps0 <- array(apply(bb[['mmROI1ROI2']][,,tm], 2, "+", bb[['mmROI1ROI2']][,,tm]), c(ns, nR, nR))
-  ps <- apply(ps0, c(2,3), '+', aa[,tm])
+region_pair <- function(pe, ge, tm, nR) {
+  ps0 <- array(apply(ge[['mmROI1ROI2']][,,tm], 2, "+", ge[['mmROI1ROI2']][,,tm]), c(ns, nR, nR)) # obtain (ROIi, ROIj) matrix for region-specific main effects 
+  ps <- apply(ps0, c(2,3), '+', pe[,tm]) # add the common effect to the matrix
   
   dimnames(ps) <- list(1:ns, rL, rL)
   tmp <- ps
   
-  sel1 <- match(dimnames(bb$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(x,y,sep="_")))
-  sel2 <- match(dimnames(bb$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(y,x,sep="_")))
+  sel1 <- match(dimnames(ge$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(x,y,sep="_")))
+  sel2 <- match(dimnames(ge$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(y,x,sep="_")))
   
-  ad <- function(tt,bb,s1,s2) {tt[s1] <- tt[s1] + bb; tt[s2] <- tt[s2] + bb; return(tt)}
-  for(ii in 1:ns) tmp[ii,,] <- ad(tmp[ii,,], bb$`ROI1:ROI2`[ii,,tm], sel1, sel2)
+  ad <- function(tt,ge,s1,s2) {tt[s1] <- tt[s1] + ge; tt[s2] <- tt[s2] + ge; return(tt)}
+  for(ii in 1:ns) tmp[ii,,] <- ad(tmp[ii,,], ge$`ROI1:ROI2`[ii,,tm], sel1, sel2)  # add the interaction
   ps <- tmp
   return(ps)
 }
-# ps <- ww(aa, bb, 'Intercept', nR)
+# ps <- region_pair(pe, ge, 'Intercept', nR)
 
 # obtain summary information of posterior samples for RPs
-vv <- function(ps, ns, nR) {
+rp_summary <- function(ps, ns, nR) {
   mm <- apply(ps, c(2,3), mean)
   for(ii in 1:nR) for(jj in 1:nR) ps[,ii,jj] <- sqrt(2)*(ps[,ii,jj] - mm[ii,jj]) + mm[ii,jj]
   RP <- array(NA, dim=c(nR, nR, 8))
@@ -940,11 +940,11 @@ vv <- function(ps, ns, nR) {
 }
 
 # full region pair result without thresholding
-#xx <- vv(ww(aa, bb, 'Intercept', nR), ns, nR)
+#xx <- rp_summary(region_pair(pe, ge, 'Intercept', nR), ns, nR)
 #subset(xx[,,c(1,8)], xx[,,'P+'] >= 0.975 | xx[,,'P+'] <= 0.025)
 
 # graded thresholding
-res <- function(bb, xx, pp, nd) {
+res <- function(ge, xx, pp, nd) {
    RP <- which(xx[,,'P+'] >= 1-pp | xx[,,'P+'] <= pp, arr.ind = T)
    RP <- RP[RP[,1] < RP[,2],]
    tmp <- data.frame(ROI1=factor(), ROI2=factor(), mean=factor(), SD=factor(), `P+`=factor(), check.names = FALSE)
@@ -1025,12 +1025,12 @@ mPlot <- function(xx, fn) {
 ########## region pair effects #############
 # for intercept or quantitative variable
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
-   xx <- vv(ww(aa, bb, lop$EOIq[ii], nR), ns, nR)   
+   xx <- rp_summary(region_pair(pe, ge, lop$EOIq[ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIq[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   if(lop$fullRes) prnt(50, 1, res(bb, xx, 0.5, 3), lop$outFN, 'region pairs') else {
-   prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
-   prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
-   prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
+   if(lop$fullRes) prnt(50, 1, res(ge, xx, 0.5, 3), lop$outFN, 'region pairs') else {
+   prnt(90, 1, res(ge, xx, 0.1, 3), lop$outFN, 'region pairs')
+   prnt(95, 1, res(ge, xx, 0.05, 3), lop$outFN, 'region pairs')
+   prnt(95, 2, res(ge, xx, 0.025, 3), lop$outFN, 'region pairs')
    }
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(is.na(lop$ROIlist)) mPlot(xx, lop$EOIq[ii]) else mPlot(xx[lop$ROI$order, lop$ROI$order,], lop$EOIq[ii])
@@ -1038,12 +1038,12 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
-   xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
+   xx <- rp_summary(region_pair(pe, ge, lop$qContrL[2*ii-1], nR)-region_pair(pe, ge, lop$qContrL[2*ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   if(lop$fullRes) prnt(50, 1, res(bb, xx, 0.5, 3), lop$outFN, 'region pairs') else {
-   prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
-   prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
-   prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
+   if(lop$fullRes) prnt(50, 1, res(ge, xx, 0.5, 3), lop$outFN, 'region pairs') else {
+   prnt(90, 1, res(ge, xx, 0.1, 3), lop$outFN, 'region pairs')
+   prnt(95, 1, res(ge, xx, 0.05, 3), lop$outFN, 'region pairs')
+   prnt(95, 2, res(ge, xx, 0.025, 3), lop$outFN, 'region pairs')
    }
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(is.na(lop$ROIlist)) mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii])) else
@@ -1055,8 +1055,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR, nR)) # posterior samples
-   for(jj in 1:(nl-1)) ps[jj,,,] <- ww(aa, bb, paste0(lop$EOIc[ii],jj), nR)
-   ps[nl,,,] <- ww(aa, bb, 'Intercept', nR)
+   for(jj in 1:(nl-1)) ps[jj,,,] <- region_pair(pe, ge, paste0(lop$EOIc[ii],jj), nR)
+   ps[nl,,,] <- region_pair(pe, ge, 'Intercept', nR)
    psa <- array(0, dim=c(nl, ns, nR, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
       psa[jj,,,] <- ps[nl,,,] + ps[jj,,,]
@@ -1066,17 +1066,17 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    dimnames(psa)[[3]] <- rL
    dimnames(psa)[[4]] <- rL
    
-   #oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
+   #oo <- array(apply(psa, 1, rp_summary, ns, nR), dim=c(nR, nR, 8, nl))
    #dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
    
    cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:nl) {
       cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- vv(psa[jj,,,], ns, nR)
-      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5, 3),  lop$outFN, 'region pairs') else {
-      prnt(90, 1, res(bb, oo, 0.1, 3),  lop$outFN, 'region pairs')
-      prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
-      prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
+      oo <- rp_summary(psa[jj,,,], ns, nR)
+      if(lop$fullRes) prnt(50, 1, res(ge, oo, 0.5, 3),  lop$outFN, 'region pairs') else {
+      prnt(90, 1, res(ge, oo, 0.1, 3),  lop$outFN, 'region pairs')
+      prnt(95, 1, res(ge, oo, 0.05, 3),  lop$outFN, 'region pairs')
+      prnt(95, 2, res(ge, oo, 0.025, 3), lop$outFN, 'region pairs')
       }
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) else
@@ -1086,11 +1086,11 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    cat(sprintf('===== Summary of region pair effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- vv(psa[jj,,,] - psa[kk,,,], ns, nR)
-      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5, 3),   lop$outFN, 'region pairs') else {
-      prnt(90, 1, res(bb, oo, 0.1, 3),   lop$outFN, 'region pairs')
-      prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
-      prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
+      oo <- rp_summary(psa[jj,,,] - psa[kk,,,], ns, nR)
+      if(lop$fullRes) prnt(50, 1, res(ge, oo, 0.5, 3),   lop$outFN, 'region pairs') else {
+      prnt(90, 1, res(ge, oo, 0.1, 3),   lop$outFN, 'region pairs')
+      prnt(95, 1, res(ge, oo, 0.05, 3),  lop$outFN, 'region pairs')
+      prnt(95, 2, res(ge, oo, 0.025, 3), lop$outFN, 'region pairs')
       }
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) else
@@ -1100,8 +1100,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
 
 ########## region effects #############
 # posterior samples at ROIs for a term
-psROI <- function(aa, bb, tm, nR) {
-  R0 <- apply(bb$mmROI1ROI2[,,tm], 2, '+', 0.5*aa[,tm])
+psROI <- function(pe, ge, tm, nR) {
+  R0 <- apply(ge$mmROI1ROI2[,,tm], 2, '+', 0.5*pe[,tm])
   for(jj in 1:nR) {
       mm <-quantile(R0[,jj], probs=.5)
       R0[,jj] <- sqrt(2)*(R0[,jj] - mm)+mm
@@ -1109,7 +1109,7 @@ psROI <- function(aa, bb, tm, nR) {
   return(R0)  
 }  
 
-#gg <- psROI(aa, bb, 'Intercept', nR)
+#gg <- psROI(pe, ge, 'Intercept', nR)
 
 # summary for ROIs: nd - number of digits to output
 sumROI <- function(R0, ns, nd) {
@@ -1124,7 +1124,7 @@ sumROI <- function(R0, ns, nd) {
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$EOIq[ii], nR), ns, 3)
+   gg <- sumROI(psROI(pe, ge, lop$EOIq[ii], nR), ns, 3)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
@@ -1133,7 +1133,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1], nR) - psROI(aa, bb, lop$qContrL[2*ii], nR), ns, 3)
+   gg <- sumROI(psROI(pe, ge, lop$qContrL[2*ii-1], nR) - psROI(pe, ge, lop$qContrL[2*ii], nR), ns, 3)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
@@ -1143,8 +1143,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
-   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj), nR)
-   ps[nl,,] <- psROI(aa, bb, 'Intercept', nR) # Intercept: averge effect 
+   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(pe, ge, paste0(lop$EOIc[ii],jj), nR)
+   ps[nl,,] <- psROI(pe, ge, 'Intercept', nR) # Intercept: averge effect 
    psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
       psa[jj,,] <- ps[nl,,]  + ps[jj,,]

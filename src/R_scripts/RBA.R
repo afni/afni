@@ -888,11 +888,11 @@ if(is.na(lop$mean)) {
   if(is.null(lop$se))  { # model without standard errors
     if(!is.na(lop$distROI) & lop$distROI == 'student') {
        if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-          modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))  
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ',dist=\'student\'))')) else
+          modelForm <- as.formula(paste('Y~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ',dist=\'student\'))'))  
        } else { # if(!is.na(lop$distSubj) & lop$distSubj == 'student')
-          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-          modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+          if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ',dist=\'student\'))')) else
+          modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ',dist=\'student\'))'))
        } #if(!is.na(lop$distSubj) & lop$distSubj == 'student')
     } else { # if(!is.na(lop$distROI) & lop$distROI == 'student')
        if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
@@ -907,11 +907,11 @@ if(is.na(lop$mean)) {
   } else { # if(is.null(lop$se)): model with standard errors
     if(!is.na(lop$distROI) & lop$distROI == 'student') {
       if(!is.na(lop$distSubj) & lop$distSubj == 'student') {
-         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|gr(Subj, dist=\'student\')) + (1|gr(', lop$ROI, ',dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|gr(Subj, dist=\'student\'))+(', lop$model, '|gr(', lop$ROI, ',dist=\'student\'))'))
       } else {
-         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ' dist=\'student\'))')) else
-         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ' dist=\'student\'))'))
+         if(lop$model==1) modelForm <- as.formula(paste('Y|se(se, sigma = TRUE) ~ 1 + (1|Subj) + (1|gr(', lop$ROI, ',dist=\'student\'))')) else
+         modelForm <- as.formula(paste('Y|se(se, sigma = TRUE)~', lop$model, '+(1|Subj)+(', lop$model, '|gr(', lop$ROI, ',dist=\'student\'))'))
       } #if(!is.na(lop$distSubj) & lop$distSubj == 'student')
     } else {
       if(!is.na(lop$distSubj) & lop$distSubj == 'student') {

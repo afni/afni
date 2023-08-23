@@ -2341,7 +2341,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/edu' \
                             '/latest/afni_handouts')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://discuss.afni.nimh.nih.gov')
       elif obj == self.gvars.act_browse_D2004_glt:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/misc/Decon/DeconSummer2004.html')

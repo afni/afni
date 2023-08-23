@@ -167,7 +167,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   int nparam, type0 , ii , jj;
   int nif_x_axnum=0, nif_y_axnum=0, nif_z_axnum=0;
   int slast, sfirst ;
-  int pattern, tlen ;
+  int pattern, tlen, use_nifti2 ;
   nifti_image *nim ;
   char axcode[3], axsign[3] ;
   float axstep[3] , axstart[3] ;
@@ -468,8 +468,20 @@ ENTRY("populate_nifti_image") ;
   nim->dim[6] = nim->nv;
   nim->dim[7] = nim->nw;
 
-  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt
-                                * nim->nu * nim->nv * nim->nw ;
+  nim->nvox = (int64_t)nim->nx * nim->ny * nim->nz * nim->nt
+                               * nim->nu * nim->nv * nim->nw ;
+
+  /* determine whether NIFTI-2 is required */
+  /* (signed dim greater than signed 16-bit int or nvox > 32-bit) */
+  use_nifti2 = 0;
+  for( ii = 0; ii < 7; ii++ ) {
+     if( nim->dim[ii] > INT16_MAX ) {
+        use_nifti2 = 1;
+        break;
+     }
+  }
+  if( nim->nvox > INT32_MAX )
+     use_nifti2 = 1;
 
   /*-- slice timing --*/
 
@@ -593,11 +605,22 @@ ENTRY("populate_nifti_image") ;
 
   /*-- odds and ends that are constant for AFNI files --*/
   nim->cal_min = nim->cal_max = 0 ;
-  nim->nifti_type = 1 ;
   nim->xyz_units = NIFTI_UNITS_MM ;
   nim->num_ext = 0;
   nim->ext_list = NULL ;
-  nim->iname_offset = 352 ; /* until extensions are added */
+
+  /* init type and offset per NIFTI type            [26 Jun 2023 rickr] */
+  if( use_nifti2 ) {
+     /* need NIFTI-2 */
+     if( options.debug_level > 1)
+        fprintf(stderr,"-- dimensions require writing as NIFTI-2\n");
+     nim->nifti_type = NIFTI_FTYPE_NIFTI2_1 ;
+     nim->iname_offset = sizeof(nifti_2_header) ; /* without extensions */
+  } else {
+     /* NIFTI-1 is default */
+     nim->nifti_type = NIFTI_FTYPE_NIFTI1_1 ;
+     nim->iname_offset = sizeof(nifti_1_header) ; /* without extensions */
+  }
   nim->data = NULL ;
 
   RETURN(nim) ;

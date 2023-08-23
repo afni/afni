@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys, copy
+import string
+from   afnipy import afni_base as ab
 
 # This is a small library of inelegant functions for writing out a
 # command in nicely vertically-spaced fashion over multiple lines.
@@ -28,7 +30,10 @@ import sys, copy
 # 2022-08-19, ver 1.6 :  isnumeric() -> isdigit(), for Py2.7 compatibility.
 # 2022-10-07, ver 1.7 :  afni_niceify_cmd_str() gets new big_list kwarg
 #                        to play nice with AP help examples
+# 2023-22-22, ver 1.8 :  kwarg to auto-guess prog opts, if possible
 # -------------------------------------------------------------------------
+
+VER_MAJOR = sys.version_info.major
 
 # DEFAULTS for kwargs in these funcs
 
@@ -43,7 +48,137 @@ AD = { \
        'verb'          : 0,
 }
 
+all_good_opt_chars = string.ascii_letters
+all_good_opt_chars+= ''.join([str(x) for x in range(10)])
+all_good_opt_chars+= ''.join(['-', '_'])
+
 # -------------------------------------------------------------------------
+
+def guess_prog_opt_list(pname):
+    '''For a program named pname, try to guess the available option list
+automagically.  There is a bit of a triage of methods for doing so,
+which might change over time.
+
+Parameters
+----------
+pname : str
+    name of program (presumably an AFNI prog)
+
+Returns
+-------
+lopt : list
+    list of found options (= strings). If none were found, return 
+    empty list
+
+    '''
+
+    do_cap = True
+    
+    lopt = []
+    
+    # First way: certain AFNI Python progs have -show_valid_opts opt
+    if pname.endswith('.py') and not(len(lopt)) :
+        cmd  = pname + ' -show_valid_opts'
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+
+        if not(stat) :
+            # extract options
+            cmd  = pname + ' -show_valid_opts' 
+            cmd += """ | awk '{print $3}'"""
+            com  = ab.shell_com(cmd, capture=do_cap)
+            stat = com.run()
+            kopt = copy.deepcopy(com.so)
+            lopt = adjunct_opt_list_cleanup(kopt)
+
+    # Second way: use apsearch, should have most/all AFNI progs
+    if not(len(lopt)) :
+        # all AFNI progs should have a guesstimated list here
+        cmd  = 'apsearch -list_popts ' + pname
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+
+        if not(stat) :
+            kopt = copy.deepcopy(com.so)
+            lopt = adjunct_opt_list_cleanup(kopt)
+    
+    # Empty ending: found nothing
+    if not(len(lopt)) :
+        print("+* WARN: no options found for prog:", pname)
+
+    return lopt
+
+def adjunct_opt_list_cleanup(L, 
+                             yes_dash_start=True,
+                             no_single_char=True,
+                             only_single_dash=True,
+                             no_only_dash=True,
+                             split_at_bad=True, 
+):
+    '''Option lists can contain bad/extraneous characters, as well as
+non-options.  This function tries to clean them up in various ways
+
+Parameters
+----------
+L : list
+    input list of potential options, for cleaning
+yes_dash_start : bool
+    if True, an opt *not* starting with '-' is removed from the list
+no_single_char : bool
+    if True, an opt that has len=1 is removed from the list
+only_single_dash : bool
+    if True, an opt starting with '--' is removed from the list
+no_only_dash : bool
+    if True, an opt that is only made up of dashes is removed from the list
+split_at_bad : bool
+    go through opt name; if a bad char appears, split and choose the
+    [0]th part.  In this way, bad chars are removed, as well as
+    anything that follows (bc sometimes a colon plus other stuff is
+    attached in apsearch output).  Any char not in the all_good_opt_chars
+    list is considered bad.
+
+Returns
+-------
+M : list
+    list of (hopefully cleaned) options; might be shorter than L
+
+    '''
+
+    N = len(L)
+    M = []
+
+    for ii in range(N):
+        opt = L[ii].strip() # remove start/end whitespace
+        
+        # start checks
+        if opt and yes_dash_start :
+            if not(opt.startswith('-')) :
+                opt = ''
+
+        if opt and no_single_char :
+            if len(opt) < 2 :
+                opt = ''
+
+        if opt and only_single_dash :
+            if opt.startswith('--') :
+                opt = ''
+
+        if opt and no_only_dash :
+            if not(len(opt.replace('-', ''))) :
+                opt = ''
+                   
+        if opt and split_at_bad :
+            for c in opt:
+                if not(c in all_good_opt_chars) :
+                    opt = opt.split(c)[0]
+        # end of checks
+        
+        if opt :
+            M.append(opt)
+
+    return M
+                   
+        
 
 # Primarily a suppl function of split_str_outside_quotes()
 def find_next_quote_in_str( sss, quote_pair_list=AD['quote_pair_list'] ):
@@ -509,9 +644,11 @@ non-whitespace 'islands', l1 and l2, respectively
 # -------------------------------------------------------------------------
 
 # The main primary command to take a not-fancily-formatted str command
-# and go through the couple steps to turn it into one
+# and go through the couple steps to turn it into one;
+# [PT: May 22, 2022] introduce use_auto_args as new default for arg lists
 def afni_niceify_cmd_str( sss, big_list=None,
                           nindent=AD['nindent'], max_lw=AD['max_lw'],
+                          use_auto_args=True,
                           list_cmd_args=AD['list_cmd_args'],
                           max_harg1=AD['max_harg1'],
                           comment_start=AD['comment_start'],
@@ -542,10 +679,16 @@ def afni_niceify_cmd_str( sss, big_list=None,
                        [0]th
     max_lw           : (int) max line width to aim for (some text chunks may
                        stick over, like long file path names)
+    use_auto_args    : (bool) use apsearch or -show_valid_opts to try to get
+                       specific list of opts (not just anything with '-* ..'; 
+                       for AFNI progs, this should be simplest/easiest way
+                       to go to know where to split.  Alternatively, could use
+                       list_cmd_args for user-provided explicit list.
     list_cmd_args    : (list of str) explicit list of args to use for 
                        splitting the argv up line by line; if none is given,
                        which is the default scenario, then the program
-                       aims to guess on its own
+                       aims to guess on its own; now superseded by default
+                       by use_auto_args=True.
     max_harg1        : (int) max number of spaces for starting arg [1] in any
                        output command (unless arg0 sticks out further), for 
                        visual alignment.  If the longest [0]th arg in a line
@@ -578,10 +721,27 @@ def afni_niceify_cmd_str( sss, big_list=None,
 
     do_check = False
 
+    # this is for Py2 code; in Py3, unicode is part of str
+    if VER_MAJOR == 2 :
+        if type(sss) == unicode :
+            sss = str(sss)
+            if verb :    print("++ Converting unicode to str")
+
     if big_list == None :
-        if type(sss) != str:
-            print("** ERROR: need sss to be a string")
+        # [PT: Aug 22, 2023] updated to include unicode here, because
+        # of annoying Py2 behavior
+        if type(sss) != str :
+            print("** ERROR: need sss to be a string (or at least unicode)")
+            print("   This is not: '{}', type={}".format(sss, type(sss)))
             return 1, ''
+
+        if not(len(list_cmd_args)) and use_auto_args :
+            pname = sss.strip().split()[0]          # get name of program
+            list_cmd_args = guess_prog_opt_list(pname)
+
+            if verb :
+                print("++ Auto arg search found {} args for prog: {}"
+                      "".format(len(list_cmd_args), pname))
 
         big_list = listify_argv_str( sss, 
                                      list_cmd_args=list_cmd_args,

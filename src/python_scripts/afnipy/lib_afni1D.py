@@ -2587,7 +2587,14 @@ class Afni1D:
          verb: if 0, no text"""
 
       if mesg:     print('%s' % mesg, end='')
-      nb, tpat = UTIL.timing_to_slice_pattern([v[0] for v in self.mat])
+
+      # allow timing to be either vertical or horizontal
+      if self.nvec == 1:
+         timing = self.mat[0]
+      else:
+         timing = [v[0] for v in self.mat]
+
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))

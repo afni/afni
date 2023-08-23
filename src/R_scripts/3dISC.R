@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, Jan 17, 2023
+Version 1.0.5, Aug 1, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -759,26 +759,26 @@ process.ISC.opts <- function (lop, verb = 0) {
 # LME: bare-bone approach with LME for ISC: some voxels may have 0 ISC values: effect estimates as input only
 runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
    #browser()
-   if(!all(myData == 0)) {     
+   #if(!all(na.omit(myData) == 0)) {
+   if(!any(myData) == 0) {
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
-      
-      try(fm <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
-     
-      if(is.null(fm)) {
+      m <- NULL
+      try(m <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
+      if(is.null(m)) {
          if(intercept==1) return(rep(0,2)) else return(rep(0,2*nrow(gltM)))
       } else {
          if(intercept==1) {
-            cc <- fm$coefficients
+            cc <- m$coefficients
             tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
             return(c(z2r(cc[1]), tt))
 	 } else {
-	    vv <- t(gltM %*% coef(fm)[,1])
+	    vv <- t(gltM %*% coef(m)[,1])
             se <- rep(1e8, nrow(gltM))
-            for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(fm) %*% gltM[ii,]))
+            for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(m) %*% gltM[ii,]))
             tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
 	    return(c(rbind(vv,tt)))
 	 }
@@ -790,20 +790,21 @@ runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
 runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
    #browser()
    #myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   #if(!all(na.omit(myData) == 0)) {
+   if(!any(myData) == 0) {
       DM$ISC <- myData
       options(warn=-1)
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
       
-      try(fm <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
-      #if(is.null(fm)) return(rep(0,14))) else {
-      #   cc <- fm$coefficients
+      try(m <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
+      #if(is.null(m)) return(rep(0,14))) else {
+      #   cc <- m$coefficients
       #   tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
       #	 return(c(z2r(cc[1]), tt))
       #}
-      if(is.null(fm)) return(rep(0,14)) else {
+      if(is.null(m)) return(rep(0,14)) else {
          ww <- matrix(c(0.5, 0, 0.5,    # average
                         1,0,0,    # G1
                         0,1,0,    # G12
@@ -813,9 +814,9 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
 			0,1,-1,    # G12 - G2
                         0.5,-1,0.5), # (G1+G2)/2 - G12
                       nrow = 7, ncol = 3, byrow = TRUE)
-         vv <- t(ww%*%coef(fm)[,1])
+         vv <- t(ww%*%coef(m)[,1])
          se <- rep(1e8, 7)
-         for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(fm) %*% ww[ii,]))
+         for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(m) %*% ww[ii,]))
          tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
 	 return(c(rbind(vv,tt)))
       }
@@ -1160,7 +1161,7 @@ if(dimy==1 & dimz==1) { # 1D data
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
-                  DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1)) 
+            DM=lop$dataStr, gltM=lop$gltM, intercept=intercept, nF=nF, nS=nS, tag=0), c(2,3,1)) 
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       } # for (kk in 1:dimz)
       stopCluster(cl)

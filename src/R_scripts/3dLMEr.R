@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, Apr 3, 2023
+Version 1.0.4, Aug 22, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -811,7 +811,7 @@ runLME <- function(myData, DM, tag) {
       DM <- assVV2(DM, lop$vQV, myData[(length(myData)/2+1):length(myData)], all(is.na(lop$vVarCenters)))
    }
 
-   if(!all(myData == 0)) {
+   if(!all(na.omit(myData) == 0)) {
       DM$yy <- myData[1:nrow(DM)]
       fm <- NULL
       options(warn=-1)
@@ -1322,7 +1322,7 @@ if(lop$TRR) {
 #      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n, typ="fizt", par=NULL)))
 }
 
-write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
+write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick,drop=FALSE], brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 if(!is.null(lop$resid))

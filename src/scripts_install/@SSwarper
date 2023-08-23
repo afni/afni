@@ -536,6 +536,11 @@ if ( ! -f "${dset_cp}" ) then
     3dTcat                        \
         -prefix "${dset_cp}"      \
         "$Adataset"
+
+    if ( ${status} ) then
+        echo "** ERROR: in getting dset"
+        goto BAD_EXIT
+    endif
 endif
 
 if ( "${mask_ss}" != "" ) then
@@ -544,6 +549,11 @@ if ( "${mask_ss}" != "" ) then
         3dTcat                           \
             -prefix "${mask_ss_cp}"      \
             "${mask_ss}"
+
+        if ( ${status} ) then
+            echo "** ERROR: in getting dset"
+            goto BAD_EXIT
+        endif
     endif
 endif
 
@@ -583,6 +593,12 @@ else if ( ${DO_DEOB_REF} ) then
     3drefit                       \
         -deoblique                \
         "${dset_do}"
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed in Step deob"
+        goto BAD_EXIT
+    endif
+
     # ... and this will be new "input" dset
     set Adataset = "${dset_do}"
 
@@ -598,15 +614,16 @@ else if ( ${DO_DEOB_REF} ) then
         3drefit                       \
             -deoblique                \
             "${mask_do}"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step deob"
+            goto BAD_EXIT
+        endif
+
         # ... and this will be new "input" dset
         set mask_ss = "${mask_do}"
     endif 
 
-endif
-
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step deob"
-    goto BAD_EXIT
 endif
 
 ## Step #1: Unifize the input T1
@@ -622,18 +639,25 @@ if ( ! -f "$odir/anatU.${SubID}.nii" ) then
             -Urad 30                          \
             -prefix "$odir/anatU.$SubID.nii"  \
             -input "$Adataset"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step U"
+            goto BAD_EXIT
+        endif
     else
         echo "++ NOT unifizing dset."
         3dcopy                                \
             "$Adataset"                       \
             "$odir/anatU.$SubID.nii"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step U"
+            goto BAD_EXIT
+        endif
+
     endif
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step U"
-    goto BAD_EXIT
-endif
 
 
 # [PT: Feb 11, 2019] now allows for option *not* to anismoothize
@@ -646,17 +670,22 @@ if ( ! -f "$odir/anatUA.${SubID}.nii" ) then
             -noneg                              \
             -prefix "$odir/anatUA.${SubID}.nii" \
             "$odir/anatU.${SubID}.nii"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step UA"
+            goto BAD_EXIT
+        endif
     else
         echo "++ NOT anisosmoothing dset."
         3dcopy                                  \
             "$odir/anatU.$SubID.nii"            \
             "$odir/anatUA.$SubID.nii"
-    endif
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step UA"
-    goto BAD_EXIT
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step UA"
+            goto BAD_EXIT
+        endif
+    endif
 endif
 
 # [PT: Jan 6, 2020] get rid of potentially *very* high vals: take
@@ -673,17 +702,22 @@ if ( ! -f "$odir/anatUAC.${SubID}.nii" ) then
             -expr "maxbelow(${vvv[2]},a)"       \
             -prefix "$odir/anatUAC.${SubID}.nii"
 
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step UAC"
+            goto BAD_EXIT
+        endif
+
     else
         echo "++ NOT anisosmoothing dset."
         3dcopy                                   \
             "$odir/anatUA.$SubID.nii"            \
             "$odir/anatUAC.$SubID.nii"
-    endif
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step UAC"
-    goto BAD_EXIT
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step UAC"
+            goto BAD_EXIT
+        endif
+    endif
 endif
 
 
@@ -700,6 +734,11 @@ if ( ! -f "$odir/anatS.${SubID}.nii" ) then
             -shrink_fac_bot_lim 0.777          \
             -exp_frac 0.0666 -orig_vol         \
             $SSopt
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step 2"
+            goto BAD_EXIT
+        endif
     else if ( "${mask_ss}" != "" ) then
         echo "++ Instead of skullstripping, apply mask_ss dset."
         3dcalc                                 \
@@ -707,17 +746,22 @@ if ( ! -f "$odir/anatS.${SubID}.nii" ) then
             -b ${mask_ss}                      \
             -expr 'a*step(b)'                  \
             -prefix "$odir/anatS.$SubID.nii"
+
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step 2"
+            goto BAD_EXIT
+        endif
     else
         echo "++ NOT pre-skullstripping dset."
         3dcopy                                 \
             "$odir/anatUAC.$SubID.nii"         \
             "$odir/anatS.$SubID.nii"
-    endif
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step 2"
-    goto BAD_EXIT
+        if ( ${status} ) then
+            echo "** ERROR: program failed in Step 2"
+            goto BAD_EXIT
+        endif
+    endif
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
@@ -737,6 +781,11 @@ if ( ${DO_GIANT} ) then
         -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"                         \
         -allopt '-twobest 11 -twopass -maxrot 45 -maxshf 40 -source_automask+2 -cmass'
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed in Step 3"
+        goto BAD_EXIT
+    endif
 else
     3dQwarp -echo_edu           ${saveall}                \
         $liteopt $verbopt                                 \
@@ -750,11 +799,11 @@ else
         -inedge                                           \
         -workhard:3:5 -nopenalty                          \
         -prefix "${pref}TAL5.nii"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed in Step 3"
-    goto BAD_EXIT
+    if ( ${status} ) then
+        echo "** ERROR: program failed in Step 3"
+        goto BAD_EXIT
+    endif
 endif
 
 # -------- check early NL alignment to ref vol space ---------
@@ -819,6 +868,7 @@ endif
     -input "${Basedset}[3]"      \
     -dilate_input 3              \
     -prefix "${pref}MASK.nii"
+
 3dNwarpApply \
     -nwarp "${pref}TAL5_WARPINV.nii"   \
     -master "$odir/anatS.$SubID.nii"   \

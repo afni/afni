@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.12, Jan 19, 2023
+Version 1.0, JAug 22, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -534,7 +534,7 @@ process.ICC.opts <- function (lop, verb = 0) {
 runLME <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$eff <- myData
       try(fm<-lmer(ModelForm, data=dataframe), tag<-1)
       if(tag != 1) {    
@@ -560,7 +560,7 @@ runLME <- function(myData, ModelForm, dataframe, nBrk, tag) {
 runMME <- function(myData, dataframe, fe, re, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) { 
+   if(!all(na.omit(myData) == 0)) { 
       hlf <- length(myData)/2
       dataframe$eff <- myData[1:hlf]
       dataframe$vi  <- myData[(1+hlf):length(myData)]
@@ -1004,7 +1004,7 @@ outLabel <- c("ICC", "ICC F")
 statsym <- NULL
 statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
-write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
+write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick,drop=FALSE], outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_float', scale=FALSE)
 
 #system(statpar)

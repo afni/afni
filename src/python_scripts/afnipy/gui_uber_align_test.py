@@ -1057,7 +1057,7 @@ class MainWindow(QtGui.QMainWindow):
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/htmldoc/programs/afni_proc.py_sphx.html')
       elif obj == self.gvars.act_browse_MB:
-         self.open_web_site('https://afni.nimh.nih.gov/afni/community/board')
+         self.open_web_site('https://discuss.afni.nimh.nih.gov')
       else: print('** cb_help_browse: invalid sender')
 
    def update_uvars_from_gui(self, warn=0, set_pdir=1, disable_exec=1):

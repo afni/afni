@@ -2204,9 +2204,11 @@ class RegWrap:
                 f.write("flip_cost_orig : %f\n" % noflipcost)
                 f.write("flip_cost_flipped : %f\n" % flipcost)
                 f.write("flip_cost_func : %s\n" % costfunction)
-                f.write("flip_base: %s\n" %  e.pv())
-                f.write("flip_dset_orig : %s\n" % o.pv())
-                f.write("flip_dset_flipped : %s\n" % of.pv())
+                # [PT: Jun 4, 2023] provide full prefix name (with
+                # '.HEAD'), for possible file loading in NiiVue later
+                f.write("flip_base: %s\n" %  e.shortinput(head=1))
+                f.write("flip_dset_orig : %s\n" % o.shortinput(head=1))
+                f.write("flip_dset_flipped : %s\n" % of.shortinput(head=1))
                 if(flipcost < noflipcost):
                    print("WARNING: ************ flipped data aligns better than original data\n" \
                          "Check for left - right flipping in the GUI ************************")

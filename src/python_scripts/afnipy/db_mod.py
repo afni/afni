@@ -5974,6 +5974,7 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # last censoring is done, so possibly generate keep_trs as $ktrs
+    # (also, generate keep_trs as $ktrs)
     newcmd = get_keep_trs_cmd(proc)
     if newcmd: cmd += newcmd
 
@@ -6235,12 +6236,12 @@ def db_cmd_regress(proc, block):
     # if there is no errts prefix, but the user wants to measure blur, add one
     # (or if there are no normal regressors)
     if nregsOI == 0 or (not opt.parlist and (bluropt or tsnropt)):
-        opt.parlist = ['errts.${subj}%s' % suff]
+        opt.parlist = ['errts.${subj}']
 
     if not opt or not opt.parlist: errts = ''
     else:
         # note and apply
-        proc.errts_pre_3dd = opt.parlist[0]
+        proc.errts_pre_3dd = '%s%s' % (opt.parlist[0], suff)
         proc.errts_pre     = proc.errts_pre_3dd
         errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
@@ -6908,12 +6909,29 @@ def db_cmd_regress_anaticor(proc, block):
 def get_keep_trs_cmd(proc):
     # sub-brick selection, in case of censoring
     # (only return this once)
+    #
+    # note: this is currently used only in TSNR computation
+    #     : 3dpc is used after 3dTproject -cenmode KILL
+    #     : blur estimation does $trs per run, so it might also need changing
+
     if proc.censor_file and proc.keep_trs == '':
-       c1 = '1d_tool.py -infile %s \\\n'                        \
-            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
-       cs = '# note TRs that were not censored\n'               \
-            'set ktrs = `%s`\n\n' % c1
+
+       # ** 21 Aug 2023: Shruti reports failure to read sub-brick selectors
+       #                 because a lot of censoring leads to file names that
+       #                 are beyond our size limits.  Use text files, instead.
+       #               : so do not use encoded trs, but unencoded from a file
+       
+       ktr_text = 'out.keep_trs_rall.txt'
+
+       cs = '# note TRs that were not censored\n'                         \
+            '# (apply from a text file, in case of a lot of censoring)\n' \
+            '1d_tool.py -infile %s \\\n'                                  \
+            '           -show_trs_uncensored space \\\n'                  \
+            '           > %s\n'                                           \
+            'set ktrs = "1dcat %s"\n\n'                                   \
+            % (proc.censor_file, ktr_text, ktr_text)
        proc.keep_trs = '"[$ktrs]"'
+
     else:
        cs = ''
 
@@ -8021,9 +8039,8 @@ def db_cmd_regress_censor_motion(proc, block):
 # --------------- tlrc (anat) ---------------
 
 def db_mod_tlrc(block, proc, user_opts):
-    if len(block.opts.olist) == 0:      # then init to defaults
-        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
+    # --------------------------------------------------
     # verify that anatomical dataset exists
     opt_anat = user_opts.find_opt('-copy_anat')
     if not opt_anat:
@@ -8041,7 +8058,19 @@ def db_mod_tlrc(block, proc, user_opts):
     # --------------------------------------------------
     # handle the template dataset: verify existence, etc
 
-    apply_uopt_to_block('-tlrc_base', user_opts, block)
+    # check before template init: if -tlrc_NL_warped_dsets, require -tlrc_base
+    if user_opts.find_opt('-tlrc_NL_warped_dsets') and \
+       not user_opts.find_opt('-tlrc_base'):
+       print("** error: -tlrc_NL_warped_dsets requires option -tlrc_base")
+       print("   (please verify which template was used to make warped_dsets)")
+       return
+
+    # set template
+    oname = '-tlrc_base'
+    if user_opts.find_opt(oname):
+        apply_uopt_to_block('-tlrc_base', user_opts, block)
+    else:
+        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
     prepare_tlrc_base(proc, block)
 
@@ -8739,7 +8768,8 @@ def ap_uvars_table(proc):
     if proc.mask and not proc.surf_anat:
        aptab.append(['mask_dset', ['%s' % proc.mask.shortinput(head=1)]])
     if proc.tlrc_base:
-       aptab.append(['tlrc_base', ['%s' % proc.tlrc_base.shortinput(head=1)]])
+       # tlrc_base is called template
+       aptab.append(['template', ['%s' % proc.tlrc_base.shortinput(head=1)]])
 
     if proc.ssr_b_out != '':
        aptab.append(['ss_review_dset', ['%s' % proc.ssr_b_out]])
@@ -9722,6 +9752,9 @@ EXAMPLES (options can be provided in any order): ~1~
          they are not actually required for the analysis.
      o Compute average correlation volumes of the errts against the
        the gray matter (aeseg) and ventricle (FSVent) masks.
+     o Run @radial_correlate at the ends of the tcat, volreg and regress
+       blocks.  If ANATICOR is being used to remove a scanner artifact, 
+       the errts radcor images might show the effect of this.
 
        Note: it might be reasonable to use either set of blur estimates
              here (from epits or errts).  The epits (uncleaned) dataset
@@ -9734,6 +9767,7 @@ EXAMPLES (options can be provided in any order): ~1~
         afni_proc.py -subj_id FT.11.rest                                 \\
           -blocks despike tshift align tlrc volreg blur mask             \\
                   scale regress                                          \\
+          -radial_correlate_blocks tcat volreg regress                   \\
           -copy_anat anatSS.FT.nii                                       \\
           -anat_has_skull no                                             \\
           -anat_follower anat_w_skull anat anatU.FT.nii                  \\
@@ -10358,7 +10392,7 @@ or image files.
        corr_brain
 
           This AFNI dataset shows the correlation of every voxel with the
-          global signal (brain average time series).
+          global signal (average time series over brain mask).
 
           One can request other corr_* datasets, based on any tissue or ROI
           mask.  See -regress_make_corr_vols for details.
@@ -12183,6 +12217,7 @@ OPTIONS:  ~2~
     -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
 
             e.g. -radial_correlate_blocks tcat volreg
+            e.g. -radial_correlate_blocks tcat volreg regress
 
         With this option set, @radial_correlate will be run at the end of
         each listed block.  It computes, for each voxel, the correlation
@@ -12193,7 +12228,7 @@ OPTIONS:  ~2~
 
         Valid blocks include:
 
-            tcat, tshift, volreg, blur, scale
+            tcat, tshift, volreg, blur, scale, regress
 
         The @radial_correlate command will produce an output directory of
         the form radcor.pbAA.BBBB, where 'AA' is the processing block index
@@ -12207,6 +12242,9 @@ OPTIONS:  ~2~
                                epi.ulay.r01+tlrc.HEAD
                                radcor.20.r01.corr+tlrc.BRIK
                                radcor.20.r01.corr+tlrc.HEAD
+
+        For the regress block, radcor results will be generated for the
+        all_runs and errts datasets.
 
         See also -radial_correlate_opts.
         See '@radial_correlate -help' for more details.
@@ -14512,15 +14550,14 @@ OPTIONS:  ~2~
         What is a such a correlation volume?
 
            Given: errts     : the residuals from the linear regression
-                  a mask    : to correlate over, e.g. full_mask
+                  a mask    : to correlate over, e.g. full_mask == 'brain'
 
-           Compute: for each voxel (in the errts, say), compute the average
-              correlation over all voxels within the given mask.  In some
-              sense, this is a measure of self correlation over a specified
-              region.
+           Compute: for each voxel (in the errts, say), compute the correlation
+              against the average over all voxels within the given mask.
 
-           This is a mean correlation rather than a correlation with the
-           mean.
+         * This is a change (as of Jan, 2020).  This WAS a mean correlation
+           (across masked voxels), but now it is a correlation of the mean
+           (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
         via -anat_follower_ROI, -regress_ROI_PC, or from the automatic

@@ -7124,7 +7124,7 @@ void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 
 #undef  FORUM_LINK
 #define FORUM_LINK \
- "https://afni.nimh.nih.gov/afni/community/board/"
+ "https://discuss.afni.nimh.nih.gov"
 
 void AFNI_forum_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
