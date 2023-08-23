@@ -751,6 +751,7 @@ Returns
                                 label='phase (scaled)',
                                 alpha=1.0,
                                 ls='--',
+                                lw=DEF_lw*2,
                                 color='black')
         fff.add_plobj(ret_plobj4)
 

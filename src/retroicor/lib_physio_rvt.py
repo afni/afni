@@ -43,15 +43,15 @@ new_layer : np.ndarray
         diff  = end - start
         vstart = phobj.ts_orig[start]
         slope  = (phobj.ts_orig[end] - vstart)/diff
-        # start value does not need to be interpolated
+        # loop over this inter-extrema interval
         for jj in range(start, end):
             new_layer[jj] = vstart + (jj-start)*slope
 
     # outside of extrema, use constant padding with closest extremum
     for ii in range(all_ext[0]):
         new_layer[ii] = phobj.ts_orig[all_ext[0]]
-    for ii in range(all_ext[-1]+1, Nts):
-        new_layer[ii] = phobj.ts_orig[all_ext[-1]]
+    for ii in range(all_ext[-1], Nts):
+        new_layer[ii] = phobj.ts_orig[all_ext[-1]-1]
 
     return new_layer
 
@@ -110,9 +110,9 @@ y : np.ndarray
 
     # and for early/late points, just use initial/last values
     for jj in range(all_midext[0]):
-        y[jj] = intervals[0]
+        y[jj] = y[all_midext[0]]
     for jj in range(all_midext[-1], Ny):
-        y[jj] = intervals[-1]
+        y[jj] = y[all_midext[-1]-1]
 
     # finally, apply units, so output period 
     y*= phobj.samp_rate
