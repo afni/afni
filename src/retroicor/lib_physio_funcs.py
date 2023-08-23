@@ -581,34 +581,6 @@ is_ok : int
                                               retobj=retobj)
 
 
-        # --------
-        count+= 1
-        lab_title = 'Process peak/trough end points'
-        lab_short = 'peak_trough_ends'
-        if verb :   print('++', lab_title)
-        # NB: both peaks and troughs potentially updated here
-        peaks, troughs = lpp.classify_endpts(peaks, 
-                                             troughs,
-                                             phobj.ts_orig,
-                                             label=label,
-                                             verb=verb)
-        if len(peaks) == 0 or len(troughs) == 0 :
-            print("** ERROR: no peaks or troughs after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
-        if retobj.save_graph_level > 1 :
-            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                              troughs=troughs,
-                                              title=title, fname=fname,
-                                              retobj=retobj)
-
-
-
-
-
     # ----- DONE with peak+trough estimation+refinement: add to obj -----
     phobj.peaks = peaks
     p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
@@ -769,7 +741,6 @@ intervals to estimate 'instantaneous period'.
     fname, title = make_str_ts_peak_trough(label, count, 
                                            lab_title, lab_short, 
                                            prefix=prefix, odir=odir)
-    print("HEY lower env:", lower_env)
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
                                           troughs=phobj.troughs,
@@ -888,67 +859,10 @@ def calc_regress_rvt(retobj, label=None, verb=0):
                                                 phobj.list_slice_sel_rvt,
                                                 shift)
 
-    '''
-    phobj.rvt_ts[phobj.list_slice_sel[nn][1]]
-
-    for mm in range(1, phobj.M+1):
-        # make cos() regressors, and initialize list of lists
-        lab = 'c{}'.format(mm)
-        regress_dict_phys[lab] = []
-        for nn in range(phobj.n_slice_sel_phys):
-            reg = np.cos(mm*phobj.phases[phobj.list_slice_sel[nn][1]])
-            regress_dict_phys[lab].append([phobj.list_slice_sel[nn][0],
-                                           copy.deepcopy(reg)])
-
-        # make sin() regressors, and initialize list of lists
-        lab = 's{}'.format(mm)
-        regress_dict_phys[lab] = []
-        for nn in range(phobj.n_slice_sel_phys):
-            reg = np.sin(mm*phobj.phases[phobj.list_slice_sel[nn][1]])
-            regress_dict_phys[lab].append([phobj.list_slice_sel[nn][0],
-                                           copy.deepcopy(reg)])
-    '''
-
     phobj.regress_dict_rvt = regress_dict_rvt
 
     return 0
 
-'''
-def get_shifted_rvt(x, shift):
-    """Take input time series x and shift it by shift spaces to the left
-or right.  'Gaps' left by shifting are filled in with the first or
-last value present from the original time series in the direction of
-that shift.
-
-Parameters
-----------
-x : np.ndarray
-    1D array
-shift: int
-    number of time points to shift the regressor left ('earlier') or right ('later')
-
-Returns
--------
-y : np.ndarray
-    1D array, with shift applied
-
-    """
-
-    N = len(x)
-    y = np.zeros(N, dtype=x.dtype)
-
-    if shift > 0 :
-        y[shift:] = x[:N-shift]
-        y[:shift] = np.array([x[0]]*shift)
-    elif shift < 0 :
-        ashift = abs(shift)
-        y[:N-ashift] = x[ashift:]
-        y[N-ashift:] = np.array([x[-1]]*ashift)
-    else:
-        y = copy.deepcopy(x)
-
-    return y
-'''
 
 def get_shifted_rvt(x, samp_freq, all_ind, shift):
     """Take input time series x and shift it by delta_t=shift to the left
