@@ -236,10 +236,17 @@ auth = 'PA Taylor'
 #ver = '4.1' ; date = 'Nov 15, 2022'
 # [PT] many new parts for var_lines (AKA vlines) and tcat QC
 #
-ver = '5.0' ; date = 'Mar 05, 2023'
+#ver = '5.0' ; date = 'Mar 05, 2023'
 # [PT] move toward Python-only implementation, rather than generating
 #      a script intermediately, to simplify flexibility, additions and
 #      apqc2/NiiVue functionality
+#
+#ver = '5.1' ; date = 'Aug 22, 2023'
+# [PT] fix Py2-Py3 compatibility: flush print funcs separately
+#
+ver = '5.2' ; date = 'Aug 22, 2023'
+# [PT] fix Py2-Py3 compatibility: open(...) function stuff, for utf-8 enc
+#    + a bit more with print functions, too
 #
 #########################################################################
 
@@ -247,6 +254,7 @@ import os, copy
 import sys
 import glob
 import json
+import codecs
 import subprocess
 import collections    as coll
 from   datetime   import datetime
@@ -1133,6 +1141,10 @@ ap_ssdict : dict
         ap_ssdict['cen_lim_all'] = ''
         ap_ssdict['cen_lim_all_yax'] = ''
 
+    else:
+        # [PT: Aug 22, 2023] no censoring to visualize---thanks, C Rorden!
+        ap_ssdict['cen_cmd'] = ''
+
     return ap_ssdict
 
 
@@ -1190,6 +1202,10 @@ ap_ssdict : dict
 
             uuu = "-yaxis 0:{}".format(ap_ssdict['ytop_out'])
             ap_ssdict['cen_lim_out_yax'] = uuu                
+
+    else:
+        # [PT: Aug 22, 2023] no censoring to visualize---thanks, C Rorden!
+        ap_ssdict['cen_cmd'] = ''
 
     # order matters here: mot, out
     ttt = "-censor_hline {} {}".format( ap_ssdict['mot_hline'], 
@@ -1321,7 +1337,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# volreg motion pars, and censoring'''
@@ -1350,8 +1366,14 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['jpgsize'] = jpgsize
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
 
     # Make image
     if run_style == 'basic' :
@@ -1364,7 +1386,7 @@ num : int
             -title            "{ptitle}"                                     \
             -jpgs             {jpgsize} "{opref}"                            \
             "{motion_dset}"
-        '''.format(**ap_ssdict, jpgsize=jpgsize, ptitle=ptitle, opref=opref )
+        '''.format(**ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1381,7 +1403,7 @@ num : int
             -xlabel         "vol index"                                      \
             -title          "{ptitle}"                                       \
             -prefix         "{opref}.jpg"
-        '''.format(**ap_ssdict, ptitle=ptitle, opref=opref )
+        '''.format(**ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1425,7 +1447,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# outlier frac and censoring'''
@@ -1455,8 +1477,14 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['jpgsize'] = jpgsize
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
 
     # Make output plots
     if run_style == 'basic' :
@@ -1471,7 +1499,7 @@ num : int
             -title              "{ptitle}"                                   \
             {outlier_dset}                                                   \
             "{cen_lim_out}"
-        '''.format(**ap_ssdict, jpgsize=jpgsize, ptitle=ptitle, opref=opref )
+        '''.format(**ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1489,7 +1517,7 @@ num : int
             -xlabel             "vol index"                                  \
             -title              "{ptitle}"                                   \
             -prefix             "{opref}.jpg"
-        '''.format( **ap_ssdict, ptitle=ptitle, opref=opref )
+        '''.format( **ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1533,7 +1561,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# mot enorm and censoring'''
@@ -1563,8 +1591,14 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['jpgsize'] = jpgsize
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
 
     if run_style == 'basic' :
         cmd = '''
@@ -1578,7 +1612,7 @@ num : int
             -title              "{ptitle}"                                   \
             {enorm_dset}                                                     \
             "{cen_lim_mot}"
-        '''.format(**ap_ssdict, jpgsize=jpgsize, ptitle=ptitle, opref=opref )
+        '''.format(**ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1596,7 +1630,7 @@ num : int
             -xlabel             "vol index"                                  \
             -title              "{ptitle}"                                   \
             -prefix             "{opref}.jpg"
-        '''.format( **ap_ssdict, ptitle=ptitle, opref=opref )
+        '''.format( **ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1639,7 +1673,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# mot enorm plus outlier frac, and censoring'''
@@ -1669,8 +1703,13 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
 
     # A truism for this plot, at the moment
     if run_style == 'pythonic' :
@@ -1687,7 +1726,7 @@ num : int
             -xlabel             "vol index"                                  \
             -title              "{ptitle}"                                   \
             -prefix             "{opref}.jpg"
-        '''.format( **ap_ssdict, ptitle=ptitle, opref=opref )
+        '''.format( **ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1729,7 +1768,7 @@ num : int
     odir_mtedana = ap_ssdict['odir_qc'] + '/' + 'dir_mtedana'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# multi-echo (mecho) processing via MEICA group TEDANA'''
@@ -1775,7 +1814,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -1820,7 +1859,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# individual regressors of interest in X-matrix'''
@@ -1853,8 +1892,14 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
+    ap_ssdict_loc['labels']  = labels
 
     # Make images: 1D plots (and maybe boxplots)
     if run_style == 'basic' :
@@ -1867,7 +1912,7 @@ num : int
             -xlabel       "vol"                                              \
             -title        "{ptitle}"                                         \
             {xmat_stim}
-        '''.format( **ap_ssdict, opref=opref, ptitle=ptitle )
+        '''.format( **ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1885,7 +1930,7 @@ num : int
             {cen_cmd}                                                        \
             -title           "{ptitle}"                                      \
             -prefix          "{opref}.jpg"
-        '''.format( **ap_ssdict, opref=opref, ptitle=ptitle, labels=labels )
+        '''.format( **ap_ssdict_loc)
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1927,7 +1972,7 @@ num : int
     otopjson = opref + '.json'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# sum of regressors of interest in X-matrix'''
@@ -1956,8 +2001,14 @@ num : int
         'text'        : otoptxt,
         'subtext'     : ap_ssdict['rep_cen_str'],
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['ptitle']  = ptitle
+    ap_ssdict_loc['opref']   = opref
+    ap_ssdict_loc['labels']  = labels
 
     # Make images: 1D plots (and maybe boxplots)
     if run_style == 'basic' :
@@ -1970,7 +2021,7 @@ num : int
             -xlabel       "vol"                                              \
             -title        "{ptitle}"                                         \
             {sum_ideal}
-        '''.format( **ap_ssdict, opref=opref, ptitle=ptitle )
+        '''.format( **ap_ssdict_loc )
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -1987,7 +2038,7 @@ num : int
             {cen_cmd}                                                        \
             -title       "{ptitle}"                                          \
             -prefix      "{opref}.jpg"
-        '''.format( **ap_ssdict, opref=opref, ptitle=ptitle, labels=labels )
+        '''.format( **ap_ssdict_loc )
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -2043,7 +2094,7 @@ num : int
     cbar            = "gray_scale"
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# Check {} (ulay) in orig space ({} %ile topval for pbar)
@@ -2126,7 +2177,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
@@ -2149,7 +2200,7 @@ num : int
         'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -2219,7 +2270,7 @@ num : int
     otopdeobtxt2_bup = opref + '.sag_DEOB.txt_info'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# init overlap between EPI (ulay) and anatomical (olay)'
@@ -2275,7 +2326,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text above image2
@@ -2290,7 +2341,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt2,
     }
-    with open(otopjson2, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson2, 'w', encoding='utf-8') as fff:
         json.dump( otopdict2, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -2335,7 +2386,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     com    = ab.shell_com('# check EPI mask over main_dset', capture=do_cap)
@@ -2411,7 +2462,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # store name of NiiVue html
@@ -2426,7 +2477,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'nv_html'     : onvhtml_name,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -2502,7 +2553,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# alignment of EPI (ulay) and anatomical (olay) in final sp'
@@ -2600,7 +2651,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # store name of NiiVue html
@@ -2615,7 +2666,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'nv_html'     : onvhtml_name,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -2699,7 +2750,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# alignment of anatomical (ulay) and template (olay) in final sp'
@@ -2792,7 +2843,7 @@ num : int
         'text'        : otoptxt,
         'av_file'     : odoafni,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # store name of NiiVue html
@@ -2807,7 +2858,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'nv_html'     : onvhtml_name,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -2885,7 +2936,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# check ave errts corr through brain'
@@ -2964,7 +3015,7 @@ num : int
         'ic_file'     : 'run_instacorr_errts.tcsh',
         'gv_file'     : 'run_graphview_errts.tcsh',
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
@@ -2983,7 +3034,7 @@ num : int
         'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -3067,7 +3118,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# view errts seed-based correlation: {}'.format(seed.roi_label)
@@ -3198,7 +3249,7 @@ num : int
         'gv_file'     : 'run_graphview_errts.tcsh',
         'gv_args'     : coords,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
@@ -3217,7 +3268,7 @@ num : int
         'subtext'     : osubtxt,
         'nv_html'     : onvhtml_name,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -3301,7 +3352,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# peruse statistical results: '
@@ -3546,7 +3597,7 @@ num : int
         'ic_file'     : 'run_instacorr_errts.tcsh',
         'gv_file'     : 'run_graphview_errts.tcsh',
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
@@ -3565,7 +3616,7 @@ num : int
         'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -3584,7 +3635,7 @@ num : int
     # For AV/NV: get pbar/cmap info as dict (so must be done after
     # pbar text is made)
     pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
-    with open(pbar_json, 'r') as fff:
+    with codecs.open(pbar_json, 'r') as fff:
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
@@ -3649,7 +3700,7 @@ num : int
     odoafni  = 'run_' + oname + '.tcsh'              # AV script name
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '# calc TSNR ' + descrip
@@ -3769,7 +3820,7 @@ num : int
         all_volreg = glob.glob("pb*volreg*HEAD")
         if len(all_volreg) :
             pb = all_volreg[0].split('.')[0]
-            print('++ pb for volreg is:', pb)
+            print('++ pb for volreg is: ' + pb)
             ic_file = 'run_instacorr_pbrun.tcsh'
             ic_args = '{} {}'.format(pb, 'r01')
             gv_file = 'run_graphview_pbrun.tcsh'
@@ -3789,7 +3840,7 @@ num : int
         'gv_args'     : gv_args,
         'av_file'     : odoafni,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # text below images
@@ -3808,7 +3859,7 @@ num : int
         'nv_html'     : onvhtml_name,
         'subtext'     : osubtxt,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
@@ -3827,7 +3878,7 @@ num : int
     # For AV/NV: get pbar/cmap info as dict (so must be done after
     # pbar text is made)
     pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
-    with open(pbar_json, 'r') as fff:
+    with codecs.open(pbar_json, 'r') as fff:
         pbar_dict = json.load(fff)
 
     # Make NiiVue canvas text
@@ -3835,7 +3886,7 @@ num : int
                                      ulay, pbar_dict, 
                                      olay_name=olay, itemid=qci,
                                      verb=0 )
-    fff = open(onvhtml, 'w')
+    fff = codecs.open(onvhtml, 'w')
     fff.write(nv_txt)
     fff.close()
     onvhtml_name = onvhtml.split('/')[-1]
@@ -3883,7 +3934,7 @@ num : int
     opbarrt  = opref + '.pbar'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# grayplot of residuals'''
@@ -3915,6 +3966,11 @@ num : int
     # the values are basically normalized/Zscores, so just use
     # relations for Norm(0,1); z=3.29 corresponds to two-sided p=0.001
 
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['grange']    = grange
+    ap_ssdict_loc['tmp_gplot'] = tmp_gplot
+
     # The grayplot itself: will be overwritten if using enorm
     cmd = '''
     3dGrayplot                                                               \
@@ -3925,7 +3981,7 @@ num : int
         -input    {errts_dset}                                               \
         -mask     {mask_dset}                                                \
         -prefix   {tmp_gplot}
-    '''.format(**ap_ssdict, grange=grange, tmp_gplot=tmp_gplot)
+    '''.format( **ap_ssdict_loc )
     com = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
@@ -3975,36 +4031,40 @@ num : int
     osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
     uuu2    = ''
 
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['opref']   = opref
+    ap_ssdict_loc['tmp_img'] = tmp_img
+
     # depending on censoring, add to otoptxt (via ttt2), and fill in
     # dictionary of plot settings
-    pset = {} 
     if (ap_ssdict['cen_have_mot'] or ap_ssdict['cen_have_out']) and \
        (run_style == 'pythonic') :
         ttt2 = 'top:'
-        pset['scale']        = ' -scale SCALE_TO_HLINE '
-        pset['yaxis']        = ' -yaxis 0:3 '
-        pset['infiles']      = ' -infiles '
-        pset['colors']       = ' -colors '
-        pset['censor_files'] = ''
+        ap_ssdict_loc['scale']        = ' -scale SCALE_TO_HLINE '
+        ap_ssdict_loc['yaxis']        = ' -yaxis 0:3 '
+        ap_ssdict_loc['infiles']      = ' -infiles '
+        ap_ssdict_loc['colors']       = ' -colors '
+        ap_ssdict_loc['censor_files'] = ''
 
         if ap_ssdict['cen_have_mot'] :
             lcol = 'blue'
             ttt2+= ' motion enorm ({})'.format(lcol)
-            pset['colors'] += ' {} '.format(lcol)
-            pset['infiles']+= ' {} '.format(ap_ssdict['enorm_dset'])
+            ap_ssdict_loc['colors'] += ' {} '.format(lcol)
+            ap_ssdict_loc['infiles']+= ' {} '.format(ap_ssdict['enorm_dset'])
 
         if ap_ssdict['cen_have_out'] :
             lcol = 'green'
             if ap_ssdict['cen_have_mot'] :
                 ttt2+= ' and'
             ttt2+= ' outlier frac ({})'.format(lcol)
-            pset['colors'] += ' {} '.format(lcol)
-            pset['infiles']+= ' {} '.format(ap_ssdict['outlier_dset'])
+            ap_ssdict_loc['colors'] += ' {} '.format(lcol)
+            ap_ssdict_loc['infiles']+= ' {} '.format(ap_ssdict['outlier_dset'])
 
         if ap_ssdict['cen_used'] :
             ttt2+= ', with censoring ({})'.format(ap_ssdict['cen_color'])
-            ppp = ' -censor_files "{}" '.format(ap_ssdict['censor_dset'])
-            pset['censor_files']+= ppp
+            ppp  = ' -censor_files "{}" '.format(ap_ssdict['censor_dset'])
+            ap_ssdict_loc['censor_files']+= ppp
 
         uuu2+= " rows: ordered by similarity to top two principal comps "
         uuu2+= "in mask ({})".format(mask_pref)
@@ -4025,7 +4085,7 @@ num : int
             {cen_lim_all}                                                    \
             {colors}                                                         \
             -prefix         {tmp_img}
-        '''.format( **pset, **ap_ssdict, tmp_img=tmp_img )
+        '''.format( **ap_ssdict_loc )
         com = ab.shell_com(cmd, capture=do_cap)
         com.run()
 
@@ -4071,7 +4131,7 @@ num : int
         'text'        : otoptxt,
         'subtext'     : osubtxt,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4110,7 +4170,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# degree of freedom (df) check for processing'''
@@ -4135,7 +4195,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4173,7 +4233,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# summary quantities (ss_review_basic) from processing'''
@@ -4197,7 +4257,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4238,7 +4298,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring per stim'''
@@ -4317,7 +4377,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4357,7 +4417,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for warnings due to censoring (total)'''
@@ -4379,7 +4439,7 @@ num : int
     # Make output text file
     dattxt  = 'Censored {:4d} of {:4d} '.format(int(ncen), int(ninit))
     dattxt += 'total time points : {:5.1f}%\n\n'.format(100*frac_cen)
-    fff = open(odat, 'w')
+    fff = codecs.open(odat, 'w')
     fff.write(dattxt)
     fff.close()
 
@@ -4396,7 +4456,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level,
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4439,7 +4499,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for correlation matrix warnings'''
@@ -4476,7 +4536,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4515,7 +4575,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for 3dDeconvolve warnings'''
@@ -4558,7 +4618,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4597,7 +4657,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for pre-steady state warnings'''
@@ -4639,7 +4699,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4678,7 +4738,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check for any TENT warnings from timing_tool.py'''
@@ -4721,7 +4781,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -4789,7 +4849,7 @@ num : int
     odat     = opref + '.dat'
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check LR-flip warnings'''
@@ -4888,7 +4948,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # Q: is it alright to leave out the sagittal image?  Should be,
@@ -5024,7 +5084,7 @@ num : int
         'av_file'     : odoafni_o,
         'nv_html'     : onvhtml_name_o,
    }
-    with open(otopjson_o, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson_o, 'w', encoding='utf-8') as fff:
         json.dump( otopdict_o, fff, ensure_ascii=False, indent=4 )
 
 
@@ -5047,7 +5107,7 @@ num : int
         'av_file'     : odoafni_f,
         'nv_html'     : onvhtml_name_f,
     }
-    with open(otopjson_f, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson_f, 'w', encoding='utf-8') as fff:
         json.dump( otopdict_f, fff, ensure_ascii=False, indent=4 )
 
 
@@ -5298,7 +5358,7 @@ num : int
     osubjson = opref + '_0' + '.sag.json'  
 
     if 1 :
-        print("++ APQC create:", oname, flush=True)
+        print("++ APQC create: " + oname); sys.stdout.flush() 
 
     do_cap = True
     cmd    = '''# check variance lines (var_line) warnings'''
@@ -5409,7 +5469,7 @@ num : int
         'text'        : otoptxt,
         'warn_level'  : warn_level
     }
-    with open(otopjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # Make text below images, if badness is found
@@ -5427,7 +5487,7 @@ num : int
         'title'       : lah.qc_blocks[qcb][1],
         'subtext'     : osubtxt,
     }
-    with open(osubjson, 'w', encoding='utf-8') as fff:
+    with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
@@ -5468,7 +5528,8 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create:", '_'.join([obase, qcb, qci]), flush=True)
+        print("++ APQC create: " + '_'.join([obase, qcb, qci]))
+        sys.stdout.flush()
 
     do_cap = True
     cmd    = '# @radial_correlate images for: ' + rcdir
@@ -5541,6 +5602,13 @@ num : int
         stat   = com.run()
         olay_pref = com.so[0].strip()
 
+        # add params/names to existing local dictionary
+        chauff_params['opbarrt'] = opbarrt
+        chauff_params['opref']   = opref
+        chauff_params['odoafni'] = odoafni
+        chauff_params['qcb']     = qcb
+        chauff_params['qci']     = qci_num
+
         cmd = '''
         @chauffeur_afni                                                      \
             -ulay              {ulay}                                        \
@@ -5571,8 +5639,7 @@ num : int
             -cmd2script        {odoafni}                                     \
             -c2s_text          'APQC, {qcb}: {qci}'                          \
             -do_clean
-        '''.format( **chauff_params, opbarrt=opbarrt, opref=opref,
-                    odoafni=odoafni, qcb=qcb, qci=qci_num )
+        '''.format( **chauff_params )
         com    = ab.shell_com(cmd, capture=do_cap)
         stat   = com.run()
 
@@ -5637,7 +5704,7 @@ num : int
                 'gv_args'     : gv_args,
                 'subtext'     : osubtxt,
             }
-            with open(otopjson, 'w', encoding='utf-8') as fff:
+            with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
                 json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
         else:
@@ -5658,7 +5725,7 @@ num : int
                 'gv_args'     : gv_args,
                 'text'        : otoptxt,
             }
-            with open(otopjson, 'w', encoding='utf-8') as fff:
+            with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
                 json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
         # Make pbar text (always done now, for AV/NV buttons)
@@ -5716,7 +5783,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy jsons to info dir", flush=True)
+        print("++ APQC create: copy jsons to info dir"); sys.stdout.flush()
 
     do_cap = True
     cmd    = '''# copy subj json(s)'''
@@ -5752,7 +5819,7 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: copy ss_review_basic file", flush=True)
+        print("++ APQC create: copy ss_review_basic file"); sys.stdout.flush()
 
     do_cap = True
     cmd    = '''# copy review basic text file to QC dir'''
@@ -5769,6 +5836,10 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
+    # local copy of main dictionary, with extras, for cmd
+    ap_ssdict_loc = copy.deepcopy(ap_ssdict)
+    ap_ssdict_loc['ojson'] = ojson
+
     # Make the JSON version in same dir
     cmd = '''
     abids_json_tool.py                                                       \
@@ -5778,7 +5849,7 @@ num : int
         -values_stay_str                                                     \
         -input            {ss_review_dset}                                   \
         -prefix           {ojson}
-    '''.format(**ap_ssdict, ojson=ojson)
+    '''.format( **ap_ssdict_loc )
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
@@ -5804,14 +5875,15 @@ num : int
 """
 
     if 1 :
-        print("++ APQC create: display ss_review_basic info", flush=True)
+        print("++ APQC create: display ss_review_basic info")
+        sys.stdout.flush()
 
     do_cap = False
     cmd    = '''# disp basic information from processing'''
     com    = ab.shell_com(cmd, capture=do_cap)
     stat   = com.run()
 
-    ptext = "# ++++++++++++++++ Check output of @ss_review_basic ++++++++++++++++ #"
+    ptext = "# ++++++++++++++ Check output of @ss_review_basic ++++++++++++++ #"
     print("\n" + ptext)
     print('-'*len(ptext))
     cmd    = '''\\cat {} '''.format(ap_ssdict['ss_review_dset'])
@@ -5867,7 +5939,7 @@ num : int
     }
 
     # write JSON
-    with open(ojson, 'w', encoding='utf-8') as fff:
+    with codecs.open(ojson, 'w', encoding='utf-8') as fff:
         json.dump( odict, fff, ensure_ascii=False, indent=4 )
 
     return 0

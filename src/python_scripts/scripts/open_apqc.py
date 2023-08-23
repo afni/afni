@@ -379,7 +379,8 @@ if DO_HAVE_FLASK :
                 json.dump( pjson_data, fff, 
                            ensure_ascii=False, indent=4 )
         except:
-            print(f'** ERROR: could not find index for path {pjson_fname}')
+            print('** ERROR: could not find index for path {}'
+                  ''.format(pjson_fname))
 
         # add+save the form information to extra_info/out.ss_review.{subj}.json
         try:
@@ -401,7 +402,8 @@ if DO_HAVE_FLASK :
                 json.dump( mdict, fff, 
                            ensure_ascii=False, indent=4 )
         except:
-            print(f'** ERROR: could not find index for path {pjson_ssrev}')
+            print('** ERROR: could not find index for path'
+                  ''.format(pjson_ssrev))
 
         return jsonify(pjson_data)
 
