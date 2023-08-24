@@ -251,7 +251,7 @@ phases : np.ndarray (1D)
 
     return phases
 
-def calc_phases_M3(phobj, verb=0):
+def calc_phases_M3(phobj, nbin=100, verb=0):
     """Calculate phases of a time series, here using "Method 3", which
 should be a faster way to approximate the recipe/algorithm from
 Glover, Li and Riess (2000) for respiratory data; see calc_phases_M2()
@@ -263,9 +263,6 @@ interpolate the time series within this.  This strikes as slightly
 susceptible to noisy/peak trough values, and we might have to
 percentile-ize cap them.  But I think we can do this directly, as
 here, without making a running sum over a histogram. 
-
-NB: this method *relies on* having perfectly interspersed peaks and
-troughs. They must be one-to-one interleaved.
 
 The phases are estimated within the interval [-Pi, Pi).  This applies
 to resp time series at present.
@@ -299,33 +296,55 @@ phases : np.ndarray (1D)
     # init phases: matches len of input time series
     phases = np.zeros(Nts, dtype=float)
 
-    min_trough_val = min(ts_orig[troughs])  # will define what maps to -Pi
-    max_peak_val   = max(ts_orig[peaks])    # will define what maps to  Pi
+    # make recentered time series, for counting
+    new_ts = ts_orig - min(ts_orig)
+    max_ts = max(new_ts)
 
-    med_ts         = np.median(ts_orig)     # time series median: baseline
-    max_magn       = max(abs(max_peak_val - med_ts), 
-                         abs(med_ts - min_trough_val))
+    # make histogram
+    counts, bin_edges = np.histogram(new_ts, bins=nbin, range=(0, max_ts)) 
 
-    # create ts that goes between [0,1]
-    ts_scale = (ts_orig - min_trough_val)/max_peak_val
-
-    # start with first peak, and fill in all the way through last
-    # peak (other pieces filled in below)
-    if peaks[0] < troughs[0] :  tridx0 = 0     # first trough after peaks[0]
-    else:                       tridx0 = 1
+    # make signum of each phase value
+    arr_sign = np.ones(Nts, dtype=int)
+    min_tidx = 0                           # starting trough idx
     for ii in range(Npeaks-1):
-        pstart = peaks[ii]                     # start idx of this period
-        tmid   = troughs[tridx0+ii]            # midpoint (zero phase)
-        pend   = peaks[ii+1]                   # end idx 
+        start = peaks[ii]
+        end   = peaks[ii+1]
+        tidx  = min_tidx
+        while tidx < Ntroughs :
+            if start < troughs[tidx] and troughs[tidx] < end :
+                arr_sign[start:troughs[tidx]]*= -1
+                min_tidx = tidx
+                break
+            tidx+=1
+    # carry on for special end case, if last extremum is a trough
+    if troughs[-1] > peaks[-1] :
+        start = peaks[-1]
+        end   = Nts - 1
+        tidx  = min_tidx
+        while tidx < Ntroughs :
+            if start < troughs[tidx] and troughs[tidx] < end :
+                arr_sign[start:troughs[tidx]]*= -1
+                min_tidx = tidx
+                break
+            tidx+=1
 
-        max_ph = ts_orig[pstart]/max_peak_val
-        # start value is always zero
-        for jj in range(pstart, tmid):
-            phases[jj] = (jj-start)/period
 
 
 
+    # get cumulative sum and denominator
+    denom      = len(new_ts)
+    cumul_frac = np.array([1.0*np.sum(counts[:ii+1]) for ii in range(nbin)])
+    cumul_frac/= denom
+    delta_bin  = bin_edges[1] - bin_edges[0]
 
+    # map each point in new_ts to a bin in the cumul_frac, and use
+    # that frac to define phase (bc gets multiplied by pi)
+    for ii in range(Nts):
+        # where are we in the cumulative distribution?
+        idx = min(max(int(new_ts[ii] // delta_bin),0),nbin-1)
+        # use that index to get the fractional value, applying sign
+        phases[ii] = cumul_frac[idx] * arr_sign[ii]
+    phases*= np.pi
 
     return phases
 

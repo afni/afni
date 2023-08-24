@@ -692,7 +692,8 @@ is_ok : int
 
     elif label == 'resp' :
         # use Method 1 phase finding for card peaks/time series
-        phases = lpph.calc_phases_M2(phobj, verb=verb)
+        #phases = lpph.calc_phases_M2(phobj, verb=verb)  # older method
+        phases = lpph.calc_phases_M3(phobj, verb=verb)
         if not(len(phases)) :
             print("** ERROR: problem after step {} '{}' for {} data"
                   "".format(count, lab_title, label))
