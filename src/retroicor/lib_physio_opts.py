@@ -19,14 +19,9 @@ import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
 import numpy      as     np
-import borrow_afni_util  as BAU
 
-# !!!! GET RID OF borrow_afni_util?
-
-# !!! TEMPORARY: remove this path append at some point
-sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
-
-from   afnipy     import afni_base as BASE   # or add to BAU?
+from   afnipy     import afni_base as BASE
+from   afnipy     import afni_util as UTIL
 
 # ==========================================================================
 
@@ -366,7 +361,7 @@ int : int
 
     # slice patterns, from list somewhere
     if args_dict['disp_all_slice_patterns'] :
-        lll = BAU.g_valid_slice_patterns
+        lll = UTIL.g_valid_slice_patterns
         lll.sort()
         print("{}".format('\n'.join(lll)))
         return 1
@@ -1349,13 +1344,13 @@ vol_dict2 : dict
         # place
 
         pat = vol_dict['slice_pattern']
-        if pat in BAU.g_valid_slice_patterns :
+        if pat in UTIL.g_valid_slice_patterns :
             print("++ Slice pattern from cmd line: '{}'".format(pat))
             # check with vol info in vol_dict2 (not in vol_dict) bc
             # vol_dict2 should be the merged superset of info
-            slice_times = BAU.slice_pattern_to_timing(pat, 
-                                                      vol_dict2['num_slices'],
-                                                      vol_dict2['volume_tr'])
+            slice_times = UTIL.slice_pattern_to_timing(pat, 
+                                                       vol_dict2['num_slices'],
+                                                       vol_dict2['volume_tr'])
             if not(slice_times) :
                 print("** ERROR: could not convert slice pattern to timing")
                 sys.exit(8)

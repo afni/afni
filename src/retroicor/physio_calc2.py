@@ -63,9 +63,10 @@
 """
 
 import sys, os
-import lib_physio_opts    as lpo
-import lib_physio_reading as lpr
-import lib_physio_funcs   as lpf
+
+from afnipy import lib_physio_opts    as lpo
+from afnipy import lib_physio_reading as lpr
+from afnipy import lib_physio_funcs   as lpf
 
 # ===========================================================================
 

@@ -2,15 +2,14 @@
 
 import sys, os
 import copy
-import numpy                as np
+import numpy  as np
+from   scipy  import signal             as sps
 
-from   scipy import signal  as sps
-
-import lib_physio_opts      as lpo
-import lib_physio_peaks     as lpp
-import lib_physio_phases    as lpph
-import lib_physio_rvt       as lprvt
-import lib_physio_plot      as lpplt
+from   afnipy import lib_physio_opts    as lpo
+from   afnipy import lib_physio_peaks   as lpp
+from   afnipy import lib_physio_phases  as lpph
+from   afnipy import lib_physio_rvt     as lprvt
+from   afnipy import lib_physio_plot    as lpplt
 
 
 # ===========================================================================
