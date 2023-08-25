@@ -39,7 +39,7 @@ help.PTA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to PTA ==================
                Program for Profile Tracking Analysis (PTA)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, Aug 15, 2023
+Version 0.0.4, Aug 25, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -214,7 +214,7 @@ Introduction
 
    ex4 <-
 "Example 4 --- This example demonstrates the situations where more than two
-  levels are involved in a between- or within-subject factor. Suppose that 
+  levels are involved in a between-individual factor. Suppose that 
   three groups and one quantitative variable (age). The analysis is 
   set up to compare the trajectory or trend along age between the three groups,
   A, B and C that are quantitatively represented using dummy coding.
@@ -268,8 +268,26 @@ Introduction
                            '(no help available)\n', sep='')); 
       }
    }
+
+   ex5 <-
+"Example 5 --- Suppose tht we compare the profiles between two conditions 
+  across space or time that is expreessed as a variable x. In this case
+  profile estimation and statistical inference are separated into two steps.
+  First, estimate the profile for each condition using Example 1 or Example 2
+  as a template. Then, make inference about the contrast betwee the two
+  conditions. Obtain the contrast at each value of x for each individual, and
+  use the difference values as input. Specify the model as below if there are
+  multiple individuals:
+
+          -model 's(x)+s(id,bs=\"re\")'         \\
+          -vt id 's(id)'                      \\
+  For one individual, change the model to
+
+          -model 's(x)'                      \\
+\n"
+    
    ss <- paste(ss, sep='\n');
-   cat(intro, ex1, ex2, ex3, ex4, ss, reference.PTA(), sep='\n');
+   cat(intro, ex1, ex2, ex3, ex4, ex5, ss, reference.PTA(), sep='\n');
    
    if (adieu) exit.AFNI();
 }
