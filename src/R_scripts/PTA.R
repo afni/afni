@@ -274,7 +274,7 @@ Introduction
   across space or time that is expreessed as a variable x. In this case
   profile estimation and statistical inference are separated into two steps.
   First, estimate the profile for each condition using Example 1 or Example 2
-  as a template. Then, make inference about the contrast betwee the two
+  as a template. Then, make inference about the contrast between the two
   conditions. Obtain the contrast at each value of x for each individual, and
   use the difference values as input. Specify the model as below if there are
   multiple individuals:
