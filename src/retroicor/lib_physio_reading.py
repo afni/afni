@@ -6,6 +6,7 @@ import json
 import gzip
 import copy
 import numpy          as np
+from   afnipy import  lib_physio_opts as lpo
 
 # ==========================================================================
 
@@ -21,7 +22,8 @@ derived data.
 
     def __init__(self, ts_orig, samp_freq = 0.0,
                  label=None, fname=None, ts_unfilt = None,
-                 min_bps = 0.0, max_bps = sys.float_info.max, start_time = 0.0, 
+                 min_bps = 0.0, max_bps = sys.float_info.max, 
+                 start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
                  verb=0):
         """Create object holding a physio time series data.
 
@@ -40,6 +42,7 @@ derived data.
 
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
         self.img_idx   = 0                   # int, for naming QC plots
+        self.img_dot_freq = img_dot_freq     # flt, pt density in plts
 
         # array selectors, for slicewise regressors.  Basically, these 
         # contain a tuple for each slice:  label, list_of_ind
@@ -130,6 +133,16 @@ derived data.
         slice timing."""
         return len(self.list_slice_sel_phys)
 
+    @property
+    def img_arr_step(self):
+        """When plotting lines in QC figs, don't need to plot each one---save
+        time and space by reducing that number.  The step is the ratio
+        of samp_freq to img_dot_freq."""
+        if self.img_dot_freq :
+            return max(int(self.samp_freq // self.img_dot_freq),1)
+        else:
+            return 1
+
 # -------------------------------------------------------------------------
 
 class retro_obj:
@@ -188,7 +201,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_resp  = True       # bool, flag
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
         self.do_save_ab   = False      # bool, save a,b coeffs to file
-        self.img_fontsize = 10         # float, FS for output images
+        self.img_fontsize = lpo.DEF_img_fontsize # flt, FS for output images
+        self.img_figsize  = lpo.DEF_img_figsize  # 2-ple, img height/wid
+        self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
+        self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
 
 
         # -----------------------------------------------------------------
@@ -234,6 +250,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_figsize   = copy.deepcopy(args_dict['img_figsize'])
         self.img_fontsize  = args_dict['img_fontsize']
         self.img_line_time = args_dict['img_line_time']
+        self.img_dot_freq  = args_dict['img_dot_freq']
         self.niml        = args_dict['niml']
         self.demo        = args_dict['demo']
         self.debug       = args_dict['debug']
@@ -309,6 +326,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                          min_bps = args_dict['min_bpm_resp']/60.,
                                          max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
+                                         img_dot_freq = args_dict['img_dot_freq'],
                                          verb=self.verb)
         elif label == 'card' :
             self.data['card'] = phys_ts_obj(arr_fixed,
@@ -318,6 +336,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                          min_bps = args_dict['min_bpm_card']/60.,
                                          max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
+                                         img_dot_freq = args_dict['img_dot_freq'],
                                          verb=self.verb)
 
 
@@ -364,6 +383,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                          min_bps = args_dict['min_bpm_resp']/60.,
                                          max_bps = args_dict['max_bpm_resp']/60.,
                                          start_time = args_dict['start_time'],
+                                         img_dot_freq = args_dict['img_dot_freq'],
                                          verb=self.verb)
         if 'cardiac' in D['Columns'] :
             if self.verb:
@@ -391,6 +411,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                          min_bps = args_dict['min_bpm_card']/60.,
                                          max_bps = args_dict['max_bpm_card']/60.,
                                          start_time = args_dict['start_time'],
+                                         img_dot_freq = args_dict['img_dot_freq'],
                                          verb=self.verb)
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "

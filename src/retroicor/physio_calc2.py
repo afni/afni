@@ -66,6 +66,7 @@ import sys, os
 
 from afnipy import lib_physio_opts    as lpo
 from afnipy import lib_physio_reading as lpr
+from afnipy import lib_physio_logs    as lpl
 from afnipy import lib_physio_funcs   as lpf
 
 # ===========================================================================
@@ -124,6 +125,8 @@ if __name__ == "__main__":
         print("++ Making output directory:", retobj.out_dir)
         os.mkdir(retobj.out_dir)
 
+    # -------------------- log some of the inputs ---------------------------
+    lpl.make_cmd_logs(args_dict, retobj)
 
     # ------------- Process any card/resp/etc. time series ------------------
 

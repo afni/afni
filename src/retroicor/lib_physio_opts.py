@@ -43,6 +43,7 @@ DEF_rvt_shifts   = '0 4 5'
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 30               # units = seconds
+DEF_img_dot_freq  = 10               # points per sec
 
 # ==========================================================================
 # PART_01: default parameter settings
@@ -98,6 +99,7 @@ DEF = {
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
     'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
+    'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -165,6 +167,7 @@ all_quant_ge_zero = [
     'volume_tr',
     'img_line_time',
     'img_fontsize',
+    'img_dot_freq',
 ]
 
 
@@ -1083,6 +1086,13 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''img_line_time'''
 hlp = '''Maximum time duration per line in the QC images, in units of sec
 (def: {dopt}) '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''img_dot_freq'''
+hlp = '''Maximum number of dots per line in the QC images (to save filesize
+and plot time), in units of dots per sec (def: {dopt}) '''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)

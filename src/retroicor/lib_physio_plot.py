@@ -700,12 +700,12 @@ Returns
     if len(phases) :    ts_alpha = 0.5
     else:               ts_alpha = 1.0
 
+    # can plot lower density of points in lines
+    istep = phobj.img_arr_step
+    if verb :
+        print("++ In plots, step interval for lines: {}".format(istep))
 
-    #### !!!!! DOWNSAMPLING TIME SERIES, FOR PURPOSE OF PLOTTING
-    #### !!!!! TIME/SPACE!  FIGURE OUT MORE SYSTEMATIC/CONTROLLED WAY
-    #### !!!!! OF DOING THIS; done here and below
-    # add time series
-    ret_plobj1 = RetroPlobj(phobj.tvalues[::10], phobj.ts_orig[::10], 
+    ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], phobj.ts_orig[::istep], 
                             label=phobj.label,
                             alpha=ts_alpha,
                             color='0.5')
@@ -747,16 +747,15 @@ Returns
         mints = np.min(phobj.ts_orig)
         diff  = maxts - mints
         scale_ph = (phases + np.pi)/(2.0*np.pi)*diff + mints
-        ret_plobj4 = RetroPlobj(phobj.tvalues[::10], scale_ph[::10], 
+        ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_ph[::istep], 
                                 label='phase (scaled)',
                                 alpha=1.0,
-                                ls='--',
-                                lw=DEF_lw*2,
-                                color='black')
+                                lw=DEF_lw*1.5,
+                                color='green')
         fff.add_plobj(ret_plobj4)
 
     if len(upper_env) :
-        ret_plobj5 = RetroPlobj(phobj.tvalues[::10], upper_env[::10], 
+        ret_plobj5 = RetroPlobj(phobj.tvalues[::istep], upper_env[::istep], 
                                 label='upper env',
                                 alpha=1.0,
                                 lw=DEF_lw*2,
@@ -764,7 +763,7 @@ Returns
         fff.add_plobj(ret_plobj5)
 
     if len(lower_env) :
-        ret_plobj5 = RetroPlobj(phobj.tvalues[::10], lower_env[::10], 
+        ret_plobj5 = RetroPlobj(phobj.tvalues[::istep], lower_env[::istep], 
                                 label='lower env',
                                 alpha=1.0,
                                 lw=DEF_lw*2,
