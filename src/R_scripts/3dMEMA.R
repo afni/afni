@@ -524,14 +524,12 @@ reference.MEMA <- function ()
 "#######################################################################
 Please consider citing the following if this program is useful for you:
 
-   Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
-   and Their Variances. NeuroImage. NeuroImage 60: 747-765.
-   
-   https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
-   
+   Chen, G., Saad, Z.S., Nath, A.R., Beauchamp, M.S., Cox, R.W., 2012. 
+   FMRI group analysis combining effect estimates and their variances. 
+   NeuroImage 60, 747–765. https://doi.org/10.1016/j.neuroimage.2011.12.060
+
 #######################################################################"
    )
-
 
 #The help function for 3dMEMA batch (command line mode)
 help.MEMA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
@@ -552,8 +550,9 @@ Usage:
  if parallel computing is desirable. Version 1.0.1, Dec 21, 2016. If you want to
  cite the analysis approach, use the following at this moment:
 
-    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
-    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
+   Chen, G., Saad, Z.S., Nath, A.R., Beauchamp, M.S., Cox, R.W., 2012. 
+   FMRI group analysis combining effect estimates and their variances. 
+   NeuroImage 60, 747–765. https://doi.org/10.1016/j.neuroimage.2011.12.060
  
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze
