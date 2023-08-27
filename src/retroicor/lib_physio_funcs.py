@@ -670,7 +670,7 @@ is_ok : int
     prefix = retobj.prefix
 
     count     = 20                          # start with num >> peak/trough est
-    lab_title = 'Phase estimation'
+    lab_title = 'Estimating phase'
     lab_short = 'est_phase'
     if verb :   print('++', lab_title)
 

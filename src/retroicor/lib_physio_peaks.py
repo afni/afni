@@ -197,16 +197,15 @@ xfilt : np.ndarray
     # --- Get initial peaks of bandpassed time series
     # !!! PT: revisit this, starting to understand, but reset to original now
 
-    # get width value from idx_freq_mode---use signal info to guide
-    # this, not samp freq
+    # Use the mode of the bandpassed ts (idx_freq_mode) to put a
+    # minimum-distance requirement on peaks
     delta_f = retobj.data[label].ft_delta_f         # FT freq step, in Hz
     phys_freq_mode = idx_freq_mode * delta_f        # FT peak freq, in Hz
-    idx_freq_wid0  = int(0.5 * phys_freq_mode / delta_f) # index window bot
-    #idx_freq_wid1  = int(1.5 * phys_freq_mode / delta_f) # index window top
+    min_dist_idx = int(0.5 * phys_freq_mode / delta_f) # min interval bt pks
 
     width    = int(samp_freq / width_fac)    ### earlier approach
-    peaks, _ = sps.find_peaks(xfilt, width=width)
-    ##width=idx_freq_wid0)#, idx_freq_wid1))
+    peaks, _ = sps.find_peaks(xfilt, distance=min_dist_idx,
+                              width=width)
 
     # listify
     peaks    = list(peaks)

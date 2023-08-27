@@ -150,3 +150,105 @@ title : str
     title = 'Intermediate step for {} data: {}'.format(label, lab_title)
 
     return fname, title
+
+# ---------------------------------------------------------------------------
+
+def interleave_count(A, B, verb=0):
+    """A and B are sorted lists of numbers. For each [i]th element of A,
+count how many elements in B fall between pairs A[i] and A[i+1].  This
+number is stored in an array C, which len(A)-1 elements.  NB: A can
+have no repeating elements, and for the major use case here (where A
+and B each store indices of peaks and troughs, respectively), neither
+will.
+
+This essentially provides information of how interleaved A and B are,
+which is useful if (for example) they respectively represent indices
+of peaks and troughs, for which there should theoretically be perfect
+interleaving. For perfectly interleaved lists, each C[i] = 1.  If a
+trough were missing between a pair of peaks, then C[i] = 0. Having
+"too many" troughs between a pair of peaks would be reflected by
+having C[i] > 1.  Endpoint dangling, for <A[0] and > A[-1], are also
+returned, but in a separate tuple.
+
+One could measure interleaving with A for peaks and B for troughs, or
+vice versa.
+
+NB: we assume A and B share no elements
+
+Parameters
+----------
+A : list
+    a 1D list of indices
+B : list
+    a 1D list of indices
+
+Returns
+-------
+C : list
+    a 1D list of length len(A)-1, recording how many of the values
+    stored in B fall between A[i] and A[i+1].
+D  : list
+    a 1D list of length 2, recording how many of the values
+    stored in B fall below A[0] and above A[-1], respectively.
+
+    """
+
+    # ensure no overlap of A and B, and nonrepetition of each
+    olap = set(A).intersection(set(B))
+    if len(olap):
+        print("** ERROR: A and B cannot share any elements, but they do!")
+        print("   " + str(list(olap)))
+        sys.exit(3)
+    if len(A) != len(set(A)) :
+        print("** ERROR: List A cannot have repeated elements, but it does!")
+        sys.exit(3)
+    if len(B) != len(set(B)) :
+        print("** ERROR: List B cannot have repeated elements, but it does!")
+        sys.exit(3)
+        
+    NB = len(B)
+    NA = len(A)
+    C = np.zeros(NA-1, dtype=int)          # between-pair counts
+    D = np.zeros(2, dtype=int)             # endpoint-dangling counts
+    
+    # precursor: fill in the first dangling endpoint.
+    # NB: we have the start variable like this, to keep using below
+    start = 0
+    j = start
+    while j < NB :
+        if B[j] > A[0] :
+            # nothing to count, so stop and move along to next A[i]
+            start = j
+            break
+        elif B[j] < A[0] :
+            # in the dangling range: count it
+            D[0]+= 1
+        # implied 'else': too small to be counted, just go to next ele
+        j+= 1
+
+    # start the main loop, filling in C (use value of start from above
+    for i in range(NA-1):
+        j = start
+        while j < NB :
+            if B[j] > A[i+1] :
+                # nothing to count, so stop and move along to next A[i]
+                start = j
+                break
+            elif A[i] < B[j] :
+                # in the between-pair range: count it
+                C[i]+= 1
+            # implied 'else': too small to be counted, just go to next ele
+            j+= 1
+
+    # postcursor: fill in the last dangling endpoint.
+    # NB: all remaining elements of B should be dangling, but count 
+    # pedantically, anyways
+    j = start
+    while j < NB :
+        if B[j] > A[-1] :
+            # in the dangling range: count it
+            D[1]+= 1
+        # implied 'else': too small to be counted, just go to next ele
+        j+= 1
+
+    return C, D
