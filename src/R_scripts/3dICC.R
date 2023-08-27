@@ -43,9 +43,10 @@ Usage:
  confounding effects or more than two random-effects variables). The modeling
  approaches are laid out in the following paper:
 
- Chen et al., 2017. Intraclass correlation: Improved modeling approaches and
- applications for neuroimaging. Human Brain Mapping 39(3): 1187-1206.
- https://doi.org/10.1002/hbm.23909
+ Chen, G., Taylor, P.A., Haller, S.P., Kircanski, K., Stoddard, J., Pine, D.S., 
+ Leibenluft, E., Brotman, M.A., Cox, R.W., 2018. Intraclass correlation: 
+ Improved modeling approaches and applications for neuroimaging. Human Brain 
+ Mapping 39, 1187–1206. https://doi.org/10.1002/hbm.23909
 
  Currently it provides in the output the ICC value and the corresponding
  F-statistic at each voxel. In future, inferences for intercept and covariates
