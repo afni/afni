@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, July 20, 2023
+Version 1.0.5, Aug 27, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -43,12 +43,17 @@ Introduction
  neuroimaging data analysis that involves one or more quantitative
  predictors. More theoretical discussion can be found in
 
- Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
- in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
+ Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D.,
+ Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. 
+ Beyond linearity in neuroimaging: Capturing nonlinear relationships with 
+ application to longitudinal studies. NeuroImage 233, 117891. 
+ https://doi.org/10.1016/j.neuroimage.2021.117891
 
- Chen et al. (2023). BOLD response is more than just magnitude: improving
- detection sensitivity through capturing hemodynamic profiles.
- https://t.co/vLNYOhb6Jl
+ Chen, G., Taylor, P.A., Reynolds, R.C., Leibenluft, E., Pine, D.S., 
+ Brotman, M.A., Pagliaccio, D., Haller, S.P., 2023. BOLD Response is more 
+ than just magnitude: Improving detection sensitivity through capturing 
+ hemodynamic profiles. NeuroImage 277, 120224. 
+ https://doi.org/10.1016/j.neuroimage.2023.120224
 
  To be able to run 3dMSS, one needs to have the following R packaages 
  installed: "gamm4" and "snow". To install these R packages, run the
@@ -106,13 +111,13 @@ Introduction
    such as subject) for prediction. The file should be in a data.frame format as below:
 
    label  age 
-   t1      1   
-   t2      2   
-   t3      3   
+   time1   1   
+   time2   2   
+   time3   3   
     ...
-   t8      8  
-   t9      9 
-   t10    10
+   time8   8  
+   time9   9 
+   time10 10
     ...
 
    The file data.txt stores the information for all the variables and input data in a
@@ -261,13 +266,9 @@ ex4 <-
   predicted HRFs:
 
   label   age   sex      TR
-  s1      6.2     1      0.00
-  s1      6.2     1      0.25
-  s1      6.2     1      0.50
-  ...
-  s72     3.5    -1      0.00
-  s72     3.5    -1      0.25
-  s72     3.5    -1      0.50
+  time1   6.2     1      0.00
+  time2   6.2     1      0.25
+  time3   6.2     1      0.50
   ...
    \n"
 
@@ -316,13 +317,13 @@ ex5 <-
   predicted HRFs:
   
   label   age   sex   group   TR
-  s1      6.2     1      1    0.00
-  s1      6.2     1      1    0.25
-  s1      6.2     1      1    0.50
+  time1   6.2     1      1    0.00
+  time2   6.2     1      1    0.25
+  time3   6.2     1      1    0.50
   ...
-  s72     3.5    -1     -1    0.00
-  s72     3.5    -1     -1    0.25
-  s72     3.5    -1     -1    0.50
+  time1   3.5    -1     -1    0.00
+  time2   3.5    -1     -1    0.25
+  time3   3.5    -1     -1    0.50
   ...   
    \n"
 
