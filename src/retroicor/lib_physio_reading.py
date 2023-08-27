@@ -7,6 +7,7 @@ import gzip
 import copy
 import numpy          as np
 from   afnipy import  lib_physio_opts as lpo
+from   afnipy import  lib_physio_util as lpu
 
 # ==========================================================================
 
@@ -39,8 +40,9 @@ derived data.
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
         self.max_bps    = max_bps            # float, max beats/breaths per sec
-
         self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
+        self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
+
         self.img_idx   = 0                   # int, for naming QC plots
         self.img_dot_freq = img_dot_freq     # flt, pt density in plts
 
@@ -122,6 +124,64 @@ derived data.
         return len(self.peaks)
 
     @property
+    def stats_perc_peaks(self):
+        """Percentile-based stats for the peaks, which are scaled to units
+        of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75, 90)"""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
+                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
+        return all_stat
+
+    @property
+    def stats_perc_troughs(self):
+        """Percentile-based stats for the troughs, which are scaled to units
+        of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75, 90)"""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
+                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
+        return all_stat
+
+    @property
+    def stats_quarts_peaks(self):
+        """Quartile (25, 50, 75) stats for the peaks, which are scaled to
+        units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
+                                         all_perc=(25, 50, 75))
+        return all_stat
+
+    @property
+    def stats_quarts_troughs(self):
+        """Quartile (25, 50, 75) stats for the troughs, which are scaled to
+        units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
+                                         all_perc=(25, 50, 75))
+        return all_stat
+
+    @property
+    def stats_mmms_peaks(self):
+        """Min/max/mean/std stats for the peaks, which are scaled to units
+        of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_mmms(self.peaks, samp_rate=self.samp_rate)
+        return all_stat
+
+    @property
+    def stats_mmms_troughs(self):
+        """Min/max/mean/std stats for the troughs, which are scaled to units
+        of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_mmms(self.troughs, samp_rate=self.samp_rate)
+        return all_stat
+
+    @property
     def n_troughs(self):
         """The number of troughs in the troughs collection."""
         return len(self.troughs)
@@ -142,6 +202,26 @@ derived data.
             return max(int(self.samp_freq // self.img_dot_freq),1)
         else:
             return 1
+
+    @property
+    def ft_delta_f(self):
+        """The delta_f value of ts_orig in the Fourier domain; that is, the
+        step size along x-axis for frequency spectrum."""
+        return self.samp_freq / self.n_ts_orig
+
+    @property
+    def ft_nyquist_idx(self):
+        """The index of the Nyquist frequency of ts_orig in the Fourier
+        domain; that is, the index of the max indep freq in the FT
+        decomp."""
+        return (self.n_ts_orig // 2) + (self.n_ts_orig % 2)
+
+    @property
+    def ft_nyquist_freq(self):
+        """The physical values of the Nyquist frequency (in Hz) of ts_orig in
+        the Fourier domain; that is, the the max indep freq in the FT
+        decomp."""
+        return self.samp_freq * self.ft_nyquist_idx
 
 # -------------------------------------------------------------------------
 
@@ -205,6 +285,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_figsize  = lpo.DEF_img_figsize  # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
+        self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
 
 
         # -----------------------------------------------------------------
@@ -251,6 +332,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_fontsize  = args_dict['img_fontsize']
         self.img_line_time = args_dict['img_line_time']
         self.img_dot_freq  = args_dict['img_dot_freq']
+        self.img_bp_max_f  = args_dict['img_bp_max_f']
         self.niml        = args_dict['niml']
         self.demo        = args_dict['demo']
         self.debug       = args_dict['debug']

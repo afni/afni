@@ -44,6 +44,7 @@ DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 30               # units = seconds
 DEF_img_dot_freq  = 10               # points per sec
+DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
 # ==========================================================================
 # PART_01: default parameter settings
@@ -100,6 +101,7 @@ DEF = {
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
     'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
     'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
+    'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -168,6 +170,7 @@ all_quant_ge_zero = [
     'img_line_time',
     'img_fontsize',
     'img_dot_freq',
+    'img_bp_max_f',
 ]
 
 
@@ -1093,6 +1096,13 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''img_dot_freq'''
 hlp = '''Maximum number of dots per line in the QC images (to save filesize
 and plot time), in units of dots per sec (def: {dopt}) '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''img_bp_max_f'''
+hlp = '''Maximum frequency in the bandpass QC images (i.e., upper value of
+x-axis), in units of Hz (def: {dopt}) '''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)

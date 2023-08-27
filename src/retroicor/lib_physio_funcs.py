@@ -348,7 +348,9 @@ is_ok : int
                                     phobj.min_bps,
                                     max_bps=phobj.max_bps,
                                     label=label,
+                                    retobj=retobj,
                                     verb=verb)
+    phobj.ts_orig_bp = copy.deepcopy(xfilt)          # save BPed ver of ts
     # check on peaks, don't want an empty array.
     if len(peaks) == 0 :
         print("** ERROR: no peaks after step {} '{}' for {} data"
@@ -361,6 +363,7 @@ is_ok : int
     # save output figure, if desired
     if retobj.save_graph_level > 1 :
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                          #upper_env=xfilt,  # tmp+cheap check
                                           title=title, fname=fname,
                                           retobj=retobj,
                                           verb=verb)

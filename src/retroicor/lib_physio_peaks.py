@@ -1,14 +1,22 @@
+#!/usr/bin/env python
+
 import os, sys
 import copy
-import numpy as np
-from   scipy import signal as sps
+import numpy  as np
+from   scipy  import signal as sps
+from   afnipy import lib_physio_plot as lpplt
+from   afnipy import lib_physio_util as lpu
 
 def bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
                                                  min_bps, max_bps=None,
-                                                 label='', verb=0):
+                                                 label='', retobj=None,
+                                                 verb=0):
     """Band pass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
 Nyquist] in units of indices.
+
+If retobj is included, then a plot of the FT frequencies can be
+created.
 
 Parameters
 ----------
@@ -23,6 +31,9 @@ max_bps : int or float
     constrain with Nyquist estimate
 label : str
     label for the time series, like 'card' or 'resp'
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
 
 Returns
 -------
@@ -42,20 +53,20 @@ idx_freq_peak : int
 
     N = len(x)
 
-    # Determine harmonic frequency unit
-    F0 = samp_freq/N
+    # Determine frequency step unit along freq axis (in Hz)
+    delta_f = samp_freq/N
 
     # Determine Nyquist index: ceil(N/2)
     idx_ny = N // 2 + N % 2
 
     # Get bottom cutoff index (as int)
-    idx_min = round(min_bps/F0)
+    idx_min = round(min_bps/delta_f)
     # Get top cutoff index (as int): constrain by both user max and
     # Nyquist
     if max_bps == None :
         idx_max = idx_ny
     else:
-        idx_max = min(round(max_bps/F0), idx_ny)
+        idx_max = min(round(max_bps/delta_f), idx_ny)
 
     # Get Fourier transform and magnitude series
     X    = np.fft.fft(x)
@@ -63,7 +74,7 @@ idx_freq_peak : int
 
     # Index and phys freq of peak freq
     idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
-    freq_peak = idx_freq_peak * F0
+    freq_peak = idx_freq_peak * delta_f
 
     print('++ For ' + label + ' data, bandpass filter frequency peak: '
           '{:.6f} Hz'.format(freq_peak))
@@ -109,11 +120,34 @@ idx_freq_peak : int
     # was symmetric)
     xfilt = np.real(np.fft.ifft(Xfilt))
 
+    # ---- done with work, but can save also FT freq magn
+    if retobj != None and retobj.save_graph_level > 1 :
+        odir      = retobj.out_dir
+        prefix    = retobj.prefix
+        lab_title = 'Frequency magnitude spectrum, with bandpassing'
+        lab_short = 'bandpass_spectrum'
+        
+        fname, title = lpu.make_str_bandpass(label,
+                                             lab_title, lab_short, 
+                                             prefix=prefix, odir=odir)
+        lpplt.makefig_ft_bandpass_magn(X, Xfilt,
+                                       delta_f, idx_ny,
+                                       title=title, fname=fname,
+                                       label=label,
+                                       retobj=retobj,
+                                       verb=verb)
+
     return xfilt, idx_freq_peak
 
 def get_peaks_from_bandpass(x, samp_freq, min_bps, max_bps=None, 
-                            width_fac=4, label='', verb=0):
-    """***ADD***
+                            width_fac=4, label='', retobj=None, verb=0):
+    """Use bandpassing to smooth out the time series, and then search for
+peaks in what remains as a first pass.  The art of this is picking a
+good band to apply.  Here, we look for a major peak above the
+(extended) baseline peak, and roll with that.  The min_bps and max_bps
+provide useful guard rails for this process.  Additionally, the
+width_fac feature is used within the Scipy peak finding function
+function
 
 Parameters
 ----------
@@ -147,22 +181,32 @@ xfilt : np.ndarray
 
     """
 
-    # Band pass filter raw data, and also get idx of peak freq mode
+    # Bandpass filter raw data, and also get idx of peak freq mode
     # within range filtered
     xfilt, idx_freq_mode \
         = bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
                                                        min_bps, 
                                                        max_bps=max_bps,
                                                        label=label, 
+                                                       retobj=retobj,
                                                        verb=0)
     if len(xfilt) == 0:
        print("** ERROR: Failed to band-pass filter '{}' data".format(label))
        return []
 
-    # Get initial peaks of bandpassed time series
-    width    = int(samp_freq / width_fac)
-    peaks, _ = sps.find_peaks(xfilt, 
-                              width=width)        
+    # --- Get initial peaks of bandpassed time series
+    # !!! PT: revisit this, starting to understand, but reset to original now
+
+    # get width value from idx_freq_mode---use signal info to guide
+    # this, not samp freq
+    delta_f = retobj.data[label].ft_delta_f         # FT freq step, in Hz
+    phys_freq_mode = idx_freq_mode * delta_f        # FT peak freq, in Hz
+    idx_freq_wid0  = int(0.5 * phys_freq_mode / delta_f) # index window bot
+    #idx_freq_wid1  = int(1.5 * phys_freq_mode / delta_f) # index window top
+
+    width    = int(samp_freq / width_fac)    ### earlier approach
+    peaks, _ = sps.find_peaks(xfilt, width=width)
+    ##width=idx_freq_wid0)#, idx_freq_wid1))
 
     # listify
     peaks    = list(peaks)
@@ -527,67 +571,6 @@ opeaks : list
     opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
 
     return opeaks
-
-
-def calc_interval_stats(A, samp_rate=None, 
-                        all_perc = (10, 25, 40, 50, 60, 75, 90),
-                        verb=0 ):
-    """Calculate percentile-based statistics of the intervals of 1D array
-A (which is assumed to be sorted already).  A sampling rate can be
-input to provide output units; if none is entered, then units are
-those of A (which are typically unitless when A represents peaks or
-troughs).
-
-Parameters
-----------
-A : list
-    1D list (likely of int values if representing peaks or 
-    troughs); assumed to be sorted already
-samp_rate : float
-    physical value of sampling rate associated with A
-all_perc : set/np.ndarray
-    1D Python array of percentile values in range [0, 100], for which 
-    values of the distribution of intervals within A will be calculated
-
-Returns
--------
-minval : float
-    minimum value in A
-maxval : float
-    maximum value in A
-stats_arr : np.ndarray
-    an array of stats about the intervals of A, calculated from
-    percentile values in all_perc
-
-    """
-
-    # make sure A has values
-    N = len(A)
-    if not(N):
-        return None, None, np.zeros(0, dtype=float)
-
-    # make interval set
-    intervals = [j-i for i, j in zip(A[:-1], A[1:])]
-
-    # min/max
-    minval = np.min(A)
-    maxval = np.max(A)
-
-    # calculate percentiles
-    Nperc  = len(all_perc)
-    if Nperc :
-        stats_arr = np.percentile(intervals, q=all_perc)
-    else: 
-        stats_arr = np.zeros(0, dtype=float)
-
-    # scale values, if applicable
-    if samp_rate :
-        minval*= samp_rate
-        maxval*= samp_rate
-        if Nperc :
-            stats_arr*= samp_rate
-
-    return minval, maxval, stats_arr
 
 # -------------------------------------------------------------------------
 

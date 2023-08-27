@@ -21,16 +21,6 @@
             variance in linear model. Ratio of variance with/without regressors)
             - Does it explain more of the variance in the data (which would be 
               a good thing) - (Permanent item)
-        - Lags.  Number of lags.  Direction and size
-            - Add -oldRVT (current retroicorTaylor) option, and ability to flip 
-               RVT direction
-            - Add RVT_lags option with 3 paramaters:
-                - (Relative (to onset of aqcuisition)) start time.  Beginning
-                   of leftmost shift.  (Earliest time - currently -20 but is 
-                   supposed) to be zero.  Currently beginnin of -20 but ends at 0
-                   due to 4 intervals of 5 seconds
-                - (Relative) end time
-                - # RVTs
         - Convolve RVT with some function using physiological regressors (Catie 
           Chang)
         - Get percentage of variance accounted for by cardio
@@ -60,6 +50,7 @@
         - EPI data set (Being used in afni_proc.py command)
         - Large smoothing to find peaks and troughs
         - Small smoothing to remove outliers
+        - lags with RVT
 """
 
 import sys, os
@@ -163,6 +154,12 @@ if __name__ == "__main__":
     if retobj.data[label] :
         lpf.calc_regress_rvt( retobj, label=label, verb=verb )
 
+
+    # -------------------- log some of the results --------------------------
+
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
 
 
 

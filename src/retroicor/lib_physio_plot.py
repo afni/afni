@@ -11,6 +11,8 @@ DEF_max_n = 1000                     # def npts per subplot (not used now)
 DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
 
+PY_VER    = sys.version_info.major   # Python major version
+
 # =========================================================================
 
 class RetroPlobj:
@@ -159,7 +161,7 @@ them.
                  figname = 'retro_fig.pdf',
                  title   = 'the plot',
                  xlabel  = 'time (s)',
-                 ylabel  = 'data',
+                 ylabel  = '',
                  figsize = [],
                  dpi     = 300,
                  fontsize= 10,
@@ -316,7 +318,7 @@ them.
     @property
     def n_subplots_per_fig(self):
         """Return the number of subplots per figure (i.e., per image)."""
-        if not(self.is_multiplot) :
+        if not(self.is_multifig) :
             return self.n_subplots
         else:
             return self.max_l_per_fig 
@@ -480,7 +482,7 @@ them.
         if len(self.figsize) == 0 :
             self.figsize_use = (7, 1.0+self.n_subplots_per_fig*1.0)
             # for plot of 'remainder' lines, if applicable
-            self.figsize_rem = (7, 1.0+self.n_subplots_per_fig_rem*1.0)
+            self.figsize_rem = (7, 0.5+self.n_subplots_per_fig_rem*1.0)
         else:
             self.figsize_use = copy.deepcopy(self.figsize)
             # for plot of 'remainder' lines, if applicable
@@ -598,7 +600,12 @@ them.
                 # make xlabel at bottom of subfig
                 if iicount == iinum - 1 :
                     xlbl = pp.set_xlabel(self.xlabel, fontsize=self.fontsize,
-                                  loc='left')
+                                  loc='left', labelpad=4)
+
+                # put a plot-wide ylabel at the top
+                if PY_VER > 2 and self.ylabel :
+                    fff.supylabel(self.ylabel, y=0.9, va='top', 
+                                  fontsize=self.fontsize)
 
                 pp.set_xlim(self.all_range_xlim[ii])
                 pp.set_ylim(self.range_ylim)
@@ -608,13 +615,20 @@ them.
                 pp.spines['right'].set_linewidth(3)
 
             if 1 :
+                # first make layout tight, then place single-row
+                # legend, that should now fit nicely
+                plt.tight_layout()
                 plt.legend(ncol=self.n_plobj,
-                           loc='upper right', 
-                           bbox_to_anchor=(1.0, -0.5 - 0.2*(iinum/6.0)),
+                           fontsize=self.fontsize,
+                           #loc='upper right', 
+                           #bbox_to_anchor=(1.0, -0.5 - 0.2*(iinum/6.0)),
+                           loc='lower right',
+                           bbox_to_anchor=(0.98, 0.01),
+                           bbox_transform=plt.gcf().transFigure,
                            shadow=True, borderpad=0.4, columnspacing=1.5,
                            borderaxespad=0.1, handletextpad=0.5,
                            handlelength=0.75)
-                plt.tight_layout()
+                #plt.tight_layout()
 
             if do_save :
                 plt.savefig(oimg, dpi=self.dpi)
@@ -676,8 +690,11 @@ Returns
 
     """
 
-    if not(fname) :
-        fname = 'physio_calc_plot.pdf'
+    if not(fname) : fname = 'physio_calc_plot.pdf'
+
+    # functionality for one ylabel to rule them all
+    if PY_VER > 2:  fig_ylabel = 'physio signal'
+    else:           fig_ylabel = ''
 
     # start figure, either with retobj options or more simply
     if retobj :    
@@ -687,6 +704,7 @@ Returns
                         figsize        = retobj.img_figsize,
                         fontsize       = retobj.img_fontsize,
                         max_t_per_line = retobj.img_line_time,
+                        ylabel         = fig_ylabel,
                         verb           = verb,
         )
     else: 
@@ -774,6 +792,90 @@ Returns
 
     fff.make_plot()
     
+# --------------------------------------------------------------------------
+
+def makefig_ft_bandpass_magn(X, Xfilt,
+                             delta_f, idx_ny,
+                             title='TITLE', fname='FNAME',
+                             label='', retobj=None,
+                             verb=0):
+    """
+Parameters
+----------
+X : np.ndarray
+    1D array (probably complex) of unfiltered freq spectrum values;
+    the abs value of this is plotted
+X : np.ndarray
+    1D array (probably complex) of the bandpassed freq spectrum values;
+    the abs value of this is plotted
+idx_ny : int
+    the index value of the Nyquist frequency
+delta_f : float
+    value of the steps along the abscissa (freq axis); the original
+    freq sampling freq divided by N time points of ts_orig.
+title : str
+    string to include as title for the plot
+fname : str
+    output file name, which can include path
+label : str
+    label for the time series, like 'card' or 'resp'
+retobj : retro_obj
+    object that contains larger settings information, like fontsize
+    and other fine-control things the user can pass along
+
+Returns
+-------
+(just creates plots)
+
+"""
+
+    if not(retobj) :
+        print("** ERROR: need retobj in this function (bandpass plot)")
+        sys.exit(7)
+
+    if not(fname) :
+        fname = 'physio_calc_plot_FT.pdf'
+
+    # functionality for one ylabel to rule them all
+    if PY_VER > 2:  fig_ylabel = 'freq spectrum magn'
+    else:           fig_ylabel = ''
+
+    N = len(X)
+    # make abscissa
+    fvalues = np.arange(idx_ny) * delta_f
+    max_f   = retobj.img_bp_max_f
+    max_idx = int(max_f / delta_f)
+    istep   = 1
+
+    # start figure 
+    fff = RetroFig( figname        = fname,
+                    title          = title,
+                    figsize        = retobj.img_figsize,
+                    fontsize       = retobj.img_fontsize,
+                    max_t_per_line = max_f,
+                    xlabel         = 'freq (Hz)',
+                    ylabel         = fig_ylabel,
+                    verb           = verb,
+    )
+
+    # add unfiltered magnitude
+    ret_plobj1 = RetroPlobj(fvalues[:max_idx:istep], 
+                            np.abs(X[:max_idx:istep]), 
+                            label='unfilt',
+                            alpha=1,
+                            color='0.5')
+    fff.add_plobj(ret_plobj1)
+
+    # add bandpassed magnitude
+    ret_plobj2 = RetroPlobj(fvalues[:max_idx:istep], 
+                            np.abs(Xfilt[:max_idx:istep]), 
+                            label='bandpassed',
+                            alpha=1,
+                            lw=2,
+                            color='black')
+    fff.add_plobj(ret_plobj2)
+
+    fff.make_plot()
 
 # ==========================================================================
 

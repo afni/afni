@@ -1,8 +1,13 @@
+#!/usr/bin/env python
+
 import sys, os
 import copy
 import json
 from   afnipy  import lib_physio_opts    as lpo
+from   afnipy  import lib_physio_util    as lpu
 from   afnipy  import lib_format_cmd_str as lfcs
+
+# ===========================================================================
 
 def make_retobj_oname(suffix, retobj, ext='txt'):
     """Construct an output filename for log/text info, from the retobj
@@ -116,3 +121,96 @@ Returns
     fff.close()
 
     return 0
+
+def make_ts_obj_review_log(retobj, label=None, ext='txt', 
+                           mode='w', verb=0):
+    """Write out (or append to) a file of review information for the given
+retobj's 'label' ts_obj (like, for label = 'card', 'resp' etc.).  The
+extension ext can be changed.  
+
+By default, this function will overwrite any existing file, but
+setting mode to 'a' will have it append.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+ext : str
+    file extension name; if 'None' or '', then no do not concatenate: 
+    '.' + ext.
+mode : str
+    an allowed mode for open(), for writing the file; default 'w' is
+    to overwrite, but changing this to 'a' will switch to appending.
+
+Returns
+-------
+is_ok : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+    
+    # get output fname
+    phobj  = retobj.data[label]
+    suffix = 'review'
+    if label :
+        suffix = label + '_' + suffix
+    oname_rev = make_retobj_oname(suffix, retobj, ext='txt')
+
+    # get dict of items to write
+    dict_rev = get_ts_obj_review_info(phobj)
+        
+    # write out
+    fff = open( oname_rev, mode )
+    for key in dict_rev:
+        fff.write("{:30s} : {:s}\n".format(key, dict_rev[key]))
+    fff.close()
+
+    return 0
+
+def get_ts_obj_review_info(phobj):
+    """What info do we want from the ts_obj class phobj?  That is defined
+here."""
+
+
+    D = {}
+
+    D['filename'] = phobj.fname
+    D['label']    = phobj.label
+    
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    D['ts_orig num points']     = str(phobj.n_ts_orig)
+    D['ts_orig sampling rate']  = str(phobj.samp_rate)
+    D['ts_orig sampling freq']  = str(phobj.samp_freq)
+    D['ts_orig start time']     = str(phobj.start_time)
+    D['ts_orig end time']       = str(phobj.end_time)
+    D['ts_orig duration']       = str(phobj.duration_ts_orig)
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    D['peaks num'] = str(phobj.n_peaks)
+    minval, maxval, meanval, stdval = phobj.stats_mmms_peaks
+    q25, q50, q75 = phobj.stats_quarts_peaks
+    D['peaks min max'] = str("{:9.6f} {:9.6f}".format(minval, maxval))
+    D['peaks mean std'] = str("{:9.6f} {:9.6f}".format(meanval, stdval))
+    D['peaks q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, q50, q75))
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    D['troughs num'] = str(phobj.n_troughs)
+    if phobj.n_troughs :
+        minval, maxval, meanval, stdval = phobj.stats_mmms_troughs
+        q25, q50, q75 = phobj.stats_quarts_troughs
+        D['troughs min max'] = str("{:9.6f} {:9.6f}".format(minval, maxval))
+        D['troughs mean std'] = str("{:9.6f} {:9.6f}".format(meanval, 
+                                                                 stdval))
+        D['troughs q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, 
+                                                                        q50, 
+                                                                        q75))
+
+    return D
