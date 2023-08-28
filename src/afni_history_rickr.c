@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Aug, 2023, RCR, "test_afni_prog_help.tcsh", MINOR, TYPE_ENHANCE,
+   "rename from test.afni.prog.help and moved to scripts_install",
+   "This is now distributed for more general testing."
+ } ,
+
+ { 28, Aug, 2023, RCR, "build_afni.py", MICRO, TYPE_MODIFY,
+   "apply renamed test_afni_prog_help.tcsh program",
+   NULL
+ } ,
+
  { 21, Aug, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "apply uncensored TRs via a text file rather than command line",
    "With a long encoded TR list, file names might exceed the allowable limit\n"
