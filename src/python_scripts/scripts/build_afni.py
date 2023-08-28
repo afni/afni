@@ -252,10 +252,11 @@ g_history = """
    0.1  Feb 18, 2023 - initial release, but have features to add
    0.2  Mar  2, 2023 - rename -root_dir to -build_root (as ordered by PT)
    0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
+   0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.3, June 22, 2023" % g_prog
+g_version = "%s, version 0.4, August 28, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -1044,7 +1045,14 @@ class MyInterface:
       binopt = '-bin_dir %s' % self.package
       MESGp("testing the build results ...")
 
-      cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
+      # test -help using test_afni from src dir (or from PATH)
+      test_prog = "test_afni_prog_help.tcsh"
+      if os.path.isfile("scripts_install/%s" % test_prog):
+         test_cmd = "tcsh scripts_install/%s" % test_prog
+      else: 
+         test_cmd = test_prog
+         
+      cmd = "%s %s" % (test_cmd, binopt)
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("to rerun test of make build:")
       self.add_final_mesg("   cd %s" % buildpath)
