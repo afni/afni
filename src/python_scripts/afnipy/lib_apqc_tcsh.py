@@ -244,9 +244,14 @@ auth = 'PA Taylor'
 #ver = '5.1' ; date = 'Aug 22, 2023'
 # [PT] fix Py2-Py3 compatibility: flush print funcs separately
 #
-ver = '5.2' ; date = 'Aug 22, 2023'
+#ver = '5.2' ; date = 'Aug 22, 2023'
 # [PT] fix Py2-Py3 compatibility: open(...) function stuff, for utf-8 enc
 #    + a bit more with print functions, too
+#
+ver = '5.3' ; date = 'Aug 31, 2023'
+# [PT] fix initialization of some 1dplot/1dplot.py variables, for full
+#      use cases (namely when censoring levels are *not* set
+#    + thanks for pointing these out, C Rorden!
 #
 #########################################################################
 
@@ -1035,6 +1040,18 @@ ap_ssdict : dict
     ap_ssdict['ytop_mot']     = ''
     ap_ssdict['ytop_out']     = ''
 
+    # [PT: Aug 31, 2023] address not having defaults when no censoring
+    # to visualize, for either 'basic' or 'pythonic' modes---thanks, C
+    # Rorden!
+    ap_ssdict['cen_cmd'] = ''
+    ap_ssdict['cen_lim_mot']     = ''
+    ap_ssdict['cen_lim_mot_yax'] = ''
+    # this is a cheap way out of needing to have quotes around
+    # ${cen_lim_out} in the case that 'out_limit' is present, and not
+    # wanting it if it is *not* present-- just use -echo_edu here
+    ap_ssdict['cen_lim_out']     = '-echo_edu'
+    ap_ssdict['cen_lim_out_yax'] = ''
+
     if check_dep(ap_ssdict, ['censor_dset']) :
         # when censoring *has* been applied---likely the norm
         ap_ssdict['cen_used'] = 1
@@ -1117,9 +1134,6 @@ ap_ssdict : dict
 
             uuu = "-yaxis 0:{:.8f}:6:2".format(float(ap_ssdict['ytop_mot']))
             ap_ssdict['cen_lim_mot_yax'] = uuu
-        else:
-            ap_ssdict['cen_lim_mot']     = ''
-            ap_ssdict['cen_lim_mot_yax'] = ''
 
         if check_dep(ap_ssdict, ['out_limit']) :
             ttt = "1D: {}@{}".format(ap_ssdict['nt_orig'],
@@ -1128,22 +1142,6 @@ ap_ssdict : dict
 
             uuu = "-yaxis 0:{:.8f}:6:2".format(float(ap_ssdict['ytop_out']))
             ap_ssdict['cen_lim_out_yax'] = uuu
-        else:
-            # this is a cheap way out of needing to have quotes
-            # around ${cen_lim_out} in the case that 'out_limit'
-            # is present, and not wanting it if it is *not*
-            # present-- just use -echo_edu here
-            ap_ssdict['cen_lim_out']     = '-echo_edu'
-            ap_ssdict['cen_lim_out_yax'] = ''
-
-        # this is not used in 'basic' run_style, only in 'pythonic'
-        # Q: might not even need these here (since '')?
-        ap_ssdict['cen_lim_all'] = ''
-        ap_ssdict['cen_lim_all_yax'] = ''
-
-    else:
-        # [PT: Aug 22, 2023] no censoring to visualize---thanks, C Rorden!
-        ap_ssdict['cen_cmd'] = ''
 
     return ap_ssdict
 
@@ -1176,6 +1174,10 @@ ap_ssdict : dict
     # Q: does this need to be set of 'basic' output?
     ap_ssdict['mot_hline'] = 'NONE'
     ap_ssdict['out_hline'] = 'NONE'
+    # [PT: Aug 31, 2023] initialize properly---thanks, C Rorden!
+    ap_ssdict['cen_lim_all']     = ''
+    ap_ssdict['cen_lim_all_yax'] = ''
+
 
     if check_dep(ap_ssdict, ['censor_dset']) :
 
@@ -1202,10 +1204,6 @@ ap_ssdict : dict
 
             uuu = "-yaxis 0:{}".format(ap_ssdict['ytop_out'])
             ap_ssdict['cen_lim_out_yax'] = uuu                
-
-    else:
-        # [PT: Aug 22, 2023] no censoring to visualize---thanks, C Rorden!
-        ap_ssdict['cen_cmd'] = ''
 
     # order matters here: mot, out
     ttt = "-censor_hline {} {}".format( ap_ssdict['mot_hline'], 
