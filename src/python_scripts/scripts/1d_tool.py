@@ -618,6 +618,11 @@ examples (very basic for now): ~1~
             3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
                    | 1d_tool.py -show_slice_timing_pattern -infile -
 
+       c. or if it fails, be gentle and verbose
+
+            1d_tool.py -infile slice_times.1D \\
+                       -show_slice_timing_gentle -verb 3
+
    Example 32. Display slice timing ~2~
 
        Display slice timing given a to3d timing pattern, the number of
@@ -1417,9 +1422,10 @@ g_history = """
    2.17 Aug 17, 2023
         - added -slice_pattern_to_times
         - rewrote -show_slice_timing_pattern to be more forgiving
+   2.18 Sep  1, 2023 - added -show_slice_timing_gentle
 """
 
-g_version = "1d_tool.py version 2.17, August 17, 2023"
+g_version = "1d_tool.py version 2.18, September 1, 2023"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
@@ -1500,7 +1506,7 @@ class A1DInterface:
       self.show_rows_cols  = 0          # show the number of rows and columns
       self.show_regs       = ''         # see g_show_regs_list
       self.show_regs_style = 'label'    # see g_show_regs_style_list
-      self.show_tpattern   = 0          # show the slice timing pattern
+      self.show_tpattern   = 0          # show the slice timing pattern (0,1,2)
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
       self.show_trs_censored = ''       # style variable can be in:
@@ -1818,6 +1824,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
+
+      self.valid_opts.add_opt('-show_slice_timing_gentle', 0, [], 
+                      helpstr='more forgiving than -show_slice_timing_pattern')
 
       self.valid_opts.add_opt('-show_slice_timing_pattern', 0, [], 
                       helpstr='display nbands and the to3d-style tpattern')
@@ -2296,6 +2305,10 @@ class A1DInterface:
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
+         # this is a special case of -show_slice_timing_pattern
+         elif opt.name == '-show_slice_timing_gentle':
+            self.show_tpattern = 2
+
          elif opt.name == '-show_slice_timing_pattern':
             self.show_tpattern = 1
 
@@ -2644,7 +2657,10 @@ class A1DInterface:
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
-      if self.show_tpattern: self.adata.show_tpattern(rdigits=0, verb=self.verb)
+      if self.show_tpattern:
+         if self.show_tpattern == 2: rdigits = 0
+         else:                       rdigits = 1
+         self.adata.show_tpattern(rdigits=rdigits, verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
 
