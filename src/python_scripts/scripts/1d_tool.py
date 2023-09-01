@@ -2642,7 +2642,7 @@ class A1DInterface:
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
-      if self.show_tpattern: self.adata.show_tpattern(verb=self.verb)
+      if self.show_tpattern: self.adata.show_tpattern(rdigits=0, verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
 
@@ -2767,7 +2767,7 @@ class A1DInterface:
       timing = UTIL.slice_pattern_to_timing(pattern, nslices, TR=self.set_tr,
                                             mblevel=mblevel, verb=self.verb)
 
-      print(UTIL.gen_float_list_string(timing))
+      print(UTIL.gen_float_list_string(timing, sep='  '))
 
       return 0
 
@@ -2807,7 +2807,7 @@ class A1DInterface:
          print(UTIL.int_list_string(trs_nc, sepstr=' '))
       elif style == 'frac_cen':
          tlist = [1.0-trs[r]*1.0/trs_nc[r] for r in range(len(trs))]
-         print(UTIL.gen_float_list_string(tlist))
+         print(UTIL.gen_float_list_string(tlist, sep='  '))
       else:
          print('** invalid -show_tr_run_counts STYLE %s' \
                % self.show_tr_run_counts)
