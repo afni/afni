@@ -2580,11 +2580,12 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
-   def show_tpattern(self, mesg='', verb=1):
+   def show_tpattern(self, mesg='', rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
-         mesg: if set print before output
-         verb: if 0, no text"""
+         mesg    : ['']  : print before output
+         rdigits : [1]   : number of digtits used for rounding in pattern detection
+         verb    : [1]   : verbosity level (0 = quiet)"""
 
       if mesg:     print('%s' % mesg, end='')
 
@@ -2594,7 +2595,7 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, verb=verb)
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
@@ -3314,10 +3315,11 @@ class Afni1D:
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 
       tmat, clines = TD.read_data_file(fname, verb=self.verb)
+      if tmat is None:
+         return 1
       if not TD.data_is_rect(tmat):
          print("** data is not rectangular in %s" % fname)
          return 1
-      # if not tmat: return 1
 
       # treat columns as across time
       mat = UTIL.transpose(tmat)

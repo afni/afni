@@ -85,7 +85,8 @@ def read_data_file(filename, nlines=-1, marry_ok=0, verb=1):
 
     data, clines, alist = read_married_file(filename, nlines=nlines, verb=verb)
     if data == None:
-       if verb > 0: print('** failed to read text data file %s' % filename)
+       # errors should already be printed
+       if verb > 1: print('** failed to read text data file %s' % filename)
        return None, None
 
     if married_type(data) and not marry_ok:
