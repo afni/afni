@@ -1689,6 +1689,10 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    ntimes = len(timing)
    nunique = len(tunique)
 
+   # be sure there is something to work with
+   if nunique <= 1:
+      return 1, defpat
+
    # TR is slice time * num_slices_times
    TR = tgrid*nunique
 

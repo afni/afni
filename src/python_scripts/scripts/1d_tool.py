@@ -1550,7 +1550,8 @@ class A1DInterface:
          adata = LAD.Afni1D(fname, verb=self.verb)
          self.dtype = 1
 
-      if not adata.ready: return 1
+      if not adata.ready:
+         return 1
 
       if self.verb > 2: print("++ read 1D data from file '%s'" % fname)
 
@@ -2461,7 +2462,8 @@ class A1DInterface:
       if self.incheck and not self.infile:
          print('** missing -infile option')
          return 1
-      elif self.infile and self.init_from_file(self.infile): return 1
+      elif self.infile and self.init_from_file(self.infile):
+         return 1
 
       # process AfniData separately
       if self.dtype == 2: return self.process_afnidata()

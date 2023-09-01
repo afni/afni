@@ -3315,10 +3315,11 @@ class Afni1D:
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 
       tmat, clines = TD.read_data_file(fname, verb=self.verb)
+      if tmat is None:
+         return 1
       if not TD.data_is_rect(tmat):
          print("** data is not rectangular in %s" % fname)
          return 1
-      # if not tmat: return 1
 
       # treat columns as across time
       mat = UTIL.transpose(tmat)
