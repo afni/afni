@@ -1624,9 +1624,9 @@ def median(vals):
    del(svals)
    return med
 
-def __median_slice_diff(vals, verb=1):
+def __mean_slice_diff(vals, verb=1):
    """return what seems to be the slice diff
-      - get unique, sorted sublist, then diffs, then median
+      - get unique, sorted sublist, then diffs, then mean
    """
    unique = get_unique_sublist(vals)
    nunique = len(unique)
@@ -1644,11 +1644,11 @@ def __median_slice_diff(vals, verb=1):
    if verb > 1:
       print("-- MSD: slice diffs: %s" % gen_float_list_string(diffs))
 
-   # return median
-   med = median(diffs)
+   # return mean
+   avediff = mean(diffs)
    del(diffs)
 
-   return med
+   return avediff
 
 def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    """given an array of slice times, try to return multiband level and
@@ -1682,9 +1682,9 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # default pattern and bad ones (to avoid random typos)
    defpat = 'simult'
 
-   # first, estimate the slice diff
+   # first, estimate the slice diff (prefer mean over median for weak timing)
    tunique = get_unique_sublist(timing)
-   tgrid = __median_slice_diff(timing, verb=verb)
+   tgrid = __mean_slice_diff(timing, verb=verb)
 
    ntimes = len(timing)
    nunique = len(tunique)
@@ -1711,7 +1711,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    tscale = [t*scalar for t in timing]
 
    # get rounded unique sublist and sort, to compare against ints
-   tround = get_unique_sublist([round(t,ndigits=rdigits) for t in tscale])
+   tround = get_unique_sublist([int(round(t,ndigits=rdigits)) for t in tscale])
    tround.sort()
 
    # chat
@@ -1757,7 +1757,9 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
          warnvec.append(ind)
 
    # actually warn if we found anything
+   badmults = 0
    if verb > 0 and len(warnvec) > 0:
+      badmults = 1
       print("** warning: %d/%d slice times are only approx multiples of %g" \
             % (len(warnvec), ntimes, tgrid))
       if verb > 1:
@@ -1766,10 +1768,10 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
          maxlen, strtimes = floats_to_strings(timing)
          maxlen, strratio = floats_to_strings(ratios)
          for ind in range(ntimes):
-            print("** time[%2d] : %s  =  %s * %g" \
-                  % (ind, strtimes[ind], strratio[ind], tgrid))
+            print(" bad time[%2d] : %s  /  %g  =  %s" \
+                  % (ind, strtimes[ind], tgrid, strratio[ind]))
 
-   if verb > 1:
+   if verb > 1 or badmults:
       print("-- timing: max ind,diff = %s" % list(__max_int_diff(tscale)))
 
    # ----------------------------------------------------------------------
@@ -1784,7 +1786,7 @@ def timing_to_slice_pattern(timing, rdigits=1, verb=1):
    # then new vars of importance: tings, nunique, mblevel
 
    # round scaled times to be ints in {1..nunique-1} (but full length)
-   tints = [round(t) for t in tscale]
+   tints = [int(round(t)) for t in tscale]
    ti0   = tints[0:nunique]
 
    # finally, the real step: try to detect a pattern in the first nunique
@@ -4382,8 +4384,7 @@ def mean(vec, ibot=-1, itop=-1):
     if itop > vlen-1: itop = vlen-1
 
     tot = 0.0
-    for ind in range(ibot,itop+1):
-       tot += vec[ind]
+    tot = loc_sum(vec[ibot:itop+1])
 
     return tot/(itop-ibot+1)
 
