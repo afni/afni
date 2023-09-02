@@ -195,6 +195,17 @@ derived data.
         return len(self.list_slice_sel_phys)
 
     @property
+    def n_regress_phys(self):
+        """The number of plain ol' physio regressors (probably 4)."""
+        return len(self.regress_dict_phys)
+
+    @property
+    def n_regress_rvt(self):
+        """The number of fancy RVT regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_rvt)
+
+    @property
     def img_arr_step(self):
         """When plotting lines in QC figs, don't need to plot each one---save
         time and space by reducing that number.  The step is the ratio
@@ -309,12 +320,12 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                 print("** ERROR: card physio data too short for MRI data")
                 sys.exit(3)
                 
-        # start saving some text outputs: log input cmd
-        if len(self.args_orig) :
-            self.save_cmd_orig()
-
-    def save_cmd_orig(self):
+    def save_cmd_orig(self, verb=1):
         """Write out input cmd output dir."""
+
+        if not(self.args_orig) :
+            print("+* WARN: no copy of input cmd to save to file")
+            return -1
 
         # make the filename
         fname = 'pc_cmd.tcsh'
@@ -333,7 +344,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         fff.write(comment + '\n\n')
         fff.write(y)
         fff.close()
-
+        
+        if verb :
+            print("++ Saved copy of input cmd to file: {}".format(fname))
+        return 0
 
     def apply_cmd_line_args(self, args_dict):
         """The main way to populate object fields at present.  The input
@@ -629,6 +643,14 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             return False
         else:
             return True
+
+    def have_label(self, label):
+        """Do we appear to have a 'label' data obj?"""
+
+        if label not in list(self.data.keys()): 
+            return False
+        else: 
+            return self.data[label] != None
 
     @property
     def n_slice_times(self):

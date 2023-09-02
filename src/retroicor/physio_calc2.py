@@ -60,6 +60,7 @@ from afnipy import lib_physio_opts    as lpo
 from afnipy import lib_physio_reading as lpr
 from afnipy import lib_physio_logs    as lpl
 from afnipy import lib_physio_funcs   as lpf
+from afnipy import lib_physio_regress as lpreg
 
 # ===========================================================================
 
@@ -85,18 +86,34 @@ def main():
 
 if __name__ == "__main__":
 
-    # Process the command line options. Leads to one of:
+    # ----------------------- proc cmd line opts ----------------------------
+
+    # Leads to one of:
     # + a quick but OK exit (disp help, ver, opt list, etc.)
     # + getting a dict of checked opts for the program
     # + error exit :(
     args_orig = copy.deepcopy(sys.argv)
     args_dict = lpo.main_option_processing( sys.argv )
 
+    # --------------------- organize/check/combine ---------------------------
 
-    # get main object from processing input options, checking to see
-    # if all necessary info is present, and combining it as necessary
+    # build the foundation objects: make main 'retro' object from
+    # processing input options, checking to see if all necessary info
+    # is present, and combining it as necessary
     retobj  = lpr.retro_obj( args_dict, args_orig=args_orig )
     verb    = retobj.verb
+
+    # --------------------- make output directory ----------------------------
+
+    ### !!! do more about checking for preexisting/overwrite
+    if os.path.isdir(retobj.out_dir) :
+        print("+* WARN: output directory exists already---just reusing here.")
+    else:
+        print("++ Making output directory:", retobj.out_dir)
+        os.mkdir(retobj.out_dir)
+
+    # save original command line opts to a log file in output dir
+    tmp = retobj.save_cmd_orig()
 
     # ---------------------- physio-MRI timing selection ---------------------
 
@@ -109,14 +126,6 @@ if __name__ == "__main__":
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
-
-    # --------------------- make output directory ----------------------------
-    ### !!! do more about checking for preexisting/overwrite
-    if os.path.isdir(retobj.out_dir) :
-        print("+* WARN: output directory exists already---just reusing here.")
-    else:
-        print("++ Making output directory:", retobj.out_dir)
-        os.mkdir(retobj.out_dir)
 
     # -------------------- log some of the inputs ---------------------------
     lpl.make_cmd_logs(args_dict, retobj)
@@ -156,6 +165,9 @@ if __name__ == "__main__":
     if retobj.data[label] :
         lpf.calc_regress_rvt( retobj, label=label, verb=verb )
 
+    # ------------- Write out regressors ------------------
+
+    lpreg.write_regressor_file(retobj)
 
     # -------------------- log some of the results --------------------------
 

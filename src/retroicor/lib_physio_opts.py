@@ -1648,8 +1648,8 @@ args_dict2 : dict
     # list, one way or another
     if check_multiple_rvt_shift_opts(args_dict2) :
             sys.exit(1)
-    elif args_dict2['rvt_shift_list'] :
-        # RVT branch A: direct list of shifts to make into array
+    elif args_dict2['rvt_shift_list'] != None :
+        # RVT branch A: direct list of shifts from user to make into array
 
         IS_BAD = 0
 
@@ -1667,7 +1667,7 @@ args_dict2 : dict
 
         if IS_BAD :  sys.exit(1)
     elif args_dict2['rvt_shift_linspace'] :
-        # RVT branch B: linspace pars, list of ints or floats
+        # RVT branch B: linspace pars from user, list of ints or floats
 
         IS_BAD = 0
 
@@ -1697,7 +1697,7 @@ args_dict2 : dict
 
         if IS_BAD :  sys.exit(1)
     elif  args_dict2['rvt_off'] :
-        # RVT branch C: no shifts (simple)
+        # RVT branch C: no shifts (simple), as per user
         args_dict2['rvt_shift_list'] = []
     else:
         # RVT branch D: use default shifts
