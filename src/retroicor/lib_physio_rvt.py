@@ -1,6 +1,6 @@
 import sys, os
 import copy
-import numpy               as np
+import numpy                   as np
 from   afnipy import afni_base as BASE
 
 

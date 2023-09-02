@@ -113,7 +113,7 @@ if __name__ == "__main__":
         os.mkdir(retobj.out_dir)
 
     # save original command line opts to a log file in output dir
-    tmp = retobj.save_cmd_orig()
+    tmp = lpl.save_cmd_orig(retobj)
 
     # ---------------------- physio-MRI timing selection ---------------------
 

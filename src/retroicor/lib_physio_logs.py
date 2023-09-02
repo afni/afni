@@ -6,6 +6,7 @@ import json
 from   afnipy  import lib_physio_opts    as lpo
 from   afnipy  import lib_physio_util    as lpu
 from   afnipy  import lib_format_cmd_str as lfcs
+from   afnipy  import afni_base          as BASE
 
 # ===========================================================================
 
@@ -214,3 +215,57 @@ here."""
                                                                         q75))
 
     return D
+
+# ----------------------------------------------------------------------------
+# save copy of physio_calc.py command that was used
+
+def save_cmd_orig(retobj, verb=1):
+    """Write out input cmd output dir."""
+
+    if not(retobj.args_orig) :
+        print("+* WARN: no copy of input cmd to save to file")
+        return -1
+
+    # make the filename
+    fname = 'pc_cmd.tcsh'
+    if retobj.prefix  :  fname = retobj.prefix + '_' + fname
+    if retobj.out_dir :  fname = retobj.out_dir + '/' + fname
+
+    # --------------------- make strings of info -----------------------------
+    
+    sheb_str = '#!/bin/tcsh\n\n'
+
+    comm_str = '# A backup of the physio_calc.py command use to create '
+    comm_str+= 'this set of data\n\n'
+
+    time_str = '# created  : {}\n'.format(lpo.now_str)
+
+    # get afni ver, and split immediately at colon to put across 2 lines
+    cmd    = '''afni -ver'''
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+    vlist  = com.so[0].split(':')
+
+    aver_str = '# AFNI ver : '
+    pad      = ' ' * (len(aver_str) - 2)
+    aver_str+= vlist[0].strip() + '\n'
+    aver_str+= '# {}{}\n\n'.format(pad, vlist[1].strip())
+
+    # make the command str, in a niceified way
+    cmd_orig = ' '.join(retobj.args_orig)
+    all_opt  = ['-'+opt for opt in lpo.DEF.keys()]
+    is_ok, cmd_str = \
+        lfcs.afni_niceify_cmd_str(cmd_orig, list_cmd_args=all_opt)
+
+    fff = open(fname, 'w')
+    fff.write(sheb_str)
+    fff.write(time_str)
+    fff.write(aver_str)
+    fff.write(comm_str)
+    fff.write(cmd_str)
+    fff.close()
+    
+    if verb :
+        print("++ Saved copy of input cmd to file: {}".format(fname))
+
+    return 0

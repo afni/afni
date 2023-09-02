@@ -55,7 +55,8 @@ DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
 # default outdir name
 now      = datetime.now() # current date and time
-odir_def = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
+now_str  = now.strftime("%Y-%m-%d-%H-%M-%S")
+odir_def = 'retro_' + now_str
 
 # Each key in DEF should have an opt listing below in argparse, and
 # vice versa. 

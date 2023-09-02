@@ -330,35 +330,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                 print("** ERROR: card physio data too short for MRI data")
                 sys.exit(3)
                 
-    def save_cmd_orig(self, verb=1):
-        """Write out input cmd output dir."""
-
-        if not(self.args_orig) :
-            print("+* WARN: no copy of input cmd to save to file")
-            return -1
-
-        # make the filename
-        fname = 'pc_cmd.tcsh'
-        if self.prefix  :  fname = self.prefix + '_' + fname
-        if self.out_dir :  fname = self.out_dir + '/' + fname
-
-        cmd = ' '.join(self.args_orig)
-        all_opt = ['-'+opt for opt in lpo.DEF.keys()]
-        comment = '# A backup of the physio_calc.py command use to create '
-        comment+= 'this set of data'
-
-
-        x,y = lfcs.afni_niceify_cmd_str(cmd, list_cmd_args=all_opt)
-        fff = open(fname, 'w')
-        fff.write('#!/bin/tcsh\n\n\n')
-        fff.write(comment + '\n\n')
-        fff.write(y)
-        fff.close()
-        
-        if verb :
-            print("++ Saved copy of input cmd to file: {}".format(fname))
-        return 0
-
     def apply_cmd_line_args(self, args_dict):
         """The main way to populate object fields at present.  The input
         args_dict should be a dictionary from lib_retro_opts of
