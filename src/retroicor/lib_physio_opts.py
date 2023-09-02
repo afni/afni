@@ -36,8 +36,12 @@ DEF_min_bpm_resp = 6.0
 DEF_max_bpm_card = 250.0
 DEF_max_bpm_resp = 60.0   
 
-# RVT shifts: gets treated as np.linspace(0,4,5)
-DEF_rvt_shifts   = '0 4 5'
+# RVT shifts: either no RVT, direct list, or linspace set of pars
+# (units: sec)
+all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
+DEF_rvt_off            = False
+DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
+DEF_rvt_shift_linspace = None         # can be pars for np.linspace(A,B,C)
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
@@ -76,7 +80,6 @@ DEF = {
     'do_fix_outliers'   : False,     # (list) fix/interp outliers
     'extra_fix_list'    : [],        # (list) extra values to fix
     'remove_val_list'   : [],        # (list) purge some values from ts
-    'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
@@ -96,7 +99,9 @@ DEF = {
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
-    'rvt_shifts'        : DEF_rvt_shifts, # (dict) start|stop|step, RVT shift 
+    'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
+    'rvt_shift_list'    : None,      # (str) space sep list of nums
+    'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
     'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
@@ -658,7 +663,7 @@ args_dict2 : dict
 reconcile_phys_json_with_args.__doc__ = \
     reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
 
-def interpret_rvt_shift_opts(A, B, C):
+def interpret_rvt_shift_linspace_opts(A, B, C):
     """Three numbers are used to determine the shifts for RVT when
 processing.  These get intepreted as np.linspace(A, B, C).  Verify
 that any entered set (which might come from the user) works fine.
@@ -676,17 +681,17 @@ Returns
 -------
 is_fail : bool
     False if everything is OK;  True otherwise
-all_shifts : np.ndarray
-    array of (floating point) shift values
+shift_list : list
+    1D list of (floating point) shift values
 
     """
 
     try :
-        mmm = np.linspace(A, B, C)
+        shift_list = list(np.linspace(A, B, C))
     except:
         return True, np.zeros(0, dtype=float)
     
-    return False, mmm
+    return False, shift_list
 
 
 # ========================================================================== 
@@ -774,9 +779,9 @@ interpolation of the two adjacent values, using the option
 
 {ddashline}
 
-Examples 
+Examples ~1~
 
-  Example ~1~ 
+  Example 1 !!!update
     
     python ~/retroicor/retroicorTaylor.py                                    \\
         -card_file                      physiopy/test000c                    \\
@@ -790,7 +795,7 @@ Examples
         -out_dir                        $outDir                              \\
         -prefix                         $prefix
 
-  Example ~2~  
+  Example 2 !!!update
     
     python                                                                   \\
         retroicorTaylor.py                                                   \\
@@ -805,7 +810,7 @@ Examples
         -out_dir            $outDir                                          \\
         -prefix             $prefix
 
-  Example ~3~  
+  Example 3 !!!update
 
     python ~/retroicor/retroicorTaylor.py                                    \\
         -card_file       sub-005_ses-01_task-rest_run-1_physio-ECG.txt       \\
@@ -979,17 +984,35 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
 
-opt = '''rvt_shifts'''
-hlp = '''Three space-separated values (start stop N) used to determine how
-many and what kinds of shifted copies of RVT are output as regressors,
-according to the Python-Numpy syntax: np.linspace(start, stop, N). The
-shifts are floating point values in units of seconds; they can
-(should?) include zero shifting; and start and stop can each be
-negative, zero or positive. (def: 0 4 5, so there are 5 regressors of
-shift 0, 1, 2, 3 and 4 s)'''
+opt = '''rvt_shift_list'''
+hlp = '''Provide one or more values to specify how many and what kinds of
+shifted copies of RVT are ouptut as regressors. Units are seconds, and
+including 0 may be useful. Shifts could also be entered via
+'-rvt_shift_linspace ..' (def: {}) '''.format(DEF_rvt_shift_list)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs='+', type=str) # parse later
+
+opt = '''rvt_shift_linspace'''
+hlp = '''Alternative to '-rvt_shift_list ..'. Provide three space-separated
+values (start stop N) used to determine how many and what kinds of
+shifted copies of RVT are output as regressors, according to the
+Python-Numpy function np.linspace(start, stop, N). Both start and stop
+(units of seconds) can be negative, zero or positive.  Including 0 may
+be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
+and 4 sec (def: None, use '-rvt_shift_list')'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar='PAR',
                     nargs=3, type=str) # parse later
+
+opt = '''rvt_off'''
+hlp = '''Turn off output of RVT regressors
+'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
 
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
@@ -1030,13 +1053,6 @@ hlp = '''Set the maximum beats per minute for cardiac proc (def: {})
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
-
-opt = '''no_rvt_out'''
-hlp = '''Turn off output of RVT regressors
-'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 opt = '''save_graph_level'''
 hlp = '''Integer value for one of the following behaviors:
@@ -1525,8 +1541,43 @@ ndiff : int
 
     return ndiff
 
+def check_multiple_rvt_shift_opts(args_dict):
+    """Can only use at most one '-rvt_shift*' opt.  Simplest to check for
+that at one time.
+
+Parameters
+----------
+args_dict : dict
+    The dictionary of arguments and option values.
+
+Returns
+-------
+is_bad : int
+    Value is 1 if badness from arg usage, 0 otherwise.
+
+"""
+
+    is_bad = 0
+    count  = 0
+    lopt   = []
+
+    # go through and check, building a list
+    for opt in all_rvt_opt :
+        if args_dict[opt] :
+            lopt.append('-' + opt)
+            count+= 1
+
+    # bad if more than one opt was used
+    if count > 1 :
+        print("** ERROR: more than one '-rvt_shift_*' opt was used:\n"
+              "   {}\n"
+              "   ... but at most only one can be.".format(' '.join(lopt)))
+        is_bad = 1
+
+    return is_bad
 
 def interpret_args(args_dict):
+
     """Interpret the user provided arguments (and potentially update
 some).  This also checks that entered values are valid, and in some
 cases a failure here will lead to a direct exit.
@@ -1551,6 +1602,12 @@ args_dict2 : dict
 
     args_dict2 = copy.deepcopy(args_dict)
 
+
+    if args_dict2['out_dir'] :
+        # remove any rightward '/'.  Maybe also check for pre-existing
+        # out_dir?
+        args_dict2['out_dir'] = args_dict2['out_dir'].rstrip('/')
+
     if args_dict2['start_time'] == None :
         print("++ No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
@@ -1568,8 +1625,7 @@ args_dict2 : dict
             print("** ERROR interpreting extra_fix_list")
             IS_BAD = 1
 
-        if IS_BAD :
-            sys.exit(1)
+        if IS_BAD :  sys.exit(1)
 
     if args_dict2['remove_val_list'] :
         # Interpret string to be list of ints or floats. NB: written
@@ -1584,33 +1640,69 @@ args_dict2 : dict
             print("** ERROR interpreting remove_val_list")
             IS_BAD = 1
 
-        if IS_BAD :
-            sys.exit(1)
+        if IS_BAD :  sys.exit(1)
 
-    if args_dict2['rvt_shifts'] :
-        # Interpret string to be list of ints or floats. 
+    # RVT considerations: several branches here; first check if >1 opt
+    # was used, which is bad; then check for any other opts.  When
+    # this full conditional is complete, we should have our shift
+    # list, one way or another
+    if check_multiple_rvt_shift_opts(args_dict2) :
+            sys.exit(1)
+    elif args_dict2['rvt_shift_list'] :
+        # RVT branch A: direct list of shifts to make into array
+
         IS_BAD = 0
 
-        L = args_dict2['rvt_shifts'].split()
+        L = args_dict2['rvt_shift_list'].split()
+
+        try:
+            # make list of floats
+            shift_list = [float(ll) for ll in L]
+            # and copy list of shifts
+            args_dict2['rvt_shift_list'] = copy.deepcopy(shift_list) 
+        except:
+            print("** ERROR interpreting '-rvt_shift_list ..' args: '{}'"
+                  "".format(args_dict2['rvt_shift_list']))
+            IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
+    elif args_dict2['rvt_shift_linspace'] :
+        # RVT branch B: linspace pars, list of ints or floats
+
+        IS_BAD = 0
+
+        # make sure -rvt_shift_list had 3 entries
+        L = args_dict2['rvt_shift_linspace'].split()
         if len(L) != 3 :
-            print("** ERROR, '-rvt_shifts ..' takes exactly 3 values.")
+            print("** ERROR, '-rvt_shift_linspace ..' takes exactly 3 values.")
             IS_BAD = 1
 
         try:
-            lll = [int(ll) for ll in L]
+            # first 2 numbers can be int or float, but last must be int
+            lll     = [float(ll) for ll in L]
+            lll[-1] = int(lll[-1])
             # These 3 values get interpreted as (start, stop, N);
-            # verify that this is a legit expression (apply later)
-            IS_BAD, mmm = interpret_rvt_shift_opts(lll[0], lll[1], lll[2])
+            # verify that this is a legit expression
+            IS_BAD, all_shift = \
+                interpret_rvt_shift_linspace_opts(lll[0], lll[1], lll[2])
 
-            # copy over the original params, not the results
-            args_dict2['rvt_shifts'] = copy.deepcopy(lll) 
+            # copy original params in place
+            args_dict2['rvt_shift_linspace'] = copy.deepcopy(lll) 
+            # and copy arr of shifts
+            args_dict2['rvt_shift_list'] = copy.deepcopy(all_shift) 
         except:
-            print("** ERROR interpreting '-rvt_shifts ..' args: '{}'"
-                  "".format(args_dict2['rvt_shifts']))
+            print("** ERROR interpreting '-rvt_shift_linspace ..' args: '{}'"
+                  "".format(args_dict2['rvt_shift_linspace']))
             IS_BAD = 1
 
-        if IS_BAD :
-            sys.exit(1)
+        if IS_BAD :  sys.exit(1)
+    elif  args_dict2['rvt_off'] :
+        # RVT branch C: no shifts (simple)
+        args_dict2['rvt_shift_list'] = []
+    else:
+        # RVT branch D: use default shifts
+        L   = DEF_rvt_shift_list.split()
+        args_dict2['rvt_shift_list'] = [float(ll) for ll in L]
 
     if args_dict2['img_figsize'] :
         # Interpret string to be list of floats.
@@ -1624,8 +1716,7 @@ args_dict2 : dict
             print("** ERROR interpreting img_figsize")
             IS_BAD = 1
 
-        if IS_BAD :
-            sys.exit(1)
+        if IS_BAD :  sys.exit(1)
 
     if '/' in args_dict2['prefix'] :
         print("** ERROR: Cannot have path information in '-prefix ..'\n"

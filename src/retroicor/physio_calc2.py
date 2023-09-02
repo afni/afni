@@ -54,6 +54,7 @@
 """
 
 import sys, os
+import copy
 
 from afnipy import lib_physio_opts    as lpo
 from afnipy import lib_physio_reading as lpr
@@ -88,12 +89,13 @@ if __name__ == "__main__":
     # + a quick but OK exit (disp help, ver, opt list, etc.)
     # + getting a dict of checked opts for the program
     # + error exit :(
+    args_orig = copy.deepcopy(sys.argv)
     args_dict = lpo.main_option_processing( sys.argv )
 
 
     # get main object from processing input options, checking to see
     # if all necessary info is present, and combining it as necessary
-    retobj  = lpr.retro_obj( args_dict )
+    retobj  = lpr.retro_obj( args_dict, args_orig=args_orig )
     verb    = retobj.verb
 
     # ---------------------- physio-MRI timing selection ---------------------

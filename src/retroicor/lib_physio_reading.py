@@ -8,6 +8,7 @@ import copy
 import numpy          as np
 from   afnipy import  lib_physio_opts as lpo
 from   afnipy import  lib_physio_util as lpu
+from   afnipy import  lib_format_cmd_str as lfcs
 
 # ==========================================================================
 
@@ -233,11 +234,16 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
     """
 
-    def __init__(self, args_dict=None, verb=0):
+    def __init__(self, args_dict=None, args_orig=[], verb=0):
         """Create object holding all retro info
 
         """
         
+        # save copy of input args_dict, for reference, as well as
+        # args_orig list (to record in a text file), if input
+        self.args_dict = copy.deepcopy(args_dict)
+        self.args_orig = copy.deepcopy(args_orig)
+
         # physio data: refer to each as value of data dictionary
         self.data = {
             'card' : None,             # obj for card data
@@ -253,9 +259,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.exit_on_nan  = True       # exit if NaN values in data files?
         self.exit_on_null = True       # exit if null values in data files?
         self.do_fix_outliers = False   # exit if null values in data files?
-        self.extra_fix_list = []       # list of to-be-bad values (-> interp)
+        self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
-        self.rvt_shifts   = []         # list of params for RVT shifting
+        self.rvt_shift_list  = []      # list of RVT shift values
 
         # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -303,6 +309,32 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                 print("** ERROR: card physio data too short for MRI data")
                 sys.exit(3)
                 
+        # start saving some text outputs: log input cmd
+        if len(self.args_orig) :
+            self.save_cmd_orig()
+
+    def save_cmd_orig(self):
+        """Write out input cmd output dir."""
+
+        # make the filename
+        fname = 'pc_cmd.tcsh'
+        if self.prefix  :  fname = self.prefix + '_' + fname
+        if self.out_dir :  fname = self.out_dir + '/' + fname
+
+        cmd = ' '.join(self.args_orig)
+        all_opt = ['-'+opt for opt in lpo.DEF.keys()]
+        comment = '# A backup of the physio_calc.py command use to create '
+        comment+= 'this set of data'
+
+
+        x,y = lfcs.afni_niceify_cmd_str(cmd, list_cmd_args=all_opt)
+        fff = open(fname, 'w')
+        fff.write('#!/bin/tcsh\n\n\n')
+        fff.write(comment + '\n\n')
+        fff.write(y)
+        fff.close()
+
+
     def apply_cmd_line_args(self, args_dict):
         """The main way to populate object fields at present.  The input
         args_dict should be a dictionary from lib_retro_opts of
@@ -336,7 +368,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.niml        = args_dict['niml']
         self.demo        = args_dict['demo']
         self.debug       = args_dict['debug']
-        self.do_out_rvt  = not(args_dict['no_rvt_out'])
+        self.do_out_rvt  = not(args_dict['rvt_off'])
         self.do_out_card = not(args_dict['no_card_out'])
         self.do_out_resp = not(args_dict['no_resp_out'])
         self.do_calc_ab  = args_dict['do_calc_ab']
@@ -348,7 +380,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_fix_outliers = args_dict['do_fix_outliers']
         self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
         self.remove_val_list = copy.deepcopy(args_dict['remove_val_list'])
-        self.rvt_shifts      = copy.deepcopy(args_dict['rvt_shifts'])
+        self.rvt_shift_list  = copy.deepcopy(args_dict['rvt_shift_list'])
 
         # run these file reads+checks last, because they use option
         # items from above

@@ -282,7 +282,7 @@ title : str
     # make the filename
     fname = '{}_{:02d}_{}.{}'.format(label, idx, lab_short, ext)
     if prefix :  fname = prefix + '_' + fname
-    if odir :    fname = odir.rstrip('/') + '/' + fname
+    if odir :    fname = odir + '/' + fname
 
     # make the title string
     title = 'Process {} data: {}'.format(label, lab_title)
@@ -848,21 +848,18 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     phobj  = retobj.data[label]
     odir   = retobj.out_dir
     prefix = retobj.prefix
+    shift_list = retobj.rvt_shift_list
 
+    nshift = len(shift_list)
     regress_dict_rvt = {}
 
-    is_fail, all_shifts = lpo.interpret_rvt_shift_opts(retobj.rvt_shifts[0], 
-                                                       retobj.rvt_shifts[1], 
-                                                       retobj.rvt_shifts[2])
-    nshift = len(all_shifts)
     if verb :
-        print("++ The {} RVT shift values are: {}".format(nshift, all_shifts))
+        print("++ The {} RVT shift values are: {}".format(nshift, shift_list))
 
     # shifts here are made by shifting a copy of the underlying
     # tvalues array, and then selecting the same MRI-snapshot points.
     # We use the time series median to pad values
-
-
+    # !!!!!! check if this is true still; change if so!!!!
 
     # the primary, unshifted regressor
     rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
@@ -870,7 +867,7 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     for ii in range(nshift):
         # make shifted regressors
         lab = 'rvt{:02d}'.format(ii)
-        shift = all_shifts[ii]
+        shift = shift_list[ii]
         regress_dict_rvt[lab] = get_shifted_rvt(phobj.rvt_ts,
                                                 phobj.samp_freq,
                                                 phobj.list_slice_sel_rvt,
