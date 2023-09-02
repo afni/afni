@@ -91,13 +91,6 @@ def write_regressor_file(retobj):
                     data_arr[:,cc] = phobj.regress_dict_phys[keyA][ss][1]
                     rcount+= 1
 
-
-
-    # physio regressors: add the label+data
-
-    # add the regressor info
-
-
     # --------------------- write -------------------------------
 
     # open the file and write the header/start

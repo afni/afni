@@ -775,8 +775,6 @@ intervals to estimate 'instantaneous period'.
     insta_per = lprvt.interp_intervals_LIN(phobj, phobj.peaks, verb=verb)
     rvt_ts    = (upper_env - lower_env) / insta_per
 
-    # !!! plot RVT vals
-
     phobj.rvt_ts = rvt_ts
 
     return 0
@@ -874,6 +872,9 @@ def calc_regress_rvt(retobj, label=None, verb=0):
                                                 shift)
 
     phobj.regress_dict_rvt = regress_dict_rvt
+
+    # make lineplot image of the RVT regressors
+    tmp = lprvt.plot_rvt(retobj, label)
 
     return 0
 
