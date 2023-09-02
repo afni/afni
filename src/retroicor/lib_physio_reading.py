@@ -206,6 +206,16 @@ derived data.
         return len(self.regress_dict_rvt)
 
     @property
+    def regress_rvt_phys(self):
+        """The keys of the physio regressors."""
+        return list(self.regress_dict_phys.keys())
+
+    @property
+    def regress_rvt_keys(self):
+        """The keys of the RVT regressors."""
+        return list(self.regress_dict_rvt.keys())
+
+    @property
     def img_arr_step(self):
         """When plotting lines in QC figs, don't need to plot each one---save
         time and space by reducing that number.  The step is the ratio
