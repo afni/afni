@@ -7,6 +7,8 @@ from   matplotlib.collections import PatchCollection as MPC
 import matplotlib.patches     as     mplp
 import matplotlib.cm          as     mplcm
 
+from   afnipy import afni_base as    BASE
+
 DEF_max_n = 1000                     # def npts per subplot (not used now)
 DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
@@ -876,6 +878,113 @@ Returns
     fff.add_plobj(ret_plobj2)
 
     fff.make_plot()
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot phy regressors, if being used
+
+def plot_regressors_phys(retobj, ext='svg'):
+    """
+
+
+"""
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    
+    # make the filename (final image)
+    fname = 'regressors_phys.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp__' + 'regressors_phys.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    # find physio labels with data
+    all_label = [lab for lab in list(retobj.data.keys()) \
+                 if retobj.data[lab] != None ]
+    nlabel = len(all_label)
+    lll    = ', '.join(all_label)
+    title  = 'Process ({}) data: physio regressors, slice 0'.format(lll)
+
+    # build up count of number of regressors
+    nreg   = 0
+    for hh in range(nlabel):
+        label = all_label[hh]
+        phobj = retobj.data[label]        # simplify coding below
+        nreg += phobj.n_regress_rvt
+        nreg += phobj.n_regress_phys
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nreg)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nreg
+
+    # -------------------- get regressors for [0] slice -------------------
+
+    idx_sli = 0  
+    # count number of regressors per slice, as added
+    cc = 0 
+    for hh in range(nlabel):
+        label = all_label[hh]
+        phobj = retobj.data[label]        # simplify coding below
+        # process any/all phys regressors
+        for ii in range(phobj.n_regress_phys):
+            keyA = phobj.regress_rvt_phys[ii]
+            keyB = phobj.regress_dict_phys[keyA][idx_sli][0]
+            data_lab[cc]   = keyB.split('.')[-1] + '.' + keyA
+            data_arr[:,cc] = phobj.regress_dict_phys[keyA][idx_sli][1]
+            cc+= 1
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of rvt data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+
+
+    return 0
+
 
 # ==========================================================================
 

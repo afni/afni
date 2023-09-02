@@ -61,6 +61,7 @@ from afnipy import lib_physio_reading as lpr
 from afnipy import lib_physio_logs    as lpl
 from afnipy import lib_physio_funcs   as lpf
 from afnipy import lib_physio_regress as lpreg
+from afnipy import lib_physio_plot    as lpplt
 
 # ===========================================================================
 
@@ -159,8 +160,10 @@ if __name__ == "__main__":
     ### -> for the 'resp' physio time series, "c2" means cos() with m=2, 
     ###    and 4 means the [4]th slice, and [1] means the actual regression
     ###    time series (the [0] in the last bracket would point to a label)
+    # make a plot of the physio regressors
+    lpplt.plot_regressors_phys(retobj)
 
-    # Regressors, for RVT time series
+    # Regressors, for RVT time series (plot is made within this func)
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_regress_rvt( retobj, label=label, verb=verb )
