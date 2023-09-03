@@ -992,12 +992,14 @@ def plot_regressors_phys(retobj, ext='svg'):
     if prefix  :  ftmp = prefix + '_' + ftmp
     if odir :     ftmp = odir + '/' + ftmp
 
-    # find physio labels with data
+    # make ylabels and title; NB: here and below, we focus on slice 0
+    idx_sli   = 0  
     all_label = [lab for lab in list(retobj.data.keys()) \
                  if retobj.data[lab] != None ]
     nlabel = len(all_label)
     lll    = ', '.join(all_label)
-    title  = 'Process ({}) data: physio regressors, slice 0'.format(lll)
+    title  = 'Process ({}) data: '.format(lll)
+    title += 'physio regressors, slice {}'.format(idx_sli)
 
     # build up count of number of regressors
     nreg   = 0
