@@ -411,9 +411,6 @@ def getTimeSeriesPeriod_as_indices(x, min_nidx=1):
     """Get overall typical period(s) of time series x in terms of number
 of indices.
 
-!!! NB: this could also be separately returned by the bandpassFilter*()
-function, which might be a preferable way to go. !!!
-
 Parameters
 ----------
 x : np.ndarray

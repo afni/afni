@@ -18,7 +18,6 @@ from   afnipy import lib_physio_plot    as lpplt
 PO_all_label = ['card', 'resp']
 PO_rvt_label = ['resp']
 
-
 # ===========================================================================
 
 def check_label_all(label):
@@ -339,7 +338,7 @@ is_ok : int
     count    = 0                                     # proc/filter steps
     lab_title = 'Bandpass and SciPy peak-finding'    # used in fig img
     lab_short = 'bp_scipy_peaks'                     # used in fig filename
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
     # calculate peak and/or trough array (and here, output a bit more
     # info, too)
     peaks, idx_freq_mode, xfilt = \
@@ -372,7 +371,7 @@ is_ok : int
     count+= 1
     lab_title = 'Local peak refinement'
     lab_short = 'local_refine_peaks'
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
     peaks = lpp.refinePeakLocations(peaks, 
                                     phobj.ts_orig,
                                     is_troughs = False,
@@ -396,7 +395,7 @@ is_ok : int
     if label == 'card' :
         lab_title = 'Local peak percentile filter'
         lab_short = 'perc_local_peaks'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         peaks = lpp.percentileFilter_local(peaks, 
                                            phobj.ts_orig,
                                            is_troughs = False,
@@ -405,7 +404,7 @@ is_ok : int
     elif label == 'resp' :
         lab_title = 'Global peak percentile filter'
         lab_short = 'perc_global_peaks'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         peaks = lpp.percentileFilter_global(peaks, 
                                             phobj.ts_orig,
                                             is_troughs = False,
@@ -428,13 +427,14 @@ is_ok : int
     count+= 1
     lab_title = 'Peak proximity filter'
     lab_short = 'proxim_filter_peaks'
-    if verb :   print('++', lab_title)
-    # !!! but just use idx_freq_mode from above???
-    tsperiod_idx = \
-        lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    # NB: for period_idx arg here, could use
+    # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but instead
+    # use previously calc'ed idx_freq_mod, which should avoid baseline
+    # drift.
     peaks = lpp.removeClosePeaks(peaks, 
                                  phobj.ts_orig,
-                                 tsperiod_idx,
+                                 idx_freq_mode, 
                                  is_troughs = False,
                                  label=label,
                                  verb=verb)
@@ -464,7 +464,7 @@ is_ok : int
     count+= 1
     lab_title = 'Add any missing peaks'
     lab_short = 'add_missing_peaks'
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
     peaks = lpp.addMissingPeaks(peaks, 
                                 phobj.ts_orig,
                                 is_troughs = False,
@@ -492,7 +492,7 @@ is_ok : int
         count+= 1
         lab_title = 'Bandpass and SciPy trough-finding'    # used in fig img
         lab_short = 'bp_scipy_troughs'                          
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         troughs, _ = sps.find_peaks(-xfilt,
                                     width=int(phobj.samp_freq/8))
         if len(troughs) == 0 :
@@ -513,7 +513,7 @@ is_ok : int
         count+= 1
         lab_title = 'Global trough percentile filter'
         lab_short = 'perc_global_troughs'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         troughs = lpp.percentileFilter_global(troughs, 
                                               phobj.ts_orig,
                                               perc_filt = 90.0,
@@ -543,13 +543,14 @@ is_ok : int
         count+= 1
         lab_title = 'Trough proximity filter'
         lab_short = 'proxim_filter_troughs'
-        if verb :   print('++', lab_title)
-        # !!! but just use idx_freq_mode from above???
-        tsperiod_idx = \
-            lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        # NB: for period_idx arg here, could use
+        # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but
+        # instead use previously calc'ed idx_freq_mod, which should
+        # avoid baseline drift.
         troughs = lpp.removeClosePeaks(troughs, 
                                        phobj.ts_orig,
-                                       tsperiod_idx,
+                                       idx_freq_mode,
                                        is_troughs = True,
                                        label=label,
                                        verb=verb)
@@ -572,7 +573,7 @@ is_ok : int
         count+= 1
         lab_title = 'Add any missing troughs'
         lab_short = 'add_missing_troughs'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         troughs = lpp.addMissingPeaks(troughs, 
                                       phobj.ts_orig,
                                       is_troughs = True,
@@ -605,7 +606,7 @@ is_ok : int
         lab_title = 'Final peaks ($\Delta t_{{\\rm med}}$ = {:0.3f} s)'.format(p_ival)
         lab_title+= ' and troughs'
         lab_short = 'final_peaks_troughs'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short, 
                                                prefix=prefix, odir=odir)
@@ -620,7 +621,7 @@ is_ok : int
     else:
         lab_title = 'Final peaks ($\Delta t_{{\\rm med}}$ = {:0.3f} s)'.format(p_ival)
         lab_short = 'final_peaks'
-        if verb :   print('++', lab_title)
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short, 
                                                prefix=prefix, odir=odir)
@@ -672,7 +673,7 @@ is_ok : int
     count     = 20                          # start with num >> peak/trough est
     lab_title = 'Estimating phase'
     lab_short = 'est_phase'
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
 
     # ------- card phase estimation
     if label == 'card' :
@@ -749,7 +750,7 @@ intervals to estimate 'instantaneous period'.
     count     = 21 
     lab_title = 'RVT envelope estimation'
     lab_short = 'rvt_env'
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
 
     # calculate the upper and lower envelope
     upper_env = lprvt.interp_extrema_LIN(phobj, phobj.peaks, verb=verb)
@@ -771,7 +772,7 @@ intervals to estimate 'instantaneous period'.
     count    += 1
     lab_title = 'RVT measure'
     lab_short = 'rvt_measure'
-    if verb :   print('++', lab_title)
+    if verb :   print('++ ({}) {}'.format(label, lab_title))
     insta_per = lprvt.interp_intervals_LIN(phobj, phobj.peaks, verb=verb)
     rvt_ts    = (upper_env - lower_env) / insta_per
 
