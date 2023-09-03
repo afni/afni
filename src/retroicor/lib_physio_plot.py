@@ -35,6 +35,7 @@ plotting.
                  label   = None,     # legend label
                  add_ibandT = False, # make top colorband about (p/t) intervals?
                  add_ibandB = False, # make bot colorband about (p/t) intervals?
+                 img_axhline = None, # horizontal line, like 0 or ts median
                  verb=0):
         """Create object holding data to plot.
 
@@ -61,6 +62,8 @@ plotting.
         self.add_ibandB   = add_ibandB         # bool, bot colorband on/off
         self.xw_ibandB    = []                 # list, iband: (xcoord, width)
         self.col_ibandB   = []                 # list, str of float 0-1
+
+        self.img_axhline  = img_axhline        # flt/str, value or keyword
         # ----------------------------
 
         check = self.check_inputs()
@@ -553,14 +556,22 @@ them.
                 if self.is_multiplot :  pp = subpl[iicount]
                 else:                   pp = subpl
 
-                if 1 :
-                    pp.axhline(y=0, c='0.8', ls='-', lw=0.5, zorder=0)
-
                 # loop over all plobj and add them
                 for jj in range( self.n_plobj ):
                     plobj = copy.deepcopy(self.list_plobj[jj])
                     if not(iicount) :
                         list_labels.append('test_' + str(jj))
+
+                    # plot a horizontal guide line, e.g., median or 0 line
+                    if plobj.img_axhline != None :
+                        if plobj.img_axhline == 'MEDIAN' :
+                            yval = plobj.med_ts_orig
+                            ylab = 'ts med'
+                        else:
+                            yval = plobj.img_axhline
+                            ylab = None
+                        pp.axhline(y=yval, c='0.8', ls='-', lw=0.5, zorder=0,
+                                   label=ylab)
 
                     # treat all plots as slices
                     idx = self.all_sub_slice[ii][jj]
@@ -652,6 +663,7 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 upper_env=[], lower_env=[],
                                 title='', fname='', retobj=None,
                                 add_ibandT = False, add_ibandB = False,
+                                img_axhline = 'MEDIAN',
                                 verb=0):
     """A script to plot time series, as well as peaks and/or troughs.  The
 idea is to keep the plotting as uniform as possible.
@@ -685,6 +697,9 @@ add_ibandT : bool
 add_ibandB : bool
     add band of rectangles at the bot of plot, reflecting trough intervals
     relative to the median
+img_axhline : str or float
+    plot a horizontal line in the plot; can be either a number, or a keyword
+    like 'MEDIAN', which will get median of phobj time series.
 
 Returns
 -------
@@ -723,10 +738,14 @@ Returns
     # can plot lower density of points in lines
     istep = phobj.img_arr_step
 
+    if img_axhline == 'MEDIAN' :
+        img_axhline = phobj.stats_med_ts_orig
+
     ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], phobj.ts_orig[::istep], 
                             label=phobj.label,
                             alpha=ts_alpha,
-                            color='0.5')
+                            color='0.5',
+                            img_axhline =img_axhline)
     fff.add_plobj(ret_plobj1)
 
     # a note about plot points: consider matplotlib.markers.TICKUP (2)
@@ -771,6 +790,22 @@ Returns
                                 lw=DEF_lw*1.5,
                                 color='green')
         fff.add_plobj(ret_plobj4)
+
+        if len(troughs):
+            # Bonus for resp phases: vis guide line
+            ret_plobj4a = RetroPlobj(phobj.tvalues[::istep], 
+                                  np.ones(len(phobj.tvalues[::istep]))*maxts,
+                                  #label='$\pm\pi$',
+                                  alpha=0.5,
+                                  lw=DEF_lw*0.5,
+                                  color='green')
+            fff.add_plobj(ret_plobj4a)
+            ret_plobj4b = RetroPlobj(phobj.tvalues[::istep], 
+                                  np.ones(len(phobj.tvalues[::istep]))*mints,
+                                  alpha=0.5,
+                                  lw=DEF_lw*0.5,
+                                  color='green')
+            fff.add_plobj(ret_plobj4b)
 
     if len(upper_env) :
         ret_plobj5 = RetroPlobj(phobj.tvalues[::istep], upper_env[::istep], 

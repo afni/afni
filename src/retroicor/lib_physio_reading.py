@@ -124,14 +124,21 @@ derived data.
             return 0
 
     @property
+    def stats_med_ts_orig(self):
+        """Median value for ts_orig."""
+
+        return np.median(self.ts_orig)
+
+    @property
     def n_peaks(self):
         """The number of peaks in the peaks collection."""
         return len(self.peaks)
 
     @property
     def stats_perc_peaks(self):
-        """Percentile-based stats for the peaks, which are scaled to units
-        of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75, 90)"""
+        """Percentile-based stats for the peak intervals, which are scaled to
+        units of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75,
+        90)"""
 
         all_stat = \
             lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
@@ -140,8 +147,9 @@ derived data.
 
     @property
     def stats_perc_troughs(self):
-        """Percentile-based stats for the troughs, which are scaled to units
-        of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75, 90)"""
+        """Percentile-based stats for the trough intervals, which are scaled
+        to units of time. Percentiles calc'ed: (10, 25, 40, 50, 60,
+        75, 90)"""
 
         all_stat = \
             lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
@@ -150,8 +158,8 @@ derived data.
 
     @property
     def stats_quarts_peaks(self):
-        """Quartile (25, 50, 75) stats for the peaks, which are scaled to
-        units of time."""
+        """Quartile (25, 50, 75) stats for the peak intervals, which are
+        scaled to units of time."""
 
         all_stat = \
             lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
@@ -160,8 +168,8 @@ derived data.
 
     @property
     def stats_quarts_troughs(self):
-        """Quartile (25, 50, 75) stats for the troughs, which are scaled to
-        units of time."""
+        """Quartile (25, 50, 75) stats for the trough intervals, which are
+        scaled to units of time."""
 
         all_stat = \
             lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
@@ -170,8 +178,8 @@ derived data.
 
     @property
     def stats_mmms_peaks(self):
-        """Min/max/mean/std stats for the peaks, which are scaled to units
-        of time."""
+        """Min/max/mean/std stats for the peak intervals, which are scaled to
+        units of time."""
 
         all_stat = \
             lpu.calc_interval_stats_mmms(self.peaks, samp_rate=self.samp_rate)
@@ -179,8 +187,8 @@ derived data.
 
     @property
     def stats_mmms_troughs(self):
-        """Min/max/mean/std stats for the troughs, which are scaled to units
-        of time."""
+        """Min/max/mean/std stats for the trough intervals, which are scaled
+        to units of time."""
 
         all_stat = \
             lpu.calc_interval_stats_mmms(self.troughs, samp_rate=self.samp_rate)
