@@ -276,7 +276,8 @@ opeaks : list
     return opeaks
 
 def percentileFilter_global(peaks, x, perc_filt = 10.0, 
-                            is_troughs = False, label='', verb=0):
+                            is_troughs = False, label='', 
+                            save_by_interval = True, verb=0):
     """Filter peaks based on global percentile of time series data x.
 
 Parameters
@@ -293,6 +294,9 @@ is_troughs: bool
     False meaning it is the minimum acceptable value
 label : str
     label for the time series, like 'card' or 'resp'
+save_by_interval: bool
+    if on, choose to not filter out peaks whose removal would leave
+    large gaps
 
 Returns
 -------
@@ -313,25 +317,104 @@ opeaks : list
     # make list of time series values at peak locations
     peak_vals = np.array([x[idx] for idx in peaks])
     
-    # Remove peaks that are less than the the required percentile of
-    # the input signal
+    # Remove peaks that are less than the required percentile of the
+    # input signal
 
     # global threshold
     thr = np.percentile(x, perc_filt)
 
-    # filter peaks, thresholding
-    tmp = np.array(peaks)
-    if is_troughs : 
-        opeaks = list(tmp[peak_vals <= thr])
-    else: 
-        opeaks = list(tmp[peak_vals >= thr])
+    # estimate keep_arr with threshold: True means 'preserve'
+    if is_troughs :  keep_arr = peak_vals <= thr
+    else:            keep_arr = peak_vals >= thr
+
+    if save_by_interval :
+        keep_arr = make_save_by_interval(keep_arr, peaks, verb=verb)
+
+    # apply 'keep' filter
+    tmp    = np.array(peaks)
+    opeaks = list(tmp[keep_arr])
 
     return opeaks
+
+
+def make_save_by_interval(keep_arr, peaks, verb=0):
+    """Go through 'keep' filter, and don't allow peaks to be removed if
+doing so greatly increases within-peak distance.
+
+The threshold value for deciding to not remove a point-to-be-filtered is:
++ if doing so leads to an interpeak distance of >1.5 * med(interpeak dist),
++ and if that points minimal interval is >0.5 * med(interpeak dist)
+
+Parameters
+----------
+keep_arr : array
+    1D boolean array, where True means 'keep that peak value' and False 
+    means 'remove it'
+peaks : array
+    1D array of peak indices, same length as filt_arr
+
+Returns
+-------
+okeep_arr : array
+    1D boolean array, after possibly saving some peaks, where True/False
+    have their original meanings
+
+    """
+
+    N = len(keep_arr)
+    okeep_arr = copy.deepcopy(keep_arr)
+
+    if np.sum(okeep_arr) == N :
+        # all points being kept, nothing to do
+        return okeep_arr
+
+    # loop through candidate points, because changing filter can
+    # affect other points.  Loop through until first time nothing is
+    # updated, or a fixed max number of iterations.
+    MAX_NLOOP = 50
+    nloop = 0
+    found = True
+    while found and nloop < MAX_NLOOP :
+        nloop+= 1
+        found = False
+
+        # indices of 'bad' peaks to (likely) filter, len N
+        bad_indices = np.arange(N)[okeep_arr == False]
+        nbad = len(bad_indices)
+        # all_intervals, len N-1
+        intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+        # the 'double interval' span, len N-2 (no first/last peak)
+        doub_span = [j+i for i, j in zip(intervals[:-1], intervals[1:])]
+
+        # define the threshold for the double-interval span, as well
+        # as for single interval span (*can refine this?*)
+        med_ival = np.median(intervals)
+        span_thr = 1.5*med_ival
+        ival_thr = 0.5*med_ival
+
+        for ii in range(nbad):
+            bad_idx = bad_indices[ii]
+            if bad_idx > 0 and bad_idx < N-1 :
+                bad_doub_span = doub_span[bad_idx-1]
+                bad_ival_min  = min(intervals[bad_idx], intervals[bad_idx-1])
+                if bad_doub_span > span_thr and \
+                   bad_ival_min > ival_thr :
+                    if verb > 1 :
+                        print("   -> save one extremum: "
+                              'idx =', peaks[bad_idx], 
+                              bad_doub_span, '>', span_thr)
+                    # move this index to KEEP
+                    okeep_arr[bad_idx] = True
+                    found = True
+
+    return okeep_arr
+
+# -------------------------------------------------------------------------
 
 def percentileFilter_local(peaks, x, perc_filt = 10, 
                            is_troughs = False, 
                            period_idx = None, nbhd_idx = 4,
-                           label='', verb=0):
+                           label='', save_by_interval = True, verb=0):
     """Filter peaks based on local percentile of time series x.
 
 Parameters
@@ -354,6 +437,9 @@ nbhd_idx : int
     of index counts. Default chosen from early testing/practice
 label : str
     label for the time series, like 'card' or 'resp'
+save_by_interval: bool
+    if on, choose to not filter out peaks whose removal would leave
+    large gaps
 
 Returns
 -------
@@ -370,7 +456,7 @@ opeaks : list
         period_idx = getTimeSeriesPeriod_as_indices(x)
 
     # make list of time series values at peak locations
-    peak_vals = [x[idx] for idx in peaks]
+    peak_vals = np.array([x[idx] for idx in peaks])
 
     # Determine local percentile-based threshold around each peak
     halfWindowWidth = round(period_idx * nbhd_idx / 2.0)
@@ -382,16 +468,19 @@ opeaks : list
         min_idx = max(0, idx - halfWindowWidth)
         max_idx = min(N-1, idx + halfWindowWidth)
         all_thr.append(np.percentile(x[min_idx:max_idx], perc_filt))
+    all_thr = np.array(all_thr)
 
-    # interestingly elementwise boolean comparisons work between
-    # lists, but not if these were arrays
-    peak_vals  = np.array(peak_vals)
-    all_thr    = np.array(all_thr)
-    tmp        = np.array(peaks)
-    if is_troughs :
-        opeaks = list(tmp[peak_vals <= all_thr])
-    else: 
-        opeaks = list(tmp[peak_vals >= all_thr])
+
+    # estimate keep_arr with threshold: True means 'preserve'
+    if is_troughs :  keep_arr = peak_vals <= all_thr
+    else:            keep_arr = peak_vals >= all_thr
+
+    if save_by_interval :
+        keep_arr = make_save_by_interval(keep_arr, peaks, verb=verb)
+
+    # apply 'keep' filter
+    tmp    = np.array(peaks)
+    opeaks = list(tmp[keep_arr])
 
     return opeaks
 
