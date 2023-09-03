@@ -214,22 +214,17 @@ xfilt : np.ndarray
 
 # ---------------------------------------------------------------------------
 
-### !!! NB: original code had a kwarg 'period', but that was commented
-### !!! out and not actually currently being used
-# Adjust peaks from uniform spacing
-#    peaks = lpf.refinePeakLocations(peaks, rawData, 
-#            dataType = "Respiratory",  
-#            phys_fs = parameters["phys_fs"], 
-
-def refinePeakLocations(peaks, x, is_troughs = False, label='', verb=0):
+def refinePeakLocations(peaks, x, window_scale = 4.0,
+                        is_troughs = False, label='', verb=0):
     """Adjust peaks to correspond to local maxima.  This is usually
 necessary if the peaks were determined from a band-pass filtered
 version of the input raw data where the peaks are uniformly spaced
 based on the overall typical period of raw data.
 
-This basically takes each input peak, makes a tiny plus/minus interval
-around it, and finds the local max in x within that. Output number of
-peaks matches input number.
+This basically takes each input peak, makes a plus/minus window around
+it, and finds the local max (or min, for troughs) in x there; the peak
+shifts to that new location. Output number of peaks matches input
+number.
 
 Parameters
 ----------
@@ -238,6 +233,9 @@ peaks : list
     were estimated within x
 x : np.ndarray
     1D Python array (real/float values), the input time series
+window_scale = float
+    factor to scale the peak-searching window; the window is the 
+    median(inter-peak interval)/window_scale
 is_troughs: bool
     are we processing peaks or troughs here?
 label : str
@@ -261,10 +259,8 @@ opeaks : list
     opeaks = []                # init output
 
     # Determine half window width from distribution of intervals
-    # !!! check more about this---why '4' here?
-    # !!! probably need a minimum number of peaks, up above?
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    halfWindowWidth = round(np.median(intervals)/4)
+    halfWindowWidth = round(np.median(intervals)/window_scale)
 
     # adjust each peak by location of local max in original ts
     for ii in range(Npeaks):
@@ -306,8 +302,6 @@ opeaks : list
 
     """
 
-    # !!! is (earlier) upperThreshold basically set based on whether
-    # !!! the dset is peaks or troughs?
 
     # !!! what about not removing the peak *if* it creates a gap
     # !!! greater than 1.5 times the median peak distribution? that
@@ -317,7 +311,7 @@ opeaks : list
     N = len(x)
     
     # make list of time series values at peak locations
-    peak_vals = [x[idx] for idx in peaks]
+    peak_vals = np.array([x[idx] for idx in peaks])
     
     # Remove peaks that are less than the the required percentile of
     # the input signal
@@ -325,9 +319,7 @@ opeaks : list
     # global threshold
     thr = np.percentile(x, perc_filt)
 
-    # interestingly elementwise boolean comparisons work when
-    # peak_vals is a list, but not when an array
-    # !!!! doublecheck this when peaks itself is a list!!!
+    # filter peaks, thresholding
     tmp = np.array(peaks)
     if is_troughs : 
         opeaks = list(tmp[peak_vals <= thr])
@@ -371,9 +363,6 @@ opeaks : list
 
     """
 
-    # !!! is (earlier) upperThreshold basically set based on whether
-    # !!! the dset is peaks or troughs?
-
     N = len(x)
 
     # Estimate period from time series if not supplied
@@ -411,6 +400,10 @@ def getTimeSeriesPeriod_as_indices(x, min_nidx=1):
     """Get overall typical period(s) of time series x in terms of number
 of indices.
 
+NB: This function doesn't do try to stay away from baseline
+frequencies.  Therefore, we try to use essentially the peak freq in
+xfilt in the main code, rather than this.
+
 Parameters
 ----------
 x : np.ndarray
@@ -425,9 +418,6 @@ nidx : int
 
     """
     
-    # !!! have to check if we should move away from very low freq
-    # !!! here?  Probably?
-
     N = len(x)
 
     max_nidx = round(N/2)              # Frequency limit is Nyquist frequency
