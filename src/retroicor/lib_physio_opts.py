@@ -46,7 +46,7 @@ DEF_rvt_shift_linspace = None         # can be pars for np.linspace(A,B,C)
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
-DEF_img_line_time = 30               # units = seconds
+DEF_img_line_time = 60               # units = seconds
 DEF_img_dot_freq  = 10               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 

@@ -160,6 +160,7 @@ if __name__ == "__main__":
     ### -> for the 'resp' physio time series, "c2" means cos() with m=2, 
     ###    and 4 means the [4]th slice, and [1] means the actual regression
     ###    time series (the [0] in the last bracket would point to a label)
+
     # make a plot of the physio regressors
     lpplt.plot_regressors_phys(retobj)
 
@@ -179,16 +180,6 @@ if __name__ == "__main__":
             lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
 
 
-
-
-
-
-
-
-
-#    if retobj.data['card'] != None :
-#        print("TEST, print card peaks")
-#        print(retobj.data['card'].peaks)
 
 
 

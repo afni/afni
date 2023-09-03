@@ -125,9 +125,6 @@ NB: we *could* have just gotten this info as a special case of the
 full physio slicewise regressors calculation, but decided to keep this
 separate, to be more general.
 
-This function *also* calculates the list of shifts, which can be
-affected by user input.
-
 Parameters
 ----------
 retobj : retro_obj class
@@ -837,7 +834,7 @@ Eq. 1 of Glover et al., 2000.
 
 def calc_regress_rvt(retobj, label=None, verb=0):
     """Calculate RVT regressors, as described in Birn et al.,
-2006.
+2006.  Apply shifts here
 
     """
 
@@ -863,7 +860,6 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     # shifts here are made by shifting a copy of the underlying
     # tvalues array, and then selecting the same MRI-snapshot points.
     # We use the time series median to pad values
-    # !!!!!! check if this is true still; change if so!!!!
 
     # the primary, unshifted regressor
     rvt_regr = phobj.rvt_ts[phobj.list_slice_sel_rvt]
