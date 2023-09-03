@@ -14,6 +14,11 @@ from   afnipy import  lib_format_cmd_str as lfcs
 
 DEF_outlier_perc = [10, 90]
 
+# list of labels for available methods for interpolating bad points
+ALL_fix_method = [     
+    'interp_linear',
+]
+
 # ==========================================================================
 
 class phys_ts_obj:
@@ -31,19 +36,20 @@ derived data.
 
         """
 
-        self.verb      = verb                # verbosity level
-        self.label     = label               # str, e.g., 'card', 'resp', ...
-        self.fname     = fname               # str, fname, just for info
+        self.verb       = verb                # verbosity level
+        self.label      = label               # str, e.g., 'card', 'resp', ...
+        self.fname      = fname               # str, fname, just for info
 
-        self.ts_orig   = np.array(ts_orig)   # arr, original time series
-        self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
+        self.ts_orig    = np.array(ts_orig)   # arr, original time series
+        self.samp_freq  = float(samp_freq)    # float, sampling freq (in Hz)
         self.start_time = start_time         # float, time offset (<=0, in s)
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
         self.max_bps    = max_bps            # float, max beats/breaths per sec
-        self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
+        self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
         self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
 
+        # plotting specific
         self.img_idx   = 0                   # int, for naming QC plots
         self.img_dot_freq = img_dot_freq     # flt, pt density in plts
 
@@ -53,11 +59,9 @@ derived data.
         # and can pick out values from any time series with len(self.ts_orig),
         # esp. self.phases and self.rvt_ts
         self.list_slice_sel_phys = []        # list, lab+ind for ts_orig sel
-        self.list_slice_sel_rvt = []         # list, lab+ind for ts_orig sel
+        self.list_slice_sel_rvt  = []        # list, lab+ind for ts_orig sel
 
         # peak/trough stuff
-        #self.peaks     = np.zeros(0, dtype=int)  # arr, for indices of peaks
-        #self.troughs   = np.zeros(0, dtype=int)  # arr, for indices of troughs
         self.peaks     = []                      # list, for indices of peaks
         self.troughs   = []                      # list, for indices of troughs
 
@@ -70,7 +74,7 @@ derived data.
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
 
         # regressor stuff: lists of labels and the actual values
-        # NB: the *rvt one will likely only be used for resp
+        # NB: at present, rvt likely only for rest (but doesn't matter deeply)
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
 
@@ -265,20 +269,20 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.args_dict = copy.deepcopy(args_dict)
         self.args_orig = copy.deepcopy(args_orig)
 
-        # physio data: refer to each as value of data dictionary
+        # physio data: refer to each as value of data dictionary.
+        # NB: RVT is contained within each card/resp/etc. data obj here
         self.data = {
             'card' : None,             # obj for card data
             'resp' : None,             # obj for resp data
         }
-        # Q: add in RVT obj?
 
         # maybe not keep these in this obj?
-        self.phys_jdict = None         # dict from JSON file, maybe col labels
-        self.phys_file  = None         # phys file, might contain cardio/resp
+        self.phys_jdict      = None    # dict from JSON file, maybe col labels
+        self.phys_file       = None    # phys file, might contain cardio/resp
 
-        self.exit_on_rag  = True       # exit if raggedness in data files?
-        self.exit_on_nan  = True       # exit if NaN values in data files?
-        self.exit_on_null = True       # exit if null values in data files?
+        self.exit_on_rag     = True    # exit if raggedness in data files?
+        self.exit_on_nan     = True    # exit if NaN values in data files?
+        self.exit_on_null    = True    # exit if null values in data files?
         self.do_fix_outliers = False   # exit if null values in data files?
         self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
@@ -289,10 +293,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                        # start of MRI
 
         # MRI EPI volumetric info
-        self.vol_slice_times = []         # list of floats for slice timing
-        self.vol_slice_pat   = None       # str, name of slice pat (for ref)
-        self.vol_tr          = 0.0        # float, TR of MRI EPI
-        self.vol_nv          = 0          # int, Nvol (num_time_pts) MRI EPI 
+        self.vol_slice_times = []      # list of floats for slice timing
+        self.vol_slice_pat   = None    # str, name of slice pat (for ref)
+        self.vol_tr          = 0.0     # float, TR of MRI EPI
+        self.vol_nv          = 0       # int, Nvol (num_time_pts) MRI EPI 
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -308,8 +312,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_resp  = True       # bool, flag
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
         self.do_save_ab   = False      # bool, save a,b coeffs to file
-        self.img_fontsize = lpo.DEF_img_fontsize # flt, FS for output images
-        self.img_figsize  = lpo.DEF_img_figsize  # 2-ple, img height/wid
+        self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
+        self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
@@ -338,54 +342,53 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         # *** this method is in progress ***
 
-        self.verb            = args_dict['verb']
+        self.verb             = args_dict['verb']
 
-        self.vol_slice_times = copy.deepcopy(args_dict['slice_times'])
-        self.vol_slice_pat   = args_dict['slice_pattern']
-        self.vol_tr          = args_dict['volume_tr']
-        self.vol_nv          = args_dict['num_time_pts']
+        self.vol_slice_times  = copy.deepcopy(args_dict['slice_times'])
+        self.vol_slice_pat    = args_dict['slice_pattern']
+        self.vol_tr           = args_dict['volume_tr']
+        self.vol_nv           = args_dict['num_time_pts']
 
-        self.start_time      = args_dict['start_time']
-        #self.min_bps['card'] = args_dict['min_bpm_card']/60.
-        #self.min_bps['resp'] = args_dict['max_bpm_resp']/60.
-        #self.max_bps['card'] = args_dict['max_bpm_card']/60.
-        #self.max_bps['resp'] = args_dict['max_bpm_resp']/60.
+        self.start_time       = args_dict['start_time']
 
-        self.out_dir     = args_dict['out_dir']
-        self.prefix      = args_dict['prefix']
+        self.out_dir          = args_dict['out_dir']
+        self.prefix           = args_dict['prefix']
         self.show_graph_level = args_dict['show_graph_level']
         self.save_graph_level = args_dict['save_graph_level']
-        self.img_figsize   = copy.deepcopy(args_dict['img_figsize'])
-        self.img_fontsize  = args_dict['img_fontsize']
-        self.img_line_time = args_dict['img_line_time']
-        self.img_dot_freq  = args_dict['img_dot_freq']
-        self.img_bp_max_f  = args_dict['img_bp_max_f']
-        self.niml        = args_dict['niml']
-        self.demo        = args_dict['demo']
-        self.debug       = args_dict['debug']
-        self.do_out_rvt  = not(args_dict['rvt_off'])
-        self.do_out_card = not(args_dict['no_card_out'])
-        self.do_out_resp = not(args_dict['no_resp_out'])
-        self.do_calc_ab  = args_dict['do_calc_ab']
-        self.do_save_ab  = args_dict['do_save_ab']
+        self.img_figsize      = copy.deepcopy(args_dict['img_figsize'])
+        self.img_fontsize     = args_dict['img_fontsize']
+        self.img_line_time    = args_dict['img_line_time']
+        self.img_dot_freq     = args_dict['img_dot_freq']
+        self.img_bp_max_f     = args_dict['img_bp_max_f']
+        self.niml             = args_dict['niml']
+        self.demo             = args_dict['demo']
+        self.debug            = args_dict['debug']
+        self.do_out_rvt       = not(args_dict['rvt_off'])
+        self.do_out_card      = not(args_dict['no_card_out'])
+        self.do_out_resp      = not(args_dict['no_resp_out'])
+        self.do_calc_ab       = args_dict['do_calc_ab']
+        self.do_save_ab       = args_dict['do_save_ab']
 
         #self.exit_on_rag -> NB: prob never try to fix
-        self.exit_on_nan     = not(args_dict['do_fix_nan'])
-        self.exit_on_null    = not(args_dict['do_fix_null'])
-        self.do_fix_outliers = args_dict['do_fix_outliers']
-        self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
-        self.remove_val_list = copy.deepcopy(args_dict['remove_val_list'])
-        self.rvt_shift_list  = copy.deepcopy(args_dict['rvt_shift_list'])
+        self.exit_on_nan      = not(args_dict['do_fix_nan'])
+        self.exit_on_null     = not(args_dict['do_fix_null'])
+        self.do_fix_outliers  = args_dict['do_fix_outliers']
+        self.extra_fix_list   = copy.deepcopy(args_dict['extra_fix_list'])
+        self.remove_val_list  = copy.deepcopy(args_dict['remove_val_list'])
+        self.rvt_shift_list   = copy.deepcopy(args_dict['rvt_shift_list'])
 
         # run these file reads+checks last, because they use option
         # items from above
         if args_dict['phys_file'] and args_dict['phys_json_dict'] :
-            self.set_data_from_phys_file_and_json(args_dict)
+            is_bad = self.set_data_from_phys_file_and_json(args_dict)
         if args_dict['resp_file'] :
-            self.set_data_from_solo_file(args_dict, label='resp')
+            is_bad = self.set_data_from_solo_file(args_dict, label='resp')
         if args_dict['card_file'] :
-            self.set_data_from_solo_file(args_dict, label='card')
+            is_bad = self.set_data_from_solo_file(args_dict, label='card')
 
+        if is_bad :
+            print("** ERROR: fatal problem reading in data.")
+            sys.exit(2)
 
     # -----------------------
 
@@ -394,23 +397,27 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         either the resp_file or card_file.  Use this to populate one
         or more data objs.
 
+        While reading in data files, also identify bad points, and
+        apply fixes.
+
         The 'label' is required, and must be one of:
         'resp'
         'card'
 
-        Does not return anything, just populate one of: 
+        Populate one of: 
         data['resp']
         data['card']
+        
+        Return 0 if OK, and nonzero if bad.
 
         """
 
-        if label == 'resp' :
-            fname = args_dict['resp_file']
-        elif label == 'card' :
-            fname = args_dict['card_file']
+        if   label == 'resp' :  fname = args_dict['resp_file']
+        elif label == 'card' :  fname = args_dict['card_file']
         else:
             print("** ERROR: need a recognized label, not '{}'"
                   "".format(label))
+            return 1
 
         all_col = self.read_and_check_data_file(fname)
         arr     = self.extract_list_col(all_col, 0) 
@@ -447,16 +454,27 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                          start_time = args_dict['start_time'],
                                          img_dot_freq = args_dict['img_dot_freq'],
                                          verb=self.verb)
-
+        return 0
 
     def set_data_from_phys_file_and_json(self, args_dict):
         """Using information stored in args_dict, try opening and reading the
         phys_file, using a dictionary made from its accompanying JSON.
         Use this to populate one or more data objs.
 
-        Does not return anything, just populate one or more of:
+        While reading in data files, also identify bad points, and
+        apply fixes.
+
+        The 'label' is required, and must be one of:
+        'resp'
+        'card'
+
+        Populate one of: 
         data['resp']
         data['card']
+        
+        Return 0 if OK, and nonzero if bad.
+
+        !!! PT note: can condense the 2 separate if-conditions here
 
         """
 
@@ -525,8 +543,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         if not(USE_COL) :
             print("** ERROR: could not find any columns in {} that were "
                   "labelled like data".format(fname))
-            sys.exit(7)
+            return 1
 
+        return 0
 
     def extract_list_col(self, all_col, idx):
         """For data that has been read in as a list of lists, extract the
@@ -584,12 +603,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         check_end_time_phys_ge_final_slice(...) for a more official one.
         """
 
-        if label=='resp' :
-            if not(self.have_resp) : return False
-        elif label=='card' :
-            if not(self.have_card) : return False
-        else:
-            print("+* ERROR: Unrecognized label '{}'".format(label))
+        if not(self.have_label(label)) :
             return False
 
         phys_end_time = self.data[label].end_time
@@ -607,12 +621,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         continue with the calculation.
         """
 
-        if label=='resp' :
-            if not(self.have_resp) : return False
-        elif label=='card' :
-            if not(self.have_card) : return False
-        else:
-            print("+* ERROR: Unrecognized label '{}'".format(label))
+        if not(self.have_label(label)) :
             return False
 
         phys_end_time = self.data[label].end_time
@@ -628,7 +637,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
     def have_label(self, label):
         """Do we appear to have a 'label' data obj?"""
 
-        if label not in list(self.data.keys()): 
+        if label not in list(self.data.keys()):
+            print("+* WARN: label '{}' does not appear in data dict"
+                  "".format(label))
             return False
         else: 
             return self.data[label] != None
@@ -637,16 +648,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
     def n_slice_times(self):
         """Length of volumetric slice times list."""
         return len(self.vol_slice_times)
-
-    @property
-    def have_card(self):
-        """Do we appear to have a card obj?"""
-        return self.data['card'] != None
-
-    @property
-    def have_resp(self):
-        """Do we appear to have a resp obj?"""
-        return self.data['resp'] != None
 
     @property
     def duration_vol(self):
@@ -952,8 +953,7 @@ nrem : int
 
     return x_fixed, nrem
 
-ALL_fix_method = [ 'interp_linear',
-]
+# ---------------------------------------------------------------------
 
 def check_and_fix_arr_badness(x, thr_nbad=None, thr_bad_strk=None,
                               fix_method='interp_linear',
