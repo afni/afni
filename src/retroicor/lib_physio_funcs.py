@@ -316,7 +316,8 @@ is_ok : int
 
     """
 
-    if verb : print("++ Start peak/trough calc for {} data".format(label))
+    if verb : 
+        print("++ Start peak/trough calc for {} data".format(label))
 
     check_label_all(label)
 
@@ -326,6 +327,10 @@ is_ok : int
     phobj  = retobj.data[label]
     odir   = retobj.out_dir
     prefix = retobj.prefix
+
+    if verb > 1 :
+        print("++ In plots, step interval for lines: {}"
+              "".format(phobj.img_arr_step))
 
     # -------- start of peak+trough estimation and refinement steps --------
 
@@ -875,7 +880,7 @@ def calc_regress_rvt(retobj, label=None, verb=0):
     phobj.regress_dict_rvt = regress_dict_rvt
 
     # make lineplot image of the RVT regressors
-    tmp = lprvt.plot_rvt(retobj, label)
+    tmp = lpplt.plot_regressors_rvt(retobj, label)
 
     return 0
 

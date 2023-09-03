@@ -722,8 +722,6 @@ Returns
 
     # can plot lower density of points in lines
     istep = phobj.img_arr_step
-    if verb :
-        print("++ In plots, step interval for lines: {}".format(istep))
 
     ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], phobj.ts_orig[::istep], 
                             label=phobj.label,
@@ -880,7 +878,95 @@ Returns
     fff.make_plot()
 
 # ---------------------------------------------------------------------------
-# dump a temp text file and plot phy regressors, if being used
+# dump a temp text file and plot RVT regressors, if being used
+
+def plot_regressors_rvt(retobj, label, ext='svg'):
+    """
+
+
+"""
+
+
+    # the specific card/resp/etc. obj we use here (NB: not copying
+    # obj, just dual-labelling for simplifying function calls while
+    # still updating peaks info, at end)
+    phobj  = retobj.data[label]
+    odir   = retobj.out_dir
+    prefix = retobj.prefix
+    nvol   = retobj.vol_nv
+    verb   = retobj.verb
+    nrvt   = phobj.n_regress_rvt
+    
+    # make the filename (final image)
+    fname = 'regressors_rvt_' + label + '.{}'.format(ext)
+    if prefix  :  fname = prefix + '_' + fname
+    if odir :     fname = odir + '/' + fname
+
+    # make the data file (temporary file)
+    ftmp = '__tmp' + label + '_rvt_regressors.dat'
+    if prefix  :  ftmp = prefix + '_' + ftmp
+    if odir :     ftmp = odir + '/' + ftmp
+
+    title = 'Process {} data: RVT regressors'.format(label)
+
+    # put data+labels into simple forms for writing; initialize objs
+    data_shape = (nvol, nrvt)
+    data_arr   = np.zeros(data_shape, dtype=float)
+    data_lab   = ['LABEL'] * nrvt
+
+    # process any/all RVT regressors
+    for ii in range(nrvt):
+        key  = phobj.regress_rvt_keys[ii]
+        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
+
+        data_lab[ii] = ylab
+        data_arr[:,ii] = phobj.regress_dict_rvt[key]
+
+    # --------------------- write tmp data file ---------------------
+
+    # open the file and write the header/start
+    fff = open(ftmp, 'w')
+    # write data
+    for ii in range(data_shape[0]):
+        for jj in range(data_shape[1]):
+            fff.write(" {:6.4f} ".format(data_arr[ii,jj]))
+        fff.write('\n')
+    # le fin: close and finish
+    fff.close()
+
+    # --------------------- make image of rvt data -----------------------
+
+    par_dict = {
+        'ftmp'    : ftmp,
+        'fname'   : fname,
+        'title'   : title,
+        'all_lab' : ' '.join(['\''+lab+'\'' for lab in data_lab])
+    }
+
+    cmd = '''
+    1dplot.py                                                            \
+        -reverse_order                                                   \
+        -infiles        {ftmp}                                           \
+        -ylabels        {all_lab}                                        \
+        -xlabel         "vol index"                                      \
+        -title          "{title}"                                        \
+        -prefix         "{fname}"
+    '''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    # --------------- clean up tmp file
+    cmd    = '''\\rm {ftmp}'''.format(**par_dict)
+    com    = BASE.shell_com(cmd, capture=1)
+    stat   = com.run()
+
+    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+
+
+    return 0
+
+# ---------------------------------------------------------------------------
+# dump a temp text file and plot phys regressors, if being used
 
 def plot_regressors_phys(retobj, ext='svg'):
     """
@@ -938,7 +1024,7 @@ def plot_regressors_phys(retobj, ext='svg'):
         for ii in range(phobj.n_regress_phys):
             keyA = phobj.regress_rvt_phys[ii]
             keyB = phobj.regress_dict_phys[keyA][idx_sli][0]
-            data_lab[cc]   = keyB.split('.')[-1] + '.' + keyA
+            data_lab[cc]   = keyB.split('.')[-1] + '\\n' + keyA
             data_arr[:,cc] = phobj.regress_dict_phys[keyA][idx_sli][1]
             cc+= 1
 
