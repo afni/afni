@@ -106,15 +106,18 @@ plotting.
         std = np.std(all_ivals)
         rat = 0.5 + 0.1*(all_ivals - med)/(std)   # ~Zscore, scaled for cmap
 
-        all_col = [cmap(max(min(1,val),0)) for val in rat]
+        # NB: through some Python cmap() quirk, max must be <1,
+        # apparently, otherwise it appears to loop around (?!?). So we
+        # cap these values at 0.999.
+        all_col = [cmap(max(min(0.999,val),0)) for val in rat]
         all_xw  = [(i, j-i) for i, j in zip(self.x[:-1], self.x[1:])]
 
         if loc == 'top' :
-            self.col_ibandT = all_col  # lazy about not deepcopying here
-            self.xw_ibandT  = all_xw
+            self.col_ibandT = copy.deepcopy(all_col)
+            self.xw_ibandT  = copy.deepcopy(all_xw)
         elif loc == 'bot' :
-            self.col_ibandB = all_col  # lazy about not deepcopying here
-            self.xw_ibandB  = all_xw
+            self.col_ibandB = copy.deepcopy(all_col)
+            self.xw_ibandB  = copy.deepcopy(all_xw)
         else :
             return 1
 
