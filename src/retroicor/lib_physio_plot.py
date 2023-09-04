@@ -170,6 +170,7 @@ them.
                  title   = 'the plot',
                  xlabel  = 'time (s)',
                  ylabel  = '',
+                 ylim_user = [],
                  figsize = [],
                  dpi     = 300,
                  fontsize= 10,
@@ -186,6 +187,7 @@ them.
         self.title         = title              # str, title of plot
         self.xlabel        = xlabel             # str, label along x-axis
         self.ylabel        = ylabel             # str, data label
+        self.ylim_user     = ylim_user          # list, min/max of y-axis
 
         self.figsize       = figsize            # 2-tuple, fig dims
         self.figsize_use   = []                 # 2-tuple, fig dims
@@ -624,7 +626,10 @@ them.
                                   fontsize=self.fontsize)
 
                 pp.set_xlim(self.all_range_xlim[ii])
-                pp.set_ylim(self.range_ylim)
+                if len(self.ylim_user) :
+                    pp.set_ylim(self.ylim_user)
+                else:
+                    pp.set_ylim(self.range_ylim)
 
                 # thick lines for start/end, to help visualization
                 pp.spines['left'].set_linewidth(3)
@@ -834,6 +839,7 @@ Returns
 
 def makefig_ft_bandpass_magn(X, Xfilt,
                              delta_f, idx_ny,
+                             idx_freq_peak=None,
                              title='TITLE', fname='FNAME',
                              label='', retobj=None,
                              verb=0):
@@ -851,6 +857,10 @@ idx_ny : int
 delta_f : float
     value of the steps along the abscissa (freq axis); the original
     freq sampling freq divided by N time points of ts_orig.
+idx_freq_peak : int
+    the index of the location of the peak frequency (that occurs within
+    the viewed/bandpassed dataset); if present, used to scale the
+    height of the plot
 title : str
     string to include as title for the plot
 fname : str
@@ -885,6 +895,14 @@ Returns
     max_idx = int(max_f / delta_f)
     istep   = 1
 
+    # make ylims, so high baseline doesn't affect plot
+    if idx_freq_peak != None :
+        ymode = np.abs(X[idx_freq_peak])
+        ylim_user = [-0.2*ymode, 1.2*ymode]
+    else:
+        ylim_user = []
+            
+
     # start figure 
     fff = RetroFig( figname        = fname,
                     title          = title,
@@ -893,6 +911,7 @@ Returns
                     max_t_per_line = max_f,
                     xlabel         = 'freq (Hz)',
                     ylabel         = fig_ylabel,
+                    ylim_user      = ylim_user,
                     verb           = verb,
     )
 

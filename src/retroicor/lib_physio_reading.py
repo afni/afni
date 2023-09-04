@@ -49,6 +49,7 @@ derived data.
         self.max_bps    = max_bps            # float, max beats/breaths per sec
         self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
         self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
+        self.bp_idx_freq_mode = 0.           # flt, peak freq idx in bandpass
 
         # plotting specific
         self.img_idx   = 0                   # int, for naming QC plots
@@ -254,9 +255,16 @@ derived data.
     @property
     def ft_nyquist_freq(self):
         """The physical values of the Nyquist frequency (in Hz) of ts_orig in
-        the Fourier domain; that is, the the max indep freq in the FT
+        the Fourier domain; that is, the max indep freq in the FT
         decomp."""
         return self.samp_freq * self.ft_nyquist_idx
+
+    @property
+    def ft_freq_mode_phys(self):
+        """The physical value of the peak frequency (in Hz) of ts_orig in the
+        Fourier domain; that is, the mode of the freq spectrum in the
+        FT decomp."""
+        return self.bp_idx_freq_mode * self.ft_delta_f
 
 # -------------------------------------------------------------------------
 

@@ -352,6 +352,7 @@ is_ok : int
                                     retobj=retobj,
                                     verb=verb)
     phobj.ts_orig_bp = copy.deepcopy(xfilt)          # save BPed ver of ts
+    phobj.bp_idx_freq_mode = idx_freq_mode           # save peak freq's idx
     # check on peaks, don't want an empty array.
     if len(peaks) == 0 :
         print("** ERROR: no peaks after step {} '{}' for {} data"

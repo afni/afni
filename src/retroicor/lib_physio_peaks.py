@@ -132,6 +132,7 @@ idx_freq_peak : int
                                              prefix=prefix, odir=odir)
         lpplt.makefig_ft_bandpass_magn(X, Xfilt,
                                        delta_f, idx_ny,
+                                       idx_freq_peak=idx_freq_peak,
                                        title=title, fname=fname,
                                        label=label,
                                        retobj=retobj,
@@ -195,20 +196,21 @@ xfilt : np.ndarray
        return []
 
     # --- Get initial peaks of bandpassed time series
-    # !!! PT: revisit this, starting to understand, but reset to original now
 
-    # Use the mode of the bandpassed ts (idx_freq_mode) to put a
-    # minimum-distance requirement on peaks
-    delta_f = retobj.data[label].ft_delta_f         # FT freq step, in Hz
-    phys_freq_mode = idx_freq_mode * delta_f        # FT peak freq, in Hz
+    # We *could* the mode of the bandpassed ts (idx_freq_mode) to put
+    # a minimum-distance requirement on peaks, or use sampling
+    # frequency to determine a min peak width
+    delta_f = retobj.data[label].ft_delta_f            # FT freq step, in Hz
+    phys_freq_mode = idx_freq_mode * delta_f           # FT peak freq, in Hz
     min_dist_idx = int(0.5 * phys_freq_mode / delta_f) # min interval bt pks
+    width = int(samp_freq / width_fac)                 # earlier approach
 
-    width    = int(samp_freq / width_fac)    ### earlier approach
-    peaks, _ = sps.find_peaks(xfilt, distance=min_dist_idx,
-                              width=width)
+    # for now, don't use extra parameters here (such as: distance =
+    # min_dist_idx, width = width); different oddities can happen.
+    peaks, _ = sps.find_peaks(xfilt) 
 
     # listify
-    peaks    = list(peaks)
+    peaks = list(peaks)
 
     return peaks, idx_freq_mode, xfilt
 
