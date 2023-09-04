@@ -47,7 +47,7 @@ DEF_rvt_shift_linspace = None         # can be pars for np.linspace(A,B,C)
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 60               # units = seconds
-DEF_img_dot_freq  = 10               # points per sec
+DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
 # ==========================================================================
@@ -163,13 +163,9 @@ for ii in range(len(ALL_EPIM_MATCH_LISTS)):
                                           ALL_EPIM_MATCH_LISTS[ii][1])
     EPIM_str+= sss
 
-# quantities that must be >= 0
-all_quant_ge_zero = [
+# quantities that must be strictly > 0
+all_quant_gt_zero = [
     'freq',
-    'min_bpm_card',
-    'min_bpm_resp',
-    'max_bpm_card',
-    'max_bpm_resp',
     'num_slices',
     'num_time_pts',
     'volume_tr',
@@ -179,6 +175,13 @@ all_quant_ge_zero = [
     'img_bp_max_f',
 ]
 
+# quantities that must be >= 0
+all_quant_ge_zero = [
+    'min_bpm_card',
+    'min_bpm_resp',
+    'max_bpm_card',
+    'max_bpm_resp',
+]
 
 # --------------------------------------------------------------------------
 # sundry other items
@@ -1737,13 +1740,29 @@ args_dict2 : dict
               "   Use '-out_dir ..' for path info instead")
         sys.exit(4)
 
-    # check many numerical inputs for being >0; probably leave this
+    # check many numerical inputs for being >=0 or >0; probably leave this
     # one as last in this function
+    IS_BAD = 0
     for quant in all_quant_ge_zero:
-        if args_dict2[quant] <= 0 :
+        if args_dict2[quant] == None :
+            print("** ERROR: Must provide a value for '{}' via options.\n"
+                  "".format(quant, args_dict2[quant]))
+            IS_BAD+= 1
+        elif args_dict2[quant] < 0 :
+            print("** ERROR: Provided '{}' value ({}) not allowed to be <0.\n"
+                  "".format(quant, args_dict2[quant]))
+            IS_BAD+= 1
+    for quant in all_quant_gt_zero:
+        if args_dict2[quant] == None :
+            print("** ERROR: Must provide a value for '{}' via options.\n"
+                  "".format(quant, args_dict2[quant]))
+            IS_BAD+= 1
+        elif args_dict2[quant] <= 0 :
             print("** ERROR: Provided '{}' value ({}) not allowed to be <=0.\n"
                   "".format(quant, args_dict2[quant]))
-            sys.exit(4)
+            IS_BAD+= 1
+    if IS_BAD :
+        sys.exit(4)
 
     # successful navigation
     return args_dict2

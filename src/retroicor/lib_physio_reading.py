@@ -639,7 +639,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         phys_end_time = self.data[label].end_time
 
-        print("++ Final physio duration ({}), compared with MRI".format(label))
+        print("++ Start time physio ({}) : {}".format(label, self.start_time))
+        print("++ End times of physio ({}) and MRI:".format(label))
         print("   physio end time      : ", phys_end_time)
         print("   final MRI slice time : ", self.vol_final_slice_time)
 
