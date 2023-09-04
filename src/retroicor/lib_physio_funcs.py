@@ -10,6 +10,7 @@ from   afnipy import lib_physio_peaks   as lpp
 from   afnipy import lib_physio_phases  as lpph
 from   afnipy import lib_physio_rvt     as lprvt
 from   afnipy import lib_physio_plot    as lpplt
+from   afnipy import lib_physio_util    as lpu
 
 
 # ===========================================================================
@@ -370,6 +371,19 @@ is_ok : int
                                           retobj=retobj,
                                           verb=verb)
 
+        # bonus here: plot peaks on BP'ed time series
+        lab_title = 'Bandpassed time series, with peaks'
+        lab_short = 'bandpass_ts_peaks'
+        fname, title = lpu.make_str_bandpass(label,
+                                             lab_title, lab_short, 
+                                             prefix=prefix, odir=odir)
+        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                          title=title, fname=fname,
+                                          retobj=retobj,
+                                          use_bp_ts=True,
+                                          verb=verb)
+
+
     # --------------
     count+= 1
     lab_title = 'Local peak refinement'
@@ -510,6 +524,19 @@ is_ok : int
                                               title=title, fname=fname,
                                               retobj=retobj,
                                               verb=verb)
+
+        # bonus here: plot peaks on BP'ed time series
+        lab_title = 'Bandpassed time series, with peaks and troughs'
+        lab_short = 'bandpass_ts_troughs'
+        fname, title = lpu.make_str_bandpass(label,
+                                             lab_title, lab_short, 
+                                             prefix=prefix, odir=odir)
+        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                          troughs=troughs,
+                                          title=title, fname=fname,
+                                          retobj=retobj,
+                                          use_bp_ts=True,
+                                          verb=verb)
 
         # --------------
         count+= 1

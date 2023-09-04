@@ -672,6 +672,7 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 title='', fname='', retobj=None,
                                 add_ibandT = False, add_ibandB = False,
                                 img_axhline = 'MEDIAN',
+                                use_bp_ts = False,
                                 verb=0):
     """A script to plot time series, as well as peaks and/or troughs.  The
 idea is to keep the plotting as uniform as possible.
@@ -708,6 +709,10 @@ add_ibandB : bool
 img_axhline : str or float
     plot a horizontal line in the plot; can be either a number, or a keyword
     like 'MEDIAN', which will get median of phobj time series.
+use_bp_ts : bool
+    instead of using the ts_orig as the main curve on display, use the
+    ts_orig_bp one, which has been bandpassed in one of the early
+    processing steps (it has the same length as ts_orig)
 
 Returns
 -------
@@ -746,10 +751,19 @@ Returns
     # can plot lower density of points in lines
     istep = phobj.img_arr_step
 
+    # put a horizontal line at the median of the plot
     if img_axhline == 'MEDIAN' :
         img_axhline = phobj.stats_med_ts_orig
 
-    ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], phobj.ts_orig[::istep], 
+    # not copying time series, just making a convenient name whilst
+    # plotting; using for switching between different options, too
+    if use_bp_ts :
+        ts = phobj.ts_orig_bp
+    else:
+        ts = phobj.ts_orig
+
+
+    ret_plobj1 = RetroPlobj(phobj.tvalues[::istep], ts[::istep], 
                             label=phobj.label,
                             alpha=ts_alpha,
                             color='0.5',
@@ -765,7 +779,7 @@ Returns
     # add peaks (maybe)
     if len(peaks) :
         ret_plobj2 = RetroPlobj(phobj.tvalues[peaks],
-                                phobj.ts_orig[peaks],
+                                ts[peaks],
                                 label='peaks', 
                                 ls='None', marker=7, 
                                 ms=5, mec='white', mew=0.02, 
@@ -776,7 +790,7 @@ Returns
 
     if len(troughs) :
         ret_plobj3 = RetroPlobj(phobj.tvalues[troughs],
-                                phobj.ts_orig[troughs], 
+                                ts[troughs], 
                                 label='troughs',
                                 ls='None', marker=6, 
                                 ms=5, mec='white', mew=0.02,
@@ -788,8 +802,8 @@ Returns
     # add phases (maybe)
     if len(phases) :
         # scale phase for plotting
-        maxts = np.max(phobj.ts_orig)
-        mints = np.min(phobj.ts_orig)
+        maxts = np.max(ts)
+        mints = np.min(ts)
         diff  = maxts - mints
         scale_ph = (phases + np.pi)/(2.0*np.pi)*diff + mints
         ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_ph[::istep], 
