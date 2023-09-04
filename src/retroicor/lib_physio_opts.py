@@ -350,8 +350,6 @@ int : int
 
     # hview functionality
     if args_dict['hview'] :
-        print("hview on")
-
         prog = parser.prog 
         acmd = 'apsearch -view_prog_help {}'.format( prog )
         check_info = SP.Popen(acmd, shell=True, 
@@ -705,12 +703,28 @@ This program creates slice-based regressors for regressing out
 components of cardiac and respiratory rates, as well as the
 respiration volume per time (RVT).
 
-Much of the calculations are based on the following paper (GLR00):
+Much of the calculations are based on the following papers:
 
   Glover GH, Li TQ, Ress D (2000). Image-based method for
   retrospective correction of physiological motion effects in fMRI:
-  RETROICOR. Magn Reson Med 44(1):162-7. PMID: 10893535. 
-  doi: 10.1002/1522-2594(200007)44:1<162::aid-mrm23>3.0.co;2-e. 
+  RETROICOR. Magn Reson Med 44(1):162-7.
+
+  Birn RM, Diamond JB, Smith MA, Bandettini PA (2006). Separating
+  respiratory-variation-related fluctuations from
+  neuronal-activity-related fluctuations in fMRI. Neuroimage
+  31(4):1536-48.
+
+This code has been informed by earlier programs that estimated
+RETROICOR and RVT regressors, namely the RetroTS.py code by J Zosky,
+which itself follows on from the original RetroTS.m code by ZS Saad.
+That being said, the current code's implementation was written
+separately, to understand the underlying processes and algorithms
+afresh, to modularize several pieces, to refactorize others, and to
+produce more QC outputs and logs of information.  Several steps in the
+eventual regressor estimation depend on processes like peak- (and
+trough-) finding and outlier rejection, which can be reasonably
+implemented in many ways.  We do not expect exact matching of outcomes
+between this and the previous versions.
 
 
 {ddashline}
@@ -782,49 +796,45 @@ interpolation of the two adjacent values, using the option
 
 Examples ~1~
 
-  Example 1 !!!update
+  Example 1
     
-    python ~/retroicor/retroicorTaylor.py                                    \\
-        -card_file                      physiopy/test000c                    \\
-        -num_slices                     33                                   \\
-        -volume_tr                      2.2                                  \\
-        -freq                           400                                  \\
+    physio_calc.py                                                           \\
+        -card_file       physiopy/test000c                                   \\
+        -freq            400                                                 \\
         -do_fix_nan                                                          \\
-        -num_time_pts                   17                                   \\
-        -slice_pattern                  alt+z                                \\
-        -extra_fix_list                 5000                                 \\
-        -out_dir                        $outDir                              \\
-        -prefix                         $prefix
-
-  Example 2 !!!update
-    
-    python                                                                   \\
-        retroicorTaylor.py                                                   \\
-        -phys_file          physiopy/test003c.tsv.gz                         \\
-        -phys_json          physiopy/test003c.json                           \\
-        -num_slices         34                                               \\
-        -volume_tr          2.2                                              \\
-        -do_fix_nan                                                          \\
-        -num_time_pts       34                                               \\
-        -slice_pattern      alt+z                                            \\
-        -extra_fix_list     5000                                             \\
-        -out_dir            $outDir                                          \\
-        -prefix             $prefix
-
-  Example 3 !!!update
-
-    python ~/retroicor/retroicorTaylor.py                                    \\
-        -card_file       sub-005_ses-01_task-rest_run-1_physio-ECG.txt       \\
-        -resp_file       sub-005_ses-01_task-rest_run-1_physio-Resp.txt      \\
-        -num_slices      33                                                  \\
-        -volume_tr       2.2                                                 \\
-        -freq            50                                                  \\
-        -do_fix_nan                                                          \\
-        -num_time_pts    219                                                 \\
+        -dset_epi        DSET_MRI                                            \\
         -slice_pattern   alt+z                                               \\
         -extra_fix_list  5000                                                \\
-        -out_dir         $outDir                                             \\
-        -prefix          $prefix
+        -out_dir         OUT_DIR                                             \\
+        -prefix          PREFIX
+
+  Example 2
+    
+    physio_calc.py                                                           \
+        -phys_file       physiopy/test003c.tsv.gz                            \
+        -phys_json       physiopy/test003c.json                              \
+        -num_slices      34                                                  \
+        -volume_tr       2.2                                                 \
+        -do_fix_nan                                                          \
+        -num_time_pts    34                                                  \
+        -slice_pattern   alt+z                                               \
+        -extra_fix_list  5000                                                \
+        -out_dir         OUT_DIR                                             \
+        -prefix          PREFIX
+
+  Example 3 
+
+    physio_calc.py                                                           \
+        -card_file      sub-005_ses-01_task-rest_run-1_physio-ECG.txt        \
+        -resp_file      sub-005_ses-01_task-rest_run-1_physio-Resp.txt       \
+        -num_slices     33                                                   \
+        -volume_tr      2.2                                                  \
+        -freq           50                                                   \
+        -do_fix_nan                                                          \
+        -num_time_pts   219                                                  \
+        -slice_pattern  alt+z                                                \
+        -out_dir        OUT_DIR                                              \
+        -prefix         PREFIX
     
 {ddashline}
 written by: Peter Lauren, Paul Taylor, Richard Reynolds and 
@@ -894,14 +904,14 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''volume_tr'''
 hlp = '''MRI volume's repetition time (TR), which defines the time interval
-between consecutive volumes (in s) '''
+between consecutive volumes (in s)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
 opt = '''start_time'''
-hlp = '''*** add *** (in s)
-'''
+hlp = '''The start time for the physio time series, relative to the initial
+MRI volume (in s)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -1060,7 +1070,7 @@ hlp = '''Integer value for one of the following behaviors:
 0 - Do not save graphs
 1 - Save end results (card and resp peaks, final RVT)
 2 - Save end results and intermediate (bandpass filter)
-(def: {dopt})'''.format(dopt=DEF[opt])
+(def: {dopt}) !!!rename to img_* prefix opt?'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
@@ -1070,21 +1080,21 @@ hlp = '''Integer value for one of the following behaviors:
 0 - Do not show graphs
 1 - Show end results (card and resp peaks, final RVT)
 2 - Show end results and intermediate (bandpass filter)
-(def: {dopt})'''.format(dopt=DEF[opt])
+(def: {dopt}) !!!not implemented; remove?'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
 opt = '''do_calc_ab'''
 hlp = '''Calculate the a,b coefficients from GLR00, and use these in the
-output time series (generally not needed)'''
+output time series (generally not needed) !!!not implemented; remove?'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''do_save_ab'''
 hlp = '''Save the a,b coefficients from GLR00 in a file (generally not
-needed'''
+needed !!!not implemented; remove?'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
@@ -1125,7 +1135,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
 opt = '''niml'''
-hlp = '''Output ***what?*** in NIML format, instead of CSV format'''
+hlp = '''Output ***what?*** in NIML format, instead of CSV format !!!not
+implemented; remove?'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
@@ -1138,13 +1149,15 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
 opt = '''demo'''
-hlp = '''Enter 'demonstration mode': run example'''
+hlp = '''Enter 'demonstration mode': run example !!!not implemented;
+remove?'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''debug'''
-hlp = '''Enter 'debug mode': drop into pdb upon an exception'''
+hlp = '''Enter 'debug mode': drop into pdb upon an exception !!!not
+implemented; remove?'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
