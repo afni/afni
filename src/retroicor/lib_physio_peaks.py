@@ -287,7 +287,7 @@ opeaks : list
             opeaks.append(start + np.argmin(x[start:finish]))
         else:
             opeaks.append(start + np.argmax(x[start:finish]))
-    
+
     return opeaks
 
 def percentileFilter_global(peaks, x, perc_filt = 10.0, 
@@ -536,9 +536,14 @@ nidx : int
     
 # ----------------------------------------------------------------------------
 
-def removeClosePeaks(peaks, x, period_idx,
+def removeClosePeaks(peaks, x, period_idx=None,
                      is_troughs = False, width_fac=4.0, verb=0):
-    """Remove peaks (or troughs) that are closer than: period/width_fac.
+    """Remove peaks (or troughs) that are closer than either:
++ med(peak intervals)/width_fac, which is default;
++ period_idx/width_fac, if period_idx is given.
+
+Upon viewing less well-behaved time series, have come to view
+med(interpeak interval) as more reliable for this.
 
 Parameters
 ----------
@@ -548,7 +553,9 @@ peaks : list
 x : np.ndarray
     1D Python array (real/float values), the input time series
 period_idx : int
-    typical period of the time series, in units of index counts.
+    typical period of the time series, in units of index counts. This
+    can be surprisingly tricky to define generally across all time series,
+    so often might opt for med(interpeak interval).
 is_troughs: bool
     are we processing peaks or troughs here?
 width_fac : int/float
@@ -564,8 +571,14 @@ opeaks : list
 
     """
 
-    # Make and filter inter-peak intervals
+    # interpeak intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+
+    # NB: it might be most reliable to use median of the intervals.
+    if not(period_idx) :
+        period_idx = np.median(intervals)
+        
+    # Make and filter inter-peak intervals
     threshold = int(period_idx / width_fac)
     last = len(intervals) - 1
     for i in range(last, 0, -1):

@@ -428,13 +428,16 @@ is_ok : int
     lab_title = 'Peak refinement and proximity filter'
     lab_short = 'refine_proxim_peaks'
     if verb :   print('++ ({}) {}'.format(label, lab_title))
-    # NB: for period_idx arg here, could use
-    # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but instead
-    # use previously calc'ed idx_freq_mod, which should avoid baseline
-    # drift.
+    # NB: Originally used
+    # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig) to get the
+    # period_idx kwarg for this func; then seemed to make sense to use
+    # the previously calc'ed idx_freq_mod instead, which should avoid
+    # baseline drift.  *Then*, with some time series that have
+    # multiple main freqs, came to view it best to put in *no*
+    # period_idx par, but instead use med(interpeak interval) in the
+    # code.
     peaks = lpp.removeClosePeaks(peaks, 
                                  phobj.ts_orig,
-                                 idx_freq_mode, 
                                  is_troughs = False,
                                  verb=verb)
     if len(peaks) == 0 :
