@@ -214,8 +214,9 @@ xfilt : np.ndarray
 
 # ---------------------------------------------------------------------------
 
-def refinePeakLocations(peaks, x, window_scale = 4.0,
-                        is_troughs = False, label='', verb=0):
+def refinePeakLocations(peaks, x, is_troughs = False, 
+                        window_scale = 0.25, window_size = None,
+                        verb=0):
     """Adjust peaks to correspond to local maxima.  This is usually
 necessary if the peaks were determined from a band-pass filtered
 version of the input raw data where the peaks are uniformly spaced
@@ -226,6 +227,13 @@ it, and finds the local max (or min, for troughs) in x there; the peak
 shifts to that new location. Output number of peaks matches input
 number.
 
+If window_size is None (default), use the median of peaks as the base
+window size (scaled then by window_scale).  For local refinement, one
+might want to first calculate the median interpeak interval across
+*all* peaks, but input just a mini-list of locations while providing
+that full-set interval as window_size (which will still be scaled by
+window_scale).
+
 Parameters
 ----------
 peaks : list
@@ -233,13 +241,15 @@ peaks : list
     were estimated within x
 x : np.ndarray
     1D Python array (real/float values), the input time series
-window_scale = float
+window_scale : float
     factor to scale the peak-searching window; the window is the 
-    median(inter-peak interval)/window_scale
+    median(inter-peak interval)*window_scale
+window_size : float
+    size of window (which will be scaled by window_scale) within 
+    which to refine.  Typically None, unless one enters a subset of 
+    peaks to refine (whose median might not be trustworthy)
 is_troughs: bool
     are we processing peaks or troughs here?
-label : str
-    label for the time series, like 'card' or 'resp'
 
 Returns
 -------
@@ -260,7 +270,10 @@ opeaks : list
 
     # Determine half window width from distribution of intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    halfWindowWidth = round(np.median(intervals)/window_scale)
+    if window_size :
+        halfWindowWidth = round(window_size * window_scale)
+    else:
+        halfWindowWidth = round(np.median(intervals)*window_scale)
 
     # adjust each peak by location of local max in original ts
     for ii in range(Npeaks):
@@ -276,7 +289,7 @@ opeaks : list
     return opeaks
 
 def percentileFilter_global(peaks, x, perc_filt = 10.0, 
-                            is_troughs = False, label='', 
+                            is_troughs = False, 
                             save_by_interval = True, verb=0):
     """Filter peaks based on global percentile of time series data x.
 
@@ -292,8 +305,6 @@ perc_file : int/float
 is_troughs: bool
     whether the threshold is the maximum acceptable value.  Default is
     False meaning it is the minimum acceptable value
-label : str
-    label for the time series, like 'card' or 'resp'
 save_by_interval: bool
     if on, choose to not filter out peaks whose removal would leave
     large gaps
@@ -400,7 +411,7 @@ okeep_arr : array
                 if bad_doub_span > span_thr and \
                    bad_ival_min > ival_thr :
                     if verb > 1 :
-                        print("   -> save one extremum: "
+                        print("   -> retain an extremum: "
                               'idx =', peaks[bad_idx], 
                               bad_doub_span, '>', span_thr)
                     # move this index to KEEP
@@ -414,7 +425,7 @@ okeep_arr : array
 def percentileFilter_local(peaks, x, perc_filt = 10, 
                            is_troughs = False, 
                            period_idx = None, nbhd_idx = 4,
-                           label='', save_by_interval = True, verb=0):
+                           save_by_interval = True, verb=0):
     """Filter peaks based on local percentile of time series x.
 
 Parameters
@@ -435,8 +446,6 @@ period_idx : int
 nbhd_idx : int
     size of a neighborhood for local percentile estimation, in units
     of index counts. Default chosen from early testing/practice
-label : str
-    label for the time series, like 'card' or 'resp'
 save_by_interval: bool
     if on, choose to not filter out peaks whose removal would leave
     large gaps
@@ -526,7 +535,7 @@ nidx : int
 # ----------------------------------------------------------------------------
 
 def removeClosePeaks(peaks, x, period_idx,
-                     is_troughs = False, width_fac=4.0, label='', verb=0):
+                     is_troughs = False, width_fac=4.0, verb=0):
     """Remove peaks (or troughs) that are closer than: period/width_fac.
 
 Parameters
@@ -544,8 +553,6 @@ width_fac : int/float
     parameter/number by which to scale the samp_fac; the int() of the
     resulting ratio defines the 'width' param in sps.find_peaks();
     default was simply used in original program formulation
-label : str
-    label for the time series, like 'card' or 'resp'
 
 Returns
 -------
@@ -571,13 +578,12 @@ opeaks : list
     for ii in range(Nival):
         opeaks[ii+1] = opeaks[ii] + intervals[ii]
 
-    ### !!! Q: why loop here?
-    #### !!! NB: 'period' or 'period_idx' kwarg not actually used in
-    #### !!! refinePeakLocations()
-    # Adjust peaks/troughs from uniform spacing
-    #for i in range(0,2):
-    opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
-    # period_idx = period_idx)
+    # Adjust peaks/troughs with local refinement.  Looping allows a
+    # bit of 'extra' movement for points on a slope while also
+    # maintaining a smaller refinement window, so that peaks don't
+    # jump wildly.
+    for i in range(0, 2):
+        opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
 
     # bit of cleaning of peaks: remove degeneracies and sort
     opeaks  = list(set(opeaks))
@@ -586,7 +592,7 @@ opeaks : list
     return opeaks
 
 
-def addMissingPeaks(peaks, x, is_troughs=False, verb=0):
+def addMissingPeaks(peaks, x, is_troughs=False, window_scale=1.75 , verb=0):
     """Use the information about the statistics of the intervals of peaks
 (or troughs) to estimate where missing peaks (or troughs) should be
 inserted into the input 'peaks' collection (which can also represent
@@ -601,6 +607,10 @@ x : np.ndarray
     1D Python array (real/float values), the input time series
 is_troughs: bool
     are we processing peaks or troughs here?
+window_scale : float
+    scale factor help determine whether two peaks are 'far enough'
+    apart to add in a new one; will do so if interpeak interval is
+    greater than: (1+window_scale)*median(interpeak interval)
 
 Returns
 -------
@@ -608,48 +618,54 @@ opeaks : list
     1D list (int values) of the indices of new peak locations that
     were estimated within x, starting from input set of peaks
 
-"""
+    """
 
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
     Nival     = len(intervals)
+    med_ival  = np.median(intervals)
 
-    # min_ival: min interval scale, based on median of all intervals
-    FRAC_FAC   = 0.9
-    min_ival   = np.median(intervals)*FRAC_FAC
-    # ... used to make an array for inserting points, only values >=0
-    peaksToAdd = [max(round(intervals[i]/min_ival)-1,0) for i in range(Nival)]
+    # ref_ival: reference value, min interval scale based on median of
+    # all intervals
+    ref_ival   = np.median(intervals)*window_scale
+    # add a peak if: the interval is greater than ref_ival; the number
+    # of peaks is the integer part of the interval width divided by
+    # the median, minus 1
+    peaksToAdd = [max(int(np.floor(intervals[i]/med_ival))-1,0)*(intervals[i]>ref_ival) for i in range(Nival)]
 
     # report on number being added
     Ntoadd = np.sum(np.array(peaksToAdd))
-    if verb :
+    if verb and Ntoadd :
         if is_troughs : nnn = 'troughs'
         else:           nnn = 'peaks'
-        print("++ Adding this many {}: {}".format(nnn, Ntoadd))
+        print("   --> adding this many {}: {}".format(nnn, Ntoadd))
 
     # work with a copy of the peaks
     opeaks = copy.deepcopy(peaks)
 
-    # go backwords through the opeaks and insert likely missing peaks
+    # go backwards through the opeaks and insert likely missing peaks
     for i in range(Nival-1,-1,-1):
         if (peaksToAdd[i]):
-            nadd_p1   = peaksToAdd[i] + 1
+            nadd_p1   = peaksToAdd[i] + 1  # '+1' makes this 'num of intervals'
             start     = opeaks[i]
             end       = opeaks[i+1]
             increment = int((end-start)/nadd_p1)    # must be integer
             all_new   = [start+increment*j for j in range(1,nadd_p1)]
+            # refine this mini-set immediately, using the median of
+            # the full peaks set as window size
+            all_new = refinePeakLocations(all_new, x, is_troughs=is_troughs,
+                                          window_size=med_ival)
             # go through list backwards to get final, inserted order right.
             for jj in range(len(all_new)-1, -1, -1):
                 opeaks.insert(i+1, all_new[jj])
-            #opeaks    = np.insert(opeaks, i+1, all_new)
-
-    # adjust peaks for uniform spacing
-    opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
+#### !!! done above now, locally
+####    # adjust peaks for uniform spacing
+####    opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
 
     return opeaks
 
 # -------------------------------------------------------------------------
 
-def classify_endpts(peaks, troughs, x, label=None, verb=0):
+def classify_endpts(peaks, troughs, x, verb=0):
     """Figure out whether the endpoints of the time series x are peaks or
 troughs, and add those to the approrpiate collection.
 
@@ -663,9 +679,6 @@ troughs : np.ndarray
     were estimated within x
 x : np.ndarray
     1D Python array (real/float values), the input time series
-label : str
-    label for the time series, like 'card' or 'resp'
-
 
 Returns
 -------

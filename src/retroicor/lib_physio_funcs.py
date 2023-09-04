@@ -377,7 +377,6 @@ is_ok : int
     peaks = lpp.refinePeakLocations(peaks, 
                                     phobj.ts_orig,
                                     is_troughs = False,
-                                    label=label,
                                     verb=verb)
     if len(peaks) == 0 :
         print("** ERROR: no peaks after step {} '{}' for {} data"
@@ -401,7 +400,6 @@ is_ok : int
         peaks = lpp.percentileFilter_local(peaks, 
                                            phobj.ts_orig,
                                            is_troughs = False,
-                                           label=label,
                                            verb=verb)
     elif label == 'resp' :
         lab_title = 'Global peak percentile filter'
@@ -410,7 +408,6 @@ is_ok : int
         peaks = lpp.percentileFilter_global(peaks, 
                                             phobj.ts_orig,
                                             is_troughs = False,
-                                            label=label,
                                             verb=verb)
     if len(peaks) == 0 :
         print("** ERROR: no peaks after step {} '{}' for {} data"
@@ -427,8 +424,8 @@ is_ok : int
 
     # --------------
     count+= 1
-    lab_title = 'Peak proximity filter'
-    lab_short = 'proxim_filter_peaks'
+    lab_title = 'Peak refinement and proximity filter'
+    lab_short = 'refine_proxim_peaks'
     if verb :   print('++ ({}) {}'.format(label, lab_title))
     # NB: for period_idx arg here, could use
     # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but instead
@@ -438,7 +435,6 @@ is_ok : int
                                  phobj.ts_orig,
                                  idx_freq_mode, 
                                  is_troughs = False,
-                                 label=label,
                                  verb=verb)
     if len(peaks) == 0 :
         print("** ERROR: no peaks after step {} '{}' for {} data"
@@ -458,7 +454,7 @@ is_ok : int
 
 
 
-    ### !!!! for addMissingPeakes: only run this for card, because
+    ### !!!! for addMissingPeaks: only run this for card, because
     ### !!!! resp has peak+trough returns? ---> right now, do for BOTH
     ### !!!! card and resp, bc resp troughs are dealt with separately
     ### !!!! below
@@ -520,7 +516,6 @@ is_ok : int
                                               phobj.ts_orig,
                                               perc_filt = 90.0,
                                               is_troughs = True, 
-                                              label=label,
                                               verb=verb)
         if len(troughs) == 0 :
             print("** ERROR: no troughs after step {} '{}' for {} data"
@@ -543,8 +538,8 @@ is_ok : int
 
         # --------------
         count+= 1
-        lab_title = 'Trough proximity filter'
-        lab_short = 'proxim_filter_troughs'
+        lab_title = 'Trough refinement and proximity filter'
+        lab_short = 'refine_proxim_troughs'
         if verb :   print('++ ({}) {}'.format(label, lab_title))
         # NB: for period_idx arg here, could use
         # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but
@@ -554,7 +549,6 @@ is_ok : int
                                        phobj.ts_orig,
                                        idx_freq_mode,
                                        is_troughs = True,
-                                       label=label,
                                        verb=verb)
         if len(troughs) == 0 :
             print("** ERROR: no troughs after step {} '{}' for {} data"

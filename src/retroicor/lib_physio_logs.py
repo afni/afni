@@ -96,6 +96,7 @@ Returns
 0 upon successful completion
 
     """
+    #!!!!! merge this functionality with nicer log *.tcsh script
 
     # ----- log the command used
 
