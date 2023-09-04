@@ -536,6 +536,79 @@ nidx : int
     
 # ----------------------------------------------------------------------------
 
+# this version did removal, THEN refinement; see prog ver without
+# '_OLD' in name for just doing removal---which is all that should be
+# needed here??
+def removeClosePeaks_OLD(peaks, x, period_idx=None,
+                     is_troughs = False, width_fac=4.0, verb=0):
+    """Remove peaks (or troughs) that are closer than either:
++ med(peak intervals)/width_fac, which is default;
++ period_idx/width_fac, if period_idx is given.
+
+Upon viewing less well-behaved time series, have come to view
+med(interpeak interval) as more reliable for this.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+period_idx : int
+    typical period of the time series, in units of index counts. This
+    can be surprisingly tricky to define generally across all time series,
+    so often might opt for med(interpeak interval).
+is_troughs: bool
+    are we processing peaks or troughs here?
+width_fac : int/float
+    parameter/number by which to scale the samp_fac; the int() of the
+    resulting ratio defines the 'width' param in sps.find_peaks();
+    default was simply used in original program formulation
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
+    """
+
+    # interpeak intervals
+    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+
+    # NB: it might be most reliable to use median of the intervals.
+    if not(period_idx) :
+        period_idx = np.median(intervals)
+        
+    # Filter inter-peak intervals
+    threshold = int(period_idx / width_fac)
+    last = len(intervals) - 1
+    for i in range(last, 0, -1):
+        if (intervals[i] < threshold):
+            intervals[i-1] = intervals[i-1] + intervals[i]
+            del intervals[i]
+
+    # Make peaks from intervals, recursively
+    Nival  = len(intervals)
+    opeaks = np.zeros(Nival+1, dtype=int)
+    opeaks[0] = peaks[0]
+    for ii in range(Nival):
+        opeaks[ii+1] = opeaks[ii] + intervals[ii]
+
+    # Adjust peaks/troughs with local refinement.  Looping allows a
+    # bit of 'extra' movement for points on a slope while also
+    # maintaining a smaller refinement window, so that peaks don't
+    # jump wildly.
+    for i in range(0, 2):
+        opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
+
+    # bit of cleaning of peaks: remove degeneracies and sort
+    opeaks  = list(set(opeaks))
+    opeaks.sort()
+
+    return opeaks
+
 def removeClosePeaks(peaks, x, period_idx=None,
                      is_troughs = False, width_fac=4.0, verb=0):
     """Remove peaks (or troughs) that are closer than either:
@@ -578,7 +651,7 @@ opeaks : list
     if not(period_idx) :
         period_idx = np.median(intervals)
         
-    # Make and filter inter-peak intervals
+    # Filter inter-peak intervals
     threshold = int(period_idx / width_fac)
     last = len(intervals) - 1
     for i in range(last, 0, -1):
@@ -593,19 +666,7 @@ opeaks : list
     for ii in range(Nival):
         opeaks[ii+1] = opeaks[ii] + intervals[ii]
 
-    # Adjust peaks/troughs with local refinement.  Looping allows a
-    # bit of 'extra' movement for points on a slope while also
-    # maintaining a smaller refinement window, so that peaks don't
-    # jump wildly.
-    for i in range(0, 2):
-        opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
-
-    # bit of cleaning of peaks: remove degeneracies and sort
-    opeaks  = list(set(opeaks))
-    opeaks.sort()
-
-    return opeaks
-
+    return list(opeaks)
 
 def addMissingPeaks(peaks, x, is_troughs=False, window_scale=1.75 , verb=0):
     """Use the information about the statistics of the intervals of peaks
