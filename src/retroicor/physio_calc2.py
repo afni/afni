@@ -113,8 +113,10 @@ if __name__ == "__main__":
         print("++ Making output directory:", retobj.out_dir)
         os.mkdir(retobj.out_dir)
 
-    # save original command line opts to a log file in output dir
-    tmp = lpl.save_cmd_orig(retobj)
+    # save original command line opts (and the set of parsed opts) to
+    # a log file in output dir
+    tmp1 = lpl.save_cmd_orig(retobj)
+    tmp2 = lpl.save_cmd_opts_parsed(retobj)
 
     # ---------------------- physio-MRI timing selection ---------------------
 
@@ -127,9 +129,6 @@ if __name__ == "__main__":
     label = 'resp'
     if retobj.data[label] :
         lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
-
-    # -------------------- log some of the inputs ---------------------------
-    lpl.make_cmd_logs(args_dict, retobj)
 
     # ------------- Process any card/resp/etc. time series ------------------
 
@@ -155,11 +154,13 @@ if __name__ == "__main__":
     for label in lpf.PO_all_label:
         if retobj.data[label] :
             lpf.calc_regress_phys( retobj, label=label, verb=verb )
-    # ... so, after this, for example:
-    ### retobj.data["resp"].regress_dict_phys["c2"][4][1]
-    ### -> for the 'resp' physio time series, "c2" means cos() with m=2, 
-    ###    and 4 means the [4]th slice, and [1] means the actual regression
-    ###    time series (the [0] in the last bracket would point to a label)
+
+    ### Comment: after this step, here is an example of the physio
+    ### regressors being stored:
+    # retobj.data["resp"].regress_dict_phys["c2"][4][1]
+    # -> for the 'resp' physio time series, "c2" means cos() with m=2, 
+    #    and 4 means the [4]th slice, and [1] means the actual regression
+    #    time series (the [0] in the last bracket would point to a label)
 
     # make a plot of the physio regressors
     lpplt.plot_regressors_phys(retobj)
@@ -178,20 +179,5 @@ if __name__ == "__main__":
     for label in lpf.PO_all_label:
         if retobj.data[label] :
             lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
-
-
-
-
-
-#    physiologicalNoiseComponents = lrp.getPhysiologicalNoiseComponents(test_retro_obj)
-#    if len(physiologicalNoiseComponents) == 0:
-#        print('*** Error in retro_ts.  Failure to get physiological ' + \
-#              'noise components')
-#        sys.exit()
-#
-#    if RETO.outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
-#        print('** ERROR outputting SliBase file')
-#        sys.exit()
-
 
     print("++ DONE.  Goodbye.")

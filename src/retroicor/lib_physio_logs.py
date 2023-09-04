@@ -76,48 +76,34 @@ arg_str : str
 
     return arg_str
         
-def make_cmd_logs(args_dict, retobj):
-    """Output text and json log files of input params and parsed input
-dict, respectively.  These fils are written in the output dir, with the
-output prefix.
+def save_cmd_opts_parsed(retobj):
+    """Output a json log file of the parsed input dict.  This file is
+written in the output dir, with the output prefix.
 
 Parameters
 ----------
-args_dict : dict
-    dictionary whose keys are option names and values are the
-    user-entered values (which might still need separate interpreting
-    later)
 retobj : retro_obj class
     object with all necessary input time series info; will also store
-    outputs from here; contains dictionary of phys_ts_objs
+    outputs from here; contains dictionary of phys_ts_objs (and, most
+    relevant here, the args_dict dictionary)
 
 Returns
 -------
 0 upon successful completion
 
     """
-    #!!!!! merge this functionality with nicer log *.tcsh script
-
-    # ----- log the command used
-
-    # get a copy of niceified cmd str (argv) and output name
-    cmd_str   = get_physio_arg_str(args_dict['argv'])
-    oname_cmd = make_retobj_oname('cmd', retobj, ext='txt')
-
-    # write out
-    fff = open(oname_cmd, 'w')
-    fff.write(cmd_str)
-    fff.close()
 
     # ----- log the parsed inputs
 
     # output a copy of parsed info: everything in dict *except* argv
-    args_dict_log = copy.deepcopy(args_dict)
-    args_dict_log.pop('argv')
+    AD = copy.deepcopy(retobj.args_dict)
+    AD.pop('argv')
+
+    # output filename
     oname_info = make_retobj_oname('info', retobj, ext='json')
 
     # write out
-    ojson = json.dumps( args_dict_log, indent=4 )
+    ojson = json.dumps( AD, indent=4 )
     fff = open( oname_info, "w" )
     fff.write( ojson )
     fff.close()
