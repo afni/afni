@@ -6,8 +6,9 @@ import json
 import gzip
 import copy
 import numpy          as np
-from   afnipy import  lib_physio_opts as lpo
-from   afnipy import  lib_physio_util as lpu
+from   afnipy import  lib_physio_opts    as lpo
+from   afnipy import  lib_physio_funcs   as lpf
+from   afnipy import  lib_physio_util    as lpu
 from   afnipy import  lib_format_cmd_str as lfcs
 
 # ==========================================================================
@@ -332,15 +333,19 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         if args_dict != None :
             self.apply_cmd_line_args(args_dict)
 
+        IS_BAD = 0
+
         # check, please! ... based on final slice of final vol
-        if self.data['resp'] :
-            if not(self.check_end_time_phys_ge_final_slice('resp')) :
-                print("** ERROR: resp physio data too short for MRI data")
-                sys.exit(3)
-        if self.data['card'] :
-            if not(self.check_end_time_phys_ge_final_slice('card')) :
-                print("** ERROR: card physio data too short for MRI data")
-                sys.exit(3)
+        for label in lpf.PO_all_label:
+            if self.data[label] :
+                check = self.check_end_time_phys_ge_final_slice(label)
+                if not(check) :
+                    print("** ERROR: {} physio data too short for MRI data"
+                          "".format(label))
+                    IS_BAD+=1 
+
+        if IS_BAD :
+            sys.exit(3)
                 
     def apply_cmd_line_args(self, args_dict):
         """The main way to populate object fields at present.  The input
@@ -634,10 +639,12 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         phys_end_time = self.data[label].end_time
 
+        print("++ Final physio duration ({}), compared with MRI".format(label))
+        print("   physio end time      : ", phys_end_time)
+        print("   final MRI slice time : ", self.vol_final_slice_time)
+
         if phys_end_time < self.vol_final_slice_time :
-            print("** -- Final duration problem -- ")
-            print("   physio end time      : ", phys_end_time)
-            print("   final MRI slice time : ", self.vol_final_slice_time)
+            print("** -- Final duration problem ({}) -- ".format(label))
             return False
         else:
             return True
