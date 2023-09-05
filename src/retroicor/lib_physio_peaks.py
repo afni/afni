@@ -121,7 +121,7 @@ idx_freq_peak : int
     xfilt = np.real(np.fft.ifft(Xfilt))
 
     # ---- done with work, but can save also FT freq magn
-    if retobj != None and retobj.save_graph_level > 1 :
+    if retobj != None and retobj.img_verb > 1 :
         odir      = retobj.out_dir
         prefix    = retobj.prefix
         lab_title = 'Frequency magnitude spectrum, with bandpassing'

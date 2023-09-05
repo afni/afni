@@ -319,16 +319,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
-        self.show_graph_level = 0      # int, amount of graphs to show
-        self.save_graph_level = 1      # int, amount of graphs to save
         self.niml         = False      # bool, use niml in output ***
-        self.demo         = False      # bool, show demo?
-        self.debug        = False      # bool, do debugging?
         self.do_out_rvt   = True       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
-        self.do_calc_ab   = False      # bool, calc a,b coeffs and use
-        self.do_save_ab   = False      # bool, save a,b coeffs to file
+        self.img_verb     = 1          # int, amount of graphs to save
         self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
         self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
@@ -374,21 +369,16 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         self.out_dir          = args_dict['out_dir']
         self.prefix           = args_dict['prefix']
-        self.show_graph_level = args_dict['show_graph_level']
-        self.save_graph_level = args_dict['save_graph_level']
+        self.img_verb         = args_dict['img_verb']
         self.img_figsize      = copy.deepcopy(args_dict['img_figsize'])
         self.img_fontsize     = args_dict['img_fontsize']
         self.img_line_time    = args_dict['img_line_time']
         self.img_dot_freq     = args_dict['img_dot_freq']
         self.img_bp_max_f     = args_dict['img_bp_max_f']
         self.niml             = args_dict['niml']
-        self.demo             = args_dict['demo']
-        self.debug            = args_dict['debug']
         self.do_out_rvt       = not(args_dict['rvt_off'])
         self.do_out_card      = not(args_dict['no_card_out'])
         self.do_out_resp      = not(args_dict['no_resp_out'])
-        self.do_calc_ab       = args_dict['do_calc_ab']
-        self.do_save_ab       = args_dict['do_save_ab']
 
         #self.exit_on_rag -> NB: prob never try to fix
         self.exit_on_nan      = not(args_dict['do_fix_nan'])

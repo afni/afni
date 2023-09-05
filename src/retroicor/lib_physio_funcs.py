@@ -373,7 +373,7 @@ is_ok : int
     if check_empty_list(peaks, count, lab_title, label) :  return 1
 
     # save output figure, if desired
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         # make image title and filename
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short,
@@ -407,7 +407,7 @@ is_ok : int
                                     verb=verb)
     if check_empty_list(peaks, count, lab_title, label) :  return 1
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short,
                                                prefix=prefix, odir=odir)
@@ -436,7 +436,7 @@ is_ok : int
                                             verb=verb)
     if check_empty_list(peaks, count, lab_title, label) :  return 1
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short,
                                                prefix=prefix, odir=odir)
@@ -464,7 +464,7 @@ is_ok : int
                                  verb=verb)
     if check_empty_list(peaks, count, lab_title, label) :  return 1
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short,
                                                prefix=prefix, odir=odir)
@@ -484,7 +484,7 @@ is_ok : int
                                 verb=verb)
     if check_empty_list(peaks, count, lab_title, label) :  return 1
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short,
                                                prefix=prefix, odir=odir)
@@ -507,7 +507,7 @@ is_ok : int
                                     width=int(phobj.samp_freq/8))
         if check_empty_list(troughs, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -541,7 +541,7 @@ is_ok : int
                                           verb=verb)
         if check_empty_list(troughs, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -563,7 +563,7 @@ is_ok : int
                                               verb=verb)
         if check_empty_list(troughs, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -592,7 +592,7 @@ is_ok : int
                                        verb=verb)
         if check_empty_list(troughs, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -613,7 +613,7 @@ is_ok : int
                                       verb=verb)
         if check_empty_list(troughs, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -639,7 +639,7 @@ is_ok : int
         lab_title+= ' and troughs'
         lab_short+= '_troughs'
         if verb :   print('++ ({}) {}'.format(label, lab_title))
-        if retobj.save_graph_level > 0 :
+        if retobj.img_verb > 0 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
                                                    prefix=prefix, odir=odir)
@@ -652,7 +652,7 @@ is_ok : int
                                               verb=verb)
     else:
         if verb :   print('++ ({}) {}'.format(label, lab_title))
-        if retobj.save_graph_level > 0 :
+        if retobj.img_verb > 0 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
                                                    prefix=prefix, odir=odir)
@@ -711,7 +711,7 @@ is_ok : int
         phases = lpph.calc_phases_M1(phobj, verb=verb)
         if check_empty_list(phases, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
                                                    prefix=prefix, odir=odir)
@@ -726,7 +726,7 @@ is_ok : int
         phases = lpph.calc_phases_M3(phobj, verb=verb)
         if check_empty_list(phases, count, lab_title, label) :  return 1
 
-        if retobj.save_graph_level > 1 :
+        if retobj.img_verb > 1 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
                                                    prefix=prefix, odir=odir)
@@ -781,7 +781,7 @@ intervals to estimate 'instantaneous period'.
     upper_env = lprvt.interp_extrema_LIN(phobj, phobj.peaks, verb=verb)
     lower_env = lprvt.interp_extrema_LIN(phobj, phobj.troughs, verb=verb)    
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short, 
                                                prefix=prefix, odir=odir)
@@ -801,7 +801,7 @@ intervals to estimate 'instantaneous period'.
     insta_per = lprvt.interp_intervals_LIN(phobj, phobj.peaks, verb=verb)
     rvt_ts    = (upper_env - lower_env) / insta_per
 
-    if retobj.save_graph_level > 1 :
+    if retobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
                                                lab_title, lab_short, 
                                                prefix=prefix, odir=odir)

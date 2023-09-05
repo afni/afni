@@ -87,14 +87,8 @@ DEF = {
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
-    'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
-    'do_save_ab'        : False,     # (bool) save a,b coeffs to file
     'niml'              : False,     # (bool)
-    'show_graph_level'  : 0,         # (int) amount of graphs to show
-    'save_graph_level'  : 1,         # (int) amount of graphs to save
     'verb'              : 0,         # (int) verbosity level
-    'demo'              : False,     # (bool) show demo?
-    'debug'             : False,     # (bool) debug mode
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'disp_all_opts'     : False,     # (bool) display opts for this prog
     'ver'               : False,     # (bool) do show ver num?
@@ -103,6 +97,7 @@ DEF = {
     'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
     'rvt_shift_list'    : None,      # (str) space sep list of nums
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
+    'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
     'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
@@ -813,30 +808,30 @@ Examples ~1~
 
   Example 2
     
-    physio_calc.py                                                           \
-        -phys_file       physiopy/test003c.tsv.gz                            \
-        -phys_json       physiopy/test003c.json                              \
-        -num_slices      34                                                  \
-        -volume_tr       2.2                                                 \
-        -do_fix_nan                                                          \
-        -num_time_pts    34                                                  \
-        -slice_pattern   alt+z                                               \
-        -extra_fix_list  5000                                                \
-        -out_dir         OUT_DIR                                             \
+    physio_calc.py                                                           \\
+        -phys_file       physiopy/test003c.tsv.gz                            \\
+        -phys_json       physiopy/test003c.json                              \\
+        -num_slices      34                                                  \\
+        -volume_tr       2.2                                                 \\
+        -do_fix_nan                                                          \\
+        -num_time_pts    34                                                  \\
+        -slice_pattern   alt+z                                               \\
+        -extra_fix_list  5000                                                \\
+        -out_dir         OUT_DIR                                             \\
         -prefix          PREFIX
 
   Example 3 
 
-    physio_calc.py                                                           \
-        -card_file      sub-005_ses-01_task-rest_run-1_physio-ECG.txt        \
-        -resp_file      sub-005_ses-01_task-rest_run-1_physio-Resp.txt       \
-        -num_slices     33                                                   \
-        -volume_tr      2.2                                                  \
-        -freq           50                                                   \
-        -do_fix_nan                                                          \
-        -num_time_pts   219                                                  \
-        -slice_pattern  alt+z                                                \
-        -out_dir        OUT_DIR                                              \
+    physio_calc.py                                                           \\
+        -card_file      sub-005_ses-01_task-rest_run-1_physio-ECG.txt        \\
+        -resp_file      sub-005_ses-01_task-rest_run-1_physio-Resp.txt       \\
+        -num_slices     33                                                   \\
+        -volume_tr      2.2                                                  \\
+        -freq           50                                                   \\
+        -do_fix_nan                                                          \\
+        -num_time_pts   219                                                  \\
+        -slice_pattern  alt+z                                                \\
+        -out_dir        OUT_DIR                                              \\
         -prefix         PREFIX
     
 {ddashline}
@@ -861,8 +856,8 @@ formatter = lambda prog: argp.HelpFormatter(prog,
 # get args
 parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               add_help=False,
-                              #formatter_class=argp.RawDescriptionHelpFormatter,
-                              formatter_class=argp.RawTextHelpFormatter,
+                              formatter_class=argp.RawDescriptionHelpFormatter,
+                              #formatter_class=argp.RawTextHelpFormatter,
                               #formatter_class=formatter,
                               description=textwrap.dedent(help_str_top),
                               epilog=textwrap.dedent(help_str_epi) )
@@ -899,6 +894,26 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
+opt = '''start_time'''
+hlp = '''The start time for the physio time series, relative to the initial
+MRI volume (in s) (def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''out_dir'''
+hlp = '''Output directory name (can include path)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
+opt = '''prefix'''
+hlp = '''Prefix of output filenames, without path (def: {dopt})
+'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
 opt = '''num_slices'''
 hlp = '''Integer number of slices in MRI volume'''
 odict[opt] = hlp
@@ -908,13 +923,6 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''volume_tr'''
 hlp = '''MRI volume's repetition time (TR), which defines the time interval
 between consecutive volumes (in s)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''start_time'''
-hlp = '''The start time for the physio time series, relative to the initial
-MRI volume (in s)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
@@ -930,19 +938,6 @@ opt = '''dset_epi'''
 hlp = '''Accompanying EPI/FMRI dset to which the physio regressors will be
 applied, for obtaining the volumetric parameters (namely, volume_tr,
 num_slices, num_time_pts)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
-
-opt = '''out_dir'''
-hlp = '''Output directory name (can include path)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
-
-opt = '''prefix'''
-hlp = '''Prefix of output filenames, without path (def: {dopt})
-'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
@@ -1027,7 +1022,6 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-
 opt = '''no_card_out'''
 hlp = '''Turn off output of cardiac regressors'''
 odict[opt] = hlp
@@ -1068,39 +1062,16 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
-opt = '''save_graph_level'''
-hlp = '''Integer value for one of the following behaviors:
+opt = '''img_verb'''
+hlp = '''Verbosity level for saving QC images during processing, by choosing
+one integer:
 0 - Do not save graphs
 1 - Save end results (card and resp peaks, final RVT)
-2 - Save end results and intermediate (bandpass filter)
-(def: {dopt}) !!!rename to img_* prefix opt?'''.format(dopt=DEF[opt])
+2 - Save end results and intermediate steps (bandpassing, peak refinement, etc.)
+(def: {dopt})'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
-
-opt = '''show_graph_level'''
-hlp = '''Integer value for one of the following behaviors:
-0 - Do not show graphs
-1 - Show end results (card and resp peaks, final RVT)
-2 - Show end results and intermediate (bandpass filter)
-(def: {dopt}) !!!not implemented; remove?'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
-opt = '''do_calc_ab'''
-hlp = '''Calculate the a,b coefficients from GLR00, and use these in the
-output time series (generally not needed) !!!not implemented; remove?'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''do_save_ab'''
-hlp = '''Save the a,b coefficients from GLR00 in a file (generally not
-needed !!!not implemented; remove?'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 opt = '''img_figsize'''
 hlp = '''Figure dimensions used for QC images (def: {dopt})
@@ -1150,20 +1121,6 @@ hlp = '''Integer values to control verbosity level
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
-
-opt = '''demo'''
-hlp = '''Enter 'demonstration mode': run example !!!not implemented;
-remove?'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''debug'''
-hlp = '''Enter 'debug mode': drop into pdb upon an exception !!!not
-implemented; remove?'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 # ---- help-y stuff
 
