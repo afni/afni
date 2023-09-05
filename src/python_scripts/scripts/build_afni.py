@@ -1238,7 +1238,7 @@ class MyInterface:
       # now set prefix, and if needed, find an incremenal suffix
       bname = 'backup.abin.%s' % dstr
 
-      # see if bname is sufficent (should usually be)
+      # see if bname is sufficient (should usually be)
       # if it exists, try adding a suffix for a while before failure
       if os.path.exists(bname):
          for ind in range(1,100):
