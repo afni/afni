@@ -394,6 +394,7 @@ class MyInterface:
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
+      self.run_install     = 0      # install build results and atlases
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
 
@@ -411,6 +412,10 @@ class MyInterface:
       self.do_abin         = None   # abin dirobj
       self.do_root         = None   # build root dirobj
       self.do_mb_abin      = None   # make build install dir object
+
+      self.syncd_atlas     = ''     # directory to sync atlases from
+      self.syncd_make      = ''     # directory to sync make build from
+      self.backup_abin     = ''     # directory of any abin backup
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
@@ -667,6 +672,7 @@ class MyInterface:
                  1 on non-fatal termination error
                 -1 on fatal error
       """
+      # -----------------------------------------------------------------
       # note where we are starting from, and any current abin
       rv = self.set_orig_dirs()
       if rv: return rv
@@ -677,8 +683,14 @@ class MyInterface:
       if self.verb > 2:
           self.show_vars("ready to process...")
 
+      # -----------------------------------------------------------------
+      # actually do the build work
       if self.do_root is not None:
          rv = self.run_main_build()
+
+         # if we succeeded, rsync the results
+         if self.run_install and not rv:
+            rv = self.run_install()
 
       # -----------------------------------------------------------------
       # histories and logs
@@ -781,6 +793,16 @@ class MyInterface:
           if rv: return rv
       else:
           MESGw("no build_root dir to write history to: %s" % sdir)
+
+   def run_install(self):
+      """install the make results and atlases
+         - mv current abin contents to backup
+
+         return 0 on success, else error
+      """
+
+      return 0
+
 
    def run_main_build(self):
       """do the main building and such under do_root
@@ -1022,13 +1044,10 @@ class MyInterface:
       MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
 
       # -----------------------------------------------------------------
-      # final messages: mention possibly rsync
-      do = None
-      if self.do_abin is not None:
-         do = self.do_abin
-      elif self.do_orig_abin is not None:
-         do = self.do_orig_abin
+      # final messages: mention possible rsync
+      do = self.f_get_rsync_abin_do()
       if do is not None and self.do_mb_abin is not None:
+         self.syncd_make = self.do_mb_abin.abspath
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("to possibly rsync make output:")
          self.add_final_mesg("   rsync -av %s/ %s/" \
@@ -1070,6 +1089,70 @@ class MyInterface:
       if st: return st
 
       return 0
+
+   def f_get_rsync_abin_do(self):
+      """return the directory object for install abin
+      """
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      return do
+
+   def f_make_backup_abin_name(self):
+      """make up a name for backing up abin
+
+         backup.abin.YYYY_MM_DD_hh_mm_ss
+      """
+      # try to make a date signature
+      form = '%Y_%m_%d_%H_%M_%S'
+      dstr = ''
+      # first using datetime
+      try:
+         from datetime import datetime
+         dstr = datetime.now().strftime(form)
+         if self.verb > 2:
+            MESGm("using datetime date string %s" % dstr)
+      except:
+         pass
+
+      # if failure, try same from shell date
+      if dstr == '':
+         st, dt = UTIL.exec_tcsh_command('date +%s' % form)
+         # if success, store
+         if not st:
+            dstr = dt
+            if self.verb > 2:
+               MESGm("using shell date string %s" % dstr)
+
+      # if failure, use NODATE
+      if dstr == '':
+         dstr = 'NODATE'
+
+      # now set prefix, and if needed, find an incremenal suffix
+      bname = 'backup.abin.%s' % dstr
+
+      # see if bname is sufficent (should usually be)
+      # if it exists, try adding a suffix for a while before failure
+      if os.path.exists(bname):
+         for ind in range(1,100):
+            btmp = '%s.%02d' % (bname, ind)
+            # if not here, we have a good candidate
+            if not os.path.exists(btmp):
+               bname = btmp
+               break
+            # else it exists, keep searching
+
+      if self.verb > 1:
+         MESGm("will try using back up abin, %s" % bname)
+
+      # okay, one more check
+      if os.path.exists(bname):
+         MESGe("failed to make backup.abin name, please delete some")
+         return ''
+
+      return bname
 
    def f_get_atlases(self):
       """if no afni_atlases_dist dir, download
@@ -1119,16 +1202,13 @@ class MyInterface:
 
       # -----------------------------------------------------------------
       # final messages: sync atlases (maybe sync this with make later)
-      do = None
-      if self.do_abin is not None:
-         do = self.do_abin
-      elif self.do_orig_abin is not None:
-         do = self.do_orig_abin
+      do = self.f_get_rsync_abin_do()
       if do is not None:
+         self.syncd_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("to possibly rsync atlases:")
-         self.add_final_mesg("   rsync -av %s/%s/ %s/" \
-             % (self.do_root.abspath, atlas_pack, do.abspath))
+         self.add_final_mesg("   rsync -av %s/ %s/" \
+             % (self.syncd_atlas, do.abspath))
 
       return 0
 
