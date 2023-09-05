@@ -47,9 +47,24 @@ valid for RVT calcs (e.g., might only apply to 'resp' label)."""
         print("   {}".format(', '.join(PO_rvt_label)))
         sys.exit(3)
 
+def check_empty_list(x, count, lab_title, label):
+    """Simple check whether a peak, trough or phase list x is empty or
+not.  Whine if it is, and return nonzero.  If things are cool, just
+return 0.
+
+    """
+
+    if len(x) == 0 :
+        print("** ERROR: Step [{}] '{}' creates empty list for {} data"
+              "".format(count, lab_title, label))
+        return 1
+    return 0
+
+
 # ---------------------------------------------------------------------------
 
 def calc_timing_selection_phys(retobj, label=None, verb=0):
+
     """Calculate the 'timing selection array' for the phys_obj
 (=retobj.data[label]) time series tvalues, for each MRI slice based on
 the slice timing information.  That is, for any of the
@@ -338,12 +353,13 @@ is_ok : int
     # each block of peak/trough detection works in about the same way,
     # and we comment on the pieces just in the first part
 
+    # --------------
     count    = 0                                     # proc/filter steps
     lab_title = 'Bandpass and SciPy peak-finding'    # used in fig img
     lab_short = 'bp_scipy_peaks'                     # used in fig filename
     if verb :   print('++ ({}) {}'.format(label, lab_title))
-    # calculate peak and/or trough array (and here, output a bit more
-    # info, too)
+
+    # calculate peak and/or trough list (here, plus some extra info)
     peaks, idx_freq_mode, xfilt = \
         lpp.get_peaks_from_bandpass(phobj.ts_orig,
                                     phobj.samp_freq,
@@ -354,19 +370,16 @@ is_ok : int
                                     verb=verb)
     phobj.ts_orig_bp = copy.deepcopy(xfilt)          # save BPed ver of ts
     phobj.bp_idx_freq_mode = idx_freq_mode           # save peak freq's idx
-    # check on peaks, don't want an empty array.
-    if len(peaks) == 0 :
-        print("** ERROR: no peaks after step {} '{}' for {} data"
-              "".format(count, lab_title, label))
-        return 1
-    # create strings for fig image filename and title
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+    if check_empty_list(peaks, count, lab_title, label) :  return 1
+
     # save output figure, if desired
     if retobj.save_graph_level > 1 :
+        # make image title and filename
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short,
+                                               prefix=prefix, odir=odir)
+        # make the image
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                          #upper_env=xfilt,  # tmp+cheap check
                                           title=title, fname=fname,
                                           retobj=retobj,
                                           verb=verb)
@@ -383,7 +396,6 @@ is_ok : int
                                           use_bp_ts=True,
                                           verb=verb)
 
-
     # --------------
     count+= 1
     lab_title = 'Local peak refinement'
@@ -393,14 +405,12 @@ is_ok : int
                                     phobj.ts_orig,
                                     is_troughs = False,
                                     verb=verb)
-    if len(peaks) == 0 :
-        print("** ERROR: no peaks after step {} '{}' for {} data"
-              "".format(count, lab_title, label))
-        return 1
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+    if check_empty_list(peaks, count, lab_title, label) :  return 1
+
     if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short,
+                                               prefix=prefix, odir=odir)
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
                                           retobj=retobj,
@@ -424,14 +434,12 @@ is_ok : int
                                             phobj.ts_orig,
                                             is_troughs = False,
                                             verb=verb)
-    if len(peaks) == 0 :
-        print("** ERROR: no peaks after step {} '{}' for {} data"
-              "".format(count, lab_title, label))
-        return 1
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+    if check_empty_list(peaks, count, lab_title, label) :  return 1
+
     if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short,
+                                               prefix=prefix, odir=odir)
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
                                           retobj=retobj,
@@ -439,8 +447,8 @@ is_ok : int
 
     # --------------
     count+= 1
-    lab_title = 'Peak refinement and proximity filter'
-    lab_short = 'refine_proxim_peaks'
+    lab_title = 'Peak proximity filter'
+    lab_short = 'proxim_filter_peaks'
     if verb :   print('++ ({}) {}'.format(label, lab_title))
     # NB: Originally used
     # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig) to get the
@@ -454,28 +462,17 @@ is_ok : int
                                  phobj.ts_orig,
                                  is_troughs = False,
                                  verb=verb)
-    if len(peaks) == 0 :
-        print("** ERROR: no peaks after step {} '{}' for {} data"
-              "".format(count, lab_title, label))
-        return 1
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+    if check_empty_list(peaks, count, lab_title, label) :  return 1
+
     if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short,
+                                               prefix=prefix, odir=odir)
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
                                           retobj=retobj,
                                           verb=verb)
 
-
-    # !!! add in more refinement steps, and prob trough estimation, too
-
-
-
-    ### !!!! for addMissingPeaks: only run this for card, because
-    ### !!!! resp has peak+trough returns? ---> right now, do for BOTH
-    ### !!!! card and resp, bc resp troughs are dealt with separately
-    ### !!!! below
     # --------------
     count+= 1
     lab_title = 'Add any missing peaks'
@@ -485,19 +482,16 @@ is_ok : int
                                 phobj.ts_orig,
                                 is_troughs = False,
                                 verb=verb)
-    if len(peaks) == 0 :
-        print("** ERROR: no peaks after step {} '{}' for {} data"
-              "".format(count, lab_title, label))
-        return 1
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+    if check_empty_list(peaks, count, lab_title, label) :  return 1
+
     if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short,
+                                               prefix=prefix, odir=odir)
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                           title=title, fname=fname,
                                           retobj=retobj,
                                           verb=verb)
-
 
 
     # -------- trough considerations: resp only
@@ -511,32 +505,51 @@ is_ok : int
         if verb :   print('++ ({}) {}'.format(label, lab_title))
         troughs, _ = sps.find_peaks(-xfilt,
                                     width=int(phobj.samp_freq/8))
-        if len(troughs) == 0 :
-            print("** ERROR: no troughs after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(troughs, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
                                               retobj=retobj,
                                               verb=verb)
 
-        # bonus here: plot peaks on BP'ed time series
-        lab_title = 'Bandpassed time series, with peaks and troughs'
-        lab_short = 'bandpass_ts_troughs'
-        fname, title = lpu.make_str_bandpass(label,
-                                             lab_title, lab_short, 
-                                             prefix=prefix, odir=odir)
-        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                          troughs=troughs,
-                                          title=title, fname=fname,
-                                          retobj=retobj,
-                                          use_bp_ts=True,
+            # bonus here: plot peaks on BP'ed time series
+            lab_title = 'Bandpassed time series, with troughs'
+            lab_short = 'bandpass_ts_troughs'
+            fname, title = lpu.make_str_bandpass(label,
+                                                 lab_title, lab_short, 
+                                                 prefix=prefix, odir=odir)
+            lpplt.makefig_phobj_peaks_troughs(phobj, 
+                                              troughs=troughs,
+                                              title=title, fname=fname,
+                                              retobj=retobj,
+                                              use_bp_ts=True,
+                                              verb=verb)
+
+        # --------------
+        count+= 1
+        lab_title = 'Local trough refinement'
+        lab_short = 'local_refine_troughs'
+        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        troughs = lpp.refinePeakLocations(troughs, 
+                                          phobj.ts_orig,
+                                          is_troughs = True,
                                           verb=verb)
+        if check_empty_list(troughs, count, lab_title, label) :  return 1
+
+        if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
+            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                              troughs=troughs,
+                                              title=title, fname=fname,
+                                              retobj=retobj,
+                                              verb=verb)
 
         # --------------
         count+= 1
@@ -548,29 +561,25 @@ is_ok : int
                                               perc_filt = 90.0,
                                               is_troughs = True, 
                                               verb=verb)
-        if len(troughs) == 0 :
-            print("** ERROR: no troughs after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(troughs, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks, 
                                               troughs=troughs,
                                               title=title, fname=fname,
                                               retobj=retobj,
                                               verb=verb)
 
-        # !!! can leave out here separate trough merger checks for
-        # !!! left and right individually, for the global case?  Right
-        # !!! now, leaving out those separate checks
-        
+        # note: leaving out separate left/right merger checks, because
+        # those are examined in global check
 
         # --------------
         count+= 1
-        lab_title = 'Trough refinement and proximity filter'
-        lab_short = 'refine_proxim_troughs'
+        lab_title = 'Trough proximity filter'
+        lab_short = 'proxim_filt_troughs'
         if verb :   print('++ ({}) {}'.format(label, lab_title))
         # NB: for period_idx arg here, could use
         # lpp.getTimeSeriesPeriod_as_indices(phobj.ts_orig), but
@@ -581,20 +590,17 @@ is_ok : int
                                        idx_freq_mode,
                                        is_troughs = True,
                                        verb=verb)
-        if len(troughs) == 0 :
-            print("** ERROR: no troughs after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(troughs, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
                                               retobj=retobj,
                                               verb=verb)
-
 
         # --------------
         count+= 1
@@ -605,20 +611,17 @@ is_ok : int
                                       phobj.ts_orig,
                                       is_troughs = True,
                                       verb=verb)
-        if len(troughs) == 0 :
-            print("** ERROR: no troughs after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(troughs, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               title=title, fname=fname,
                                               retobj=retobj,
                                               verb=verb)
-
 
     # ----- DONE with peak+trough estimation+refinement: add to obj -----
     phobj.peaks = peaks
@@ -629,15 +632,17 @@ is_ok : int
 
     # -------------- FINAL plot
     count+=1
+    lab_title = 'Final peaks ($\Delta t_{\\rm med}$ = '
+    lab_title+= '{:0.3f} s)'.format(p_ival)
+    lab_short = 'final_peaks'
     if len(troughs) :
-        lab_title = 'Final peaks ($\Delta t_{{\\rm med}}$ = {:0.3f} s)'.format(p_ival)
         lab_title+= ' and troughs'
-        lab_short = 'final_peaks_troughs'
+        lab_short+= '_troughs'
         if verb :   print('++ ({}) {}'.format(label, lab_title))
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
-        if 1 : #retobj.save_graph_level > 1 :
+        if retobj.save_graph_level > 0 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short,
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               troughs=troughs,
                                               add_ibandT=True,
@@ -646,13 +651,11 @@ is_ok : int
                                               retobj=retobj,
                                               verb=verb)
     else:
-        lab_title = 'Final peaks ($\Delta t_{{\\rm med}}$ = {:0.3f} s)'.format(p_ival)
-        lab_short = 'final_peaks'
         if verb :   print('++ ({}) {}'.format(label, lab_title))
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
-        if 1 : #retobj.save_graph_level > 1 :
+        if retobj.save_graph_level > 0 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short, 
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
                                               add_ibandT=True,
                                               title=title, fname=fname,
@@ -704,16 +707,14 @@ is_ok : int
 
     # ------- card phase estimation
     if label == 'card' :
-        # use Method 1 phase finding for card peaks/time series
+        # card case is simple method
         phases = lpph.calc_phases_M1(phobj, verb=verb)
-        if not(len(phases)) :
-            print("** ERROR: problem after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(phases, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short, 
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
                                               phases=phases,
                                               title=title, fname=fname,
@@ -721,17 +722,14 @@ is_ok : int
                                               verb=verb)
 
     elif label == 'resp' :
-        # use Method 1 phase finding for card peaks/time series
         #phases = lpph.calc_phases_M2(phobj, verb=verb)  # older method
         phases = lpph.calc_phases_M3(phobj, verb=verb)
-        if not(len(phases)) :
-            print("** ERROR: problem after step {} '{}' for {} data"
-                  "".format(count, lab_title, label))
-            return 1
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short, 
-                                               prefix=prefix, odir=odir)
+        if check_empty_list(phases, count, lab_title, label) :  return 1
+
         if retobj.save_graph_level > 1 :
+            fname, title = make_str_ts_peak_trough(label, count, 
+                                                   lab_title, lab_short, 
+                                                   prefix=prefix, odir=odir)
             lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
                                               troughs=phobj.troughs,
                                               phases=phases,
@@ -782,10 +780,11 @@ intervals to estimate 'instantaneous period'.
     # calculate the upper and lower envelope
     upper_env = lprvt.interp_extrema_LIN(phobj, phobj.peaks, verb=verb)
     lower_env = lprvt.interp_extrema_LIN(phobj, phobj.troughs, verb=verb)    
-    fname, title = make_str_ts_peak_trough(label, count, 
-                                           lab_title, lab_short, 
-                                           prefix=prefix, odir=odir)
+
     if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short, 
+                                               prefix=prefix, odir=odir)
         lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
                                           troughs=phobj.troughs,
                                           upper_env=upper_env,
@@ -794,14 +793,24 @@ intervals to estimate 'instantaneous period'.
                                           retobj=retobj,
                                           verb=verb)
 
-
-    # actual RVT
+    # actual RVT (only plotted as regressor, later)
     count    += 1
     lab_title = 'RVT measure'
     lab_short = 'rvt_measure'
     if verb :   print('++ ({}) {}'.format(label, lab_title))
     insta_per = lprvt.interp_intervals_LIN(phobj, phobj.peaks, verb=verb)
     rvt_ts    = (upper_env - lower_env) / insta_per
+
+    if retobj.save_graph_level > 1 :
+        fname, title = make_str_ts_peak_trough(label, count, 
+                                               lab_title, lab_short, 
+                                               prefix=prefix, odir=odir)
+        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=phobj.peaks,
+                                          troughs=phobj.troughs,
+                                          rvt=rvt_ts, 
+                                          title=title, fname=fname,
+                                          retobj=retobj,
+                                          verb=verb)
 
     phobj.rvt_ts = rvt_ts
 

@@ -16,8 +16,6 @@ essentially just looks at peak info.  This is largely just a simple,
 linear mapping of the interval [-Pi, Pi) to each interpeak interval.
 This applies to card time series at present.
 
-When done, add phases array to the phobj object.
-
 Parameters
 ----------
 phobj : phys_ts_obj class

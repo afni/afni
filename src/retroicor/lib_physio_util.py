@@ -194,22 +194,13 @@ D  : list
     """
 
     # ensure no overlap of A and B, and nonrepetition of each
-    olap = set(A).intersection(set(B))
-    if len(olap):
-        print("** ERROR: A and B cannot share any elements, but they do!")
-        print("   " + str(list(olap)))
-        sys.exit(3)
-    if len(A) != len(set(A)) :
-        print("** ERROR: List A cannot have repeated elements, but it does!")
-        sys.exit(3)
-    if len(B) != len(set(B)) :
-        print("** ERROR: List B cannot have repeated elements, but it does!")
+    if check_list_olap_disorder(A, B) :
         sys.exit(3)
         
     NB = len(B)
     NA = len(A)
-    C = np.zeros(NA-1, dtype=int)          # between-pair counts
-    D = np.zeros(2, dtype=int)             # endpoint-dangling counts
+    C  = np.zeros(NA-1, dtype=int)          # between-pair counts
+    D  = np.zeros(2, dtype=int)             # endpoint-dangling counts
     
     # precursor: fill in the first dangling endpoint.
     # NB: we have the start variable like this, to keep using below
@@ -252,3 +243,29 @@ D  : list
         j+= 1
 
     return C, D
+
+def check_list_olap_disorder(A, B):
+    """A and B are lists, each of which are supposed to have no
+repetition, and which are not supposed to overlap. This function
+verifies that. It is particularly useful before checking for
+interleaving.
+
+Return 0 if things are fine (no overlap between A and B; no repetition
+in either A or B), or nonzero for failure.
+
+    """
+
+    olap = set(A).intersection(set(B))
+    if len(olap):
+        print("** ERROR: A and B cannot share any elements, but they do!")
+        print("   " + str(list(olap)))
+        return -1
+    if len(A) != len(set(A)) :
+        print("** ERROR: List A cannot have repeated elements, but it does!")
+        return 1
+    if len(B) != len(set(B)) :
+        print("** ERROR: List B cannot have repeated elements, but it does!")
+        return 1
+
+    return 0
+        

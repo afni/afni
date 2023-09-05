@@ -668,7 +668,7 @@ them.
 
 def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 phases = [],
-                                upper_env=[], lower_env=[],
+                                upper_env=[], lower_env=[], rvt=[],
                                 title='', fname='', retobj=None,
                                 add_ibandT = False, add_ibandB = False,
                                 img_axhline = 'MEDIAN',
@@ -692,6 +692,9 @@ upper_env : np.ndarray
     same number of time points as the phobj.ts_orig
 lower_env : np.ndarray
     (opt) 1D array of lower envelope values to include in plot; has
+    same number of time points as the phobj.ts_orig
+rvt : np.ndarray
+    (opt) 1D array of RVT values to include in plot; has
     same number of time points as the phobj.ts_orig
 title : str
     string to include as title for the plot
@@ -813,7 +816,7 @@ Returns
                                 color='green')
         fff.add_plobj(ret_plobj4)
 
-        if len(troughs):
+        if len(troughs): # proxy for 'resp'
             # Bonus for resp phases: vis guide line
             ret_plobj4a = RetroPlobj(phobj.tvalues[::istep], 
                                   np.ones(len(phobj.tvalues[::istep]))*maxts,
@@ -845,6 +848,21 @@ Returns
                                 color='red')
         fff.add_plobj(ret_plobj5)
 
+    # add rvt (maybe)
+    if len(rvt) :
+        # scale rvt for plotting
+        maxrvt     = np.max(rvt)
+        minrvt     = np.min(rvt)
+        diff_rvt   = maxrvt - minrvt
+        mints = np.min(ts)
+        diff_ts    = np.max(ts) - mints
+        scale_rvt  = (rvt - minrvt)/diff_rvt*diff_ts + mints
+        ret_plobj4 = RetroPlobj(phobj.tvalues[::istep], scale_rvt[::istep], 
+                                label='RVT (scaled)',
+                                alpha=1.0,
+                                lw=DEF_lw*1.5,
+                                color='green')
+        fff.add_plobj(ret_plobj4)
 
 
     fff.make_plot()
