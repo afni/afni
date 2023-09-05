@@ -394,7 +394,8 @@ class MyInterface:
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
-      self.run_install     = 0      # install build results and atlases
+      self.run_backup      = 1      # install build results and atlases
+      self.run_install     = 1      # install build results and atlases
       self.make_target     = 'itall' # target in "make" command
       self.makefile        = ''     # an alternate Makefile to build from
 
@@ -413,14 +414,15 @@ class MyInterface:
       self.do_root         = None   # build root dirobj
       self.do_mb_abin      = None   # make build install dir object
 
-      self.syncd_atlas     = ''     # directory to sync atlases from
-      self.syncd_make      = ''     # directory to sync make build from
+      self.sync_src_atlas  = ''     # directory to sync atlases from
+      self.sync_src_make   = ''     # directory to sync make build from
       self.backup_abin     = ''     # directory of any abin backup
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
       self.hist_file       = 'hist_commands.txt' # final history file
       self.mesg_file       = 'hist_messages.txt' # message history file
+      self.rsync_file      = 'hist_rsync.txt' # rsync history file
       self.makefile_path   = ''     # abspath to -makefile
 
       self.pold            = 'prev.'        # prefix for old version
@@ -690,7 +692,7 @@ class MyInterface:
 
          # if we succeeded, rsync the results
          if self.run_install and not rv:
-            rv = self.run_install()
+            rv = self.f_run_install()
 
       # -----------------------------------------------------------------
       # histories and logs
@@ -794,12 +796,119 @@ class MyInterface:
       else:
           MESGw("no build_root dir to write history to: %s" % sdir)
 
-   def run_install(self):
+   def f_run_install(self):
       """install the make results and atlases
+         - if no install, might still suggest rsync
          - mv current abin contents to backup
 
          return 0 on success, else error
       """
+
+      # tell user what we are plotting
+      if self.verb:
+         MESG("")
+         if self.run_install:
+            MESGm("will install 'make' build results and atlases")
+         else:
+            MESGm("skipping install")
+
+      # go to build root (to possibly create backup directory)
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
+      # note where we would back up from and to
+      abin = ''
+      do = self.f_get_rsync_abin_do()
+      if do is not None:
+         abin = do.abspath
+      self.backup_abin = self.f_make_backup_abin_name()
+
+      # optimally, we now know:
+      #   abin, backup_abin, atlas_src, make_src
+
+      # chat
+      if self.verb > 2:
+         MESGi("atlas dir   : %s" % self.sync_src_atlas)
+         MESGi("build dir   : %s" % self.sync_src_make)
+         MESGi("install dir : %s" % self.backup_abin)
+         MESGi("run install : %s" % self.run_install)
+         MESG("")
+
+      # if no main abin, no directory to install to
+      if abin == '':
+         MESGm("no known abin, so no install to ponder")
+         return 0
+
+      # ------------------------------------------------------------
+      # if no backup directory or no install, just recommend rsync
+      # rcr - test
+      if self.backup_abin == '' or not self.run_install:
+         # if there is no abin dest, we are done
+         if abin == '':
+            MESGm("no rsync abin destination to ponder")
+            return 0
+
+         have_sync = 0
+
+         # possibly suggest make sync
+         if self.sync_src_make:
+            have_sync = 1
+            self.add_final_mesg("------------------------------")
+            self.add_final_mesg("to possibly rsync make output:")
+            self.add_final_mesg("   rsync -av %s/ %s/" \
+               % (self.sync_src_make, abin))
+
+         # possibly suggest atlas sync
+         if self.sync_src_atlas:
+            have_sync = 1
+            self.add_final_mesg("------------------------------")
+            self.add_final_mesg("to possibly rsync atlases:")
+            self.add_final_mesg("   rsync -av %s/ %s/" \
+               % (self.sync_src_atlas, abin))
+
+         if not have_sync:
+            MESGm("no make build or atlases to sync")
+
+         return 0
+
+      # ------------------------------------------------------------
+      # actually do the install
+      # ------------------------------------------------------------
+
+      MESG("")
+      MESGi("    PLEASE WAIT FOR THE INSTALL TO COMPLETE...")
+      MESG("")
+
+      # ------------------------------------------------------------
+      # possibly run backup
+      if not self.run_backup:
+         MESGm("skipping abin backup")
+      else:
+         MESGp("backing up %s to %s" % (abin, self.backup_abin))
+         st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
+         if st: return st
+         st, ot = self.run_cmd('mv %s/* %s/' % (abin, self.backup_abin))
+         if st: return st
+
+      # ------------------------------------------------------------
+      # now actually sync to the destination
+
+      if self.sync_src_atlas or self.sync_src_make:
+         st, ot = self.run_cmd('echo "" > %s' % self.rsync_file)
+         if st: return st
+         
+      if self.sync_src_atlas:
+         st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
+                      % (self.sync_src_atlas, abin, self.rsync_file)) 
+         if st: return st
+
+      if self.sync_src_make:
+         st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
+                      % (self.sync_src_make, abin, self.rsync_file)) 
+         if st: return st
+
+      # rcr - test
+      # inform user how many backup directories exist now
 
       return 0
 
@@ -1043,16 +1152,12 @@ class MyInterface:
          MESGp("have make build abin %s" % do.abspath)
       MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
 
-      # -----------------------------------------------------------------
-      # final messages: mention possible rsync
+      # if possible rsync, note source and dest dirs
       do = self.f_get_rsync_abin_do()
       if do is not None and self.do_mb_abin is not None:
-         self.syncd_make = self.do_mb_abin.abspath
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to possibly rsync make output:")
-         self.add_final_mesg("   rsync -av %s/ %s/" \
-             % (self.do_mb_abin.abspath, do.abspath))
+         self.sync_src_make = self.do_mb_abin.abspath
 
+      # -----------------------------------------------------------------
       # final messages: how to rerun make
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("to rerun make build:")
@@ -1204,11 +1309,11 @@ class MyInterface:
       # final messages: sync atlases (maybe sync this with make later)
       do = self.f_get_rsync_abin_do()
       if do is not None:
-         self.syncd_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
+         self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("to possibly rsync atlases:")
          self.add_final_mesg("   rsync -av %s/ %s/" \
-             % (self.syncd_atlas, do.abspath))
+             % (self.sync_src_atlas, do.abspath))
 
       return 0
 
