@@ -801,42 +801,42 @@ Examples ~1~
 
   Example 1
     
-    physio_calc.py                                                           \
-        -card_file           physiopy/test000c                               \
-        -freq                400                                             \
-        -dset_epi            DSET_MRI                                        \
-        -dset_slice_pattern  alt+z                                           \
-        -extra_fix_list      5000                                            \
-        -do_fix_nan                                                          \
-        -out_dir             OUT_DIR                                         \
+    physio_calc.py                                                           \\
+        -card_file           physiopy/test000c                               \\
+        -freq                400                                             \\
+        -dset_epi            DSET_MRI                                        \\
+        -dset_slice_pattern  alt+z                                           \\
+        -extra_fix_list      5000                                            \\
+        -do_fix_nan                                                          \\
+        -out_dir             OUT_DIR                                         \\
         -prefix              PREFIX
 
   Example 2
     
-    physio_calc.py                                                           \
-        -phys_file           physiopy/test003c.tsv.gz                        \
-        -phys_json           physiopy/test003c.json                          \
-        -dset_tr             2.2                                             \
-        -dset_nt             34                                              \
-        -dset_nslice         34                                              \
-        -dset_slice_pattern  alt+z                                           \
-        -do_fix_nan                                                          \
-        -extra_fix_list      5000                                            \
-        -out_dir             OUT_DIR                                         \
+    physio_calc.py                                                           \\
+        -phys_file           physiopy/test003c.tsv.gz                        \\
+        -phys_json           physiopy/test003c.json                          \\
+        -dset_tr             2.2                                             \\
+        -dset_nt             34                                              \\
+        -dset_nslice         34                                              \\
+        -dset_slice_pattern  alt+z                                           \\
+        -do_fix_nan                                                          \\
+        -extra_fix_list      5000                                            \\
+        -out_dir             OUT_DIR                                         \\
         -prefix              PREFIX
 
   Example 3 
 
-    physio_calc.py                                                           \
-        -card_file           sub-005_ses-01_task-rest_run-1_physio-ECG.txt   \
-        -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \
-        -freq                50                                              \
-        -dset_tr             2.2                                             \
-        -dset_nt             219                                             \
-        -dset_nslice         33                                              \
-        -dset_slice_pattern  alt+z                                           \
-        -do_fix_nan                                                          \
-        -out_dir             OUT_DIR                                         \
+    physio_calc.py                                                           \\
+        -card_file           sub-005_ses-01_task-rest_run-1_physio-ECG.txt   \\
+        -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \\
+        -freq                50                                              \\
+        -dset_tr             2.2                                             \\
+        -dset_nt             219                                             \\
+        -dset_nslice         33                                              \\
+        -dset_slice_pattern  alt+z                                           \\
+        -do_fix_nan                                                          \\
+        -out_dir             OUT_DIR                                         \\
         -prefix              PREFIX
     
 {ddashline}
@@ -862,6 +862,7 @@ formatter = lambda prog: argp.HelpFormatter(prog,
 parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               usage=argp.SUPPRESS, # don't show ugly usage
                               add_help=False,
+                              allow_abbrev=False,
                               formatter_class=argp.RawDescriptionHelpFormatter,
                               #formatter_class=argp.RawTextHelpFormatter,
                               #formatter_class=formatter,
