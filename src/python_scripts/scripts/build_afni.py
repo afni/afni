@@ -5,6 +5,7 @@
 # system libraries
 import sys, os, platform
 import shutil
+import glob
 
 # AFNI libraries
 from afnipy import option_list as OL
@@ -417,6 +418,7 @@ class MyInterface:
       self.sync_src_atlas  = ''     # directory to sync atlases from
       self.sync_src_make   = ''     # directory to sync make build from
       self.backup_abin     = ''     # directory of any abin backup
+      self.backup_prefix   = 'backup.abin.' # prefix for any abin backup
 
       self.final_mesg      = []     # final messages to show to user
       self.history         = []     # shell/system command history
@@ -841,7 +843,6 @@ class MyInterface:
 
       # ------------------------------------------------------------
       # if no backup directory or no install, just recommend rsync
-      # rcr - test
       if self.backup_abin == '' or not self.run_install:
          # if there is no abin dest, we are done
          if abin == '':
@@ -898,17 +899,29 @@ class MyInterface:
          if st: return st
          
       if self.sync_src_atlas:
+         MESGp("installing atlases under %s" % abin)
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("atlases installed to %s" % abin)
+         self.add_final_mesg("(installed from %s)" % self.sync_src_atlas)
          st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
                       % (self.sync_src_atlas, abin, self.rsync_file)) 
          if st: return st
 
       if self.sync_src_make:
+         MESGp("installing bulid results under %s" % abin)
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("binaries installed to %s" % abin)
+         self.add_final_mesg("(installed from %s)" % self.sync_src_make)
          st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
                       % (self.sync_src_make, abin, self.rsync_file)) 
          if st: return st
 
-      # rcr - test
       # inform user how many backup directories exist now
+      glist = glob.glob('%s*' % self.backup_prefix)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("have %d backup abin directories, %s*" \
+            % (len(glist), self.backup_prefix))
+      del(glist)
 
       return 0
 
@@ -1209,6 +1222,7 @@ class MyInterface:
       """make up a name for backing up abin
 
          backup.abin.YYYY_MM_DD_hh_mm_ss
+         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
       """
       # try to make a date signature
       form = '%Y_%m_%d_%H_%M_%S'
@@ -1236,7 +1250,7 @@ class MyInterface:
          dstr = 'NODATE'
 
       # now set prefix, and if needed, find an incremenal suffix
-      bname = 'backup.abin.%s' % dstr
+      bname = '%s%s' % (self.backup_prefix, dstr)
 
       # see if bname is sufficient (should usually be)
       # if it exists, try adding a suffix for a while before failure
@@ -1304,16 +1318,6 @@ class MyInterface:
          if st: return st
          st, ot = self.run_cmd('rm', tgzfile)
          if st: return st
-
-      # -----------------------------------------------------------------
-      # final messages: sync atlases (maybe sync this with make later)
-      do = self.f_get_rsync_abin_do()
-      if do is not None:
-         self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to possibly rsync atlases:")
-         self.add_final_mesg("   rsync -av %s/ %s/" \
-             % (self.sync_src_atlas, do.abspath))
 
       return 0
 
