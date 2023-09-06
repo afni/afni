@@ -319,7 +319,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
-        self.niml         = False      # bool, use niml in output ***
         self.do_out_rvt   = True       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
@@ -375,7 +374,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_line_time    = args_dict['img_line_time']
         self.img_dot_freq     = args_dict['img_dot_freq']
         self.img_bp_max_f     = args_dict['img_bp_max_f']
-        self.niml             = args_dict['niml']
         self.do_out_rvt       = not(args_dict['rvt_off'])
         self.do_out_card      = not(args_dict['no_card_out'])
         self.do_out_resp      = not(args_dict['no_resp_out'])

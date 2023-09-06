@@ -87,7 +87,6 @@ DEF = {
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
-    'niml'              : False,     # (bool)
     'verb'              : 0,         # (int) verbosity level
     'disp_all_slice_patterns' : False, # (bool) display known sli patterns
     'disp_all_opts'     : False,     # (bool) display opts for this prog
@@ -1110,13 +1109,6 @@ x-axis), in units of Hz (def: {dopt}) '''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
-
-opt = '''niml'''
-hlp = '''Output ***what?*** in NIML format, instead of CSV format !!!not
-implemented; remove?'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 opt = '''verb'''
 hlp = '''Integer values to control verbosity level 
