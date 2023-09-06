@@ -137,6 +137,12 @@ if __name__ == "__main__":
         if retobj.data[label] :
             lpf.calc_time_series_peaks( retobj, label=label, verb=verb )
 
+    # save/write out peaks/troughs, if user asks
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
+
+
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:

@@ -102,6 +102,8 @@ DEF = {
     'img_line_time'     : DEF_img_line_time, # (float) time per QC imgs
     'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
     'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
+    'save_proc_peaks'   : False,     # (bool) dump peaks to text file
+    'save_proc_troughs' : False,     # (bool) dump troughs to text file
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -1109,6 +1111,24 @@ x-axis), in units of Hz (def: {dopt}) '''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
+
+opt = '''save_proc_peaks'''
+hlp = '''Write out the final set of peaks indices to a text file called
+PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is 'card', 'resp', etc.), which is
+a single column of the integer values (def: don't write them out)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''save_proc_troughs'''
+hlp = '''Write out the final set of trough indices to a text file called
+PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), which
+is a single column of the integer values (def: don't write them
+out). The file is only output for LABEL types where troughs were
+estimated (e.g., resp).'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
 
 opt = '''verb'''
 hlp = '''Integer values to control verbosity level 

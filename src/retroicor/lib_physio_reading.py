@@ -322,12 +322,17 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_rvt   = True       # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
+        self.save_proc_peaks = False   # bool, flag to write proc peaks to file
+        self.save_proc_troughs = False # bool, flag to write proc trou to file
+
+        # QC image opts
         self.img_verb     = 1          # int, amount of graphs to save
         self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
         self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
+
 
 
         # -----------------------------------------------------------------
@@ -368,15 +373,18 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         self.out_dir          = args_dict['out_dir']
         self.prefix           = args_dict['prefix']
+        self.do_out_rvt       = not(args_dict['rvt_off'])
+        self.do_out_card      = not(args_dict['no_card_out'])
+        self.do_out_resp      = not(args_dict['no_resp_out'])
+        self.save_proc_peaks  = args_dict['save_proc_peaks']
+        self.save_proc_troughs = args_dict['save_proc_troughs']
+
         self.img_verb         = args_dict['img_verb']
         self.img_figsize      = copy.deepcopy(args_dict['img_figsize'])
         self.img_fontsize     = args_dict['img_fontsize']
         self.img_line_time    = args_dict['img_line_time']
         self.img_dot_freq     = args_dict['img_dot_freq']
         self.img_bp_max_f     = args_dict['img_bp_max_f']
-        self.do_out_rvt       = not(args_dict['rvt_off'])
-        self.do_out_card      = not(args_dict['no_card_out'])
-        self.do_out_resp      = not(args_dict['no_resp_out'])
 
         #self.exit_on_rag -> NB: prob never try to fix
         self.exit_on_nan      = not(args_dict['do_fix_nan'])
@@ -632,15 +640,18 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         if not(self.have_label(label)) :
             return False
-
+        
+        # just shorter names
+        start_time    = self.start_time
         phys_end_time = self.data[label].end_time
+        mri_end_time  = self.vol_final_slice_time
 
-        print("++ Start time physio ({}) : {}".format(label, self.start_time))
+        print("++ Start time physio ({}) : {:0.6f}".format(label, start_time))
         print("++ End times of physio ({}) and MRI:".format(label))
-        print("   physio end time      : ", phys_end_time)
-        print("   final MRI slice time : ", self.vol_final_slice_time)
+        print("   physio end time      : {:0.6f}".format(phys_end_time))
+        print("   final MRI slice time : {:0.6f}".format(mri_end_time))
 
-        if phys_end_time < self.vol_final_slice_time :
+        if phys_end_time < mri_end_time :
             print("** -- Final duration problem ({}) -- ".format(label))
             return False
         else:

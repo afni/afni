@@ -256,3 +256,85 @@ def save_cmd_orig(retobj, verb=1):
         print("++ Saved copy of input cmd to file: {}".format(fname))
 
     return 0
+
+
+# -------------------------------------------------------------------------
+# dump/save peaks and troughs, if (politely) asked
+
+def save_peaks_troughs_file_1D( retobj, label=None, verb=0 ):
+    """Write out peak and/or trough indices to separate simple column
+text files.
+
+Parameters
+----------
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+label : str
+    (non-optional kwarg) label to determine which time series is
+    processed, and in which sub-object information is stored.  Allowed
+    labels are stored in the PO_all_label list.
+
+Returns
+-------
+is_bad : int
+    was processing OK (= 0) or not (= nonzero)
+
+    """
+
+    # if no data for this label, then we are done
+    if not(retobj.data[label]) :
+        return 0
+
+    # renamings for convenience: no changes expected
+    phobj  = retobj.data[label]
+    prefix = retobj.prefix
+    odir   = retobj.out_dir
+
+    # save peaks, if they exist
+    if retobj.save_proc_peaks and phobj.n_peaks :
+
+        # !!! later, check about overwriting!!!
+
+        # make the filename
+        fname = '_{}_{}_{}.1D'.format(label, 'peaks', '00')
+        if prefix :  fname = prefix + '_' + fname
+        if odir   :  fname = odir + '/' + fname
+
+        # make str: one column of all values
+        ostr = '\n'.join([str(val) for val in phobj.peaks])
+        ostr+= '\n'
+
+        # write the file
+        fff = open(fname, 'w')
+        fff.write(ostr)
+        fff.close()
+    
+        if verb :
+            print("++ Saved integer {} trough indices to file: {}"
+                  "".format(label, fname))
+
+    # save troughs, if they exist
+    if retobj.save_proc_troughs and phobj.n_troughs :
+
+        # !!! later, check about overwriting!!!
+
+        # make the filename
+        fname = '_{}_{}_{}.1D'.format(label, 'troughs', '00')
+        if prefix :  fname = prefix + '_' + fname
+        if odir   :  fname = odir + '/' + fname
+
+        # make str: one column of all values
+        ostr = '\n'.join([str(val) for val in phobj.troughs])
+        ostr+= '\n'
+
+        # write the file
+        fff = open(fname, 'w')
+        fff.write(ostr)
+        fff.close()
+    
+        if verb :
+            print("++ Saved integer {} trough indices to file: {}"
+                  "".format(label, fname))
+
+    return 0
