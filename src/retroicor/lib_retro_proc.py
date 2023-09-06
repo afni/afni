@@ -794,7 +794,7 @@ def getBCoeffs(data, phases):
 def determineRespiratoryPhases(resp_peaks, 
                     resp_troughs, phys_fs, rawData, 
                     show_graph = False, save_graph = True,
-                    font_size = 10):
+                    font_size = 10, use_global_r_max = False):
     """
     NAME
         determineRespiratoryPhases
@@ -827,11 +827,14 @@ def determineRespiratoryPhases(resp_peaks,
     
     NUM_BINS = 100
     
+    # Use global Rmax
+    if use_global_r_max: global_r_max = max(rawData[resp_peaks])
+    
     # Determine whether currently inspiration or expiration
-    if resp_peaks[0] < resp_troughs[0]:
-        polarity = 1
+    if resp_peaks[0] < resp_troughs[0]: # Expiration
+        polarity = 1 # Expiration
     else:
-        polarity = -1
+        polarity = -1 # Inspiration
         
     # Number of segments where each segment is either inspiration 
     # or expiration
@@ -857,8 +860,10 @@ def determineRespiratoryPhases(resp_peaks,
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
-    if polarity > 0: Rmax = max(sample)
-    else: Rmax = rawData[resp_peaks[0]] # Maximum value in segment
+    if use_global_r_max: Rmax = global_r_max  
+    else:
+        if polarity > 0: Rmax = max(sample)
+        else: Rmax = rawData[resp_peaks[0]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         end = round(sample[i]*NUM_BINS/Rmax) # Summation limit
         
@@ -899,7 +904,8 @@ def determineRespiratoryPhases(resp_peaks,
                                     bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
-        Rmax = max(sample) # Maximum value in segment
+        if use_global_r_max: Rmax = global_r_max
+        else: Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
             # Summation limit
             end = round(sample[i-start]*NUM_BINS/Rmax) 
@@ -933,9 +939,11 @@ def determineRespiratoryPhases(resp_peaks,
               for x in rawData[start:finish]]  
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
-    # Determine phase based on equation 3 is Glover paper
-    if polarity < 0: Rmax = max(sample)
-    else: Rmax = rawData[resp_peaks[-1]] # Maximum value in segment
+    # Determine phase based on equation 3 in Glover paper
+    if use_global_r_max: Rmax = global_r_max
+    else:
+        if polarity < 0: Rmax = max(sample) # Inspiration
+        else: Rmax = rawData[resp_peaks[-1]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         # Summation limit
         end = round(sample[i-start]*NUM_BINS/Rmax) 
@@ -1635,7 +1643,8 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                    rawData, 
                    show_graph = test_retro_obj.show_graph_level>0, 
                    save_graph = test_retro_obj.save_graph_level>0,
-                   font_size = test_retro_obj.font_size)
+                   font_size = test_retro_obj.font_size,
+                   use_global_r_max = test_retro_obj.use_global_r_max)
 
         # Trim phase data before start time
         if test_retro_obj.resp_data.start_time < 0:

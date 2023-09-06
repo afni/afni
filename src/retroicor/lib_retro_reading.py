@@ -150,6 +150,7 @@ regressors for MRI data.
         self.demo         = False      # bool, show demo?
         self.debug        = False      # bool, do debugging?
         self.do_out_rvt   = True       # bool, flag
+        self.use_global_r_max = False  # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
@@ -200,6 +201,7 @@ regressors for MRI data.
         self.demo        = args_dict['demo']
         self.debug       = args_dict['debug']
         self.do_out_rvt  = not(args_dict['no_rvt_out'])
+        self.use_global_r_max = args_dict['global_r_max']
         self.do_out_card = not(args_dict['no_card_out'])
         self.do_out_resp = not(args_dict['no_resp_out'])
         self.do_calc_ab  = args_dict['do_calc_ab']

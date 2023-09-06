@@ -68,6 +68,8 @@ DEF = {
     'no_rvt_out'        : False,     # (bool) do not output RVT info
     'no_card_out'       : False,     # (bool) do not output card info
     'no_resp_out'       : False,     # (bool) do not output resp info
+    'global_r_max'      : False,     # (bool) use global respiratory max when
+                                     # determining respiratory coefficients
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
     'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
@@ -995,6 +997,13 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''no_rvt_out'''
 hlp = '''Turn off output of RVT regressors
 '''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''global_r_max'''
+hlp = '''Use gloabl maximum and minimum respiratory values to determine respiratory coefficients. (def: {})
+'''.format(DEF_max_bpm_card)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
