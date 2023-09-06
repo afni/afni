@@ -297,7 +297,7 @@ is_bad : int
         # !!! later, check about overwriting!!!
 
         # make the filename
-        fname = '_{}_{}_{}.1D'.format(label, 'peaks', '00')
+        fname = '{}_{}_{}.1D'.format(label, 'peaks', '00')
         if prefix :  fname = prefix + '_' + fname
         if odir   :  fname = odir + '/' + fname
 
@@ -320,7 +320,7 @@ is_bad : int
         # !!! later, check about overwriting!!!
 
         # make the filename
-        fname = '_{}_{}_{}.1D'.format(label, 'troughs', '00')
+        fname = '{}_{}_{}.1D'.format(label, 'troughs', '00')
         if prefix :  fname = prefix + '_' + fname
         if odir   :  fname = odir + '/' + fname
 
