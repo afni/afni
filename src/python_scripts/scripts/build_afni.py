@@ -908,7 +908,7 @@ class MyInterface:
          if st: return st
 
       if self.sync_src_make:
-         MESGp("installing bulid results under %s" % abin)
+         MESGp("installing build results under %s" % abin)
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("binaries installed to %s" % abin)
          self.add_final_mesg("(installed from %s)" % self.sync_src_make)
