@@ -737,34 +737,38 @@ help_str_epi = '''
 
 Notes on usage and inputs ~1~
 
-* At least one of the following input option sets must be used:
-  - '-card_file ..'
-  - '-resp_file ..'
-  - '-card_file ..' and '-resp_file ..'
-  - '-phys_file ..' and '-phys_json'
+* Physio data input: 
+  At least one of the following input option sets must be used:
+    -card_file 
+    -resp_file 
+    -card_file  and  -resp_file 
+    -phys_file  and  -phys_json
 
-* It is preferred to use:
-  - '-dset_epi ..' 
+* FMRI information input:
+  It is preferable to use:
+    -dset_epi
   to provide EPI dset for which regressors will be made, to provide
   the volumetric information that would otherwise be provided with:
-  - '-dset_tr ..'   
-  - '-dset_nslice ..'  
-  - '-dset_nt ..'
+    -dset_tr
+    -dset_nslice
+    -dset_nt
   ... and the slice timing information
 
-* If '-dset_epi ..' is not used to provide the slice timing (and other
+* Slice timing input:
+  If '-dset_epi ..' is not used to provide the slice timing (and other
   useful) volumetric information, then exactly one of the following
   input option must be used:
-  - '-dset_slice_times ..'
-  - '-dset_slice_pattern ..'
+    -dset_slice_times
+    -dset_slice_pattern
 
-* Each of the following input options must be provided through some
-  combination of phys_json file, dset_epi file, or the command line opts
-  themselves:
-  - '-freq ..'        
-  - '-dset_tr ..'   
-  - '-dset_nslice ..'  
-  - '-dset_nt ..'
+* Physio information input: 
+  Each of the following input options must be provided through some
+  combination of phys_json file, dset_epi file, or the command line
+  opts themselves:
+    -freq
+    -dset_tr
+    -dset_nslice
+    -dset_nt
 
 * The following table shows which keys from 'phys_json' can be used to
   set (= replace) certain command line argument/option usage:
@@ -780,11 +784,11 @@ Notes on input peculiarities ~1~
 With Siemens physiological monitoring, values of 5000, 5003 and 6000 can be 
 used as trigger events to mark the beginning or end of something, like the 
 beginning of a TR.  The meanings, from the Siemens Matlab code are:
-     5000 = cardiac pulse on
-     5003 = cardiac pulse off
-     6000 = cardiac pulse off
-     6002 = phys recording on
-     6003 = phys recording off
+    5000 = cardiac pulse on
+    5003 = cardiac pulse off
+    6000 = cardiac pulse off
+    6002 = phys recording on
+    6003 = phys recording off
 
 It appears that the number is inserted into the series, in which case,
 5000 values could simply be removed rather than replaced by an
@@ -856,6 +860,7 @@ formatter = lambda prog: argp.HelpFormatter(prog,
 
 # get args
 parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
+                              usage=argp.SUPPRESS, # don't show ugly usage
                               add_help=False,
                               formatter_class=argp.RawDescriptionHelpFormatter,
                               #formatter_class=argp.RawTextHelpFormatter,
