@@ -66,14 +66,14 @@ DEF = {
     'card_file'         : None,      # (str) fname for card data
     'phys_file'         : None,      # (str) fname of physio input data
     'phys_json'         : None,      # (str) fname of json file
-    'slice_times'       : None,      # (list) slice times
-    'slice_pattern'     : None,      # (str) code or file for slice timing
-    'freq'              : None,      # (float) freq, in Hz
-    'num_slices'        : None,      # (int) number of MRI vol slices
-    'volume_tr'         : None,      # (float) TR of MRI
-    'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
-    'start_time'        : None,      # (float) leave none, bc can be set in json
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
+    'dset_tr'           : None,      # (float) TR of MRI
+    'dset_nslice'       : None,      # (int) number of MRI vol slices
+    'dset_nt'           : None,      # (int) Ntpts (e.g., len MRI time series)
+    'dset_slice_times'  : None,      # (list) FMRI dset slice times
+    'dset_slice_pattern' : None,     # (str) code or file for slice timing
+    'freq'              : None,      # (float) freq, in Hz
+    'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
     'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
@@ -109,11 +109,11 @@ DEF = {
 # separately so we peel them off when parsing initial opts
 vol_key_list = [
     'dset_epi',
-    'volume_tr',
-    'num_slices',
-    'num_time_points',
-    'slice_times',
-    'slice_pattern',
+    'dset_tr',
+    'dset_nslice',
+    'dset_nt',
+    'dset_slice_times',
+    'dset_slice_pattern',
 ]
 
 # ---- sublists to check for properties ----
@@ -138,14 +138,14 @@ for ii in range(len(ALL_AJ_MATCH)):
 # for dset_epi matching; following style of aj_match, but key names
 # don't differ and some things are integer.
 ALL_EPIM_MATCH = [
-    ['volume_tr',  EPS_TH],
-    ['num_time_points', EPS_TH],
-    ['num_slices', EPS_TH],
+    ['dset_tr',  EPS_TH],
+    ['dset_nt', EPS_TH],
+    ['dset_nslice', EPS_TH],
 ]
 # extension of the above if the tested object is a list; the items in
 # the list will be looped over and compared at the given eps
 ALL_EPIM_MATCH_LISTS = [
-    ['slice_times', EPS_TH ],
+    ['dset_slice_times', EPS_TH ],
 ]
 
 EPIM_str = "    {:15s}   {:9s}\n".format('ITEM', 'EPS VAL')
@@ -161,9 +161,9 @@ for ii in range(len(ALL_EPIM_MATCH_LISTS)):
 # quantities that must be strictly > 0
 all_quant_gt_zero = [
     'freq',
-    'num_slices',
-    'num_time_pts',
-    'volume_tr',
+    'dset_nslice',
+    'dset_nt',
+    'dset_tr',
     'img_line_time',
     'img_fontsize',
     'img_dot_freq',
@@ -445,7 +445,7 @@ fname : str
 
 Returns
 -------
-slice_times : list (of floats)
+all_sli : list (of floats)
     a list of floats, the slice times
 
     """
@@ -468,7 +468,7 @@ slice_times : list (of floats)
 
     # get list of floats, and length of each row when reading
     N = 0
-    all_num = []
+    all_sli = []
     all_len = []
     for ii in range(len(X)):
         row = X[ii]
@@ -476,8 +476,8 @@ slice_times : list (of floats)
         if rlist :
             N+= 1
             try:
-                # use extend so all_num stays 1D
-                all_num.extend([float(rr) for rr in rlist])
+                # use extend so all_sli stays 1D
+                all_sli.extend([float(rr) for rr in rlist])
                 all_len.append(len(rlist))
             except:
                 print("** ERROR: badness in float conversion within "
@@ -496,13 +496,13 @@ slice_times : list (of floats)
               "".format(fname, N, M))
 
     if not(N==1 or M==1) :
-        print("** ERROR: slice_pattern file {} is not Nx1 or 1xN.\n"
+        print("** ERROR: dset_slice_pattern file {} is not Nx1 or 1xN.\n"
               "   Its dims of data are: nrow={},  max_ncol={}"
               .format(fname, N, M))
         return BAD_RETURN
 
     # finally, after more work than we thought...
-    return all_num
+    return all_sli
 
 def read_json_to_dict(fname):
     """Read in a text file fname that is supposed to be a JSON file and
@@ -567,9 +567,9 @@ epi_dict : dict
         nv = int(lll[3])
         tr = float(lll[4])
         
-        epi_dict['num_slices']   = int(lll[2])
-        epi_dict['num_time_pts'] = int(lll[3])
-        epi_dict['volume_tr']    = float(lll[4])
+        epi_dict['dset_nslice']  = int(lll[2])
+        epi_dict['dset_nt']      = int(lll[3])
+        epi_dict['dset_tr']      = float(lll[4])
     except:
         print("+* WARN: problem extracting info from dset_epi")
         return BAD_RETURN 
@@ -582,12 +582,12 @@ epi_dict : dict
     
     nslice = len(lll)
     if nk != nslice :
-        print("** ERROR: number of slice_times in header ({}) "
+        print("** ERROR: number of dset_slice_times in header ({}) "
               "does not match slice count in k-direction ({})"
               "".format(nslice, nk))
         sys.exit(10)
 
-    epi_dict['slice_times'] = copy.deepcopy(lll)
+    epi_dict['dset_slice_times'] = copy.deepcopy(lll)
 
     return epi_dict
 
@@ -746,24 +746,24 @@ Notes on usage and inputs ~1~
   - '-dset_epi ..' 
   to provide EPI dset for which regressors will be made, to provide
   the volumetric information that would otherwise be provided with:
-  - '-volume_tr ..'   
-  - '-num_slices ..'  
-  - '-num_time_pts ..'
+  - '-dset_tr ..'   
+  - '-dset_nslice ..'  
+  - '-dset_nt ..'
   ... and the slice timing information
 
 * If '-dset_epi ..' is not used to provide the slice timing (and other
   useful) volumetric information, then exactly one of the following
   input option must be used:
-  - '-slice_times ..'
-  - '-slice_patterns ..'
+  - '-dset_slice_times ..'
+  - '-dset_slice_pattern ..'
 
 * Each of the following input options must be provided through some
   combination of phys_json file, dset_epi file, or the command line opts
   themselves:
   - '-freq ..'        
-  - '-volume_tr ..'   
-  - '-num_slices ..'  
-  - '-num_time_pts ..'
+  - '-dset_tr ..'   
+  - '-dset_nslice ..'  
+  - '-dset_nt ..'
 
 * The following table shows which keys from 'phys_json' can be used to
   set (= replace) certain command line argument/option usage:
@@ -796,43 +796,43 @@ Examples ~1~
 
   Example 1
     
-    physio_calc.py                                                           \\
-        -card_file       physiopy/test000c                                   \\
-        -freq            400                                                 \\
-        -do_fix_nan                                                          \\
-        -dset_epi        DSET_MRI                                            \\
-        -slice_pattern   alt+z                                               \\
-        -extra_fix_list  5000                                                \\
-        -out_dir         OUT_DIR                                             \\
-        -prefix          PREFIX
+    physio_calc.py                                                           \
+        -card_file           physiopy/test000c                               \
+        -freq                400                                             \
+        -dset_epi            DSET_MRI                                        \
+        -dset_slice_pattern  alt+z                                           \
+        -extra_fix_list      5000                                            \
+        -do_fix_nan                                                          \
+        -out_dir             OUT_DIR                                         \
+        -prefix              PREFIX
 
   Example 2
     
-    physio_calc.py                                                           \\
-        -phys_file       physiopy/test003c.tsv.gz                            \\
-        -phys_json       physiopy/test003c.json                              \\
-        -num_slices      34                                                  \\
-        -volume_tr       2.2                                                 \\
-        -do_fix_nan                                                          \\
-        -num_time_pts    34                                                  \\
-        -slice_pattern   alt+z                                               \\
-        -extra_fix_list  5000                                                \\
-        -out_dir         OUT_DIR                                             \\
-        -prefix          PREFIX
+    physio_calc.py                                                           \
+        -phys_file           physiopy/test003c.tsv.gz                        \
+        -phys_json           physiopy/test003c.json                          \
+        -dset_tr             2.2                                             \
+        -dset_nt             34                                              \
+        -dset_nslice         34                                              \
+        -dset_slice_pattern  alt+z                                           \
+        -do_fix_nan                                                          \
+        -extra_fix_list      5000                                            \
+        -out_dir             OUT_DIR                                         \
+        -prefix              PREFIX
 
   Example 3 
 
-    physio_calc.py                                                           \\
-        -card_file      sub-005_ses-01_task-rest_run-1_physio-ECG.txt        \\
-        -resp_file      sub-005_ses-01_task-rest_run-1_physio-Resp.txt       \\
-        -num_slices     33                                                   \\
-        -volume_tr      2.2                                                  \\
-        -freq           50                                                   \\
-        -do_fix_nan                                                          \\
-        -num_time_pts   219                                                  \\
-        -slice_pattern  alt+z                                                \\
-        -out_dir        OUT_DIR                                              \\
-        -prefix         PREFIX
+    physio_calc.py                                                           \
+        -card_file           sub-005_ses-01_task-rest_run-1_physio-ECG.txt   \
+        -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \
+        -freq                50                                              \
+        -dset_tr             2.2                                             \
+        -dset_nt             219                                             \
+        -dset_nslice         33                                              \
+        -dset_slice_pattern  alt+z                                           \
+        -do_fix_nan                                                          \
+        -out_dir             OUT_DIR                                         \
+        -prefix              PREFIX
     
 {ddashline}
 written by: Peter Lauren, Paul Taylor, Richard Reynolds and 
@@ -914,46 +914,49 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
-opt = '''num_slices'''
-hlp = '''Integer number of slices in MRI volume'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
-opt = '''volume_tr'''
-hlp = '''MRI volume's repetition time (TR), which defines the time interval
-between consecutive volumes (in s)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''num_time_pts'''
-hlp = '''Integer number of time points to have in the output (should likely
-match MRI time series length)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
 opt = '''dset_epi'''
 hlp = '''Accompanying EPI/FMRI dset to which the physio regressors will be
-applied, for obtaining the volumetric parameters (namely, volume_tr,
-num_slices, num_time_pts)'''
+applied, for obtaining the volumetric parameters (namely, dset_tr,
+dset_nslice, dset_nt)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
-opt = '''slice_times'''
+opt = '''dset_tr'''
+hlp = '''FMRI dataset's repetition time (TR), which defines the time
+interval between consecutive volumes (in s)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
+opt = '''dset_nt'''
+hlp = '''Integer number of time points to have in the output (should likely
+match FMRI dataset's number of volumes)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''dset_nslice'''
+hlp = '''Integer number of slices in FMRI dataset'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
+
+opt = '''dset_slice_times'''
 hlp = '''Slice time values (space separated list of numbers)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar='SLI_TIMES',
                     nargs='+', type=str) # parse later
 
-opt = '''slice_pattern'''
+opt = '''dset_slice_pattern'''
 hlp = '''Slice timing pattern code (def: {dopt}). Use
-'-disp_all_slice_patterns' to see all allowed patterns.'''.format(dopt=DEF[opt])
+'-disp_all_slice_patterns' to see all allowed patterns. Alternatively,
+one can enter the filename of a file containing a single column of
+slice times.'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs='+', type=str)
+                    nargs=1, type=str)
 
 opt = '''do_fix_nan'''
 hlp = '''Fix (= replace with interpolation) any NaN values in the physio
@@ -1213,7 +1216,7 @@ args_dict2 : dict
         sys.exit(4)
 
     # for any filename that was provided, check if it actually exists
-    # (slice_pattern possible filename checked below)
+    # (dset_slice_pattern possible filename checked below)
     all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json',
                  'dset_epi' ]
     for fopt in all_fopt:
@@ -1240,16 +1243,16 @@ args_dict2 : dict
             sys.exit(5)
 
      # different ways to provide volumetric EPI info, and ONE must be used
-    if not( args_dict2['volume_tr'] ) :
-        print("** ERROR: must provide '-volume_tr ..' information")
+    if not( args_dict2['dset_tr'] ) :
+        print("** ERROR: must provide '-dset_tr ..' information")
         sys.exit(4)
 
-    if not(args_dict2['num_slices']) :
-        print("** ERROR: must provide '-num_slices ..' information")
+    if not(args_dict2['dset_nslice']) :
+        print("** ERROR: must provide '-dset_nslice ..' information")
         sys.exit(4)
 
-    if not(args_dict2['num_time_pts']) :
-        print("** ERROR: must provide '-num_time_pts ..' information")
+    if not(args_dict2['dset_nt']) :
+        print("** ERROR: must provide '-dset_nt ..' information")
         sys.exit(4)
 
     if not(args_dict2['freq']) :
@@ -1264,14 +1267,9 @@ args_dict2 : dict
         print("** ERROR: must provide '-out_dir ..' information")
         sys.exit(4)
 
-    if not(args_dict2['slice_times']) :
-        print("** ERROR: must provide slice_time info in some way")
+    if not(args_dict2['dset_slice_times']) :
+        print("** ERROR: must provide slice timing info in some way")
         sys.exit(4)
-
-    #if args_dict2['slice_times'] and args_dict2['slice_pattern'] :
-    #    print("** ERROR: must use only one of either slice_times or "
-    #          "slice_pattern")
-    #    sys.exit(4)
 
     return args_dict2
 
@@ -1327,82 +1325,88 @@ vol_dict2 : dict
     # next/finally, check about slice timing specifically, which might
     # use existing scalar values (from dset or cmd line, which would
     # be in vol_dict2 now) 
-    if vol_dict['slice_times'] and vol_dict['slice_pattern'] :
-        print("** ERROR: must use only one of either slice_times or "
-              "slice_pattern")
+    if vol_dict['dset_slice_times'] and vol_dict['dset_slice_pattern'] :
+        print("** ERROR: must use only one of either dset_slice_times or "
+              "dset_slice_pattern")
         sys.exit(4)
 
-    if vol_dict['slice_times'] :
+    if vol_dict['dset_slice_times'] :
         # the input cmd line string has not been split yet; interpret
         # this single string to be a list of floats, and replace it in
         # the dict
 
-        L = vol_dict['slice_times'].split()
+        L = vol_dict['dset_slice_times'].split()
         try:
             # replace single string of slice times with list of
             # numerical values
-            slice_times = [float(ll) for ll in L]
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+            dset_slice_times = [float(ll) for ll in L]
+            vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         except:
-            print("** ERROR interpreting slice times from cmd line")
+            print("** ERROR interpreting dset_slice_times from cmd line")
             sys.exit(1)
-    elif vol_dict['slice_pattern'] :
+    elif vol_dict['dset_slice_pattern'] :
         # if pattern, check if it is allowed; elif it is a file, check
         # if it exists *and* use it to fill in
-        # vol_dict['slice_times']; else, whine.  Use any supplementary
+        # vol_dict['dset_slice_times']; else, whine.  Use any supplementary
         # info from the output dict, but edit vol_dict slice times in
         # place
 
-        pat = vol_dict['slice_pattern']
+        pat = vol_dict['dset_slice_pattern']
         if pat in UTIL.g_valid_slice_patterns :
             print("++ Slice pattern from cmd line: '{}'".format(pat))
             # check with vol info in vol_dict2 (not in vol_dict) bc
             # vol_dict2 should be the merged superset of info
-            slice_times = UTIL.slice_pattern_to_timing(pat, 
-                                                       vol_dict2['num_slices'],
-                                                       vol_dict2['volume_tr'])
-            if not(slice_times) :
+            dset_slice_times = UTIL.slice_pattern_to_timing(pat, 
+                                                       vol_dict2['dset_nslice'],
+                                                       vol_dict2['dset_tr'])
+            if not(dset_slice_times) :
                 print("** ERROR: could not convert slice pattern to timing")
                 sys.exit(8)
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+            vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         elif os.path.isfile(pat) :
-            print("++ Found slice_pattern '{}' exists as a file".format(pat))
-            slice_times = read_slice_pattern_file(pat, verb=verb)
-            if not(slice_times) :
+            print("++ Found dset_slice_pattern '{}' exists as a file"
+                  "".format(pat))
+            dset_slice_times = read_slice_pattern_file(pat, verb=verb)
+            if not(dset_slice_times) :
                 print("** ERROR: translate slice pattern file to timing")
                 sys.exit(7)
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
+            vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         else:
-            print("** ERROR: could not match provided slice_pattern '{}' as "
-                  "either a recognized pattern or file".format(pat))
+            print("** ERROR: could not match provided dset_slice_pattern "
+                  "'{}' as either a recognized pattern or file".format(pat))
             sys.exit(3)
 
     # ... and now that we might have explicit slice times in vol_dict,
-    # reconcile any vol['slice_times'] with vol_dict2['slice_times']
-    if 'slice_times' in vol_dict and vol_dict['slice_times'] != None :
-        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
+    # reconcile any vol['dset_slice_times'] with vol_dict2['dset_slice_times']
+    if 'dset_slice_times' in vol_dict and \
+       vol_dict['dset_slice_times'] != None :
+        if 'dset_slice_times' in vol_dict2 and \
+           vol_dict2['dset_slice_times'] != None :
             # try to reconcile
-            ndiff = compare_list_items( vol_dict['slice_times'],
-                                        vol_dict2['slice_times'],
+            ndiff = compare_list_items( vol_dict['dset_slice_times'],
+                                        vol_dict2['dset_slice_times'],
                                         eps=EPS_TH )
             if ndiff :
                 print("** ERROR: inconsistent slice times entered")
                 sys.exit(5)
         else:
             # nothing to reconcile, just copy over
-            vol_dict2['slice_times'] = copy.deepcopy(vol_dict['slice_times'])
+            vol_dict2['dset_slice_times'] = \
+                copy.deepcopy(vol_dict['dset_slice_times'])
     else:
         # I believe these cases hold
-        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
+        if 'dset_slice_times' in vol_dict2 and \
+           vol_dict2['dset_slice_times'] != None :
             pass
         else:
             # this is a boring one, which will probably lead to an
             # error exit in a downstream check
-            vol_dict2['slice_times'] = None
+            vol_dict2['dset_slice_times'] = None
 
     # copy this over just for informational purposes
-    if 'slice_pattern' in vol_dict :
-        vol_dict2['slice_pattern'] = copy.deepcopy(vol_dict['slice_pattern'])
+    if 'dset_slice_pattern' in vol_dict :
+        vol_dict2['dset_slice_pattern'] = \
+            copy.deepcopy(vol_dict['dset_slice_pattern'])
 
     return vol_dict2
 

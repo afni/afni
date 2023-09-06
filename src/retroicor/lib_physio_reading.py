@@ -313,7 +313,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.vol_slice_times = []      # list of floats for slice timing
         self.vol_slice_pat   = None    # str, name of slice pat (for ref)
         self.vol_tr          = 0.0     # float, TR of MRI EPI
-        self.vol_nv          = 0       # int, Nvol (num_time_pts) MRI EPI 
+        self.vol_nv          = 0       # int, Nvol (dset_nt) FMRI EPI 
 
         # I/O info
         self.verb         = verb       # int, verbosity level
@@ -360,10 +360,10 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         self.verb             = args_dict['verb']
 
-        self.vol_slice_times  = copy.deepcopy(args_dict['slice_times'])
-        self.vol_slice_pat    = args_dict['slice_pattern']
-        self.vol_tr           = args_dict['volume_tr']
-        self.vol_nv           = args_dict['num_time_pts']
+        self.vol_slice_times  = copy.deepcopy(args_dict['dset_slice_times'])
+        self.vol_slice_pat    = args_dict['dset_slice_pattern']
+        self.vol_tr           = args_dict['dset_tr']
+        self.vol_nv           = args_dict['dset_nt']
 
         self.start_time       = args_dict['start_time']
 
