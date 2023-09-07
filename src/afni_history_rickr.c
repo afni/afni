@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "change afni/build to afni_build in OS_notes.macos_12_x86_64_b_user.txt",
+   "Thanks to spartaaa-git@github.com for pointing that out."
+ } ,
+
  {  1, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_slice_timing_gentle",
    "Also, use mean timing diff rather than median."

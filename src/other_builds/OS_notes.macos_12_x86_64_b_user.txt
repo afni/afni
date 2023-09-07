@@ -29,7 +29,7 @@ source ~/.zshrc
 
 build_afni.py -build_root $HOME/afni_build -package macos_12_x86_64
   # --- OR, for ARM:
-build_afni.py -build_root $HOME/afni/build -package macos_13_ARM_clang
+build_afni.py -build_root $HOME/afni_build -package macos_13_ARM_clang
 
 # we already have atlases, and don't need ~/afni_build/afni_atlases_dist
 rsync -av $HOME/afni_build/build_src/macos_12_x86_64/ ~/abin/
