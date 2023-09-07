@@ -323,16 +323,9 @@ def MESGi(mstr, disp=1):
   if g_mesg_log is not None:
      g_mesg_log.append(pmesg)
 
-def MESG_write_log(fname, verb=1):
+def MESG_write_log(fname):
    """write the stored message log to the given text file
    """
-   if verb:
-      ind = '       '
-      MESG(ind+"------------------------------")
-      MESG(ind+"screen text history is in:")
-      MESG(ind+"   %s" % fname)
-      MESG("")
-
    if g_mesg_log is not None:
       return UTIL.write_text_to_file(fname, '\n'.join(g_mesg_log) + '\n')
 
@@ -703,16 +696,25 @@ class MyInterface:
       # save history, either way
       self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
+      # if logging, state where
+      # (to store in log and to have on screen before final messages)
+      mesg_hist_file = '%s/%s' % (self.do_root.abspath, self.mesg_file)
+      if self.verb and g_mesg_log is not None:
+         MESG("")
+         MESGp("screen text history is in:")
+         MESGi("   %s" % mesg_hist_file)
+         MESG("")
+
       # show final messages (history and logging should come after)
       if self.verb:
          self.show_final_messages()
 
       # also save the message log text (screen text)
-      MESG_write_log('%s/%s' % (self.do_root.abspath, self.mesg_file))
+      MESG_write_log(mesg_hist_file)
 
       return rv
 
-   def add_final_mesg(self, mesg, ind='    '):
+   def add_final_mesg(self, mesg, ind=''):
       """append the (indented) message to self.final_mesg
          (for later display and possible logging)
       """
@@ -724,8 +726,11 @@ class MyInterface:
          return 0
 
       MESG("")
+      MESG('='*30 + " overview " + '='*30)
+      MESG("")
       for mesg in self.final_mesg:
-         MESGi(mesg)
+         MESG(mesg)
+      MESG("")
 
       return 0
 
@@ -788,10 +793,9 @@ class MyInterface:
              rv, ot = self.run_cmd('mv', [hfile, newf], pc=1)
           UTIL.write_text_to_file(hfile, hstr)
 
-          self.add_final_mesg("")
-          self.add_final_mesg("------------------------------")
-          self.add_final_mesg("shell/system command history is in:")
-          self.add_final_mesg("   %s/%s" % (sdir, hfile))
+          MESG("")
+          MESGm("shell/system command history is in:")
+          MESGi("   %s/%s" % (sdir, hfile))
 
           rv, ot = self.run_cmd('cd', cwd, pc=1)
           if rv: return rv
@@ -901,8 +905,8 @@ class MyInterface:
       if self.sync_src_atlas:
          MESGp("installing atlases under %s" % abin)
          self.add_final_mesg("------------------------------")
-         self.add_final_mesg("atlases installed to %s" % abin)
-         self.add_final_mesg("(installed from %s)" % self.sync_src_atlas)
+         self.add_final_mesg("atlases installed to   %s" % abin)
+         self.add_final_mesg("        installed from %s" % self.sync_src_atlas)
          st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
                       % (self.sync_src_atlas, abin, self.rsync_file)) 
          if st: return st
@@ -910,8 +914,8 @@ class MyInterface:
       if self.sync_src_make:
          MESGp("installing build results under %s" % abin)
          self.add_final_mesg("------------------------------")
-         self.add_final_mesg("binaries installed to %s" % abin)
-         self.add_final_mesg("(installed from %s)" % self.sync_src_make)
+         self.add_final_mesg("binaries installed   to %s" % abin)
+         self.add_final_mesg("         installed from %s" % self.sync_src_make)
          st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
                       % (self.sync_src_make, abin, self.rsync_file)) 
          if st: return st
@@ -1318,6 +1322,9 @@ class MyInterface:
          if st: return st
          st, ot = self.run_cmd('rm', tgzfile)
          if st: return st
+
+      # and note atlas path for possible install or rsync suggestion
+      self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
 
       return 0
 
