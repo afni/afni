@@ -886,6 +886,13 @@ class MyInterface:
 
       # ------------------------------------------------------------
       # possibly run backup
+
+      # if not syncing, we should not backup
+      if not self.sync_src_atlas or not self.sync_src_make:
+         if self.run_backup:
+            MESGp("skipping backup since no full sync to abin")
+            self.run_backup = 0
+
       if not self.run_backup:
          MESGm("skipping abin backup")
       else:
@@ -894,6 +901,9 @@ class MyInterface:
          if st: return st
          st, ot = self.run_cmd('mv %s/* %s/' % (abin, self.backup_abin))
          if st: return st
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("to revert from backup, run:")
+         self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
 
       # ------------------------------------------------------------
       # now actually sync to the destination
