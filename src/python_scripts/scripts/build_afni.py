@@ -293,10 +293,11 @@ g_history = """
    0.2  Mar  2, 2023 - rename -root_dir to -build_root (as ordered by PT)
    0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
    0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
+   0.5  Sep  8, 2023 - back up and install the build results
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.4, August 28, 2023" % g_prog
+g_version = "%s, version 0.5, September 8, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
