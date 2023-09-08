@@ -138,6 +138,28 @@ other options:
 
           If this directory does not exist, it will be created upon install.
 
+      -backup_method BACK_METH  : specify how to perform the backup
+
+          default -backup_method rsync
+          e.g.    -backup_method mv
+
+          This option is used to specify how a backup of ABIN is made.  It
+          should be one of:
+
+                mv      : apply the Unix 'mv' command
+
+                          Benefit: ABIN is really cleaned, and will not contain
+                          any removed files.
+
+                rsync   : apply the Unix 'rsync' command
+
+                          Benefit: ABIN is preserved, even if the program is
+                          terminated while making the backup or running the
+                          install.  Termination might lead to a mix of new and
+                          old files, of course.
+
+          See also -do_backup.
+
       -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
@@ -160,6 +182,11 @@ other options:
           AFNI updates that remove files or programs will indeed remove them.
 
           If a full install will not be done, a backup will not be made.
+
+          One may use -backup_method to control the command used to make the
+          backup.
+
+          See also -backup_method.
 
       -do_install yes/no       : specify whether to install compiled binaries
 
@@ -453,6 +480,7 @@ class MyInterface:
       self.backup_abin     = ''     # directory of any abin backup
       self.backup_prefix   = 'backup.abin.' # prefix for any abin backup
 
+      self.backup_method   = 'rsync' # method for backup: mv or rsync
       self.cmd_history     = []     # shell/system command history
       self.final_mesg      = []     # final messages to show to user
       self.hist_file       = 'hist_commands.txt' # final history file
@@ -525,6 +553,9 @@ class MyInterface:
                       helpstr='the binary package to build')
 
       # general options
+      self.valid_opts.add_opt('-backup_method', 1, [],
+                      acplist=['mv','rsync'],
+                      helpstr='specify method of backup (def=rsync)')
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
       self.valid_opts.add_opt('-do_backup', 1, [],
@@ -616,6 +647,11 @@ class MyInterface:
             self.do_root = dirobj('build_root', val)
 
          # general options
+
+         elif opt.name == '-backup_method':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.backup_method = val
 
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
@@ -983,10 +1019,21 @@ class MyInterface:
          MESGm("skipping abin backup")
       else:
          MESGp("backing up %s to %s" % (abin, self.backup_abin))
+         MESGi("(backup via %s)" % self.backup_method)
+
+         # create backup directory
          st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
          if st: return st
-         st, ot = self.run_cmd('mv %s/* %s/' % (abin, self.backup_abin))
+
+         # and actually do the backup
+         # (use backup method: mv or rsync)
+         if self.backup_method == 'mv':
+            cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
+         else:
+            cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
          if st: return st
+
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("to revert from backup, run:")
          self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))

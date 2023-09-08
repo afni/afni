@@ -57,7 +57,7 @@ afni_history_struct rickr_history[] = {
    "new operation: by default, back up and install the build results",
    "This is a change in behavior.  Upon a successful build, default is now\n"
    "back up the ABIN and install new binaries and atlases.\n"
-   "Add options -abin, -do_backup, -do_install."
+   "Add options -abin, -do_backup, -do_install, -backup_method."
  } ,
 
  {  7, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
