@@ -127,6 +127,15 @@ required:
 
 other options:
 
+      -abin ABIN                : specify AFNI binary install directory
+
+          default -abin <directory containing afni_proc.py>
+          e.g.    -abin $HOME/my_new_abin
+
+          When this option is given, any installation of the compiled binaries
+          will be placed into this ABIN directory.  If this option is not
+          given, it will be determined by `which afni_proc.py`.
+
       -clean_root yes/no        : specify whether to clean up the build_root
 
           default -clean_root yes
@@ -134,6 +143,30 @@ other options:
 
           If 'no' is specified, the git directory will not be updated and the
           build_src directory will not be remade.
+
+      -do_backup yes/no         : specify whether to back up abin before install
+
+          default -do_backup yes
+          e.g.    -do_backup no
+
+          By default, if AFNI binaries and atlases will be installed, the
+          destination AFNI binary directory (from -abin or the $PATH) will
+          be backed up first.
+
+          By default, a backup will be made whenever a full install is done
+          (of both binaries and atlases).
+
+      -do_install yes/no       : specify whether to install compiled binaries
+
+          default -do_install yes
+          e.g.    -do_install no
+
+          By default, compiled AFNI binaries and atlases will be installed
+          into the ABIN directory given by -abin (or else from the $PATH).
+          
+          If 'no' is specified, no installation will take place (and no backup
+          will be made).
+
 
       -git_branch BRANCH        : specify a branch to checkout in git
 
@@ -487,6 +520,12 @@ class MyInterface:
       # general options
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
+      self.valid_opts.add_opt('-do_backup', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='back up abin before installing into it (def=y)')
+      self.valid_opts.add_opt('-do_install', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='install build results into abin (def=y)')
       self.valid_opts.add_opt('-git_branch', 1, [],
                       helpstr='the git branch to checkout (def=master)')
       self.valid_opts.add_opt('-git_tag', 1, [],
@@ -563,8 +602,6 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.do_abin = dirobj('abin_dir', val)
-            MESGe("-abin not yet implemented")
-            return -1
 
          elif opt.name == '-build_root':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -580,6 +617,18 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.git_update = 0
+
+         elif opt.name == '-do_backup':
+            if OL.opt_is_no(opt):
+               self.run_backup = 0
+            else:
+               self.run_backup = 1
+
+         elif opt.name == '-do_install':
+            if OL.opt_is_no(opt):
+               self.run_install = 0
+            else:
+               self.run_install = 1
 
          elif opt.name == '-git_branch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -710,6 +759,7 @@ class MyInterface:
          self.show_final_messages()
 
       # also save the message log text (screen text)
+      self.make_backup_file(mesg_hist_file)
       MESG_write_log(mesg_hist_file)
 
       return rv
@@ -771,6 +821,28 @@ class MyInterface:
       if save:
          self.write_history_file(hstr, sdir)
 
+   def make_backup_file(self, fname, verb=0):
+      """back up a text file, using self.backup_prefix
+         return 0 on success, 1 on error
+      """
+
+      if not os.path.exists(fname):
+         return 0
+
+      parts = os.path.split(fname)
+      if len(parts) != 2:
+         MESGe("cannot split %s to make backup for" % fname)
+         return 1
+
+      # new file has the prefix inserted
+      newf = os.path.join(parts[0], self.pold + parts[1])
+      rv, ot = self.run_cmd('mv', [fname, newf], pc=1)
+
+      if verb:
+         MESGm("moving old %s to %s" % (fname, newf))
+
+      return 0
+
    def write_history_file(self, hstr, sdir):
       """cd sdir ; write ; cd -
          return 0 on success, 1 on error
@@ -787,10 +859,10 @@ class MyInterface:
           rv, ot = self.run_cmd('cd', sdir, pc=1)
           if rv: return rv
 
-          # possibly make a backue
-          if os.path.exists(hfile):
-             newf = '%s%s' % (self.pold, hfile)
-             rv, ot = self.run_cmd('mv', [hfile, newf], pc=1)
+          # possibly make a backup
+          self.make_backup_file(hfile)
+
+          # and write the actual text
           UTIL.write_text_to_file(hfile, hstr)
 
           MESG("")
@@ -893,6 +965,13 @@ class MyInterface:
             MESGp("skipping backup since no full sync to abin")
             self.run_backup = 0
 
+      # if abin does not exist, create it (and cancel any backup)
+      if not os.path.exists(abin):
+         MESGp("creating install abin: %s" % abin)
+         st, ot = self.run_cmd('mkdir', abin, pc=1)
+         if st: return st
+         self.run_backup = 0
+
       if not self.run_backup:
          MESGm("skipping abin backup")
       else:
@@ -909,6 +988,8 @@ class MyInterface:
       # now actually sync to the destination
 
       if self.sync_src_atlas or self.sync_src_make:
+         # possibly make a backup
+         self.make_backup_file(self.rsync_file, verb=self.verb)
          st, ot = self.run_cmd('echo "" > %s' % self.rsync_file)
          if st: return st
          
@@ -924,7 +1005,7 @@ class MyInterface:
       if self.sync_src_make:
          MESGp("installing build results under %s" % abin)
          self.add_final_mesg("------------------------------")
-         self.add_final_mesg("binaries installed   to %s" % abin)
+         self.add_final_mesg("binaries installed to   %s" % abin)
          self.add_final_mesg("         installed from %s" % self.sync_src_make)
          st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
                       % (self.sync_src_make, abin, self.rsync_file)) 
