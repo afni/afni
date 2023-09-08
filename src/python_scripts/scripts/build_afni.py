@@ -123,7 +123,7 @@ terminal options: ~1~
 
 required:
 
-      -build_root               : root directory to use for git and building
+      -build_root BUILD_ROOT    : root directory to use for git and building
 
 other options:
 
@@ -135,6 +135,8 @@ other options:
           When this option is given, any installation of the compiled binaries
           will be placed into this ABIN directory.  If this option is not
           given, it will be determined by `which afni_proc.py`.
+
+          If this directory does not exist, it will be created upon install.
 
       -clean_root yes/no        : specify whether to clean up the build_root
 
@@ -149,12 +151,15 @@ other options:
           default -do_backup yes
           e.g.    -do_backup no
 
-          By default, if AFNI binaries and atlases will be installed, the
-          destination AFNI binary directory (from -abin or the $PATH) will
-          be backed up first.
+          By default backup will be made whenever a full installation is done
+          (of both AFNI binaries and atlases).  The backup (of ABIN, specified
+          by -abin) will be placed under the BUILD_ROOT directory (specified
+          by -build_root).
 
-          By default, a backup will be made whenever a full install is done
-          (of both binaries and atlases).
+          The backup is made by moving the full contents of the abin, so that
+          AFNI updates that remove files or programs will indeed remove them.
+
+          If a full install will not be done, a backup will not be made.
 
       -do_install yes/no       : specify whether to install compiled binaries
 
@@ -167,6 +172,7 @@ other options:
           If 'no' is specified, no installation will take place (and no backup
           will be made).
 
+          See also -abin, -do_backup.
 
       -git_branch BRANCH        : specify a branch to checkout in git
 
@@ -446,8 +452,8 @@ class MyInterface:
       self.backup_abin     = ''     # directory of any abin backup
       self.backup_prefix   = 'backup.abin.' # prefix for any abin backup
 
+      self.cmd_history     = []     # shell/system command history
       self.final_mesg      = []     # final messages to show to user
-      self.history         = []     # shell/system command history
       self.hist_file       = 'hist_commands.txt' # final history file
       self.mesg_file       = 'hist_messages.txt' # message history file
       self.rsync_file      = 'hist_rsync.txt' # rsync history file
@@ -742,8 +748,8 @@ class MyInterface:
       # histories and logs
       # (first history, then final messages, then MESG_write_log)
 
-      # save history, either way
-      self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
+      # save command history, either way
+      self.show_cmd_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
 
       # if logging, state where
       # (to store in log and to have on screen before final messages)
@@ -800,17 +806,17 @@ class MyInterface:
          return 1
       return 0
 
-   def show_history(self, disp=1, save=0, sdir=''):
-      """display or save the history, possibly in a given directory
+   def show_cmd_history(self, disp=1, save=0, sdir=''):
+      """display or save the cmd_history, possibly in a given directory
          (if sdir, cd;write;cd-)  -- does this go in the history??  no???
       """
-      if len(self.history) == 0:
+      if len(self.cmd_history) == 0:
          return
 
       # generate a single message string
       mesg = "shell/system command history:"
       hnew = [mesg]
-      for ind, cmd in enumerate(self.history):
+      for ind, cmd in enumerate(self.cmd_history):
          hnew.append('cmd %2d :  %s' % (ind, cmd))
       hstr = '\n   '.join(hnew) + '\n\n'
       del(hnew)
@@ -1581,7 +1587,7 @@ class MyInterface:
       # handle system commands first (non-python commands, pc=0)
       if not pc:
          if pstr != '': cmd += " %s" % pstr
-         self.history.append(cmd)
+         self.cmd_history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
          if st:
             if not quiet:
@@ -1594,13 +1600,13 @@ class MyInterface:
       # now python commands
       if cmd == 'cd':
          cstr = "os.chdir('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'mkdir':
          cstr = "os.makedirs('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'cp':
          cstr = "shutil.copy('%s', '%s')" % (params[0], params[1])
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'mv':
          # fail here for a list of params
          try:
@@ -1609,14 +1615,14 @@ class MyInterface:
             if not quiet:
                MESGe("os.rename(%s) - missing params" % pstr)
             return 1, ''
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'rmtree':
          # allow this to be a file, to simply and work like rm -fr
          if os.path.isfile(pstr):
             cstr = "os.remove('%s')" % pstr
          else:
             cstr = "shutil.rmtree('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       else:
          MESGe("unknown run_cmd: %s %s" % (cmd, pstr))
          return 1, ''
