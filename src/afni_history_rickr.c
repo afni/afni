@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "new operation: by default, back up and install the build results",
+   "This is a change in behavior.  Upon a successful build, default is now\n"
+   "back up the ABIN and install new binaries and atlases.\n"
+   "Add options -abin, -do_backup, -do_install, -backup_method."
+ } ,
+
  {  7, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "change afni/build to afni_build in OS_notes.macos_12_x86_64_b_user.txt",
    "Thanks to spartaaa-git@github.com for pointing that out."
