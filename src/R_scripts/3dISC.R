@@ -23,9 +23,8 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.5, Aug 1, 2023
+Version 1.0.6, Sept 8, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -773,13 +772,13 @@ runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
       } else {
          if(intercept==1) {
             cc <- m$coefficients
-            tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
+            tt <- cc[1]*sqrt(nS-ncol(model.matrix(m)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(m))))  # new t-value
             return(c(z2r(cc[1]), tt))
 	 } else {
 	    vv <- t(gltM %*% coef(m)[,1])
             se <- rep(1e8, nrow(gltM))
             for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(m) %*% gltM[ii,]))
-            tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
+            tt <- (vv*sqrt(nS-ncol(model.matrix(m))))/(se*sqrt(2*nS-ncol(model.matrix(m))))
 	    return(c(rbind(vv,tt)))
 	 }
       }
@@ -801,7 +800,7 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
       try(m <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
       #if(is.null(m)) return(rep(0,14))) else {
       #   cc <- m$coefficients
-      #   tt <- cc[1]*sqrt(nS-1)/(cc[2]*sqrt(2*nS-1))  # new t-value
+      #   tt <- cc[1]*sqrt(nS-ncol(model.matrix(m)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(m))))  # new t-value
       #	 return(c(z2r(cc[1]), tt))
       #}
       if(is.null(m)) return(rep(0,14)) else {
@@ -817,7 +816,7 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
          vv <- t(ww%*%coef(m)[,1])
          se <- rep(1e8, 7)
          for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(m) %*% ww[ii,]))
-         tt <- (vv*sqrt(nS-1))/(se*sqrt(2*nS-1))
+         tt <- (vv*sqrt(nS-ncol(model.matrix(m))))/(se*sqrt(2*nS-ncol(model.matrix(m))))
 	 return(c(rbind(vv,tt)))
       }
    } else return(rep(0,14))
@@ -1174,7 +1173,7 @@ Stat[is.nan(Stat)] <- 0
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=2*ii-1, typ="fitt", par=nS-ncol(model.matrix(fm)))))
 
 #write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
 write.AFNI(lop$outFN, Stat, brickNames, defhead=head, idcode=newid.AFNI(),
