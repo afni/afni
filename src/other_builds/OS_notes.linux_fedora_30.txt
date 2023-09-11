@@ -14,4 +14,3 @@
 
    # extras
    sudo dnf install gnome-tweak-tool python3-ipython aspell-en
-   sudo dnf install -y python3-numpy python3-flask python3-flask-cors
