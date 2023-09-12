@@ -828,7 +828,19 @@ def determineRespiratoryPhases(resp_peaks,
     NUM_BINS = 100
     
     # Use global Rmax
-    if use_global_r_max: global_r_max = max(rawData[resp_peaks])
+    if use_global_r_max: 
+        global_r_max = max(rawData[resp_peaks])
+        # The Glover 2000 method, for estimating the respiratory tranfer function
+        # involves summing the histogram bin counts from the lowest respiratory
+        # value to the fraction of the given respiratory value over the maximum 
+        # value.  If the global maximu is used, this means that only the counts,
+        # associated with the lower respiratory values are taken.  Low valued
+        # outliers therefore have an undue influence on the estimations.  One 
+        # way to address this is to median filter the raw data so that there are
+        # the histogram is not artifactually tsretched in the lower value
+        # direction.  An alternative, or complement, would be to histogram the 
+        # raw data above a low percentile 
+        rawData = scipy.signal.medfilt(rawData, kernel_size=9)
     
     # Determine whether currently inspiration or expiration
     if resp_peaks[0] < resp_troughs[0]: # Expiration
@@ -899,7 +911,15 @@ def determineRespiratoryPhases(resp_peaks,
         sample = [x - rawData[resp_troughs[troughIndex]] 
                   for x in rawData[start:finish]] 
         sample = sample - min(sample)
-        counts, bins = np.histogram([x 
+        if use_global_r_max: 
+            # Histogram above a low (say first) percentile to prevent the part 
+            # of the histogram, to be used, from being dominated by low valued
+            # outliers.
+            X = [x for x in sample if math.isnan(x) == False]
+            counts, bins = np.histogram(X, 
+                                    bins=NUM_BINS, range = (np.percentile(X, 1), np.max(X))) 
+        else:
+            counts, bins = np.histogram([x  
                     for x in sample if math.isnan(x) == False], 
                                     bins=NUM_BINS) 
         
@@ -985,7 +1005,7 @@ def determineRespiratoryPhases(resp_peaks,
         # Save plot to file
         plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
         if save_graph:
-            plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
             if show_graph: 
                 plt.ion() 
                 plt.show(block=True)
