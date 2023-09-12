@@ -104,3 +104,10 @@ apsearch -update_all_afni_help
 
 afni_system_check.py -check_all |& tee out.ASC.txt
 
+# ----------------------------------------------------------------------
+# suggest what users might do to use AFNI right now
+echo ""
+echo "to use AFNI now (in zsh), start with:"
+echo '   source ~/.zshrc'
+echo ""
+
