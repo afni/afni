@@ -87,7 +87,7 @@ rsync -av $HOME/afni_build/build_src/$package/ ~/abin/
 
 set rdir = R-$rver
 echo "export R_LIBS=$HOME/sw/$rdir" >> ~/.zshrc
-export R_LIBS=$HOME/sw/R-$rdir
+setenv R_LIBS $HOME/sw/R-$rdir
 mkdir -p $R_LIBS
 
 rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
