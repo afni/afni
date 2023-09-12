@@ -725,6 +725,8 @@ trough-) finding and outlier rejection, which can be reasonably
 implemented in many ways.  We do not expect exact matching of outcomes
 between this and the previous versions.
 
+Below, "resp" refers to respiratory input and results, and "card"
+refers to the same for cardiac data.
 
 {ddashline}
 
@@ -794,6 +796,94 @@ It appears that the number is inserted into the series, in which case,
 5000 values could simply be removed rather than replaced by an
 interpolation of the two adjacent values, using the option
 'remove_val_list ..'.
+
+{ddashline}
+
+Output files ~1~
+
+The following files will/can be created in the output dir, with the
+chosen prefix PREFIX.  Some are primary output files (like the file of
+physio and RVT regressors), and some are helpful QC images.  The
+*resp* files are only output if respiratory signal information were
+input, and similarly for *card* files with cardiac input.  At present,
+RVT is only calculated from resp input.
+
+  PREFIX_slibase.1D         : slice-based regressor file, which can include
+                              card, resp and RVT regressors, and provided 
+                              to afni_proc.py for inclusion in FMRI processing
+
+  PREFIX_regressors_phys.svg: QC image of all physio regressors (including
+                              card and/or resp), corresponding to slice=0
+                              physio regressors in *slibase.1D
+  PREFIX_regressors_rvt_resp.svg: 
+                              QC image of all RVT regressors from resp data,
+                              corresponding to all shifted RVT regressors in
+                              in *slibase.1D
+
+  PREFIX_resp_review.txt    : summary statistics and information for resp proc
+  PREFIX_card_review.txt    : summary statistics and information for card proc
+
+  PREFIX_pc_cmd.tcsh        : log/copy of the command used
+  PREFIX_info.json          : reference dictionary of all command inputs after
+                              interpreting user options and integrating
+                              default values
+
+  PREFIX_card_*_final_peaks*.svg
+                            : QC image of final peak estimation for card data.
+                              Can be several files, depending on length of
+                              input data. Colorbands highlight longer (red)  
+                              and shorter (blue) intervals, compared to median 
+                              (white)
+  PREFIX_resp_10_final_peaks_troughs*.svg
+                            : same as above image but for resp data (so also
+                              includes troughs)
+
+The following text files are only output when using the
+'-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
+
+  PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data,
+                              corresponding to card*final_peaks*svg image.
+  PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data,
+                              corresponding to resp*final_peaks*svg image.
+  PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
+                              corresponding to resp*final_peaks*svg image.
+
+The following intermediate QC images are only output when the value of
+'-img_verb' is 2 or more.  In each time series plotting case, there
+may be multiple images, depending on time series length:
+
+  PREFIX_card_*_peaks*.svg  : QC images showing intermediate stages of peak
+                              calculation for card data
+  PREFIX_resp_*_peaks*.svg  : same as above image but for resp data peaks
+  PREFIX_resp_*_troughs*.svg: same as above image but for resp data troughs
+
+  PREFIX_card_bandpass_spectrum.svg,
+  PREFIX_resp_bandpass_spectrum.svg
+                            : QC images showing intermediate stage of peak
+                              and/or trough estimation, namely the Fourier
+                              Transform frequency spectrum (magnitude only),
+                              both full and bandpassed.
+
+  PREFIX_card_bandpass_ts_peaks*.svg,
+  PREFIX_resp_bandpass_ts_peaks*.svg,
+  PREFIX_resp_bandpass_ts_troughs*.svg
+                            : QC images showing intermediate stage of peak
+                              and/or trough estimation, namely the initial
+                              peak/trough estimation on the bandpassed
+                              physio time series
+
+  PREFIX_card_20_est_phase*.svg, 
+  PREFIX_resp_20_est_phase*.svg
+                            : QC images showing intermediate stages of phase
+                              calculation for card and/or resp data
+
+  PREFIX_resp_21_rvt_env*.svg
+                            : QC images showing intermediate stages of RVT
+                              calculation, namely envelope estimation
+
+  PREFIX_resp_22_rvt_measure*.svg
+                            : QC images showing intermediate stages of RVT
+                              calculation, RVT per input time series point
 
 {ddashline}
 
