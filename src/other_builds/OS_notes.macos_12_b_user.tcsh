@@ -85,9 +85,9 @@ rsync -av $HOME/afni_build/build_src/$package/ ~/abin/
 # (here it is under home directory, but might want at system or conda)
 # (going this route, R_LIBS must be set in shell)
 
-set rdir = R-$rver
-echo "export R_LIBS=$HOME/sw/$rdir" >> ~/.zshrc
-setenv R_LIBS $HOME/sw/R-$rdir
+setenv R_LIBS $HOME/sw/R-$rver
+
+echo "export R_LIBS=$R_LIBS" >> ~/.zshrc
 mkdir -p $R_LIBS
 
 rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
