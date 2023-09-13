@@ -53,7 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 13, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+ { 13, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "have 1d_tool.py -write_xstim create an empty file if empty matrix",
+   "This got lost, but is needed for @ss_review_basic on rest data."
+ } ,
+
+ { 13, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "create OS_notes.macos_12_b_user.tcsh to be an executable install script",
    "Have OS_notes.macos_12_x86_64_b_user.txt just execute the new script.\n"
    "Reluctantly done to appease D Glen (thanks)."

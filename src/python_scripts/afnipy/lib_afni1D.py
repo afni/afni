@@ -1631,6 +1631,8 @@ class Afni1D:
                           pretty    - space columns to align
                           tsv       - apply sep as '\t'
 
+         if empty, create empty file
+
          return status"""
 
       if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s, s=%s' \
@@ -1642,10 +1644,6 @@ class Afni1D:
       if not fname:
          print("** missing filename for write")
          return 1
-
-      # bail if empty
-      if self.nt == 0:
-         return 0
 
       if fname == '-' or fname == 'stdout': fp = sys.stdout
       else:
@@ -1662,6 +1660,13 @@ class Afni1D:
       if with_header:
          hstr = self.make_xmat_header_string()
          if hstr != '': fp.write(hstr+'\n#\n')
+
+      # and bail if empty
+      if self.nt == 0:
+         if self.verb > 0:
+            print('** warning: writing empty file %s' % fname)
+         fp.close()
+         return 0
 
       # convert to strings initially, in case of pretty output
       smat = []

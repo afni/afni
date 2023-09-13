@@ -1423,9 +1423,10 @@ g_history = """
         - added -slice_pattern_to_times
         - rewrote -show_slice_timing_pattern to be more forgiving
    2.18 Sep  1, 2023 - added -show_slice_timing_gentle
+   2.19 Sep 13, 2023 - have -write_xstim create an empty file if need be
 """
 
-g_version = "1d_tool.py version 2.18, September 1, 2023"
+g_version = "1d_tool.py version 2.19, September 13, 2023"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']
