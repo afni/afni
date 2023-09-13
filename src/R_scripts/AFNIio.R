@@ -587,7 +587,6 @@ dataTable.AFNI.parse <- function(opts) {
             err.AFNI(paste("table file", ff, "does not exist"));
             return(NULL)
         } else { ## jkr 2023: it is a file that exists so try to read it
-          print(ExecName)
             dt.test <- dtCheck_tryRead(ff)
             if( dt.test != 0 ){
                 dtCheck_err("dataTable is NOT regular and rectangular")
