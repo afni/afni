@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "create OS_notes.macos_12_b_user.tcsh to be an executable install script",
+   "Have OS_notes.macos_12_x86_64_b_user.txt just execute the new script.\n"
+   "Reluctantly done to appease D Glen (thanks)."
+ } ,
+
  {  8, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "new operation: by default, back up and install the build results",
    "This is a change in behavior.  Upon a successful build, default is now\n"
