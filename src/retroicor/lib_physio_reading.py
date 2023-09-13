@@ -28,7 +28,7 @@ derived data.
 
     """
 
-    def __init__(self, ts_orig, samp_freq = 0.0,
+    def __init__(self, ts_orig, samp_freq = 0.0, limit_freq = -1,
                  label=None, fname=None, ts_unfilt = None,
                  min_bps = 0.0, max_bps = sys.float_info.max, 
                  start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
@@ -43,6 +43,7 @@ derived data.
 
         self.ts_orig    = np.array(ts_orig)   # arr, original time series
         self.samp_freq  = float(samp_freq)    # float, sampling freq (in Hz)
+        self.limit_freq = float(limit_freq)   # float, limit samp freq
         self.start_time = start_time         # float, time offset (<=0, in s)
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
@@ -309,6 +310,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.start_time   = None       # float, time offset (<=0, in s) from 
                                        # start of MRI
 
+        # physio: init proc opts
+        self.phys_limit_freq  = -1     # float, init downsample if >0
+
         # MRI EPI volumetric info
         self.vol_slice_times = []      # list of floats for slice timing
         self.vol_slice_pat   = None    # str, name of slice pat (for ref)
@@ -334,15 +338,19 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
 
 
-
         # -----------------------------------------------------------------
 
+        # Main actions!
         if args_dict != None :
-            self.apply_cmd_line_args(args_dict)
+            # get and store opts
+            self.apply_cmd_line_args()
+            # read in physio data
+            data_dict = self.read_in_physio_data()
+            # check and store physio data
+            self.check_and_store_physio_data(data_dict)
 
+        # check physio+MRI info: based on final slice of final vol
         IS_BAD = 0
-
-        # check, please! ... based on final slice of final vol
         for label in lpf.PO_all_label:
             if self.data[label] :
                 check = self.check_end_time_phys_ge_final_slice(label)
@@ -354,90 +362,155 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         if IS_BAD :
             sys.exit(3)
                 
-    def apply_cmd_line_args(self, args_dict):
-        """The main way to populate object fields at present.  The input
-        args_dict should be a dictionary from lib_retro_opts of
-        checked+verified items input from the command line.
+    # ----------------------------------------------------------------------
+
+    def read_in_physio_data(self):
+        """Read in any physio (card, resp, etc.) data, from whatever sources
+        might have some: a single 1D file, a pair of 1D files, a file+json
+        combo, etc.
+
+        Make a dictionary whose keys are physio labels, and whose
+        values are a [fname, time_series] list. Return this fun
+        dictionary.
+
         """
 
-        # *** this method is in progress ***
+        # convenient abbrev; not changing args_dict here
+        AD = self.args_dict
 
-        self.verb             = args_dict['verb']
+        is_bad_tot = 0
 
-        self.vol_slice_times  = copy.deepcopy(args_dict['dset_slice_times'])
-        self.vol_slice_pat    = args_dict['dset_slice_pattern']
-        self.vol_tr           = args_dict['dset_tr']
-        self.vol_nv           = args_dict['dset_nt']
+        # initialize something to hold any physio data
+        data_dict = {}
 
-        self.start_time       = args_dict['start_time']
+        # ------------------------ read -------------------------------
 
-        self.out_dir          = args_dict['out_dir']
-        self.prefix           = args_dict['prefix']
-        self.do_out_rvt       = not(args_dict['rvt_off'])
-        self.do_out_card      = not(args_dict['no_card_out'])
-        self.do_out_resp      = not(args_dict['no_resp_out'])
-        self.save_proc_peaks  = args_dict['save_proc_peaks']
-        self.save_proc_troughs = args_dict['save_proc_troughs']
+        # first, read in all data to a simple, temporary dict,
+        # whose keys are physio labels and values are time series
+        # for each label
 
-        self.img_verb         = args_dict['img_verb']
-        self.img_figsize      = copy.deepcopy(args_dict['img_figsize'])
-        self.img_fontsize     = args_dict['img_fontsize']
-        self.img_line_time    = args_dict['img_line_time']
-        self.img_dot_freq     = args_dict['img_dot_freq']
-        self.img_bp_max_f     = args_dict['img_bp_max_f']
+        # first, loop over possible individual, input 1D files
+        for label in lpf.PO_all_label:
+            fname = AD[label + '_file']
+            if fname :
+                is_bad, ts = self.read_data_from_solo_file(fname)
+                data_dict[label] = [fname, copy.deepcopy(ts)]
+                is_bad_tot+= is_bad
 
-        #self.exit_on_rag -> NB: prob never try to fix
-        self.exit_on_nan      = not(args_dict['do_fix_nan'])
-        self.exit_on_null     = not(args_dict['do_fix_null'])
-        self.do_fix_outliers  = args_dict['do_fix_outliers']
-        self.extra_fix_list   = copy.deepcopy(args_dict['extra_fix_list'])
-        self.remove_val_list  = copy.deepcopy(args_dict['remove_val_list'])
-        self.rvt_shift_list   = copy.deepcopy(args_dict['rvt_shift_list'])
+        if AD['phys_file'] and AD['phys_json_dict'] :
+            is_bad, dd = self.read_data_from_phys_file_and_json()
+            for key in dd.keys():
+                data_dict[key] = [ AD['phys_file'], copy.deepcopy(dd[key])]
+            is_bad_tot+= is_bad
 
-        # run these file reads+checks last, because they use option
-        # items from above
-        if args_dict['phys_file'] and args_dict['phys_json_dict'] :
-            is_bad = self.set_data_from_phys_file_and_json(args_dict)
-        if args_dict['resp_file'] :
-            is_bad = self.set_data_from_solo_file(args_dict, label='resp')
-        if args_dict['card_file'] :
-            is_bad = self.set_data_from_solo_file(args_dict, label='card')
-
-        if is_bad :
+        if is_bad_tot :
             print("** ERROR: fatal problem reading in data.")
             sys.exit(2)
 
-    # -----------------------
-
-    def set_data_from_solo_file(self, args_dict, label=''):
-        """Using information stored in args_dict, try opening and reading
-        either the resp_file or card_file.  Use this to populate one
-        or more data objs.
-
-        While reading in data files, also identify bad points, and
-        apply fixes.
-
-        The 'label' is required, and must be one of:
-        'resp'
-        'card'
-
-        Populate one of: 
-        data['resp']
-        data['card']
+        if len(data_dict) == 0 :
+            print("** ERROR: read in no data.")
+            sys.exit(3)
         
-        Return 0 if OK, and nonzero if bad.
+        return data_dict
+
+    def check_and_store_physio_data(self, data_dict):
+        """Go through data dict, which contains label+time_series key+value
+        pairs, and check each time series, as well as store it."""
+
+        # convenient abbrev in this func; don't change args_dict here
+        AD = self.args_dict
+
+        # label is 'card', 'resp', etc.
+        for label in data_dict.keys():
+
+            # this is the raw/original time series for that label
+            fname = data_dict[label][0]
+            arr   = data_dict[label][1]
+
+            # run checks (and fixes)
+            arr_fixed, ts_unfilt = self.run_all_checks_and_fix(arr)
+
+            # create physio object
+            if label == 'resp' :
+                self.data['resp'] = phys_ts_obj(arr_fixed,
+                                     samp_freq = AD['freq'],
+                                     limit_freq = AD['phys_limit_freq'],
+                                     label=label, fname=fname, 
+                                     ts_unfilt = ts_unfilt,
+                                     min_bps = AD['min_bpm_resp']/60.,
+                                     max_bps = AD['max_bpm_resp']/60.,
+                                     start_time = AD['start_time'],
+                                     img_dot_freq = AD['img_dot_freq'],
+                                     verb=self.verb)
+            elif label == 'card' :
+                self.data['card'] = phys_ts_obj(arr_fixed,
+                                     samp_freq = AD['freq'],
+                                     limit_freq = AD['phys_limit_freq'],
+                                     label=label, fname=fname, 
+                                     ts_unfilt = ts_unfilt,
+                                     min_bps = AD['min_bpm_card']/60.,
+                                     max_bps = AD['max_bpm_card']/60.,
+                                     start_time = AD['start_time'],
+                                     img_dot_freq = AD['img_dot_freq'],
+                                     verb=self.verb)
+        return 0
+
+    def apply_cmd_line_args(self):
+        """The main way to populate object fields at present.  The main thing
+        utilized is the object's args_dict, which should be a
+        dictionary from lib_retro_opts of checked+verified items input
+        from the command line."""
+
+        # just give shorter label! don't use this to change args_dict
+        AD = self.args_dict
+
+        self.verb             = AD['verb']
+
+        # EPI dset processing opts ('-dset_* ..' opts, labeled 'vol_*')
+        self.vol_slice_times  = copy.deepcopy(AD['dset_slice_times'])
+        self.vol_slice_pat    = AD['dset_slice_pattern']
+        self.vol_tr           = AD['dset_tr']
+        self.vol_nv           = AD['dset_nt']
+
+        # physio: descriptive features
+        self.start_time       = AD['start_time']
+
+        self.out_dir          = AD['out_dir']
+        self.prefix           = AD['prefix']
+        self.do_out_rvt       = not(AD['rvt_off'])
+        self.do_out_card      = not(AD['no_card_out'])
+        self.do_out_resp      = not(AD['no_resp_out'])
+        self.save_proc_peaks  = AD['save_proc_peaks']
+        self.save_proc_troughs = AD['save_proc_troughs']
+
+        self.img_verb         = AD['img_verb']
+        self.img_figsize      = copy.deepcopy(AD['img_figsize'])
+        self.img_fontsize     = AD['img_fontsize']
+        self.img_line_time    = AD['img_line_time']
+        self.img_dot_freq     = AD['img_dot_freq']
+        self.img_bp_max_f     = AD['img_bp_max_f']
+
+        #self.exit_on_rag -> NB: prob never try to fix
+        self.exit_on_nan      = not(AD['do_fix_nan'])
+        self.exit_on_null     = not(AD['do_fix_null'])
+        self.do_fix_outliers  = AD['do_fix_outliers']
+        self.extra_fix_list   = copy.deepcopy(AD['extra_fix_list'])
+        self.remove_val_list  = copy.deepcopy(AD['remove_val_list'])
+        self.rvt_shift_list   = copy.deepcopy(AD['rvt_shift_list'])
+
+    # -----------------------
+    
+    def run_all_checks_and_fix(self, arr):
+        """Run one or more badness checks on the input 1D time series (which
+        could be any physio data: card, resp, etc.).  Run the fixes,
+        too, if askd to do so.
+
+        Returns the fixed array, and another object which is either
+        the original, unfilt time series (if there *was* badness
+        found), or None (means nothing needed fixing).
 
         """
 
-        if   label == 'resp' :  fname = args_dict['resp_file']
-        elif label == 'card' :  fname = args_dict['card_file']
-        else:
-            print("** ERROR: need a recognized label, not '{}'"
-                  "".format(label))
-            return 1
-
-        all_col = self.read_and_check_data_file(fname)
-        arr     = self.extract_list_col(all_col, 0) 
         arr2, nrem = \
             check_and_remove_arr_values(arr, 
                                         bad_vals=self.remove_val_list,
@@ -451,118 +524,67 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         if nfix :    ts_unfilt = copy.deepcopy(arr)
         else:        ts_unfilt = None
 
-        if label == 'resp' :
-            self.data['resp'] = phys_ts_obj(arr_fixed,
-                                         samp_freq = args_dict['freq'],
-                                         label=label, fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_resp']/60.,
-                                         max_bps = args_dict['max_bpm_resp']/60.,
-                                         start_time = args_dict['start_time'],
-                                         img_dot_freq = args_dict['img_dot_freq'],
-                                         verb=self.verb)
-        elif label == 'card' :
-            self.data['card'] = phys_ts_obj(arr_fixed,
-                                         samp_freq = args_dict['freq'],
-                                         label=label, fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_card']/60.,
-                                         max_bps = args_dict['max_bpm_card']/60.,
-                                         start_time = args_dict['start_time'],
-                                         img_dot_freq = args_dict['img_dot_freq'],
-                                         verb=self.verb)
-        return 0
+        return arr_fixed, ts_unfilt
 
-    def set_data_from_phys_file_and_json(self, args_dict):
-        """Using information stored in args_dict, try opening and reading the
-        phys_file, using a dictionary made from its accompanying JSON.
-        Use this to populate one or more data objs.
 
-        While reading in data files, also identify bad points, and
-        apply fixes.
+    # -----------------------
 
-        The 'label' is required, and must be one of:
-        'resp'
-        'card'
-
-        Populate one of: 
-        data['resp']
-        data['card']
+    def read_data_from_solo_file(self, fname):
+        """Using information stored in args_dict, try opening and reading
+        either the resp_file or card_file.  
         
-        Return 0 if OK, and nonzero if bad.
-
-        !!! PT note: can condense the 2 separate if-conditions here
+        Returns two objects: an int (0 if all went well, else
+        nonzero), and the 1D time series array.
 
         """
 
-        fname      = args_dict['phys_file']
-        D          = args_dict['phys_json_dict']
-        samp_freq  = args_dict['freq']
+        # read in data
+        all_col = self.read_and_check_data_file(fname)
+        arr     = self.extract_list_col(all_col, 0) 
+
+        return 0, arr
+
+    def read_data_from_phys_file_and_json(self):
+        """Read physio file and json combo, and try to extract any physio
+        columns of data there.  Fill in a data_dict, whose keys are
+        the labels of the physio data, and whose values are the 1D
+        arrays of each time series. 
+
+        Returns 2 objects: an int (0 is success, nonzero is fail) and
+        the data_dict.
+
+        """
+
+        fname      = self.args_dict['phys_file']
+        D          = self.args_dict['phys_json_dict']
+        samp_freq  = self.args_dict['freq']
         all_col    = self.read_and_check_data_file(fname)
-        USE_COL    = 0
+
+        # our object to populate, with key=label and value=time_series info
+        data_dict = {}
 
         if 'respiratory' in D['Columns'] :
             if self.verb:
                 print("++ Reading _resp_ data from {}".format(fname))
-            USE_COL+= 1
-            idx = D["Columns"].index('respiratory')
-            arr = self.extract_list_col(all_col, idx)
-            arr2, nrem = \
-                check_and_remove_arr_values(arr, 
-                                            bad_vals=self.remove_val_list,
-                                            verb=self.verb)
-            arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr2, 
-                                          bad_nums=self.extra_fix_list,
-                                          outliers_bad=self.do_fix_outliers,
-                                          verb=self.verb)
-            # if fixing is needed, put copy of orig as ts_unfilt
-            if nfix :    ts_unfilt = copy.deepcopy(arr)
-            else:        ts_unfilt = None
 
-            self.data['resp'] = phys_ts_obj(arr_fixed, 
-                                         samp_freq = samp_freq,
-                                         label='resp', fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_resp']/60.,
-                                         max_bps = args_dict['max_bpm_resp']/60.,
-                                         start_time = args_dict['start_time'],
-                                         img_dot_freq = args_dict['img_dot_freq'],
-                                         verb=self.verb)
+            # read in data
+            idx = D["Columns"].index('respiratory')
+            data_dict['resp'] = self.extract_list_col(all_col, idx)
+
         if 'cardiac' in D['Columns'] :
             if self.verb:
                 print("++ Reading _card_ data from {}".format(fname))
-            USE_COL+= 1
-            idx = D["Columns"].index('cardiac')
-            arr = self.extract_list_col(all_col, idx)
-            arr2, nrem = \
-                check_and_remove_arr_values(arr, 
-                                            bad_vals=self.remove_val_list,
-                                            verb=self.verb)
-            arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr2, 
-                                          bad_nums=self.extra_fix_list,
-                                          outliers_bad=self.do_fix_outliers,
-                                          verb=self.verb)
-            # if fixing is needed, put copy of orig as ts_unfilt
-            if nfix :    ts_unfilt = copy.deepcopy(arr)
-            else:        ts_unfilt = None
 
-            self.data['card'] = phys_ts_obj(arr_fixed, 
-                                         samp_freq = samp_freq,
-                                         label='card', fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_card']/60.,
-                                         max_bps = args_dict['max_bpm_card']/60.,
-                                         start_time = args_dict['start_time'],
-                                         img_dot_freq = args_dict['img_dot_freq'],
-                                         verb=self.verb)
-        if not(USE_COL) :
+            # read in data
+            idx = D["Columns"].index('cardiac')
+            data_dict['card'] = self.extract_list_col(all_col, idx)
+
+        if not(len(data_dict)) :
             print("** ERROR: could not find any columns in {} that were "
                   "labelled like data".format(fname))
-            return 1
+            return 1, {}
 
-        return 0
+        return 0, data_dict
 
     def extract_list_col(self, all_col, idx):
         """For data that has been read in as a list of lists, extract the

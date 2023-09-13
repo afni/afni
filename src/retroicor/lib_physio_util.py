@@ -156,24 +156,25 @@ title : str
 def interleave_count(A, B, verb=0):
     """A and B are sorted lists of numbers. For each [i]th element of A,
 count how many elements in B fall between pairs A[i] and A[i+1].  This
-number is stored in an array C, which len(A)-1 elements.  NB: A can
-have no repeating elements, and for the major use case here (where A
-and B each store indices of peaks and troughs, respectively), neither
+number is stored in an array C, which has len(A)-1 elements.  NB: A can
+have no repeating elements, and for the major use case here---where A
+and B each store indices of peaks and troughs, respectively---neither
 will.
 
 This essentially provides information of how interleaved A and B are,
 which is useful if (for example) they respectively represent indices
 of peaks and troughs, for which there should theoretically be perfect
-interleaving. For perfectly interleaved lists, each C[i] = 1.  If a
-trough were missing between a pair of peaks, then C[i] = 0. Having
-"too many" troughs between a pair of peaks would be reflected by
-having C[i] > 1.  Endpoint dangling, for <A[0] and > A[-1], are also
-returned, but in a separate tuple.
+interleaving. But this function exists precisely because we know that
+won't always be the case from estimations... For perfectly interleaved
+lists, each C[i] == 1.  If a trough were missing between a pair of
+peaks, then C[i] == 0. Having "too many" troughs between a pair of
+peaks would be reflected by having C[i] > 1.  Endpoint dangling, for
+<A[0] and >A[-1], are also returned, but in a separate tuple.
 
 One could measure interleaving with A for peaks and B for troughs, or
 vice versa.
 
-NB: we assume A and B share no elements
+NB: we assume (and verify that) A and B share no elements.
 
 Parameters
 ----------

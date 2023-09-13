@@ -50,6 +50,9 @@ DEF_img_line_time = 60               # units = seconds
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
+# some init proc options for phys time series
+DEF_phys_limit_freq = -1             # Hz, for init filter to reduce ts
+
 # ==========================================================================
 # PART_01: default parameter settings
 
@@ -66,6 +69,7 @@ DEF = {
     'card_file'         : None,      # (str) fname for card data
     'phys_file'         : None,      # (str) fname of physio input data
     'phys_json'         : None,      # (str) fname of json file
+    'phys_limit_freq'   : DEF_phys_limit_freq, # (num) init phys ts downsample
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
     'dset_tr'           : None,      # (float) TR of MRI
     'dset_nslice'       : None,      # (int) number of MRI vol slices
@@ -998,6 +1002,15 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
+opt = '''phys_limit_freq'''
+hlp = '''Allow for downsampling of the input physio time series, by
+providing a maximum sampling frequency (in Hz). This is applied just
+after badness checks.  Values <=0 mean that no downsampling will occur
+(def: {dopt})'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''
 odict[opt] = hlp
@@ -1043,7 +1056,7 @@ opt = '''dset_slice_times'''
 hlp = '''Slice time values (space separated list of numbers)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar='SLI_TIMES',
+                    metavar=('SLI_T1', 'STI_T2'),
                     nargs='+', type=str) # parse later
 
 opt = '''dset_slice_pattern'''
@@ -1082,6 +1095,7 @@ they appear in the physio time series, and replaced with interpolated
 values'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('FVAL1', 'FVAL2'),
                     nargs='+', type=str) # parse later
 
 opt = '''remove_val_list'''
@@ -1091,6 +1105,7 @@ physio time series; this is necessary with some manufacturers'
 outputs, see "Notes of input peculiarities," below.'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('RVAL1', 'RVAL2'),
                     nargs='+', type=str) # parse later
 
 opt = '''rvt_shift_list'''
@@ -1100,6 +1115,7 @@ including 0 may be useful. Shifts could also be entered via
 '-rvt_shift_linspace ..' (def: {}) '''.format(DEF_rvt_shift_list)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    metavar=('SHIFT1', 'SHIFT2'),
                     nargs='+', type=str) # parse later
 
 opt = '''rvt_shift_linspace'''
@@ -1112,7 +1128,7 @@ be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
 and 4 sec (def: None, use '-rvt_shift_list')'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar='PAR',
+                    metavar=('START', 'STOP', 'N'),
                     nargs=3, type=str) # parse later
 
 opt = '''rvt_off'''
@@ -1174,11 +1190,12 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
 opt = '''img_figsize'''
-hlp = '''Figure dimensions used for QC images (def: {dopt})
-'''.format(dopt=DEF[opt])
+hlp = '''Figure dimensions used for QC images (def: depends on length of
+physio time series)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs='+', type=str) # parse later
+                    metavar=('LEN', 'WID'),
+                    nargs=2, type=str) # parse later
 
 opt = '''img_fontsize'''
 hlp = '''Font size used for QC images (def: {dopt})
