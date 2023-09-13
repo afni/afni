@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.4,  March 13, 2023
+Version 4.1.5,  July 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -670,7 +670,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$iometh <- 'clib'
       lop$verb   <- 0
 
-   ## Get user's input **jkr edit dataTable 8/23**
+   #Get user's input
    for (i in 1:length(ops)) {
       opname <- strsplit(names(ops)[i],'^-')[[1]];
       opname <- opname[length(opname)];
@@ -695,7 +695,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              num_glf = lop$num_glf <- ops[[i]],
              glfLabel = lop$glfLabel <- ops[[i]],
              glfCode  = lop$glfCode <- ops[[i]],
-             dataTable  = lop$dataTable <- ops[[i]],
+             dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              parSubset  = lop$parSubset <- ops[[i]],
 
              help   = help.MVM.opts(params, adieu=TRUE),
@@ -711,8 +711,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              dbgArgs = lop$dbgArgs <- TRUE
              )
    }
+
    return(lop)
-} ## end of read.MVM.opts.batch function
+}# end of read.MVM.opts.batch
 
 # construct a glt list for testInteraction in phia
 # NEED to solve the problem when a quantitative variable is tested alone:
@@ -1118,7 +1119,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
    #if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
    if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, lop$nResid)
    options(warn = -1)
-   if (!all(abs(inData) < 10e-8)) {  # not all 0s
+   if (!all(abs(na.omit(inData)) < 10e-8)) {  # not all 0s
       dataframe$Beta<-inData[1:lop$NoFile]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData[(lop$NoFile+1):(lop$NoFile+lop$nSubj)], all(is.na(lop$vVarCenters)))
@@ -1334,59 +1335,51 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 ########################## Begin MVM main ######################################
 #################################################################################
 
-if(!exists('.DBG_args')) {
-  args = (commandArgs(TRUE))
-  rfile <- first.in.path(sprintf('%s.R',ExecName))
-  # save only on -dbgArgs          28 Apr 2016 [rickr]
-  if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
-} else {
-  note.AFNI("Using .DBG_args resident in workspace")
-  args <- .DBG_args
-}
-
-if( !length(args) ) {
-  BATCH_MODE <<- 0
-  cat(greeting.MVM(),
+   if(!exists('.DBG_args')) {
+      args = (commandArgs(TRUE))
+      rfile <- first.in.path(sprintf('%s.R',ExecName))
+       # save only on -dbgArgs          28 Apr 2016 [rickr]
+       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
+   } else {
+      note.AFNI("Using .DBG_args resident in workspace")
+      args <- .DBG_args
+   }
+   if(!length(args)) {
+      BATCH_MODE <<- 0
+      cat(greeting.MVM(),
       "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n",
       sep='\n')
-  
-  if(length(args)<6) { 
-    modFile <- "model.txt"
-  } else { modFile <- args[6] }
-  if (is.null(lop <- read.MVM.opts.from.file(modFile, verb=0))) {
-    stop('Error parsing input from file!');
-  }
-}
+      #browser()
+      if(length(args)<6) modFile <- "model.txt" else modFile <- args[6]
+      if (is.null(lop <- read.MVM.opts.from.file(modFile, verb=0))) {
+         stop('Error parsing input from file!');
+      }
 
-## process arguments **jkr format 8/2023**
-if(0){ 
-  str(lop)
-} else {
-  if(!exists('.DBG_args')) {
-    BATCH_MODE <<- 1
-  } else {
-    BATCH_MODE <<- 0
-  }
-  
-  ## process the arguments
-  if(is.null(lop <- read.MVM.opts.batch(args, verb = 0))){
-    stop('Error parsing input')
-  }
+      if(0) str(lop)
 
-  ## process the dataTable
-  lop$dataTable <- dataTable.AFNI.parse(lop$dataTable)
+   } else {
+      if(!exists('.DBG_args')) {
+         BATCH_MODE <<- 1
+      } else {
+         BATCH_MODE <<- 0
+      }
+      if(is.null(lop <- read.MVM.opts.batch(args, verb = 0)))
+         stop('Error parsing input')
 
-  ## in case the user didn't put space around each colon (:), this
-  lop$gltCode <- lapply(lop$gltCode, function(ss) 
-    unlist(strsplit(ss, split="(?=:)", perl=TRUE)))
-  lop$glfCode <- lapply(lop$glfCode, function(ss) 
-    unlist(strsplit(ss, split="(?=&)", perl=TRUE)))
-  
-  if(is.null(lop <- process.MVM.opts(lop, verb = lop$verb))){
-    stop('Error processing input')
-  }
-}   ## end process arguments
+      # in case the user didn't put space around each colon (:), this
+lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))
+lop$glfCode <- lapply(lop$glfCode, function(ss) unlist(strsplit(ss, split="(?=&)", perl=TRUE)))
 
+
+      #str(lop);
+      if(is.null(lop <- process.MVM.opts(lop, verb = lop$verb)))
+         stop('Error processing input')
+
+   }
+   #if(lop$verb > 1) {
+      #Too much output, big dump of header structs of input dsets..
+   #   str(lop)
+   #}
 
 
 ########################################################################
