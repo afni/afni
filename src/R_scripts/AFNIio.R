@@ -167,7 +167,7 @@ set_R_io <- function() {
       }
    } else {
      ## jkr 9/23 fail on no R_io.so
-     cat("\n** ERROR: Failed to load R_io.so!!!\n\n") ; quit(status=78)
+     cat("\n** ERROR: Failed to load R_io.so\n\n") ; quit(status=78)
    }
    return(rio) 
 }

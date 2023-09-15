@@ -39,15 +39,20 @@ if ( -d /opt/X11/lib/flat_namespace ) then
 endif
 
 
+# capture return from R   [15 Sep 23 rickr]
+set rv = 0
 if (0) then
    #This worked OK, except for the blasted -gSOMETHING problem 
    Rscript ${tname} $arglist
+   set rv = $status
 else
    #command taken from Rscript --verbose ...
    #by adding the --gui option explicitly here, I can 
    #quiet the stupid message: WARNING: unknown gui ...
    #every time there is a -gSOMETHING option in arglist  
    R --slave --no-restore --file=${tname} --gui X11 --args $arglist
+   set rv = $status
 endif
 
-exit 0
+exit $rv
+
