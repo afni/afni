@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Sep, 2023, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
+   "in .zshrc, pass -i to compinit, to ignore insecure files",
+   "Whines from compaudit: files not owned by root or user or with perm g+w.\n"
+   "Done with D Glen."
+ } ,
+
+ { 15, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "have all R wrapper scripts (scripts_for_r) return the status from R",
+   "To match returning non-zero when loading R_io.so."
+ } ,
+
  { 13, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
    "have 1d_tool.py -write_xstim create an empty file if empty matrix",
    "This got lost, but is needed for @ss_review_basic on rest data."
