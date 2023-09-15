@@ -258,10 +258,11 @@ g_history = """
    1.0  Dec 23, 2022 - initial release
    1.1  Jan  6, 2023 - always output something in test mode
    1.2  Feb  6, 2023 - add -shell_list
+   1.3  Sep 15, 2023 - zsh: use compinit -i (ignore "insecure" files)
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 1.2, February 6, 2023" % g_prog
+g_version = "%s, version 1.3, September 15, 2023" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -1018,7 +1019,7 @@ class MyInterface:
                 'if [ -f $HOME/.afni/help/%s ]\n'                   \
                 'then\n'                                            \
                 '   autoload -U +X bashcompinit && bashcompinit\n'  \
-                '   autoload -U +X compinit && compinit \\\n'       \
+                '   autoload -U +X compinit && compinit -i \\\n'    \
                 '     && source $HOME/.afni/help/%s\n'              \
                 'fi\n' % (comment, apfile, apfile)
       else:
