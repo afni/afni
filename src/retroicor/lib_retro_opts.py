@@ -97,6 +97,8 @@ DEF = {
                                      # used for display
     'maxDisplayCardSampleFreq' : 200, # Maximum cardiac sampling frequency 
                                      # used for display
+    'save_proc_peaks'   : False,     # (bool) dump peaks to text file
+    'save_proc_troughs' : False,     # (bool) dump troughs to text file
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -736,6 +738,18 @@ interpolation of the two adjacent values, using the option
 
 {ddashline}
 
+The following text files are only output when using the
+'-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
+
+  PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data,
+                              corresponding to card*final_peaks*svg image.
+  PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data,
+                              corresponding to resp*final_peaks*svg image.
+  PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
+                              corresponding to resp*final_peaks*svg image.
+
+{ddashline}
+
 Examples 
 
   Example ~1~ 
@@ -1139,6 +1153,24 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 opt = '''hview'''
 hlp = '''Display help text in a text editor (AFNI functionality)
 '''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''save_proc_peaks'''
+hlp = '''Write out the final set of peaks indices to a text file called
+PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is 'card', 'resp', etc.), which is
+a single column of the integer values (def: don't write them out)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''save_proc_troughs'''
+hlp = '''Write out the final set of trough indices to a text file called
+PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), which
+is a single column of the integer values (def: don't write them
+out). The file is only output for LABEL types where troughs were
+estimated (e.g., resp).'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")

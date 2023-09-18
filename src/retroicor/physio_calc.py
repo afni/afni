@@ -67,6 +67,7 @@ import lib_retro_opts    as lro
 import lib_retro_reading as lrr
 import lib_retro_proc as lrp
 import lib_retro_outObj as RETO
+# import lib_retro_logs    as lpl
 
 
 # ================================ main =====================================
@@ -90,5 +91,8 @@ if __name__ == "__main__":
     if RETO.outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         print('** ERROR outputting SliBase file')
         sys.exit()
+        
+    # Output logs
+    # lpl.save_peaks_troughs_file_1D(test_retro_obj)
 
     print("++ DONE.  Goodbye.")
