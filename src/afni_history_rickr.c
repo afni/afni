@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -use_asc_path, to test using directory of afni_system_check.py",
+   NULL
+ } ,
+
  { 15, Sep, 2023, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
    "in .zshrc, pass -i to compinit, to ignore insecure files",
    "Whines from compaudit: files not owned by root or user or with perm g+w.\n"

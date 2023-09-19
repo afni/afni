@@ -66,6 +66,9 @@ other options:
    -casematch yes/no    : match case in -find_prog
    -data_root DDIR      : search for class data under DDIR
    -exact yes/no        : search for PROG without wildcards in -find_prog
+   -use_asc_path        : prepend ASC dir to PATH
+                          (to test programs in same directory as ASC.py)
+   -verb LEVEL          : set the verbosity level
 
 -----------------------------------------------------------------------------
 details displayed via -check_all (just run to see):
@@ -403,6 +406,8 @@ class CmdInterface:
                       helpstr='yes/no: use exact matching in -find_prog')
       self.valid_opts.add_opt('-find_prog', 1, [],
                       helpstr='search path for *PROG*')
+      self.valid_opts.add_opt('-use_asc_path', 0, [],
+                      helpstr='immediately prepend ASC dir to PATH')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set verbosity level (default=1)')
 
@@ -507,7 +512,16 @@ class CmdInterface:
             self.find_prog = opt.parlist[0]
             continue
 
-         # already processing options: just continue
+         # apply to PATH immediately
+         if opt.name == '-use_asc_path':
+            ascdir = UTIL.executable_dir()
+            if self.verb > 1:
+               print("++ prepending %s to PATH" % ascdir)
+            os_path = os.environ.get("PATH")
+            os.environ["PATH"] = ascdir + ":" + os_path
+            continue
+
+         # already processed options: just continue
 
          if opt.name == '-verb': continue
 
