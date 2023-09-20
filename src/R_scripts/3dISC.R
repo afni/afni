@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.6, Sept 8, 2023
+Version 1.0.7, Sept 20, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -765,20 +765,20 @@ runLME <- function(myData, ModelForm, DM, gltM, intercept, nF, nS, tag) {
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
-      m <- NULL
-      try(m <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
+      m <- NULL; try(fm <- lmer(ModelForm, data=DM))
+      try(m <- summary(fm), silent=TRUE)
       if(is.null(m)) {
          if(intercept==1) return(rep(0,2)) else return(rep(0,2*nrow(gltM)))
       } else {
          if(intercept==1) {
             cc <- m$coefficients
-            tt <- cc[1]*sqrt(nS-ncol(model.matrix(m)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(m))))  # new t-value
+            tt <- cc[1]*sqrt(nS-ncol(model.matrix(fm)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(fm))))  # new t-value
             return(c(z2r(cc[1]), tt))
 	 } else {
 	    vv <- t(gltM %*% coef(m)[,1])
             se <- rep(1e8, nrow(gltM))
             for(ii in 1:nrow(gltM)) se[ii] <- as.numeric(sqrt(t(gltM[ii,]) %*% vcov(m) %*% gltM[ii,]))
-            tt <- (vv*sqrt(nS-ncol(model.matrix(m))))/(se*sqrt(2*nS-ncol(model.matrix(m))))
+            tt <- (vv*sqrt(nS-ncol(model.matrix(fm))))/(se*sqrt(2*nS-ncol(model.matrix(fm))))
 	    return(c(rbind(vv,tt)))
 	 }
       }
@@ -796,11 +796,11 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
       DM <- rbind(DM, DM)
       DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
       DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
-      
-      try(m <- summary(lmer(ModelForm, data=DM)), silent=TRUE)
+      m <- NULL; try(fm <- lmer(ModelForm, data=DM))            
+      try(m <- summary(fm), silent=TRUE)
       #if(is.null(m)) return(rep(0,14))) else {
       #   cc <- m$coefficients
-      #   tt <- cc[1]*sqrt(nS-ncol(model.matrix(m)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(m))))  # new t-value
+      #   tt <- cc[1]*sqrt(nS-ncol(model.matrix(fm)))/(cc[2]*sqrt(2*nS-ncol(model.matrix(fm))))  # new t-value
       #	 return(c(z2r(cc[1]), tt))
       #}
       if(is.null(m)) return(rep(0,14)) else {
@@ -816,7 +816,7 @@ runLME2 <- function(myData, ModelForm, DM, nF, nS, nBrk, tag) {
          vv <- t(ww%*%coef(m)[,1])
          se <- rep(1e8, 7)
          for(ii in 1:7) se[ii] <- as.numeric(sqrt(t(ww[ii,]) %*% vcov(m) %*% ww[ii,]))
-         tt <- (vv*sqrt(nS-ncol(model.matrix(m))))/(se*sqrt(2*nS-ncol(model.matrix(m))))
+         tt <- (vv*sqrt(nS-ncol(model.matrix(fm))))/(se*sqrt(2*nS-ncol(model.matrix(fm))))
 	 return(c(rbind(vv,tt)))
       }
    } else return(rep(0,14))
