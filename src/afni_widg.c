@@ -1017,7 +1017,8 @@ STATUS("making imag->rowcol") ;
             NULL ) ;
       XtAddCallback( imag->pop_talto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
-      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+//      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+      if( TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0) ) {
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -1046,8 +1047,9 @@ STATUS("making imag->rowcol") ;
         if( first ){
           first = 0 ;
           fprintf(stderr,
-           "\n++ WARNING: Can't find TTatlas+tlrc or TTatlas.nii.gz dataset for 'whereami'!\n"
-             "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
+        "\n++ WARNING: Can't find default atlas (%s) dataset for 'whereami'!\n"
+        "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n",
+        Current_Atlas_Default_Name() ) ;
         }
       }
       imag->pop_whereami_twin = NULL ;
