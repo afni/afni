@@ -330,9 +330,11 @@ g_history = """
    1.21 Jun  7, 2023 - start looking for missing binary libraries
    1.22 Jun 13, 2023 - turn off check for PyQt4 (add option)
    1.23 Jun 20, 2023 - under linux: check for R_io.so shared dependencies
+   1.24 Sep 18, 2023 - add -use_asc_path
+   1.25 Sep 21, 2023 - capture the R platform with its version
 """
 
-g_version = "afni_system_check.py version 1.23, June 20, 2023"
+g_version = "afni_system_check.py version 1.25, September 21, 2023"
 
 
 class CmdInterface:
