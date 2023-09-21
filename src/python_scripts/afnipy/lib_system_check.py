@@ -1670,8 +1670,13 @@ class SysInfo:
 
          return 1, (dstr+vstr)
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git',
-                    'R']:
+      # for R, try to return the version and platform
+      elif prog == 'R':
+         s, vstr = make_R_version_string()
+         # either way, use what is returned
+         return 1, vstr
+
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git' ]:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
@@ -1915,8 +1920,45 @@ class SysInfo:
 
       self.show_comments()
 
+# ----------------------------------------------------------------------
 # non-class functions
 
+def make_R_version_string():
+   """try to collapse the R --version string into VERSION (PLATFORM)
+
+      return status and string
+   """
+   cmd = 'R --version'
+   s, so, se = UTIL.limited_shell_exec(cmd)
+
+   # if failure or empty so list, return se
+   if s or len(so) == 0:
+      if len(se) > 0: rs = se[0]
+      else:           rs = "** failed '%s'" % cmd
+      return 1, rs
+
+   # hoping for (DATE), if not, bail
+   posn = so[0].find('(')
+   if posn < 5:
+      return 0, so[0]
+   # get first part
+   v0 = so[0][0:posn-1]
+
+   v1 = ''
+   for line in so:
+      if line.startswith('Platform:'):
+         try:
+            v1 = line.split()[1]
+         except:
+            pass
+         break
+
+   # if success, use v0+v1, else stick with so[0]
+   if v1 != '':
+      return 0, '%s (%s)' % (v0, v1)
+   else:
+      return 0, so[0]
+         
 def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))
