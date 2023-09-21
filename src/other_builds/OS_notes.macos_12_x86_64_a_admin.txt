@@ -33,6 +33,11 @@ pip install matplotlib
 # ----------------------------------------------------------------------
 # install R
 
+# ** We will make some updates for this...
+#
+#    Aside from having to pick a version, the R packages are
+#       CPU-specific, and this one is for Intel x86_64.
+
 curl -O https://cran.r-project.org/bin/macosx/base/R-4.2.3.pkg
 sudo installer -pkg R-4.2.3.pkg -target /
 
