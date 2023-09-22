@@ -9249,14 +9249,14 @@ EXAMPLES (options can be provided in any order): ~1~
 
        Also, compute the transformation of the anatomy to MNI space, using
        affine registration (for speed in this simple example) to align to
-       the 2009c template.
+       the MNI 2009 template.
 
        In the volreg block, align the EPI to the MIN_OUTLIER volume (a
        low-motion volume, determined from the data).  Then concatenate all
        EPI transformations, warping the EPI to standard space in one step
        (without multiple resampling operations), combining:
 
-          EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
+          EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
 
        The standard space transformation is applied to the EPI due to 
        specifying -volreg_tlrc_warp.
@@ -9309,7 +9309,7 @@ EXAMPLES (options can be provided in any order): ~1~
              -radial_correlate_blocks tcat volreg                     \\
              -tcat_remove_first_trs 2                                 \\
              -align_opts_aea -cost lpc+ZZ -giant_move                 \\
-             -tlrc_base MNI152_T1_2009c+tlrc                          \\
+             -tlrc_base MNI152_2009_template.nii.gz                   \\
              -volreg_align_to MIN_OUTLIER                             \\
              -volreg_align_e2a                                        \\
              -volreg_tlrc_warp                                        \\
@@ -9449,7 +9449,7 @@ EXAMPLES (options can be provided in any order): ~1~
                     -copy_anat sb23/sb23_mpra+orig                     \\
                     -tcat_remove_first_trs 3                           \\
                     -align_opts_aea -cost lpc+ZZ                       \\
-                    -tlrc_base MNI152_T1_2009c+tlrc                    \\
+                    -tlrc_base MNI152_2009_template.nii.gz             \\
                     -tlrc_NL_warp                                      \\
                     -volreg_align_to MIN_OUTLIER                       \\
                     -volreg_align_e2a                                  \\
@@ -9600,7 +9600,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -blocks despike tshift align tlrc volreg blur mask         \\
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_e2a                                          \\
               -volreg_tlrc_warp                                          \\
@@ -9628,7 +9628,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -blocks despike tshift align tlrc volreg blur mask         \\
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_e2a                                          \\
               -volreg_tlrc_warp                                          \\
@@ -9669,7 +9669,7 @@ EXAMPLES (options can be provided in any order): ~1~
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
               -align_opts_aea -cost lpc+ZZ                               \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_to MIN_OUTLIER                               \\
               -volreg_align_e2a                                          \\
@@ -9725,7 +9725,7 @@ EXAMPLES (options can be provided in any order): ~1~
        do not start off well-aligned.  Include -check_flip for good measure.
      o Register EPI volumes to the one which has the minimum outlier
           fraction (so hopefully the least motion).
-     o Use non-linear registration to MNI template (non-linear 2009c).
+     o Use non-linear registration to MNI template (non-linear 2009_template).
        * This adds a lot of processing time.
        * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
          Then use the resulting datasets in the afni_proc.py command below
@@ -9929,7 +9929,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -reg_echo 2                                   \\
               -tcat_remove_first_trs 2                      \\
               -align_opts_aea -cost lpc+ZZ                  \\
-              -tlrc_base MNI152_T1_2009c+tlrc               \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
               -tlrc_NL_warp                                 \\
               -volreg_align_to MIN_OUTLIER                  \\
               -volreg_align_e2a                             \\
@@ -9961,7 +9961,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -reg_echo 2                                   \\
               -tcat_remove_first_trs 2                      \\
               -align_opts_aea -cost lpc+ZZ                  \\
-              -tlrc_base MNI152_T1_2009c+tlrc               \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
               -tlrc_NL_warp                                 \\
               -volreg_align_to MIN_OUTLIER                  \\
               -volreg_align_e2a                             \\
@@ -10234,7 +10234,7 @@ How might one run a full analysis?  Here are some details to consider.
               $subj_indir/epi_r3+orig                         \\
           -tcat_remove_first_trs 5                            \\
           -align_opts_aea -cost lpc+ZZ                        \\
-          -tlrc_base MNI152_T1_2009c+tlrc                     \\
+          -tlrc_base MNI152_2009_template.nii.gz              \\
           -tlrc_NL_warp                                       \\
           -volreg_align_to MIN_OUTLIER                        \\
           -volreg_align_e2a                                   \\

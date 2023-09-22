@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Sep, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "in examples, change MNI152_T1_2009c+tlrc to MNI152_2009_template.nii.gz",
+   NULL
+ } ,
+
  { 21, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "add option -use_asc_path, to test using directory of afni_system_check.py",
    NULL

@@ -804,7 +804,7 @@ if __name__ == "__main__" :
                  -copy_anat sb23/sb23_mpra+orig                           \
                  -tcat_remove_first_trs 3                                 \
                  -align_opts_aea -cost lpc+ZZ                             \
-                 -tlrc_base MNI152_T1_2009c+tlrc                          \
+                 -tlrc_base MNI152_2009_template.nii.gz                   \
                  -tlrc_NL_warp                                            \
                  -volreg_align_to MIN_OUTLIER                             \
                  -volreg_align_e2a                                        \
