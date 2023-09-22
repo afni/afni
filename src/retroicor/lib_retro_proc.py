@@ -247,6 +247,13 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
        file = open(outputFileName, "w+")
        np.savetxt(file, peaks, fmt='%i')
        file.close()
+   
+   # Save raw data if required
+   if test_retro_obj.save_proc_rawData:
+       outputFileName = test_retro_obj.out_dir + '/cardiacRawData.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, rawData, fmt='%10.5f')
+       file.close()
 
    return peaks, len(rawData)
 
@@ -573,6 +580,13 @@ def getRespiratoryPeaks(test_retro_obj):
        outputFileName = test_retro_obj.out_dir + '/respiratoryTroughs.txt'
        file = open(outputFileName, "w+")
        np.savetxt(file, peaks, fmt='%i')
+       file.close()
+   
+    # Save raw data if required
+    if test_retro_obj.save_proc_rawData:
+       outputFileName = test_retro_obj.out_dir + '/respiratoryRawData.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, rawData, fmt='%10.5f')
        file.close()
 
     return peaks, troughs, len(rawData)

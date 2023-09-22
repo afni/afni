@@ -155,6 +155,7 @@ regressors for MRI data.
         self.do_out_resp  = True       # bool, flag
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
+        self.save_proc_rawData = False # bool, flag to write raw data to file
         self.do_calc_ab   = False      # bool, calc a,b coeffs and use
         self.do_save_ab   = False      # bool, save a,b coeffs to file
 
@@ -208,6 +209,7 @@ regressors for MRI data.
         self.do_out_resp = not(args_dict['no_resp_out'])
         self.save_proc_peaks  = args_dict['save_proc_peaks']
         self.save_proc_troughs = args_dict['save_proc_troughs']
+        self.save_proc_rawData = args_dict['save_proc_rawData']
         self.do_calc_ab  = args_dict['do_calc_ab']
         self.do_save_ab  = args_dict['do_save_ab']
         
