@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.7, Sept 20, 2023
+Version 1.0.7, Sept 24, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -173,7 +173,11 @@ Introduction
   specification, which makes the weight coding much more intuitive. In this
   particular case, the three weights are associated with the three
   categories, G11, G12 and G22 (no intercept is assumed in the model as
-  requested with the zero (0) in the model specifications).
+  requested with the zero (0) in the model specifications). 
+  ** Alert ** This coding strategy, using no intercept, only works when 
+  there is a single explanatory variable (e.g., 'group' in this example). 
+  For cases with more than one explanatory variable, consider adopting 
+  other coding methods.
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC2b -jobs 12                  \\
