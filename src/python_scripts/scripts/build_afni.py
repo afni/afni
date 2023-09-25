@@ -35,6 +35,8 @@ build_afni.py - compile an AFNI package ~1~
          - possibly checkout the most recent tag (AFNI_XX.X.XX)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
+         - if afni_atlases_dist exists, new atlases will not be pulled
+           unless -update_atlases is given
       - prepare src build
          - copy git/afni/src to build_src
          - copy specified Makefile
@@ -778,7 +780,7 @@ class MyInterface:
          rv = self.run_main_build()
 
          # if we succeeded, rsync the results
-         if self.run_install and not rv:
+         if self.run_install and not self.prep_only and not rv:
             rv = self.f_run_install()
 
       # -----------------------------------------------------------------
@@ -1145,14 +1147,14 @@ class MyInterface:
       """
 
       if self.verb: MESG("")
-      MESGm("will run 'cmake' build")
+      MESGm("preparing to run 'cmake' build")
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if we already have a build dir, the user requested not to clean
       if os.path.isdir(self.dcbuild):
-         MESGm("will reuse existing src director, %s" % self.dcbuild)
+         MESGm("will reuse existing src directory, %s" % self.dcbuild)
       else:
          st, ot = self.run_cmd('mkdir', self.dcbuild, pc=1)
          if st: return st
@@ -1223,14 +1225,14 @@ class MyInterface:
       """
 
       if self.verb: MESG("")
-      MESGm("will run 'make' build of package %s" % self.package)
+      MESGm("preparing to run 'make' build of package %s" % self.package)
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if we already have a build dir, the user requested not to clean
       if os.path.isdir(self.dsbuild):
-         MESGm("will reuse existing src director, %s" % self.dsbuild)
+         MESGm("will reuse existing src directory, %s" % self.dsbuild)
       else:
          st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
          if st: return st
