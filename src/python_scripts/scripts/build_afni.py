@@ -87,7 +87,7 @@ examples: ~1~
    3. use an alternate Makefile, but do not update git repo ~2~
 
         build_afni.py -build_root my/build/dir -git_update no \\
-                      -makefile my_better_makefile
+                      -makefile preferred_makefile
 
    4. do not check out any tag ~2~
 
@@ -101,7 +101,7 @@ examples: ~1~
    5. test the setup, but do not run any make (using -prep_only) ~2~
 
         build_afni.py -build_root my/build/dir -prep_only \\
-                      -git_update no -makefile my_better_makefile 
+                      -git_update no -makefile preferred_makefile 
 
 
 ------------------------------------------
@@ -302,6 +302,14 @@ other options:
           By default, a make build will be run.  Use this option to specify
           not to.
 
+      -update_atlases yes/no    : update atlases, even if the package exists
+
+          default: -update_atlases yes
+          e.g.   : -update_atlases no
+
+          By default, if the atlases directory exists (afni_atlases_dist),
+          it will not be updated.  Use this option to force a new download.
+
       -verb LEVEL               : set the verbosity level (default 1)
 
           e.g. -verb 2
@@ -452,6 +460,8 @@ class MyInterface:
       self.git_branch      = ''     # branch to check out (def master)
       self.git_tag         = ''     # tag to check out (def LAST_TAG)
       self.git_update      = 1      # do git clone or pull
+      self.make_target     = 'itall' # target in "make" command
+      self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
 
       self.prep_only       = 0      # prepare (c)make, but do not run
@@ -459,8 +469,7 @@ class MyInterface:
       self.run_make        = 1      # actually run make?
       self.run_backup      = 1      # install build results and atlases
       self.run_install     = 1      # install build results and atlases
-      self.make_target     = 'itall' # target in "make" command
-      self.makefile        = ''     # an alternate Makefile to build from
+      self.update_atlases  = 0      # do we force an atlas update
 
       self.verb            = verb   # verbosity level
 
@@ -586,6 +595,9 @@ class MyInterface:
       self.valid_opts.add_opt('-run_make', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'make' build? (def=y)")
+      self.valid_opts.add_opt('-update_atlases', 1, [],
+                      acplist=['yes','no'],
+                      helpstr="should we re-download atlases? (def=n)")
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -720,6 +732,12 @@ class MyInterface:
                self.run_cmake = 1
             else:
                self.run_cmake = 0
+
+         elif opt.name == '-update_atlases':
+            if OL.opt_is_yes(opt):
+               self.update_atlases = 1
+            else:
+               self.update_atlases = 0
 
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
@@ -1439,39 +1457,56 @@ class MyInterface:
       # (use a local variable in case it later comes from elsewhere)
       atlas_pack = g_atlas_pack
 
-      # if atlases already exist, use them
+      # and note atlas path for possible install or rsync suggestion
+      self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
+
+      # if atlases already exist, use them (or re-download)
       if os.path.exists(atlas_pack):
-         if not os.path.isdir(atlas_pack):
-            MESGe("** have build_root/%s, but it is not a directory??" \
-                  % atlas_pack)
-            return 1
+         # if NOT updating atlases, just check and return
+         if not self.update_atlases:
+            if not os.path.isdir(atlas_pack):
+               MESGe("** have build_root/%s, but it is not a directory??" \
+                     % atlas_pack)
+               return 1
 
-         # consider updating atlas_pack dir
-         # - or let user delete since we currently have no versioning
+            # we are done here
+            MESGm("will reuse existing atlas directory, %s" % atlas_pack)
+            return 0
 
-         MESGm("will reuse existing atlas directory, %s" % atlas_pack)
+         # update atlases: just move the old stuff out of the way
 
-      # otherwise, download and unpack
-      else:
-         # make sure there is no previous download
-         tgzfile = '%s.tgz' % atlas_pack
-         if os.path.exists(tgzfile):
-            st, ot = self.run_cmd('rm', tgzfile)
+         renamed = '%s%s' % (self.pold, atlas_pack)
+         if os.path.exists(renamed):
+            MESGm("removing old atlas dir, %s" % renamed)
+            st, ot = self.run_cmd('rmtree', renamed, pc=1)
             if st: return st
 
-         # download and unpack atlas package
-         MESGm("downloading AFNI atlas package, %s" % tgzfile)
-         st, ot = self.run_cmd('curl -O', g_atlas_html)
+         # now rename the atlas dir to the backup name
+         MESGm("moving old atlas dir %s to %s" % (atlas_pack, renamed))
+         st, ot = self.run_cmd('mv', [atlas_pack, renamed], pc=1)
          if st: return st
 
-         MESGm("unpacking atlas package, %s" % atlas_pack)
-         st, ot = self.run_cmd('tar xfz %s' % tgzfile)
-         if st: return st
+         # and proceed with the install, below...
+
+
+      # ------------- download and unpack
+
+      # make sure there is no previous download
+      tgzfile = '%s.tgz' % atlas_pack
+      if os.path.exists(tgzfile):
          st, ot = self.run_cmd('rm', tgzfile)
          if st: return st
 
-      # and note atlas path for possible install or rsync suggestion
-      self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
+      # download and unpack atlas package
+      MESGm("downloading AFNI atlas package, %s" % tgzfile)
+      st, ot = self.run_cmd('curl -O', g_atlas_html)
+      if st: return st
+
+      MESGm("unpacking atlas package, %s" % atlas_pack)
+      st, ot = self.run_cmd('tar xfz %s' % tgzfile)
+      if st: return st
+      st, ot = self.run_cmd('rm', tgzfile)
+      if st: return st
 
       return 0
 
@@ -1667,7 +1702,7 @@ class MyInterface:
             return 1, ''
          self.cmd_history.append(cstr)
       elif cmd == 'rmtree':
-         # allow this to be a file, to simply and work like rm -fr
+         # allow this to be a file, to simplify and work like rm -fr
          if os.path.isfile(pstr):
             cstr = "os.remove('%s')" % pstr
          else:
