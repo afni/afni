@@ -491,6 +491,8 @@ workflows:
               only: /.*/
       - build:
           name: cmake_build
+          requires:
+            - test_make_build
           matrix:
             parameters:
               build_type: ["cmake_build"]
@@ -503,8 +505,6 @@ workflows:
               only: /.*/
       - build:
           name: make_build
-          requires:
-            - test_cmake_build
           matrix:
             parameters:
               build_type: ["make_build"]
