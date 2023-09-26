@@ -100,7 +100,8 @@ def medianDownsampleRawDataPeaksTroughs(rawData, refPeaksTroughs,
 def medianDownsampleArray(array, downsample_factor):
    end =  downsample_factor * int(len(array)/downsample_factor)
    newArray = np.median(array[:end].reshape(-1, downsample_factor), 1)
-   newArray = np.append(newArray, np.median(array[end:]))
+   if (len(array[end:])>0): 
+       newArray = np.append(newArray, np.median(array[end:]))
    
    return newArray
 
@@ -115,6 +116,7 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
    rawData, refPeaksTroughs, targetPeaksTroughs = \
        medianDownsampleRawDataPeaksTroughs(rawData, refPeaksTroughs, 
             targetPeaksTroughs, downsample_factor)
+   samp_rate = samp_rate/downsample_factor
         
    # Ensure target peak/trough indices do not exceed the length of the raw data
    # (which is based on the reference data)
@@ -132,14 +134,14 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
                                alpha=1.0,
                                color='tab:orange')
    ret_plobj2 = lrp.RetroPlobj(tmp_x_r, tmp_y_r, 
-                               label=dataType + ' peaks',
+                               label=dataType + ' reference',
                                ls='None', marker=7,
-                               ms=4, mec='white', mew=0.02,
+                               ms=5, mec='white', mew=0.02,
                                color='tab:red')
    ret_plobj3 = lrp.RetroPlobj(tmp_x_t, tmp_y_t, 
-                               label=dataType + ' troughs',
+                               label=dataType + ' target',
                                ls='None', marker=7,
-                               ms=4, mec='white', mew=0.02,
+                               ms=3, mec='white', mew=0.02,
                                color='tab:blue')
    
    # plt.ion() This causes the fig to flash, when show fig false and is not 
@@ -156,7 +158,7 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
                        max_n_per_sub=5000, 
                        fontsize = font_size,
                        title=Title)
-   fff.add_plobj(ret_plobj1)
+   fff.add_plobj(ret_plobj1) # Number of subplots determined here
    fff.add_plobj(ret_plobj2)
    fff.add_plobj(ret_plobj3)
    fff.make_plot( do_show = showGraph, do_save = saveGraph)
