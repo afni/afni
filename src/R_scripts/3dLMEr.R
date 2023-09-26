@@ -427,7 +427,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
-   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
+   "         is less than the second. The default (the absence of this option) is no",
+   "         outlier removal. \n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
