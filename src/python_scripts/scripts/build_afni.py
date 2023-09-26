@@ -331,10 +331,11 @@ g_history = """
    0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
    0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
    0.5  Sep  8, 2023 - back up and install the build results
+   0.6  Sep 25, 2023 - add option -update_atlases
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.5, September 8, 2023" % g_prog
+g_version = "%s, version 0.6, September 25, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -359,46 +360,31 @@ def MESGe(mstr, disp=1):
   """(possibly) display and log the message
      - display as an error
   """
-  pmesg = "** error: %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("** error: %s" % mstr)
 
 def MESGw(mstr, disp=1):
   """(possibly) display and log the message
      - display as a warning
   """
-  pmesg = "** warning: %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("** warning: %s" % mstr)
 
 def MESGm(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'minus' prefix (--)
   """
-  pmesg = "-- %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("-- %s" % mstr)
 
 def MESGp(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'plus' prefix (++)
   """
-  pmesg = "++ %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("++ %s" % mstr)
 
 def MESGi(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'space' indentation prefix (  )
   """
-  pmesg = "   %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("   %s" % mstr)
 
 def MESG_write_log(fname):
    """write the stored message log to the given text file
