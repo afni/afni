@@ -331,11 +331,11 @@ g_history = """
    0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
    0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
    0.5  Sep  8, 2023 - back up and install the build results
-   0.6  Sep 25, 2023 - add option -update_atlases
+   0.6  Sep 26, 2023 - install NiiVue, add option -update_atlases
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.6, September 25, 2023" % g_prog
+g_version = "%s, version 0.6, September 26, 2023" % g_prog
 
 g_git_html = "https://github.com/afni/afni.git"
 g_afni_site = "https://afni.nimh.nih.gov"
@@ -1086,7 +1086,7 @@ class MyInterface:
       if self.sync_src_niivue:
          MESGp("installing NiiVue under %s" % abin)
          self.add_final_mesg("------------------------------")
-         self.add_final_mesg("Niivue installed to %s" % abin)
+         self.add_final_mesg("NiiVue installed to %s" % abin)
          st, ot = self.run_cmd('rsync -av %s %s/ >> %s' \
                       % (self.sync_src_niivue, abin, self.rsync_file)) 
          if st: return st
@@ -1475,6 +1475,7 @@ class MyInterface:
       # note the atlas package
       # (use a local variable in case it later comes from elsewhere)
       atlas_pack = g_atlas_pack
+      renamed = '%s%s' % (self.pold, atlas_pack)
 
       # and note atlas path for possible install or rsync suggestion
       self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
@@ -1494,7 +1495,6 @@ class MyInterface:
 
          # update atlases: just move the old stuff out of the way
 
-         renamed = '%s%s' % (self.pold, atlas_pack)
          if os.path.exists(renamed):
             MESGm("removing old atlas dir, %s" % renamed)
             st, ot = self.run_cmd('rmtree', renamed, pc=1)
@@ -1518,8 +1518,21 @@ class MyInterface:
 
       # download and unpack atlas package
       MESGm("downloading AFNI atlas package, %s" % tgzfile)
-      st, ot = self.run_cmd('curl -O', g_atlas_html)
-      if st: return st
+      st, ot = self.run_cmd('curl -f -O', g_atlas_html)
+      if st:
+         # if we have a backup, restore it
+         MESGe("failed to download AFNI atlas package")
+         if os.path.exists(renamed):
+            MESGp("restoring old atlas dir %s to %s" % (renamed, atlas_pack))
+            st, ot = self.run_cmd('mv', [renamed, atlas_pack], pc=1)
+            if st: return st
+         else:
+            MESGm("no atlas backup to restore from")
+            MESGi("continuing with build, but will not install")
+            self.run_install = 0
+
+         # and continue without any unpacking
+         return 0
 
       MESGm("unpacking atlas package, %s" % atlas_pack)
       st, ot = self.run_cmd('tar xfz %s' % tgzfile)
@@ -1565,11 +1578,10 @@ class MyInterface:
       # ------------- download
 
       MESGm("downloading NiiVue, %s" % niivue)
-      st, ot = self.run_cmd('curl -O', g_niivue_html)
+      st, ot = self.run_cmd('curl -f -O', g_niivue_html)
 
       # on failure, whine but proceed
       if st:
-         MESGi(ot)
          MESGw("failed to download NiiVue, proceeding anyway...")
 
          if os.path.exists(backup):

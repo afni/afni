@@ -53,8 +53,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 25, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
-   "add option -update_atlases, to download newest package",
+ { 26, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "install NiiVue; add option -update_atlases, to download newest package",
    NULL
  } ,
 
