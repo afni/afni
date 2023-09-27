@@ -63,8 +63,8 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 21, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
-   "add option -use_asc_path, to test using directory of afni_system_check.py",
+ { 21, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "capture the platform of the R version",
    NULL
  } ,
 
