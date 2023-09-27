@@ -579,7 +579,7 @@ def getRespiratoryPeaks(test_retro_obj):
     if test_retro_obj.save_proc_troughs:
        outputFileName = test_retro_obj.out_dir + '/respiratoryTroughs.txt'
        file = open(outputFileName, "w+")
-       np.savetxt(file, peaks, fmt='%i')
+       np.savetxt(file, troughs, fmt='%i')
        file.close()
    
     # Save raw data if required

@@ -12,6 +12,7 @@ from   datetime   import datetime
 import os
 import numpy as np
 import lib_retro_plot as lrp
+import shutil
 
 # Allowed options
 DEF = {
@@ -177,6 +178,8 @@ if __name__ == "__main__":
     else:
         now      = datetime.now() # current date and time
         OutDir = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
+    if os.path.exists(OutDir) and os.path.isdir(OutDir):
+        shutil.rmtree(OutDir)
     os.mkdir(OutDir)        
     
     # Read input data
@@ -186,7 +189,22 @@ if __name__ == "__main__":
     dataType = 'CardiacPeaks'
     plotPeakTroughComparisons(dataType, inputData['cardiacRawData'], 
             inputData['cardiacPeaksRef'], inputData['cardiacPeaksTarget'], 
-            args_dict['freq'], args_dict['font_size'])
+            args_dict['freq'], args_dict['font_size'], 
+            saveGraph = args_dict['save_graph_level'])
+    
+    # Display and save respiratory peaks against raw data
+    dataType = 'respiratoryPeaks'
+    plotPeakTroughComparisons(dataType, inputData['respiratoryRawData'], 
+            inputData['respiratoryPeaksRef'], inputData['respiratoryPeaksTarget'], 
+            args_dict['freq'], args_dict['font_size'], 
+            saveGraph = args_dict['save_graph_level'])
+    
+    # Display and save respiratory troughs against raw data
+    dataType = 'respiratoryTroughs'
+    plotPeakTroughComparisons(dataType, inputData['respiratoryRawData'], 
+            inputData['respiratoryTroughsRef'], inputData['respiratoryTroughsTarget'], 
+            args_dict['freq'], args_dict['font_size'], 
+            saveGraph = args_dict['save_graph_level'])
     
     # End
     print('End')
