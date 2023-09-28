@@ -34,6 +34,7 @@ examples
    1.  afni_system_check.py -check_all
    2a. afni_system_check.py -find_prog python
    2b. afni_system_check.py -find_prog python -exact yes
+   3.  afni_system_check.py -disp_R_ver_for_lib $R_LIBS
 
 -----------------------------------------------------------------------------
 terminal options:
@@ -53,6 +54,9 @@ action options:
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
    -disp_num_cpu        : display number of CPUs available
+   -disp_R_ver_for_lib  : display the R version used when building an R library
+                          - this refers to those intsalled by rPkgsInstall,
+                            most likely under $R_LIBS
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
@@ -332,9 +336,10 @@ g_history = """
    1.23 Jun 20, 2023 - under linux: check for R_io.so shared dependencies
    1.24 Sep 18, 2023 - add -use_asc_path
    1.25 Sep 21, 2023 - capture the R platform with its version
+   1.26 Sep 28, 2023 - add option -disp_R_ver_for_lib
 """
 
-g_version = "afni_system_check.py version 1.25, September 21, 2023"
+g_version = "afni_system_check.py version 1.26, September 28, 2023"
 
 
 class CmdInterface:
@@ -395,6 +400,8 @@ class CmdInterface:
                       helpstr='directory to check for class data')
       self.valid_opts.add_opt('-disp_num_cpu', 0, [],
                       helpstr='display number of CPUs available')
+      self.valid_opts.add_opt('-disp_R_ver_for_lib', 1, [],
+                      helpstr='display R version library was built against')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
@@ -475,6 +482,12 @@ class CmdInterface:
          if opt.name == '-disp_num_cpu':
             self.act = 1
             self.sys_disp.append('num_cpu')
+            continue
+
+         if opt.name == '-disp_R_ver_for_lib':
+            self.act = 1
+            self.sys_disp.append('R_ver_for_lib')
+            self.R_ver_lib_path = opt.parlist[0]
             continue
 
          if opt.name == '-disp_ver_matplotlib':
@@ -561,6 +574,8 @@ class CmdInterface:
               print(self.sinfo.get_cpu_count())
           if x == 'ver_matplotlib':
               print(self.sinfo.get_ver_matplotlib())
+          if x == 'R_ver_for_lib':
+              print(self.sinfo.get_R_ver_for_lib(self.R_ver_lib_path))
 
    def check_dotfiles(self, show=0, pack=0):
       global g_dotfiles

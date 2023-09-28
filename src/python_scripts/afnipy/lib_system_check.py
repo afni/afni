@@ -1029,6 +1029,102 @@ class SysInfo:
 
       return ver
 
+   def get_R_ver_for_lib(self, droot):
+      """return the version of R used to build libraries under 'droot'
+
+         droot should be a directory
+
+         RDS = find the first package.rds file under droot
+         run 'R -e 'd <-readRDS("RDS") ; d$Built$R'
+         use subprocess directly
+
+         any of these steps might fail, so we show what we can
+
+         return a version string on success, '' on failure
+      """
+      pname = 'package.rds'
+      ftxt = 'R_ver_for_lib'
+
+      # allow an rds file as input
+      if os.path.isfile(droot):
+         if not droot.endswith(pname):
+            print('** failed %s:' % ftxt)
+            pirnt('   not a dir or %s: %s' % (pname, ftxt))
+            return ''
+         # use droot as testpack
+         testpack = droot
+
+      # else if not a directory, fail
+      elif not os.path.isdir(droot):
+         print('** failed %s: not a directory: %s' % (ftxt, droot))
+         print('   (consider passing $R_LIBS)')
+         return ''
+
+      # else we have a directory, use globbing to get a file
+      else:
+         # try a few ways, from the closest on up
+         flist = glob.glob('%s/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/*/package.rds' % droot)
+
+         if len(flist) == 0:
+            print('** failed %s: no package.rds under %s' % (ftxt, droot))
+            return ''
+
+         testpack = flist[0]
+
+      # --- we have a test package, now want to run the R command
+
+      rcmd = 'd <-readRDS("%s") ; d$Built$R' % testpack
+      Rargs = ['R', '-e', rcmd]
+      Rfull = "R -e '%s'" % rcmd
+
+      if self.verb > 1:
+         print('++ running: %s' % Rfull)
+
+      try:
+         import subprocess as SP
+         spout = SP.run(Rargs, capture_output=True)
+      except:
+         print("** failed to exec R command")
+         return ''
+
+      if spout.returncode:
+         print("** failed to run: %s" % Rfull)
+         return ''
+
+      outtext = spout.stdout.decode()
+      outlist = outtext.split()
+      if len(outlist) == 0:
+         print('** failed %s: no R -e output' % ftxt)
+         return ''
+
+      if self.verb > 2:
+         print("-- R output:\n%s\n" % outtext)
+
+      # we have a list of output tokens, we might want something like:
+      # "'4.3.1'" - watch for the extra quotes
+
+      for ind in range(len(outlist)-1, -1, -1):
+         vstr = outlist[ind].strip("'")
+         slist = vstr.split('.')
+         ilist = []
+         try:
+            # look for all ints
+            ilist = [int(val) for val in slist]
+         except:
+            pass
+         if len(ilist) in [2,3]:
+            # SUCCESS!  wait, what were we here for again??? oh, vstr
+            if self.verb > 2: print("++ success: have ver %s" % vstr)
+            return vstr
+
+      if self.verb > 2: print("** %s failure" % ftxt)
+
+      return ''
+
    def test_python_lib_pyqt4(self, verb=2):
       # do we even care to be here?
       if not self.test_pyqt4:

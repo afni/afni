@@ -60,6 +60,11 @@ afni_history_struct rickr_history[] = {
    "The b_user scripts still just run OS_notes.macos_12_b_user.tcsh."
  } ,
 
+ { 28, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -disp_R_ver_for_lib",
+   NULL
+ } ,
+
  { 26, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "install NiiVue; add option -update_atlases, to download newest package",
    NULL
