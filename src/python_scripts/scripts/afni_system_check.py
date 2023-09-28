@@ -55,7 +55,7 @@ action options:
                           - see section, "details displayed via -check_all"
    -disp_num_cpu        : display number of CPUs available
    -disp_R_ver_for_lib  : display the R version used when building an R library
-                          - this refers to those intsalled by rPkgsInstall,
+                          - this refers to those installed by rPkgsInstall,
                             most likely under $R_LIBS
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
