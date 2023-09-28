@@ -2102,7 +2102,7 @@ int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode,
    if (spacename && spacename[0] != '\0') {
       set_Coord_Space_Name(ac, spacename);
    } else {
-      set_Coord_Space_Name(ac, "TT_Daemon");
+      set_Coord_Space_Name(ac, Current_Atlas_Default_Name());
    }
 
    return(1);
@@ -3557,7 +3557,7 @@ AFNI_ATLAS *Build_Atlas (char *aname, ATLAS_LIST *atlas_list)
       ERROR_message("Failed to get %s", aname);
       RETURN(NULL);
    }
-   /* Call this function just to force TT_Daemon to end up in BIG format*/
+   /* Call this function just to force default to end up in BIG format*/
    TT_retrieve_atlas_dset(aname, 1);
 
    if (LocalHead) fprintf(stderr,"%s loaded\n", aname);
@@ -9075,7 +9075,8 @@ char *Current_Atlas_Default_Name()
    if(ept != NULL) return(search_quotes(ept)); /* remove any extra quotes*/
    if( ept != NULL ) return( ept ) ;
 
-   return("TT_Daemon");
+   return("CA_ML_18_MNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
+
 }
 
 
