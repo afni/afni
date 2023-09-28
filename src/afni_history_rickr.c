@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "split OS_notes_macos_12 by CPU",
+   "Now have : OS_notes.macos_12_{ARM,intel}_a_admin.zsh\n"
+   "     and : OS_notes.macos_12_{ARM,intel}_b_user.tcsh\n"
+   "The b_user scripts still just run OS_notes.macos_12_b_user.tcsh."
+ } ,
+
  { 26, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "install NiiVue; add option -update_atlases, to download newest package",
    NULL
