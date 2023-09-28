@@ -3,7 +3,7 @@
 # set up a machine for building AFNI
 #
 # this assumes 'zsh' is the login shell
-# this applies to both ARM and Intel
+# this applies to ARM (for R package)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -31,15 +31,10 @@ echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.zshrc
 pip install matplotlib
 
 # ----------------------------------------------------------------------
-# install R
+# install R - currently 4.3.1
 
-# ** We will make some updates for this...
-#
-#    Aside from having to pick a version, the R packages are
-#       CPU-specific, and this one is for Intel x86_64.
-
-curl -O https://cran.r-project.org/bin/macosx/base/R-4.2.3.pkg
-sudo installer -pkg R-4.2.3.pkg -target /
+curl -O https://cran.r-project.org/bin/macosx/big-sur-arm64/base/R-4.3.1-arm64.pkg
+sudo installer -pkg R-4.3.1-arm64.pkg -target /
 
 
 # ----------------------------------------------------------------------
