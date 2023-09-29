@@ -504,9 +504,9 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str);   /* 
 int thd_LT_label_to_int_list(THD_3dim_dataset *dset,int_list *ilist,char *str); /* 22 Nov 2016 [rickr] */
 int known_atlas_label_to_int_list(int_list * ilist, char * str);
 
-
-char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
-char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
+// long defunct Elsevier server - code if 0'd if we need similar functionality
+// char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
+// char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
 void wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami);
 
 char * whereami_XML_get(char *data, char *name, char **next);

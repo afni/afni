@@ -68,8 +68,7 @@ THD_string_array *get_working_atlas_name_list(void) {
 	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0",
 	  "CA_ML_18_MNI", "CA_MPM_22_MNI",
       "DD_Desai_MPM", "DKD_Desai_MPM",
-      "CA_GW_18_MNIA", "CA_N27_LR",
-      "TT_Daemon", NULL};
+      "CA_GW_18_MNIA", "CA_N27_LR", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -7963,7 +7962,7 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
       if(ATL_WEB_TYPE(atlas) && (get_wami_web_reqtype() != WAMI_WEB_STRUCT)){
          if (wami_verb() > 1)
             INFO_message("trying to access web-based atlas");
-         elsevier_query_request(xout, yout, zout, atlas, get_wami_web_reqtype());
+//         elsevier_query_request(xout, yout, zout, atlas, get_wami_web_reqtype());
       }
       else{  /* regular (non-web) atlas request for local dataset */
          XYZ_to_AtlasCoord(xout, yout, zout, "RAI", atlas->space, &ac);
@@ -9232,7 +9231,6 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
 {
    ATR_string * atr=NULL;
    char       * str_lab=NULL;
-   int          found;
 
    ENTRY("AFNI_get_dset_label_ival") ;
 
@@ -9242,7 +9240,6 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
    }
 
    *val = 0;
-   found = 0;
 
    /* initialize hash table */
    if (!dset->Label_Dtable &&
@@ -9342,6 +9339,7 @@ int known_atlas_label_to_int_list(int_list * ilist, char * str)
 }
 
 
+#if 0
 /* open Elsevier's BrainNavigator in webpage */
 /* xyz input should be in RAI in the same space as atlas,
    but BrainNavigator takes "RSA" as xyz order, so coords need
@@ -9476,9 +9474,13 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
 
    RETURN(sss);
 }
+#endif
 
-
-/* query Elsevier for whereami at select locations */
+/* query Elsevier for whereami at select locations
+ * NOTE Elsevier does not provide this functionality
+*  so this code only provides a placeholder for similar web-based
+*  atlases, i.e. web servers that given an x y z location and an atlas
+*  name can provide an ROI label */
 void
 wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
 {
@@ -9491,7 +9493,9 @@ wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
       WAMIRAD = Init_Whereami_Max_Rad();
    }
 
-   blab = elsevier_query_request(ac.x, ac.y, ac.z, atlas, WAMI_WEB_STRUCT);
+// removing actual call to send request to defunct server
+//   blab = elsevier_query_request(ac.x, ac.y, ac.z, atlas, WAMI_WEB_STRUCT);
+   blab = NULL;
    if(blab == NULL)
        EXRETURN;
 
