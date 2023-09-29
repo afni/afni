@@ -93,6 +93,14 @@ mkdir -p $R_LIBS
 rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
 
 # ----------------------------------------------------------------------
+# verify that Xvfb is in the PATH
+which Xvfb >& /dev/null
+if ( $status ) then
+   # add /opt/X11/bin to PATH
+   echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.zshrc
+endif
+
+# ----------------------------------------------------------------------
 # misc, for ASC whining
 
 cp ~/abin/AFNI.afnirc ~/.afnirc
