@@ -112,7 +112,7 @@
  * and clamping those that do overflow to the maximum value will give close-
  * enough results.  This reduces the recommended histogram size from 256Kb
  * to 128Kb, which is a useful savings on PC-class machines.
- * (In the second pass the histogram space is re-used for pixel mapping data;
+ * (In the second pass the histogram space is reused for pixel mapping data;
  * in that capacity, each cell must be able to store zero to the number of
  * desired colors.  16 bits/cell is plenty for that too.)
  * Since the JPEG code is intended to run in small memory model on 80x86

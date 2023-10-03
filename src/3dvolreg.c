@@ -1433,7 +1433,7 @@ void VL_syntax(void)
     "  -verbose        Print progress reports.  Use twice for LOTS of output.\n"
     "  -Fourier        Perform the alignments using Fourier interpolation.\n"
     "  -heptic         Use heptic polynomial interpolation.\n"
-    "  -quintic        Use quintic polynomical interpolation.\n"
+    "  -quintic        Use quintic polynomial interpolation.\n"
     "  -cubic          Use cubic polynomial interpolation.\n"
     "  -linear         Use linear interpolation.\n"
     "             -->>   OLD Default = Fourier [slowest and most accurate interpolator]\n"

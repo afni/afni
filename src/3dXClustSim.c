@@ -1679,7 +1679,7 @@ GARP_LOOPBACK:
      farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
      farlast    = farperc ;                         /* save for next FPR goal */
 
-     /* save results for later re-use */
+     /* save results for later reuse */
      if( ntfp == ntfp_all ){
        ntfp_all += 128 ;
        tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;

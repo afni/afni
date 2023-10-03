@@ -1507,7 +1507,7 @@ typedef struct{
    int Nj;   /*!< Number of columns = Number of elements PER ROW (2nd dim)*/
    int *cwidth; /*!< character spaces to save for widget per column */
    byte *but_flag; /*!< Flags to indicate button status of a cell. That is
-                        to allow the highjacking of text fields to make them
+                        to allow the hijacking of text fields to make them
                         toggle buttons. This should normally be used for column
                         and row titles only. But you never know */
    float *num_value;   /*!< current value at each cell (for numeric cells)*/
@@ -3475,7 +3475,7 @@ typedef struct {
    char perimeter_id[100];
    int N_Node_Specs; /*!< Number of nodes with listed node specs */
    int **Specs_mat; /*!< Node Specs matrix. Columns appear to be
-                         arraged as such NodeId #Neighbors ? ? NodeId ? */
+                         arranged as such NodeId #Neighbors ? ? NodeId ? */
    SUMA_NODE_FIRST_NEIGHB FN; /*!< First order neighbor structure */
    int N_FaceSet; /*!< Number of polygons making up surface */
    int *FaceSetList; /*!< definition of polygons. Became a vector in SUMA 1.2*/

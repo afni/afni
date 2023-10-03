@@ -495,7 +495,7 @@ if(DEBUG) ININFO_message("hollowing out old dataset") ;
        *slf.dset = *icaset ;      /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
        nds = slf.dset_index ;
-       INFO_message("trashed and re-used old dataset %s",ics->prefix) ;
+       INFO_message("trashed and reused old dataset %s",ics->prefix) ;
 
      } else {                                  /* add to the session */
        int vv = icaset->view_type ;
@@ -643,7 +643,7 @@ static char *helpstring =
    "Author -- RW Cox -- Sep 2009\n"
    "\n"
    "DEBUGGING:\n"
-   "  If you can make InstaCalc realiably crash, please re-run AFNI with\n"
+   "  If you can make InstaCalc reliably crash, please re-run AFNI with\n"
    "  the extra option '-DAFNI_INSTACALC_DEBUG=YES' and then make it crash;\n"
    "  the screen printout of the processing steps might help figure out what\n"
    "  is going on when you report it to me.\n"

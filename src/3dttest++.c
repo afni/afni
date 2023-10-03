@@ -1265,7 +1265,7 @@ void display_help_menu(void)
       "                  and get time-dependent t-test results. It is possible to do\n"
       "                  the same thing with a scripted loop, but that way is painful.\n"
       "              ++ You CAN use '-covariates' with '-brickwise'. You should note\n"
-      "                  that each t-test will re-use the same covariates -- that is,\n"
+      "                  that each t-test will reuse the same covariates -- that is,\n"
       "                  there is no provision for time-dependent covariate values --\n"
       "                  for that, you'd have to use scripting to run 3dttest++\n"
       "                  multiple times.\n"

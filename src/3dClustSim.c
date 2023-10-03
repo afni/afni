@@ -1650,7 +1650,7 @@ void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter
 #ifdef USE_SHAVE
 /*---------------------------------------------------------------------------*/
 /* 'shave' == 'short save' == saving generated images
-   for re-use in the sumup phase of the program.
+   for reuse in the sumup phase of the program.
    Only the "in-mask" part is saved, and values are scale to shorts.
    Memory is malloc-ed for small needs, and is mmap-ed for large needs.
 *//*-------------------------------------------------------------------------*/

@@ -50,7 +50,7 @@ typedef struct
 		  int yloc;
 		  int zloc;
 		  float pass;  /* value of voxels that are extracted */
-		  float fail;	/* value of voxels that are not extacted */
+		  float fail;	/* value of voxels that are not extracted */
 		  int ncols;
 		  int nrows;
 		  float * indvect;	/* vector that will hold the list of indices */

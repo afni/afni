@@ -1771,7 +1771,7 @@ STATUS("setup done") ;
    /*-- get new value array --*/
 
    if( new_pval == NULL ){
-STATUS("re-use pval_save") ;
+STATUS("reuse pval_save") ;
      for( i=0 ; i <= npane ; i++ ) pval[i] = pbar->pval_save[npane][i][jm] ;
    } else {
 STATUS("use new_pval") ;

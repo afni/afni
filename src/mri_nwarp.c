@@ -5858,7 +5858,7 @@ if( verb_nww > 1 ) fprintf(stderr,"d%s",MEMORY_SHORT) ;
        kp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,2) ) ;  /* of dataset values */
 
      } else if( !reuse && verb_nww ){
-       reuse = 1 ; fprintf(stderr,"[R]") ;  /* flag that re-use has started */
+       reuse = 1 ; fprintf(stderr,"[R]") ;  /* flag that reuse has started */
      }
 
      /*----- warp this iv-th sub-brick of the input -----*/

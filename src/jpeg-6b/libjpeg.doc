@@ -123,7 +123,7 @@ The rough outline of a JPEG compression operation is:
 
 A JPEG compression object holds parameters and working state for the JPEG
 library.  We make creation/destruction of the object separate from starting
-or finishing compression of an image; the same object can be re-used for a
+or finishing compression of an image; the same object can be reused for a
 series of image compression operations.  This makes it easy to re-use the
 same parameter settings for a sequence of images.  Re-use of a JPEG object
 also has important implications for processing abbreviated JPEG datastreams,

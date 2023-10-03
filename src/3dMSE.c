@@ -151,7 +151,7 @@ int main( int argc , char *argv[] )
 "  Computes voxelwise multi-scale entropy."
 "\n"
 "Options:\n"
-"  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
+"  -polort m = Remove polynomial trend of order 'm', for m=-1..3.\n"
 "               [default is m=1; removal is by least squares].\n"
 "               Using m=-1 means no detrending; this is only useful\n"
 "               for data/information that has been pre-processed.\n"
