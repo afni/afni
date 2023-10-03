@@ -292,7 +292,13 @@ static Xclu_opt **opt_Xclu = NULL ;
 static char *Xclu_arg      = NULL ; /* 10 Sep 2016 */
 
 static int do_global_etac  = 1 ;    /* Sep 2018 */
-static int do_local_etac   = 0 ;
+
+#define DISABLE_LOCAL_ETAC          /* May 2020 - hard disable of Local ETAC */
+#ifdef  DISABLE_LOCAL_ETAC
+# define do_local_etac        0
+#else
+ static int do_local_etac   = 0 ;
+#endif
 
 static char *clustsim_prog = NULL ; /* 30 Aug 2016 */
 static char *clustsim_opt  = NULL ;
@@ -1743,20 +1749,45 @@ void display_help_menu(void)
       "                        slow, this multiple cases ability is here to help\n"
       "                        you speed things up when you are trying out different\n"
       "                        possibilities.\n"
-      "                        The 'params' string is one argument, with different\n"
-      "                        parts separated by colon ':' characters. The parts are\n"
+      "                   ===>>> NOTE WELL:\n"
+      "                          * Each use of '-ETAC_opt' creates a new and separate\n"
+      "                            case for analysis.\n"
+      "                          * Each case will have an entirely set of new outputs.\n"
+      "                          * That is, you cannot give some parameters for a\n"
+      "                            single analysis in one -ETAC_opt option and some\n"
+      "                            other parameters in another one.\n"
+      "                          * Parameters not given will get default values,\n"
+      "                            which are given farther down.\n"
+      "                          * Thus,\n"
+      "                              -ETAC_opt fpr=MUCHO\n"
+      "                              -ETAC_opt pthr=0.001,0.002,0.005,0.010\n"
+      "                            will NOT give results for the 'MUCHO' levels of\n"
+      "                            FRP combined with the 4 pthr levels; instead,\n"
+      "                            you will get the MUCHO results for the default\n"
+      "                            10 levels of pthr and then a separate set of\n"
+      "                            results for the above 4 levels of pthr at the\n"
+      "                            single default level of FPR = 5%%.\n"
+      "\n"
+      "                  The 'params' string is one argument, with different\n"
+      "                  parts separated by colon ':' characters. The parts are\n"
       "                    NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
       "                    hpow=h1,h2,...       } list of H powers (0, 1, and/or 2)\n"
-      "                    fpr=value            } FPR goal, between 1 and 9 (percent)\n"
-      "                                         } - must be an integer\n"
+      "                    fpr=value            } FPR goal, between 1 and 25 (percent)\n"
+      "                                         } - must be a single integer\n"
       "                                         } - or the word 'ALL' to output\n"
       "                                         }   results for 1, 2, 3, 4, ..., 9.\n"
       "                                         } - or the word 'MUCHO' to output\n"
       "                                         }   result for 1, 2, ..., 24, 25.\n"
-      "                    name=Something       } a label to distinguish this case\n"
-      "                        For example:\n"
+      "                                         } - there is no other capability for\n"
+      "                                         }   a list of integer fpr values!\n"
+      "                    name=Something       } a label to distinguish this case;\n"
+      "                                         } this is not required, but is advised\n"
+      "                   If spaces are desired/needed in the 'params' string, it should\n"
+      "                   be enclosed in quotes.\n"
+      "\n"
+      "                   For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
       "                       ++ You can use '-ETAC_opt' more than once, to make\n"
       "                          efficient re-use of the randomized/permuted cases.\n"
@@ -1822,18 +1853,21 @@ void display_help_menu(void)
       "                          being carried out by 3dttest++. Although these\n"
       "                          concepts are completely distinct, the naming\n"
       "                          with numerals can be a source of distraction.\n"
-      "                   -->>++ If you do not use '-ETAC_opt' at all, a built-in set\n"
+      "          DEFAULTS -->>++ If you do not use '-ETAC_opt' at all, a built-in set\n"
       "                          of parameters will be used. These are\n"
       "                            NN=2 sid=2 hpow=2 name=default\n"
       "                            pthr=0.01/0.001/10\n"
       "                                =0.010,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
       "                            fpr=5\n"
-      "                   -->>++ Note that using 'fpr=ALL' will make the ETAC calculations\n"
-      "                          slower, as the software has to compute results for 9 different\n"
-      "                          FPR goals, each of which requires thrashing through all\n"
-      "                          the pseudo-random simulations at least once.\n"
+      "                          For cases where you use '-ETAC_opt' with no 'name=' part, then\n"
+      "                          the program makes up a name like 'Case1', 'Case2', etc.\n"
+      "                   -->>++ Note that using 'fpr=ALL' (or 'MUCHO') will make the\n"
+      "                          ETAC calculations slower, as the software has to compute\n"
+      "                          results for many different FPR goals, each of which\n"
+      "                          requires thrashing through all the pseudo-random\n"
+      "                          simulations at least once.\n"
       "                         + On the other hand, seeing how the results mask varies\n"
-      "                           as the FPR goal changes can be illuminating.\n"
+      "                           as the FPR goal changes can be very illuminating.\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
       "                        3dXClustSim program (which is what implements ETAC).\n"
@@ -2510,9 +2544,11 @@ int main( int argc , char *argv[] )
    /* Initialize global/local ETAC calculations [Sep 2018] */
 
    if( AFNI_yesenv("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 1 ;
-   if( AFNI_yesenv("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 1 ;
    if( AFNI_noenv ("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 0 ;
+#ifndef DISABLE_LOCAL_ETAC
+   if( AFNI_yesenv("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 1 ;
    if( AFNI_noenv ("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 0 ;
+#endif
 
    while( nopt < argc ){
 
@@ -2774,14 +2810,16 @@ int main( int argc , char *argv[] )
 
      /*-----  local and global ETAC [Sep 2018]  -----*/
 
+#ifndef DISABLE_LOCAL_ETAC
      if( strcasecmp(argv[nopt],"-ETAC_local") == 0 ){
        do_Xclustsim = do_local_etac = 1 ; nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
-       do_Xclustsim = do_global_etac = 1 ; nopt++ ; continue ;
-     }
      if( strcasecmp(argv[nopt],"-noETAC_local") == 0 ){
        do_local_etac = 0 ; nopt++ ; continue ;
+     }
+#endif
+     if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
+       do_Xclustsim = do_global_etac = 1 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-noETAC_global") == 0 ){
        do_global_etac = 0 ; nopt++ ; continue ;
@@ -5584,11 +5622,11 @@ LABELS_ARE_DONE:  /* target for goto above */
        DESTROY_IMARR(inar) ;
      } /*-- end of 5percent stuff --*/
 
-     /* run 3d[X]ClustSim using the outputs from the above as the simulations */
+     /*--- run 3d[X]ClustSim using the outputs from the above as the simulations ---*/
 
      if( do_clustsim ){    /*----- 3dClustsim -----*/
 
-       for( icase=0 ; icase < ncase ; icase++ ){
+       for( icase=0 ; icase < ncase ; icase++ ){  /* loop over blur cases */
          sprintf(fname,"%s.CSim%s.cmd",prefix_clustsim,clab[icase]) ;
          if( !use_sdat ){
            sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
@@ -5647,9 +5685,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        } /* end of loop over icase */
 
-     } /* end of 3dClustSim */
+     } /*----- end of 3dClustSim -----*/
 
-     if( do_Xclustsim ){ /*----- ETAC -----*/
+     if( do_Xclustsim ){ /*----- run ETAC = 3dXClustSim + 3dMultiThresh -----*/
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
@@ -5765,6 +5803,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
                           /*----------------------------------------------------*/
 
+           /*-- Next, run 3dMultiThresh to actually threshold the ETAC way --*/
+
            if( ncase >= 1 ){ /* use 3dXClustSim results to make a union mask */
              int ifarp , farp ; char sfarp[8] ;
              for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* loop over FPR goals [23 Aug 2017] */
@@ -5773,7 +5813,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
-                   if( do_local_etac ){
+                   if( do_local_etac ){  /* remember, Local ETAC is NOT recommended */
                      sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
                                     cprefix[icase] ) ;
                      sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
@@ -5797,7 +5837,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loops over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,  /* combine the masks */
                             "3dmask_tool -input %s.ETACtmask.*.nii* -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
@@ -5849,7 +5889,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loop over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1pos.*.nii* -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
@@ -5900,7 +5940,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                      if( debug ) ININFO_message("Running\n  %s",cmd) ;
                      system(cmd) ;
                    }
-                 }
+                 } /* end of loop over blur cases */
                  if( do_local_etac ){
                    sprintf( cmd ,
                             "3dmask_tool -input %s.ETACtmask.1neg.*.nii* -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
