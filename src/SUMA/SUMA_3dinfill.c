@@ -338,7 +338,7 @@ void Infill_usage()
 "                             though, and you are most likely better off using\n"
 "                             option -ed to do the cleanup.\n" 
 "   -minhits MH: Crietrion for considering a zero voxel to be a hole\n"
-"                MH refers to the total number of directions alogn which a\n"
+"                MH refers to the total number of directions along which a\n"
 "                zero voxel is considered surrounded by non zero values.\n"
 "                a value of 1 is the least strict criterion, and a value of 3\n"
 "                is the strictest. \n"

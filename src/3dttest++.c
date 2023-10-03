@@ -1310,7 +1310,7 @@ void display_help_menu(void)
       "             them using program 3dFHWMx -- for further use in 3dClustSim\n"
       "             (which must be run separately).\n"
       "             ++ HOWEVER, the '-Clustsim' option below provides a resampling\n"
-      "                alternative to using the parameteric '-ACF' method in\n"
+      "                alternative to using the parametric '-ACF' method in\n"
       "                program 3dClustSim.\n"
       "\n"
       " -dupe_ok  = Duplicate dataset labels are OK. Do not generate warnings\n"

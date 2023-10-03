@@ -50,7 +50,7 @@ Advanced features:
 	Memory usage
 	Library compile-time options
 	Portability considerations
-	Notes for MS-DOS implementors
+	Notes for MS-DOS implementers
 
 You should read at least the overview and basic usage sections before trying
 to program with the library.  The sections on advanced features can be read
@@ -2963,7 +2963,7 @@ More info about porting the code may be gleaned by reading jconfig.doc,
 jmorecfg.h, and jinclude.h.
 
 
-Notes for MS-DOS implementors
+Notes for MS-DOS implementers
 -----------------------------
 
 The IJG code is designed to work efficiently in 80x86 "small" or "medium"

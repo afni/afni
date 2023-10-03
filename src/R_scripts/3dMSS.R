@@ -55,7 +55,7 @@ Introduction
  hemodynamic profiles. NeuroImage 277, 120224. 
  https://doi.org/10.1016/j.neuroimage.2023.120224
 
- To be able to run 3dMSS, one needs to have the following R packaages 
+ To be able to run 3dMSS, one needs to have the following R packages 
  installed: "gamm4" and "snow". To install these R packages, run the
  following command at the terminal:
 

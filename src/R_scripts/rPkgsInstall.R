@@ -135,7 +135,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         will be updated. The absence of the option (default) means no updating.",
    "         A package specified in '-pkgs package_list' that has not been installed on",
    "         the computer will be installed under this option.",
-   "         WARNING: Updating some R packages may require that R be ugraded to the",
+   "         WARNING: Updating some R packages may require that R be upgraded to the",
    "                  most recent version. \n",sep = '\n'
                      ) ),
 

@@ -10546,7 +10546,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 4,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Parallel computation (-jobs option) addtions to 3dDeconvolve.c.\n"
+   "* Parallel computation (-jobs option) additions to 3dDeconvolve.c.\n"
    },
 
   { 6,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -10555,7 +10555,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 7,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Parallel computation (-jobs option) addtions to 3dNLfim.c.\n"
+   "* Parallel computation (-jobs option) additions to 3dNLfim.c.\n"
    "* Mods to mri_dicom_hdr.c to subtract 1 from rwc_err for each error message.\n"
    "   This way, will normally only print 1 such message per to3d run, which will\n"
    "   make the users happier, I hope.\n"
