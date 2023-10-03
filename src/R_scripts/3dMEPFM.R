@@ -1281,7 +1281,7 @@ inData[ , ,1] <- idsets$brk
 ###########################################################################################
 # prepare data for parallel computation
 nSeg <- lop$nSeg
-# break into 20 segments, leading to 5% increamental in parallel computing
+# break into 20 segments, leading to 5% incremental in parallel computing
 dimSeg <- nvoxels%/%nSeg + 1
 # number of voxels need to be filled
 fill <- nSeg-nvoxels%%nSeg

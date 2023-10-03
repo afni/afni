@@ -570,7 +570,7 @@ select_colors (j_decompress_ptr cinfo, int desired_colors)
  * These routines are concerned with the time-critical task of mapping input
  * colors to the nearest color in the selected colormap.
  *
- * We re-use the histogram space as an "inverse color map", essentially a
+ * We reuse the histogram space as an "inverse color map", essentially a
  * cache for the results of nearest-color searches.  All colors within a
  * histogram cell will be mapped to the same colormap entry, namely the one
  * closest to the cell's center.  This may not be quite the closest entry to

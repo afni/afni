@@ -969,7 +969,7 @@ static char * usdecl[] = {
    "He has plundered our seas, ravaged our Coasts, burnt our towns, and destroyed\n" ,
    "the lives of our people.\n" ,
    "\n" ,
-   "He is at this time transporting large Armies of foreign Mercenaries to compleat\n" ,
+   "He is at this time transporting large Armies of foreign Mercenaries to complete\n" ,
    "the works of death, desolation and tyranny, already begun with circumstances\n" ,
    "of Cruelty & perfidy scarcely paralleled in the most barbarous ages, and\n" ,
    "totally unworthy the Head of a civilized nation.\n" ,

@@ -2092,7 +2092,7 @@ void SUMA_FreeWNDatum(void *wnd) { if (wnd) SUMA_free(wnd); return; }
 /* 
    Find the voxels in a frustum centered on P (dicom coords), with
    concentric spheres centered at C.
-   Frustrum height (thickness) is t and it spans adeg total.
+   Frustum height (thickness) is t and it spans adeg total.
    
    dset (THD_3dim_dataset *) the dset grid
    mask (byte *) Mask to restrict candidates

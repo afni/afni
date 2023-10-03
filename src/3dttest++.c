@@ -1759,7 +1759,7 @@ void display_help_menu(void)
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
       "                       ++ You can use '-ETAC_opt' more than once, to make\n"
-      "                          efficient re-use of the randomized/permuted cases.\n"
+      "                          efficient reuse of the randomized/permuted cases.\n"
       "                     -->> Just give each use within the same 3dttest++ run a\n"
       "                          different label after 'name='.\n"
       "                         + It is important to use distinct names for each\n"

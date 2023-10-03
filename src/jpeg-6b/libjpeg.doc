@@ -124,7 +124,7 @@ The rough outline of a JPEG compression operation is:
 A JPEG compression object holds parameters and working state for the JPEG
 library.  We make creation/destruction of the object separate from starting
 or finishing compression of an image; the same object can be reused for a
-series of image compression operations.  This makes it easy to re-use the
+series of image compression operations.  This makes it easy to reuse the
 same parameter settings for a sequence of images.  Re-use of a JPEG object
 also has important implications for processing abbreviated JPEG datastreams,
 as discussed later.
@@ -491,7 +491,7 @@ in either of two ways:
   legitimate at any point after calling jpeg_create_compress() --- in fact,
   it's safe even if jpeg_create_compress() fails.
 
-* If you want to re-use the JPEG object, call jpeg_abort_compress(), or call
+* If you want to reuse the JPEG object, call jpeg_abort_compress(), or call
   jpeg_abort() which works on both compression and decompression objects.
   This will return the object to an idle state, releasing any working memory.
   jpeg_abort() is allowed at any time after successful object creation.
@@ -2650,7 +2650,7 @@ jpeg_start_compress() and jpeg_write_scanlines().  Thus the sequence is
   * Request virtual arrays if needed
   * jpeg_write_coefficients()
   * jpeg_finish_compress()
-  * Destroy or re-use compression object
+  * Destroy or reuse compression object
 jpeg_write_coefficients() is passed a pointer to an array of virtual block
 array descriptors; the number of arrays is equal to cinfo.num_components.
 

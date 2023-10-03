@@ -1695,7 +1695,7 @@ ENTRY("setup_shave") ;
      ERROR_exit("Cannot allocate space for internal save of simulations :-(") ;
 
    if( verb )
-     INFO_message("allocated %s (%s) bytes for sumup re-use",
+     INFO_message("allocated %s (%s) bytes for sumup reuse",
                   commaized_integer_string((long long)shave_tot) ,
                   approximate_number_string((double)shave_tot)    ) ;
 
