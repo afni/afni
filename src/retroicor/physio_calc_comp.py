@@ -152,11 +152,11 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
    if OutDir :
         oname = OutDir + '/' + oname
    Title = 'Comparing ' + dataType
+   # fff = lrp.RetroFig(figname=oname,
+   #                     max_n_per_sub=min(1000, len(rawData)),
+   #                     title=Title)
    fff = lrp.RetroFig(figname=oname,
-                       max_n_per_sub=5000, 
-                       title=Title)
-   fff = lrp.RetroFig(figname=oname,
-                       max_n_per_sub=5000, 
+                       max_n_per_sub=min(1000, len(rawData)),
                        fontsize = font_size,
                        title=Title)
    fff.add_plobj(ret_plobj1) # Number of subplots determined here
