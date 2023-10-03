@@ -2843,7 +2843,7 @@ class RandTiming:
                 run += 1
                 ctime = tinitial
                 if run >= nruns:    # we've gone beyond our bounds
-                    print('** failure!  total run time has been exeeded...')
+                    print('** failure!  total run time has been exceeded...')
                     return
 
             if not event:
