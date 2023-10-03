@@ -93,7 +93,7 @@ directly applied to the 3d+time dataset.
   To solve this problem, both the mask and 3d+time datasets are converted to
 the same image volume by translation to Talairach space. 
 Simplest Method:
-  For the mask dataset, After the Talairach transormation is performed on
+  For the mask dataset, After the Talairach transformation is performed on
 the hi-res anatomical, a transformed BRIK is written to disk (with the
 "Write Anat" button), a copy made, and "draw dataset" performed on the
 duplicate Talairach BRIK to make a mask in Talairach space.
