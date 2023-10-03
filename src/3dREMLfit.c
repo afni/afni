@@ -1352,7 +1352,7 @@ int main( int argc , char *argv[] )
       "    REML function is instead simply optimized over a finite grid of\n"
       "    the correlation matrix parameters a and b. The matrices for each\n"
       "    (a,b) pair are pre-calculated in the setup phase, and then are\n"
-      "    re-used in the voxel loop. The purpose of this grid-based method\n"
+      "    reused in the voxel loop. The purpose of this grid-based method\n"
       "    is speed -- optimizing iteratively to a highly accurate (a,b)\n"
       "    estimation for each voxel would be very time consuming, and pretty\n"
       "    pointless. If you are concerned about the sensitivity of the\n"

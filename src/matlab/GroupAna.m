@@ -457,7 +457,7 @@ if (file_format == 1 & ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1)),
    end	
 end
 
-%generate the subcripts and obtain all input files
+%generate the subscripts and obtain all input files
 GP = cell(NF, ntot);    %creat a cell array to reflect the structure of all the combinations
 
 if (file_format == 1),

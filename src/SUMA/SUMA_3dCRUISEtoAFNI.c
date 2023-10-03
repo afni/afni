@@ -9,7 +9,7 @@ void usage_3dCRUISEtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
                "Usage: 3dCRUISEtoAFNI -input CRUISE_HEADER.dx\n"
-               " Converts a CRUISE dataset defined by a heder in OpenDX format\n"
+               " Converts a CRUISE dataset defined by a header in OpenDX format\n"
                " The conversion is based on sample data and information\n"
                " provided by Aaron Carass from JHU's IACL iacl.ece.jhu.edu\n" 
                "%s"

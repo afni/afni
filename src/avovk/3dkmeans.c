@@ -653,7 +653,7 @@ int main(int argc, char **argv)
       } else {
          /* you'll need to read and catenate on the fly ... */
          ERROR_exit( "Not ready to deal with more than one input.\n"
-                     "Consdier catenating the input externally.\n"
+                     "Consider catenating the input externally.\n"
                      "Let me know if it becomes annoying ...\n");
       }
       

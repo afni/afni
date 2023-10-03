@@ -666,7 +666,7 @@ INSTACORR [c] order
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
-  memory, and when re-used, AFNI will re-read them from disk.  If a prefix
+  memory, and when reused, AFNI will re-read them from disk.  If a prefix
   is given, only that dataset (in all coordinate views) will be purged.
   ++ "Locked" datasets will not be purged -- a dataset will be locked
      into memory if it can't easily be re-read from disk (e.g., is from SUMA;

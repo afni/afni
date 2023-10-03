@@ -768,7 +768,7 @@ if (N_base > 0), % for covariates (with stim_base)
 	end	
 end
 
-%create options for task effect test with genereal linear test
+%create options for task effect test with general linear test
 %here we assume the user implicitly wants to test all tasks
 %first generate glt files by calling function TaskTest.m
 

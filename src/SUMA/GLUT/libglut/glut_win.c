@@ -249,7 +249,7 @@ getVisualInfoRGB(unsigned int mode)
   int list[32];
   int n = 0;
 
-  /* XXX Would a caching mechanism to minize the calls to
+  /* XXX Would a caching mechanism to minimize the calls to
      glXChooseVisual? You'd have to reference count
      XVisualInfo* pointers. */
 

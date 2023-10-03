@@ -167,7 +167,7 @@ endfunction()
 
 
 macro(set_os_flags src_file)
-  # sets os specific compile definintions for source files. This is currently
+  # sets os specific compile definitions for source files. This is currently
   # superfluous because debugging without these global flags set has not been done
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set_source_files_properties(

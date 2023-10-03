@@ -2411,7 +2411,7 @@ afni_history_struct ziad_history[] = {
  },
  
  { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
-   "Fixed comaptibility with .niml.dset data",
+   "Fixed compatibility with .niml.dset data",
    "This required more improvements (I hope) to THD_init_diskptr_names() and\n"
    "EDIT_empty_copy() for surface-based datasets.\n"
  },

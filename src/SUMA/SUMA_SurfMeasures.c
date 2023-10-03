@@ -1139,7 +1139,7 @@ ENTRY("get_surf_measures");
 
 
 /*----------------------------------------------------------------------
- * surf_triangles_match - check that the trangle lists match
+ * surf_triangles_match - check that the triangle lists match
  *----------------------------------------------------------------------
 */
 int surf_triangle_match( opts_t * opts, param_t * p )
@@ -2299,19 +2299,19 @@ ENTRY("validate_option_lists");
 
     if ( (opts->info & ST_INFO_THICK) && p->S.nsurf < 2 )
     {
-        fprintf(stderr,"** -info_thick option requiers 2 surfaces\n");
+        fprintf(stderr,"** -info_thick option requires 2 surfaces\n");
         errs++;
     }
 
     if ( (opts->info & ST_INFO_VOL) && p->S.nsurf < 2 )
     {
-        fprintf(stderr,"** -info_vol option requiers 2 surfaces\n");
+        fprintf(stderr,"** -info_vol option requires 2 surfaces\n");
         errs++;
     }
 
     if ( (opts->info & ST_INFO_VOLG) && p->S.nsurf < 2 )
     {
-        fprintf(stderr,"** -info_volg option requiers 2 surfaces\n");
+        fprintf(stderr,"** -info_volg option requires 2 surfaces\n");
         errs++;
     }
 

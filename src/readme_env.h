@@ -154,7 +154,7 @@ static char *readme_env[] = {
    "-----------------------------\n" ,
    "Most AFNI programs output various messages prefixed by '++', '**', and\n" ,
    "divers variations. If you are running several programs at once, you can\n" ,
-   "pre-pend a string to these prefixes to distinguish them in the output\n" ,
+   "prepend a string to these prefixes to distinguish them in the output\n" ,
    "terminal stream. For example, a csh script might look like so:\n" ,
    "  foreach fred ( 1 2 3 4 )\n" ,
    "    setenv AFNI_MESSAGE_PREFIX case$fred\n" ,

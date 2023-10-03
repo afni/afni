@@ -1576,7 +1576,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
    SDO->Parent_do_type = Parent_type;
    SDO->DrawnDO_variant = SUMA_copy_string(DrawnDO_variant);
    if (NodeBased == -1) {
-      /* backward comaptibility */
+      /* backward compatibility */
       if (Parent_idcode_str) NodeBased = 1;
       else NodeBased = 0;
    }

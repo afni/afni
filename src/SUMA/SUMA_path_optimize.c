@@ -1407,7 +1407,7 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
 /* Julia:
 This main started as a copy of SUMA_toy_circle and I added to it an example to show you how to use 
 the array functions.
-To comile this program, use:
+To compile this program, use:
  make path_optimize && mv path_optimize ~/abin       
 
 The functions should be put in SUMA_SurfWarp.c and function prototypes should be in SUMA_SurfWarp.h. Don't forget

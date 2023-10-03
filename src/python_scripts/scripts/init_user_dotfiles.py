@@ -1036,7 +1036,7 @@ class MyInterface:
 
          side effect: populate dfobjs: nmods and m_*
 
-         0. dfile list entries should be known and not conntain paths
+         0. dfile list entries should be known and not contain paths
          1. populate dfobjs (read in all found files)
          2. if both .cshrc and .tcshrc, determine whether one sources the other
          3. main point: for each file obj, set 'nmods'

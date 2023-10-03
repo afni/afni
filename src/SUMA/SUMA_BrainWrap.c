@@ -2090,9 +2090,9 @@ int SUMA_Vox_Radial_Samples (float *fvec, int nxx, int nyy, int nzz,
 void SUMA_FreeWNDatum(void *wnd) { if (wnd) SUMA_free(wnd); return; }
 
 /* 
-   Find the voxels in a frustrum centered on P (dicom coords), with
+   Find the voxels in a frustum centered on P (dicom coords), with
    concentric spheres centered at C.
-   Frustrum height (thickness) is t and it spans adeg total.
+   Frustum height (thickness) is t and it spans adeg total.
    
    dset (THD_3dim_dataset *) the dset grid
    mask (byte *) Mask to restrict candidates
@@ -2103,10 +2103,10 @@ void SUMA_FreeWNDatum(void *wnd) { if (wnd) SUMA_free(wnd); return; }
                        been examined in this round. Under certain
                        conditions, *examinedp might become the mask
                        for those voxels forming the neighborhood.
-   P (float 3) The center of the frustrum
-   C (float 3) The center of the two spheres bounding the frustrum
-   t (float) the height of the frustrum (difference of spheres' radii)
-   adeg (angle) width of frustrum
+   P (float 3) The center of the frustum
+   C (float 3) The center of the two spheres bounding the frustum
+   t (float) the height of the frustum (difference of spheres' radii)
+   adeg (angle) width of frustum
    Hoodu (DList **) if Hoodu, then *Hoodu is set to contain the linked
                   list of the voxel neighborhood.
                   Otherwise, *examinedp is reinitialized then voxels
