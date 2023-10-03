@@ -408,7 +408,7 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
    """
 
    # ----------------------------------------------------------------------
-   # a. preaparation
+   # a. preparation
 
    if verb > 1:
       print('-- decay_pdf_GRT: A=%s, M=%s, B=%s, N=%s, t_grid=%s' \
