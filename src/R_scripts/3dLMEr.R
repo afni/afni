@@ -981,7 +981,7 @@ cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, lop$IF], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+inData <- read.AFNI(lop$dataStr[1, 'InputFile'], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -989,7 +989,7 @@ dimz <- inData$dim[3]
 head <- inData
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[, 'InputFile'], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    errex.AFNI(c("Dimension mismatch!\n",
    "Check files in the InputFile column all have\n",
