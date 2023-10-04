@@ -889,7 +889,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
 if(dimy == 1 & dimz == 1) {  # 1D scenarios
    nSeg <- 20
    # drop the dimensions with a length of 1
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    #dimx_n <- ifelse(dimx%%nSeg==0, dimx%/%nSeg, dimx%/%nSeg + 1)
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
