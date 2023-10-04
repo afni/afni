@@ -75,12 +75,11 @@ Introduction
 
  Cite the following if test-retest analysis is performed using the trial-level
  effect estimates as input with 3dLEMr through the option -TRR:
- 
- Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D., 
- Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. Beyond 
- linearity in neuroimaging: Capturing nonlinear relationships with application 
- to longitudinal studies. NeuroImage 233, 117891. 
 
+ Chen, G., Pine, D.S., Brotman, M.A., Smith, A.R., Cox, R.W., Haller, S.P., 2021. 
+ Trial and error: A hierarchical modeling approach to test-retest reliability. 
+ NeuroImage 245, 118647. https://doi.org/10.1016/j.neuroimage.2021.118647
+ 
  Input files can be in AFNI, NIfTI, surface (niml.dset) or 1D format. To obtain
  the output int the same format of the input, append a proper suffix to the
  output specification option -prefix (e.g., .nii, .niml.dset or .1D for NIfTI,
