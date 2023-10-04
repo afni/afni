@@ -974,7 +974,7 @@ cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, lop$IF], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+inData <- read.AFNI(lop$dataStr[1, 'InputFile'], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -983,7 +983,7 @@ head <- inData
 NoFile <- dim(lop$dataStr[1])[1]
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[, lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[, 'InputFile'], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    errex.AFNI(c("At least one of the input files has different dimensions:\n",
    "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
@@ -1077,7 +1077,7 @@ while(is.null(fm)) {
    lop$dataStr$ISC <- inData[ii, jj, kk,]
    options(warn=-1)
    DM <- lop$dataStr
-   DM <- DM[, -which(names(DM) %in% lop$IF)] # remove input file column
+   DM <- DM[, -which(names(DM) %in% 'InputFile')] # remove input file column
    DM <- rbind(DM, DM)
    DM$Subj1[(nF+1):(2*nF)] <- DM$Subj2[1:nF]
    DM$Subj2[(nF+1):(2*nF)] <- DM$Subj1[1:nF]
