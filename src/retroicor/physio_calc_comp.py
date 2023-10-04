@@ -106,14 +106,16 @@ def medianDownsampleArray(array, downsample_factor):
    
    return newArray
 
-def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTroughs, samp_rate, font_size, showGraph = True, saveGraph = False):
+def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, 
+    targetPeaksTroughs, samp_rate, font_size, showGraph = True, 
+    saveGraph = False):
    
    # New graph format
    filePrefix = "Compare{phystype}_Performance".\
         format(phystype=dataType)
    
    # DEBUG : Downsample input data
-   downsample_factor = 10
+   downsample_factor = round(samp_rate/12)
    rawData, refPeaksTroughs, targetPeaksTroughs = \
        medianDownsampleRawDataPeaksTroughs(rawData, refPeaksTroughs, 
             targetPeaksTroughs, downsample_factor)
@@ -121,6 +123,7 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
         
    # Ensure target peak/trough indices do not exceed the length of the raw data
    # (which is based on the reference data)
+   refPeaksTroughs = refPeaksTroughs[refPeaksTroughs<len(rawData)]
    targetPeaksTroughs = targetPeaksTroughs[targetPeaksTroughs<len(rawData)]
     
    tmp_x_rD = np.arange(len(rawData)) * samp_rate
@@ -152,9 +155,6 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, targetPeaksTro
    if OutDir :
         oname = OutDir + '/' + oname
    Title = 'Comparing ' + dataType
-   # fff = lrp.RetroFig(figname=oname,
-   #                     max_n_per_sub=min(1000, len(rawData)),
-   #                     title=Title)
    fff = lrp.RetroFig(figname=oname,
                        max_n_per_sub=min(1000, len(rawData)),
                        fontsize = font_size,
