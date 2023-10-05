@@ -80,6 +80,9 @@ build_afni.py -build_root $HOME/afni_build -package $package
 
 rsync -av $HOME/afni_build/build_src/$package/ ~/abin/
 
+# and make sure we can see the new programs
+rehash
+
 # ----------------------------------------------------------------------
 # install R packages
 # (here it is under home directory, but might want at system or conda)
