@@ -1832,6 +1832,7 @@ class MyInterface:
          if self.verb > 1:
             MESGp("have original abin %s" % do.abspath)
          MESGm("current AFNI: %s, %s, %s" % (do.version, do.package, do.date))
+         MESGi(g_version)
          # if package is empty, set from current version
          if self.package == '':
             MESGm("will init unset -package with current '%s'" % do.package)
