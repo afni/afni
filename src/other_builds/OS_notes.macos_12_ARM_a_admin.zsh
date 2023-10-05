@@ -26,8 +26,8 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
 # ----------------------------------------------------------------------
 # put python in path and install matplotlib via pip
 
-export PATH=${PATH}:/usr/local/opt/python/libexec/bin
-echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.zshrc
+export PATH=${PATH}:/opt/homebrew/opt/python/libexec/bin
+echo 'export PATH=${PATH}:/opt/homebrew/opt/python/libexec/bin' >> ~/.zshrc
 pip install matplotlib
 
 # ----------------------------------------------------------------------
