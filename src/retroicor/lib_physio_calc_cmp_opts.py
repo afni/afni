@@ -17,8 +17,8 @@ import textwrap
 import subprocess as     SP
 import argparse   as     argp
 from   datetime   import datetime
-from   platform   import python_version_tuple
-import borrow_afni_util  as BAU
+# from   platform   import python_version_tuple
+# import borrow_afni_util  as BAU
 
 sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
 
@@ -79,6 +79,9 @@ DEF = {
     'maxDisplayCardSampleFreq' : 200, # Maximum cardiac sampling frequency 
                                      # used for display
     'disp_all_opts'     : False,     # (bool) display opts for this prog
+    'downsample'        : False,     # (bool) Downsample time series
+    'downsampleInvFactor': 12,       # The level of downsampling is the sample
+                                     # frequency divided by this value
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -129,6 +132,7 @@ all_quant_ge_zero = [
     'font_size',
     'freq',
     'num_time_pts',
+    'downsampleInvFactor',
 ]
 
 
@@ -791,6 +795,20 @@ hlp = '''Display help text in a text editor (AFNI functionality)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
+
+opt = '''downsample'''
+hlp = '''Downsample time series
+'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
+
+opt = '''downsampleInvFactor'''
+hlp = '''The level of downsampling is the sample frequency divided by this 
+value'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs='+', type=int) # parse later
 
 # --------------------------------------------------------------------------
 # programming check: are all opts and defaults accounted for?

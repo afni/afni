@@ -53,6 +53,9 @@ DEF = {
                                      # used for display
     'maxDisplayCardSampleFreq' : 200, # Maximum cardiac sampling frequency 
                                      # used for display
+    'downsample'        : False,     # (bool) Downsample time series
+    'downsampleInvFactor': 12,       # The level of downsampling is the sample
+                                     # frequency divided by this value
 }
 
 def readInputData(args_dict):
@@ -107,19 +110,20 @@ def medianDownsampleArray(array, downsample_factor):
    return newArray
 
 def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs, 
-    targetPeaksTroughs, samp_rate, font_size, showGraph = True, 
-    saveGraph = False):
+    targetPeaksTroughs, samp_rate, font_size, downsample, 
+    downsampleInvFactor, showGraph = True, saveGraph = False):
    
    # New graph format
    filePrefix = "Compare{phystype}_Performance".\
         format(phystype=dataType)
    
    # DEBUG : Downsample input data
-   downsample_factor = round(samp_rate/12)
-   rawData, refPeaksTroughs, targetPeaksTroughs = \
-       medianDownsampleRawDataPeaksTroughs(rawData, refPeaksTroughs, 
-            targetPeaksTroughs, downsample_factor)
-   samp_rate = samp_rate/downsample_factor
+   if downsample:
+       downsample_factor = round(samp_rate/downsampleInvFactor)
+       rawData, refPeaksTroughs, targetPeaksTroughs = \
+           medianDownsampleRawDataPeaksTroughs(rawData, refPeaksTroughs, 
+                targetPeaksTroughs, downsample_factor)
+       samp_rate = samp_rate/downsample_factor
         
    # Ensure target peak/trough indices do not exceed the length of the raw data
    # (which is based on the reference data)
@@ -188,22 +192,28 @@ if __name__ == "__main__":
     # Display and save cardiac peaks against raw data
     dataType = 'CardiacPeaks'
     plotPeakTroughComparisons(dataType, inputData['cardiacRawData'], 
-            inputData['cardiacPeaksRef'], inputData['cardiacPeaksTarget'], 
+            inputData['cardiacPeaksRef'], 
+            inputData['cardiacPeaksTarget'], 
             args_dict['freq'], args_dict['font_size'], 
+            args_dict['downsample'], args_dict['downsampleInvFactor'], 
             saveGraph = args_dict['save_graph_level'])
     
     # Display and save respiratory peaks against raw data
     dataType = 'respiratoryPeaks'
     plotPeakTroughComparisons(dataType, inputData['respiratoryRawData'], 
-            inputData['respiratoryPeaksRef'], inputData['respiratoryPeaksTarget'], 
+            inputData['respiratoryPeaksRef'], 
+            inputData['respiratoryPeaksTarget'], 
             args_dict['freq'], args_dict['font_size'], 
+            args_dict['downsample'], args_dict['downsampleInvFactor'], 
             saveGraph = args_dict['save_graph_level'])
     
     # Display and save respiratory troughs against raw data
     dataType = 'respiratoryTroughs'
     plotPeakTroughComparisons(dataType, inputData['respiratoryRawData'], 
-            inputData['respiratoryTroughsRef'], inputData['respiratoryTroughsTarget'], 
+            inputData['respiratoryTroughsRef'], 
+            inputData['respiratoryTroughsTarget'], 
             args_dict['freq'], args_dict['font_size'], 
+            args_dict['downsample'], args_dict['downsampleInvFactor'], 
             saveGraph = args_dict['save_graph_level'])
     
     # End
