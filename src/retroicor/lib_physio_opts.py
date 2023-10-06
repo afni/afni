@@ -51,7 +51,10 @@ DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
 # some init proc options for phys time series
-DEF_phys_limit_freq = -1             # Hz, for init filter to reduce ts
+DEF_phys_limit_freq   = -1           # Hz, for init filter to reduce ts
+all_phys_prefilt_mode = ['none', 'median'] # list of possible downsamp types
+DEF_phys_prefilt_mode = 'none'       # str, keyword for filtering in downsamp
+DEF_phys_prefilt_win  = 0.05         # flt, window size (s) for median filter
 
 # ==========================================================================
 # PART_01: default parameter settings
@@ -70,6 +73,8 @@ DEF = {
     'phys_file'         : None,      # (str) fname of physio input data
     'phys_json'         : None,      # (str) fname of json file
     'phys_limit_freq'   : DEF_phys_limit_freq, # (num) init phys ts downsample
+    'phys_prefilt_mode' : DEF_phys_prefilt_mode, # (str) kind of downsamp
+    'phys_prefilt_win'  : DEF_phys_prefilt_win,  # (num) window size for dnsmpl
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
     'dset_tr'           : None,      # (float) TR of MRI
     'dset_nslice'       : None,      # (int) number of MRI vol slices
@@ -173,6 +178,7 @@ all_quant_gt_zero = [
     'img_fontsize',
     'img_dot_freq',
     'img_bp_max_f',
+    'phys_prefilt_win',
 ]
 
 # quantities that must be >= 0
@@ -1011,6 +1017,23 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
+opt = '''phys_prefilt_mode'''
+hlp = '''Filter input physio time series (after badness checks), likely
+aiming at reducing noise; can be combined usefully with
+phys_limit_freq. Allowed modes: {all_mode}
+'''.format(all_mode = ', '.join(all_phys_prefilt_mode))
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=str)
+
+opt = '''phys_prefilt_win'''
+hlp = '''If prefiltering input physio time series with '-phys_prefilt ..',
+specify window size to use (is s), which must be >0 (def: {dopt}, if
+prefiltering is on)'''.format(dopt=DEF[opt])
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=float)
+
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''
 odict[opt] = hlp
@@ -1825,6 +1848,13 @@ args_dict2 : dict
         print("** ERROR: Cannot have path information in '-prefix ..'\n"
               "   Use '-out_dir ..' for path info instead")
         sys.exit(4)
+
+    if args_dict2['phys_prefilt_mode'] :
+        # there are only certain allowed values
+        IS_BAD = 0
+        if args_dict2['phys_prefilt_mode'] not in all_phys_prefilt_mode :
+           IS_BAD = 1
+        if IS_BAD :  sys.exit(1)
 
     # check many numerical inputs for being >=0 or >0; probably leave this
     # one as last in this function
