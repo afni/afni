@@ -1329,13 +1329,18 @@ class MyInterface:
 
       # -----------------------------------------------------------------
       # finished with build, try to capture version info
-      # (first with local version, then from install_dir)
+      # (with local version file)
       do = dirobj('mb_abin', '.')
-      self.set_afni_version_info(do)
+
+      if self.set_afni_version_info(do):
+         MESGe("** failed to set ANFI version info")
+         return 1
+
       if do.package and os.path.isdir(do.package):
          do = dirobj('mb_abin', do.package)
          self.set_afni_version_info(do)
          self.do_mb_abin = do
+
       if self.verb > 1:
          MESGp("have make build abin %s" % do.abspath)
       MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
@@ -1832,7 +1837,6 @@ class MyInterface:
          if self.verb > 1:
             MESGp("have original abin %s" % do.abspath)
          MESGm("current AFNI: %s, %s, %s" % (do.version, do.package, do.date))
-         MESGi(g_version)
          # if package is empty, set from current version
          if self.package == '':
             MESGm("will init unset -package with current '%s'" % do.package)
