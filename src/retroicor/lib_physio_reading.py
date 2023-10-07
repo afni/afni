@@ -29,11 +29,12 @@ derived data.
 
     """
 
-    def __init__(self, ts_orig, samp_freq = 0.0, limit_freq = -1,
-                 prefilt_mode = 'none', prefilt_win = 0.5,
+    def __init__(self, ts_orig, samp_freq = 0.0, 
                  label=None, fname=None, ts_unfilt = None,
                  min_bps = 0.0, max_bps = sys.float_info.max, 
                  start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
+                 prefilt_init_freq = None, prefilt_mode = None, 
+                 prefilt_win = None,
                  verb=0):
         """Create object holding a physio time series data.
 
@@ -45,9 +46,6 @@ derived data.
 
         self.ts_orig    = np.array(ts_orig)   # arr, original time series
         self.samp_freq  = float(samp_freq)    # float, sampling freq (in Hz)
-        self.limit_freq = float(limit_freq)   # float, limit samp freq
-        self.prefilt_mode = prefilt_mode      # str, method for downsamp
-        self.prefilt_win = float(prefilt_win) # float, window (s) for downsamp
         self.start_time = start_time         # float, time offset (<=0, in s)
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
@@ -85,6 +83,10 @@ derived data.
         self.regress_dict_phys = {}      # dict of list, (lab, value)
         self.regress_dict_rvt  = {}      # dict of list, (lab, value)
 
+        # prefiltering related: not used in proc, just to be able to report
+        self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
+        self.prefilt_mode      = prefilt_mode   # str, method of prefilt
+        self.prefilt_win       = prefilt_win    # flt, size (s) of prefilt win
 
     @property
     def tvalues(self):
@@ -315,10 +317,13 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                        # start of MRI
 
         # physio: init proc opts
-        self.orig_samp_freq    = 0      # float, init samp_freq of phys ts
-        self.phys_limit_freq   = -1     # float, init downsample if >0
-        self.phys_prefilt_mode = 'none' # str, keyword for downsamp method
-        self.phys_prefilt_win  = 0      # float, size (s) of window if downsamp
+        self.init_samp_freq    = 0      # float, init samp_freq of phys ts
+        self.prefilt_max_freq  = -1     # float, init downsample if >0
+        self.prefilt_mode      = 'none' # str, keyword for downsamp method
+        self.prefilt_win = {
+            'card' : 0.,               # float, size (s) of window if downsamp
+            'resp' : 0.,               # float, size (s) of window if downsamp
+        }
 
         # MRI EPI volumetric info
         self.vol_slice_times = []      # list of floats for slice timing
@@ -440,10 +445,9 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             samp_freq = AD['freq']
 
             # downsample and/or filter, if desired; updates samp_freq
-            if self.phys_limit_freq > 0 or \
-               self.phys_prefilt_mode != 'none' :
+            if self.prefilt_max_freq > 0 or self.prefilt_mode != 'none' :
                 arr_fixed, samp_freq \
-                    = self.run_prefilter_physio(arr_fixed)
+                    = self.run_prefilter_physio(arr_fixed, label)
                 if self.verb :
                     print("++ Prefilter {} physio:".format(label))
                     print("   orig samp freq  = {} Hz".format(AD['freq']))
@@ -453,24 +457,28 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
             if label == 'resp' :
                 self.data['resp'] = phys_ts_obj(arr_fixed,
                                      samp_freq = samp_freq,
-                                     limit_freq = AD['phys_limit_freq'],
                                      label=label, fname=fname, 
                                      ts_unfilt = ts_unfilt,
                                      min_bps = AD['min_bpm_resp']/60.,
                                      max_bps = AD['max_bpm_resp']/60.,
                                      start_time = AD['start_time'],
                                      img_dot_freq = AD['img_dot_freq'],
+                                     prefilt_mode = self.prefilt_mode,
+                                     prefilt_win = self.prefilt_win[label],
+                                     prefilt_init_freq = AD['freq'],
                                      verb=self.verb)
             elif label == 'card' :
                 self.data['card'] = phys_ts_obj(arr_fixed,
                                      samp_freq = samp_freq,
-                                     limit_freq = AD['phys_limit_freq'],
                                      label=label, fname=fname, 
                                      ts_unfilt = ts_unfilt,
                                      min_bps = AD['min_bpm_card']/60.,
                                      max_bps = AD['max_bpm_card']/60.,
                                      start_time = AD['start_time'],
                                      img_dot_freq = AD['img_dot_freq'],
+                                     prefilt_mode = self.prefilt_mode,
+                                     prefilt_win = self.prefilt_win[label],
+                                     prefilt_init_freq = AD['freq'],
                                      verb=self.verb)
         return 0
 
@@ -495,10 +503,11 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.start_time       = AD['start_time']
 
         # for optional pre-processing
-        self.orig_samp_freq    = AD['freq']
-        self.phys_limit_freq   = AD['phys_limit_freq']
-        self.phys_prefilt_mode = AD['phys_prefilt_mode']
-        self.phys_prefilt_win  = AD['phys_prefilt_win']
+        self.init_samp_freq    = AD['freq']
+        self.prefilt_max_freq  = AD['prefilt_max_freq']
+        self.prefilt_mode      = AD['prefilt_mode']
+        self.prefilt_win['card'] = AD['prefilt_win_card'] 
+        self.prefilt_win['resp'] = AD['prefilt_win_resp'] 
 
         self.out_dir          = AD['out_dir']
         self.prefix           = AD['prefix']
@@ -525,18 +534,18 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
     # -----------------------
 
-    def run_prefilter_physio(self, x):
+    def run_prefilter_physio(self, x, label):
         """Downsample and/or filter the time series. The modes for 
         prefiltering might grow over time"""
 
-        if self.phys_prefilt_mode == 'none' :
+        if self.prefilt_mode == 'none' :
             # then we only downsample
             y, new_samp_freq = self.downsamp_only(x)
             return y, new_samp_freq
-        elif self.phys_prefilt_mode == 'median' :
+        elif self.prefilt_mode == 'median' :
             # median filter, with possible downsampling
-            winwid = self.prefilt_winwid   # filt size, num time pts
-            step   = self.step_downsamp    # possible downsamp rate
+            winwid = self.prefilt_winwid(label)  # filt size, num time pts
+            step   = self.step_downsamp          # possible downsamp rate
 
             y = lpfilt.med_filt_and_downsamp(x, winwid=winwid, step=step,
                                              verb=self.verb)
@@ -546,7 +555,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         """Only downsample the time series x; also return new samp freq."""
 
         step = self.step_downsamp
-        if step <= 1 :    return x, self.orig_samp_freq
+        if step <= 1 :    return x, self.init_samp_freq
         else:             return x[::step], self.freq_downsamp
 
     def run_all_checks_and_fix(self, arr):
@@ -614,7 +623,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         if 'respiratory' in D['Columns'] :
             if self.verb:
-                print("++ Reading resp data from {}".format(fname))
+                print("++ Reading resp data from:\n   {}".format(fname))
 
             # read in data
             idx = D["Columns"].index('respiratory')
@@ -622,7 +631,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
 
         if 'cardiac' in D['Columns'] :
             if self.verb:
-                print("++ Reading card data from {}".format(fname))
+                print("++ Reading card data from:\n   {}".format(fname))
 
             # read in data
             idx = D["Columns"].index('cardiac')
@@ -738,6 +747,30 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         else: 
             return self.data[label] != None
 
+    def prefilt_winwid(self, label):
+        """If prefiltering the card/resp (=label) time series (e.g. with a
+        median filter), convert the specified window size (units of
+        sec) to n time points; at this point, the time series should
+        be at its original time sampling resolution still.  Return
+        integer, min=1."""
+
+        winwid = int(np.ceil(self.init_samp_freq * self.prefilt_win[label]))
+        winwid = max(winwid, 1)
+
+        wtxt = ''
+        if   winwid < 5 :                      wtxt = 'small'
+        elif winwid >= self.init_samp_freq :   wtxt = 'big'
+
+        if wtxt :
+            print("+* NB: {} data prefilter window size is {} "
+                  "({} time points), because\n"
+                  "       data samp freq = {} Hz\n"
+                  "       prefilt window = {} s\n"
+                  "   Are you sure that's what you want?"
+                  "".format(label, wtxt, winwid, 
+                            self.init_samp_freq, self.prefilt_win[label]))
+        return winwid
+
     # ----------
     
     @property
@@ -745,18 +778,18 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         """Downsampling factor from original sampling freq to what user has
         set as limit; return 0 or 1 means no downsampling, via
         different mechanisms."""
-        if self.phys_limit_freq <= 0 :
+        if self.prefilt_max_freq <= 0 :
             # nothing to do
             return 0
-        elif self.orig_samp_freq < self.phys_limit_freq :
+        elif self.init_samp_freq < self.prefilt_max_freq :
             # nothing to do, and let user know
             print("++ No downsampling needed: "
                   "data sampling ({} Hz) < limit sampling freq ({} Hz)"
-                  "".format(self.orig_samp_freq, self.phys_limit_freq))
+                  "".format(self.init_samp_freq, self.prefilt_max_freq))
             return 1
         else:
             # take every step-th value (min step=1)
-            step = int(np.ceil(self.orig_samp_freq / self.phys_limit_freq))
+            step = int(np.ceil(self.init_samp_freq / self.prefilt_max_freq))
             return max(step, 1)
 
     @property
@@ -765,32 +798,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         downsampling."""
         
         step = self.step_downsamp
-        return self.orig_samp_freq / step
-
-
-    @property
-    def prefilt_winwid(self):
-        """If prefiltering the time series (e.g. with a median filter),
-        convert the specified window size (units of sec) to n time
-        points; at this point, the time series should be at its
-        original time sampling resolution still.  Return integer, min=1."""
-
-        winwid = int(np.ceil(self.orig_samp_freq * self.phys_prefilt_win))
-        winwid = max(winwid, 1)
-
-        wtxt = ''
-        if   winwid < 5 :                      wtxt = 'small'
-        elif winwid >= self.orig_samp_freq :   wtxt = 'big'
-
-        if wtxt :
-            print("+* NB: prefiltering window size is {} ({} time points), "
-                  "because\n"
-                  "       data samp freq = {} Hz\n"
-                  "       prefilt window = {} s\n"
-                  "   Are you sure that's what you want?"
-                  "".format(wtxt, winwid, 
-                            self.orig_samp_freq, self.phys_prefilt_win))
-        return winwid
+        return self.init_samp_freq / step
 
     @property
     def n_slice_times(self):
