@@ -236,7 +236,9 @@ other options:
           the given files.  It checks for all possibly appropriate changes,
           reporting the resulting table, and quits.
 
-            See also -dry_run.
+          Use -do_updates to restrict the applied tests.
+
+            See also -dry_run, -do_updates.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
@@ -259,10 +261,11 @@ g_history = """
    1.1  Jan  6, 2023 - always output something in test mode
    1.2  Feb  6, 2023 - add -shell_list
    1.3  Sep 15, 2023 - zsh: use compinit -i (ignore "insecure" files)
+   1.4  Oct 10, 2023 - limit -test if -do_updates was given
 """
 
 g_prog = "init_user_dotfiles.py"
-g_version = "%s, version 1.3, September 15, 2023" % g_prog
+g_version = "%s, version 1.4, October 10, 2023" % g_prog
 
 g_rc_all = [ '.bash_dyld_vars', '.bash_login', '.bash_profile', '.bashrc',
              '.cshrc', '.login', '.tcshrc',
@@ -470,6 +473,7 @@ class MyInterface:
       self.dflist          = None   # user-specified dotfile list
       self.dir_bin         = ''     # dir to add to PATH
       self.dir_dot         = ''     # HOME or specified location of DF
+      self.do_upd_opt      = 0      # was -do_updates given?
       self.dry_run         = 0      # do everything but modify files
       self.force           = 0      # force updates, even for grep failures
       self.make_backup     = 1      # do we back files up before modifying?
@@ -712,6 +716,7 @@ class MyInterface:
 
          # main action option: which to perform
          elif opt.name == '-do_updates':
+            self.do_upd_opt = 1
             vlist, err = uopts.get_string_list('', opt=opt)
             if vlist == None or err: return -1
             if 'apsearch' in vlist:
@@ -741,9 +746,7 @@ class MyInterface:
 
          elif opt.name == '-test':
             self.test = 1
-            self.do_path = 1
-            self.do_apsearch = 1
-            self.do_flatdir = 1
+            # fill 'do' tests only if no -do_update
 
          # general options
 
@@ -752,6 +755,12 @@ class MyInterface:
             if val != None and err: return -1
             else: self.verb = val
             continue
+
+      # if -test (and no -do_updates), apply all updates
+      if self.test and not self.do_upd_opt:
+         self.do_path = 1
+         self.do_apsearch = 1
+         self.do_flatdir = 1
 
       return 0
 

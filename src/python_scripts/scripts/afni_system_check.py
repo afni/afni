@@ -337,9 +337,10 @@ g_history = """
    1.24 Sep 18, 2023 - add -use_asc_path
    1.25 Sep 21, 2023 - capture the R platform with its version
    1.26 Sep 28, 2023 - add option -disp_R_ver_for_lib
+   1.27 Oct 10, 2023 - only check flat_namespace on 10.7/12_local
 """
 
-g_version = "afni_system_check.py version 1.26, September 28, 2023"
+g_version = "afni_system_check.py version 1.27, October 10, 2023"
 
 
 class CmdInterface:
