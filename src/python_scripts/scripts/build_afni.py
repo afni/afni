@@ -547,7 +547,7 @@ class MyInterface:
       self.valid_opts.add_opt('-abin', 1, [],
                       helpstr='dir to put compiled AFNI binaries in')
       self.valid_opts.add_opt('-build_root', 1, [],
-                      helpstr='the root of the building tree')
+                      helpstr='(required) the root of the building tree')
 
       self.valid_opts.add_opt('-package', 1, [],
                       helpstr='the binary package to build')
@@ -740,6 +740,11 @@ class MyInterface:
       # misc checks
       if self.git_update == 0 and (self.git_branch or self.git_tag):
          MESGe("cannot use -git_branch or -git_tag without -git_update yes")
+         return -1
+
+      # require -build_root if there are no terminal options
+      if self.do_root is None:
+         MESGe("refusing to proceed without -build_root")
          return -1
 
       # if we have a makefile, make sure it exists
