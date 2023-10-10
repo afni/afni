@@ -65,10 +65,11 @@ THD_string_array *recreate_working_atlas_name_list(void) {
  *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {
-	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0",
-	  "CA_ML_18_MNI", "CA_MPM_22_MNI",
-      "DD_Desai_MPM", "DKD_Desai_MPM",
-      "CA_GW_18_MNIA", "CA_N27_LR", NULL};
+	  "Brodmann_Pijn_AFNI","MNI_Glasser_HCP_v1.0",
+      "FS.afni.MNI2009c_asym","FS.afni.TTN27",
+      "Julich_MNI2009c","Julich_MNI_N27",
+      "Brainnetome_1.0",
+	  "CA_ML_18_MNI", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -831,15 +832,25 @@ void TT_purge_atlas_big_old(void)
 /*! are we on the left or right of Colin? */
 char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 {
+#if 0
    THD_ivec3 ijk ;
    THD_fvec3 mmxyz ;
    int  ix,jy,kz , nx,ny,nxy, ii=0, kk=0;
    byte *ba=NULL;
    static int n_warn = 0, lr_notfound = 0;
    ATLAS *atlas=NULL;
-
+#endif
    ENTRY("MNI_Anatomical_Side");
 
+// abandoning N27_LR mask method- no need for LR atlas in list
+// coordinates themselve determine left and right of brain
+      if (ac.x<0.0) {
+         RETURN('r');
+      } else {
+         RETURN('l');
+      }
+
+#if 0
    if(lr_notfound)
       RETURN('u');   /* tried to find LR atlas before but failed */
 
@@ -895,6 +906,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 
    /* should not get here */
    RETURN('u');
+#endif
 }
 
 /*! What side are we on ?*/
@@ -1079,16 +1091,17 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       sprintf(y_fstr, "%s", format_value_4print(-acl[i].y, CCALC_CUSTOM, pf));
       sprintf(z_fstr, "%s", format_value_4print(acl[i].z, CCALC_CUSTOM, pf));
 
+    /* abandoning LR determination based on LR mask atlas - just using coords */
       /* the current rendition of this determines L/R from the CA_N27_LR
          brain in TLRC space based on the mask dataset with values of 0,1,2 */
       /* drg - see notes on MNI_Anatomical_Side at function for discussion */
 
-      if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
+//      if(strcmp(acl[i].space_name,"MNI_ANAT") || (it<0)) {
          sprintf(xlab[i],"%s mm [%c]", x_fstr, (acl[i].x<0.0)?'R':'L') ;
-      } else {
-         sprintf(xlab[i], "%s mm [%c]", x_fstr,
-           TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
-      }
+//      } else {
+//         sprintf(xlab[i], "%s mm [%c]", x_fstr,
+//           TO_UPPER(MNI_Anatomical_Side(acl[it], atlas_list))) ;
+//      }
 
       sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
@@ -1811,12 +1824,12 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       already in TLRC space. This LR volume had been converted from MNI_Anat space.
       The L/R volume is from a particular subject, and it is not completely aligned along
       any zero line separating left from right */
-      if(i!=MNI_ANAT_SPC)
+//      if(i!=MNI_ANAT_SPC)
          sprintf(xlab[i-1],"%4.0f mm [%c]",-acv[i].x,(acv[i].x<0.0)?'R':'L') ;
-      else
-         sprintf(xlab[i-1], "%4.0f mm [%c]",
-                   -acv[i].x, TO_UPPER(MNI_Anatomical_Side(acv[AFNI_TLRC_SPC],
-                               atlas_list))) ;
+//      else
+//         sprintf(xlab[i-1], "%4.0f mm [%c]",
+//                  -acv[i].x, TO_UPPER(MNI_Anatomical_Side(acv[AFNI_TLRC_SPC],
+//                               atlas_list))) ;
       sprintf(ylab[i-1],"%4.0f mm [%c]",-acv[i].y,(acv[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i-1],"%4.0f mm [%c]", acv[i].z,(acv[i].z<0.0)?'I':'S') ;
       sprintf(clab[i-1],"{%s}", Space_Code_to_Space_Name(i));
@@ -7143,6 +7156,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
       /* check to see if dataset has to be distinguished
          left-right based on LR atlas */
       if (atlas->adh->build_lr && LoadLRMask) {
+         // abandoning LR mask determination for L/R coords 
+         lr_notfound = 1;
+#if 0
             /* DO NOT ask Atlas_With_Trimming to load LRMask in next call !! */
          atlas_lr = NULL;
          if(lr_notfound==0)
@@ -7161,6 +7177,8 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
                              "Proceeding without LR mask");
             }
          }
+#endif
+
       }
 
       atlas->adh->params_set = 1;   /* mark as initialized */
