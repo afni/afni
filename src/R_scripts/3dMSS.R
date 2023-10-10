@@ -215,7 +215,7 @@ Introduction
   
   Use the script below when the quantitative variable varies within subject,
 
-  3dMSS -prefix MSS -jobs 16                     \\
+  3dMSS -prefix MSS -jobs 16                      \\
           -mrr 's(age,k=10)+s(age,k=10,by=grp)+s(Subj,bs=\"re\")' \\
           -vt  Subj 's(Subj)'                     \\
           -qVars 'age'                            \\
