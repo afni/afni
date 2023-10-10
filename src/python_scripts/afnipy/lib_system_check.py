@@ -65,6 +65,7 @@ class SysInfo:
       self.repo_prog       = '' # e.g. yum or brew
       self.have_matplotlib = 0
       self.have_pyqt4      = 0
+      self.need_flat       = 0  # only need if using macos_10.12_local
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
@@ -578,7 +579,8 @@ class SysInfo:
       # in 10.11, check for gcc under homebrew
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
-      self.check_for_flat_namespace()
+      if self.need_flat:
+         self.check_for_flat_namespace()
 
       self.check_for_macos_R_in_path()
 
@@ -921,6 +923,9 @@ class SysInfo:
             show_comment = 0 # no comments.append()
             vinfo = UTIL.read_AFNI_version_file()
             if vinfo != '':
+               if vinfo.find('macos_10.12_local') >= 0 or \
+                     vinfo.find('macosx_10.7_local') >= 0:
+                  self.need_flat = 1
                nfound += 1
             else:
                self.comments.append('missing %s, maybe package is old'%prog)

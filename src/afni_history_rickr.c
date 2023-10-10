@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_MODIFY,
+   "only require flat_namespace if 10.12_local or 10.7_local",
+   NULL
+ } ,
+
  { 10, Oct, 2023, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
    "require -build_root; tail build errors; default to atlas updating",
    NULL
