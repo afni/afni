@@ -1,8 +1,9 @@
 
 # ----------------------------------------------------------------------
 # set up a machine for building AFNI
+# (it should only have 1 or 2 early sudo's, for brew and xquartz)
 #
-# this assumes 'zsh' is the login shell
+# this prepares for zsh, bash or tcsh login shells
 # this applies to ARM (for R package)
 # ----------------------------------------------------------------------
 
@@ -36,12 +37,4 @@ echo 'setenv PATH ${PATH}:/opt/homebrew/opt/python/libexec/bin' >> ~/.login
 pip install matplotlib
 
 # ----------------------------------------------------------------------
-# install R - currently 4.3.1
-
-curl -O https://cran.r-project.org/bin/macosx/big-sur-arm64/base/R-4.3.1-arm64.pkg
-sudo installer -pkg R-4.3.1-arm64.pkg -target /
-
-
-# ----------------------------------------------------------------------
-# and reboot : sudo reboot
-# ----------------------------------------------------------------------
+# continue with R in the next script (another sudo)
