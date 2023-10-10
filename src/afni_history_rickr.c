@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2023, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
+   "require -build_root; tail build errors; default to atlas updating",
+   NULL
+ } ,
+
  { 28, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "split OS_notes_macos_12 by CPU",
    "Now have : OS_notes.macos_12_{ARM,intel}_a_admin.zsh\n"
