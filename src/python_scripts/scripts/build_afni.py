@@ -332,15 +332,19 @@ g_history = """
    0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
    0.5  Sep  8, 2023 - back up and install the build results
    0.6  Sep 26, 2023 - install NiiVue, add option -update_atlases
+   0.7  Oct 10, 2023
+        - require -build_root
+        - show 'tail log_make.txt' on build failure
+        - default to updating atlases
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.6, September 26, 2023" % g_prog
+g_version = "%s, version 0.7, October 10, 2023" % g_prog
 
-g_git_html = "https://github.com/afni/afni.git"
-g_afni_site = "https://afni.nimh.nih.gov"
-g_atlas_pack = "afni_atlases_dist"      # package name
-g_atlas_html = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
+g_git_html    = "https://github.com/afni/afni.git"
+g_afni_site   = "https://afni.nimh.nih.gov"
+g_atlas_pack  = "afni_atlases_dist"      # package name
+g_atlas_html  = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
 g_niivue_file = "niivue_afni.umd.js"    # file name
 g_niivue_html = "%s/pub/dist/bin/misc/%s" % (g_afni_site, g_niivue_file)
 
@@ -457,7 +461,7 @@ class MyInterface:
       self.run_make        = 1      # actually run make?
       self.run_backup      = 1      # install build results and atlases
       self.run_install     = 1      # install build results and atlases
-      self.update_atlases  = 0      # do we force an atlas update
+      self.update_atlases  = 1      # do we force an atlas update
 
       self.verb            = verb   # verbosity level
 
@@ -547,7 +551,7 @@ class MyInterface:
       self.valid_opts.add_opt('-abin', 1, [],
                       helpstr='dir to put compiled AFNI binaries in')
       self.valid_opts.add_opt('-build_root', 1, [],
-                      helpstr='the root of the building tree')
+                      helpstr='(required) the root of the building tree')
 
       self.valid_opts.add_opt('-package', 1, [],
                       helpstr='the binary package to build')
@@ -740,6 +744,11 @@ class MyInterface:
       # misc checks
       if self.git_update == 0 and (self.git_branch or self.git_tag):
          MESGe("cannot use -git_branch or -git_tag without -git_update yes")
+         return -1
+
+      # require -build_root if there are no terminal options
+      if self.do_root is None:
+         MESGe("refusing to proceed without -build_root")
          return -1
 
       # if we have a makefile, make sure it exists
@@ -1325,7 +1334,15 @@ class MyInterface:
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
       MESGi("see 'make' log file %s/%s" % (buildpath, logfile))
-      if st: return st
+      # return on failure
+      if st:
+         # on failure, show tail of make log
+         if os.path.isfile(logfile):
+            makelines = UTIL.read_text_file(logfile, lines=1)
+            ss = '   --------------------------------------------------\n'
+            MESGe("tail from %s:\n%s   %s\n%s" \
+                  % (logfile, ss, "\n   ".join(makelines[-10:]), ss))
+         return st
 
       # -----------------------------------------------------------------
       # finished with build, try to capture version info
@@ -1771,7 +1788,8 @@ class MyInterface:
          if st:
             if not quiet:
                MESGe("failed run_cmd: %s" % cmd)
-               MESGe(otext)
+               if len(otext) > 0:
+                  MESGe(otext)
          if strip:
             otext = otext.strip()
          return st, otext
