@@ -11,7 +11,10 @@
 # (command uses bash syntax, not just in script)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
+# prep multiple shells for brew (.bashrc seems safer for bash)
 (echo; echo 'eval "$(/usr/local/bin/brew shellenv)"') >> $HOME/.zprofile
+(echo; echo 'eval "$(/usr/local/bin/brew shellenv bash)"') >> $HOME/.bashrc
+(echo; echo 'eval "$(/usr/local/bin/brew shellenv tcsh)"') >> $HOME/.login
 eval "$(/usr/local/bin/brew shellenv)"
 
 brew analytics off
@@ -24,10 +27,12 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
              libxt mesa mesa-glu libxpm
 
 # ----------------------------------------------------------------------
-# put python in path and install matplotlib via pip
+# put python in path and install matplotlib via pip (multiple shells)
 
 export PATH=${PATH}:/usr/local/opt/python/libexec/bin
 echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.zshrc
+echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.bashrc
+echo 'setenv PATH ${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.login
 pip install matplotlib
 
 # ----------------------------------------------------------------------
