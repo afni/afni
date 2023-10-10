@@ -55,7 +55,7 @@ Introduction
  hemodynamic profiles. NeuroImage 277, 120224. 
  https://doi.org/10.1016/j.neuroimage.2023.120224
 
- To be able to run 3dMSS, one needs to have the following R packages 
+ To be able to run 3dMSS, one needs to have the following R packaages 
  installed: "gamm4" and "snow". To install these R packages, run the
  following command at the terminal:
 
@@ -151,7 +151,7 @@ Introduction
   two lines:
 
           -mrr 's(age,k=10)+s(Subj,bs=\"re\")'    \\
-          -vt Subj 's(Subj)'                      \\
+          -vt Subj 's(Subj)'                    \\
 
   The part 's(age,k=10)' indicates that 'age' is modeled via a smooth curve.
   The minimum number of samples should be 6 or more. 'k=10' inside the model
@@ -170,7 +170,7 @@ Introduction
   The full script version is
 
    3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age,k=10)+s(Subj,bs=\"re\")'    \\
+          -mrr 's(age,k=10)+s(Subj,bs=\"re\")'      \\
           -vt Subj 's(Subj)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -183,7 +183,7 @@ Introduction
   Alternatively, this model with varying subject-level intercept can be
   specified with
 
-          -lme 's(age,k=10)'                        \\
+          -lme 's(age,k=10)'                      \\
           -ranEff 'list(Subj=~1)'                 \\
 
   which is solved through the linear mixed-effect (lme) platform. The -vt is
@@ -200,8 +200,8 @@ Introduction
   script applies to the situation when the quantitative variable does not vary 
   within subject, 
 
-  3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age,k=10)+s(age,by=grp)'        \\
+  3dMSS -prefix MSS -jobs 16                      \\
+          -mrr 's(age,k=10)+s(age,k=10,by=grp)'   \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -226,8 +226,8 @@ Introduction
 
   or an LME version:
 
-  3dMSS -prefix MSS -jobs 16                     \\
-          -lme 's(age,k=10)+s(age,k=10,by=grp)'             \\
+  3dMSS -prefix MSS -jobs 16                      \\
+          -lme 's(age,k=10)+s(age,k=10,by=grp)'   \\
           -ranEff 'list(Subj=~1)'                 \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -245,11 +245,11 @@ ex4 <-
   between the two conditions. For either case, each individual should have 
   14 input files. Two covariates are considered: sex and age.
 
-    3dMSS -prefix output -jobs 16             \
-        -lme 'sex+age+s(TR,k=10)' \
-        -ranEff 'list(subject=~1)'          \
-        -qVars 'sex,age,TR'           \
-        -prediction @HRF.table              \
+    3dMSS -prefix output -jobs 16           \\
+        -lme 'sex+age+s(TR,k=10)'           \\
+        -ranEff 'list(subject=~1)'          \\
+        -qVars 'sex,age,TR'                 \\
+        -prediction @HRF.table              \\
         -dataTable  @smooth-HRF.table
 
   The part 's(TR,k=10)' indicates that 'TR' is modeled via a smooth curve.
@@ -300,11 +300,11 @@ ex5 <-
   with 14 time points with a time resolution TR = 1.25s, each individual
   should have 14 input files. Two covariates are considered: sex and age.
 
-  3dMSS -prefix output -jobs 16                       \
-        -lme 'sex+age+s(TR,k=10)+s(TR,k=10,by=group)' \
-        -ranEff 'list(subject=~1)'                    \
-        -qVars 'sex,age,TR,group'                     \
-        -prediction @HRF.table                        \
+  3dMSS -prefix output -jobs 16                       \\
+        -lme 'sex+age+s(TR,k=10)+s(TR,k=10,by=group)' \\
+        -ranEff 'list(subject=~1)'                    \\
+        -qVars 'sex,age,TR,group'                     \\
+        -prediction @HRF.table                        \\
         -dataTable  @smooth-HRF.table
 
   The part 's(age,k=10)' indicates that 'TR' is modeled via a smooth curve.
@@ -1124,7 +1124,7 @@ if(dimy==1 & dimz==1) { # 1D data
    nSeg <- 20
    # drop the dimensions with a length of 1
    inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% incremental in parallel computing
+   # break into 20 segments, leading to 5% increamental in parallel computing
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg
