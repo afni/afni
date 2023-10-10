@@ -117,7 +117,7 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs,
    filePrefix = "Compare{phystype}_Performance".\
         format(phystype=dataType)
    
-   # DEBUG : Downsample input data
+   # Downsample input data
    if downsample:
        downsample_factor = round(samp_rate/downsampleInvFactor)
        rawData, refPeaksTroughs, targetPeaksTroughs = \
@@ -166,6 +166,11 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs,
    fff.add_plobj(ret_plobj1) # Number of subplots determined here
    fff.add_plobj(ret_plobj2)
    fff.add_plobj(ret_plobj3)
+   
+   # Transform time-point indices to seconds
+   for i in range(0,3): 
+       fff.list_plobj[i].x = fff.list_plobj[i].x/samp_rate
+       
    fff.make_plot( do_show = showGraph, do_save = saveGraph)
     
 # ================================ main =====================================
