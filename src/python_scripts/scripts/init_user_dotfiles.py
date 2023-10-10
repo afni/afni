@@ -236,7 +236,9 @@ other options:
           the given files.  It checks for all possibly appropriate changes,
           reporting the resulting table, and quits.
 
-            See also -dry_run.
+          Use -do_updates to restrict the applied tests.
+
+            See also -dry_run, -do_updates.
 
       -verb LEVEL               : set the verbosity level (default 1)
 
@@ -754,6 +756,7 @@ class MyInterface:
             else: self.verb = val
             continue
 
+      # if -test (and no -do_updates), apply all updates
       if self.test and not self.do_upd_opt:
          self.do_path = 1
          self.do_apsearch = 1
