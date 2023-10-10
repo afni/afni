@@ -674,7 +674,7 @@
 <ATLAS
   atlas_name="Julich_MNI_N27"
   dset_name="Julich_MNI_N27.nii.gz"
-  template_space="MNI_N27"
+  template_space="MNI"
   description="JulichBrain 3.0 for MNI N27 space"
   comment="From EBRAINS3.0 website, v3.0.3 avaialble here:
     https://search.kg.ebrains.eu/instances/d69b70e2-3002-4eaf-9c61-9c56f019bbc8
@@ -699,3 +699,26 @@
       Science, 369(6506), 988–992.
       DOI: 10.1126/science.abb4588
 ></ATLAS>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNI::MNI_N27"
+  source="MNI"
+  dest="MNI_N27"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNI::MNI_2009c_asym"
+  source="MNI"
+  dest="MNI_2009c_asym"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>

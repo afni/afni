@@ -61,8 +61,7 @@ THD_string_array *recreate_working_atlas_name_list(void) {
    return(get_working_atlas_name_list());
 }
 
-/* moved TT_Daemon down the road to the end and switched
- *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
+/* almost complete change of default list*/
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {
 	  "Brodmann_Pijn_AFNI","MNI_Glasser_HCP_v1.0",
@@ -9092,7 +9091,7 @@ char *Current_Atlas_Default_Name()
    if(ept != NULL) return(search_quotes(ept)); /* remove any extra quotes*/
    if( ept != NULL ) return( ept ) ;
 
-   return("CA_ML_18_MNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
+   return("Brodmann_Pijn_AFNI"); // was TT_daemon - maybe set to Brodmann_Pijn_AFNI 
 
 }
 
