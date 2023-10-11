@@ -130,9 +130,9 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs,
    refPeaksTroughs = refPeaksTroughs[refPeaksTroughs<len(rawData)]
    targetPeaksTroughs = targetPeaksTroughs[targetPeaksTroughs<len(rawData)]
     
-   tmp_x_rD = np.arange(len(rawData)) * samp_rate
-   tmp_x_r  = np.arange(len(rawData))[refPeaksTroughs] * samp_rate
-   tmp_x_t  = np.arange(len(rawData))[targetPeaksTroughs] * samp_rate
+   tmp_x_rD = np.arange(len(rawData)) / samp_rate
+   tmp_x_r  = np.arange(len(rawData))[refPeaksTroughs] / samp_rate
+   tmp_x_t  = np.arange(len(rawData))[targetPeaksTroughs] / samp_rate
 
    tmp_y_r  = rawData[refPeaksTroughs]
    tmp_y_t  = rawData[targetPeaksTroughs]
@@ -168,8 +168,8 @@ def plotPeakTroughComparisons(dataType, rawData, refPeaksTroughs,
    fff.add_plobj(ret_plobj3)
    
    # Transform time-point indices to seconds
-   for i in range(0,3): 
-       fff.list_plobj[i].x = fff.list_plobj[i].x/samp_rate
+   # for i in range(0,3): 
+   #     fff.list_plobj[i].x = fff.list_plobj[i].x/samp_rate
        
    fff.make_plot( do_show = showGraph, do_save = saveGraph)
     
