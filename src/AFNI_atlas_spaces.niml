@@ -382,7 +382,7 @@
 <ATLAS
  atlas_name="MNI_Glasser_HCP_v1.0"
  dset_name="MNI_Glasser_HCP_v1.0.nii.gz"
- template_space="MNI"
+ template_space="MNI_2009c_asym"
  description="Glasser HCP 2016 surface-based parcellation"
  comment="Glasser, et al,A multi-modal parcellation of human cerebral cortex,
     Nature,2016. 
@@ -400,7 +400,8 @@
  description="Brainnetome MPM"
  comment="Please cite Fan, L. et al., The Human Brainnetome Atlas:
      A New Brain Atlas Based on Connectional Architecture.
-     Cerebral Cortex, 26 (8): 3508-3526,(2016)."
+     Cerebral Cortex, 26 (8): 3508-3526,(2016).
+     In HCP-40 space, a space similar to MNI_2009c"
 ></ATLAS>
 
 <ATLAS
@@ -442,6 +443,7 @@
        Frontal pole (Fp1, Fp2)----------------------------------------- Bludau et al., Neuroimage, 2014
    Other areas may only be used with authors' permission !
 
+   Template space likely to be MNI_N27 space 
    AFNI adaptation by
     Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
@@ -508,7 +510,7 @@
 <ATLAS
    atlas_name="CA_ML_18_MNI"   
    dset_name="MNI_caez_ml_18+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
    description="Macro Labels (N27-MNI)"
    comment="Eickhoff-Zilles macro labels from N27 (MNI space)"
 ></ATLAS>
@@ -516,7 +518,7 @@
 <ATLAS
    atlas_name="CA_LR_18_MNI"
    dset_name="MNI_caez_lr_18+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
    description="Left/Right (N27-MNI)"
    comment="Simple left, right hemisphere segmentation (MNI space)"
 ></ATLAS>
@@ -674,9 +676,9 @@
 <ATLAS
   atlas_name="Julich_MNI_N27"
   dset_name="Julich_MNI_N27.nii.gz"
-  template_space="MNI"
+  template_space="MNI_N27"
   description="JulichBrain 3.0 for MNI N27 space"
-  comment="From EBRAINS3.0 website, v3.0.3 avaialble here:
+  comment="From EBRAINS3.0 website, v3.0.3 available here:
     https://search.kg.ebrains.eu/instances/d69b70e2-3002-4eaf-9c61-9c56f019bbc8
 
     Please cite this dataset version and the original research publication:
