@@ -29,7 +29,7 @@ intro <-
 	      Welcome to RBA ~1~
 Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.3, Jan 15, 2023 
+Version 1.1.4, Oct 11, 2023 
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -195,7 +195,7 @@ RBA -prefix output -dataTable myData.txt  \\
 The above script is equivalent to
 
 RBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
--r2z -dataTable myData.txt  \\
+-dataTable myData.txt  \\
 
 The 2nd version above is recommended because of its explicit specifications.
 
