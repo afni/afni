@@ -407,7 +407,7 @@
 <ATLAS
   atlas_name="CA_MPM_22_MNI"
   dset_name="MNI_caez_mpm_22+tlrc"
-  template_space="MNI"
+  template_space="MNI_N27"
   description="Eickhoff-Zilles MPM atlas"
   comment="Eickhoff-Zilles maximum probability map from cytoarchitectonic probabilistic atlas
    SPM ANATOMY TOOLBOX  v2.2
@@ -443,7 +443,6 @@
        Frontal pole (Fp1, Fp2)----------------------------------------- Bludau et al., Neuroimage, 2014
    Other areas may only be used with authors' permission !
 
-   Template space likely to be MNI_N27 space 
    AFNI adaptation by
     Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
@@ -558,7 +557,7 @@
 
 <TEMPLATE
    template_name="MNI152_T1_2009c+tlrc"
-   template_space="MNI"
+   template_space="MNI_2009c_asym"
    comment="152 subjects T1 nonlinear at 1mm
       VS Fonov, et al, Unbiased average age-appropriate atlases for pediatric
       studies,NeuroImage,Volume 54, Issue 1, January 2011, ISSN 1053-8119,
@@ -583,7 +582,7 @@
 
 <TEMPLATE
    template_name="MNI_caez_N27+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
 ></TEMPLATE>
 
 <TEMPLATE
