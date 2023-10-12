@@ -178,6 +178,7 @@ here."""
         D['prefilt window, sec'] = str(phobj.prefilt_win)
     else:
         D['prefilt window, sec'] = 'NA'
+    D['is user interact on?'] = str(phobj.do_interact)
     
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 

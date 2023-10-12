@@ -77,6 +77,7 @@ DEF = {
     'prefilt_mode'      : DEF_prefilt_mode,      # (str) kind of downsamp
     'prefilt_win_card'  : DEF_prefilt_win_card,  # (num) window size for dnsmpl
     'prefilt_win_resp'  : DEF_prefilt_win_resp,  # (num) window size for dnsmpl
+    'do_interact'       : False,     # (bool) turn on interactive mode
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
     'dset_tr'           : None,      # (float) TR of MRI
     'dset_nslice'       : None,      # (int) number of MRI vol slices
@@ -1044,6 +1045,14 @@ physio time series with '-prefilt_mode ..'; value must be >0 (def:
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
+
+opt = '''do_interact'''
+hlp = '''Enter into interactive mode as the last stage of peak/trough
+estimation for the physio time series (def: only automatic peak/trough
+estimation)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    action="store_true")
 
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''

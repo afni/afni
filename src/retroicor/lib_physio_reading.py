@@ -34,7 +34,7 @@ derived data.
                  min_bps = 0.0, max_bps = sys.float_info.max, 
                  start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
                  prefilt_init_freq = None, prefilt_mode = None, 
-                 prefilt_win = None,
+                 prefilt_win = None, do_interact = False,
                  verb=0):
         """Create object holding a physio time series data.
 
@@ -87,6 +87,8 @@ derived data.
         self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
         self.prefilt_mode      = prefilt_mode   # str, method of prefilt
         self.prefilt_win       = prefilt_win    # flt, size (s) of prefilt win
+
+        self.do_interact       = do_interact    # bool, turn on user-interact
 
     @property
     def tvalues(self):
@@ -304,6 +306,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.phys_jdict      = None    # dict from JSON file, maybe col labels
         self.phys_file       = None    # phys file, might contain cardio/resp
 
+        self.do_interact     = False   # only automatic peak/trough est
         self.exit_on_rag     = True    # exit if raggedness in data files?
         self.exit_on_nan     = True    # exit if NaN values in data files?
         self.exit_on_null    = True    # exit if null values in data files?
@@ -348,7 +351,6 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
         self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
         self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
-
 
         # -----------------------------------------------------------------
 
@@ -466,6 +468,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      prefilt_mode = self.prefilt_mode,
                                      prefilt_win = self.prefilt_win[label],
                                      prefilt_init_freq = AD['freq'],
+                                     do_interact = AD['do_interact'],
                                      verb=self.verb)
             elif label == 'card' :
                 self.data['card'] = phys_ts_obj(arr_fixed,
@@ -479,6 +482,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      prefilt_mode = self.prefilt_mode,
                                      prefilt_win = self.prefilt_win[label],
                                      prefilt_init_freq = AD['freq'],
+                                     do_interact = AD['do_interact'],
                                      verb=self.verb)
         return 0
 
@@ -531,7 +535,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.extra_fix_list   = copy.deepcopy(AD['extra_fix_list'])
         self.remove_val_list  = copy.deepcopy(AD['remove_val_list'])
         self.rvt_shift_list   = copy.deepcopy(AD['rvt_shift_list'])
-
+        self.do_interact      = AD['do_interact']
     # -----------------------
 
     def run_prefilter_physio(self, x, label):

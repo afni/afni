@@ -347,8 +347,8 @@ is_ok : int
 
     # -------- start of peak+trough estimation and refinement steps --------
 
-    peaks   = np.zeros(0, dtype=int)           # null
-    troughs = np.zeros(0, dtype=int)           # null; might not be calc'ed
+    peaks   = []                                # null
+    troughs = []                                # null; might not be calc'ed
 
     # each block of peak/trough detection works in about the same way,
     # and we comment on the pieces just in the first part
@@ -629,6 +629,52 @@ is_ok : int
     p_ival*= phobj.samp_rate
     if len(troughs) :
         phobj.troughs = troughs
+
+    # ----- INTERACTIVE plot
+    if phobj.do_interact :
+        count+=1
+        lab_title = 'Interactive peaks ($\Delta t_{\\rm med}$ = '
+        lab_title+= '{:0.3f} s)'.format(p_ival)
+        lab_short = 'interact_peaks'
+        if len(troughs) :
+            lab_title+= ' and troughs'
+            lab_short+= '_troughs'
+            if verb :   print('++ ({}) {}'.format(label, lab_title))
+            if retobj.img_verb > 0 :
+                fname, title = make_str_ts_peak_trough(label, count, 
+                                                       lab_title, lab_short,
+                                                       prefix=prefix, 
+                                                       odir=odir)
+                lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                                  troughs=troughs,
+                                                  add_ibandT=True,
+                                                  add_ibandB=True,
+                                                  title=title, fname=fname,
+                                                  retobj=retobj,
+                                                  do_show=True,
+                                                  do_interact=True,
+                                                  do_save=False,
+                                                  verb=verb)
+                # ... and update local ones
+                peaks   = copy.deepcopy(phobj.peaks)
+                troughs = copy.deepcopy(phobj.troughs)
+        else:
+            if verb :   print('++ ({}) {}'.format(label, lab_title))
+            if retobj.img_verb > 0 :
+                fname, title = make_str_ts_peak_trough(label, count, 
+                                                       lab_title, lab_short, 
+                                                       prefix=prefix, 
+                                                       odir=odir)
+                lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+                                                  add_ibandT=True,
+                                                  title=title, fname=fname,
+                                                  retobj=retobj,
+                                                  do_show=True,
+                                                  do_interact=True,
+                                                  do_save=False,
+                                                  verb=verb)
+                # ... and update local ones
+                peaks = copy.deepcopy(phobj.peaks)
 
     # -------------- FINAL plot
     count+=1

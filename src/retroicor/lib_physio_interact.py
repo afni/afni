@@ -69,25 +69,35 @@ all_x : list
 
 # --------------------------------------------------------------------------
 
+TEXT_interact_key_mouse =  '''
+++ User-interaction for peak/trough vertex updates is ON.
+   Key+mouse bindings being used:
+
+            4  : delete the vertex (peak or trough) nearest to mouse point
+            3  : add a peak vertex
+            2  : add a trough vertex
+            1  : toggle vertex visibility+editability on and off
+   Left-click  : select closest vertex, which can then be dragged along
+                the reference line.
+
+'''
+
 class PolygonInteractor:
     """A polygon editor.  Here, the vertices of the polygons being edited
 are just made up of 1D arrays of peak and trough locations.
 
-Key-bindings being used:
+Key+mouse bindings being used:
 
-  '4' : delete the vertex under point; the vertex could represent a
-        peak or a trough
+  '4' : delete the vertex (peak or trough) nearest to mouse point
 
   '3' : add a peak vertex
 
   '2' : add a trough vertex
 
-  '1' : toggle vertex markers on and off.  When vertex markers are on,
-        you can add, move and/or delete them
+  '1' : toggle vertex visibility+editability on and off
 
-  Left-click : select the closest peak or trough to the click
-        location, after which it can be dragged around to a new
-        position along the refline.
+  Left-click : select closest vertex, which can then be dragged along
+        the reference line.
 
 NB: when deleting a vertex, the mouse must be hovering close to the
 desired location (within eps_del).  Similarly, when adding a vertex,

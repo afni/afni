@@ -6,8 +6,10 @@ import matplotlib.pyplot      as     plt
 from   matplotlib.collections import PatchCollection as MPC
 import matplotlib.patches     as     mplp
 import matplotlib.cm          as     mplcm
+from   matplotlib.lines       import Line2D
 
-from   afnipy import afni_base as    BASE
+from   afnipy import lib_physio_interact as lpi
+from   afnipy import afni_base           as BASE
 
 DEF_max_n = 1000                     # def npts per subplot (not used now)
 DEF_lw    = 0.75                     # def linewidth in plot
@@ -526,10 +528,17 @@ them.
             print("+* WARN: mismatch, n_figs ({}) != len(list_fig_props ({})"
                   "".format(self.n_figs, len(self.list_fig_props)))
 
-    def make_plot(self, do_show = False, do_save = True):
+    def make_plot(self, do_show = False, do_interact = False, do_save = True):
         """Create the plot"""
 
         self.prep_plotvals()
+
+        # start empy list to gather all updated points, in case we
+        # have interactive mode on
+        all_inter   = [] 
+
+        if do_interact : 
+            print(lpi.TEXT_interact_key_mouse)
 
         for hh in range(self.n_figs):
             # extract per-figure properties from the prep'ed list:
@@ -578,20 +587,46 @@ them.
                         pp.axhline(y=yval, c='0.8', ls='-', lw=0.5, zorder=0,
                                    label=ylab)
 
-                    # treat all plots as slices
-                    idx = self.all_sub_slice[ii][jj]
-                    sp = pp.plot( plobj.x[idx[0]:idx[1]], 
-                                  plobj.y[idx[0]:idx[1]],
-                                  color = plobj.color,
-                                  ls    = plobj.ls,
-                                  lw    = plobj.lw,
-                                  marker= plobj.marker,
-                                  ms    = plobj.ms,
-                                  mec   = plobj.mec,
-                                  mew   = plobj.mew,
-                                  alpha = plobj.alpha,
-                                  label = plobj.label,
-                                  fillstyle='full')
+                    if do_interact :
+                        # treat all plots as slices
+                        idx   = self.all_sub_slice[ii][jj]
+                        xvals = copy.deepcopy(plobj.x[idx[0]:idx[1]])
+                        yvals = copy.deepcopy(plobj.y[idx[0]:idx[1]])
+
+                        if jj :
+                            # labels to ID peaks and troughs in Interactive
+                            if jj == 1 :    label = 'p'
+                            elif jj == 2 :  label = 't'
+                            # peaks/troughs are polygons
+                            stack = np.column_stack([xvals, yvals])
+                            poly  = mplp.Polygon(stack, label=label, 
+                                                 animated=True)
+                            poly.set_color([0, 0, 0, 0])
+                            pp.add_patch(poly)
+                        else:
+                            # labels to ID refline in Interactive
+                            label = 'refline'
+                            lll  = Line2D(xvals, yvals, label=label,
+                                          color = plobj.color,
+                                          ls    = plobj.ls,
+                                          lw    = plobj.lw)
+                            pp.add_line(lll)
+
+                    else:
+                        # treat all plots as slices
+                        idx = self.all_sub_slice[ii][jj]
+                        sp = pp.plot( plobj.x[idx[0]:idx[1]], 
+                                      plobj.y[idx[0]:idx[1]],
+                                      color = plobj.color,
+                                      ls    = plobj.ls,
+                                      lw    = plobj.lw,
+                                      marker= plobj.marker,
+                                      ms    = plobj.ms,
+                                      mec   = plobj.mec,
+                                      mew   = plobj.mew,
+                                      alpha = plobj.alpha,
+                                      label = plobj.label,
+                                      fillstyle='full')
 
                     # obj can have interval bands (ibands)
                     if plobj.add_ibandT :
@@ -614,6 +649,10 @@ them.
 
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
+
+                # add in interactive subplot
+                if do_interact :
+                    all_inter.append(lpi.PolygonInteractor(pp))
 
                 # make xlabel at bottom of subfig
                 if iicount == iinum - 1 :
@@ -649,13 +688,13 @@ them.
                            shadow=True, borderpad=0.4, columnspacing=1.5,
                            borderaxespad=0.1, handletextpad=0.5,
                            handlelength=0.75)
-                #plt.tight_layout()
 
+            # because of interactive, do this later
             if do_save :
                 plt.savefig(oimg, dpi=self.dpi)
 
             # This block seems to need to come after the save function
-            # s.t. it it does not cause the output PDFs to be blank
+            # s.t. it does not cause the output PDFs to be blank
             if do_show :
                 plt.ion()
                 plt.show(block=True)
@@ -666,6 +705,14 @@ them.
             # hiding in the Python env:
             plt.close(oimg)
 
+        # save updated peak/troughs xcoors
+        if do_interact :
+            all_peaks_xcoor = lpi.compile_inter_xcoor(all_inter, 'p')
+            all_troughs_xcoor = lpi.compile_inter_xcoor(all_inter, 't')
+            return all_peaks_xcoor, all_troughs_xcoor
+        else:
+            return [], []
+
 def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 phases = [],
                                 upper_env=[], lower_env=[], rvt=[],
@@ -673,9 +720,16 @@ def makefig_phobj_peaks_troughs(phobj, peaks=[], troughs=[],
                                 add_ibandT = False, add_ibandB = False,
                                 img_axhline = 'MEDIAN',
                                 use_bp_ts = False,
+                                do_show = False,
+                                do_interact = False,
+                                do_save = True,
                                 verb=0):
     """A script to plot time series, as well as peaks and/or troughs.  The
 idea is to keep the plotting as uniform as possible.
+
+If do_show and do_interact are True, the user can interactively update
+peak/trough coord positions.  These changes will be put into the phobj
+directly here.
 
 Parameters
 ----------
@@ -716,6 +770,10 @@ use_bp_ts : bool
     instead of using the ts_orig as the main curve on display, use the
     ts_orig_bp one, which has been bandpassed in one of the early
     processing steps (it has the same length as ts_orig)
+do_show : bool
+    show images as pop up viewer
+do_interact : bool
+    make pop up viewer interactive, to be able to move peaks and/or troughs
 
 Returns
 -------
@@ -742,10 +800,10 @@ Returns
         )
     else: 
         # simple fig, all defaults
-        fff = RetroFig( figname=fname,
-                        max_n_per_line=5000,
-                        title=title,
-                        verb=verb )
+        fff = RetroFig( figname        = fname,
+                        max_n_per_line = 5000,
+                        title          = title,
+                        verb           = verb )
 
     # control alpha of ts and peaks/troughs like this
     if len(phases) :    ts_alpha = 0.5
@@ -864,9 +922,34 @@ Returns
                                 color='green')
         fff.add_plobj(ret_plobj4)
 
+    # run plot, possibly in interactive mode to get new peak/trough
+    # xcoords (which would need to be translated to indices
+    new_peaks_x, new_troughs_x = fff.make_plot(do_show=do_show, 
+                                               do_interact=do_interact,
+                                               do_save=do_save)
 
-    fff.make_plot()
-    
+    # update phobj peak/trough lists, if possible
+    if do_interact :
+        print("++ ({}) Update from interactive mode".format(phobj.label))
+        if len(new_peaks_x) :
+            # convert to indices; the initial ratios should essentially be int
+            tmp1 = np.round( np.array(new_peaks_x)/phobj.samp_rate, 
+                             decimals=0)
+            # set conversion to remove any duplicates
+            tmp2 = list(set(tmp1.astype(int)))
+            # make sure sorted
+            tmp2.sort()
+            phobj.peaks = copy.deepcopy(tmp2)
+        if len(new_troughs_x) :
+            # convert to indices; the initial ratios should essentially be int
+            tmp1 = np.round( np.array(new_troughs_x)/phobj.samp_rate, 
+                             decimals=0)
+            # set conversion to remove any duplicates
+            tmp2 = list(set(tmp1.astype(int)))
+            # make sure sorted
+            tmp2.sort()
+            phobj.troughs = copy.deepcopy(tmp2)
+
 # --------------------------------------------------------------------------
 
 def makefig_ft_bandpass_magn(X, Xfilt,
@@ -921,10 +1004,10 @@ Returns
     else:           fig_ylabel = ''
 
     N = len(X)
-    # make abscissa
+    # make abscissa, up to either specified max freq or to Nyquist
     fvalues = np.arange(idx_ny) * delta_f
     max_f   = retobj.img_bp_max_f
-    max_idx = int(max_f / delta_f)
+    max_idx = max(min(int(max_f / delta_f), idx_ny), 1)
     istep   = 1
 
     # make ylims, so high baseline doesn't affect plot
