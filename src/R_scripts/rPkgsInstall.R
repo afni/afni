@@ -109,7 +109,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         within single/double quotes. For example, -pkgs \"afex,phia\". If",
    "         package_list is set as ALL, all the following packages required for",
    "         AFNI programs will be installed, updated, or removed:\n",
-   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'psych'",
+   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'paran', 'psych'",
    "         'corrplot', 'metafor'.\n",
    "         You can use rPkgsInstall to install, update, or remove any R packages,",
    "         and those packages do not have to be in the list above.\n",
@@ -135,7 +135,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         will be updated. The absence of the option (default) means no updating.",
    "         A package specified in '-pkgs package_list' that has not been installed on",
    "         the computer will be installed under this option.",
-   "         WARNING: Updating some R packages may require that R be upgraded to the",
+   "         WARNING: Updating some R packages may require that R be ugraded to the",
    "                  most recent version. \n",sep = '\n'
                      ) ),
 
@@ -199,7 +199,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }
