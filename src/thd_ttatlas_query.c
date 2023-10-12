@@ -1048,7 +1048,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       /* the classic three. */
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "TLRC");
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI");
-      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
+// no need for MNI_ANAT if none of the atlases are in that space
+//      out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
    }
 
    out_spaces = add_to_names_list(out_spaces, &N_out_spaces, ac.space_name);
