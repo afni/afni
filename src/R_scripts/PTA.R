@@ -39,7 +39,7 @@ help.PTA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to PTA ==================
                Program for Profile Tracking Analysis (PTA)
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, Aug 25, 2023
+Version 0.0.5, Oct 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -54,8 +54,11 @@ Introduction
  specific scenario and use it as a template. The underlying theory is covered in
  the following paper:
 
- Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
- in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
+ Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D., 
+ Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. Beyond 
+ linearity in neuroimaging: Capturing nonlinear relationships with application to
+ longitudinal studies. NeuroImage 233, 117891. 
+ https://doi.org/10.1016/j.neuroimage.2021.117891
 
  To be able to run PTA, one needs to have the R packages "mgcv" installed with
  the following command at the terminal:
