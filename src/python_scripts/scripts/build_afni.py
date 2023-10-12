@@ -336,10 +336,11 @@ g_history = """
         - require -build_root
         - show 'tail log_make.txt' on build failure
         - default to updating atlases
+   0.8  Oct 12, 2023 - advise patience
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.7, October 10, 2023" % g_prog
+g_version = "%s, version 0.8, October 12, 2023" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -1226,17 +1227,20 @@ class MyInterface:
       self.add_final_mesg("   make VERBOSE=1")
       self.add_final_mesg("   (or run %s script)" % sfile)
 
+      MESGm("building via script %s" % sfile)
+
       # if -prep_only, we are done
       if self.prep_only:
          MESG("")
          MESGp("have -prep_only, skipping actual cmake and make")
          return 0
 
-      MESGm("building (cmake) ...")
-      MESGi("consider monitoring the build in a separate window with:")
+      MESG("")
+      MESGm("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logm))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+      MESGm("building (cmake) (please be patient)...")
 
       # -----------------------------------------------------------------
       # actually run the build (this is why we are here!)
@@ -1315,11 +1319,12 @@ class MyInterface:
          return 0
 
       logfile = 'log_make.txt'
-      MESGp("building ...")
-      MESGi("consider monitoring the build in a separate window with:")
+      MESG("")
+      MESGm("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+      MESGp("building (please be patient)...")
 
       # -----------------------------------------------------------------
       # actually run the main build
