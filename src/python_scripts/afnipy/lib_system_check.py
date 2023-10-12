@@ -1263,6 +1263,9 @@ class SysInfo:
       if self.login_shell not in shell_list:
          shell_list.append(self.login_shell)
       cmd = 'init_user_dotfiles.py -test -shell_list %s' % ' '.join(shell_list)
+      # if we do not need flat_namespace, prevent IUD.py from checking it
+      if not self.need_flat:
+         cmd += ' -do_updates path apsearch'
       status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
 
       # report failure or else extract the number of mods needed
