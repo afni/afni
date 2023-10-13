@@ -57,7 +57,26 @@ DEF_prefilt_mode = 'none'            # str, keyword for filtering in downsamp
 DEF_prefilt_win_card  = 0.05         # flt, window size (s) for median filter
 DEF_prefilt_win_resp  = 0.25         # flt, window size (s) for median filter
 
-# ==========================================================================
+# ===========================================================================
+
+TEXT_interact_key_mouse = '''Key+mouse bindings being used:
+
+            4  : delete the vertex (peak or trough) nearest to mouse point
+            3  : add a peak vertex
+            2  : add a trough vertex
+            1  : toggle vertex visibility+editability on and off
+   Left-click  : select closest vertex, which can then be dragged along
+                the reference line.
+
+   Some additional Matplotlib keyboard shortcuts:
+            f  : toggle fullscreen view of panel
+            o  : toggle zoom-to-rectangle mode
+            p  : toggle pan/zoom mode
+            r  : reset panel view (not point edits, but zoom/scroll/etc.)
+            q  : quit/close viewer (also Ctrl+w), when done editing
+'''
+
+# ===========================================================================
 # PART_01: default parameter settings
 
 # default outdir name
@@ -204,6 +223,7 @@ help_dict = {
     'ddashline' : '='*76,
     'ver'       : version,
     'AJM_str'   : AJM_str,
+    'tikd'      : TEXT_interact_key_mouse,
 }
 
 # ========================================================================== 
@@ -810,6 +830,89 @@ It appears that the number is inserted into the series, in which case,
 5000 values could simply be removed rather than replaced by an
 interpolation of the two adjacent values, using the option
 'remove_val_list ..'.
+
+{ddashline}
+
+Notes on prefiltering physio time series ~1~
+
+Many physio time series contain noisy spikes or occasional blips.  The
+effects of these can be reduced during processing with some
+"prefiltering".  At present, this includes using a moving median
+filter along the time series, to try to remove spiky things that are
+likely nonphysiological.  This can be implemented by using this opt+arg:
+    -prefilt_mode median
+
+An additional decision to make then becomes what width of filter to
+apply.  That is, over how many points should the median be calculated?
+One wants to balance making it large enough to be stable/useful with
+small enough to not remove real features (like real peaks, troughs or
+other time series changes).  This is done by choosing a time interval,
+and this interval is specified separately for each of the card and
+resp time series, because each has a different expected time scale of
+variability (and experimental design can affect this choice, as well).  
+So, the user can use:
+    -prefilt_win_card TIME_C
+    -prefilt_win_resp TIME_R
+... and replace TIME_* with real time values, in using of seconds.  There
+are default time values in place, when '-prefilt_mode ..' is used; see
+above.
+
+Finally, physio time series are acquired with a variety of sampling
+frequencies.  These can easily range from 50 Hz to 2000 Hz (or more).
+That means 50 (or 2000) point estimates per second---which is a lot
+for most applications.  Consider that typical FMRI sampling rates are
+TR = 1-2 sec or so, meaning that they have 0.5 or 1 point estimates
+per sec.  Additionally, many (human) cardiac cycles are roughly of
+order 1 per sec or so, and (human) respiration is at a much slower
+rate.  All this is to say, having a highly sampled physio time series
+can be unnecessary for most practical applications and analyses.  We
+can reduce computational cost and processing time by downsampling it
+near the beginning of processing. This would be done by specifying a
+max sampling frequency MAX_F for the input data, to downsample to (or 
+near to), via: 
+    -prefilt_max_freq MAX_F
+
+All of the above prefiltering is applied after initial 'badness'
+checks for outliers or missing values, so those processes can be a bit
+slow for densely acquired data.
+
+*Recommendation*
+In general, at least for human applications, it seems hard to see why
+one would need more than 50 physio measures per second.  It also seems
+like median filtering over even relatively small windows typically be
+useful.  So, perhaps consider adding these options to most processing 
+(but adjust as appropriate!):
+   -prefilt_max_freq   50 
+   -prefilt_mode       median
+... and maybe also:
+   -prefilt_win_card   0.1
+   -prefilt_win_resp   0.5
+
+
+{ddashline}
+
+User interaction for peak/trough editing ~1~
+
+This program includes functionality whereby the user can directly edit
+the peaks and troughs that have estimated.  This includes adding,
+deleting or moving the points around, with the built-in constraint of
+keeping the points on the displayed physio time series line.  It's
+kind of fun.
+
+To enter interactive mode during the runtime of the program, use the
+'-do_interact' option.  Then, at some stage during the processing, a
+Matplotlib panel will pop up, showing estimated troughs and/or peaks,
+which the user can edit if desired.  Upon closing the pop-up panel,
+the final locations of peaks/troughs are kept and used for the
+remainder of the code's run.
+
+{tikd}
+
+For more on the Matplotlib panel navigation keypresses and tips, see:
+https://matplotlib.org/3.2.2/users/navigation_toolbar.html
+
+At present, there is no "undo" functionality. If you accidentally
+delete a point, you can add one back, or vice versa.
 
 {ddashline}
 

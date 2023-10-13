@@ -538,7 +538,7 @@ them.
         all_inter   = [] 
 
         if do_interact : 
-            print(lpi.TEXT_interact_key_mouse)
+            print(lpi.TEXT_interact_term_desc)
 
         for hh in range(self.n_figs):
             # extract per-figure properties from the prep'ed list:

@@ -17,7 +17,9 @@ from   matplotlib.artist  import Artist
 from   matplotlib.lines   import Line2D
 from   matplotlib.patches import Polygon
 import matplotlib.pyplot  as     plt
- 
+
+from   afnipy import lib_physio_opts as lpo 
+
 # -------------------------------------------------------------------------
 
 # make plot styles, which are similar
@@ -74,18 +76,11 @@ all_x : list
 
 # --------------------------------------------------------------------------
 
-TEXT_interact_key_mouse =  '''
+TEXT_interact_term_desc =  '''
 ++ User-interaction for peak/trough vertex updates is ON.
-   Key+mouse bindings being used:
+   {tikd}
 
-            4  : delete the vertex (peak or trough) nearest to mouse point
-            3  : add a peak vertex
-            2  : add a trough vertex
-            1  : toggle vertex visibility+editability on and off
-   Left-click  : select closest vertex, which can then be dragged along
-                the reference line.
-
-'''
+'''.format(tikd=lpo.TEXT_interact_key_mouse)
 
 class PolygonInteractor:
     """A polygon editor.  Here, the vertices of the polygons being edited
