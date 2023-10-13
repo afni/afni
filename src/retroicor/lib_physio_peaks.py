@@ -647,9 +647,11 @@ opeaks : list
     # interpeak intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
 
+    print("HEY, compare:", period_idx, np.median(intervals))
+
     # NB: it might be most reliable to use median of the intervals.
     if not(period_idx) :
-        period_idx = np.median(intervals)
+        period_idx = np.median(intervals)   
         
     # Filter inter-peak intervals
     threshold = int(period_idx / width_fac)

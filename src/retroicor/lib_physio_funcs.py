@@ -587,7 +587,6 @@ is_ok : int
         # avoid baseline drift.
         troughs = lpp.removeClosePeaks(troughs, 
                                        phobj.ts_orig,
-                                       idx_freq_mode,
                                        is_troughs = True,
                                        verb=verb)
         if check_empty_list(troughs, count, lab_title, label) :  return 1

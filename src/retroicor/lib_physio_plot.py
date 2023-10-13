@@ -593,6 +593,14 @@ them.
                         xvals = copy.deepcopy(plobj.x[idx[0]:idx[1]])
                         yvals = copy.deepcopy(plobj.y[idx[0]:idx[1]])
 
+                        # NB: for polygon quirks, add in a far
+                        # away+nonremovable point; must remove later.
+                        # The new vert's xcoor is: x[0] - 3*(x[1]-x[0])
+                        newx = 4*self.all_range_xlim[ii][0] 
+                        newx-= 3*self.all_range_xlim[ii][1]
+                        xvals = np.insert(xvals, 0, newx)
+                        yvals = np.insert(yvals, 0, min(yvals))
+
                         if jj :
                             # labels to ID peaks and troughs in Interactive
                             if jj == 1 :    label = 'p'

@@ -37,7 +37,10 @@ dict_plotT['marker'] = 6
 
 def compile_inter_xcoor(all_inter, label):
     """Take a list of PolygonInteractor objects, all_inter, and get a list
-of peak or trough (as chosen with label) indices.
+of peak or trough (as chosen with label) indices.  Recall that in
+lib_physio_plot.py we added in a far off point in the [0]th slot to
+anchor the polygon and be non-selectable: that should be the
+alpha+omega and non-selectable, and we have to remove each here.
 
 Parameters
 ----------
@@ -52,16 +55,18 @@ Returns
 all_x : list
     sorted list of floats, where each int should represent the peak/trough 
     xcoor
-"""
+
+    """
     
     ninter = len(all_inter)
     all_x  = []
 
     for ii in range(ninter):
         inter = all_inter[ii]
-        # get xcoord of each pair except the last (= copy of [0]th in polygon)
+        # get xcoord of each pair, *except* the first and last
+        # (because of earlier polygonization)
         if inter.poly[label] != None :
-            all_x.extend( list(inter.poly[label].get_xy()[:-1,0]) )
+            all_x.extend( list(inter.poly[label].get_xy()[1:-1,0]) )
         
     all_x.sort()
     return all_x
@@ -414,8 +419,10 @@ There will always be at least one vertex left (which is, in fact, a
             allx = self.poly[lab].xy[:,0]  # all xcoor in this poly
             N    = len(allx)               # num of verts in this polygon
 
-            # search for good place to add vert in polygon list 
-            ii    = 0
+            # search for good place to add vert in polygon list;
+            # limits chosen because of polygonization (so we can
+            # safely remove first and last later)
+            ii    = 1
             FOUND = False
             while ii < N-1 :
                 if xdataval < allx[ii] :
