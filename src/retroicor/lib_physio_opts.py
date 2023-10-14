@@ -54,7 +54,7 @@ DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 DEF_prefilt_max_freq  = -1           # Hz, for init filter to reduce ts
 all_prefilt_mode = ['none', 'median'] # list of possible downsamp types
 DEF_prefilt_mode = 'none'            # str, keyword for filtering in downsamp
-DEF_prefilt_win_card  = 0.05         # flt, window size (s) for median filter
+DEF_prefilt_win_card  = 0.10         # flt, window size (s) for median filter
 DEF_prefilt_win_resp  = 0.25         # flt, window size (s) for median filter
 
 # ===========================================================================
@@ -851,8 +851,8 @@ and this interval is specified separately for each of the card and
 resp time series, because each has a different expected time scale of
 variability (and experimental design can affect this choice, as well).  
 So, the user can use:
-    -prefilt_win_card TIME_C
-    -prefilt_win_resp TIME_R
+    -prefilt_win_card  TIME_C
+    -prefilt_win_resp  TIME_R
 ... and replace TIME_* with real time values, in using of seconds.  There
 are default time values in place, when '-prefilt_mode ..' is used; see
 above.
@@ -870,7 +870,7 @@ can reduce computational cost and processing time by downsampling it
 near the beginning of processing. This would be done by specifying a
 max sampling frequency MAX_F for the input data, to downsample to (or 
 near to), via: 
-    -prefilt_max_freq MAX_F
+    -prefilt_max_freq  MAX_F
 
 All of the above prefiltering is applied after initial 'badness'
 checks for outliers or missing values, so those processes can be a bit
@@ -882,11 +882,11 @@ one would need more than 50 physio measures per second.  It also seems
 like median filtering over even relatively small windows typically be
 useful.  So, perhaps consider adding these options to most processing 
 (but adjust as appropriate!):
-   -prefilt_max_freq   50 
-   -prefilt_mode       median
-... and maybe also:
-   -prefilt_win_card   0.1
-   -prefilt_win_resp   0.5
+    -prefilt_max_freq   50 
+    -prefilt_mode       median
+
+If reasonable, the '-prefilt_win_card ..' and '-prefilt_win_resp ..'
+values could also be adjusted.
 
 
 {ddashline}
