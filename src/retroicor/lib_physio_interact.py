@@ -139,31 +139,66 @@ There will always be at least one vertex left (which is, in fact, a
 
         """
 
+        # ----- initialize all attributes
+
+        self.ax      = None         # subplot axis obj, contains most stuff
+        self.refline = None         # reference line, Line2D obj
+
+        # two main ojs: vertex locations
+        self.poly = {               # dict of Polygon objs
+            'p' : None,             # peaks
+            't' : None,             # troughs
+        }
+        self.line = {               # dict of Line2D objs
+            'p' : None,             # peaks
+            't' : None,             # troughs
+        }
+
+        # could make dict of these, but we never interact with them
+        # once they are set
+        self.pid = None             # ID for callback for peaks
+        self.tid = None             # ID for callback for troughs
+
+        # attributes defining which polygon (if any) is 'active'
+        self.act_lab = None         # the label of the active poly
+        self.act_ind = None         # the index of the active poly
+
+        # canvas obj
+        self.canvas = None
+
+        # ----- check input(s) and parse
+
+        tmp0 = self.check_ax(ax)
+        tmp1 = self.parse_ax(ax)
+
+
+    # ----- methods and properties -----
+
+    def check_ax(self, ax):
+        """Simple checks that input obj has minimal pieces."""
+
         npatch = len(ax.patches)
         nlines = len(ax.lines)
 
         # the ax obj must have at least one patch applied
         if npatch == 0 or ax.patches[0].figure is None:
-            etxt = "** ERROR: you must first add the polygon to a figure\n"
+            etxt = "** ERROR: you must first add the polygon to figure\n"
             etxt+= "   or canvas before defining the interactor"
             raise RuntimeError(etxt)
 
         if nlines == 0 :
             etxt = "** ERROR: you must have just one refline added to\n"
-            etxt+= "   the ax object, but you have: {}".format(len(ax.lines))
+            etxt+= "   ax object, but you have: {}".format(len(ax.lines))
             raise RuntimeError(etxt)
+        
+        return 0
 
-        self.ax   = ax              # fundamental input, contains all else
-
-        # two main ojs: vertex locations
-        self.poly = {
-            'p' : None,             # peak list
-            't' : None,             # trough list
-        }
-        self.line = {
-            'p' : None,             # peak line
-            't' : None,             # trough line
-        }
+    def parse_ax(self, ax):
+        """Take main input ax object and store it. Then, also break it up 
+        into other useful sub-attributes."""
+        
+        # fundamental input, contains all else
+        self.ax = ax              
 
         # a main obj: the reference line, to constrain locations of verts.
         ii = self.find_line_refline()
@@ -179,9 +214,9 @@ There will always be at least one vertex left (which is, in fact, a
         x, y           = zip(*self.poly['p'].xy)
         self.line['p'] = Line2D(x, y, **dict_plotP)
         self.ax.add_line(self.line['p'])
-        self.pid       = self.poly['p'].add_callback(self.poly_changedP)
+        self.pid = self.poly['p'].add_callback(self.poly_changedP)
 
-        # ----- setup [1]th polygon obj (-> troughs); is opt and mirrors peaks
+        # ----- setup [1]th polygon obj (-> troughs); like for peaks, but opt
         if len(ax.patches) > 1 :
             ii = self.find_patch_poly('t')
             if ii >= 0 :
@@ -189,11 +224,7 @@ There will always be at least one vertex left (which is, in fact, a
                 x1, y1         = zip(*self.poly['t'].xy)
                 self.line['t'] = Line2D(x1, y1, **dict_plotT)
                 self.ax.add_line(self.line['t'])
-                self.tid       = self.poly['t'].add_callback(self.poly_changedT)
-
-        # attributes defining which polygon (if any) is 'active'
-        self.act_lab = None  # the label of the active poly
-        self.act_ind = None  # the index of the active poly
+                self.tid = self.poly['t'].add_callback(self.poly_changedT)
 
         # define canvas
         canvas = self.poly['p'].figure.canvas
@@ -204,7 +235,7 @@ There will always be at least one vertex left (which is, in fact, a
         canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
         self.canvas = canvas
 
-    # ---------------------
+        return 0
 
     @property
     def HAVE_T(self):
@@ -402,7 +433,37 @@ There will always be at least one vertex left (which is, in fact, a
 
     def add_vertex(self, event, lab):
         """Add one of the lab type of vertices, depending on where the event
-        occurred."""
+        occurred. NB: this version does not try to keep any order
+        among added vertices, because it doesn't seem necessary---we
+        just sort them later.  Try simply saving performance speed."""
+
+        # get info about nearest location on refline
+        rind, xval, yval, xdataval, ydataval \
+            = self.get_ind_under_point_REFLINE(event)
+
+        # if close enough to refline, go into action
+        if rind != None :
+
+            # instead of searching to put point in order, just add it
+            # here.  NB: this can*NOT* be the [0]th or [-1]th
+            # entry---those are special in the polygon, and should be
+            # undeletable
+            ii = 1
+
+            # ... and add it
+            self.poly[lab].xy = np.insert(
+                self.poly[lab].xy, ii,
+                [xdataval, ydataval],
+                axis=0)
+            self.line[lab].set_data(zip(*self.poly[lab].xy))
+
+        return 0
+
+    def add_vertex_OLD(self, event, lab):
+        """Add one of the lab type of vertices, depending on where the event
+        occurred. NB: this older version does more work every time a vertex
+        is added, to try to put it in order.  That seems unnecessary, and
+        reduces performance when there are a lot of points."""
 
         # get info about nearest location on refline
         rind, xval, yval, xdataval, ydataval \
