@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0, JAug 22, 2023
+Version 1.0, Oct 4, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -43,9 +43,10 @@ Usage:
  confounding effects or more than two random-effects variables). The modeling
  approaches are laid out in the following paper:
 
- Chen et al., 2017. Intraclass correlation: Improved modeling approaches and
- applications for neuroimaging. Human Brain Mapping 39(3): 1187-1206.
- https://doi.org/10.1002/hbm.23909
+ Chen, G., Taylor, P.A., Haller, S.P., Kircanski, K., Stoddard, J., Pine, D.S., 
+ Leibenluft, E., Brotman, M.A., Cox, R.W., 2018. Intraclass correlation: 
+ Improved modeling approaches and applications for neuroimaging. Human Brain 
+ Mapping 39, 1187–1206. https://doi.org/10.1002/hbm.23909
 
  Currently it provides in the output the ICC value and the corresponding
  F-statistic at each voxel. In future, inferences for intercept and covariates
@@ -701,7 +702,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, lop$IF], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+inData <- read.AFNI(lop$dataStr[1, 'InputFile'], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -710,7 +711,7 @@ head <- inData
 
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[,lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[,'InputFile'], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
    errex.AFNI(c("At least one of the input files has different dimensions:\n",
    "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
@@ -888,7 +889,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
 if(dimy == 1 & dimz == 1) {  # 1D scenarios
    nSeg <- 20
    # drop the dimensions with a length of 1
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    #dimx_n <- ifelse(dimx%%nSeg==0, dimx%/%nSeg, dimx%/%nSeg + 1)
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled

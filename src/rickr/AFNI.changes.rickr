@@ -1665,7 +1665,7 @@
       - added loc_add_2_list() and v2s_free_cmd() for v2s_make_command()
       - added labels, thres index/value and surf vol dset to gv2s_plug_opts
   * modified vol2surf.h:
-      - added v2s_cmt_t sturct, and into v2s_opts_t
+      - added v2s_cmt_t struct, and into v2s_opts_t
       - added gpt_index/thresh, label and sv_dset to v2s_plugin_opts
   * modified afni_niml.c: receive spec file name via surface_specfile_name atr
   * modified afni_suma.h: added spec_file to SUMA_surface

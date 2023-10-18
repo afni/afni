@@ -718,7 +718,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "                        presumably for the purpose of resampling the source\n"
      "                        dataset to a new grid.\n"
      "\n"
-     "  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
+     "  * The -1Dmatrix_* options can be used to save and reuse the transformation  *\n"
      "  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
      "  * saved transformation matrices, you can also adjust these matrices to      *\n"
      "  * other alignments. These matrices can also be combined with nonlinear      *\n"

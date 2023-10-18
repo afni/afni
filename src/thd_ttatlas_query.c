@@ -5469,7 +5469,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
 
    if ur->id > 0 && ur->N_chnks == 0 : An exact search is done based on ur->id
 
-   Returned struct must be freed by the user (Free_Atlas_Search), but can be re-used by
+   Returned struct must be freed by the user (Free_Atlas_Search), but can be reused by
    passing it as the last parameter.
 */
 ATLAS_SEARCH * Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_SEARCH *reusethis )

@@ -53,6 +53,102 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Oct, 2023, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
+   "only require flat_namespace if 10.12_local or 10.7_local",
+   NULL
+ } ,
+
+ { 10, Oct, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_MODIFY,
+   "allow -do_updates to override all updates from -test",
+   NULL
+ } ,
+
+ { 10, Oct, 2023, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
+   "require -build_root; tail build errors; default to atlas updating",
+   NULL
+ } ,
+
+ { 28, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "split OS_notes_macos_12 by CPU",
+   "Now have : OS_notes.macos_12_{ARM,intel}_a_admin.zsh\n"
+   "     and : OS_notes.macos_12_{ARM,intel}_b_user.tcsh\n"
+   "The b_user scripts still just run OS_notes.macos_12_b_user.tcsh."
+ } ,
+
+ { 28, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -disp_R_ver_for_lib",
+   NULL
+ } ,
+
+ { 26, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "install NiiVue; add option -update_atlases, to download newest package",
+   NULL
+ } ,
+
+ { 22, Sep, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "in examples, change MNI152_T1_2009c+tlrc to MNI152_2009_template.nii.gz",
+   NULL
+ } ,
+
+ { 21, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "capture the platform of the R version",
+   NULL
+ } ,
+
+ { 18, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -use_asc_path, to test using directory of afni_system_check.py",
+   NULL
+ } ,
+
+ { 15, Sep, 2023, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
+   "in .zshrc, pass -i to compinit, to ignore insecure files",
+   "Whines from compaudit: files not owned by root or user or with perm g+w.\n"
+   "Done with D Glen."
+ } ,
+
+ { 15, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "have all R wrapper scripts (scripts_for_r) return the status from R",
+   "To match returning non-zero when loading R_io.so."
+ } ,
+
+ { 13, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "have 1d_tool.py -write_xstim create an empty file if empty matrix",
+   "This got lost, but is needed for @ss_review_basic on rest data."
+ } ,
+
+ { 13, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "create OS_notes.macos_12_b_user.tcsh to be an executable install script",
+   "Have OS_notes.macos_12_x86_64_b_user.txt just execute the new script.\n"
+   "Reluctantly done to appease D Glen (thanks)."
+ } ,
+
+ {  8, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "new operation: by default, back up and install the build results",
+   "This is a change in behavior.  Upon a successful build, default is now\n"
+   "back up the ABIN and install new binaries and atlases.\n"
+   "Add options -abin, -do_backup, -do_install, -backup_method."
+ } ,
+
+ {  7, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "change afni/build to afni_build in OS_notes.macos_12_x86_64_b_user.txt",
+   "Thanks to spartaaa-git@github.com for pointing that out."
+ } ,
+
+ {  1, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_gentle",
+   "Also, use mean timing diff rather than median."
+ } ,
+
+ { 28, Aug, 2023, RCR, "test_afni_prog_help.tcsh", MINOR, TYPE_ENHANCE,
+   "rename from test.afni.prog.help and moved to scripts_install",
+   "This is now distributed for more general testing."
+ } ,
+
+ { 28, Aug, 2023, RCR, "build_afni.py", MICRO, TYPE_MODIFY,
+   "apply renamed test_afni_prog_help.tcsh program",
+   NULL
+ } ,
+
  { 21, Aug, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "apply uncensored TRs via a text file rather than command line",
    "With a long encoded TR list, file names might exceed the allowable limit\n"

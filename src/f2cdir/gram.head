@@ -266,7 +266,7 @@ arg:	  name
 		  $1->vstg = STGARG;
 		}
 	| SSTAR
-		{ NO66("altenate return argument");
+		{ NO66("alternate return argument");
 
 /* substars   means that '*'ed formal parameters should be replaced.
    This is used to specify alternate return labels; in theory, only

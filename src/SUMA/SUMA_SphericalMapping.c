@@ -760,7 +760,7 @@ void SUMA_binTesselate(float *nodeList, int *triList, int *nCtr, int *tCtr, int 
 /*!
   SUMA_tesselate(nodeList, triList, nCtr, tCtr, N_Div, n0, n1, n2);
 
-  This function tesselates triangle by dividing edges into N_Div segments.
+  This function tessellates triangle by dividing edges into N_Div segments.
   \param nodeList (float *) 3 x N_Node list of nodes (updated as new nodes created during tessellation)
   \param triList (int *) 3 x N_Triangle list of nodes associated with each triangle (updated as new triangles created during tessellation)
   \param nCtr (int *) index of most recently added node to nodeList

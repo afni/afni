@@ -403,7 +403,7 @@ afni_history_struct rwcox_history[] = {
 
  { 26 , NOV , 2019 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
    "Allow user to supply an affine matrix with -resample" ,
-   "To re-use a matrix from a previous 3dAllineate run, for speedup" } ,
+   "To reuse a matrix from a previous 3dAllineate run, for speedup" } ,
 
  { 26 , NOV , 2019 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Add hidden -sincc option for speedup" ,
@@ -3463,7 +3463,7 @@ afni_history_struct rwcox_history[] = {
    "MCW_new_DC.  But later, the duplicate labels (e.g., 'yellow') would\n"
    "cause only 1 entry to actually be created -- which would screw up the\n"
    "indexing of later new colors that were actually created de novo.  This\n"
-   "was fixed by re-defining the re-used color entries immediately." } ,
+   "was fixed by re-defining the reused color entries immediately." } ,
 
  { 21 , JAN , 2011 , RWC , "afni" , MICRO , TYPE_NEW_ENV ,
    "AFNI_ENVIRON_RESET allows .afnirc to re-set existing variables" ,
@@ -8891,7 +8891,7 @@ afni_history_struct rwcox_history[] = {
   { 19,SEP,2001 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* In imseq.c, realized that the 'Empty Image' memplot was being re-created\n"
    "   multiple times, and this is stupid.  Now it is only created once, and\n"
-   "   is re-used from then on.\n"
+   "   is reused from then on.\n"
    "* Also in imseq.c, realized that if last image in a Save sequence is\n"
    "   NULL, and we are saving to an animation, then the animation won't be\n"
    "   written and the saved images will never be deleted.  At least they\n"
@@ -10546,7 +10546,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 4,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Parallel computation (-jobs option) addtions to 3dDeconvolve.c.\n"
+   "* Parallel computation (-jobs option) additions to 3dDeconvolve.c.\n"
    },
 
   { 6,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -10555,7 +10555,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 7,MAY,2003 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Parallel computation (-jobs option) addtions to 3dNLfim.c.\n"
+   "* Parallel computation (-jobs option) additions to 3dNLfim.c.\n"
    "* Mods to mri_dicom_hdr.c to subtract 1 from rwc_err for each error message.\n"
    "   This way, will normally only print 1 such message per to3d run, which will\n"
    "   make the users happier, I hope.\n"
@@ -12679,7 +12679,7 @@ afni_history_struct rwcox_history[] = {
 
   { 19,JUL,2007 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Add THD_multiplex_dataset() to thd_mastery.c, and thence 3dttest.c.\n"
-   "* Modify 3dAllineate to re-use last row of -1Dapply input if needed, and\n"
+   "* Modify 3dAllineate to reuse last row of -1Dapply input if needed, and\n"
    "   also to print a warning that -master may be needed with -1Dapply.\n"
    },
 

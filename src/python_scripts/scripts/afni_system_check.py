@@ -34,6 +34,7 @@ examples
    1.  afni_system_check.py -check_all
    2a. afni_system_check.py -find_prog python
    2b. afni_system_check.py -find_prog python -exact yes
+   3.  afni_system_check.py -disp_R_ver_for_lib $R_LIBS
 
 -----------------------------------------------------------------------------
 terminal options:
@@ -53,6 +54,9 @@ action options:
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
    -disp_num_cpu        : display number of CPUs available
+   -disp_R_ver_for_lib  : display the R version used when building an R library
+                          - this refers to those installed by rPkgsInstall,
+                            most likely under $R_LIBS
    -disp_ver_matplotlib : display matplotlib version (else "None")
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
@@ -66,6 +70,9 @@ other options:
    -casematch yes/no    : match case in -find_prog
    -data_root DDIR      : search for class data under DDIR
    -exact yes/no        : search for PROG without wildcards in -find_prog
+   -use_asc_path        : prepend ASC dir to PATH
+                          (to test programs in same directory as ASC.py)
+   -verb LEVEL          : set the verbosity level
 
 -----------------------------------------------------------------------------
 details displayed via -check_all (just run to see):
@@ -327,9 +334,13 @@ g_history = """
    1.21 Jun  7, 2023 - start looking for missing binary libraries
    1.22 Jun 13, 2023 - turn off check for PyQt4 (add option)
    1.23 Jun 20, 2023 - under linux: check for R_io.so shared dependencies
+   1.24 Sep 18, 2023 - add -use_asc_path
+   1.25 Sep 21, 2023 - capture the R platform with its version
+   1.26 Sep 28, 2023 - add option -disp_R_ver_for_lib
+   1.27 Oct 12, 2023 - only check flat_namespace on 10.7/12_local
 """
 
-g_version = "afni_system_check.py version 1.23, June 20, 2023"
+g_version = "afni_system_check.py version 1.27, October 12, 2023"
 
 
 class CmdInterface:
@@ -390,6 +401,8 @@ class CmdInterface:
                       helpstr='directory to check for class data')
       self.valid_opts.add_opt('-disp_num_cpu', 0, [],
                       helpstr='display number of CPUs available')
+      self.valid_opts.add_opt('-disp_R_ver_for_lib', 1, [],
+                      helpstr='display R version library was built against')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
@@ -403,6 +416,8 @@ class CmdInterface:
                       helpstr='yes/no: use exact matching in -find_prog')
       self.valid_opts.add_opt('-find_prog', 1, [],
                       helpstr='search path for *PROG*')
+      self.valid_opts.add_opt('-use_asc_path', 0, [],
+                      helpstr='immediately prepend ASC dir to PATH')
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set verbosity level (default=1)')
 
@@ -470,6 +485,12 @@ class CmdInterface:
             self.sys_disp.append('num_cpu')
             continue
 
+         if opt.name == '-disp_R_ver_for_lib':
+            self.act = 1
+            self.sys_disp.append('R_ver_for_lib')
+            self.R_ver_lib_path = opt.parlist[0]
+            continue
+
          if opt.name == '-disp_ver_matplotlib':
             self.act = 1
             self.sys_disp.append('ver_matplotlib')
@@ -507,7 +528,16 @@ class CmdInterface:
             self.find_prog = opt.parlist[0]
             continue
 
-         # already processing options: just continue
+         # apply to PATH immediately
+         if opt.name == '-use_asc_path':
+            ascdir = UTIL.executable_dir()
+            if self.verb > 1:
+               print("++ prepending %s to PATH" % ascdir)
+            os_path = os.environ.get("PATH")
+            os.environ["PATH"] = ascdir + ":" + os_path
+            continue
+
+         # already processed options: just continue
 
          if opt.name == '-verb': continue
 
@@ -545,6 +575,8 @@ class CmdInterface:
               print(self.sinfo.get_cpu_count())
           if x == 'ver_matplotlib':
               print(self.sinfo.get_ver_matplotlib())
+          if x == 'R_ver_for_lib':
+              print(self.sinfo.get_R_ver_for_lib(self.R_ver_lib_path))
 
    def check_dotfiles(self, show=0, pack=0):
       global g_dotfiles

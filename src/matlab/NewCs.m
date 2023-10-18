@@ -66,7 +66,7 @@ else
 end
 
 if (length(win) ~= 1 | win < 'A' | win > 'J'),
-   fprintf(2,'Bad window specifer %s\n', win);
+   fprintf(2,'Bad window specifier %s\n', win);
    return;
 end
 

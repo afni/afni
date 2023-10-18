@@ -485,7 +485,7 @@ def get_dependency_requirements(tests_dir):
     Very few requirements are required for execution of tests in a docker container.
 
     'Full' has various dependencies described in the accompanying conda yml
-    files. afnipy may or may not need to be installed dependending on the
+    files. afnipy may or may not need to be installed depending on the
     usage situation. This can be that afni has been installed into the current
     PATH (using the make or cmake build system), the cmake build is being used
     (by way of the pytest target), the --abin flag is being used, or if the

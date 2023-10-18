@@ -6326,7 +6326,7 @@ printf(
     "      * Caution: this option should only be used when the output\n"
     "        is for a single run.\n"
     "\n"
-    "    -gert_chan_digits N_DIG : use N_DIG digits for channel numbr\n"
+    "    -gert_chan_digits N_DIG : use N_DIG digits for channel number\n"
     "\n"
     "        e.g. -gert_chan_digits 1\n"
     "\n"

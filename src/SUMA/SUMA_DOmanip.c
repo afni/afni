@@ -2311,7 +2311,7 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = SO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
@@ -2331,7 +2331,7 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = SO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
@@ -2398,7 +2398,7 @@ char *SUMA_find_ADOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = ADO_ID(ADO); }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               ADO_LABEL(SUMA_whichADO(found, dov, N_dov)),
@@ -2445,7 +2445,7 @@ char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = VO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one volume with labels patially matching %s.\n"
+               "Found more than one volume with labels partially matching %s.\n"
                "For example: volumes %s, and %s .\n",
                               label,
                               SUMA_find_VOLabel_from_idcode(found, dov, N_dov),
@@ -2465,7 +2465,7 @@ char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = VO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one volume with labels patially matching %s.\n"
+               "Found more than one volume with labels partially matching %s.\n"
                "For example: volumes %s, and %s .\n",
                               label,
                               SUMA_find_VOLabel_from_idcode(found, dov, N_dov),

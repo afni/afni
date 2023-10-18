@@ -65,6 +65,7 @@ class SysInfo:
       self.repo_prog       = '' # e.g. yum or brew
       self.have_matplotlib = 0
       self.have_pyqt4      = 0
+      self.need_flat       = 0  # only need if using macos_10.12_local
       self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
@@ -578,7 +579,8 @@ class SysInfo:
       # in 10.11, check for gcc under homebrew
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
-      self.check_for_flat_namespace()
+      if self.need_flat:
+         self.check_for_flat_namespace()
 
       self.check_for_macos_R_in_path()
 
@@ -921,6 +923,9 @@ class SysInfo:
             show_comment = 0 # no comments.append()
             vinfo = UTIL.read_AFNI_version_file()
             if vinfo != '':
+               if vinfo.find('macos_10.12_local') >= 0 or \
+                     vinfo.find('macosx_10.7_local') >= 0:
+                  self.need_flat = 1
                nfound += 1
             else:
                self.comments.append('missing %s, maybe package is old'%prog)
@@ -1028,6 +1033,102 @@ class SysInfo:
          ver = 'None'
 
       return ver
+
+   def get_R_ver_for_lib(self, droot):
+      """return the version of R used to build libraries under 'droot'
+
+         droot should be a directory
+
+         RDS = find the first package.rds file under droot
+         run 'R -e 'd <-readRDS("RDS") ; d$Built$R'
+         use subprocess directly
+
+         any of these steps might fail, so we show what we can
+
+         return a version string on success, '' on failure
+      """
+      pname = 'package.rds'
+      ftxt = 'R_ver_for_lib'
+
+      # allow an rds file as input
+      if os.path.isfile(droot):
+         if not droot.endswith(pname):
+            print('** failed %s:' % ftxt)
+            pirnt('   not a dir or %s: %s' % (pname, ftxt))
+            return ''
+         # use droot as testpack
+         testpack = droot
+
+      # else if not a directory, fail
+      elif not os.path.isdir(droot):
+         print('** failed %s: not a directory: %s' % (ftxt, droot))
+         print('   (consider passing $R_LIBS)')
+         return ''
+
+      # else we have a directory, use globbing to get a file
+      else:
+         # try a few ways, from the closest on up
+         flist = glob.glob('%s/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/package.rds' % droot)
+         if len(flist) == 0:
+            flist = glob.glob('%s/**/*/package.rds' % droot)
+
+         if len(flist) == 0:
+            print('** failed %s: no package.rds under %s' % (ftxt, droot))
+            return ''
+
+         testpack = flist[0]
+
+      # --- we have a test package, now want to run the R command
+
+      rcmd = 'd <-readRDS("%s") ; d$Built$R' % testpack
+      Rargs = ['R', '-e', rcmd]
+      Rfull = "R -e '%s'" % rcmd
+
+      if self.verb > 1:
+         print('++ running: %s' % Rfull)
+
+      try:
+         import subprocess as SP
+         spout = SP.run(Rargs, capture_output=True)
+      except:
+         print("** failed to exec R command")
+         return ''
+
+      if spout.returncode:
+         print("** failed to run: %s" % Rfull)
+         return ''
+
+      outtext = spout.stdout.decode()
+      outlist = outtext.split()
+      if len(outlist) == 0:
+         print('** failed %s: no R -e output' % ftxt)
+         return ''
+
+      if self.verb > 2:
+         print("-- R output:\n%s\n" % outtext)
+
+      # we have a list of output tokens, we might want something like:
+      # "'4.3.1'" - watch for the extra quotes
+
+      for ind in range(len(outlist)-1, -1, -1):
+         vstr = outlist[ind].strip("'")
+         slist = vstr.split('.')
+         ilist = []
+         try:
+            # look for all ints
+            ilist = [int(val) for val in slist]
+         except:
+            pass
+         if len(ilist) in [2,3]:
+            # SUCCESS!  wait, what were we here for again??? oh, vstr
+            if self.verb > 2: print("++ success: have ver %s" % vstr)
+            return vstr
+
+      if self.verb > 2: print("** %s failure" % ftxt)
+
+      return ''
 
    def test_python_lib_pyqt4(self, verb=2):
       # do we even care to be here?
@@ -1162,6 +1263,9 @@ class SysInfo:
       if self.login_shell not in shell_list:
          shell_list.append(self.login_shell)
       cmd = 'init_user_dotfiles.py -test -shell_list %s' % ' '.join(shell_list)
+      # if we do not need flat_namespace, prevent IUD.py from checking it
+      if not self.need_flat:
+         cmd += ' -do_updates path apsearch'
       status, cout = UTIL.exec_tcsh_command(cmd, lines=1)
 
       # report failure or else extract the number of mods needed
@@ -1670,8 +1774,13 @@ class SysInfo:
 
          return 1, (dstr+vstr)
 
-      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git',
-                    'R']:
+      # for R, try to return the version and platform
+      elif prog == 'R':
+         s, vstr = make_R_version_string()
+         # either way, use what is returned
+         return 1, vstr
+
+      elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'git' ]:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
          if s: return 1, se[0]
@@ -1915,8 +2024,45 @@ class SysInfo:
 
       self.show_comments()
 
+# ----------------------------------------------------------------------
 # non-class functions
 
+def make_R_version_string():
+   """try to collapse the R --version string into VERSION (PLATFORM)
+
+      return status and string
+   """
+   cmd = 'R --version'
+   s, so, se = UTIL.limited_shell_exec(cmd)
+
+   # if failure or empty so list, return se
+   if s or len(so) == 0:
+      if len(se) > 0: rs = se[0]
+      else:           rs = "** failed '%s'" % cmd
+      return 1, rs
+
+   # hoping for (DATE), if not, bail
+   posn = so[0].find('(')
+   if posn < 5:
+      return 0, so[0]
+   # get first part
+   v0 = so[0][0:posn-1]
+
+   v1 = ''
+   for line in so:
+      if line.startswith('Platform:'):
+         try:
+            v1 = line.split()[1]
+         except:
+            pass
+         break
+
+   # if success, use v0+v1, else stick with so[0]
+   if v1 != '':
+      return 0, '%s (%s)' % (v0, v1)
+   else:
+      return 0, so[0]
+         
 def tup_str(some_tuple):
    """just listify some string tuple"""
    return ' '.join(list(some_tuple))

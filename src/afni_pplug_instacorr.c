@@ -816,7 +816,7 @@ INFO_message("AFNI_icor_setref_xyz: iv=%.3f,%.3f,%.3f  kv=%d,%d,%d  ijk=%d",
        *slf.dset = *icoset ;      /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
        nds = slf.dset_index ;
-       INFO_message("trashed and re-used old dataset %s",im3d->iset->prefix) ;
+       INFO_message("trashed and reused old dataset %s",im3d->iset->prefix) ;
 
      } else {                                  /* add to the session */
        int vv = icoset->view_type ;
