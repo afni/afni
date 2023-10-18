@@ -66,7 +66,7 @@ class PhysionlogicalNoise:
           self.timeStepIncrement * i
       
       # Output volumes time points (seconds)
-      # (Real) numbers from zero to [the highes time value minus half TR] in
+      # (Real) numbers from zero to [the highest time value minus half TR] in
       # increments of TR.
       self.time_series_time = np.arange(
           0, (max(self.sampleTimes) - 0.5 * test_retro_obj.vol_tr), 

@@ -6,7 +6,7 @@ import math
 import scipy
 from scipy.signal import find_peaks
 
-# Glocal constatns
+# Glocal constants
 M = 3
 
 def getParameters():

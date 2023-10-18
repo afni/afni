@@ -194,7 +194,7 @@ them.
     @property
     def n_subplots(self):
         """The number of subplots in the data, based on the maximum average
-        desnity of points in an included plobj, the full x-range
+        density of points in an included plobj, the full x-range
         across all plobj, and the desired max number of points per
         subplot."""
 
