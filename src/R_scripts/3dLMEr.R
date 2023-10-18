@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, Sept 26, 2023
+Version 1.0.5, Oct 18, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -261,7 +261,7 @@ Introduction
 -------------------------------------------------------------------------
     3dLMEr -prefix LME -jobs 12                                                           \\
           -mask myMask+tlrc                                                               \\
-          -model  'group*emotion*type+age+(1|Subj)+(1/Subj:emotion)+(1|Subj:type)'        \\
+          -model  'group*emotion*type+age+(1|Subj)+(1|Subj:emotion)+(1|Subj:type)'        \\
           -SS_type 3                                                                      \\
           -bounds -2 2                                                                    \\
           -gltCode pat.pos      'gruop : 1*patient emotion : 1*pos'                       \\
