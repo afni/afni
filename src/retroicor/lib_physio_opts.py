@@ -697,7 +697,7 @@ reconcile_phys_json_with_args.__doc__ = \
 
 def interpret_rvt_shift_linspace_opts(A, B, C):
     """Three numbers are used to determine the shifts for RVT when
-processing.  These get intepreted as np.linspace(A, B, C).  Verify
+processing.  These get interpreted as np.linspace(A, B, C).  Verify
 that any entered set (which might come from the user) works fine.
 
 Parameters
@@ -1256,7 +1256,7 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
 
 opt = '''rvt_shift_list'''
 hlp = '''Provide one or more values to specify how many and what kinds of
-shifted copies of RVT are ouptut as regressors. Units are seconds, and
+shifted copies of RVT are output as regressors. Units are seconds, and
 including 0 may be useful. Shifts could also be entered via
 '-rvt_shift_linspace ..' (def: {}) '''.format(DEF_rvt_shift_list)
 odict[opt] = hlp

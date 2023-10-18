@@ -78,7 +78,7 @@ def slice_pattern_to_order(pattern, nslices):
 def slice_pattern_to_timing(pattern, nslices, TR=0):
    """given tpattern, nslices and TR, return a list of slice times
 
-      special case: if TR == 0 (or unspecifiec)
+      special case: if TR == 0 (or unspecified)
          - do not scale (so output is int list, as if TR==nslices)
 
       method:

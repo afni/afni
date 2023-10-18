@@ -1096,7 +1096,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
             if show_graph: plt.show(block=True)
             if not show_graph: plt.close()  # Close graph after saving
     
-        # Plot filtered signal agains raw data
+        # Plot filtered signal against raw data
         x = []    
         end = len(filteredRawData)
         for i in range(0,end): x.append(i/phys_fs)

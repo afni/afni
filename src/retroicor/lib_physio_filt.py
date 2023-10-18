@@ -10,7 +10,7 @@ of subsampling index values to select out 'central point values' from
 the original time series; this is saved as all_n.
 
 Also calculate the first and last indices within all_n where simple
-median filtering at the specied window size can occur; these are the
+median filtering at the specified window size can occur; these are the
 start and stop values, respectively.  Successively smaller filter
 windows will be applied to points outside the [start, stop] range.
 

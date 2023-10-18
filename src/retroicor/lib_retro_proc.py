@@ -796,7 +796,7 @@ def determineRespiratoryPhases(resp_peaks,
     # Use global Rmax
     if use_global_r_max: 
         global_r_max = max(rawData[resp_peaks])
-        # The Glover 2000 method, for estimating the respiratory tranfer function
+        # The Glover 2000 method, for estimating the respiratory transfer function
         # involves summing the histogram bin counts from the lowest respiratory
         # value to the fraction of the given respiratory value over the maximum 
         # value.  If the global maximu is used, this means that only the counts,

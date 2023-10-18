@@ -1018,7 +1018,7 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
 opt = '''global_r_max'''
-hlp = '''Use gloabl maximum and minimum respiratory values to determine respiratory coefficients. (def: {})
+hlp = '''Use global maximum and minimum respiratory values to determine respiratory coefficients. (def: {})
 '''.format(DEF_max_bpm_card)
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
