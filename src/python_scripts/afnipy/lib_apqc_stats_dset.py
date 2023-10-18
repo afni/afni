@@ -991,7 +991,7 @@ def parse_stats_dset_labels_OLD( fname, lsearch = [] ) :
                 #      "".format(pre, vso.olay_label, vso.thr_label, addtoi))
                 list_objs.append(vso) 
                 
-                i+= addtoi # we accummulate how many to add
+                i+= addtoi # we accumulate how many to add
             else :
                 i+= 1
 

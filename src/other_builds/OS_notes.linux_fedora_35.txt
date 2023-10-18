@@ -17,4 +17,5 @@
 
    # extras (not needed for build)
    sudo dnf install -y netpbm-progs gnome-tweaks ipython meld python3-scipy
+   sudo dnf install -y python3-numpy python3-flask python3-flask-cors
 

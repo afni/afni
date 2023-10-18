@@ -1596,92 +1596,281 @@ def attr_equals_val(object, attr, val):
 
     return rv
 
-def timing_to_slice_pattern(timing, nplaces=3):
-   """given an array of slice times, try to return a value
-      in g_valid_slice_patterns
+def median(vals):
+   """return the median of a list of values
+      (dupe to sort without modifying input)
+   """
+   nvals = len(vals)
 
-           TR = max(timing) + min(non-zero timing)
-         - look for multiband
-         - let nplaces guide rounded precision
-           (nplaces is with respect to a fraction of the TR)
+   # trivial cases
+   if nvals == 0:
+      return 0
+   if nvals == 1:
+      return vals[0]
+
+   svals = sorted(vals)
+
+   # truncate nvals/2, both as a test and as an index
+   nby2 = int(nvals/2)
+
+   # set based on parity of nvals
+   # even: if nvals == 20, want ave(index 9 + index 10)
+   if nby2 == nvals/2:
+      med = (svals[nby2-1]+svals[nby2]) / 2.0
+   # odd:  if nvals == 21, want index 10
+   else:
+      med = float(svals[nby2])
+
+   del(svals)
+   return med
+
+def __mean_slice_diff(vals, verb=1):
+   """return what seems to be the slice diff
+      - get unique, sorted sublist, then diffs, then mean
+   """
+   unique = get_unique_sublist(vals)
+   nunique = len(unique)
+   # quick return - when there are no diffs
+   if nunique < 2:
+      return 0.0
+
+   # sort unique sublist
+   unique.sort()
+
+   # get first diffs
+   diffs = [unique[i+1]-unique[i] for i in range(nunique-1)]
+   diffs.sort()
+
+   if verb > 1:
+      print("-- MSD: slice diffs: %s" % gen_float_list_string(diffs))
+
+   # return mean
+   avediff = mean(diffs)
+   del(diffs)
+
+   return avediff
+
+def timing_to_slice_pattern(timing, rdigits=1, verb=1):
+   """given an array of slice times, try to return multiband level and
+      a pattern in g_valid_slice_patterns
+
+      inputs:
+         timing     : <float list> : slice times
+         rdigits    : [1] <int>    : number of digits to round to for required test
+         verb       : [1] <int>    : verbosity level
 
       method:
-         - copy, sort, get TR, scale by 1/TR
-         - require uniq sorted list to have const diffs
-         - finally, test patterns
+         - detect timing grid (TR = tgrid*nslice_times (unique))
+         - multiband = number of repeated time sets (ntimes/nunique)
+         - round timing/tgrid
+            - test as ints in {0..nunique-1}
+            - detect timing pattern in this int list
+            - check for multiband # of repeats
 
-      return status (int), tpattern (string)
-        status  -1   invalid timing
-                 0   irregular timing (valid, but no time pattern)
-              >= 1   multiband level of regular timing (usually 1)
-        pattern
-                 val in g_valid_slice_patterns
-                     (or 'irregular')
+      return status (int), tpattern (string):
+        status     -1   invalid timing
+                    0   invalid multiband (not even 1)
+                 >= 1   multiband level of timing (usually 1)
+        tpattern        val in g_valid_slice_patterns or 'irregular'
    """
+
+   # ----------------------------------------------------------------------
+   # prep: get basic data
+   #    slice diff (tgrid), TR, mblevel
+   #    unique sublist (tunique), timing and unique lengths
+
    # default pattern and bad ones (to avoid random typos)
    defpat = 'simult'
 
-   # estimate TR from the data (0.0, if invalid)
-   # 0.0 includes short length, constant times, neg min, max 0
-   TR = TR_from_timing(timing)
+   # first, estimate the slice diff (prefer mean over median for weak timing)
+   tunique = get_unique_sublist(timing)
+   tgrid = __mean_slice_diff(timing, verb=verb)
+
+   ntimes = len(timing)
+   nunique = len(tunique)
+
+   # be sure there is something to work with
+   if nunique <= 1:
+      return 1, defpat
+
+   # TR is slice time * num_slices_times
+   TR = tgrid*nunique
+
+   # note multiband level (number of repeated times)
+   mblevel = int(round(ntimes/nunique))
+
+   if verb > 2:
+      print("-- TR %g, MB %g, rdig %d, nunique %g, med slice diff: %g" \
+            % (TR, mblevel, rdigits, nunique, tgrid))
+
+   # if TR is not valid, we are out of here
    if TR < 0.0:
       return -1, defpat
    if TR == 0.0:
       return 1, defpat
 
-   ntimes = len(timing)
+   # ----------------------------------------------------------------------
+   # scale timing: divide by tgrid to put in {0, 1, ..., nunique-1}
+   scalar = 1.0/tgrid
+   tscale = [t*scalar for t in timing]
 
-   # scale timing by TR, to put vals in [0,1)
-   # (verify range, allow exactly 1.0?)
-   tscaled = [t/TR for t in timing]
-   if max(tscaled) > 1.0:
-      return -1, defpat
+   # get rounded unique sublist and sort, to compare against ints
+   tround = get_unique_sublist([int(round(t,ndigits=rdigits)) for t in tscale])
+   tround.sort()
 
-   # require constant first diffs
-   tsorted = tscaled[:]
-   tsorted.sort()
-   tdiffs = get_unique_sublist(tsorted, keep_order=1)
-   nunique = len(tdiffs)
-   tgrid = tdiffs[1] - tdiffs[0]
-   for ind in range(nunique-1):
-      # compare diffs to tgrid
-      if round(tdiffs[ind+1]-tdiffs[ind]-tgrid, ndigits=nplaces) != 0.0:
-         # irregular timing
-         return 0, g_tpattern_irreg
+   # chat
+   if verb > 1:
+      # print("++ t2sp: TR %s, min %s, max %s" % (TR, nzmin, nzmax))
+      if verb > 2: print("-- times : %s" % timing)
+      if verb > 3:
+         print("== (sorted) tscale should be close to ints, tround must be ints")
+         print("-- tscale: %s" % gen_float_list_string(sorted(tscale)))
+         print("-- tround: %s" % gen_float_list_string(tround))
 
-   # note multiband level - if this fails, timing is irregular
-   mblevel = _get_MB_level(tsorted, tgrid, len(tdiffs), nplaces)
+   # ----------------------------------------------------------------------
+   # tests:
 
-   # we are done with tsorted and tdiffs
-   del(tsorted)
-   del(tdiffs)
+   # tround MUST be consecutive ints
+   # (test that they round well, and are consecutive and complete)
+   for ind in range(len(tround)):
+      if ind != tround[ind]:
+         if verb > 1:
+            print("** timing is not multiples of expected %s" % tgrid)
+         return 1, defpat
 
+   # and tround must be the same length as nunique
+   if len(tround) != nunique:
+      if verb > 1:
+         print("** have %d unique times, but %d unique scaled and rounded times" \
+               % (nunique, len(tround)))
+      return 1, defpat
+
+   del(tround) # finished with this
+
+   # does mblevel partition ntimes?
+   if ntimes != mblevel * round(ntimes/mblevel,ndigits=(rdigits+1)):
+      if verb > 1:
+         print("** mblevel %d does not divide ntimes %d" % (mblevel, ntimes))
+      return 1, defpat
+
+   # check tscale timing, warn when not close enough to an int
+   warnvec = []
+   for ind in range(ntimes):
+      tsval = tscale[ind]
+      if round(tsval) != round(tsval, ndigits=2):
+         warnvec.append(ind)
+
+   # actually warn if we found anything
+   badmults = 0
+   if verb > 0 and len(warnvec) > 0:
+      badmults = 1
+      print("** warning: %d/%d slice times are only approx multiples of %g" \
+            % (len(warnvec), ntimes, tgrid))
+      if verb > 1:
+         # make this pretty?
+         ratios = [t/tgrid for t in timing]
+         maxlen, strtimes = floats_to_strings(timing)
+         maxlen, strratio = floats_to_strings(ratios)
+         for ind in range(ntimes):
+            print(" bad time[%2d] : %s  /  %g  =  %s" \
+                  % (ind, strtimes[ind], tgrid, strratio[ind]))
+
+   if verb > 1 or badmults:
+      print("-- timing: max ind,diff = %s" % list(__max_int_diff(tscale)))
+
+   # ----------------------------------------------------------------------
    # at this point, the sorted list has a regular (multiband?) pattern
    # so now we :
    #   - choose a pattern based on the first nunique entries
    #   - verify that the pattern repeats mblevel times
 
-   # variables of importance: timing, tgrid, nunique, mblevel
-   # convert timing to ints in range(nunique)
+   # variables of importance: timing, tgrid, nunique, mblevel, tscale
+   #   - convert timing to ints in range(nunique) (first nunique of tscale)
    #   - and then we can ignore tpattern and tgrid
-   #   - scale by 1/grid to make as ints in range(nunique)
    # then new vars of importance: tings, nunique, mblevel
 
-   # scale up tgrid to be at original TR, rather than for times in [0,1)
-   tgrid *= TR
-   tints = [round(t/tgrid) for t in timing]
+   # round scaled times to be ints in {1..nunique-1} (but full length)
+   tints = [int(round(t)) for t in tscale]
+   ti0   = tints[0:nunique]
 
-   # finally, the real step:
-   tpat = _uniq_ints_to_tpattern(tints[0:nunique])
+   # finally, the real step: try to detect a pattern in the first nunique
+   tpat = _uniq_ints_to_tpattern(ti0)
+   if verb > 1:
+      if tpat == g_tpattern_irreg:
+         print("** failed to detect known slice pattern from order:\n" \
+               "   %s" % ti0)
+      else:
+         print("++ detected pattern %s in first slice set" % tpat)
 
    # pattern must match for each other mblevel's
    for bandind in range(1, mblevel):
       offset = bandind * nunique
-      if not lists_are_same(tints[0:nunique], tints[offset:offset+nunique]):
+      if not lists_are_same(ti0, tints[offset:offset+nunique]):
          # failure, not a repeated list
          return 0, g_tpattern_irreg
 
    return mblevel, tpat
+
+def floats_to_strings(fvals):
+    """return a corresponding list of floats converted to strings, such that:
+          - they should align (all have same length)
+          - the decimals are all in the same position (might have space pad)
+          - using %g to convert
+
+       return the new lengths (all the same) and the strign list
+    """
+    if len(fvals) == 0:
+       return 0, []
+
+    slist = ["%g" % v for v in fvals]
+    for ind in range(len(slist)):
+       if slist[ind].find('.') < 0:
+          slist[ind] += '.'
+
+    # now get max digits before and after decimal
+    maxb = 0
+    maxa = 0
+    for ind in range(len(slist)):
+       fs = slist[ind]
+
+       # num before and after 
+       numb = fs.find('.')
+       numa = len(fs) - numb - 1
+       if numb > maxb:
+          maxb = numb
+       if numa > maxa:
+          maxa = numa
+
+    # now modify slist by padding with needed spaces
+    for ind in range(len(slist)):
+       fs = slist[ind]
+
+       # same num before and after, but subtracted from maxes
+       numb = fs.find('.')
+       newb = maxb - numb
+       newa = maxa - (len(fs) - numb - 1)
+
+       slist[ind] = ' '*newb + slist[ind] + ' '*newa
+
+    return len(slist[0]), slist
+
+def __max_int_diff(vals):
+    """return the (index and) maximum difference from an int (max is 0.5)
+       if all the same, return 0, diff[0]
+    """
+    nvals = len(vals)
+    if nvals == 0: return 0, 0
+  
+    diff = abs(vals[0]-round(vals[0]))
+    mdiff = diff
+    mind = 0
+    for ind in range(nvals):
+       diff = abs(vals[ind]-round(vals[ind]))
+       if diff > mdiff:
+          mind = ind
+          mdiff = diff
+
+    return mind, mdiff
 
 def _uniq_ints_to_tpattern(tints):
    """given a list of (unique) ints 0..N-1, try to match a timing pattern
@@ -1707,71 +1896,6 @@ def _uniq_ints_to_tpattern(tints):
 
    # failure
    return g_tpattern_irreg
-
-def _get_MB_level(tsorted, tgrid, nunique, nplaces):
-   """timing is on a grid with diffs tgrid and nunique unique values
-      verify whether there are len(tsorted)/nunique sets of unique values
-      return 0         if irregular timing
-             level > 0 for multiband level
-   """
-   nt = len(tsorted)
-   mblevel = int(round(nt/nunique))
-   if nt != mblevel * nunique:
-      return 0
-
-   # if 1, nothing to check, as we are already on a grid
-   if mblevel == 1:
-      return mblevel
-
-   tind = 0 # global index as we walk through list
-   # for each unique value
-   for uind in range(nunique):
-
-      # there should be mblevel repeats
-      # --> so (mvlevel-1) diff==0 
-      for lind in range(mblevel-1):
-         if round(tsorted[tind+1]-tsorted[tind], ndigits=nplaces) != 0:
-            # failure, the frequencies are not even
-            return 0
-         tind += 1
-
-      # on last iteration, don't check next diff
-      if tind == nt-1:
-         break
-
-      # followed by one diff of size tgrid
-      if round(tsorted[tind+1]-tsorted[tind]-tgrid, ndigits=nplaces) != 0:
-         return 0
-
-      tind += 1
-
-   # success!
-   return mblevel
-
-def TR_from_timing(timing):
-   """return an estimated TR, given the timing (nzmin + max (if valid))
-      return:  -1 if invalid
-                0 if short or constnat
-               >0 if valid And knownd
-   """
-   if vals_are_constant(timing):
-      return 0.0
-   if min(timing) < 0.0:
-      return -1.0
-
-   tmax = max(timing)
-   if tmax < 0.0: # already handled, but let's be clear
-      return -1.0
-   if tmax == 0.0:
-      return 0.0
-
-   # compute nzmin
-   nzmin = tmax
-   for t in timing:
-      if t > 0 and t < nzmin:
-         nzmin = t
-
-   return nzmin+tmax
 
 def slice_pattern_to_order(pattern, nslices):
    """return a list of slice order indices
@@ -1831,26 +1955,44 @@ def slice_pattern_to_order(pattern, nslices):
 
    return order
 
-def slice_pattern_to_timing(pattern, nslices, TR=0):
-   """given tpattern, nslices and TR, return a list of slice times
+def slice_pattern_to_timing(pattern, nslices, TR=0, mblevel=1, verb=1):
+   """given tpattern, nslices, TR, and multiband level,
+         return a list of slice times
 
-      special case: if TR == 0 (or unspecific)
-         - do not scale (so output is int list, as if TR==nslices)
+      parameters:
+         pattern    : (string) one of g_valid_slice_patterns :
+                                  'zero',  'simult',
+                                  'seq+z', 'seqplus',
+                                  'seq-z', 'seqminus',
+                                  'alt+z', 'altplus',     'alt+z2',    
+                                  'alt-z', 'altminus',    'alt-z2',    
+         nslices    : (int)    total number of output slice times
+         TR         : (float)  total time to acquire all slices
+         mblevel    : (int)    multiband level (number of repeated time sets)
+         verb       : (int)    verbosity level
+
+      special case: if TR == 0 (or unspecified)
+         - do not scale (so output is int list, as if TR==nslices/mblevel)
 
       method:
-         - get slice_pattern_to_order()
-           - this is a list of slice indexes in the order acquired
-         - attach the consecutive index list, range(nslices)
-           - i.e, make list of [ [slice_index, acquisition_index] ]
-         - sort() - i.e. by slice_index
-           - so element [0] values will be the sorted list of slices
-         - grab element [1] from each
-           - this is the order the given slice was acquired in
-         - scale all by TR/nslices
+         - verify that nslices is a multiple of mblevel
+         - get result for ntimes = nslices/mblevel
+            - get slice_pattern_to_order()
+              - this is a list of slice indexes in the order acquired
+            - attach the consecutive index list, range(nslices)
+              - i.e, make list of [ [slice_index, acquisition_index] ]
+            - sort() - i.e. by slice_index
+              - so element [0] values will be the sorted list of slices
+            - grab element [1] from each
+              - this is the order the given slice was acquired in
+            - scale all by TR/nslices
+         - duplicate the result across other levels
 
       return a list of slice times, or an empty list on error
    """
-   if nslices <= 0 or TR < 0.0:
+   # ---------- sanity checks  ----------
+
+   if nslices <= 0 or TR < 0.0 or mblevel <= 0:
       return []
    if nslices == 1:
       return [0]
@@ -1863,23 +2005,36 @@ def slice_pattern_to_timing(pattern, nslices, TR=0):
    if pattern in ['zero', 'simult']:
       return [0] * nslices
 
+   # ---------- check for multiband  ----------
+
+   ntimes = int(nslices/mblevel)
+   if mblevel > 1:
+      if nslices != ntimes*mblevel:
+         print("** error: nslices (%d) not multiple of mblevel (%d)" \
+               % (nslices, mblevel))
+         return []
+
+   # ---------- get result for ntimes ----------
+
    # first get the slice order
-   order = slice_pattern_to_order(pattern, nslices)
+   order = slice_pattern_to_order(pattern, ntimes)
    if order is None:
       return []
 
    # attach index and sort
-   slice_ordering = [ [order[ind], ind] for ind in range(nslices)]
+   slice_ordering = [ [order[ind], ind] for ind in range(ntimes)]
    slice_ordering.sort()
 
-   # grab each element [1] and scale by TR/nslices
+   # grab each element [1] and scale by TR/ntimes
    # (if TR == 0, do not scale)
    if TR == 0:
-      stimes = [so[1]            for so in slice_ordering]
+      stimes = [so[1]           for so in slice_ordering]
    else:
-      stimes = [so[1]*TR/nslices for so in slice_ordering]
+      stimes = [so[1]*TR/ntimes for so in slice_ordering]
 
-   return stimes
+   # ---------- duplicate results to mblevel ----------
+
+   return stimes*mblevel
 
 # ----------------------------------------------------------------------
 # begin matrix functions
@@ -3161,23 +3316,27 @@ def string_to_type_list(sdata, dtype=float):
 
    return dlist
 
-def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
+def float_list_string(vals, mesg='', nchar=7, ndec=3, nspaces=2, left=0, sep=' '):
    """return a string to display the floats:
         vals    : the list of float values
+        mesg    : []  message to precede values
         nchar   : [7] number of characters to display per float
         ndec    : [3] number of decimal places to print to
         nspaces : [2] number of spaces between each float
+
+        left    : [0] whether to left justify values
+        sep     : [ ] separator for converted strings
    """
 
    if left: form = '%-*.*f%*s'
    else:    form = '%*.*f%*s'
 
-   istr = mesg
-   for val in vals: istr += form % (nchar, ndec, val, nspaces, '')
+   svals = [form % (nchar, ndec, val, nspaces, '') for val in vals]
+   istr = mesg + sep.join(svals)
 
    return istr
 
-def gen_float_list_string(vals, mesg='', nchar=0, left=0):
+def gen_float_list_string(vals, mesg='', nchar=0, left=0, sep=' '):
    """mesg is printed first, if nchar>0, it is min char width"""
 
    istr = mesg
@@ -3186,11 +3345,13 @@ def gen_float_list_string(vals, mesg='', nchar=0, left=0):
    else:    form = '%'
 
    if nchar > 0:
-      form += '*g '
-      for val in vals: istr += form % (nchar, val)
+      form += '*g'
+      svals = [form % (nchar, val) for val in vals]
    else:
-      form += 'g '
-      for val in vals: istr += form % val
+      form += 'g'
+      svals = [form % val for val in vals]
+
+   istr = mesg + sep.join(svals)
 
    return istr
 
@@ -4227,8 +4388,7 @@ def mean(vec, ibot=-1, itop=-1):
     if itop > vlen-1: itop = vlen-1
 
     tot = 0.0
-    for ind in range(ibot,itop+1):
-       tot += vec[ind]
+    tot = loc_sum(vec[ibot:itop+1])
 
     return tot/(itop-ibot+1)
 
@@ -5405,6 +5565,44 @@ def read_afni_seed_file(fname, only_from_space=None):
                     dat.append( seed_obj )
 
     return dat
+
+# [PT: June 5, 2023] For APQC HTML generation, and likely other
+# things.
+def rename_label_safely(x, only_hash=False):
+    """Make safe string labels that can be used in filenames (so no '#')
+and NiiVue object names (so no '-', '+', etc.; sigh).  
+
+For example, 'vstat_V-A_GLT#0_Coef' -> 'vstat_V__A_GLT_0_Coef'.
+
+The mapping rules are in the text of this function.  This function
+might (likely) update over time.
+
+Parameters
+----------
+x : str
+    a name
+only_hash : bool
+    simpler renaming, only replacing the hash symbol (that appears
+    in stat outputs)
+
+Returns
+-------
+y : str
+    a name that has (hopefully) been made safe by various letter 
+    substitutions.
+
+    """
+
+    y = x.replace('#', '_')
+
+    if only_hash :
+        return y
+
+    y = y.replace('-', '__')
+    y = y.replace('+', '___')
+    y = y.replace('.', '____')
+
+    return y
 
 # ----------------------------------------------------------------------
 

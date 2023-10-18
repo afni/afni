@@ -30,7 +30,7 @@ if ( $do_help ) then
   echo "will also be plotted, if option"
   echo "  '-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh'"
   echo "was given to afni_proc.py -- this is the 'pre-whitened' residuals"
-  echo "dataset, which is the noise examplar from which the 3dREMLfit"
+  echo "dataset, which is the noise exemplar from which the 3dREMLfit"
   echo "statistics are computed."
   echo "* NOTE: dataset all_runs.*+tlrc.HEAD will also be"
   echo "        grayplotted if it is found in the results directory."

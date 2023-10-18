@@ -42,8 +42,7 @@ s,*/
 n.*/
 /*     There can be some freedom in the interpolation conditions, which is
  */
-/*    taken up by minimizing the Frobenius norm of the change to the secon
-d*/
+/*    taken up by minimizing the Frobenius norm of the change to the second */
 /*    derivative of the quadratic model, beginning with a zero matrix. The
 */
 /*     arguments of the subroutine are as follows. */
@@ -228,8 +227,8 @@ e*/
 /*       the elements of DZ are plus or minus one, as specified by IDZ. */
 /*     NDIM is the first dimension of BMAT and has the value NPT+N. */
 /*     D is reserved for trial steps from XOPT. */
-/*    VLAG will contain the values of the Lagrange functions at a new poin
-t X.*/
+/*    VLAG will contain the values of the Lagrange functions at a new */
+/*    point X.*/
 /*      They are part of a product that requires VLAG to be of length NDIM
 .*/
 /*    The array W will be used for working space. Its length must be at le

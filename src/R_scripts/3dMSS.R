@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.4, July 11, 2023
+Version 1.0.6, Sept 24, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -43,14 +43,19 @@ Introduction
  neuroimaging data analysis that involves one or more quantitative
  predictors. More theoretical discussion can be found in
 
- Chen et al. (2020). Beyond linearity: Capturing nonlinear relationships 
- in neuroimaging. https://doi.org/10.1101/2020.11.01.363838
+ Chen, G., Nash, T.A., Cole, K.M., Kohn, P.D., Wei, S.-M., Gregory, M.D.,
+ Eisenberg, D.P., Cox, R.W., Berman, K.F., Shane Kippenhan, J., 2021. 
+ Beyond linearity in neuroimaging: Capturing nonlinear relationships with 
+ application to longitudinal studies. NeuroImage 233, 117891. 
+ https://doi.org/10.1016/j.neuroimage.2021.117891
 
- Chen et al. (2023). BOLD response is more than just magnitude: improving
- detection sensitivity through capturing hemodynamic profiles.
- https://t.co/vLNYOhb6Jl
+ Chen, G., Taylor, P.A., Reynolds, R.C., Leibenluft, E., Pine, D.S., 
+ Brotman, M.A., Pagliaccio, D., Haller, S.P., 2023. BOLD Response is more 
+ than just magnitude: Improving detection sensitivity through capturing 
+ hemodynamic profiles. NeuroImage 277, 120224. 
+ https://doi.org/10.1016/j.neuroimage.2023.120224
 
- To be able to run 3dMSS, one needs to have the following R packaages 
+ To be able to run 3dMSS, one needs to have the following R packages 
  installed: "gamm4" and "snow". To install these R packages, run the
  following command at the terminal:
 
@@ -89,14 +94,18 @@ Introduction
   a between-subjects variable (not varying within subject):
 
    3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)'                           \\
+          -mrr 's(age,k=10)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
           -prediction @pred.txt                   \\
           -dataTable  @data.txt
 
-  The function 's(age)' indicates that 'age' is modeled via a smooth curve.
+  The part 's(age,k=10)' indicates that 'age' is modeled via a smooth curve.
+  The minimum number of samples should be 6 or more. 'k=10' inside the model
+  specification s() sets the number of knots. If the number of data samples (e.g.,
+  age) is less than 10, set k to the number of available samples (e.g., 8).
+
   No empty space is allowed in the model formulation. With the option 
   -bounds, values beyond [-2, 2] will be treated as outliers and considered 
   as missing. If you want to set a range, choose one that make sense with 
@@ -106,13 +115,13 @@ Introduction
    such as subject) for prediction. The file should be in a data.frame format as below:
 
    label  age 
-   t1      1   
-   t2      2   
-   t3      3   
+   time1   1   
+   time2   2   
+   time3   3   
     ...
-   t8      8  
-   t9      9 
-   t10    10
+   time8   8  
+   time9   9 
+   time10 10
     ...
 
    The file data.txt stores the information for all the variables and input data in a
@@ -141,9 +150,14 @@ Introduction
   specified by replacing the line of -mrr in Example 1 with the following 
   two lines:
 
-          -mrr 's(age)+s(Subj,bs=\"re\")'         \\
-          -vt Subj 's(Subj)'                      \\
+          -mrr 's(age,k=10)+s(Subj,bs=\"re\")'    \\
+          -vt Subj 's(Subj)'                    \\
 
+  The part 's(age,k=10)' indicates that 'age' is modeled via a smooth curve.
+  The minimum number of samples should be 6 or more. 'k=10' inside the model
+  specification s() sets the number of knots. If the number of data samples (e.g.,
+  age) is less than 10, set k to the number of available samples (e.g., 8).
+  
   The second term 's(Subj,bs=\"re\")' in the model specification means that
   each subject is allowed to have a varying intercept or random effect ('re'). 
   To estimate the smooth trajectory through the option -prediction, the option
@@ -156,7 +170,7 @@ Introduction
   The full script version is
 
    3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(Subj,bs=\"re\")'         \\
+          -mrr 's(age,k=10)+s(Subj,bs=\"re\")'      \\
           -vt Subj 's(Subj)'                      \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
@@ -169,8 +183,8 @@ Introduction
   Alternatively, this model with varying subject-level intercept can be
   specified with
 
-          -lme 's(age)'                        \\
-          -ranEff 'list(Subj=~1)'                      \\
+          -lme 's(age,k=10)'                      \\
+          -ranEff 'list(Subj=~1)'                 \\
 
   which is solved through the linear mixed-effect (lme) platform. The -vt is
   not needed when making prediction through the option -prediction. The two
@@ -183,23 +197,27 @@ Introduction
   set up to compare the trajectory or trend along age between the two groups,
   which are quantitatively coded as -1 and 1. For example, if the two groups
   are females and males, you can code females as -1 and males as 1. The following
-  script applies to the situation when  the quantitative variable does not vary 
+  script applies to the situation when the quantitative variable does not vary 
   within subject, 
 
-  3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)'             \\
+  3dMSS -prefix MSS -jobs 16                      \\
+          -mrr 's(age,k=10)+s(age,k=10,by=grp)'   \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
           -prediction @pred.txt                   \\
           -dataTable  @data.txt
 
-  On the other hand, go with the script below when the quantitative variable 
-  varies within subject,
+  The part 's(age,k=10)' indicates that 'age' is modeled via a smooth curve.
+  The minimum number of samples should be 6 or more. 'k=10' inside the model
+  specification s() sets the number of knots. If the number of data samples (e.g.,
+  age) is less than 10, set k to the number of available samples (e.g., 8).
+  
+  Use the script below when the quantitative variable varies within subject,
 
-  3dMSS -prefix MSS -jobs 16                     \\
-          -mrr 's(age)+s(age,by=grp)+s(Subj,bs=\"re\")' \\
-          -vt  Subj 's(Subj)'                \\
+  3dMSS -prefix MSS -jobs 16                      \\
+          -mrr 's(age,k=10)+s(age,k=10,by=grp)+s(Subj,bs=\"re\")' \\
+          -vt  Subj 's(Subj)'                     \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -208,9 +226,9 @@ Introduction
 
   or an LME version:
 
-  3dMSS -prefix MSS -jobs 16                     \\
-          -lme 's(age)+s(age,by=grp)'             \\
-          -ranEff 'list(Subj=~1)'                      \\
+  3dMSS -prefix MSS -jobs 16                      \\
+          -lme 's(age,k=10)+s(age,k=10,by=grp)'   \\
+          -ranEff 'list(Subj=~1)'                 \\
           -qVars 'age'                            \\
           -mask myMask.nii                        \\
           -bounds  -2 2                           \\
@@ -227,12 +245,17 @@ ex4 <-
   between the two conditions. For either case, each individual should have 
   14 input files. Two covariates are considered: sex and age.
 
-    3dMSS -prefix output -jobs 16             \
-        -lme 'sex+age+s(TR)' \
-        -ranEff 'list(subject=~1)'          \
-        -qVars 'sex,age,TR'           \
-        -prediction @HRF.table              \
+    3dMSS -prefix output -jobs 16           \\
+        -lme 'sex+age+s(TR,k=10)'           \\
+        -ranEff 'list(subject=~1)'          \\
+        -qVars 'sex,age,TR'                 \\
+        -prediction @HRF.table              \\
         -dataTable  @smooth-HRF.table
+
+  The part 's(TR,k=10)' indicates that 'TR' is modeled via a smooth curve.
+  The minimum number of samples should be 6 or more. 'k=10' inside the model
+  specification s() sets the number of knots. If the number of data samples (e.g.,
+  TR) is less than 10, set k to the number of available samples (e.g., 8).
 
   The output filename and number of CPUs for parallelization are
   specified through -prefix and -jobs, respectively. The expression
@@ -261,13 +284,9 @@ ex4 <-
   predicted HRFs:
 
   label   age   sex      TR
-  s1      6.2     1      0.00
-  s1      6.2     1      0.25
-  s1      6.2     1      0.50
-  ...
-  s72     3.5    -1      0.00
-  s72     3.5    -1      0.25
-  s72     3.5    -1      0.50
+  time1   6.2     1      0.00
+  time2   6.2     1      0.25
+  time3   6.2     1      0.50
   ...
    \n"
 
@@ -281,13 +300,18 @@ ex5 <-
   with 14 time points with a time resolution TR = 1.25s, each individual
   should have 14 input files. Two covariates are considered: sex and age.
 
-  3dMSS -prefix output -jobs 16             \
-        -lme 'sex+age+s(TR)+s(TR,by=group)' \
-        -ranEff 'list(subject=~1)'          \
-        -qVars 'sex,age,TR,group'           \
-        -prediction @HRF.table              \
+  3dMSS -prefix output -jobs 16                       \\
+        -lme 'sex+age+s(TR,k=10)+s(TR,k=10,by=group)' \\
+        -ranEff 'list(subject=~1)'                    \\
+        -qVars 'sex,age,TR,group'                     \\
+        -prediction @HRF.table                        \\
         -dataTable  @smooth-HRF.table
 
+  The part 's(age,k=10)' indicates that 'TR' is modeled via a smooth curve.
+  The minimum number of samples should be 6 or more. 'k=10' inside the model
+  specification s() sets the number of knots. If the number of data samples (e.g.,
+  TR) is less than 10, set k to the number of available samples (e.g., 8).
+  
   The output filename and number of CPUs for parallelization are
   specified through -prefix and -jobs, respectively. The expression
   s() in the model specification indicator '-lme' represents the
@@ -316,13 +340,13 @@ ex5 <-
   predicted HRFs:
   
   label   age   sex   group   TR
-  s1      6.2     1      1    0.00
-  s1      6.2     1      1    0.25
-  s1      6.2     1      1    0.50
+  g1.t1   6.2     1      1    0.00
+  g1.t2   6.2     1      1    0.25
+  g1.t3   6.2     1      1    0.50
   ...
-  s72     3.5    -1     -1    0.00
-  s72     3.5    -1     -1    0.25
-  s72     3.5    -1     -1    0.50
+  g2.t1   3.5    -1     -1    0.00
+  g2.t2   3.5    -1     -1    0.25
+  g2.t3   3.5    -1     -1    0.50
   ...   
    \n"
 
@@ -723,7 +747,7 @@ process.MSS.opts <- function (lop, verb = 0) {
 runMSS <- function(myData, DM, tag) {
    #browser()
    Stat <- rep(0, lop$nBrk)
-   if(!all(na.omit(myData) == 0)) # | all(is.na(myData))) {
+   if(!all(na.omit(myData) == 0)) { # | all(is.na(myData))) {
       DM$yy <- myData
       fm <- NULL
       options(warn=-1)
@@ -1100,7 +1124,7 @@ if(dimy==1 & dimz==1) { # 1D data
    nSeg <- 20
    # drop the dimensions with a length of 1
    inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg

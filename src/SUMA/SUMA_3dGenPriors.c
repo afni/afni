@@ -91,7 +91,7 @@ int GenPriors(SEG_OPTS *Opt)
 static char shelp_GenPriors[] = {
 "3dGenPriors produces classification priors based on voxel signatures.\n"
 "At this stage, its main purpose is to speed up the performance of\n"
-"3dSignatures when using the probablilistic method as opposed to SVM.\n"
+"3dSignatures when using the probabilistic method as opposed to SVM.\n"
 "\n"
 "Example:\n"
 "3dGenPriors      -sig sigs+orig \\\n"
@@ -188,7 +188,7 @@ static char shelp_GenPriors[] = {
 "                            want exact feature name matching, use\n"
 "                            option -strict_feature_match\n"
 "  -strict_feature_match: Use strict feature name matching when resolving \n"
-"                         which feature to keep from the traning set.\n" 
+"                         which feature to keep from the training set.\n" 
 "  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"
 "                            Example: -featgroups 'MEDI MAD. P2S'\n"
 "  -ShowThisDist DIST: Show information obtained from the training data about\n"

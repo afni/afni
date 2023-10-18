@@ -206,7 +206,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
    im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
    im3d->vinfo->clusterize_nnlev  = -rmm ;  /* 02 Nov 2018 */
-   im3d->vinfo->clusterize_size   = vmul ;  /* save for re-use */
+   im3d->vinfo->clusterize_size   = vmul ;  /* save for reuse */
    im3d->vinfo->clusterize_bisid  = bsid ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */

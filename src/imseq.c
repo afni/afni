@@ -1033,7 +1033,7 @@ if( PRINT_TRACING ){
    newseq->saver_blowup = 1 ;              /* image save blowup factor */
 
    newseq->given_xim = newseq->sized_xim   /* XImages for actual drawing */
-                     = newseq->given_xbar  /* saved for re-use when possible */
+                     = newseq->given_xbar  /* saved for reuse when possible */
                      = newseq->sized_xbar = NULL ;
 
    /* Feb 1998: button2 drawing stuff [enabled/used by Draw Dataset plugin] */

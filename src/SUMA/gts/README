@@ -75,7 +75,7 @@ library (à la Glib).
 - To compile add `gts-config --cflags` to your compiler flags.
 - To link add `gts-config --libs` to your linker flags.
 
-When developping code using GTS you probably want to enable control
+When developing code using GTS you probably want to enable control
 over casting operations between objects of the GTS object
 hierarchy. This can be done easily by defining GTS_CHECK_CASTS either
 in the CFLAGS environment variable (CFLAGS=-DGTS_CHECK_CASTS) or on

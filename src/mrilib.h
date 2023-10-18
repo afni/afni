@@ -1705,12 +1705,12 @@ THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 #include "rcmat.h"            /* 30 Dec 2008 */
 /*------------------------------------------------------------------------*/
 
-/*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
+/*-----------------  01 Feb 1998: incorporation of mcw_glob -------------*/
 #include "mcw_glob.h"
 /*------------------------------------------------------------------------*/
 
 /*-----------------  02 Feb 1998:
-                     incoroporation of 3ddata, 3dmaker, iochan -----------*/
+                     incorporation of 3ddata, 3dmaker, iochan -----------*/
 
 #ifdef HAVE_ZLIB
 #include <zlib.h>             /* 02 Mar 2009 */

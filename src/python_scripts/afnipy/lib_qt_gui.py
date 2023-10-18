@@ -22,7 +22,7 @@ g_history = """
 
 - glt box:
    - write make_gltsym_table -> to self.gvars.Table_gltsym
-   - wrte self.gltsym_list_to_table
+   - write self.gltsym_list_to_table
    - set as global (call group_box_gltsym)
 
    - gbox_toggle_frame (close symbolic GLTs box)
@@ -1196,7 +1196,7 @@ class DatasetTableWidget(QtGui.QWidget):
          # rcr : if failure, clear table and whine???
          if not sids: sids = ['' for name in snames]
          self.update_table_column(sids, scol)
-         # if there is something to sort by, exptect to
+         # if there is something to sort by, expect to
          if not UTIL.vals_are_constant(sids, ''): self.set_sort_col(scol)
 
       if self.lvars.verb>1: print('-- populated, scol %d, dcol %d'%(scol, dcol))

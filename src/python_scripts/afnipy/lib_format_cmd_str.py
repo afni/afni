@@ -33,6 +33,8 @@ from   afnipy import afni_base as ab
 # 2023-22-22, ver 1.8 :  kwarg to auto-guess prog opts, if possible
 # -------------------------------------------------------------------------
 
+VER_MAJOR = sys.version_info.major
+
 # DEFAULTS for kwargs in these funcs
 
 AD = { \
@@ -719,9 +721,18 @@ def afni_niceify_cmd_str( sss, big_list=None,
 
     do_check = False
 
+    # this is for Py2 code; in Py3, unicode is part of str
+    if VER_MAJOR == 2 :
+        if type(sss) == unicode :
+            sss = str(sss)
+            if verb :    print("++ Converting unicode to str")
+
     if big_list == None :
-        if type(sss) != str:
-            print("** ERROR: need sss to be a string")
+        # [PT: Aug 22, 2023] updated to include unicode here, because
+        # of annoying Py2 behavior
+        if type(sss) != str :
+            print("** ERROR: need sss to be a string (or at least unicode)")
+            print("   This is not: '{}', type={}".format(sss, type(sss)))
             return 1, ''
 
         if not(len(list_cmd_args)) and use_auto_args :
@@ -793,7 +804,7 @@ if __name__ == "__main__" :
                  -copy_anat sb23/sb23_mpra+orig                           \
                  -tcat_remove_first_trs 3                                 \
                  -align_opts_aea -cost lpc+ZZ                             \
-                 -tlrc_base MNI152_T1_2009c+tlrc                          \
+                 -tlrc_base MNI152_2009_template.nii.gz                   \
                  -tlrc_NL_warp                                            \
                  -volreg_align_to MIN_OUTLIER                             \
                  -volreg_align_e2a                                        \

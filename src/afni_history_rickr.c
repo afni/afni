@@ -53,6 +53,160 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Oct, 2023, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
+   "only require flat_namespace if 10.12_local or 10.7_local",
+   NULL
+ } ,
+
+ { 10, Oct, 2023, RCR, "init_user_dotfiles.py", MINOR, TYPE_MODIFY,
+   "allow -do_updates to override all updates from -test",
+   NULL
+ } ,
+
+ { 10, Oct, 2023, RCR, "build_afni.py", MINOR, TYPE_MODIFY,
+   "require -build_root; tail build errors; default to atlas updating",
+   NULL
+ } ,
+
+ { 28, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "split OS_notes_macos_12 by CPU",
+   "Now have : OS_notes.macos_12_{ARM,intel}_a_admin.zsh\n"
+   "     and : OS_notes.macos_12_{ARM,intel}_b_user.tcsh\n"
+   "The b_user scripts still just run OS_notes.macos_12_b_user.tcsh."
+ } ,
+
+ { 28, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -disp_R_ver_for_lib",
+   NULL
+ } ,
+
+ { 26, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "install NiiVue; add option -update_atlases, to download newest package",
+   NULL
+ } ,
+
+ { 22, Sep, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "in examples, change MNI152_T1_2009c+tlrc to MNI152_2009_template.nii.gz",
+   NULL
+ } ,
+
+ { 21, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "capture the platform of the R version",
+   NULL
+ } ,
+
+ { 18, Sep, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add option -use_asc_path, to test using directory of afni_system_check.py",
+   NULL
+ } ,
+
+ { 15, Sep, 2023, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
+   "in .zshrc, pass -i to compinit, to ignore insecure files",
+   "Whines from compaudit: files not owned by root or user or with perm g+w.\n"
+   "Done with D Glen."
+ } ,
+
+ { 15, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "have all R wrapper scripts (scripts_for_r) return the status from R",
+   "To match returning non-zero when loading R_io.so."
+ } ,
+
+ { 13, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "have 1d_tool.py -write_xstim create an empty file if empty matrix",
+   "This got lost, but is needed for @ss_review_basic on rest data."
+ } ,
+
+ { 13, Sep, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "create OS_notes.macos_12_b_user.tcsh to be an executable install script",
+   "Have OS_notes.macos_12_x86_64_b_user.txt just execute the new script.\n"
+   "Reluctantly done to appease D Glen (thanks)."
+ } ,
+
+ {  8, Sep, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "new operation: by default, back up and install the build results",
+   "This is a change in behavior.  Upon a successful build, default is now\n"
+   "back up the ABIN and install new binaries and atlases.\n"
+   "Add options -abin, -do_backup, -do_install, -backup_method."
+ } ,
+
+ {  7, Sep, 2023, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "change afni/build to afni_build in OS_notes.macos_12_x86_64_b_user.txt",
+   "Thanks to spartaaa-git@github.com for pointing that out."
+ } ,
+
+ {  1, Sep, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_slice_timing_gentle",
+   "Also, use mean timing diff rather than median."
+ } ,
+
+ { 28, Aug, 2023, RCR, "test_afni_prog_help.tcsh", MINOR, TYPE_ENHANCE,
+   "rename from test.afni.prog.help and moved to scripts_install",
+   "This is now distributed for more general testing."
+ } ,
+
+ { 28, Aug, 2023, RCR, "build_afni.py", MICRO, TYPE_MODIFY,
+   "apply renamed test_afni_prog_help.tcsh program",
+   NULL
+ } ,
+
+ { 21, Aug, 2023, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "apply uncensored TRs via a text file rather than command line",
+   "With a long encoded TR list, file names might exceed the allowable limit\n"
+   "(currently about 5100 bytes), e.g. data+tlrc'[3,5..7,10..13,23]'.\n"
+   "Instead, use the 1dcat functionality to get those volume indices from\n"
+   "a text file.  So if trs.txt contains 3 5 6 7 10 11 12 13 23,\n"
+   "then one can read the volumes using data+tlrc'[1dcat trs.txt]'.\n"
+   "Thanks to G Edwards and S Japee for diagnosing the issue."
+ } ,
+
+ { 17, Aug, 2023, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -slice_pattern_to_times",
+   "Output timing given known to3d tpattern, nslices, multiband level, and TR."
+ } ,
+
+ { 17, Aug, 2023, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "rewrite -show_slice_timing_pattern",
+   "Be more forgiving in timing when trying to detect a pattern."
+ } ,
+
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20230411",
+   "Thanks to C Rorden for the update."
+ } ,
+
+ { 16, Aug, 2023, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "turn off local signing in crorden/dcm2niix_console/makefile",
+   NULL
+ } ,
+
+ {  8, Aug, 2023, RCR, "3dLocalstat", MINOR, TYPE_BUG_FIX,
+   "when creating bucket output, clear time dimension",
+   "Thanks to Philip on MB for noting the problem."
+ } ,
+
+ { 27, Jul, 2023, RCR, "afni-general", MINOR, TYPE_NEW_PROG,
+   "distribute niiview as niiview_afni.umd.js",
+   "This is intended to be used via P Taylor's APQC HTML report.\n"
+   "Requested by P Taylor."
+ } ,
+
+ { 24, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if -tlrc_NL_warped_dsets, require -tlrc_base",
+   "Require user to verify which template was used to make warped dsets.\n"
+   "Requested by D Glen."
+ } ,
+
+ { 21, Jul, 2023, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix help for -regress_make_corr_vols",
+   "It WAS ave corr, but as of Jan 2020, it is corr of voxels vs ave.\n"
+   "Thanks to D Glen for noting the discrepancy."
+ } ,
+
+ { 19, Jul, 2023, RCR, "afni_system_check.py", MICRO, TYPE_BUG_FIX,
+   "fix use of min instead of minor",
+   "Thanks to @dojoonyi for letting us know."
+ } ,
+
  { 26, Jun, 2023, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "write NIFTI-2 if dimensions require it",
    NULL
@@ -1735,7 +1889,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18, Feb, 2020, RCR, "@Align_Centers", MICRO, TYPE_BUG_FIX,
-   "fix copy-and-paste erro and missing endif",
+   "fix copy-and-paste error and missing endif",
    "Thanks to R Kampe for noting the problem."
  } ,
 
@@ -4510,7 +4664,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 29,  Mar, 2016, RCR, "gen_group_command.py", MICRO, TYPE_MODIFY,
-   "3dMEMA no longer allows for a paied test",
+   "3dMEMA no longer allows for a paired test",
    "One must now input contrast/stat from original regression."
  } ,
 

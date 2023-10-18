@@ -640,7 +640,7 @@ glutCreateMenu(GLUTselectCB selectFunc)
   menu->win = XCreateWindow(__glutDisplay, __glutRoot,
   /* real position determined when mapped */
     0, 0,
-  /* real size will be determined when menu is manged */
+  /* real size will be determined when menu is managed */
     1, 1,
     MENU_BORDER, menuDepth, InputOutput, menuVisual,
     CWOverrideRedirect | CWBackPixel | CWBorderPixel |

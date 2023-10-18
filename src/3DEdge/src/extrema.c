@@ -615,7 +615,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   /*
    * last slice 
    * 
-   * Components and moduls of the gradient are 
+   * Components and modulus of the gradient are 
    * already computed.
    *
    * - 2D suppression of the non maxima

@@ -5974,6 +5974,7 @@ def db_cmd_regress(proc, block):
 
     # ----------------------------------------
     # last censoring is done, so possibly generate keep_trs as $ktrs
+    # (also, generate keep_trs as $ktrs)
     newcmd = get_keep_trs_cmd(proc)
     if newcmd: cmd += newcmd
 
@@ -6908,12 +6909,29 @@ def db_cmd_regress_anaticor(proc, block):
 def get_keep_trs_cmd(proc):
     # sub-brick selection, in case of censoring
     # (only return this once)
+    #
+    # note: this is currently used only in TSNR computation
+    #     : 3dpc is used after 3dTproject -cenmode KILL
+    #     : blur estimation does $trs per run, so it might also need changing
+
     if proc.censor_file and proc.keep_trs == '':
-       c1 = '1d_tool.py -infile %s \\\n'                        \
-            '%22s -show_trs_uncensored encoded' % (proc.censor_file, ' ')
-       cs = '# note TRs that were not censored\n'               \
-            'set ktrs = `%s`\n\n' % c1
+
+       # ** 21 Aug 2023: Shruti reports failure to read sub-brick selectors
+       #                 because a lot of censoring leads to file names that
+       #                 are beyond our size limits.  Use text files, instead.
+       #               : so do not use encoded trs, but unencoded from a file
+       
+       ktr_text = 'out.keep_trs_rall.txt'
+
+       cs = '# note TRs that were not censored\n'                         \
+            '# (apply from a text file, in case of a lot of censoring)\n' \
+            '1d_tool.py -infile %s \\\n'                                  \
+            '           -show_trs_uncensored space \\\n'                  \
+            '           > %s\n'                                           \
+            'set ktrs = "1dcat %s"\n\n'                                   \
+            % (proc.censor_file, ktr_text, ktr_text)
        proc.keep_trs = '"[$ktrs]"'
+
     else:
        cs = ''
 
@@ -8021,9 +8039,8 @@ def db_cmd_regress_censor_motion(proc, block):
 # --------------- tlrc (anat) ---------------
 
 def db_mod_tlrc(block, proc, user_opts):
-    if len(block.opts.olist) == 0:      # then init to defaults
-        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
+    # --------------------------------------------------
     # verify that anatomical dataset exists
     opt_anat = user_opts.find_opt('-copy_anat')
     if not opt_anat:
@@ -8041,7 +8058,19 @@ def db_mod_tlrc(block, proc, user_opts):
     # --------------------------------------------------
     # handle the template dataset: verify existence, etc
 
-    apply_uopt_to_block('-tlrc_base', user_opts, block)
+    # check before template init: if -tlrc_NL_warped_dsets, require -tlrc_base
+    if user_opts.find_opt('-tlrc_NL_warped_dsets') and \
+       not user_opts.find_opt('-tlrc_base'):
+       print("** error: -tlrc_NL_warped_dsets requires option -tlrc_base")
+       print("   (please verify which template was used to make warped_dsets)")
+       return
+
+    # set template
+    oname = '-tlrc_base'
+    if user_opts.find_opt(oname):
+        apply_uopt_to_block('-tlrc_base', user_opts, block)
+    else:
+        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
 
     prepare_tlrc_base(proc, block)
 
@@ -9220,14 +9249,14 @@ EXAMPLES (options can be provided in any order): ~1~
 
        Also, compute the transformation of the anatomy to MNI space, using
        affine registration (for speed in this simple example) to align to
-       the 2009c template.
+       the MNI 2009 template.
 
        In the volreg block, align the EPI to the MIN_OUTLIER volume (a
        low-motion volume, determined from the data).  Then concatenate all
        EPI transformations, warping the EPI to standard space in one step
        (without multiple resampling operations), combining:
 
-          EPI  ->  EPI base  ->  anat  ->  MNI 2009c template
+          EPI  ->  EPI base  ->  anat  ->  MNI 2009 template
 
        The standard space transformation is applied to the EPI due to 
        specifying -volreg_tlrc_warp.
@@ -9280,7 +9309,7 @@ EXAMPLES (options can be provided in any order): ~1~
              -radial_correlate_blocks tcat volreg                     \\
              -tcat_remove_first_trs 2                                 \\
              -align_opts_aea -cost lpc+ZZ -giant_move                 \\
-             -tlrc_base MNI152_T1_2009c+tlrc                          \\
+             -tlrc_base MNI152_2009_template.nii.gz                   \\
              -volreg_align_to MIN_OUTLIER                             \\
              -volreg_align_e2a                                        \\
              -volreg_tlrc_warp                                        \\
@@ -9420,7 +9449,7 @@ EXAMPLES (options can be provided in any order): ~1~
                     -copy_anat sb23/sb23_mpra+orig                     \\
                     -tcat_remove_first_trs 3                           \\
                     -align_opts_aea -cost lpc+ZZ                       \\
-                    -tlrc_base MNI152_T1_2009c+tlrc                    \\
+                    -tlrc_base MNI152_2009_template.nii.gz             \\
                     -tlrc_NL_warp                                      \\
                     -volreg_align_to MIN_OUTLIER                       \\
                     -volreg_align_e2a                                  \\
@@ -9571,7 +9600,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -blocks despike tshift align tlrc volreg blur mask         \\
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_e2a                                          \\
               -volreg_tlrc_warp                                          \\
@@ -9599,7 +9628,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -blocks despike tshift align tlrc volreg blur mask         \\
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_e2a                                          \\
               -volreg_tlrc_warp                                          \\
@@ -9640,7 +9669,7 @@ EXAMPLES (options can be provided in any order): ~1~
                       scale regress                                      \\
               -tcat_remove_first_trs 3                                   \\
               -align_opts_aea -cost lpc+ZZ                               \\
-              -tlrc_base MNI152_T1_2009c+tlrc                            \\
+              -tlrc_base MNI152_2009_template.nii.gz                     \\
               -tlrc_NL_warp                                              \\
               -volreg_align_to MIN_OUTLIER                               \\
               -volreg_align_e2a                                          \\
@@ -9696,7 +9725,7 @@ EXAMPLES (options can be provided in any order): ~1~
        do not start off well-aligned.  Include -check_flip for good measure.
      o Register EPI volumes to the one which has the minimum outlier
           fraction (so hopefully the least motion).
-     o Use non-linear registration to MNI template (non-linear 2009c).
+     o Use non-linear registration to MNI template (non-linear 2009_template).
        * This adds a lot of processing time.
        * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
          Then use the resulting datasets in the afni_proc.py command below
@@ -9900,7 +9929,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -reg_echo 2                                   \\
               -tcat_remove_first_trs 2                      \\
               -align_opts_aea -cost lpc+ZZ                  \\
-              -tlrc_base MNI152_T1_2009c+tlrc               \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
               -tlrc_NL_warp                                 \\
               -volreg_align_to MIN_OUTLIER                  \\
               -volreg_align_e2a                             \\
@@ -9932,7 +9961,7 @@ EXAMPLES (options can be provided in any order): ~1~
               -reg_echo 2                                   \\
               -tcat_remove_first_trs 2                      \\
               -align_opts_aea -cost lpc+ZZ                  \\
-              -tlrc_base MNI152_T1_2009c+tlrc               \\
+              -tlrc_base MNI152_2009_template.nii.gz        \\
               -tlrc_NL_warp                                 \\
               -volreg_align_to MIN_OUTLIER                  \\
               -volreg_align_e2a                             \\
@@ -10205,7 +10234,7 @@ How might one run a full analysis?  Here are some details to consider.
               $subj_indir/epi_r3+orig                         \\
           -tcat_remove_first_trs 5                            \\
           -align_opts_aea -cost lpc+ZZ                        \\
-          -tlrc_base MNI152_T1_2009c+tlrc                     \\
+          -tlrc_base MNI152_2009_template.nii.gz              \\
           -tlrc_NL_warp                                       \\
           -volreg_align_to MIN_OUTLIER                        \\
           -volreg_align_e2a                                   \\
@@ -10363,7 +10392,7 @@ or image files.
        corr_brain
 
           This AFNI dataset shows the correlation of every voxel with the
-          global signal (brain average time series).
+          global signal (average time series over brain mask).
 
           One can request other corr_* datasets, based on any tissue or ROI
           mask.  See -regress_make_corr_vols for details.
@@ -14521,15 +14550,14 @@ OPTIONS:  ~2~
         What is a such a correlation volume?
 
            Given: errts     : the residuals from the linear regression
-                  a mask    : to correlate over, e.g. full_mask
+                  a mask    : to correlate over, e.g. full_mask == 'brain'
 
-           Compute: for each voxel (in the errts, say), compute the average
-              correlation over all voxels within the given mask.  In some
-              sense, this is a measure of self correlation over a specified
-              region.
+           Compute: for each voxel (in the errts, say), compute the correlation
+              against the average over all voxels within the given mask.
 
-           This is a mean correlation rather than a correlation with the
-           mean.
+         * This is a change (as of Jan, 2020).  This WAS a mean correlation
+           (across masked voxels), but now it is a correlation of the mean
+           (over masked voxels).
 
         The labels specified can be from any ROI mask, such as those coming
         via -anat_follower_ROI, -regress_ROI_PC, or from the automatic

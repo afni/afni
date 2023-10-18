@@ -168,7 +168,7 @@ int process_options(int argc, char * argv[], global_data * gd)
             gd->author = convert_author(argv[ac]);
         } else if( !strcmp(argv[ac], "-check_date" ) ) {
             if( ac+3 >= argc ) {
-                fprintf(stderr,"** -check_date: requiers DD MM YYYY params\n");
+                fprintf(stderr,"** -check_date: requires DD MM YYYY params\n");
                 return -1;
             }
             gd->check_date = 1;

@@ -1831,7 +1831,7 @@ if(dimy == 1 & dimz == 1) {
    nSeg <- 20
    # drop the dimensions with a length of 1
    inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg

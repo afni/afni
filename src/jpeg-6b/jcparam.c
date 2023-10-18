@@ -560,7 +560,7 @@ jpeg_simple_progression (j_compress_ptr cinfo)
    * We need to put it in the permanent pool in case the application performs
    * multiple compressions without changing the settings.  To avoid a memory
    * leak if jpeg_simple_progression is called repeatedly for the same JPEG
-   * object, we try to re-use previously allocated space, and we allocate
+   * object, we try to reuse previously allocated space, and we allocate
    * enough space to handle YCbCr even if initially asked for grayscale.
    */
   if (cinfo->script_space == NULL || cinfo->script_space_size < nscans) {

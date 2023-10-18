@@ -5,6 +5,7 @@
 # system libraries
 import sys, os, platform
 import shutil
+import glob
 
 # AFNI libraries
 from afnipy import option_list as OL
@@ -34,6 +35,8 @@ build_afni.py - compile an AFNI package ~1~
          - possibly checkout the most recent tag (AFNI_XX.X.XX)
       - prepare atlases
          - download and extract afni_atlases_dist.tgz package
+         - if afni_atlases_dist exists, new atlases will not be pulled
+           unless -update_atlases is given
       - prepare src build
          - copy git/afni/src to build_src
          - copy specified Makefile
@@ -84,7 +87,7 @@ examples: ~1~
    3. use an alternate Makefile, but do not update git repo ~2~
 
         build_afni.py -build_root my/build/dir -git_update no \\
-                      -makefile my_better_makefile
+                      -makefile preferred_makefile
 
    4. do not check out any tag ~2~
 
@@ -98,7 +101,7 @@ examples: ~1~
    5. test the setup, but do not run any make (using -prep_only) ~2~
 
         build_afni.py -build_root my/build/dir -prep_only \\
-                      -git_update no -makefile my_better_makefile 
+                      -git_update no -makefile preferred_makefile 
 
 
 ------------------------------------------
@@ -122,9 +125,42 @@ terminal options: ~1~
 
 required:
 
-      -build_root               : root directory to use for git and building
+      -build_root BUILD_ROOT    : root directory to use for git and building
 
 other options:
+
+      -abin ABIN                : specify AFNI binary install directory
+
+          default -abin <directory containing afni_proc.py>
+          e.g.    -abin $HOME/my_new_abin
+
+          When this option is given, any installation of the compiled binaries
+          will be placed into this ABIN directory.  If this option is not
+          given, it will be determined by `which afni_proc.py`.
+
+          If this directory does not exist, it will be created upon install.
+
+      -backup_method BACK_METH  : specify how to perform the backup
+
+          default -backup_method rsync
+          e.g.    -backup_method mv
+
+          This option is used to specify how a backup of ABIN is made.  It
+          should be one of:
+
+                mv      : apply the Unix 'mv' command
+
+                          Benefit: ABIN is really cleaned, and will not contain
+                          any removed files.
+
+                rsync   : apply the Unix 'rsync' command
+
+                          Benefit: ABIN is preserved, even if the program is
+                          terminated while making the backup or running the
+                          install.  Termination might lead to a mix of new and
+                          old files, of course.
+
+          See also -do_backup.
 
       -clean_root yes/no        : specify whether to clean up the build_root
 
@@ -133,6 +169,39 @@ other options:
 
           If 'no' is specified, the git directory will not be updated and the
           build_src directory will not be remade.
+
+      -do_backup yes/no         : specify whether to back up abin before install
+
+          default -do_backup yes
+          e.g.    -do_backup no
+
+          By default backup will be made whenever a full installation is done
+          (of both AFNI binaries and atlases).  The backup (of ABIN, specified
+          by -abin) will be placed under the BUILD_ROOT directory (specified
+          by -build_root).
+
+          The backup is made by moving the full contents of the abin, so that
+          AFNI updates that remove files or programs will indeed remove them.
+
+          If a full install will not be done, a backup will not be made.
+
+          One may use -backup_method to control the command used to make the
+          backup.
+
+          See also -backup_method.
+
+      -do_install yes/no       : specify whether to install compiled binaries
+
+          default -do_install yes
+          e.g.    -do_install no
+
+          By default, compiled AFNI binaries and atlases will be installed
+          into the ABIN directory given by -abin (or else from the $PATH).
+          
+          If 'no' is specified, no installation will take place (and no backup
+          will be made).
+
+          See also -abin, -do_backup.
 
       -git_branch BRANCH        : specify a branch to checkout in git
 
@@ -233,6 +302,14 @@ other options:
           By default, a make build will be run.  Use this option to specify
           not to.
 
+      -update_atlases yes/no    : update atlases, even if the package exists
+
+          default: -update_atlases yes
+          e.g.   : -update_atlases no
+
+          By default, if the atlases directory exists (afni_atlases_dist),
+          it will not be updated.  Use this option to force a new download.
+
       -verb LEVEL               : set the verbosity level (default 1)
 
           e.g. -verb 2
@@ -252,15 +329,25 @@ g_history = """
    0.1  Feb 18, 2023 - initial release, but have features to add
    0.2  Mar  2, 2023 - rename -root_dir to -build_root (as ordered by PT)
    0.3  Jun 22, 2023 - include AFNI_WHOMADEIT in make
+   0.4  Aug 28, 2023 - test -help using renamed test_afni_prog_help.tcsh
+   0.5  Sep  8, 2023 - back up and install the build results
+   0.6  Sep 26, 2023 - install NiiVue, add option -update_atlases
+   0.7  Oct 10, 2023
+        - require -build_root
+        - show 'tail log_make.txt' on build failure
+        - default to updating atlases
+   0.8  Oct 12, 2023 - advise patience
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.3, June 22, 2023" % g_prog
+g_version = "%s, version 0.8, October 12, 2023" % g_prog
 
-g_git_html = "https://github.com/afni/afni.git"
-g_afni_site = "https://afni.nimh.nih.gov"
-g_atlas_pack = "afni_atlases_dist"      # package name
-g_atlas_html = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
+g_git_html    = "https://github.com/afni/afni.git"
+g_afni_site   = "https://afni.nimh.nih.gov"
+g_atlas_pack  = "afni_atlases_dist"      # package name
+g_atlas_html  = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
+g_niivue_file = "niivue_afni.umd.js"    # file name
+g_niivue_html = "%s/pub/dist/bin/misc/%s" % (g_afni_site, g_niivue_file)
 
 g_mesg_log   = []   # message history/log (if None, do not log)
 
@@ -280,57 +367,35 @@ def MESGe(mstr, disp=1):
   """(possibly) display and log the message
      - display as an error
   """
-  pmesg = "** error: %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("** error: %s" % mstr)
 
 def MESGw(mstr, disp=1):
   """(possibly) display and log the message
      - display as a warning
   """
-  pmesg = "** warning: %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("** warning: %s" % mstr)
 
 def MESGm(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'minus' prefix (--)
   """
-  pmesg = "-- %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("-- %s" % mstr)
 
 def MESGp(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'plus' prefix (++)
   """
-  pmesg = "++ %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("++ %s" % mstr)
 
 def MESGi(mstr, disp=1):
   """(possibly) display and log the message
      - display with a 'space' indentation prefix (  )
   """
-  pmesg = "   %s" % mstr
-  if disp: print(pmesg)
-  if g_mesg_log is not None:
-     g_mesg_log.append(pmesg)
+  MESG("   %s" % mstr)
 
-def MESG_write_log(fname, verb=1):
+def MESG_write_log(fname):
    """write the stored message log to the given text file
    """
-   if verb:
-      ind = '       '
-      MESG(ind+"------------------------------")
-      MESG(ind+"screen text history is in:")
-      MESG(ind+"   %s" % fname)
-      MESG("")
-
    if g_mesg_log is not None:
       return UTIL.write_text_to_file(fname, '\n'.join(g_mesg_log) + '\n')
 
@@ -388,13 +453,16 @@ class MyInterface:
       self.git_branch      = ''     # branch to check out (def master)
       self.git_tag         = ''     # tag to check out (def LAST_TAG)
       self.git_update      = 1      # do git clone or pull
+      self.make_target     = 'itall' # target in "make" command
+      self.makefile        = ''     # an alternate Makefile to build from
       self.package         = ''     # to imply Makefile and build dir
 
       self.prep_only       = 0      # prepare (c)make, but do not run
       self.run_cmake       = 0      # actually run camke?
       self.run_make        = 1      # actually run make?
-      self.make_target     = 'itall' # target in "make" command
-      self.makefile        = ''     # an alternate Makefile to build from
+      self.run_backup      = 1      # install build results and atlases
+      self.run_install     = 1      # install build results and atlases
+      self.update_atlases  = 1      # do we force an atlas update
 
       self.verb            = verb   # verbosity level
 
@@ -411,10 +479,18 @@ class MyInterface:
       self.do_root         = None   # build root dirobj
       self.do_mb_abin      = None   # make build install dir object
 
+      self.sync_src_atlas  = ''     # directory to sync atlases from
+      self.sync_src_make   = ''     # directory to sync make build from
+      self.sync_src_niivue = ''     # file to sync niivue from
+      self.backup_abin     = ''     # directory of any abin backup
+      self.backup_prefix   = 'backup.abin.' # prefix for any abin backup
+
+      self.backup_method   = 'rsync' # method for backup: mv or rsync
+      self.cmd_history     = []     # shell/system command history
       self.final_mesg      = []     # final messages to show to user
-      self.history         = []     # shell/system command history
       self.hist_file       = 'hist_commands.txt' # final history file
       self.mesg_file       = 'hist_messages.txt' # message history file
+      self.rsync_file      = 'hist_rsync.txt' # rsync history file
       self.makefile_path   = ''     # abspath to -makefile
 
       self.pold            = 'prev.'        # prefix for old version
@@ -476,14 +552,23 @@ class MyInterface:
       self.valid_opts.add_opt('-abin', 1, [],
                       helpstr='dir to put compiled AFNI binaries in')
       self.valid_opts.add_opt('-build_root', 1, [],
-                      helpstr='the root of the building tree')
+                      helpstr='(required) the root of the building tree')
 
       self.valid_opts.add_opt('-package', 1, [],
                       helpstr='the binary package to build')
 
       # general options
+      self.valid_opts.add_opt('-backup_method', 1, [],
+                      acplist=['mv','rsync'],
+                      helpstr='specify method of backup (def=rsync)')
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
+      self.valid_opts.add_opt('-do_backup', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='back up abin before installing into it (def=y)')
+      self.valid_opts.add_opt('-do_install', 1, [],
+                      acplist=['yes','no'],
+                      helpstr='install build results into abin (def=y)')
       self.valid_opts.add_opt('-git_branch', 1, [],
                       helpstr='the git branch to checkout (def=master)')
       self.valid_opts.add_opt('-git_tag', 1, [],
@@ -504,6 +589,9 @@ class MyInterface:
       self.valid_opts.add_opt('-run_make', 1, [],
                       acplist=['yes','no'],
                       helpstr="should we run a 'make' build? (def=y)")
+      self.valid_opts.add_opt('-update_atlases', 1, [],
+                      acplist=['yes','no'],
+                      helpstr="should we re-download atlases? (def=n)")
       self.valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
@@ -560,8 +648,6 @@ class MyInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err: return -1
             self.do_abin = dirobj('abin_dir', val)
-            MESGe("-abin not yet implemented")
-            return -1
 
          elif opt.name == '-build_root':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -570,6 +656,11 @@ class MyInterface:
 
          # general options
 
+         elif opt.name == '-backup_method':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err: return -1
+            self.backup_method = val
+
          elif opt.name == '-clean_root':
             if OL.opt_is_yes(opt):
                self.clean_root = 1
@@ -577,6 +668,18 @@ class MyInterface:
                # do not clean, do not update git
                self.clean_root = 0
                self.git_update = 0
+
+         elif opt.name == '-do_backup':
+            if OL.opt_is_no(opt):
+               self.run_backup = 0
+            else:
+               self.run_backup = 1
+
+         elif opt.name == '-do_install':
+            if OL.opt_is_no(opt):
+               self.run_install = 0
+            else:
+               self.run_install = 1
 
          elif opt.name == '-git_branch':
             val, err = uopts.get_string_opt('', opt=opt)
@@ -624,6 +727,12 @@ class MyInterface:
             else:
                self.run_cmake = 0
 
+         elif opt.name == '-update_atlases':
+            if OL.opt_is_yes(opt):
+               self.update_atlases = 1
+            else:
+               self.update_atlases = 0
+
          elif opt.name == '-verb':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if val == None or err: return -1
@@ -636,6 +745,11 @@ class MyInterface:
       # misc checks
       if self.git_update == 0 and (self.git_branch or self.git_tag):
          MESGe("cannot use -git_branch or -git_tag without -git_update yes")
+         return -1
+
+      # require -build_root if there are no terminal options
+      if self.do_root is None:
+         MESGe("refusing to proceed without -build_root")
          return -1
 
       # if we have a makefile, make sure it exists
@@ -666,6 +780,7 @@ class MyInterface:
                  1 on non-fatal termination error
                 -1 on fatal error
       """
+      # -----------------------------------------------------------------
       # note where we are starting from, and any current abin
       rv = self.set_orig_dirs()
       if rv: return rv
@@ -676,26 +791,42 @@ class MyInterface:
       if self.verb > 2:
           self.show_vars("ready to process...")
 
+      # -----------------------------------------------------------------
+      # actually do the build work
       if self.do_root is not None:
          rv = self.run_main_build()
+
+         # if we succeeded, rsync the results
+         if self.run_install and not self.prep_only and not rv:
+            rv = self.f_run_install()
 
       # -----------------------------------------------------------------
       # histories and logs
       # (first history, then final messages, then MESG_write_log)
 
-      # save history, either way
-      self.show_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
+      # save command history, either way
+      self.show_cmd_history(disp=self.verb>2, save=1, sdir=self.do_root.abspath)
+
+      # if logging, state where
+      # (to store in log and to have on screen before final messages)
+      mesg_hist_file = '%s/%s' % (self.do_root.abspath, self.mesg_file)
+      if self.verb and g_mesg_log is not None:
+         MESG("")
+         MESGp("screen text history is in:")
+         MESGi("   %s" % mesg_hist_file)
+         MESG("")
 
       # show final messages (history and logging should come after)
       if self.verb:
          self.show_final_messages()
 
       # also save the message log text (screen text)
-      MESG_write_log('%s/%s' % (self.do_root.abspath, self.mesg_file))
+      self.make_backup_file(mesg_hist_file)
+      MESG_write_log(mesg_hist_file)
 
       return rv
 
-   def add_final_mesg(self, mesg, ind='    '):
+   def add_final_mesg(self, mesg, ind=''):
       """append the (indented) message to self.final_mesg
          (for later display and possible logging)
       """
@@ -707,8 +838,11 @@ class MyInterface:
          return 0
 
       MESG("")
+      MESG('='*30 + " overview " + '='*30)
+      MESG("")
       for mesg in self.final_mesg:
-         MESGi(mesg)
+         MESG(mesg)
+      MESG("")
 
       return 0
 
@@ -728,17 +862,17 @@ class MyInterface:
          return 1
       return 0
 
-   def show_history(self, disp=1, save=0, sdir=''):
-      """display or save the history, possibly in a given directory
+   def show_cmd_history(self, disp=1, save=0, sdir=''):
+      """display or save the cmd_history, possibly in a given directory
          (if sdir, cd;write;cd-)  -- does this go in the history??  no???
       """
-      if len(self.history) == 0:
+      if len(self.cmd_history) == 0:
          return
 
       # generate a single message string
       mesg = "shell/system command history:"
       hnew = [mesg]
-      for ind, cmd in enumerate(self.history):
+      for ind, cmd in enumerate(self.cmd_history):
          hnew.append('cmd %2d :  %s' % (ind, cmd))
       hstr = '\n   '.join(hnew) + '\n\n'
       del(hnew)
@@ -748,6 +882,28 @@ class MyInterface:
 
       if save:
          self.write_history_file(hstr, sdir)
+
+   def make_backup_file(self, fname, verb=0):
+      """back up a text file, using self.backup_prefix
+         return 0 on success, 1 on error
+      """
+
+      if not os.path.exists(fname):
+         return 0
+
+      parts = os.path.split(fname)
+      if len(parts) != 2:
+         MESGe("cannot split %s to make backup for" % fname)
+         return 1
+
+      # new file has the prefix inserted
+      newf = os.path.join(parts[0], self.pold + parts[1])
+      rv, ot = self.run_cmd('mv', [fname, newf], pc=1)
+
+      if verb:
+         MESGm("moving old %s to %s" % (fname, newf))
+
+      return 0
 
    def write_history_file(self, hstr, sdir):
       """cd sdir ; write ; cd -
@@ -765,21 +921,195 @@ class MyInterface:
           rv, ot = self.run_cmd('cd', sdir, pc=1)
           if rv: return rv
 
-          # possibly make a backue
-          if os.path.exists(hfile):
-             newf = '%s%s' % (self.pold, hfile)
-             rv, ot = self.run_cmd('mv', [hfile, newf], pc=1)
+          # possibly make a backup
+          self.make_backup_file(hfile)
+
+          # and write the actual text
           UTIL.write_text_to_file(hfile, hstr)
 
-          self.add_final_mesg("")
-          self.add_final_mesg("------------------------------")
-          self.add_final_mesg("shell/system command history is in:")
-          self.add_final_mesg("   %s/%s" % (sdir, hfile))
+          MESG("")
+          MESGm("shell/system command history is in:")
+          MESGi("   %s/%s" % (sdir, hfile))
 
           rv, ot = self.run_cmd('cd', cwd, pc=1)
           if rv: return rv
       else:
           MESGw("no build_root dir to write history to: %s" % sdir)
+
+   def f_run_install(self):
+      """install the make results and atlases
+         - if no install, might still suggest rsync
+         - mv current abin contents to backup
+
+         return 0 on success, else error
+      """
+
+      # tell user what we are plotting
+      if self.verb:
+         MESG("")
+         if self.run_install:
+            MESGm("will install 'make' build results and atlases")
+         else:
+            MESGm("skipping install")
+
+      # go to build root (to possibly create backup directory)
+      st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
+      if st: return st
+
+      # note where we would back up from and to
+      abin = ''
+      do = self.f_get_rsync_abin_do()
+      if do is not None:
+         abin = do.abspath
+      self.backup_abin = self.f_make_backup_abin_name()
+
+      # optimally, we now know:
+      #   abin, backup_abin, atlas_src, make_src
+
+      # chat
+      if self.verb > 2:
+         MESGi("atlas dir   : %s" % self.sync_src_atlas)
+         MESGi("build dir   : %s" % self.sync_src_make)
+         MESGi("niivue file : %s" % self.sync_src_niivue)
+         MESGi("install dir : %s" % self.backup_abin)
+         MESGi("run install : %s" % self.run_install)
+         MESG("")
+
+      # if no main abin, no directory to install to
+      if abin == '':
+         MESGm("no known abin, so no install to ponder")
+         return 0
+
+      # ------------------------------------------------------------
+      # if no backup directory or no install, just recommend rsync
+      if self.backup_abin == '' or not self.run_install:
+         # if there is no abin dest, we are done
+         if abin == '':
+            MESGm("no rsync abin destination to ponder")
+            return 0
+
+         have_sync = 0
+
+         # possibly suggest make sync
+         if self.sync_src_make:
+            have_sync = 1
+            self.add_final_mesg("------------------------------")
+            self.add_final_mesg("to possibly rsync make output:")
+            self.add_final_mesg("   rsync -av %s/ %s/" \
+               % (self.sync_src_make, abin))
+
+         # possibly suggest atlas sync
+         if self.sync_src_atlas:
+            have_sync = 1
+            self.add_final_mesg("------------------------------")
+            self.add_final_mesg("to possibly rsync atlases:")
+            self.add_final_mesg("   rsync -av %s/ %s/" \
+               % (self.sync_src_atlas, abin))
+
+         # possibly suggest atlas sync
+         if self.sync_src_niivue:
+            have_sync = 1
+            self.add_final_mesg("------------------------------")
+            self.add_final_mesg("to possibly rsync NiiVue:")
+            self.add_final_mesg("   rsync -av %s %s/" \
+               % (self.sync_src_niivue, abin))
+
+         if not have_sync:
+            MESGm("no make build, atlases or NiiVue to sync")
+
+         return 0
+
+      # ------------------------------------------------------------
+      # actually do the install
+      # ------------------------------------------------------------
+
+      MESG("")
+      MESGi("    PLEASE WAIT FOR THE INSTALL TO COMPLETE...")
+      MESG("")
+
+      # ------------------------------------------------------------
+      # possibly run backup
+
+      # if not syncing, we should not backup
+      if not self.sync_src_atlas or not self.sync_src_make:
+         if self.run_backup:
+            MESGp("skipping backup since no full sync to abin")
+            self.run_backup = 0
+
+      # if abin does not exist, create it (and cancel any backup)
+      if not os.path.exists(abin):
+         MESGp("creating install abin: %s" % abin)
+         st, ot = self.run_cmd('mkdir', abin, pc=1)
+         if st: return st
+         self.run_backup = 0
+
+      if not self.run_backup:
+         MESGm("skipping abin backup")
+      else:
+         MESGp("backing up %s to %s" % (abin, self.backup_abin))
+         MESGi("(backup via %s)" % self.backup_method)
+
+         # create backup directory
+         st, ot = self.run_cmd('mkdir', self.backup_abin, pc=1)
+         if st: return st
+
+         # and actually do the backup
+         # (use backup method: mv or rsync)
+         if self.backup_method == 'mv':
+            cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
+         else:
+            cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
+         st, ot = self.run_cmd(cmd)
+         if st: return st
+
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("to revert from backup, run:")
+         self.add_final_mesg("   rsync -av %s/ %s/" % (self.backup_abin, abin))
+
+      # ------------------------------------------------------------
+      # now actually sync to the destination
+
+      if self.sync_src_atlas or self.sync_src_make:
+         # possibly make a backup
+         self.make_backup_file(self.rsync_file, verb=self.verb)
+         st, ot = self.run_cmd('echo "" > %s' % self.rsync_file)
+         if st: return st
+         
+      if self.sync_src_atlas:
+         MESGp("installing atlases under %s" % abin)
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("atlases installed to   %s" % abin)
+         self.add_final_mesg("        installed from %s" % self.sync_src_atlas)
+         st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
+                      % (self.sync_src_atlas, abin, self.rsync_file)) 
+         if st: return st
+
+      if self.sync_src_make:
+         MESGp("installing build results under %s" % abin)
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("binaries installed to   %s" % abin)
+         self.add_final_mesg("         installed from %s" % self.sync_src_make)
+         st, ot = self.run_cmd('rsync -av %s/ %s/ >> %s' \
+                      % (self.sync_src_make, abin, self.rsync_file)) 
+         if st: return st
+
+      if self.sync_src_niivue:
+         MESGp("installing NiiVue under %s" % abin)
+         self.add_final_mesg("------------------------------")
+         self.add_final_mesg("NiiVue installed to %s" % abin)
+         st, ot = self.run_cmd('rsync -av %s %s/ >> %s' \
+                      % (self.sync_src_niivue, abin, self.rsync_file)) 
+         if st: return st
+
+      # inform user how many backup directories exist now
+      glist = glob.glob('%s*' % self.backup_prefix)
+      self.add_final_mesg("------------------------------")
+      self.add_final_mesg("have %d backup abin directories, %s*" \
+            % (len(glist), self.backup_prefix))
+      del(glist)
+
+      return 0
+
 
    def run_main_build(self):
       """do the main building and such under do_root
@@ -836,7 +1166,7 @@ class MyInterface:
          return 1
 
       # get atlases
-      if self.f_get_atlases():
+      if self.f_get_extras():
          return 1
 
       return 0
@@ -851,14 +1181,14 @@ class MyInterface:
       """
 
       if self.verb: MESG("")
-      MESGm("will run 'cmake' build")
+      MESGm("preparing to run 'cmake' build")
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if we already have a build dir, the user requested not to clean
       if os.path.isdir(self.dcbuild):
-         MESGm("will reuse existing src director, %s" % self.dcbuild)
+         MESGm("will reuse existing src directory, %s" % self.dcbuild)
       else:
          st, ot = self.run_cmd('mkdir', self.dcbuild, pc=1)
          if st: return st
@@ -897,17 +1227,20 @@ class MyInterface:
       self.add_final_mesg("   make VERBOSE=1")
       self.add_final_mesg("   (or run %s script)" % sfile)
 
+      MESGm("building via script %s" % sfile)
+
       # if -prep_only, we are done
       if self.prep_only:
          MESG("")
          MESGp("have -prep_only, skipping actual cmake and make")
          return 0
 
-      MESGm("building (cmake) ...")
-      MESGi("consider monitoring the build in a separate window with:")
+      MESG("")
+      MESGm("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logm))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+      MESGm("building (cmake) (please be patient)...")
 
       # -----------------------------------------------------------------
       # actually run the build (this is why we are here!)
@@ -929,14 +1262,14 @@ class MyInterface:
       """
 
       if self.verb: MESG("")
-      MESGm("will run 'make' build of package %s" % self.package)
+      MESGm("preparing to run 'make' build of package %s" % self.package)
 
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
       # if we already have a build dir, the user requested not to clean
       if os.path.isdir(self.dsbuild):
-         MESGm("will reuse existing src director, %s" % self.dsbuild)
+         MESGm("will reuse existing src directory, %s" % self.dsbuild)
       else:
          st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
          if st: return st
@@ -986,11 +1319,12 @@ class MyInterface:
          return 0
 
       logfile = 'log_make.txt'
-      MESGp("building ...")
-      MESGi("consider monitoring the build in a separate window with:")
+      MESG("")
+      MESGm("consider monitoring the build in a separate window with:")
       MESGi("    cd %s" % self.do_orig_dir.abspath)
       MESGi("    tail -f %s/%s" % (buildpath, logfile))
       MESGi("    # use ctrl-c to terminate 'tail' command (not the build)")
+      MESGp("building (please be patient)...")
 
       # -----------------------------------------------------------------
       # actually run the main build
@@ -1005,34 +1339,40 @@ class MyInterface:
       else:  tmesg = 'SUCCESS'
       MESGm("status: building %s" % tmesg)
       MESGi("see 'make' log file %s/%s" % (buildpath, logfile))
-      if st: return st
+      # return on failure
+      if st:
+         # on failure, show tail of make log
+         if os.path.isfile(logfile):
+            makelines = UTIL.read_text_file(logfile, lines=1)
+            ss = '   --------------------------------------------------\n'
+            MESGe("tail from %s:\n%s   %s\n%s" \
+                  % (logfile, ss, "\n   ".join(makelines[-10:]), ss))
+         return st
 
       # -----------------------------------------------------------------
       # finished with build, try to capture version info
-      # (first with local version, then from install_dir)
+      # (with local version file)
       do = dirobj('mb_abin', '.')
-      self.set_afni_version_info(do)
+
+      if self.set_afni_version_info(do):
+         MESGe("** failed to set ANFI version info")
+         return 1
+
       if do.package and os.path.isdir(do.package):
          do = dirobj('mb_abin', do.package)
          self.set_afni_version_info(do)
          self.do_mb_abin = do
+
       if self.verb > 1:
          MESGp("have make build abin %s" % do.abspath)
       MESGm("make build AFNI: %s, %s, %s" % (do.version, do.package, do.date))
 
-      # -----------------------------------------------------------------
-      # final messages: mention possibly rsync
-      do = None
-      if self.do_abin is not None:
-         do = self.do_abin
-      elif self.do_orig_abin is not None:
-         do = self.do_orig_abin
+      # if possible rsync, note source and dest dirs
+      do = self.f_get_rsync_abin_do()
       if do is not None and self.do_mb_abin is not None:
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to possibly rsync make output:")
-         self.add_final_mesg("   rsync -av %s/ %s/" \
-             % (self.do_mb_abin.abspath, do.abspath))
+         self.sync_src_make = self.do_mb_abin.abspath
 
+      # -----------------------------------------------------------------
       # final messages: how to rerun make
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("to rerun make build:")
@@ -1044,7 +1384,14 @@ class MyInterface:
       binopt = '-bin_dir %s' % self.package
       MESGp("testing the build results ...")
 
-      cmd = "tcsh scripts_src/test.afni.prog.help %s" % binopt
+      # test -help using test_afni from src dir (or from PATH)
+      test_prog = "test_afni_prog_help.tcsh"
+      if os.path.isfile("scripts_install/%s" % test_prog):
+         test_cmd = "tcsh scripts_install/%s" % test_prog
+      else: 
+         test_cmd = test_prog
+         
+      cmd = "%s %s" % (test_cmd, binopt)
       self.add_final_mesg("------------------------------")
       self.add_final_mesg("to rerun test of make build:")
       self.add_final_mesg("   cd %s" % buildpath)
@@ -1063,10 +1410,73 @@ class MyInterface:
 
       return 0
 
-   def f_get_atlases(self):
-      """if no afni_atlases_dist dir, download
+   def f_get_rsync_abin_do(self):
+      """return the directory object for install abin
+      """
+      do = None
+      if self.do_abin is not None:
+         do = self.do_abin
+      elif self.do_orig_abin is not None:
+         do = self.do_orig_abin
+      return do
 
-         - download g_atlas_pack (package) from g_atlas_html
+   def f_make_backup_abin_name(self):
+      """make up a name for backing up abin
+
+         backup.abin.YYYY_MM_DD_hh_mm_ss
+         (self.backup.prefix.)YYYY_MM_DD_hh_mm_ss
+      """
+      # try to make a date signature
+      form = '%Y_%m_%d_%H_%M_%S'
+      dstr = ''
+      # first using datetime
+      try:
+         from datetime import datetime
+         dstr = datetime.now().strftime(form)
+         if self.verb > 2:
+            MESGm("using datetime date string %s" % dstr)
+      except:
+         pass
+
+      # if failure, try same from shell date
+      if dstr == '':
+         st, dt = UTIL.exec_tcsh_command('date +%s' % form)
+         # if success, store
+         if not st:
+            dstr = dt
+            if self.verb > 2:
+               MESGm("using shell date string %s" % dstr)
+
+      # if failure, use NODATE
+      if dstr == '':
+         dstr = 'NODATE'
+
+      # now set prefix, and if needed, find an incremenal suffix
+      bname = '%s%s' % (self.backup_prefix, dstr)
+
+      # see if bname is sufficient (should usually be)
+      # if it exists, try adding a suffix for a while before failure
+      if os.path.exists(bname):
+         for ind in range(1,100):
+            btmp = '%s.%02d' % (bname, ind)
+            # if not here, we have a good candidate
+            if not os.path.exists(btmp):
+               bname = btmp
+               break
+            # else it exists, keep searching
+
+      if self.verb > 1:
+         MESGm("will try using back up abin, %s" % bname)
+
+      # okay, one more check
+      if os.path.exists(bname):
+         MESGe("failed to make backup.abin name, please delete some")
+         return ''
+
+      return bname
+
+   def f_get_extras(self):
+      """get atlases and niivue
 
          return 0 on success
       """
@@ -1074,53 +1484,145 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
+      st = self.f_get_atlases()
+      if st: return st
+
+      st = self.f_get_niivue()
+      if st: return st
+
+   def f_get_atlases(self):
+      """if no afni_atlases_dist dir, download
+
+         - we start in the correct directory
+         - download g_atlas_pack (package) from g_atlas_html
+
+         return 0 on success
+      """
+
       # note the atlas package
       # (use a local variable in case it later comes from elsewhere)
       atlas_pack = g_atlas_pack
+      renamed = '%s%s' % (self.pold, atlas_pack)
 
-      # if atlases already exist, use them
+      # and note atlas path for possible install or rsync suggestion
+      self.sync_src_atlas = '%s/%s' % (self.do_root.abspath, atlas_pack)
+
+      # if atlases already exist, use them (or re-download)
       if os.path.exists(atlas_pack):
-         if not os.path.isdir(atlas_pack):
-            MESGe("** have build_root/%s, but it is not a directory??" \
-                  % atlas_pack)
-            return 1
+         # if NOT updating atlases, just check and return
+         if not self.update_atlases:
+            if not os.path.isdir(atlas_pack):
+               MESGe("** have build_root/%s, but it is not a directory??" \
+                     % atlas_pack)
+               return 1
 
-         # consider updating atlas_pack dir
-         # - or let user delete since we currently have no versioning
+            # we are done here
+            MESGm("will reuse existing atlas directory, %s" % atlas_pack)
+            return 0
 
-         MESGm("will reuse existing atlas directory, %s" % atlas_pack)
+         # update atlases: just move the old stuff out of the way
 
-      # otherwise, download and unpack
-      else:
-         # make sure there is no previous download
-         tgzfile = '%s.tgz' % atlas_pack
-         if os.path.exists(tgzfile):
-            st, ot = self.run_cmd('rm', tgzfile)
+         if os.path.exists(renamed):
+            MESGm("removing old atlas dir, %s" % renamed)
+            st, ot = self.run_cmd('rmtree', renamed, pc=1)
             if st: return st
 
-         # download and unpack atlas package
-         MESGm("downloading AFNI atlas package, %s" % tgzfile)
-         st, ot = self.run_cmd('curl -O', g_atlas_html)
+         # now rename the atlas dir to the backup name
+         MESGm("moving old atlas dir %s to %s" % (atlas_pack, renamed))
+         st, ot = self.run_cmd('mv', [atlas_pack, renamed], pc=1)
          if st: return st
 
-         MESGm("unpacking atlas package, %s" % atlas_pack)
-         st, ot = self.run_cmd('tar xfz %s' % tgzfile)
-         if st: return st
+         # and proceed with the install, below...
+
+
+      # ------------- download and unpack
+
+      # make sure there is no previous download
+      tgzfile = '%s.tgz' % atlas_pack
+      if os.path.exists(tgzfile):
          st, ot = self.run_cmd('rm', tgzfile)
          if st: return st
 
-      # -----------------------------------------------------------------
-      # final messages: sync atlases (maybe sync this with make later)
-      do = None
-      if self.do_abin is not None:
-         do = self.do_abin
-      elif self.do_orig_abin is not None:
-         do = self.do_orig_abin
-      if do is not None:
-         self.add_final_mesg("------------------------------")
-         self.add_final_mesg("to possibly rsync atlases:")
-         self.add_final_mesg("   rsync -av %s/%s/ %s/" \
-             % (self.do_root.abspath, atlas_pack, do.abspath))
+      # download and unpack atlas package
+      MESGm("downloading AFNI atlas package, %s" % tgzfile)
+      st, ot = self.run_cmd('curl -f -O', g_atlas_html)
+      if st:
+         # if we have a backup, restore it
+         MESGe("failed to download AFNI atlas package")
+         if os.path.exists(renamed):
+            MESGp("restoring old atlas dir %s to %s" % (renamed, atlas_pack))
+            st, ot = self.run_cmd('mv', [renamed, atlas_pack], pc=1)
+            if st: return st
+         else:
+            MESGm("no atlas backup to restore from")
+            MESGi("continuing with build, but will not install")
+            self.run_install = 0
+
+         # and continue without any unpacking
+         return 0
+
+      MESGm("unpacking atlas package, %s" % atlas_pack)
+      st, ot = self.run_cmd('tar xfz %s' % tgzfile)
+      if st: return st
+      st, ot = self.run_cmd('rm', tgzfile)
+      if st: return st
+
+      return 0
+
+   def f_get_niivue(self):
+      """if no niivue file, download
+
+         - we start in the correct directory
+         - always attempt to download
+            - if failure, whine but proceed (try to use backup)
+
+         return 0 on success
+      """
+
+      # note original and potential backup names
+      niivue = g_niivue_file
+      backup = self.pold + g_niivue_file
+
+      # and note atlas path for possible install or rsync suggestion
+      self.sync_src_niivue = '%s/%s' % (self.do_root.abspath, niivue)
+
+      # if it already exists, move to backup
+      if os.path.exists(niivue):
+
+         # remove old backup
+         if os.path.exists(backup):
+            MESGm("removing old NiiVue backup, %s" % backup)
+            st, ot = self.run_cmd('rm', backup)
+            if st: return st
+
+         # now rename as backup
+         MESGm("moving old niivue %s to %s" % (niivue, backup))
+         st, ot = self.run_cmd('mv', [niivue, backup], pc=1)
+         if st: return st
+
+         # and proceed with the install, below...
+
+      # ------------- download
+
+      MESGm("downloading NiiVue, %s" % niivue)
+      st, ot = self.run_cmd('curl -f -O', g_niivue_html)
+
+      # on failure, whine but proceed
+      if st:
+         MESGw("failed to download NiiVue, proceeding anyway...")
+
+         if os.path.exists(backup):
+            MESGm("restoring NiiVue from backup")
+            # remove any partial download
+            if os.path.exists(niivue):
+               st, ot = self.run_cmd('rm', niivue)
+            # and restore from backup
+            st, ot = self.run_cmd('mv', [backup, niivue], pc=1)
+            if st: return st
+         else:
+            MESGi("(no NiiVue backup to restore from)")
+
+      # call anything else success
 
       return 0
 
@@ -1286,12 +1788,13 @@ class MyInterface:
       # handle system commands first (non-python commands, pc=0)
       if not pc:
          if pstr != '': cmd += " %s" % pstr
-         self.history.append(cmd)
+         self.cmd_history.append(cmd)
          st, otext = UTIL.exec_tcsh_command(cmd)
          if st:
             if not quiet:
                MESGe("failed run_cmd: %s" % cmd)
-               MESGe(otext)
+               if len(otext) > 0:
+                  MESGe(otext)
          if strip:
             otext = otext.strip()
          return st, otext
@@ -1299,13 +1802,13 @@ class MyInterface:
       # now python commands
       if cmd == 'cd':
          cstr = "os.chdir('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'mkdir':
          cstr = "os.makedirs('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'cp':
          cstr = "shutil.copy('%s', '%s')" % (params[0], params[1])
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'mv':
          # fail here for a list of params
          try:
@@ -1314,14 +1817,14 @@ class MyInterface:
             if not quiet:
                MESGe("os.rename(%s) - missing params" % pstr)
             return 1, ''
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       elif cmd == 'rmtree':
-         # allow this to be a file, to simply and work like rm -fr
+         # allow this to be a file, to simplify and work like rm -fr
          if os.path.isfile(pstr):
             cstr = "os.remove('%s')" % pstr
          else:
             cstr = "shutil.rmtree('%s')" % pstr
-         self.history.append(cstr)
+         self.cmd_history.append(cstr)
       else:
          MESGe("unknown run_cmd: %s %s" % (cmd, pstr))
          return 1, ''

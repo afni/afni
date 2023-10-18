@@ -11,7 +11,7 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       "     Local statistics are those computed over the neighborhood of\n"
       "     each node, possibly restricted to a mask.\n"
       "\n"
-      "     Neighborhoods and distances are defined on a trangulated surface\n"
+      "     Neighborhoods and distances are defined on a triangulated surface\n"
       "     mesh.  They will differ between smoothwm and pial, for example.\n"
       "     The neighborhood of a given node is defined by nodes within a\n"
       "     specified distance of the given node (along the surface).\n"

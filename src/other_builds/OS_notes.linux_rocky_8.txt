@@ -13,5 +13,6 @@ sudo dnf install -y R-devel
 
 # for users (and to do a simple build test), we need python and matplotlib
 # -- note: python3 does not come with 'python', we have to ask for that
-sudo dnf install -y python39 python3-matplotlib
+sudo dnf install -y python39 python3-matplotlib python3-numpy
+sudo dnf install -y python3-flask python3-flask-cors
 sudo alternatives --set python /usr/bin/python3
