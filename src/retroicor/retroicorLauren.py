@@ -241,7 +241,7 @@ def retro_ts(
         num_time_pts: (dType = int) Number of time points in the output
         
         OutDir: (dType = str) String giving name of directory to create for 
-                output files.  Default is "retro_" follwed by the current date 
+                output files.  Default is "retro_" followed by the current date 
                 and time.
         
         prefix: (dType = str) Prefix for output filename.  Default = None
@@ -254,7 +254,7 @@ def retro_ts(
         demo: (dType = int) Whether running in demo mode.  (Show graphs and 
                             pause between graphs.)
         
-        verbose: (dType = bool) Whether runnung in verbose mode.  Save graphs, 
+        verbose: (dType = bool) Whether running in verbose mode.  Save graphs, 
                                 of each filtering step, to disk.
         
         rvt_out: (dType = int) Flag for writing RVT regressors (default is 0)
@@ -347,7 +347,7 @@ def retro_ts(
         RET.getInputFileParameters(resp_info, cardiac_info, phys_file, \
                                    phys_json, resp_out, card_out, rvt_out) 
         
-    # Set paremeters
+    # Set parameters
     parameters = dict()
     parameters['cardFile']      = card_file
     parameters['respFile']      = resp_file
@@ -496,7 +496,7 @@ USAGE ~1~
                            0 - Do not show graphs
                            1 - Show end results (cardiac peaks, respiratory 
                                peaks and final RVT)
-                           2 - Show intermediate and end results (band-pass 
+                           2 - Show intermediate and end results (bandpass 
                                filter, cardiac peaks, respiratory peaks and 
                                final RVT)
                          (def: SHOWG = 0)
@@ -505,7 +505,7 @@ USAGE ~1~
                            0 - Do not save graphs
                            1 - Save end results (cardiac peaks, respiratory 
                                peaks and final RVT)
-                           2 - Save intermediate and end results (band-pass 
+                           2 - Save intermediate and end results (bandpass 
                                filter, cardiac peaks, respiratory peaks and 
                                final RVT)
                          (def: SAVEG = 1)

@@ -8,7 +8,7 @@ Created on Thu Aug 25 14:46:15 2022
 Peak detection is as follows.
 1. Non-numeric (NaN) data in the input is identified and the gap replaced by a
    inear interpolation from the adjacent valid entries.
-2. The remaining data is band-pass filtered as follows.
+2. The remaining data is bandpass filtered as follows.
     a. The data is Fourier transformed to FT.
     b. The harmonic frequency unit, F0, is determined as the sampling frequency 
        (Hz) divided by the raw data length.
@@ -34,7 +34,7 @@ Peak detection is as follows.
 9. Add missing peaks based on breaks in the periodicity.
 10. Repeat step 7.
 The following steps are subsequently done for the respiratory data.
-11. Troughs initially found as peaks in the inverted band-pass filtered signal.
+11. Troughs initially found as peaks in the inverted bandpass filtered signal.
 12. Repeat steps 4-10 with lower thresholds, for peaks, replaced by upper 
        thresholds for troughs.
 13. Remove peaks/troughs that are also troughs/peaks.
@@ -47,10 +47,11 @@ The following steps are subsequently done for the respiratory data.
 import numpy             as np
 import matplotlib.pyplot as plt
 import bisect
+import lib_retro_graph as lrg
 
-def percentileFilter(peaks, rawData, percentile, upperThreshold=False, 
-        phys_fs = None, dataType = "Cardiac", show_graph = False, 
-        save_graph = True, OutDir = None, font_size = 10):
+def percentileFilter(peaks, rawData, test_retro_obj, lrp, percentile = 10, 
+        upperThreshold=False, phys_fs = None, dataType = "Cardiac", 
+        show_graph = False, save_graph = True, OutDir = None, font_size = 10):
     """
     NAME
         percentileFilter
@@ -63,6 +64,19 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
                  indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         percentile: (dType = float) Minimum (or maximum) percentile of raw data 
                  for a peak value to imply a valid peak (or trough)
@@ -91,7 +105,7 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
         return []
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied if'+
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if'+
               ' graphing required')
   
     # Get peak values
@@ -107,25 +121,34 @@ def percentileFilter(peaks, rawData, percentile, upperThreshold=False,
     # Graph (and save) results as required
     if show_graph or save_graph:
         if upperThreshold:
+           Caption = 'Filter ' + dataType + \
+               ' troughs based on percentile of raw data.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
                 phys_fs, dataType, troughs = peaks,
                 OutDir = OutDir, prefix = dataType + 
-                    'AdjustTroughsAfterPctlFilt', 
-                caption = 'Filter troughs based on percentile of raw data.',
+                    'PctlFilt', 
+                caption = Caption,
                 font_size = font_size)
         else:
+           Caption = 'Filter ' + dataType + \
+               ' peaks based on percentile of raw data.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, 
-                OutDir = OutDir, prefix = dataType + 'AdjustPeaksAfterPctlFilt', 
-                caption = 'Filter peaks based on percentile of raw data.',
+                OutDir = OutDir, prefix = dataType + 'PctlFilt', 
+                caption = Caption,
                 font_size = font_size)
+
+        processName = 'RawDataPercentileFiltered'
+        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                      test_retro_obj, lrp, saveGraph = save_graph, 
+                      showGraph = show_graph, Troughs = upperThreshold)
 
     return peaks
 
-def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4, 
-            upperThreshold=False, show_graph = False, save_graph = True, 
-            phys_fs = None, dataType = "Cardiac", OutDir = None, 
-            font_size = 10):
+def localPercentileFilter(peaks, rawData, percentile, test_retro_obj, lrp,
+            period=None, numPeriods=4, upperThreshold=False, show_graph = False, 
+            save_graph = True, phys_fs = None, dataType = "Cardiac", 
+            OutDir = None, font_size = 10):
     """
     NAME
         localPercentileFilter
@@ -141,6 +164,19 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         
         percentile: (dType = float) Minimum (or maximum) percentile of raw data 
                     for a peak value to imply a valid peak (or trough)
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
                             
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
@@ -174,7 +210,7 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
         return []
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -198,14 +234,20 @@ def localPercentileFilter(peaks, rawData, percentile, period=None, numPeriods=4,
     # Apply local percentile filter
     if upperThreshold: peaks = peaks[np.array(peakVals) <= np.array(thresholds)]
     else: peaks = peaks[np.array(peakVals) >= np.array(thresholds)]
-            
-    # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption =  'Filter ' + dataType + ' peaks based on local percentile of raw data.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Filter peaks based on local percentile of raw data.',
+            prefix = dataType + 'LocalPctlFilt', 
+            caption = Caption,
             font_size = font_size)
+            
+       # Graph (and save) results as required
+       # filePrefix = dataType + 'PeaksLocallyPctlFiltered_v2'
+       processName = 'LocallyPctlFiltered'
+       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                     test_retro_obj, lrp, saveGraph = save_graph, 
+                     showGraph = show_graph)
        
     return peaks
 
@@ -241,9 +283,10 @@ def getTimeSeriesPeriod(rawData, minFrequency=1):
      return  F0/frequencyModeIndex
 
  
-def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right', 
-        portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+def removePeaksCloseToHigherPointInRawData(peaks, rawData, test_retro_obj, lrp, 
+        direction='right', portion=0.25, period=None, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removePeaksCloseToHigherPointInRawData
@@ -257,6 +300,19 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
                                        indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         direction: (dType = str) Direction to look for higher point in raw data.  
             Options are 'right' or 'left'.  Default = 'right'.  That is, it aims
@@ -317,22 +373,34 @@ def removePeaksCloseToHigherPointInRawData(peaks, rawData, direction='right',
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
         if direction=='right':
-            prefix = dataType + 'RemoveUpsideFalsePeaks'
-            caption = 'Remove "peaks" that are less than the raw input a' + \
+            Caption = 'Remove ' + dataType + ' "peaks" less than the raw input a' + \
                 ' quarter of a period on right side.'
+            prefix = dataType + 'RemoveUpsideFalsePeaks'
+            caption = Caption
         else:
+            Caption = 'Remove ' + dataType + ' "peaks" less than the raw input a' +\
+                ' quarter of a period on left side.'
             prefix = dataType + 'RemoveDownsideFalsePeaks'
-            caption = 'Remove "peaks" that are less than the raw input a' +\
-                'quarter of a period on left side.'
+            caption = Caption
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, prefix = prefix, 
             caption = caption, font_size = font_size)
+   
+       # New graph format
+        if direction=='right':
+           processName = 'RemovedIfCloseToHigherRawDataJustToRight'
+        else:
+           processName = 'RemovedIfCloseToHigherRawDataJustToLeft'
+        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                      test_retro_obj, lrp, saveGraph = save_graph, 
+                      showGraph = show_graph)
     
     return peaks
 
-def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right', 
-        portion=0.25, period=None, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+def removeTroughsCloseToLowerPointInRawData(troughs, rawData, test_retro_obj, 
+        lrp, direction='right', portion=0.25, period=None, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removeTroughsCloseToLowerPointInRawData
@@ -346,6 +414,19 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         direction: (dType = str) Direction to look for lower point in raw data.
                    Options are 'right' or 'left'.  Default = 'right'.  That is,
@@ -375,7 +456,7 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
     
     if not period:
@@ -391,20 +472,30 @@ def removeTroughsCloseToLowerPointInRawData(troughs, rawData, direction='right',
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
         if direction=='right':
-            caption = 'Remove downstroke false troughs.'
-            prefix = dataType + 'RemoveDpwnstrokeFalseTroughsFilt'
+            caption = 'Remove downstroke false ' + dataType + ' troughs.'
+            prefix = dataType + 'RemoveDownstrokeFalseTroughsFilt'
         else: 
-            caption = 'Remove upstroke false troughs.'
+            caption = 'Remove upstroke false ' + dataType + ' troughs.'
             prefix = dataType + 'RemoveUpstrokeFalseTroughsFilt'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], phys_fs, 
             dataType, troughs = troughs, OutDir = OutDir, prefix = prefix, 
             caption = caption, font_size = font_size)
+   
+       # New graph format
+        if direction=='right':
+           processName = 'RemovedIfCloseToLowerRawDataJustToRight'
+        else:
+           processName = 'RemovedIfCloseToLowerRawDataJustToLeft'
+        lrg.plotPeaks(rawData, troughs, OutDir, processName, caption, dataType, 
+                      test_retro_obj, lrp, saveGraph = save_graph, 
+                      showGraph = show_graph, Troughs = True)
     
     return troughs
 
 def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-        denominator=4.0, show_graph = False, save_graph = True, 
-        phys_fs = None, dataType = "Cardiac", OutDir = None, font_size = 10):
+        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
+        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
+        font_size = 10):
     """
     NAME
         removePeaksCloserToLocalMinsThanToAdjacentPeaks
@@ -418,6 +509,19 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
                                        indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         denominator: (dType = float) Number by which to divide the current 
                      amplitude to determine the lower threshold of the 
@@ -439,7 +543,7 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
 
@@ -462,17 +566,25 @@ def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData,
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption = 'Remove ' + dataType + ' peaks less than a quarter as far' + \
+           ' from local minimum to adjacent peaks.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'RemovePeaksCloseToMinimum', 
-            caption = 'Remove peaks that are less than a quarter as far' + 
-                ' from the local minimum to the adjacent peaks.',
+            caption = Caption,
                 font_size = font_size)
+   
+       # New graph format
+       processName = 'RemoveIfCloseToMinimum'
+       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                     test_retro_obj, lrp, saveGraph = save_graph, 
+                     showGraph = show_graph)
     
     return peaks
 
 def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-        denominator=4.0, show_graph = False, save_graph = True, phys_fs = None,
+        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
+        save_graph = True, phys_fs = None,
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
@@ -487,6 +599,19 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         denominator: (dType = float) Number by which to divide the current 
                                      amplitude to determine the upper threshold
@@ -529,14 +654,21 @@ def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData,
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
-                phys_fs, dataType, troughs = troughs,
-                OutDir = OutDir, 
-                prefix = dataType + 
-                    'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
-                caption = 'Remove troughs closer to local max than to' + 
-                    ' adjacent troughs.',
-                font_size = font_size)
+        Caption = 'Remove ' + dataType + \
+            ' troughs closer to local max than to adjacent troughs.'
+        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
+             phys_fs, dataType, troughs = troughs,
+             OutDir = OutDir, 
+             prefix = dataType + 
+                 'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
+             caption = Caption,
+             font_size = font_size)
+   
+        # New graph format
+        processName = 'RemoveIfCloserToLocalMaxThanToAdjacentTroughs'
+        lrg.plotPeaks(rawData, troughs, OutDir, processName, Caption, dataType, 
+                      test_retro_obj, lrp, saveGraph = save_graph, 
+                      showGraph = show_graph, Troughs = True)
     
     return troughs
 
@@ -560,6 +692,7 @@ def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
     return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
 
 def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
+        test_retro_obj, lrp,
         show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
@@ -576,6 +709,19 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
                                                data indices.
         
         rawData: (array, dType = float) Raw input data
+                                
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         show_graph:   (dType = bool) Whether to graph the results
         
@@ -595,7 +741,7 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               'if graphing required')
         
     numPeaks = len(peaks)
@@ -622,11 +768,20 @@ def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData,
     troughs = np.delete(troughs,troughsToDelete)
     
     if (show_graph or save_graph) and phys_fs:
+        Caption = 'Remove overlapping ' + dataType + ' peaks and troughs.'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
              phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
              prefix = dataType + 'removeOverlappingPeaksAndTroughs', 
-             caption = 'Remove overlapping peaks and troughs.',
+             caption = Caption,
              font_size = font_size)
+   
+        # New graph format
+        # filePrefix = dataType + \
+        #        'RemoveOverlappingPeaksAndTroughs_v2'
+        processName = 'RemoveOverlappingPeaksAndTroughs'
+        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, 
+            Caption, dataType, test_retro_obj, lrp, saveGraph = save_graph, 
+            showGraph = show_graph)
                 
     return peaks, troughs
 
@@ -698,7 +853,8 @@ def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
         
     return peaks, troughs
 
-def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4, 
+def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
+                     Troughs = False, denominator=4, 
                      show_graph = 0, save_graph = 1, phys_fs = None, 
                      dataType = "Cardiac", OutDir = None, font_size = 10):
     """
@@ -713,6 +869,21 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
         
         period:   (dType = numpy.float64) Overall typical period of raw data in 
                                           time series index units.
+
+        rawData: (array, dType = float) Raw input data
+                                      
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         Troughs:  (dType = bool) Whether processing troughs instead of peaks
         
@@ -737,7 +908,7 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -761,15 +932,16 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     if Troughs: # Processing troughs instead of peaks
         peaks = np.array(peaks)
         for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, period = period, 
-                Troughs = True, show_graph = max(show_graph-1,0), 
+            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = period, Troughs = True, 
+                show_graph = max(show_graph-1,0), 
                 save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
                 OutDir = OutDir, font_size = font_size)
     else:   # Processing peaks
         peaks = np.array(peaks)
         for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, period = period, 
-                    show_graph = max(show_graph-1,0), 
+            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                    period = period, show_graph = max(show_graph-1,0), 
                     save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
                     OutDir = OutDir, font_size = font_size)
             
@@ -783,25 +955,35 @@ def removeClosePeaks(peaks, period, rawData, Troughs = False, denominator=4,
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
         if Troughs:
+           Caption = 'Merge ' + dataType + ' troughs closer than' + \
+                           ' one quarter of the overall typical period.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
                 phys_fs, dataType, troughs = peaks, OutDir = OutDir, 
                 prefix = dataType + 'MergeCloseTroughs', 
-                caption = 'Merge troughs that are closer than one quarter' + 
-                                ' of the overall typical period.',
-                font_size = font_size)
+                caption = Caption, font_size = font_size)
         else:
+           Caption = 'Merge ' + dataType + ' peaks closer than' + \
+                           ' one quarter of the overall typical period.'
            graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
                 phys_fs, dataType, OutDir = OutDir, 
                 prefix = dataType + 'MergeClosePeaks', 
-                caption = 'Merge peaks that are closer than one quarter' + 
-                                             ' of the overall typical period.',
-                font_size = font_size)
+                caption = Caption, font_size = font_size)
+   
+       # New graph format
+        # if Troughs:
+        #    filePrefix = dataType + 'TroughsMergeCloseTroughs_v2'
+        # else:
+        #    filePrefix = dataType + 'PeaksMergeClosePeaks_v2'
+        processName = 'MergeIfClose'
+        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                      test_retro_obj, lrp, saveGraph = save_graph, 
+                      showGraph = show_graph, Troughs = Troughs)
     
     return peaks
 
-def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond, 
-        phys_fs, dataType = "Cardiac", show_graph = False, save_graph = True, 
-        OutDir = None, graphIndex = None, font_size = 10) :
+def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
+        maxBeatsPerSecond, phys_fs, dataType = "Cardiac", show_graph = False, 
+        save_graph = True, OutDir = None, graphIndex = None, font_size = 10) :
     """
     NAME
         bandPassFilterRawDataAroundDominantFrequency
@@ -813,6 +995,8 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         rawData: (array, dType = float) Raw input data
         
         minBeatsPerSecond: (dType = float) Minimum expected beats per second
+        
+        maxBeatsPerSecond: (dType = float) Maximum expected beats per second
         
         phys_fs: (dType = float) Sampling frequency in Hz.  Required if graph 
                                  True
@@ -842,16 +1026,19 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
     # Get lower cutoff index
     lowerCutoffIndex = round(minBeatsPerSecond/F0)
     
+    # Get lower cutoff index
+    upperCutoffIndex = round(maxBeatsPerSecond/F0)
+    
     # Get Fourier transform
     FourierTransform = np.fft.fft(rawData)
     FourierSpectrum = abs(FourierTransform)
     
     # Determine frequency peak
-    NyquistLength = round(rawDataLength/2)
+    NyquistLength = min(round(rawDataLength/2), upperCutoffIndex)
     frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])\
         +lowerCutoffIndex
-    print(dataType + ' band-pass filter frequency peak: ' + 
-          str(F0 * frequencyPeak) + ' Hz')
+    print('++ {} bandpass filter frequency peak: {:.6f} Hz'
+          ''.format(dataType, F0 * frequencyPeak))
     
     # Find bounds based on -3 dB limits
     peakVal = FourierSpectrum[frequencyPeak]
@@ -906,7 +1093,7 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
         if save_graph:
             prefix = dataType + 'SelectedFourierTransformPart'
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            plt.show(block=False)
+            if show_graph: plt.show(block=True)
             if not show_graph: plt.close()  # Close graph after saving
     
         # Plot filtered signal agains raw data
@@ -935,20 +1122,20 @@ def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
             prefix = dataType + 'BPF_VRawInput'
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
             
-        plt.show(block=False)
+        if show_graph: plt.show(block=True)
         if not show_graph: plt.close()  # Close graph after saving
         
     return filteredRawData
 
-def refinePeakLocations(peaks, rawData, period = None, Troughs = False, 
-        show_graph = False, save_graph = True, phys_fs = None, 
+def refinePeakLocations(peaks, rawData, test_retro_obj, lrp, period = None, 
+        Troughs = False, show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         refinePeakLocations
             Adjust peaks to correspond to local maxima.  This is usually 
             necessary if the peaks were.Determined from a band-pass filtered 
-            version of the inut raw data where the peaks are uniformly spaced 
+            version of the input raw data where the peaks are uniformly spaced 
             based on the overall typical period of raw data
     TYPE
          <class 'numpy.ndarray'>
@@ -956,6 +1143,19 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
         peaks: (array dType = int64) Array of peaks to be refined
         
         rawData: (array, dType = float) Raw input data
+        
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
@@ -979,7 +1179,7 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -1014,26 +1214,36 @@ def refinePeakLocations(peaks, rawData, period = None, Troughs = False,
             
     # Graph (and save) results as required
     if Troughs:
-        Caption = 'Adjust troughs from uniform spacing.'
-        Troughs = peaks
+        Caption = 'Adjust ' + dataType + '  troughs from uniform spacing.'
+        troughs = peaks
         Peaks = []
     else:
-        Caption = 'Adjust peaks from uniform spacing.'
-        Troughs = []
+        Caption = 'Adjust ' + dataType + ' peaks from uniform spacing.'
+        troughs = []
         Peaks = peaks
     if (show_graph or save_graph) and phys_fs:
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, Peaks, 
             phys_fs, dataType, OutDir = OutDir, 
             prefix = dataType + 'AdjustPeaksFromUniformSpacing', 
-            caption = Caption, troughs = Troughs,
+            caption = Caption, troughs = troughs,
             font_size = font_size)
+   
+       # New graph format
+       # if Troughs:
+       #     filePrefix = dataType + 'TroughsAdjustedForUniformSpacing_v2'
+       # else:
+       #     filePrefix = dataType + 'PeaksAdjustedForUniformSpacing_v2'
+       processName = 'AdjustedForUniformSpacing'
+       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                     test_retro_obj, lrp, saveGraph = save_graph, 
+                     showGraph = show_graph, Troughs = Troughs)
            
     # Apply offsets
     return peaks
 
-def addMissingPeaks(peaks, rawData, period=None, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
-        font_size = 10):
+def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None, 
+        show_graph = False, save_graph = True, phys_fs = None, 
+        dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
         addMissingPeaks
@@ -1044,6 +1254,19 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
         peaks: (array dType = int64) Array of peaks to be refined
         
         rawData: (array, dType = float) Raw input data
+        
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         period: (dType = NoneType) Overall typical period of raw data in time 
                 series index units. Default is none, meaning the period is 
@@ -1065,7 +1288,7 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
               ' if graphing required')
         return peaks
     
@@ -1087,23 +1310,31 @@ def addMissingPeaks(peaks, rawData, period=None, show_graph = False,
                                            for j in range(1,additionPlus1)])
    
     # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, period = period, 
-                show_graph = show_graph, 
+    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = period, show_graph = show_graph, 
                 save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir,
-                font_size = font_size)
+                font_size = font_size, dataType = dataType )
             
     # Graph (and save) results as required
     if (show_graph or save_graph) and phys_fs:
+       Caption = 'Add missing ' + dataType + ' peaks per periodicity.'
        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AdjustPeaksAfterLocalPctlFilt', 
-            caption = 'Add missing peaks.', font_size = font_size)
+            prefix = dataType + 'AddMissingPeaksPerPeriodicity', 
+            caption = Caption, font_size = font_size)
+   
+       # New graph format
+       # filePrefix = dataType + 'AddMissingPeaksPerPeriodicity_v2'
+       processName = 'AddMissingPerPeriodicity'
+       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
+                     test_retro_obj, lrp, saveGraph = save_graph, 
+                     showGraph = show_graph)
     
     return peaks
 
 
-def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None, 
-        show_graph = False, save_graph = True, phys_fs = None, 
+def addMissingPeaksAndTroughs(peaks, troughs, rawData, test_retro_obj, lrp, 
+        period=None, show_graph = False, save_graph = True, phys_fs = None, 
         dataType = "Cardiac", OutDir = None, font_size = 10):
     """
     NAME
@@ -1117,6 +1348,19 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
         troughs: (array dType = int64) Array of troughs to be refined
         
         rawData: (array, dType = float) Raw input data
+        
+        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
+                        for starting the retroicor process for making physio
+                        regressors for MRI data.  It contains the following 
+                        fields.
+            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
+                       for cardiac data.  It contains the following fields.
+                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
+                       (in sec)
+            font_size: (dType = <class 'int'>) Font size for output images.
+            
+        lrp: (dType = <class 'module'>) Object for holding one time series or 
+             set of points for plotting.
         
         period: (dType = NoneType) Overall typical period of raw data in time 
             series index units.  Default is none, meaning the period is 
@@ -1138,7 +1382,7 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
     """
     
     if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied if' +
+        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if' +
               ' graphing required')
     
     # Find period if not supplied
@@ -1189,25 +1433,33 @@ def addMissingPeaksAndTroughs(peaks, troughs, rawData, period=None,
                 troughs = np.insert(troughs, i+1, newTroughs)
    
     # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, period = np.median(intervals)/2, 
+    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
+                period = np.median(intervals)/2, 
                 show_graph = max(show_graph - 1, 0), 
                 save_graph = max(save_graph - 1, 0),
                 phys_fs = phys_fs, OutDir = OutDir)
-    troughs = refinePeakLocations(troughs, rawData, 
+    troughs = refinePeakLocations(troughs, rawData, test_retro_obj, lrp, 
        period = np.median(intervals)/2, Troughs = True, 
        show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
        phys_fs = phys_fs, OutDir = OutDir)
     
-    # Remove extra peaks bewteen troughs and troughs between peaks
+    # Remove extra peaks between troughs and troughs between peaks
     peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, 
                                                            rawData)
     
     if (show_graph or save_graph) and phys_fs:
+        Caption = 'Add missing peaks and troughs.'
         graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
             phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
             prefix = dataType + 'addMissingPeaksAndTroughs', 
-            caption = 'Add missing peaks and troughs.',
-            font_size = font_size)
+            caption = Caption, font_size = font_size)
+   
+       # New graph format
+        processName = 'AddMissing'
+        # filePrefix = dataType + 'AddMissingPeaksAndTroughs_v2'
+        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, 
+                Caption, dataType, test_retro_obj, lrp, saveGraph = save_graph, 
+                showGraph = show_graph)
     
     return peaks, troughs
 
@@ -1217,7 +1469,7 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     '''
     NAME
         graphPeaksAgainstRawInput
-        Graph graph raw input data along with peaks and optionally troughs
+        Graph raw input data along with peaks and optionally troughs
     TYPE
          <void>
     ARGUMENTS
@@ -1277,19 +1529,24 @@ def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs,
     # mpl.text.Text(.5, .05, caption, ha='center')
 
     # Save plot to file
+    # if show_graph: 
+    #     plt.ion()
+    #     plt.show(block=True)
+    # else:
+    #     plt.ioff()
+        
     if save_graph:
         if not OutDir:
-            print('**WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
-                  '  No output directory specified')
+            print('+* WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
+                  ' No output directory specified')
             if not show_graph: plt.close()  # Close graph after saving
-            return 1
+            # return 1
         else:
             plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            plt.show(block=False)  # If this is left out, output file is 
-                                          # blank
-        
+            
+    if show_graph: plt.show(block=True)
     if not show_graph: plt.close()  # Close graph after saving
-    
+
     return 0
 
 def checkForNans(rawData, dataType, failureThreshold = 100):
@@ -1311,7 +1568,7 @@ def checkForNans(rawData, dataType, failureThreshold = 100):
     '''    
     
     if (np.isnan(np.sum(rawData))): # If nan's in raw data
-        print('** WARNING. NaN entries at the following indices of the ' +
+        print('+* WARNING. NaN entries at the following indices of the ' +
               dataType + ' data')
         nanIndices = np.argwhere(np.isnan(rawData))
         print(nanIndices)

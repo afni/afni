@@ -31,14 +31,14 @@ class PhysionlogicalNoise:
            Peter Lauren  
         """  
         
-        self.numTimeSteps = len(self.phases)
+        self.numTimeSteps = len(self.phases) # Length of input data
         if self.numTimeSteps == 0:
             print('*** Error in selectPhaseListAndNumTimeSteps')
             print('*** Respiratory phases required but ' + \
                   'none available')
             return 1
         
-        self.phaseList = self.phases
+        self.phaseList = self.phases # Length of input data
         
   def setUpTimeSeries(self, test_retro_obj):
       """
@@ -56,13 +56,18 @@ class PhysionlogicalNoise:
            Peter Lauren  
       """  
         
-      #initialize output from input parameters
+      # Determine the time step increment as the multiplicative inverse of the
+      # user-supplied sampling frequency
       self.timeStepIncrement = 1.0/self.sampleFrequency
       
+      # Make volume times as a time step increment for each time step
       self.sampleTimes = np.zeros(self.numTimeSteps) # 't' in dictionary
       for i in range(1,self.numTimeSteps): self.sampleTimes[i] = \
           self.timeStepIncrement * i
-          
+      
+      # Output volumes time points (seconds)
+      # (Real) numbers from zero to [the highes time value minus half TR] in
+      # increments of TR.
       self.time_series_time = np.arange(
           0, (max(self.sampleTimes) - 0.5 * test_retro_obj.vol_tr), 
               test_retro_obj.vol_tr
@@ -229,7 +234,7 @@ def makeOutputHeaderAndOutputInfo(test_retro_obj, cardiacNoise,
                                  slice timing
                                  
                 do_out_rvt:   (dtype = <class 'int'>) Whether to calculate
-                             and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                             and output RVT. (0 = No, 1 = Yes, Default = 0)
                              
                 vol_nv: (dtype = <class 'int'>) Nvol (num_time_pts) MRI EPI 
                 
@@ -363,7 +368,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -384,7 +389,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
                              
             prefix: (dtype = <class 'str'>)  Prefix for output file
             
-            out_dir: (dtype = <class 'str'>) Durectory search path relative to
+            out_dir: (dtype = <class 'str'>) Directory search path relative to
                      the working directory.
                        
     AUTHOR
@@ -392,6 +397,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
     """
     
     # Initialise physiological noise objects
+    # NB. 'num_time_pts' is a required input (command line) argument
     cardiacNoise = PhysionlogicalNoise(
         physiologicalNoiseComponents['card_phases'], 
         physiologicalNoiseComponents['num_time_pts'], 

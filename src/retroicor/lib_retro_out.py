@@ -527,7 +527,7 @@ def getNimlDimensions(physiologicalNoiseComponents, resp_info,
                                                 time points
                                                 (not seconds)
        
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
                    following fields for respiratory data
                     
             time_series_time: <class 'numpy.ndarray'>) List of 
@@ -603,10 +603,10 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
         The dictionary has the following fields.
             
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             slice_major: <class 'int'> Whether output is slice major
                          instead of registered phase slice major
@@ -615,7 +615,7 @@ def initializeMainInfoAndLabel(physiologicalNoiseComponents, test_retro_obj,
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -717,10 +717,10 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
         The dictionary has the following fields.
                 
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             slice_major: <class 'int'> Whether output is slice major
                          instead of registered phase slice major
@@ -730,7 +730,7 @@ def getSliceMinorMainInfoAndLabel(main_info, label, resp_info,
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -818,10 +818,10 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
         The dictionary has the following fields.
             
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             slice_major: (dtype = <class 'int'>) Whether output is slice major
                          instead of registered phase slice major
@@ -832,14 +832,14 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
                       the output RVT, cardiac and/or respiratory calculations.
     ARGUMENTS
     
-        main_info: (dtype = <class 'dict'>) Dictonary with the 
+        main_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields
                 
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             Card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                          
             reml_out: (dtype = <class 'list'>)  2D list where the former 
                       dimension is the number of columns in the output and the
@@ -850,7 +850,7 @@ def getSliceMajorMainInfoAndLabel(main_info, label, resp_info,
             NIML file, giving the names of the output slice
             components
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT slices
@@ -933,10 +933,10 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
         The dictionary has the following fields.
             
             resp_out: (dtype = <class 'bool'>) Whether to calculate
-                and output respiratory noise. (Defautl = True)
+                and output respiratory noise. (Default = True)
                 
             card_out: (dtype = <class 'bool'>) Whether to calculate
-                and output cardiac noise. (Defautl = True)
+                and output cardiac noise. (Default = True)
                 
             slice_major: (dtype = <class 'int'>) Whether output is slice major
                          instead of registered phase slice major
@@ -950,7 +950,7 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -990,7 +990,7 @@ def getMainInfoAndLabel(test_retro_obj, physiologicalNoiseComponents,
         
         nTimeSteps: (dtype = <class 'int'>) Number of time steps
         
-        resp_info: (dtype = <class 'dict'>) Dictonary with the 
+        resp_info: (dtype = <class 'dict'>) Dictionary with the 
             following fields for respiratory data
                     
             rvtrs_slc: (dtype = <class 'numpy.ndarray'>) RVT 
@@ -1061,7 +1061,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
         test_retro_obj:   Object with the following fields.
         
             do_out_rvt:  (dtype = <class 'int'>) Whether to calculate
-                         and output RVT. (0 = No, 1 = Yes, Defautl = 0)
+                         and output RVT. (0 = No, 1 = Yes, Default = 0)
         
             num_slices: (dtype = class 'int') Number of slices
         
@@ -1082,7 +1082,7 @@ def outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
                              
             prefix: (dtype = <class 'str'>)  Prefix for output file
             
-            out_dir: (dtype = <class 'str'>) Durectory search path relative to
+            out_dir: (dtype = <class 'str'>) Directory search path relative to
                      the working directory.
                        
     AUTHOR

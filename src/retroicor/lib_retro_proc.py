@@ -16,6 +16,8 @@ import shutil
 
 # Local libraries
 import libPeakFilters as lpf
+import lib_retro_plot as lrp
+import lib_retro_graph as lrg
 
 # Global constants
 GLOBAL_M = 3
@@ -81,13 +83,17 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Lower bound, of heartbeats per second based based on minimum HR
    minBeatsPerSecond = test_retro_obj.card_data.min_bps
    
+   # Upper bound, of heartbeats per second based based on the highest observed 
+   # level of tachycardia (250 BPM)
+   maxBeatsPerSecond = test_retro_obj.card_data.max_bps
+   
    # Initialise graph index
    graphIndex = 0
     
    # Band pass filter raw data
    filterData = \
         lpf.bandPassFilterRawDataAroundDominantFrequency(rawData,\
-        minBeatsPerSecond,
+        minBeatsPerSecond, maxBeatsPerSecond,
          test_retro_obj.card_data.samp_freq,\
          show_graph = test_retro_obj.show_graph_level>1,\
          save_graph = test_retro_obj.save_graph_level>1, OutDir=OutDir,\
@@ -110,8 +116,16 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
         caption = 'Cardiac peaks from band-pass filtered input.',
         font_size = test_retro_obj.font_size)
    
+   # Graph initial cardiac peaks found by scipy
+   processName = 'Initial'
+   Title = 'Initial Cardiac Peaks Found By scipy'
+   lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
+                 test_retro_obj, lrp, 
+                 saveGraph = test_retro_obj.save_graph_level>0, 
+                 showGraph = test_retro_obj.show_graph_level>0)
+   
    # Adjust peaks from uniform spacing
-   peaks = lpf.refinePeakLocations(peaks, rawData, 
+   peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp,
             dataType = "Cardiac",  
             phys_fs = test_retro_obj.card_data.samp_freq, 
             show_graph = test_retro_obj.show_graph_level>1, 
@@ -121,8 +135,8 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
     
    # Remove peaks less than the required percentile of the local 
    # input signal
-   peaks = lpf.localPercentileFilter(peaks, rawData, 
-            filterPercentile, numPeriods=3, 
+   peaks = lpf.localPercentileFilter(peaks, rawData, filterPercentile, 
+            test_retro_obj, lrp, numPeriods=3, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Cardiac",  
@@ -143,7 +157,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
     
    # Merge peaks that are closer than one quarter of the overall 
    # typical period
-   peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+   peaks = lpf.removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  
@@ -154,7 +168,7 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # a period on right side
    # This is tomove false peaks on the upstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-        rawData,  period=period, 
+        rawData, test_retro_obj, lrp,  period=period, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  
@@ -163,10 +177,10 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    if len(peaks) == 0:
        print('ERROR in getCardiacPeaks: Peaks array empty')
        return peaks, len(rawData)
-    
+   
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-        rawData, direction='left', period=period, 
+        rawData, test_retro_obj, lrp, direction='left', period=period, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  
@@ -176,23 +190,24 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
    # Remove peaks that are less than a quarter as far from the 
    # local minimum to the adjacent peaks
    peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, 
-        rawData, show_graph = test_retro_obj.show_graph_level>1, 
+        rawData, test_retro_obj, lrp, 
+        show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  phys_fs = test_retro_obj.card_data.samp_freq, 
-        OutDir = OutDir, font_size = test_retro_obj.font_size)
-
+        OutDir = OutDir, font_size = test_retro_obj.font_size)   
+   
    # Add missing peaks
-   peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
+   peaks = lpf.addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=period, 
                 show_graph = max(test_retro_obj.show_graph_level-1,0), 
                 save_graph = max(test_retro_obj.save_graph_level-1,0), 
                 phys_fs = test_retro_obj.card_data.samp_freq, OutDir = OutDir,
-                font_size = test_retro_obj.font_size)   
+                font_size = test_retro_obj.font_size, dataType = "Cardiac")   
    
    # Remove "peaks" that are less than the raw input a quarter of 
    # a period on right side
    # This is tomove false peaks on the upstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-        rawData, period=period, 
+        rawData, test_retro_obj, lrp, period=period, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac",  phys_fs = test_retro_obj.card_data.samp_freq, 
@@ -203,20 +218,43 @@ def getCardiacPeaks(test_retro_obj, filterPercentile=70.0):
     
    # Remove false peaks on the downstroke
    peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-        rawData, direction='left', period=period, 
+        rawData, test_retro_obj, lrp, direction='left', period=period, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Cardiac", phys_fs = test_retro_obj.card_data.samp_freq, 
         OutDir = OutDir, font_size = test_retro_obj.font_size)
       
-   # Graph cardiac peaks against respiratory time series
+   # Graph cardiac peaks against cardiac time series
    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>0, 
          test_retro_obj.save_graph_level>0, rawData, peaks, 
          test_retro_obj.card_data.samp_freq, 
          "Cardiac", OutDir = OutDir, prefix = 'cardiacPeaksFinal', 
          caption = 'Cardiac peaks after all filtering.',
          font_size = test_retro_obj.font_size)
+   
+   # Graph final cardiac peaks 
+   processName = 'Final'
+   Title = 'Final Cardiac Peaks'
+   lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Cardiac', 
+                 test_retro_obj, lrp, 
+                 saveGraph = test_retro_obj.save_graph_level>0, 
+                 showGraph = test_retro_obj.show_graph_level>0)
     
+   
+   # Save peaks if required
+   if test_retro_obj.save_proc_peaks:
+       outputFileName = test_retro_obj.out_dir + '/cardiacPeaks.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, peaks, fmt='%i')
+       file.close()
+   
+   # Save raw data if required
+   if test_retro_obj.save_proc_rawData:
+       outputFileName = test_retro_obj.out_dir + '/cardiacRawData.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, rawData, fmt='%10.5f')
+       file.close()
+
    return peaks, len(rawData)
 
 
@@ -280,17 +318,21 @@ def getRespiratoryPeaks(test_retro_obj):
     # Lower bound, of breaths per second based based on maximum period for 
     # breath
     minBreathsPerSecond = test_retro_obj.resp_data.min_bps
+      
+    # Upper bound, of breaths per second based based on minimum period for 
+    # breath
+    maxBreathsPerSecond = test_retro_obj.resp_data.max_bps
    
     # Band pass filter raw data
     filterData = lpf.bandPassFilterRawDataAroundDominantFrequency(rawData, 
-        minBreathsPerSecond,
+        minBreathsPerSecond, maxBreathsPerSecond,
         test_retro_obj.resp_data.samp_freq, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, OutDir=OutDir, 
         dataType = "Respiratory", 
         font_size = test_retro_obj.font_size)
     if len(filterData) == 0:
-       print('Failed to band-pass filter cardiac data')   
+       print('Failed to band-pass filter respiratory data')   
        return []
    
     # Get initial peaks using window that is eighth of a second  
@@ -299,7 +341,7 @@ def getRespiratoryPeaks(test_retro_obj):
                               width=int(test_retro_obj.resp_data.samp_freq/4))
    
     # Graph initial peaks and save graph to disk
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>1, 
+    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>1, 
         test_retro_obj.save_graph_level>1, rawData, peaks, 
         test_retro_obj.resp_data.samp_freq, "Respiratory", OutDir = OutDir, 
         prefix = 'respiratoryPeaksFromBPFInput', 
@@ -307,8 +349,16 @@ def getRespiratoryPeaks(test_retro_obj):
             'input.',
         font_size = test_retro_obj.font_size)
    
+    # Graph initial respiratory peaks found by scipy
+    processName = 'Initial'
+    Title = 'Initial Respiratory Peaks Found By scipy'
+    lrg.plotPeaks(rawData, peaks, OutDir, processName, Title, 'Respiratory', 
+                  test_retro_obj, lrp, 
+                  saveGraph = test_retro_obj.save_graph_level>0, 
+                  showGraph = test_retro_obj.show_graph_level>0)
+   
     # Adjust peaks from uniform spacing
-    peaks = lpf.refinePeakLocations(peaks, rawData, 
+    peaks = lpf.refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
             dataType = "Respiratory",  
             phys_fs = test_retro_obj.resp_data.samp_freq, 
             show_graph = test_retro_obj.show_graph_level>1, 
@@ -324,8 +374,8 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove peaks that are less than the 10th percentile of the 
     # input signal
-    peaks = lpf.percentileFilter(peaks, rawData, percentile=10.0, 
-             dataType = "Respiratory",  
+    peaks = lpf.percentileFilter(peaks, rawData, test_retro_obj, lrp, 
+             percentile=10.0, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -339,7 +389,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # of a period on right side.  This is tomove false peaks on 
     # the upstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-             rawData, period=period, dataType = "Respiratory",  
+             rawData, test_retro_obj, lrp, period=period, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -347,7 +397,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-             rawData, direction='left', period=period, 
+             rawData, test_retro_obj, lrp, direction='left', period=period, 
              dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
@@ -357,7 +407,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # Remove peaks that are less than a quarter as far from the 
     # local minimum to the adjacent peaks
     peaks = lpf.removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, 
-            rawData, dataType = "Respiratory",  
+            rawData, test_retro_obj, lrp, dataType = "Respiratory",  
             phys_fs = test_retro_obj.resp_data.samp_freq, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
@@ -365,7 +415,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Merge peaks that are closer than one quarter of the overall 
     # typical period
-    peaks = lpf.removeClosePeaks(peaks, period, rawData, 
+    peaks = lpf.removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
              dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
@@ -373,8 +423,8 @@ def getRespiratoryPeaks(test_retro_obj):
              OutDir = OutDir, font_size = test_retro_obj.font_size)
 
     # Add missing peaks
-    peaks = lpf.addMissingPeaks(peaks, rawData, period=period, 
-             dataType = "Respiratory",  
+    peaks = lpf.addMissingPeaks(peaks, rawData, test_retro_obj, lrp, 
+             period=period, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -384,7 +434,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # a period on right side.  This is tomove false peaks on the 
     # upstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-             rawData, period=period, dataType = "Respiratory",  
+             rawData, test_retro_obj, lrp, period=period, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
              save_graph = test_retro_obj.save_graph_level>1, 
@@ -392,7 +442,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove false peaks on the downstroke
     peaks = lpf.removePeaksCloseToHigherPointInRawData(peaks, 
-             rawData, direction='left', 
+             rawData, test_retro_obj, lrp, direction='left', 
              period=period, dataType = "Respiratory",  
              phys_fs = test_retro_obj.resp_data.samp_freq, 
              show_graph = test_retro_obj.show_graph_level>1, 
@@ -402,17 +452,25 @@ def getRespiratoryPeaks(test_retro_obj):
     troughs, _ = sps.find_peaks(-np.array(filterData), 
                               width=int(test_retro_obj.resp_data.samp_freq/8))
    
-    # Graph initial peaks and save graph to disk
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>1, 
+    # Graph initial peaks and troughs and save graph to disk
+    lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>1, 
         test_retro_obj.save_graph_level>1, rawData, peaks, 
         test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
         OutDir = OutDir, prefix = 'respiratoryPeaksFromBPFInput', 
         caption = 'Respiratory troughs from band-pass filtered input.',
-         font_size = test_retro_obj.font_size)
+          font_size = test_retro_obj.font_size)
+   
+    # Graph initial respiratory peaks and troughs found by scipy
+    processName = 'Initial'
+    Title = 'Initial Respiratory Peaks and Troughs Found By scipy'
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
+                            'Respiratory', test_retro_obj, lrp, 
+                            saveGraph = test_retro_obj.save_graph_level>1, 
+                            showGraph = test_retro_obj.show_graph_level>1)
     
     # Remove troughs that are more than the 90th percentile of the 
     # input signal
-    troughs = lpf.percentileFilter(troughs, rawData, 
+    troughs = lpf.percentileFilter(troughs, rawData, test_retro_obj, lrp, 
             percentile=90.0, upperThreshold=True, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
@@ -428,7 +486,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # quarter of a period on right side.  This is to remove false 
     # troughs on the downstroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, 
-            rawData, period=period, 
+            rawData, test_retro_obj, lrp, period=period, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Respiratory",  
@@ -437,7 +495,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove false troughs on the uptroke
     troughs = lpf.removeTroughsCloseToLowerPointInRawData(troughs, 
-            rawData, period=period, direction = 'left', 
+            rawData, test_retro_obj, lrp, period=period, direction = 'left', 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
             dataType = "Respiratory",  
@@ -448,7 +506,7 @@ def getRespiratoryPeaks(test_retro_obj):
     # local maximum to the adjacent troughs
     troughs = \
         lpf.removeTroughsCloserToLocalMaxsThanToAdjacentTroughs( \
-        troughs, rawData, 
+        troughs, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory", phys_fs = test_retro_obj.resp_data.samp_freq, 
@@ -456,7 +514,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Merge troughs that are closer than a quarter of the overall 
     # typical period
-    troughs = lpf.removeClosePeaks(troughs, period, rawData, 
+    troughs = lpf.removeClosePeaks(troughs, period, rawData, test_retro_obj, lrp, 
         Troughs = True, show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -465,7 +523,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Remove peaks/troughs that are also troughs/peaks
     peaks, troughs = lpf.removeOverlappingPeaksAndTroughs(peaks, 
-        troughs, rawData, 
+        troughs, rawData, test_retro_obj, lrp, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -474,7 +532,7 @@ def getRespiratoryPeaks(test_retro_obj):
     
     # Add missing peaks and troughs
     peaks, troughs = lpf.addMissingPeaksAndTroughs(peaks, troughs, 
-        rawData, period=None, 
+        rawData, test_retro_obj, lrp, period=None, 
         show_graph = test_retro_obj.show_graph_level>1, 
         save_graph = test_retro_obj.save_graph_level>1, 
         dataType = "Respiratory",  
@@ -482,24 +540,55 @@ def getRespiratoryPeaks(test_retro_obj):
         font_size = test_retro_obj.font_size)
    
     # Adjust troughs from uniform spacing
-    troughs = lpf.refinePeakLocations(troughs, rawData, 
+    troughs = lpf.refinePeakLocations(troughs, rawData, test_retro_obj, lrp, 
             show_graph = test_retro_obj.show_graph_level>1, 
             save_graph = test_retro_obj.save_graph_level>1, 
-             dataType = "Respiratory",  
-             phys_fs = test_retro_obj.resp_data.samp_freq, 
-             Troughs = True, OutDir = OutDir,
-             font_size = test_retro_obj.font_size)
+              dataType = "Respiratory",  
+              phys_fs = test_retro_obj.resp_data.samp_freq, 
+              Troughs = True, OutDir = OutDir,
+              font_size = test_retro_obj.font_size)
     
     # Graph respiratory peaks and troughs against respiratory 
     # time series
-    lpf.graphPeaksAgainstRawInput(test_retro_obj.save_graph_level>0, 
-        test_retro_obj.save_graph_level>0, rawData, peaks, 
-        test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
-        caption = 'Respiratory peaks after all filtering.', 
-        OutDir = OutDir, 
-        prefix = 'respiratoryPeaksAndTroughsFinal',
-        font_size = test_retro_obj.font_size)
-     
+    if test_retro_obj.show_graph_level>0 or test_retro_obj.save_graph_level>0:
+        lpf.graphPeaksAgainstRawInput(test_retro_obj.show_graph_level>0, 
+            test_retro_obj.save_graph_level>0, rawData, peaks, 
+            test_retro_obj.resp_data.samp_freq, "Respiratory", troughs = troughs, 
+            caption = 'Respiratory peaks after all filtering.', 
+            OutDir = OutDir, 
+            prefix = 'respiratoryPeaksAndTroughsFinal',
+            font_size = test_retro_obj.font_size)
+   
+    # Graph initial respiratory peaks and troughs found by scipy
+    processName = 'Final'
+    Title = 'Final Respiratory Peaks and Troughs'
+    lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, Title, 
+                            'Respiratory', test_retro_obj, lrp, 
+                            saveGraph = test_retro_obj.save_graph_level>0, 
+                            showGraph = test_retro_obj.show_graph_level>0)
+
+   
+    # Save peaks if required
+    if test_retro_obj.save_proc_peaks:
+       outputFileName = test_retro_obj.out_dir + '/respiratoryPeaks.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, peaks, fmt='%i')
+       file.close()
+   
+    # Save troughs if required
+    if test_retro_obj.save_proc_troughs:
+       outputFileName = test_retro_obj.out_dir + '/respiratoryTroughs.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, troughs, fmt='%i')
+       file.close()
+   
+    # Save raw data if required
+    if test_retro_obj.save_proc_rawData:
+       outputFileName = test_retro_obj.out_dir + '/respiratoryRawData.txt'
+       file = open(outputFileName, "w+")
+       np.savetxt(file, rawData, fmt='%10.5f')
+       file.close()
+
     return peaks, troughs, len(rawData)
 
 def determineCardiacPhases(peaks, fullLength, phys_fs, rawData, 
@@ -574,24 +663,28 @@ def determineCardiacPhases(peaks, fullLength, phys_fs, rawData,
         x = []    
         end = min(len(phases),round(len(phases)*50.0/len(peaks)))
         for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = plt.subplots()
+        ax_left = plt.subplot()
         plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
         plt.ylabel('Input data input value',color='g', 
-                   fontdict={'fontsize': font_size})
+                    fontdict={'fontsize': font_size})
         ax_right = ax_left.twinx()
         ax_right.plot(x, phases[0:end], color='red')
         ax_left.plot(x, rawData[0:end], color='green')
         plt.ylabel('Phase (Radians)',color='r')
         plt.title("Cardiac phase (red) and raw input data (green)",
-                         fontdict={'fontsize': font_size})
+                          fontdict={'fontsize': font_size})
             
         # Save plot to file
         if save_graph:
             plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
-            plt.show(block=False)
-            
-            # Close graph after saving
-            if not show_graph: plt.close()  
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+            else:
+                plt.ioff()    
+                
+    # Close graph after saving
+    plt.close('all')  
             
     return phases
 
@@ -667,11 +760,11 @@ def getBCoeffs(data, phases):
 def determineRespiratoryPhases(resp_peaks, 
                     resp_troughs, phys_fs, rawData, 
                     show_graph = False, save_graph = True,
-                    font_size = 10):
+                    font_size = 10, use_global_r_max = False):
     """
     NAME
         determineRespiratoryPhases
-            Determine respiratory phases as descibed in Glover 
+            Determine respiratory phases as described in Glover 
             (2000) paper (equation 3)
     TYPE
         <class 'list'>
@@ -700,11 +793,26 @@ def determineRespiratoryPhases(resp_peaks,
     
     NUM_BINS = 100
     
+    # Use global Rmax
+    if use_global_r_max: 
+        global_r_max = max(rawData[resp_peaks])
+        # The Glover 2000 method, for estimating the respiratory tranfer function
+        # involves summing the histogram bin counts from the lowest respiratory
+        # value to the fraction of the given respiratory value over the maximum 
+        # value.  If the global maximu is used, this means that only the counts,
+        # associated with the lower respiratory values are taken.  Low valued
+        # outliers therefore have an undue influence on the estimations.  One 
+        # way to address this is to median filter the raw data so that there are
+        # the histogram is not artifactually tsretched in the lower value
+        # direction.  An alternative, or complement, would be to histogram the 
+        # raw data above a low percentile 
+        rawData = scipy.signal.medfilt(rawData, kernel_size=9)
+    
     # Determine whether currently inspiration or expiration
-    if resp_peaks[0] < resp_troughs[0]:
-        polarity = 1
+    if resp_peaks[0] < resp_troughs[0]: # Expiration
+        polarity = 1 # Expiration
     else:
-        polarity = -1
+        polarity = -1 # Inspiration
         
     # Number of segments where each segment is either inspiration 
     # or expiration
@@ -730,8 +838,10 @@ def determineRespiratoryPhases(resp_peaks,
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
     # Determine phase based on equation 3 is Glover paper
-    if polarity > 0: Rmax = max(sample)
-    else: Rmax = rawData[resp_peaks[0]] # Maximum value in segment
+    if use_global_r_max: Rmax = global_r_max  
+    else:
+        if polarity > 0: Rmax = max(sample)
+        else: Rmax = rawData[resp_peaks[0]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         end = round(sample[i]*NUM_BINS/Rmax) # Summation limit
         
@@ -767,12 +877,21 @@ def determineRespiratoryPhases(resp_peaks,
         sample = [x - rawData[resp_troughs[troughIndex]] 
                   for x in rawData[start:finish]] 
         sample = sample - min(sample)
-        counts, bins = np.histogram([x 
+        if use_global_r_max: 
+            # Histogram above a low (say first) percentile to prevent the part 
+            # of the histogram, to be used, from being dominated by low valued
+            # outliers.
+            X = [x for x in sample if math.isnan(x) == False]
+            counts, bins = np.histogram(X, 
+                                    bins=NUM_BINS, range = (np.percentile(X, 1), np.max(X))) 
+        else:
+            counts, bins = np.histogram([x  
                     for x in sample if math.isnan(x) == False], 
                                     bins=NUM_BINS) 
         
         # Determine phase based on equation 3 is Glover paper
-        Rmax = max(sample) # Maximum value in segment
+        if use_global_r_max: Rmax = global_r_max
+        else: Rmax = max(sample) # Maximum value in segment
         for i in range(start,finish): # Move through segment
             # Summation limit
             end = round(sample[i-start]*NUM_BINS/Rmax) 
@@ -806,9 +925,11 @@ def determineRespiratoryPhases(resp_peaks,
               for x in rawData[start:finish]]  
     counts, bins = np.histogram(sample, bins=NUM_BINS) 
     
-    # Determine phase based on equation 3 is Glover paper
-    if polarity < 0: Rmax = max(sample)
-    else: Rmax = rawData[resp_peaks[-1]] # Maximum value in segment
+    # Determine phase based on equation 3 in Glover paper
+    if use_global_r_max: Rmax = global_r_max
+    else:
+        if polarity < 0: Rmax = max(sample) # Inspiration
+        else: Rmax = rawData[resp_peaks[-1]] # Maximum value in segment
     for i in range(start,finish): # Move through segment
         # Summation limit
         end = round(sample[i-start]*NUM_BINS/Rmax) 
@@ -849,9 +970,16 @@ def determineRespiratoryPhases(resp_peaks,
             
         # Save plot to file
         plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
-        plt.show(block=False)
-        if not show_graph: plt.close()  # Close graph after saving
-    
+        if save_graph:
+            plt.savefig('%s/RespiratoryPhaseVRawInput.pdf' % (OutDir)) 
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+            else:
+                plt.ioff() 
+                
+        # Close graph after saving
+        plt.close()  
         
     return phases
 
@@ -899,7 +1027,7 @@ def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
     # # If the user has supplied the number of output times points, 
     # # it must not be greater than the determined maximum
     if num_time_pts > max_numTime_pts:    
-        print('WARNING: num_time_pts argument too large ' + \
+        print('+* WARNING: num_time_pts argument too large ' + \
               'for input data')
         print('  Adjusted to maximum allowable value, ', 
               max_numTime_pts)
@@ -909,7 +1037,7 @@ def limitNumOutputTimepoints(phaseData, test_retro_obj, samp_freq):
 
 def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts, 
            TR, show_graph = False, save_graph = True, 
-           interpolationOrder = 'linear', font_size = 10):
+           interpolationOrder = 'linear', font_size = 10, RVT_lags = []):
     """
     NAME
         getRVT 
@@ -967,12 +1095,13 @@ def getRVT(rawData, resp_peaks, resp_troughs, freq, num_time_pts,
     # Get RVT regressors
     NUM_RVT = 5
     rvtRegressors = getRvtRegressors(rawRVT, NUM_RVT, freq, 
-                    num_time_pts, TR, interpolationOrder)
+                    num_time_pts, TR, interpolationOrder,
+                    RVT_lags = RVT_lags)
     
     return rvtRegressors
 
 def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR, 
-                     interpolationOrder = 'linear'):
+                     interpolationOrder = 'linear', RVT_lags = []):
     """
     NAME
         getRvtRegressors 
@@ -1010,10 +1139,25 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
                                ‘nearest-up’, ‘zero’, ‘slinear’, 
                                ‘previous’, or ‘next’. ‘zero’, 
                                ‘slinear’.
+                               
+        RVT_lags: (dtype = <class 'list'>) List with three floating point 
+                  elements in this order:
+                      0: Start time (s)
+                      1: End time (s)
+                      2: Number of RVTs
                        
     AUTHOR
        Peter Lauren  and Joshua Zosky
     """
+    
+    if len(RVT_lags) == 0:
+        start_time = 0
+        end_time = 20
+        num_rvt = NUM_RVT
+    else:
+        start_time = int(RVT_lags[0])
+        end_time = int(RVT_lags[1])
+        num_rvt = int(RVT_lags[2])
        
     time = []    
     end = len(rawRVT)
@@ -1024,19 +1168,22 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
     # for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     for i in range(0,num_time_pts): NT_InterpPts[i] = i*TR
     
-    rvt_shifts = []
-    for i in range(0,NUM_RVT): rvt_shifts.append(i * NUM_RVT)
+    # rvt_shifts = []
+    # increment = -(round((end_time-start_time)/num_rvt) + 1)
+    # for i in range(end_time, start_time - 1, increment): rvt_shifts.append(i)
+    rvt_shifts = [start_time+i*(end_time-start_time)/(num_rvt-1) 
+                  for i in range(num_rvt)]
 
     # 2D array of zeros
     output = np.zeros((len(rvt_shifts), num_time_pts)) 
     
-    for i in range(0, NUM_RVT):    # Process each row
+    for i in range(0, num_rvt):    # Process each row
         shf = rvt_shifts[i]                # i-th RVT 
         
         # i-th RVT times sample frequency
-        nsamp = int(round(shf * freq))  
+        nsamp = -int(round(shf * freq))  
         
-        # array of integers fromnsampto nsamp times the number of 
+        # array of integers from nsamp to nsamp times the number of 
         # samples
         sind = np.add(list(range(0, len(time))), nsamp) 
                                      
@@ -1046,7 +1193,7 @@ def getRvtRegressors(rawRVT, NUM_RVT, freq, num_time_pts, TR,
         sind[np.nonzero(sind > (len(time) - 1))] = len(time) - 1 
         
         # Build function that maps time to rawRVT[sind]                                                  
-        rvt_shf = scipy.interpolate._interpolate.interp1d(    
+        rvt_shf = scipy.interpolate.interp1d(    
                                                 
             time, rawRVT[sind], kind = interpolationOrder, 
                 bounds_error=True
@@ -1145,10 +1292,15 @@ def getRawRVT(rawData, resp_peaks, resp_troughs, freq,
          # Save plot to file
          if save_graph:
              plt.savefig('%s/RawRVTVRawInput.pdf' % (OutDir)) 
-             plt.show(block=False)
-             
-             # Close graph after saving
-             if not show_graph: plt.close()  
+         if save_graph:
+            plt.savefig('%s/CardiacPhaseVRawInput.pdf' % (OutDir)) 
+            if show_graph: 
+                plt.ion() 
+                plt.show(block=True)
+         else:
+                plt.ioff()                 
+                # Close graph after saving
+                plt.close()  
 
     
     return rawRVT
@@ -1198,7 +1350,7 @@ def getPeriodLayer(resp_peaks, fullLength, freq,
     
     # Output layer is found by interpoalting the periods among 
     # the critical points
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+    f = scipy.interpolate.interp1d(criticalPoints, 
                 criticalPointPeriods, kind = interpolationOrder)    
     layer = f([x for x in \
                range(criticalPoints[0],criticalPoints[-1])])
@@ -1261,7 +1413,7 @@ def getLayer(rawData, criticalPoints,
     
     # Output layer is found by interpoalting the periods among the 
     # critical pts
-    f = scipy.interpolate._interpolate.interp1d(criticalPoints, 
+    f = scipy.interpolate.interp1d(criticalPoints, 
                    criticalPointValues, kind = interpolationOrder)    
     layer = f([x for x in range(0,fullLength)])
     
@@ -1432,7 +1584,6 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
     
     # Process cardiac data if any
     if test_retro_obj.card_data:
-
         card_peaks, fullLength = getCardiacPeaks(test_retro_obj) 
         
         if len(card_peaks) == 0:
@@ -1454,10 +1605,12 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
             if test_retro_obj.card_data.start_phys_idx > 0:
                 card_phases = \
                     card_phases[test_retro_obj.card_data.start_phys_idx:]
+                    
+            plt.close('all') 
         
         # Ensure number of output time points not too high
         num_time_pts = limitNumOutputTimepoints(card_phases, test_retro_obj,
-                                     cardiac_sample_frequency)
+                                      cardiac_sample_frequency)
         
     # Process respiratory data if any
     if test_retro_obj.resp_data:
@@ -1476,7 +1629,8 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                    rawData, 
                    show_graph = test_retro_obj.show_graph_level>0, 
                    save_graph = test_retro_obj.save_graph_level>0,
-                   font_size = test_retro_obj.font_size)
+                   font_size = test_retro_obj.font_size,
+                   use_global_r_max = test_retro_obj.use_global_r_max)
 
         # Trim phase data before start time
         if test_retro_obj.resp_data.start_time < 0:
@@ -1502,10 +1656,13 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
                          show_graph = test_retro_obj.show_graph_level>0, 
                          save_graph = test_retro_obj.save_graph_level>0, 
                          interpolationOrder = 'linear', 
-                         font_size = test_retro_obj.font_size)
+                         font_size = test_retro_obj.font_size,
+                         RVT_lags = test_retro_obj.RVT_lags)
+        
+        plt.close('all') 
     else:
         if test_retro_obj.do_out_rvt: 
-            print('WARNING: Cannot determine RVT.  No ' + \
+            print('+* WARNING: Cannot determine RVT.  No ' + \
                   'respiratory data')
         test_retro_obj.do_out_rvt = False
                                       
@@ -1553,7 +1710,7 @@ def getPhysiologicalNoiseComponents(test_retro_obj):
         T = len_resp
     elif len_card :
         T = len_card
-    print('Maximum length of phase array = ', T)
+    print('++ Maximum length of phase array =', T)
 
     nreg = 0              # number of regressors we make
     for t in range(0,T):

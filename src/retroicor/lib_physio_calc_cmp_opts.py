@@ -17,8 +17,8 @@ import textwrap
 import subprocess as     SP
 import argparse   as     argp
 from   datetime   import datetime
-from   platform   import python_version_tuple
-import borrow_afni_util  as BAU
+# from   platform   import python_version_tuple
+# import borrow_afni_util  as BAU
 
 sys.path.append("/home/ptaylor/afni_build/src/linux_ubuntu_16_64_glw_local_shared")
 
@@ -46,49 +46,30 @@ odir_def = now.strftime("retro_%Y-%m-%d-%H-%M-%S")
 # vice versa. 
 
 DEF = {
-    'resp_file'         : None,      # (str) fname for resp data
-    'card_file'         : None,      # (str) fname for card data
-    'phys_file'         : None,      # (str) fname of physio input data
-    'phys_json'         : None,      # (str) fname of json file
-    'slice_times'       : None,      # (list) slice times
-    'slice_pattern'     : None,      # (str) code or file for slice timing
+    'resp_file'         : None,      # (str) fname for resp raw data
+    'card_file'         : None,      # (str) fname for card raw data
+    'card_peak_files'   : None,      # (str) fnames of cardiac peak file
+    'resp_peak_files'   : None,      # (str) fnames of respiratory peak file
+    'resp_trough_files' : None,      # (str) fnames of respiratory trough files
     'freq'              : None,      # (float) freq, in Hz
     'num_slices'        : None,      # (int) number of MRI vol slices
     'volume_tr'         : None,      # (float) TR of MRI
-    'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
     'start_time'        : None,      # (float) leave none, bc can be set in json
+    'num_time_pts'      : None,      # (int) Ntpts (e.g., len MRI time series)
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
-    'out_dir'           : odir_def,  # (str) output dir name
+    'out_dir'           : None,      # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
     'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
     'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
     'do_fix_outliers'   : False,     # (list) fix/interp outliers
     'extra_fix_list'    : [],        # (list) extra values to fix
     'remove_val_list'   : [],        # (list) purge some values from ts
-    'no_rvt_out'        : False,     # (bool) do not output RVT info
-    'no_card_out'       : False,     # (bool) do not output card info
-    'no_resp_out'       : False,     # (bool) do not output resp info
-    'global_r_max'      : False,     # (bool) use global respiratory max when
-                                     # determining respiratory coefficients
-    'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
-    'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
-    'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
-    'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
     'font_size'         : 10,        # (float) font size for plots 
-    'do_calc_ab'        : False,     # (bool) calc a,b coeffs and use
-    'do_save_ab'        : False,     # (bool) save a,b coeffs to file
-    'niml'              : False,     # (bool)
     'show_graph_level'  : 0,         # (int) amount of graphs to show
     'save_graph_level'  : 1,         # (int) amount of graphs to save
-    'verb'              : 0,         # (int) verbosity level
-    'demo'              : False,     # (bool) show demo?
-    'debug'             : False,     # (bool) debug mode
-    'disp_all_slice_patterns' : False, # (bool) display known sli patterns
-    'disp_all_opts'     : False,     # (bool) display opts for this prog
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
-    'RVT_lags'          : [],        # (dict) start, end and number of RVTs 
     'maxDisplayRawRespDataLen' : 10000, # Maximum respiratory raw data length 
                                      # used for display
     'maxDisplayRespSampleFreq' : 200, # Maximum respiratory sampling frequency 
@@ -97,10 +78,10 @@ DEF = {
                                      # used for display
     'maxDisplayCardSampleFreq' : 200, # Maximum cardiac sampling frequency 
                                      # used for display
-    'save_proc_peaks'   : False,     # (bool) dump peaks to text file
-    'save_proc_troughs' : False,     # (bool) dump troughs to text file
-    'save_proc_rawData' : False,     # (bool) dump raw data, used in analysis,
-                                     # to text file
+    'disp_all_opts'     : False,     # (bool) display opts for this prog
+    'downsample'        : False,     # (bool) Downsample time series
+    'downsampleInvFactor': 12,       # The level of downsampling is the sample
+                                     # frequency divided by this value
 }
 
 # list of keys for volume-related items, that will get parsed
@@ -110,13 +91,11 @@ vol_key_list = [
     'volume_tr',
     'num_slices',
     'num_time_points',
-    'slice_times',
-    'slice_pattern',
 ]
 
 # ---- sublists to check for properties ----
 
-# list of lists of corresponding args_dict and phys_json entries,
+# list of lists of corresponding args_dict,
 # respectively; for each, there is also an EPS value for how to
 # compare them if needing to reconcile command line opt values with a
 # read-in value; more can be added over time
@@ -142,31 +121,18 @@ ALL_EPIM_MATCH = [
 ]
 # extension of the above if the tested object is a list; the items in
 # the list will be looped over and compared at the given eps
-ALL_EPIM_MATCH_LISTS = [
-    ['slice_times', EPS_TH ],
-]
-
 EPIM_str = "    {:15s}   {:9s}\n".format('ITEM', 'EPS VAL')
 for ii in range(len(ALL_EPIM_MATCH)):
     sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH[ii][0],
                                           ALL_EPIM_MATCH[ii][1])
-    EPIM_str+= sss
-for ii in range(len(ALL_EPIM_MATCH_LISTS)):
-    sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH_LISTS[ii][0],
-                                          ALL_EPIM_MATCH_LISTS[ii][1])
     EPIM_str+= sss
 
 # quantities that must be >= 0
 all_quant_ge_zero = [
     'font_size',
     'freq',
-    'min_bpm_card',
-    'min_bpm_resp',
-    'max_bpm_card',
-    'max_bpm_resp',
-    'num_slices',
     'num_time_pts',
-    'volume_tr',
+    'downsampleInvFactor',
 ]
 
 
@@ -361,13 +327,6 @@ int : int
         print(version)
         return 1
 
-    # slice patterns, from list somewhere
-    if args_dict['disp_all_slice_patterns'] :
-        lll = BAU.g_valid_slice_patterns
-        lll.sort()
-        print("{}".format('\n'.join(lll)))
-        return 1
-
     # all opts for this program, via DEF list
     if args_dict['disp_all_opts'] :
         tmp = disp_keys_sorted(DEF, pref='-')
@@ -426,74 +385,6 @@ L : list
     L.sort()
     return L
 
-
-def read_slice_pattern_file(fname, verb=0):
-    """Read in a text file fname that contains a slice timing pattern.
-That pattern must be either a single row or column of (floating point)
-numbers.
-
-Parameters
-----------
-fname : str
-    filename of slice timing info to be read in
-
-Returns
--------
-slice_times : list (of floats)
-    a list of floats, the slice times
-
-    """
-
-    BAD_RETURN = []
-
-    if not(os.path.isfile(fname)) :
-        print("** ERROR: {} is not a file (to read for slice timing)"
-              "".format(fname))
-        return BAD_RETURN
-
-    try:
-        fff = open(fname, 'r')
-        X   = fff.readlines()
-        fff.close()
-    except:
-        print("** ERROR opening {} (to read for slice timing)"
-              "".format(fname))
-        return BAD_RETURN
-
-    # get list of floats, and length of each row when reading
-    N = 0
-    all_num = []
-    all_len = []
-    for ii in range(len(X)):
-        row = X[ii]
-        rlist = row.split()
-        if rlist :
-            N+= 1
-            try:
-                # use extend so all_num stays 1D
-                all_num.extend([float(rr) for rr in rlist])
-                all_len.append(len(rlist))
-            except:
-                print("** ERROR: badness in float conversion within "
-                      "slice timing file {}".format(fname))
-                print("   Bad line {} is: '{}'".format(ii+1, row))
-                return BAD_RETURN
-    
-    if not(N) :
-        print("** ERROR: no data in slice timing file {}?".format(fname))
-        return BAD_RETURN
-
-    M = max(all_len)  # (max) number of cols
-
-    if verb :
-        print("++ Slice timing file {} has {} rows and {} columns"
-              "".format(fname, N, M))
-
-    if not(N==1 or M==1) :
-        print("** ERROR: slice_pattern file {} is not Nx1 or 1xN.\n"
-              "   Its dims of data are: nrow={},  max_ncol={}"
-              .format(fname, N, M))
-        return BAD_RETURN
 
     # finally, after more work than we thought...
     return all_num
@@ -573,86 +464,9 @@ epi_dict : dict
     com = BASE.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
     lll = [float(x) for x in com.so[0].strip().split('|')]
-    
-    nslice = len(lll)
-    if nk != nslice :
-        print("** ERROR: number of slice_times in header ({}) "
-              "does not match slice count in k-direction ({})"
-              "".format(nslice, nk))
-        sys.exit(10)
-
-    epi_dict['slice_times'] = copy.deepcopy(lll)
 
     return epi_dict
 
-def reconcile_phys_json_with_args(jdict, args_dict, verb=None):
-    """Go through the jdict created from the command-line given phys_json,
-and pull out any pieces of information like sampling freq, etc. that
-should be added to the args_dict (dict of all command line opts
-used). These pieces of info can get added to the args_dict, but they
-also have to be checked against possible conflict from command line opts.
-
-Matched partners include:
-{AJM_str}
-
-The jdict itself gets added to the output args_dict2 as a value for
-a new key 'phys_json_dict', for possible later use.
-
-Parameters
-----------
-jdict : dict
-    a dictionary from the phys_json input from the user
-args_dict : dict
-    the args_dict of input opts.
-
-Returns
--------
-BAD_RECON : int
-    integer signifying bad reconiliation of files (> 1) or a
-    non-problematic one (= 0)
-args_dict2 : dict
-    copy of input args_dict, that may be augmented with other info.
-
-    """ 
-
-    BAD_RETURN = 1, {}
-
-    if not(jdict) :    return BAD_RETURN
-
-    args_dict2 = copy.deepcopy(args_dict)
-
-    # add known items that might be present
-    for aj_match in ALL_AJ_MATCH:
-        aname   = aj_match[0]
-        jname   = aj_match[1]
-        eps_val = aj_match[2]
-        if jname in jdict :
-            val_json = jdict[jname]
-            val_args = args_dict2[aname]
-            if val_args != None :
-                if abs(val_json - val_args) > eps_val :
-                    print("** ERROR: inconsistent JSON '{}' = {} and "
-                          " input arg '{}' = {}"
-                          "".format(jname, val_json, aname, val_args))
-                    return BAD_RETURN
-                else:
-                    print("++ Reconciled: input info provided in two ways, "
-                          "which is OK because they are consistent (at "
-                          "eps={}):\n"
-                          "   JSON '{}' = {} and input arg '{}' = {}"
-                          "".format(eps_val, jname, val_json, aname, val_args))
-            else:
-                args_dict2[aname] = val_json
-
-    # and add in this JSON to the args dict, so it is only ever read
-    # in once
-    args_dict2['phys_json_dict'] = copy.deepcopy(jdict)
-
-    return 0, args_dict2
-
-# ... and needed with the above to insert a variable into the docstring
-reconcile_phys_json_with_args.__doc__ = \
-    reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
 
 
 # ========================================================================== 
@@ -688,7 +502,6 @@ Notes on usage and inputs ~1~
   - '-card_file ..'
   - '-resp_file ..'
   - '-card_file ..' and '-resp_file ..'
-  - '-phys_file ..' and '-phys_json'
 
 * It is preferred to use:
   - '-dset_epi ..' 
@@ -701,24 +514,13 @@ Notes on usage and inputs ~1~
 
 * If '-dset_epi ..' is not used to provide the slice timing (and other
   useful) volumetric information, then exactly one of the following
-  input option must be used:
-  - '-slice_times ..'
-  - '-slice_patterns ..'
 
-* Each of the following input options must be provided through some
-  combination of phys_json file, dset_epi file, or the command line opts
+* Each of the following input options must be provided the command line opts
   themselves:
   - '-freq ..'        
   - '-volume_tr ..'   
   - '-num_slices ..'  
   - '-num_time_pts ..'
-
-* The following table shows which keys from 'phys_json' can be used to
-  set (= replace) certain command line argument/option usage:
-{AJM_str}
-  The 'EPS VAL' shows the maximum difference tolerated between a
-  JSON-provided key and an option-provided one, in case both exist in
-  a command line call.  It would be better to avoid such dual-calling.
 
 {ddashline}
 
@@ -740,63 +542,11 @@ interpolation of the two adjacent values, using the option
 
 {ddashline}
 
-The following text files are only output when using the
-'-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
-
-  PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data,
-                              corresponding to card*final_peaks*svg image.
-  PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data,
-                              corresponding to resp*final_peaks*svg image.
-  PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
-                              corresponding to resp*final_peaks*svg image.
-
-{ddashline}
-
 Examples 
 
   Example ~1~ 
     
-    python ~/retroicor/retroicorTaylor.py                                    \\
-        -card_file                      physiopy/test000c                    \\
-        -num_slices                     33                                   \\
-        -volume_tr                      2.2                                  \\
-        -freq                           400                                  \\
-        -do_fix_nan                                                          \\
-        -num_time_pts                   17                                   \\
-        -slice_pattern                  alt+z                                \\
-        -extra_fix_list                 5000                                 \\
-        -out_dir                        $outDir                              \\
-        -prefix                         $prefix
-
-  Example ~2~  
-    
-    python                                                                   \\
-        retroicorTaylor.py                                                   \\
-        -phys_file          physiopy/test003c.tsv.gz                         \\
-        -phys_json          physiopy/test003c.json                           \\
-        -num_slices         34                                               \\
-        -volume_tr          2.2                                              \\
-        -do_fix_nan                                                          \\
-        -num_time_pts       34                                               \\
-        -slice_pattern      alt+z                                            \\
-        -extra_fix_list     5000                                             \\
-        -out_dir            $outDir                                          \\
-        -prefix             $prefix
-
-  Example ~3~  
-
-    python ~/retroicor/retroicorTaylor.py                                    \\
-        -card_file       sub-005_ses-01_task-rest_run-1_physio-ECG.txt       \\
-        -resp_file       sub-005_ses-01_task-rest_run-1_physio-Resp.txt      \\
-        -num_slices      33                                                  \\
-        -volume_tr       2.2                                                 \\
-        -freq            50                                                  \\
-        -do_fix_nan                                                          \\
-        -num_time_pts    219                                                 \\
-        -slice_pattern   alt+z                                               \\
-        -extra_fix_list  5000                                                \\
-        -out_dir         $outDir                                             \\
-        -prefix          $prefix
+TBD Later
     
 {ddashline}
 written by: Peter Lauren (SSCC, NIMH, NIH, USA)
@@ -837,19 +587,33 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
-opt = '''phys_file'''
-hlp = '''BIDS-formatted physio file in tab-separated format. May be
-gzipped'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
 
-opt = '''phys_json'''
-hlp = '''BIDS-formatted physio metadata JSON file. If not specified, the
-JSON corresponding to the '-phys_file ..'  will be loaded'''
+opt = '''card_peak_files'''
+hlp = '''Pair of ASCII-formatted single column files to be compared. The former
+contains the cardiac peaks found by the reference program while the latter
+contains the cardiac peaks found by the new program.  If not specified, no
+cardiac peak finding analysis is done'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+                    nargs=2, type=str)
+
+opt = '''resp_peak_files'''
+hlp = '''Pair of ASCII-formatted single column files to be compared. The former
+contains the respiratory peaks found by the reference program while the latter
+contains the respiratory peaks found by the new program.  If not specified, no
+respiratory peak finding analysis is done'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=2, type=str)
+
+opt = '''resp_trough_files'''
+hlp = '''Pair of ASCII-formatted single column files to be compared. The former
+contains the respiratory troughs found by the reference program while the latter
+contains the respiratory troughs found by the new program.  If not specified, no
+respiratory trough finding analysis is done'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=2, type=str)
 
 opt = '''freq'''
 hlp = '''Physiological signal sampling frequency (in Hz)'''
@@ -877,13 +641,6 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=float)
 
-opt = '''num_time_pts'''
-hlp = '''Integer number of time points to have in the output (should likely
-match MRI time series length)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
 opt = '''dset_epi'''
 hlp = '''Accompanying EPI/FMRI dset to which the physio regressors will be
 applied, for obtaining the volumetric parameters (namely, volume_tr,
@@ -891,6 +648,13 @@ num_slices, num_time_pts)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
+
+opt = '''num_time_pts'''
+hlp = '''Integer number of time points to have in the output (should likely
+match MRI time series length)'''
+odict[opt] = hlp
+parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
+                    nargs=1, type=int)
 
 opt = '''out_dir'''
 hlp = '''Output directory name (can include path)'''
@@ -904,19 +668,6 @@ hlp = '''Prefix of output filenames, without path (def: {dopt})
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
-
-opt = '''slice_times'''
-hlp = '''Slice time values (space separated list of numbers)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs='+', type=str) # parse later
-
-opt = '''slice_pattern'''
-hlp = '''Slice timing pattern code (def: {dopt}). Use
-'-disp_all_slice_patterns' to see all allowed patterns.'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs='+', type=str)
 
 opt = '''do_fix_nan'''
 hlp = '''Fix (= replace with interpolation) any NaN values in the physio
@@ -956,80 +707,11 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs='+', type=str) # parse later
 
-opt = '''RVT_lags'''
-hlp = '''This optional argument is followed the three values: the start
-time, end time and number of RVTs.  The (unshifted single regressor) RVT sample 
-times are currently 0, TR, 2*TR, 3*TR, etc.  By default we output 5 shifted 
-versions of this single regressor, at offsets 0, -5, -10, -15, -20.  So the 
-start time is the earliest offset, the end time is the latest offset, and the 
-number of RVT's (or regressors) is how many total offsets to include.  So the 
-default parameterization would be as:  -rvt_lags -20 0 5 .  It is supposed to
-be as: -rvt_lags 0 20 5 (which includes a starting time of 0 s relative to the
-sampled RVT regressors.)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=3, type=str) # parse later
-
-opt = '''no_card_out'''
-hlp = '''Turn off output of cardiac regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''no_resp_out'''
-hlp = '''Turn off output of respiratory regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''min_bpm_resp'''
-hlp = '''Set the minimum breaths per minute for respiratory proc (def: {})
-'''.format(DEF_min_bpm_resp)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''max_bpm_resp'''
-hlp = '''Set the maximum breaths per minute for respiratory proc (def: {})
-'''.format(DEF_max_bpm_resp)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''min_bpm_card'''
-hlp = '''Set the minimum beats per minute for cardiac proc (def: {})
-'''.format(DEF_min_bpm_card)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''max_bpm_card'''
-hlp = '''Set the maximum beats per minute for cardiac proc (def: {})
-'''.format(DEF_max_bpm_card)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
-
-opt = '''no_rvt_out'''
-hlp = '''Turn off output of RVT regressors
-'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''global_r_max'''
-hlp = '''Use gloabl maximum and minimum respiratory values to determine respiratory coefficients. (def: {})
-'''.format(DEF_max_bpm_card)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
 opt = '''font_size'''
-hlp = '''Font size used for graphics (def: {dopt})
-'''.format(dopt=DEF[opt])
+hlp = '''Font size for graphics'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+                    nargs='+', type=str) # parse later
 
 opt = '''save_graph_level'''
 hlp = '''Integer value for one of the following behaviors:
@@ -1087,52 +769,7 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=int)
 
-opt = '''do_calc_ab'''
-hlp = '''Calculate the a,b coefficients from GLR00, and use these in the
-output time series (generally not needed)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''do_save_ab'''
-hlp = '''Save the a,b coefficients from GLR00 in a file (generally not
-needed'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''niml'''
-hlp = '''Output ***what?*** in NIML format, instead of CSV format'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''verb'''
-hlp = '''Integer values to control verbosity level 
-(def: {dopt})'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
-
-opt = '''demo'''
-hlp = '''Enter 'demonstration mode': run example'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''debug'''
-hlp = '''Enter 'debug mode': drop into pdb upon an exception'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
 # ---- help-y stuff
-
-opt = '''disp_all_slice_patterns'''
-hlp = '''Display all allowed slice pattern names'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
 
 opt = '''disp_all_opts'''
 hlp = '''Display all options for this program'''
@@ -1159,30 +796,19 @@ odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-opt = '''save_proc_peaks'''
-hlp = '''Write out the final set of peaks indices to a text file called
-PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is 'card', 'resp', etc.), which is
-a single column of the integer values (def: don't write them out)'''
+opt = '''downsample'''
+hlp = '''Downsample time series
+'''.format(dopt=DEF[opt])
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     action="store_true")
 
-opt = '''save_proc_troughs'''
-hlp = '''Write out the final set of trough indices to a text file called
-PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), which
-is a single column of the integer values (def: don't write them
-out). The file is only output for LABEL types where troughs were
-estimated (e.g., resp).'''
+opt = '''downsampleInvFactor'''
+hlp = '''The level of downsampling is the sample frequency divided by this 
+value'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
-
-opt = '''save_proc_rawData'''
-hlp = '''Save raw data that is used in the analysis.  This takes the delay into
-account so should be aligned with the detected peaks and troughs'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+                    nargs='+', type=int) # parse later
 
 # --------------------------------------------------------------------------
 # programming check: are all opts and defaults accounted for?
@@ -1197,9 +823,7 @@ if have_diff_keys :
 
 # =========================================================================
 # PART_04: process opts slightly, checking if all required ones are
-# present (~things with None for def), and also note that some pieces
-# of info can come from the phys_json, so open and interpret that (and
-# check against conflicts!)
+# present (~things with None for def)
 
 def check_required_args(args_dict):
     """A primary check of the user provided arguments (as well as the
@@ -1209,10 +833,6 @@ This first checks whether everything that *should* have been provided
 actually *was* provided, namely for each opt that has a default None
 value (as well as some strings that could have been set to '').  In
 many cases, a failure here will lead to a direct exit.
-
-This also might read in a JSON of info and use that to populate
-args_dict items, updating them.  It will also then save that JSON to a
-new field, phys_json_dict.
 
 This function might likely grow over time as more options get added or
 usage changes.
@@ -1230,21 +850,15 @@ args_dict2 : dict
 
     """
 
-    verb = args_dict['verb']
-
     args_dict2 = copy.deepcopy(args_dict)
 
-    if not(args_dict2['card_file'] or args_dict2['resp_file']) and \
-       not(args_dict2['phys_file'] and args_dict2['phys_json']) :
+    if not(args_dict2['card_file'] or args_dict2['resp_file']) :
         print("** ERROR: no physio inputs provided. Allowed physio inputs:\n"
-              "   A) '-card_file ..', '-resp_file ..' or both."
-              "   B) '-phys_file ..' and '-phys_json ..'.")
+              "   A) '-card_file ..', '-resp_file ..' or both.")
         sys.exit(4)
 
     # for any filename that was provided, check if it actually exists
-    # (slice_pattern possible filename checked below)
-    all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json',
-                 'dset_epi' ]
+    all_fopt = [ 'card_file', 'resp_file']
     for fopt in all_fopt:
         if args_dict2[fopt] != None :
             if not(os.path.isfile(args_dict2[fopt])) :
@@ -1252,55 +866,20 @@ args_dict2 : dict
                 sys.exit(5)
 
     # deal with json for a couple facets: getting args_dict2 info, and
-    # making sure there are no inconsistencies (in case both JSON and opt
-    # provide the same info)
-    if args_dict2['phys_json'] :
-        jdict = read_json_to_dict(args_dict2['phys_json'])
-        if not(jdict) :
-            print("** ERROR: JSON unreadable or empty")
-            sys.exit(5)
-
-        # jdict info can get added to args_dict; also want to make sure it
-        # does not conflict, if items were entered with other opts
-        check_fail, args_dict2 = reconcile_phys_json_with_args(jdict, 
-                                                               args_dict2)
-        if check_fail :
-            print("** ERROR: issue using the JSON")
-            sys.exit(5)
+    # making sure there are no inconsistencies
 
      # different ways to provide volumetric EPI info, and ONE must be used
-    if not( args_dict2['volume_tr'] ) :
-        print("** ERROR: must provide '-volume_tr ..' information")
-        sys.exit(4)
-
-    if not(args_dict2['num_slices']) :
-        print("** ERROR: must provide '-num_slices ..' information")
+    if not(args_dict2['freq']) :
+        print("** ERROR: must provide '-freq ..' information")
         sys.exit(4)
 
     if not(args_dict2['num_time_pts']) :
         print("** ERROR: must provide '-num_time_pts ..' information")
         sys.exit(4)
 
-    if not(args_dict2['freq']) :
-        print("** ERROR: must provide '-freq ..' information")
-        sys.exit(4)
-
     if not(args_dict2['prefix']) :
         print("** ERROR: must provide '-prefix ..' information")
         sys.exit(4)
-
-    if not(args_dict2['out_dir']) :
-        print("** ERROR: must provide '-out_dir ..' information")
-        sys.exit(4)
-
-    if not(args_dict2['slice_times']) :
-        print("** ERROR: must provide slice_time info in some way")
-        sys.exit(4)
-
-    #if args_dict2['slice_times'] and args_dict2['slice_pattern'] :
-    #    print("** ERROR: must use only one of either slice_times or "
-    #          "slice_pattern")
-    #    sys.exit(4)
 
     return args_dict2
 
@@ -1353,85 +932,6 @@ vol_dict2 : dict
         print("** ERROR: inconsistent dset_epi and command line info")
         sys.exit(5)
 
-    # next/finally, check about slice timing specifically, which might
-    # use existing scalar values (from dset or cmd line, which would
-    # be in vol_dict2 now) 
-    if vol_dict['slice_times'] and vol_dict['slice_pattern'] :
-        print("** ERROR: must use only one of either slice_times or "
-              "slice_pattern")
-        sys.exit(4)
-
-    if vol_dict['slice_times'] :
-        # the input cmd line string has not been split yet; interpret
-        # this single string to be a list of floats, and replace it in
-        # the dict
-
-        L = vol_dict['slice_times'].split()
-        try:
-            # replace single string of slice times with list of
-            # numerical values
-            slice_times = [float(ll) for ll in L]
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
-        except:
-            print("** ERROR interpreting slice times from cmd line")
-            sys.exit(1)
-    elif vol_dict['slice_pattern'] :
-        # if pattern, check if it is allowed; elif it is a file, check
-        # if it exists *and* use it to fill in
-        # vol_dict['slice_times']; else, whine.  Use any supplementary
-        # info from the output dict, but edit vol_dict slice times in
-        # place
-
-        pat = vol_dict['slice_pattern']
-        if pat in BAU.g_valid_slice_patterns :
-            print("++ Slice pattern from cmd line: '{}'".format(pat))
-            # check with vol info in vol_dict2 (not in vol_dict) bc
-            # vol_dict2 should be the merged superset of info
-            slice_times = BAU.slice_pattern_to_timing(pat, 
-                                                      vol_dict2['num_slices'],
-                                                      vol_dict2['volume_tr'])
-            if not(slice_times) :
-                print("** ERROR: could not convert slice pattern to timing")
-                sys.exit(8)
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
-        elif os.path.isfile(pat) :
-            print("++ Found slice_pattern '{}' exists as a file".format(pat))
-            slice_times = read_slice_pattern_file(pat, verb=verb)
-            if not(slice_times) :
-                print("** ERROR: translate slice pattern file to timing")
-                sys.exit(7)
-            vol_dict['slice_times'] = copy.deepcopy(slice_times)
-        else:
-            print("** ERROR: could not match provided slice_pattern '{}' as "
-                  "either a recognized pattern or file".format(pat))
-            sys.exit(3)
-
-    # ... and now that we might have explicit slice times in vol_dict,
-    # reconcile any vol['slice_times'] with vol_dict2['slice_times']
-    if 'slice_times' in vol_dict and vol_dict['slice_times'] != None :
-        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
-            # try to reconcile
-            ndiff = compare_list_items( vol_dict['slice_times'],
-                                        vol_dict2['slice_times'],
-                                        eps=EPS_TH )
-            if ndiff :
-                print("** ERROR: inconsistent slice times entered")
-                sys.exit(5)
-        else:
-            # nothing to reconcile, just copy over
-            vol_dict2['slice_times'] = copy.deepcopy(vol_dict['slice_times'])
-    else:
-        # I believe these cases hold
-        if 'slice_times' in vol_dict2 and vol_dict2['slice_times'] != None :
-            pass
-        else:
-            # this is a boring one, which will probably lead to an
-            # error exit in a downstream check
-            vol_dict2['slice_times'] = None
-
-    # copy this over just for informational purposes
-    if 'slice_pattern' in vol_dict :
-        vol_dict2['slice_pattern'] = copy.deepcopy(vol_dict['slice_pattern'])
 
     return vol_dict2
 
@@ -1566,57 +1066,11 @@ args_dict2 : dict
 
     """
 
-    verb = args_dict['verb']
-
     args_dict2 = copy.deepcopy(args_dict)
 
     if args_dict2['start_time'] == None :
         print("++ No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
-
-    '''
-    if args_dict2['slice_times'] :
-        # interpret string to be list of floats
-        IS_BAD = 0
-
-        L = args_dict2['slice_times'].split()
-        try:
-            slice_times = [float(ll) for ll in L]
-            args_dict2['slice_times'] = copy.deepcopy(slice_times)
-        except:
-            print("** ERROR interpreting slice times")
-            IS_BAD = 1
-
-        if IS_BAD :
-            sys.exit(1)
-
-    if args_dict2['slice_pattern'] :
-        # if pattern, check if it is allowed; elif if is a file, check if
-        # it exists *and* use it to fill in args_dict2['slice_times'];
-        # else, whine
-
-        pat = args_dict2['slice_pattern']
-        if pat in BAU.g_valid_slice_patterns :
-            print("++ Slice pattern: '{}'".format(pat))
-            slice_times = BAU.slice_pattern_to_timing(pat, 
-                                                      args_dict2['num_slices'],
-                                                      args_dict2['volume_tr'])
-            if not(slice_times) :
-                print("** ERROR: could not convert slice pattern to timing")
-                sys.exit(8)
-            args_dict2['slice_times'] = copy.deepcopy(slice_times)
-        elif os.path.isfile(pat) :
-            print("++ Found slice_pattern '{}' exists as a file".format(pat))
-            slice_times = read_slice_pattern_file(pat, verb=verb)
-            if not(slice_times) :
-                print("** ERROR: translate slice pattern file to timing")
-                sys.exit(7)
-            args_dict2['slice_times'] = copy.deepcopy(slice_times)
-        else:
-            print("** ERROR: could not match slice_pattern '{}' as "
-                  "either a recognized pattern or file".format(pat))
-            sys.exit(3)
-    '''
 
     if args_dict2['extra_fix_list'] :
         # Interpret string to be list of ints or floats. NB: written
@@ -1645,22 +1099,6 @@ args_dict2 : dict
             args_dict2['remove_val_list'] = copy.deepcopy(lll)
         except:
             print("** ERROR interpreting remove_val_list")
-            IS_BAD = 1
-
-        if IS_BAD :
-            sys.exit(1)
-
-    if args_dict2['RVT_lags'] :
-        # Interpret string to be list of ints or floats. NB: written
-        # as floats, but these are OK for equality checks in this case
-        IS_BAD = 0
-
-        L = args_dict2['RVT_lags'].split()
-        try:
-            lll = [float(ll) for ll in L]
-            args_dict2['RVT_lags'] = copy.deepcopy(lll)
-        except:
-            print("** ERROR interpreting RVT_lags")
             IS_BAD = 1
 
         if IS_BAD :
@@ -1766,7 +1204,7 @@ args_dict : dict
 
     # parse/merge the volumetric dict items, which can have some
     # tangled relations.
-    vol_dict  = interpret_vol_info(vol_dict, verb=args_dict['verb'])
+    vol_dict  = interpret_vol_info(vol_dict, verb=False)
     args_dict = add_info_to_dict(args_dict, vol_dict)
 
     # real work to be done now: check that all required inputs were
