@@ -15,6 +15,7 @@ g_valid_slice_patterns = [ # synonymous pairs      # z2-types
                            'alt+z', 'altplus',     'alt+z2',    
                            'alt-z', 'altminus',    'alt-z2',    
                          ]
+
 g_tpattern_irreg = 'irregular'
 
 def slice_pattern_to_order(pattern, nslices):
