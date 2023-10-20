@@ -89,6 +89,8 @@ rehash
 setenv R_LIBS $HOME/sw/R-$rver
 
 echo "export R_LIBS=$R_LIBS" >> ~/.zshrc
+echo "export R_LIBS=$R_LIBS" >> ~/.bashrc
+echo "setenv R_LIBS $HOME/sw/R-$rver" >> ~/.cshrc
 mkdir -p $R_LIBS
 
 rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
@@ -99,6 +101,8 @@ which Xvfb >& /dev/null
 if ( $status ) then
    # add /opt/X11/bin to PATH
    echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.zshrc
+   echo 'export PATH=$PATH:/opt/X11/bin' >> ~/.bashrc
+   echo 'setenv PATH ${PATH}:/opt/X11/bin' >> ~/.cshrc
 endif
 
 # ----------------------------------------------------------------------
