@@ -15,7 +15,7 @@
 # prep multiple shells for brew (.bashrc seems safer for bash)
 (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
 (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv bash)"') >> $HOME/.bashrc
-(echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv tcsh)"') >> $HOME/.login
+(echo; echo 'eval `/opt/homebrew/bin/brew shellenv tcsh`') >> $HOME/.login
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 brew analytics off
