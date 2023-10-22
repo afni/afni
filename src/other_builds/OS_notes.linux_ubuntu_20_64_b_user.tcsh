@@ -45,8 +45,8 @@ rPkgsInstall -pkgs ALL
 # in case R's brms didn't install first time
 Rscript -e "install.packages(c('Rcpp','brms'), dependencies = TRUE, INSTALL_opts = '--no-lock')"
 
-echo "++ Run system check, saving to: ${asc}"
 set asc  = ~/o.afni_system_check.txt
+echo "++ Run system check, saving to: ${asc}"
 afni_system_check.py -check_all > ${asc}
 
 echo "++ Done with 2nd part of install"
