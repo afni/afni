@@ -463,7 +463,7 @@ THD_string_array * THD_get_all_afni_executables(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1)) ) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni executables, we're doomed daddy!");
       RETURN(outar);
    }
    
@@ -540,7 +540,7 @@ THD_string_array * THD_get_all_afni_readmes(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1))) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni readmes, we're doomed daddy!");
       RETURN(outar);
    }
    
@@ -585,7 +585,7 @@ THD_string_array * THD_get_all_afni_dsets(void )
    
    if (!(elist = get_elist()) ||
        !(af = THD_abindir(1))) {
-      ERROR_message("Could not find afni, we're doomed daddy!");
+      ERROR_message("Could not find afni dsets, we're doomed daddy!");
       RETURN(outar);
    }
    
