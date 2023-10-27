@@ -689,9 +689,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set func_resam = "$argv[$ac]"
-        if ( ( "$func_resam" != "NN" ) || \
-             ( "$func_resam" != "Li" ) || \
-             ( "$func_resam" != "Cu" ) || \
+        if ( ( "$func_resam" != "NN" ) && \
+             ( "$func_resam" != "Li" ) && \
+             ( "$func_resam" != "Cu" ) && \
              ( "$func_resam" != "Bk" ) ) then
             echo "** ERROR: '-func_resam ...' input"
             echo "   needs to be one of {NN|Li|Cu|Bk}."
