@@ -2022,6 +2022,13 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+
+    // TODO: Add code
+}
+
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -2317,7 +2324,29 @@ SUMA_MenuItem LinkMode_Menu[] = {
 
    {NULL},
 };
+/**/
+SUMA_MenuItem AlphaMode_Menu[] = {
+/*
+   {  "Threshol", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_None, NULL},
 
+   {  "Box", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Pls1, NULL},
+
+   {  "Neither", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Same, NULL},
+
+   {  "Both", &xmPushButtonWidgetClass,
+      '\0', NULL, NULL,
+      SUMA_cb_SetLinkMode, (XtPointer) SW_LinkMode_Stat, NULL},
+
+   {NULL},
+*/
+};
+/**/
 
 /*!
    \brief sets the colormap interpolation mode
@@ -6657,6 +6686,28 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                XtManageChild (SurfCont->LinkModeMenu->mw[SW_LinkMode]);
 
                XtManageChild(rc);
+
+               Widget rc2 = NULL; /* one pass through this block ONLY */
+               rc2 = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, SurfCont->rcvo,
+                  XmNpacking, XmPACK_TIGHT,
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+
+               SUMA_LH("Forming map mode menu");
+               SUMA_BuildMenuReset(0);
+               SUMA_BuildMenu ( rc2, XmMENU_OPTION,
+                               "Alpha Thresh", '\0', YUP, LinkMode_Menu,
+                               (void *)ado,
+                               "SurfCont->Dset_Mapping->IxT",
+                               "Set whether to threshold alpha.",
+                               SUMA_SurfContHelp_Link,
+                               SurfCont->LinkModeMenu);
+               XtManageChild (SurfCont->LinkModeMenu->mw[SW_LinkMode]);
+
+               XtManageChild(rc2);
          }
 
       if (!SurfCont->rcsw) {
@@ -7025,6 +7076,20 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                XmNmarginHeight, 0 ,
                XmNmarginWidth , 0 ,
                NULL);
+               
+         /* create the alpha threshold toggle button *//*
+         SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha T",
+               xmToggleButtonWidgetClass, rc,
+               NULL);
+         XtAddCallback (SurfCont->AlphaThresh_tb,
+               XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+         SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                   "SurfCont->Dset_Mapping->abs_T",
+                                   "Absolute threshold ON/OFF",
+                                   SUMA_SurfContHelp_AbsThr );
+
+         SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+*/               
          /* create the absolute threshold toggle button */
          SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|",
                xmToggleButtonWidgetClass, rc,
