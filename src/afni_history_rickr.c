@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Oct, 2023, RCR, "Makefile.macos_13_ARM_clang", MINOR, TYPE_MODIFY,
+   "(w/DG) use homebrew gcc-13, and downgrade -O2 to -O1",
+   "We have yet to resolve why /usr/bin/gcc led to a 3dSkullStrip crash.\n"
+   "And brew gcc-13 led to a 3dvolreg crash, but that seems to be due to\n"
+   "failed compiler optimizations.  Using -O1 works."
+ } ,
+
  { 12, Oct, 2023, RCR, "afni_system_check.py", MINOR, TYPE_MODIFY,
    "only require flat_namespace if 10.12_local or 10.7_local",
    NULL
