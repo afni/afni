@@ -39,7 +39,7 @@ float THD_volume_pval_to_thresh(THD_3dim_dataset * dset, int tindex,
    sid2  = THD_stat_is_2sided(scode , 0);
 
    /* If we want as_1_sided and it is a 2-sided test, double the p-value
-    * (unless the stat is F, which we never double).
+    * (unless the stat is F, for which we never alter p).
     * */
    if ( as_1_sided && sid2 && (scode != FUNC_FT_TYPE) )
       pval *= 2.0f;
@@ -48,6 +48,37 @@ float THD_volume_pval_to_thresh(THD_3dim_dataset * dset, int tindex,
 
    if ( thresh < 0.0 ) return -1.0;
    else                return thresh;
+}
+
+
+/*---------------------------------------------------------------------------
+ * THD_volume_thresh_to_pval: the inverse of THD_volume_pval_to_thresh().
+ */
+float THD_volume_thresh_to_pval(THD_3dim_dataset * dset, int tindex,
+                                float thresh, int as_1_sided)
+{
+   float pval;
+   int   sid2, scode;
+
+   if ( ! ISVALID_DSET(dset) )                   return -1.0;
+   if ( DSET_BRICK_STATCODE(dset, tindex) <= 0 ) return -1.0;
+
+   /* get stat code and whether it is 2-sided */
+   scode = DSET_BRICK_STATCODE(dset, tindex);
+   sid2  = THD_stat_is_2sided(scode , 0);
+
+   pval = THD_stat_to_pval( thresh, scode, DSET_BRICK_STATAUX(dset, tindex));
+
+   /* immediately fail on an error */
+   if ( pval < 0.0 ) return pval;
+
+   /* If we want as_1_sided and it is a 2-sided test, halve the p-value
+    * (unless the stat is F, for which we never alter p).
+    * */
+   if ( as_1_sided && sid2 && (scode != FUNC_FT_TYPE) )
+      pval /= 2.0f;
+
+   return pval;
 }
 
 
