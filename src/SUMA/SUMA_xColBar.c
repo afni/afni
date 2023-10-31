@@ -10943,6 +10943,32 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                 "Nominal p-value per node; FDR q-value",
                                 SUMA_SurfContHelp_ThreshStats);
       XtManageChild (rct);
+      
+      
+               Widget rc2 = NULL; // one pass through this block ONLY 
+               rc2 = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, rct,
+                  XmNpacking, XmPACK_TIGHT,
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+               
+            // create the alpha threshold toggle button 
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha Thresh",
+               xmToggleButtonWidgetClass, rc2,
+               NULL);
+             XtAddCallback (SurfCont->AlphaThresh_tb,
+                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                       "SurfCont->Dset_Mapping->abs_T",
+                                       "Absolute threshold ON/OFF",
+                                       SUMA_SurfContHelp_AbsThr );
+
+             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+
+               XtManageChild(rc2);
+      
    }/* the threshold bar */
 
    if (arglist) XtFree(arglist); arglist = NULL;
