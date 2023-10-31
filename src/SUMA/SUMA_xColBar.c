@@ -10821,6 +10821,34 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          XmNmarginHeight , 0 ,
          XmNmarginWidth  , 0 ,
          NULL);
+
+      
+                // Place alpha checkbox just above sliding bar
+               Widget rc3 = NULL; // one pass through this block ONLY 
+               rc3 = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, rct,
+                  XmNpacking, XmPACK_TIGHT,
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+               
+            // create the alpha threshold toggle button 
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
+               xmToggleButtonWidgetClass, rc3,
+               NULL);
+             XtAddCallback (SurfCont->AlphaThresh_tb,
+                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                       "SurfCont->Dset_Mapping->abs_T",
+                                       "Alpha: use transparent threshold",
+                                       SUMA_SurfContHelp_AbsThr );
+
+             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+
+               XtManageChild(rc3);
+
+
       /* convenient common arguments for scales */
       arglist = XtVaCreateArgsList( NULL,
                                     XmNshowValue, True,
@@ -10892,7 +10920,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                    XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
              SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
-                                       "Absolute threshold ON/OFF",
+                                       "Alpha: use transparent threshold",
                                        SUMA_SurfContHelp_AbsThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
@@ -10944,7 +10972,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                 SUMA_SurfContHelp_ThreshStats);
       XtManageChild (rct);
       
-      
+                // Place alpha checkbox just under sliding bar
                Widget rc2 = NULL; // one pass through this block ONLY 
                rc2 = XtVaCreateWidget ("rowcolumn",
                   xmRowColumnWidgetClass, rct,
@@ -10955,14 +10983,14 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                   NULL);
                
             // create the alpha threshold toggle button 
-            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha Thresh",
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
                xmToggleButtonWidgetClass, rc2,
                NULL);
              XtAddCallback (SurfCont->AlphaThresh_tb,
                    XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
              SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
-                                       "Absolute threshold ON/OFF",
+                                       "Alpha: use transparent threshold",
                                        SUMA_SurfContHelp_AbsThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
