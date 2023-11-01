@@ -10775,9 +10775,11 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       XmNpacking, XmPACK_TIGHT,
       XmNleftAttachment,XmATTACH_FORM ,
       XmNorientation , XmHORIZONTAL ,
+      XmNresizeHeight, True,
       XmNmarginHeight , 0 ,
       XmNmarginWidth  , 0 ,
       NULL);
+      
 
    SUMA_LH("Creating the threshold bar widgets");
    { /* the threshold bar */
@@ -10818,6 +10820,19 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
              SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
                                        "Alpha: use transparent threshold",
+                                       SUMA_SurfContHelp_AbsThr );
+
+             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+               
+            // create the alpha box toggle button 
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("B",
+               xmToggleButtonWidgetClass, rc3,
+               NULL);
+             XtAddCallback (SurfCont->AlphaThresh_tb,
+                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                       "SurfCont->Dset_Mapping->abs_T",
+                                       "'Boxes: outline threshold regions",
                                        SUMA_SurfContHelp_AbsThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
@@ -10900,6 +10915,20 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                        SUMA_SurfContHelp_AbsThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+               
+            // create the alpha box toggle button 
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("B",
+               xmToggleButtonWidgetClass, rc2,
+               NULL);
+             XtAddCallback (SurfCont->AlphaThresh_tb,
+                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                       "SurfCont->Dset_Mapping->abs_T",
+                                       "'Boxes: outline threshold regions",
+                                       SUMA_SurfContHelp_AbsThr );
+
+             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+
 
                XtManageChild(rc2);
 
@@ -10967,6 +10996,19 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
              SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
                                        "Alpha: use transparent threshold",
+                                       SUMA_SurfContHelp_AbsThr );
+
+             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+
+            // create the alpha threshold toggle button 
+            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("B",
+               xmToggleButtonWidgetClass, rc2,
+               NULL);
+             XtAddCallback (SurfCont->AlphaThresh_tb,
+                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+                                       "SurfCont->Dset_Mapping->abs_T",
+                                       "Boxes: outline threshold regions'",
                                        SUMA_SurfContHelp_AbsThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
