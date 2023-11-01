@@ -499,7 +499,7 @@ subj_first <- function(data.in){
     if( names(data.in)[1] != "Subj" ){
         dtCheck_err(paste0('First column header is "',
                            names(data.in)[1],'" '),1)
-        dtCheck_log_print('The first column must be "Subj".\n')
+        dtCheck_log_print('The first column must be "Subj" [without quotes].\n')
         return(1)
     } else { return(0) }
 }   ## end subj_first
@@ -604,7 +604,7 @@ dtCheck_str2frame <- function(flat.in){
     wd <- which(flat.in %in% respVar)
     if( length(wd) == 0 ){
         dtCheck_log_print("\n")
-        dtCheck_err('The last column must be "InputFile" (or "Ausgang_val" in some cases)')
+        dtCheck_err('The last column must be "InputFile" [without quotes] (or "Ausgang_val" in some cases)')
         dtCheck_write_log(log.name) ## write out to file
         q()
     }
