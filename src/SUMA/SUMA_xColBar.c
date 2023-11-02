@@ -2029,6 +2029,13 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
     // TODO: Add code
 }
 
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
+                                   XtPointer client_data)
+{
+
+    // TODO: Add code
+}
+
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                    XtPointer client_data)
 {
@@ -10830,13 +10837,13 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                xmToggleButtonWidgetClass, rc3,
                NULL);
              XtAddCallback (SurfCont->BoxOutlineThresh_tb,
-                 XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
+                 XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
              SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
                                        "'Boxes: outline threshold regions",
                                        SUMA_SurfContHelp_AbsThr );
 
-             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
+             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
 
                XtManageChild(rc3);
         }
