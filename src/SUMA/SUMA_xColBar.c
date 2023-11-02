@@ -10828,7 +10828,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                    "SurfCont->AlphaThresh_tb",
                                    "Alpha: use transparent threshold",
-                                   SUMA_SurfContHelp_AbsThr );
+                                   SUMA_SurfContHelp_AlphaThr ); 
 
             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
 
@@ -10960,8 +10960,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                    XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
              SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
-                                       "Alpha: use transparent threshold",
-                                       SUMA_SurfContHelp_AbsThr );
+                                       "Alpha: use transparency threshold",
+                                       SUMA_SurfContHelp_AlphaThr );
 
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
 

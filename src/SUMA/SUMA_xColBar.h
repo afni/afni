@@ -1361,6 +1361,24 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 ":         :This value is seen in the second cell of the 'Value'\n"   \
 ":         :table on the left side."  
 
+   #define  SUMA_SurfContHelp_AlphaThr  \
+"Use transparency (alpha) threshold.:LR:\n\n"   \
+"   OFF: The alpha/opacicity of the surface overlays can\n"   \
+"        range from 0 (maximum transparency) to 1\n"   \
+"        (maximum opacity). That is\n\n"   \
+"          O(n) = O(o):LR:\n\n"   \
+"   ON: Opacities at, or above, the threshold, set by the\n"   \
+"       sliding bar, are set to 1.  Lower opacities are\n"   \
+"       linearly, or quadratically, scaled into the range\n"   \
+"       [0,1].  That is,\n\n"   \
+"          O(n) = 1, O(o)>=T\n"   \
+"          O(n) = O(o)/T, O(o)<T, linear case\n"   \
+"          O(n) = (O(o)*O(o))/(T*T), O(o)<T, quadratic case\n\n"   \
+"where:\n\n"   \
+"     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
+"     O(o) is the original opacity and\n"  \
+"     T is the threshold set by the slidiing bar. "  \
+
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
    "about 0.:LR:\n"   \
