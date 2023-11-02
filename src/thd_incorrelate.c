@@ -1906,7 +1906,7 @@ ENTRY("INCOR_destroy") ;
 
 /*----------------------------------------------------------------------------*/
 /* Copy the internal data of an INCOR struct 'vin' over that of 'vout'.
-   This is used for adding data to vin while keeping vout pristine for re-use.
+   This is used for adding data to vin while keeping vout pristine for reuse.
    If vin is NULL, then vout is cleared to the empty INCOR struct.
 *//*--------------------------------------------------------------------------*/
 

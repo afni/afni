@@ -80,6 +80,11 @@ set delta_slices   = "-pass"
 set views_off        = ( )
 set all_views        = ( 1 1 1 )
 
+set cmd2scriptA = "-pass"         # [PT: May 21, 2023] output driving cmd
+set cmd2scriptB = "-pass"         
+set c2s_textA   = "-pass"
+set c2s_textB   = "-pass"
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -279,6 +284,18 @@ while ( $ac <= $#argv )
         set olay_disc_max   = "$argv[$ac]"
 
         set SET_LIMITS_MODE = 11
+
+    else if ( "$argv[$ac]" == "-cmd2script" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cmd2scriptA = "-cmd2script"
+        set cmd2scriptB = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-c2s_text" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set c2s_textA = "-c2s_text"
+        set c2s_textB = "${argv[$ac]:q}"
 
     # ------- end
 
@@ -482,7 +499,7 @@ endif
 
 # =========================== plot ==============================
 
-@chauffeur_afni                                             \
+@chauffeur_afni    -echo                                         \
     -ulay             "${ulay}"                             \
     -olay             "${olay}"                             \
     "${urange_meth}"  "${umin}" "${umax}"                   \
@@ -508,8 +525,9 @@ endif
     ${views_off}                                            \
     -do_clean                                               \
     ${user_coors}                                           \
-    ${delta_slices}
-
+    ${delta_slices}                                         \
+    ${cmd2scriptA} "${cmd2scriptB}"                         \
+    ${c2s_textA} "${c2s_textB}"
 
 # ---------------------------------
 

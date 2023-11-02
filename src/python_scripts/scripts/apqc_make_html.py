@@ -68,6 +68,7 @@ from afnipy import lib_apqc_io         as laio
 ohtml     = lat.ohtml                # output file, HTML page
 ocss      = lat.dir_info + '/styles.css' # CSS of formats/attributes/etc.
 ohelp     = 'help.html'              # output help file, also html
+oids      = lat.dir_info + '/list_ids.txt' # list of jump_to-able IDs
 tobetable = "IHAVEACUNNINGPLAN!"     # string to be replaced later
 ftypes    = [ 'jpg', 'dat', 'txt' ]  # types of data to populate HTML page
 allblocks = lah.qc_blocks.keys()    # SHOULD be ordered list of QC blocks
@@ -96,6 +97,10 @@ if __name__ == "__main__":
     # it, for easier identification
     oapqcjson = 'apqc_{}.json'.format( titlepg_dict['subj'] )
 
+    # make a list of lists: each sublist is either 'blockid' or
+    # 'itemid', and then the id. E.g.: ['blockid', 'regr'], 
+    # ['itemid', 'tsnr_vreg']
+    list_ids = []
 
     # ========================= HTML: start =========================== #
 
@@ -106,9 +111,13 @@ if __name__ == "__main__":
     # [PT: Jan 14, 2019] Have finally moved CSS attributes to their
     # own, external CSS file.  They grow up soooo fast... 
     ht+= '''
-    <head>
-    <link rel="stylesheet" type="text/css" href="{}" />
-    '''.format( ocss )
+
+<!-- START of pre-QC-block part -->
+<head>
+<title>{subj}</title>
+<link rel="stylesheet" type="text/css" href="{ocss}" />
+<link rel="icon" type="icon.svg" href="extra_info/apqc_logo_main.svg"> 
+'''.format( subj=titlepg_dict['subj'], ocss=ocss )
 
     # javascript functions
     ht+= lah.make_javascript_btn_func( titlepg_dict['subj'] )
@@ -132,21 +141,23 @@ if __name__ == "__main__":
     {}
     '''.format( tobetable ) 
 
-    ht+= lah.wrap_page_title( AATI.title, "task_name", AATI.subj,
+    # NB: someday, xstudy can be the task_name, likely from a uvar and
+    # field in page_title_json
+    ht+= lah.wrap_page_title( AATI.title, AATI.subj,
+                              xstudy='task_name',
                               vpad=1,
                               blockid=AATI.blockid,
                               padmarg=PADMARG_VAL )
     list_links.append( [AATI.blockid, AATI.blockid_hov] )
 
-    ht+= '''
-    </head>
-    '''
+    ht+= '''</head> <!-- END of pre-QC-block part -->
+'''
 
     # ========================= HTML: body =========================== #
 
-    ht += """
-    <body onload="RunAtStart()">
-    """
+    ht += '''
+<body onload="RunAtStart()">
+    '''
 
     # ---------------------------------------------------------------------
     # ---------------- get images with any associated text ----------------
@@ -155,6 +166,7 @@ if __name__ == "__main__":
     # First, find ALL images and jsons, and then we'll exclude some
     # because they are supplementary sub-images and not independent
     # ones (like the *.cor.*, *.sag.* and *pbar* ones)
+    DID_START_QC_BLOCKS = False
     list_allglob = []
     for ff in ftypes:
         list_allglob += glob.glob(lah.dir_img + '/*.' + ff)
@@ -202,19 +214,28 @@ if __name__ == "__main__":
             # 1) Try to get title+text+blockid, only for first one in
             # list
             if AAII.title and not(ii):
+                if DID_START_QC_BLOCKS :    dcpd = True
+                else:                       dcpd = False
                 ht+= lah.wrap_block_title( AAII.title,
                                            vpad=1,
                                            addclass=" class='padtop' ",
                                            blockid=AAII.blockid,
-                                           padmarg=PADMARG_VAL )
+                                           padmarg=PADMARG_VAL,
+                                           do_close_prev_div=dcpd )
                 list_links.append( [AAII.blockid, AAII.blockid_hov] )
+                DID_START_QC_BLOCKS = True
+                list_ids.append( ['blockid', AAII.blockid] )
+                list_ids.append( ['itemid', AAII.itemid] )
 
             # 2) Try to add text above it
             if AAII.text :
                 ht+= lah.wrap_block_text( AAII.text,
-                                          addclass=" class='container' ",
+                                          addclass="class='container' ",
                                           itemid=AAII.itemid,
-                                          padmarg=PADMARG_VAL  )
+                                          padmarg=PADMARG_VAL,
+                                          vpad=1 )
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             # 3) Try to add image or dat
             if AAII.itemtype == '1D':
@@ -222,7 +243,24 @@ if __name__ == "__main__":
                 ht+=lah.wrap_img( img, vpad=True,
                                   addclass=" class='bordered' " )
             elif AAII.itemtype == 'VOL':
-                ht+=lah.wrap_img( img, vpad=True )
+                # decide when to put AV/NV buttons (or not)
+                if AAII.text and AAII.itemid != 'olap' :
+                    add_nvbtn = True
+                else:
+                    add_nvbtn = False
+                ht+=lah.wrap_img( img, itemid=AAII.itemid, vpad=True, 
+                                  add_nvbtn=add_nvbtn,
+                                  av_file=AAII.av_file,
+                                  ic_file=AAII.ic_file,
+                                  ic_args=AAII.ic_args,
+                                  gv_file=AAII.gv_file,
+                                  gv_args=AAII.gv_args )
+
+                if AAII.nv_html :
+                    fname = lah.dir_img + '/' + AAII.nv_html
+                    ht+= lah.wrap_nv_html(fname)
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'WARN':
                 ht+=lah.wrap_dat( lah.read_dat(img),
@@ -232,10 +270,14 @@ if __name__ == "__main__":
                 if lahc.wlevel_ranks[AAII.warn_level] > MAX_WLEVEL_RANK :
                     MAX_WLEVEL = AAII.warn_level
                     MAX_WLEVEL_RANK = lahc.wlevel_ranks[MAX_WLEVEL]
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'DAT':
                 ht+=lah.wrap_dat( lah.read_dat(img),
                                   addclass=" class='datbord' ")
+                if AAII.itemid != list_ids[-1][1] :
+                    list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'BUTTON':
                 ht+=lah.wrap_button( lah.read_dat(img),
@@ -245,24 +287,30 @@ if __name__ == "__main__":
             if AAII.subtext :
                 ht+= lah.wrap_block_text( AAII.subtext,
                                           addclass=" class='container2' ",
-                                          dobold=True )
+                                          dobold=True,
+                                          vpad=2 )
 
     # ---------------------------------------------------------------------
     # -------------- put the nav link table in  ------------------
     # ---------------------------------------------------------------------
 
     # close final section div
-    ht+= '''</div>'''
+    ht+= '''
+</div> <!-- close of final QC block div -->
+'''
 
     list_links.append( lah.qc_link_final )
 
-    txt_for_navtable = lah.make_nav_table(list_links,
+    txt_for_navtable = lah.make_nav_table(list_links, subj=AATI.subj,
                                           max_wlevel = MAX_WLEVEL)
     ht               = ht.replace(tobetable, txt_for_navtable)
 
     # -------------- done: wrap up and close body text ------------------
 
-    ht+="""</body>\n\n</html>"""
+    ht+='''
+</body>
+</html>
+'''
 
     # ------------- write to file ----------------
 
@@ -280,6 +328,9 @@ if __name__ == "__main__":
     # output help html file; reuse same external CSS file
     lah.write_help_html_file( ohelp, ocss ) 
 
+    # output list of IDs to a text file, to display 
+    lah.write_list_ids_file( oids, list_ids ) 
+
     # silly check, so no doubling of slash in path (not harmful, but
     # annoyingly unaesthetic)
     path_qcdir = iopts.qcdir
@@ -290,10 +341,23 @@ if __name__ == "__main__":
     # originally-reported relative path is often not useful.  here,
     # get abs path to current dir, which should be QC_*/, because of
     # os.chdir(..)  above
-    cwd_qc = os.getcwd()
+    pwd_res    = os.getcwd()
+    qcfile_abs = pwd_res + '/' + ohtml
 
-    print('\n++ Done! Wrote QC HTML.  To check, consider:\n\n'
-          '   afni_open -b {}/{}\n'.format(cwd_qc, ohtml))
+    bye_msg = """
+++ Done! Wrote QC HTML.
+   To view, run either this (without server):
+
+       afni_open -b {qcfile_abs}
+
+   ... or this (with server):
+
+       open_apqc.py -infiles {qcfile_abs}
+
+""".format(qcfile_abs=qcfile_abs)
+
+
+    print(bye_msg)
 
     os.chdir(my_cwd)
 

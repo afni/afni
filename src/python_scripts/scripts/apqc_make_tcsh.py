@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+
 auth = 'PA Taylor'
 # ver : 1.33 || date: Oct 15, 2018 
 # + add in new uvar vars (nt_orig, etc.)
@@ -238,10 +239,15 @@ auth = 'PA Taylor'
 #ver = '4.2' ; date = 'Nov 15, 2022'
 # [PT] add in run_instacorr_tcat.tcsh script
 #
-ver = '4.3' ; date = 'Jan 6, 2023'
+#ver = '4.3' ; date = 'Jan 6, 2023'
 # [PT] new opt: -vstat_list, to add a user-defined list of labels
 #      that would appear in the vstat section (default is still to have
 #      5 chosen by the program)
+#
+ver = '5.0' ; date = 'Mar 05, 2023'
+# [PT] move toward Python-only implementation, rather than generating
+#      a script intermediately, to simplify flexibility, additions and
+#      apqc2/NiiVue functionality
 #
 #########################################################################
 
@@ -256,8 +262,7 @@ from afnipy import lib_apqc_tcsh       as lat
 from afnipy import lib_apqc_stats_dset as lasd
 from afnipy import lib_ss_review       as lssr
 from afnipy import lib_apqc_io         as laio
-from afnipy import lib_apqc_instacorr  as laic
-from afnipy import lib_apqc_instacorr_tcat  as laict
+from afnipy import lib_apqc_run_icgv   as lari     # make run_*tcsh scripts
 from afnipy import lib_format_cmd_str  as lfcs
 
 # all possible uvars
@@ -294,8 +299,18 @@ if __name__ == "__main__":
 
     iopts = laio.parse_tcsh_args(sys.argv[1:])
 
+    # note the original location, to which to return at the end
+    pwd_orig = os.getcwd()
+
+    # work from subjdir
+    if os.path.isdir(iopts.subjdir) :
+        os.chdir(iopts.subjdir)
+    else:
+        print("** ERROR: subjdir '{}' does not exist".format(iopts.subjdir))
+        sys.exit(1)
+    #### NO LONGER USE otcsh
     # define output tcsh script name
-    otcsh = iopts.subjdir + '/' + lat.scriptname
+    #otcsh = iopts.subjdir + '/' + lat.scriptname
 
     # determines what functions/images are used.
     RUN_STYLE = iopts.revstyle
@@ -304,66 +319,47 @@ if __name__ == "__main__":
     with open(iopts.json, 'r') as fff:
         ap_ssdict = json.load(fff)    
 
+    # also read in ss_rev file to dict
+    ssrev_dict = lat.read_in_txt_to_dict(ap_ssdict['ss_review_dset'])
+
+    # add dirs to be made: odir_qc, odir_img, odir_info
+    ap_ssdict = lat.set_apqc_dirs(ap_ssdict)
+
+    # add len of EPI run(s): pats
+    ap_ssdict = lat.set_apqc_sundry(ap_ssdict, ssrev_dict)
+
+    # add main dset name for ulays: main_dset
+    ap_ssdict = lat.set_apqc_main_dset(ap_ssdict)
+
+    # add censoring info: numbers ranges and text blocks
+    # Q: what about RUN_STYLE=='none'?
+    if RUN_STYLE == 'basic' :
+        ap_ssdict = lat.set_apqc_censor_info_BASIC( ap_ssdict )
+    elif RUN_STYLE == 'pythonic' :
+        ap_ssdict = lat.set_apqc_censor_info_PYTHONIC( ap_ssdict )
+    else:
+        print("** ERROR: unknown review style: {}".format(RUN_STYLE))
+        sys.exit(2)
+
     # ----------------------- InstaCorr scripts ----------------------
 
     # [PT: Oct 5, 2022] make an instacorr run script in the main
     # results directory
+    # [PT: June 25 2023] now both IC and GV (for pbrun and errts) from
+    # single library
 
     ldep     = ['errts_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+            stat_ic_errts = lari.write_apqc_icgv_script('IC', 'errts', 
+                                                        ap_ssdict)
+            stat_gv_errts = lari.write_apqc_icgv_script('GV', 'errts', 
+                                                        ap_ssdict)
 
-            # make the full text
-            script_text_insta = laic.make_apqc_ic_script(ap_ssdict)
-
-            # write the text file in the results directory
-            otcsh_insta  = iopts.subjdir + '/' + laic.scriptname
-            fff = open(otcsh_insta, 'w')
-            fff.write(script_text_insta)
-            fff.close()
-
-            # make executable, a la rcr
-            try: code = eval('0o755')
-            except: code = eval('0755')
-            try:
-                os.chmod(otcsh_insta, code)
-            except:
-                omsg = "failed: chmod {} {}".format(code, otcsh_insta)
-                print(omsg)
-
-            msg = '''
-            ++ Done making (executable) InstaCorr script:
-            {}
-            '''.format(otcsh_insta)
-            msg = lat.commandize(msg, ALLEOL=False)
-            print( msg )
-
-    ldep     = ['tcat_dset']
-    if lat.check_dep(ap_ssdict, ldep) :
-        # make the full text
-        script_text_insta = laict.make_apqc_ic_script(ap_ssdict)
-
-        # write the text file in the results directory
-        otcsh_insta  = iopts.subjdir + '/' + laict.scriptname
-        fff = open(otcsh_insta, 'w')
-        fff.write(script_text_insta)
-        fff.close()
-
-        # make executable, a la rcr
-        try: code = eval('0o755')
-        except: code = eval('0755')
-        try:
-            os.chmod(otcsh_insta, code)
-        except:
-            omsg = "failed: chmod {} {}".format(code, otcsh_insta)
-            print(omsg)
-
-        msg = '''
-        ++ Done making (executable) InstaCorr script:
-        {}
-        '''.format(otcsh_insta)
-        msg = lat.commandize(msg, ALLEOL=False)
-        print( msg )
+    # pbrun instacorr and graphview scripts
+    if 1 :
+        stat_ic_pbrun = lari.write_apqc_icgv_script('IC', 'pbrun', ap_ssdict)
+        stat_gv_pbrun = lari.write_apqc_icgv_script('GV', 'pbrun', ap_ssdict)
 
     # ----------------- initialize some params/switches ----------------
 
@@ -374,141 +370,43 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
 
-    # start and accummulate from here
-    str_FULL = ''
-
-    # probably add some info about: afni ver, etc. here.
-    str_header = '''#!/bin/tcsh\n\n'''
-
-    str_FULL+= str_header
-
-    comm = ''' This script is meant to help review single subject results. 
-    || ||
-    This script should be run from a '.results' directory produced by an
-    afni_proc.py processing script.
-    || ||
-    It generates an HTML file of useful QC information (images + text) of
-    the data throughout its processing.  Results for this subject are
-    stored in '{0}_{1}' and may be viewed using an standard browser, e.g.: 
-    || ||
-    ~~~~afni_open -b {0}_{1}/{2}
-    || ||
-    ~~~~firefox {0}_{1}/{2}
-    || ||
-    The script can be re-run.  Variables are defined in the 'Top level'
-    section and used throughout, but otherwise the script is modular.
-    individual sections can be run with or without modification (e.g.,
-    copying them into a new file), as long as the 'Top level' sections are
-    all present.
-
-    '''.format( lat.qcbase, ap_ssdict['subj'], lat.ohtml)
-
-    comm     = lat.commentize(comm, padpost=2)
-    str_FULL+= comm
-
-    # Add in script used to write this script
-    full_argv = ' '.join(['apqc_make_tcsh.py'] + sys.argv[1:])
-    cmd_log = '''# This script was created with this command:\n'''
-    cmd_log+= lfcs.afni_niceify_cmd_str(full_argv, 
-                                        comment_start = '#    ',
-                                        max_lw = 74)[1]
-    str_FULL+= cmd_log + "\n"
-
-    if iopts.pythonic2basic :
-        comm_p2b = ''' 
-        +* WARNING: The user asked for 'pythonic' APQC, but there are
-        missing dependencies.  This APQC run was therefore downgraded
-        to 'basic'.
-        || 
-        -> To fix: Please check the warnings in out.review_html, but
-        likely Matplotlib is missing or has version<2.2.  You can add
-        this dependency (verify with 'afni_system_check.py
-        -check_all') and redo the APQC pythonically.'''
-        comm_p2b     = lat.commentize(comm_p2b, padpre=1, padpost=1)
-        str_FULL+= comm_p2b
-
-
-    # ------------------------------------------------------------------
-
-    # Top level: definitions from json/dictionary of 'uvars'
-
-    ban_apqc_topvar = lat.bannerize( 'Top level: file names and global vars',
-                                     padpost=1 )
-    str_apqc_topvar = lat.make_apqc_top_vars( ap_ssdict, all_uvars )
-
-    str_FULL+= ban_apqc_topvar
-    str_FULL+= str_apqc_topvar
+####### TO BE KEPT AND USED IN A LOG SOMEWHERE
+#    # Add in script used to write this script
+#    full_argv = ' '.join(['apqc_make_tcsh.py'] + sys.argv[1:])
+#    cmd_log = '''# This script was created with this command:\n'''
+#    cmd_log+= lfcs.afni_niceify_cmd_str(full_argv, 
+#                                        comment_start = '#    ',
+#                                        max_lw = 74)[1]
+#
+#
+#    if iopts.pythonic2basic :
+#        comm_p2b = ''' 
+#        +* WARNING: The user asked for 'pythonic' APQC, but there are
+#        missing dependencies.  This APQC run was therefore downgraded
+#        to 'basic'.
+#        || 
+#        -> To fix: Please check the warnings in out.review_html, but
+#        likely Matplotlib is missing or has version<2.2.  You can add
+#        this dependency (verify with 'afni_system_check.py
+#        -check_all') and redo the APQC pythonically.'''
+#        comm_p2b     = lat.commentize(comm_p2b, padpre=1, padpost=1)
 
     # --------------------------------------------------------------------
+    # create output dir (can backup any old one)
 
-    # Top level: commands to make dirs for output 
+    tmp1 = lat.make_apqc_dirs( ap_ssdict, ow_mode=iopts.ow_mode, 
+                               bup_dir=iopts.bup_dir )
 
-    ban   = lat.bannerize('Top level: make output directory structure')
-    cmd   = lat.make_apqc_dirs()
-
-    str_FULL+= ban
-    str_FULL+= cmd
-
-    # ------------------------------------------------------------------
-
-    # Top level: find main dset, from descending order of template,
-    # anat_final, vr_dset
-
-    ban = lat.bannerize( 'Top level: find main dset',
-                                     padpost=1 )
-    cmd = lat.apqc_find_main_dset( ap_ssdict, all_uvars )
-
-    str_FULL+= ban
-    str_FULL+= cmd
+    tmp2 = lat.copy_apqc_logos(ap_ssdict)
+    tmp3 = lat.copy_apqc_fonts(ap_ssdict)
 
     # --------------------------------------------------------------------
-
-    # Top level: see if template can be found, *if* a template was used.
-    # We always have to look, because even the EPI-anat alignment check
-    # will be influenced by this-- if there *is* a template, then use its
-    # box to define view slices; else, just try to "box in" the final anat.
-
-#    ldep = ['template']
-#    if lat.check_dep(ap_ssdict, ldep) :
-#        ban      = lat.bannerize('Top level: find a template')
-#        cmd      = lat.apqc_find_template( )
-
-#        str_FULL+= ban
-#        str_FULL+= cmd
-
-    # --------------------------------------------------------------------
-
-    # [PT: Feb 14, 2020]  
-    # Top level: see if there is censoring used in this dset
-
-    ban      = lat.bannerize('Top level: censor info')
-    cmd      = lat.apqc_censor_info( ap_ssdict, RUN_STYLE )
-
-    str_FULL+= ban
-    str_FULL+= cmd
-
-    # --------------------------------------------------------------------
-
-    # [PT: Feb 14, 2020]  
-    # Top level: sundry
-
-    ban      = lat.bannerize('Top level: sundry pieces for multi-use')
-    cmd      = lat.apqc_sundry_info( ap_ssdict )
-
-    str_FULL+= ban
-    str_FULL+= cmd
-
-
-    # --------------------------------------------------------------------
+    # pagetop info
 
     ldep  = ['subj']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('title of html page: subj')
-        opref    = lat.page_title_json  # here, just the title page name
-        cmd      = lat.apqc_Top_pagetop( opref, "Top", "pagetop" )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        opref = lat.page_title_json  # here, just the title page name
+        lat.make_apqc_Top_pagetop( ap_ssdict, opref, "HOME", "pagetop" )
 
     # --------------------------------------------------------------------
     # --------------------------------------------------------------------
@@ -555,20 +453,11 @@ if __name__ == "__main__":
     # QC block: "vorig"
     # item    : EPI in orig
 
-    ### [PT: Dec 21, 2018] will come back to this with a uvars for the
-    ### vr_base set
     ldep  = ['vr_base_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        volitem  = "EPI" # because we use same func to plot for both
-                         # EPI and anat vols
-         # no focus_box necessary here
-        ban      = lat.bannerize('{} in orig space'.format(volitem))
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
-                                       ulay_name=ldep[0] )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI", 
+                                       ulay=ap_ssdict[ldep[0]] )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -578,18 +467,10 @@ if __name__ == "__main__":
 
     ldep  = ['copy_anat']
     if lat.check_dep(ap_ssdict, ldep) :
-        volitem  = "anat" # because we use same func to plot for both
-                          # EPI and anat vols
-        # no focus_box necessary here
-        ban      = lat.bannerize('{} in orig space'.format(volitem))
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
-                                       ulay_name=ldep[0] )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "anat", 
+                                       ulay=ap_ssdict[ldep[0]] )
         idx     += 1
-
 
     # --------------------------------------------------------------------
 
@@ -598,14 +479,9 @@ if __name__ == "__main__":
 
     ldep  = ['vr_base_dset', 'copy_anat']
     if lat.check_dep(ap_ssdict, ldep) :
-
         # no focus_box necessary here
-        ban      = lat.bannerize('initial EPI-anatomical overlap')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_vorig_olap( obase, "vorig", "olap" )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_vorig_olap( ap_ssdict, obase, "vorig", "olap" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -619,16 +495,11 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep)              and \
        not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
        not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
-        focusbox = '${main_dset}'
-        ulay     = '${main_dset}'
-
-        ban      = lat.bannerize('EPI mask on vr_base')
+        focusbox = ap_ssdict['main_dset']
+        ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_gen_mask2final( obase, "vorig", "mask2final", 
-                                            ulay, focusbox )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_gen_mask2final( ap_ssdict, obase, "vorig", 
+                                            "mask2final", ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -638,18 +509,16 @@ if __name__ == "__main__":
 
     ldep  = ['final_anat', 'final_epi_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox  = '${main_dset}'
+        focusbox  = ap_ssdict['main_dset']
         dice_file = None
         if lat.check_dep(ap_ssdict, ['mask_corr_dset']) :
             dice_file = ap_ssdict['mask_corr_dset']
 
         ban      = lat.bannerize('EPI and anatomical alignment')
-        obase    = 'qc_{:02d}'.format(idx) # will get appended to
-        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox,
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_ve2a_epi2anat( ap_ssdict, obase, "ve2a", 
+                                           "epi2anat", focusbox, 
                                            dice_file )
-
-        str_FULL+= ban
-        str_FULL+= cmd
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -661,16 +530,11 @@ if __name__ == "__main__":
     ldep_anti = ['template']  # check this does NOT exist
     if lat.check_dep(ap_ssdict, ldep) and \
        not( lat.check_dep(ap_ssdict, ldep_anti) ) :
-        focusbox = '${main_dset}'
-        ulay     = '${main_dset}'
-
-        ban      = lat.bannerize('EPI mask on final anat')
+        focusbox = ap_ssdict['main_dset']
+        ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_gen_mask2final( obase, "ve2a", "mask2final", 
-                                            ulay, focusbox )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_gen_mask2final( ap_ssdict, obase, "ve2a", 
+                                            "mask2final", ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -680,18 +544,16 @@ if __name__ == "__main__":
 
     ldep = ['final_anat', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox  = '${main_dset}'
+        focusbox  = ap_ssdict['main_dset']
         dice_file = None
         if lat.check_dep(ap_ssdict, ['mask_anat_templ_corr_dset']):
             dice_file = ap_ssdict['mask_anat_templ_corr_dset']
 
         ban      = lat.bannerize('anatomical and template alignment')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
-                                            focusbox, dice_file )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_va2t_anat2temp( ap_ssdict, obase, "va2t", 
+                                            "anat2temp", focusbox, 
+                                            dice_file )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -701,16 +563,11 @@ if __name__ == "__main__":
 
     ldep = ['mask_dset', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
-        focusbox = '${main_dset}'
-        ulay     = '${main_dset}'
-
-        ban      = lat.bannerize('EPI mask on template')
+        focusbox = ap_ssdict['main_dset']
+        ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_gen_mask2final( obase, "va2t", "mask2final", 
-                                            ulay, focusbox )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_gen_mask2final( ap_ssdict, obase, "va2t", 
+                                            "mask2final", ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -727,50 +584,32 @@ if __name__ == "__main__":
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_VSTAT_TASK = 1
-        #ulay = '${final_anat}'
-        # [PT: Mar 11, 2020] if the template exists, use *that* as ulay;
-        # otherwise, use anat final
-        focusbox = '${main_dset}'
-        ulay     = '${main_dset}'
+        ulay     = ap_ssdict['main_dset']
+        focusbox = ap_ssdict['main_dset']
 
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         DO_VSTAT_TASK = 1
-        ulay     = '${vr_base_dset}'
-        focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
+        ulay     = ap_ssdict['vr_base_dset']
+        focusbox = 'AMASK_FOCUS_ULAY' 
 
     if DO_VSTAT_TASK :
         ### [PT: Jan 20, 2022: changing the way this works now.  There
         ### is a larger set of data chosen for default display
         ### now---later will also add more control for user to specify
         ### items.
-        #all_vstat = ["Full_Fstat"]
-        #if lat.check_dep(ap_ssdict, ldep3) :
-        #    all_vstat.extend(ap_ssdict[ldep3[0]])
         all_vstat_obj = lasd.parse_stats_dset_labels( ap_ssdict['stats_dset'],
                                            user_plabs=iopts.vstat_label_list )
         Nobj = len(all_vstat_obj)
 
         for ii in range(Nobj):
-
             # the object to use, and a cleaner version of name
             vso      = all_vstat_obj[ii]
-            vsname   = vso.olay_label.replace('#', '_')
+            vsname   = UTIL.rename_label_safely( vso.olay_label, 
+                                                 only_hash=True )
 
-            #vso.disp_olay_all()
-            #vso.disp_thr_all()
-
-            ban   = lat.bannerize('view stats (+ eff est): ' + vsname)
-            obase = 'qc_{:02d}'.format(idx)
-            # in this case, we also specify the indices of the ulay
-            # and thr volumes in the stats dset-- we intend that this
-            # will generalize to viewing not just the F-stat (the
-            # default)
-            cmd      = lat.apqc_vstat_stvol( obase, "vstat", vsname, 
-                                             ulay, focusbox, vso, ii,
-                                             HAVE_MASK=HAVE_MASK )
-
-            str_FULL+= ban
-            str_FULL+= cmd
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_vstat_stvol( ap_ssdict, obase, "vstat", 
+                                             vsname, ulay, focusbox, vso )
             idx     += 1
 
     # --------------------------------------------------------------------
@@ -789,30 +628,23 @@ if __name__ == "__main__":
 
         if lat.check_dep(ap_ssdict, ldep) :
             DO_VSTAT_SEED_REST = 1
-            ulay = '${main_dset}'
-            focusbox = '${main_dset}'
-            #if lat.check_dep(ap_ssdict, ldep2) :
-            #    focusbox = '${templ_vol}'
-            #else:
-            #    focusbox = '${final_anat}'
+            ulay     = ap_ssdict['main_dset']
+            focusbox = ap_ssdict['main_dset']
 
         elif lat.check_dep(ap_ssdict, alt_ldep) :
             DO_VSTAT_SEED_REST = 1
-            ulay     = '${vr_base_dset}'
+            ulay     = ap_ssdict['vr_base_dset']
             focusbox = 'AMASK_FOCUS_ULAY' 
 
         if DO_VSTAT_SEED_REST :
-
-            abin_dir = lat.get_path_abin()
-
-            SPECIAL_FILE = abin_dir + '/' + 'afni_seeds_per_space.txt'
+            SEED_FILE = ap_ssdict['abin_dir'] + '/' + 'afni_seeds_per_space.txt'
 
             if 0 :
                 print("This branch will be for a user-entered file. Someday.")
-            elif os.path.isfile(SPECIAL_FILE) :
+            elif os.path.isfile(SEED_FILE) :
                 if lat.check_dep(ap_ssdict, ldep2) :
                     tspace    = lat.get_space_from_dset(ap_ssdict['template'])
-                    seed_list = UTIL.read_afni_seed_file(SPECIAL_FILE, 
+                    seed_list = UTIL.read_afni_seed_file(SEED_FILE, 
                                                          only_from_space=tspace)
                     Nseed = len(seed_list)
                 else:
@@ -820,24 +652,31 @@ if __name__ == "__main__":
             else:
                 Nseed = 0
 
-            for ii in range(Nseed):
+            # we want to keep seedcorr vols, so make a dir for them in
+            # the AP results dir
+            if Nseed :
+                ap_ssdict['vstat_dir'] = 'vstat_seedcorr'
+                vdir = ap_ssdict['vstat_dir']
+                if os.path.isdir(vdir) :
+                    print("+* Removing and remaking vstat-QC dir:", vdir)
+                    cmd    = '''\\rm -rf {}'''.format(vdir)
+                    com    = BASE.shell_com(cmd, capture=True)
+                    stat   = com.run()
+                cmd    = '''\\mkdir -p {}'''.format(vdir)
+                com    = BASE.shell_com(cmd, capture=True)
+                stat   = com.run()
 
+            for ii in range(Nseed):
                 seed  = seed_list[ii]               # obj with nec info
                 sname = 'seed_' + seed.roi_label
-
-                ban   = lat.bannerize('view seedbased corr: ' + seed.roi_label)
                 obase = 'qc_{:02d}'.format(idx)
                 # in this case, we also specify the indices of the ulay
                 # and thr volumes in the stats dset-- we intend that this
                 # will generalize to viewing not just the F-stat (the
                 # default)
-                cmd      = lat.apqc_vstat_seedcorr( obase, "vstat", sname, 
-                                                    ulay, focusbox, seed, 
-                                                    ii,
-                                                    HAVE_MASK=HAVE_MASK )
-
-                str_FULL+= ban
-                str_FULL+= cmd
+                cmd      = lat.apqc_vstat_seedcorr( ap_ssdict, obase, "vstat", 
+                                                    sname, ulay, focusbox,
+                                                    seed )
                 idx     += 1
 
     # --------------------------------------------------------------------
@@ -852,22 +691,11 @@ if __name__ == "__main__":
     BOTH_ENORM_OUTLIER = 0
     ldep = ['enorm_dset', 'outlier_dset', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) and RUN_STYLE == 'pythonic' :
-        # additional checks here for possible other uvars to use
         BOTH_ENORM_OUTLIER = 1
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
-        ban      = lat.bannerize('mot enorm plus outlier frac, and censoring')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_mot_enormoutlr( obase, "mot", "enormoutlr", 
-                                            RUN_STYLE, 
-                                            1600, 
-                                            has_cen_dset=HAS_censor_dset,
-                                            has_lim_mot=HAS_mot_limit,
-                                            has_lim_out=HAS_out_limit )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_mot_enormoutlr( ap_ssdict,
+                                            obase, "mot", "enormoutlr", 
+                                            RUN_STYLE )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -877,18 +705,9 @@ if __name__ == "__main__":
 
     ldep = ['enorm_dset', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) and not(BOTH_ENORM_OUTLIER) :
-        # additional checks here for possible other uvars to use
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-        ban      = lat.bannerize('mot enorm and censoring')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_mot_enorm( obase, "mot", "enorm", RUN_STYLE, 
-                                       1600, 
-                                       has_cen_dset=HAS_censor_dset,
-                                       has_lim=HAS_mot_limit )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_mot_enorm( ap_ssdict, obase, "mot", "enorm", 
+                                       RUN_STYLE, 1600 )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -896,22 +715,11 @@ if __name__ == "__main__":
     # QC block: "mot"
     # item    : outlier frac, only
 
-    # [PT] no longer checks for 'censor_dset' or 'out_limit' *here*,
-    #just later
     ldep = ['outlier_dset', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) and not(BOTH_ENORM_OUTLIER) :
-        # additional checks here for possible other uvars to use
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
-        ban      = lat.bannerize('outlier fraction and censoring')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_mot_outlr( obase, "mot", "outlr", RUN_STYLE, 
-                                       1600, 
-                                       has_cen_dset=HAS_censor_dset,
-                                       has_lim=HAS_out_limit )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_mot_outlr( ap_ssdict, obase, "mot", "outlr", 
+                                       RUN_STYLE, 1600 )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -926,12 +734,9 @@ if __name__ == "__main__":
         HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
         ban      = lat.bannerize(' volreg motion pars, and censoring')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_mot_VR6( obase, "mot", "VR6", RUN_STYLE, 
-                                     1600,
-                                     has_cen_dset=HAS_censor_dset )
+        cmd      = lat.apqc_mot_VR6( ap_ssdict, obase, "mot", "VR6", 
+                                     RUN_STYLE, 1600 )
 
-        str_FULL+= ban
-        str_FULL+= cmd
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -939,37 +744,17 @@ if __name__ == "__main__":
     # QC block: "mot"
     # item    : grayplot of errts (task, rest, naturalistic, etc.)
 
-    # [PT: June 27, 2019] expanding to include enorm, if available and
-    # in Pythonic mode
-    # [PT: Feb 23, 2021] moved here to 'mot' from 'regr'
-
     # [PT: Feb 25, 2019] 
     ldep  = ['errts_dset', 'mask_dset']
     ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
     if not(iopts.do_mot_grayplot) :
-        ban = lat.bannerize('*turned off*: make grayplot of residuals')
-        str_FULL+= ban
+        print('++ *turned off* making grayplot of residuals')
         idx     += 1
     elif lat.check_dep(ap_ssdict, ldep) :
-        # [PT: Jun 18, 2019] special case check-- 
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
-            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
-            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
-            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
-
-            ban      = lat.bannerize('make grayplot of residuals')
             obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_mot_grayplot( obase, "mot", "grayplot",
-                                              RUN_STYLE,  
-                                              has_mot_dset=HAS_mot_dset,
-                                              has_out_dset=HAS_out_dset,
-                                              has_mot_lim=HAS_mot_limit,
-                                              has_out_lim=HAS_out_limit,
-                                              has_cen_dset=HAS_censor_dset )
-            str_FULL+= ban
-            str_FULL+= cmd
+            cmd      = lat.apqc_mot_grayplot( ap_ssdict, obase, "mot", 
+                                              "grayplot", RUN_STYLE )
             idx     += 1
 
     # --------------------------------------------------------------------
@@ -979,18 +764,13 @@ if __name__ == "__main__":
 
     ldep = ['combine_method']
     if lat.check_dep(ap_ssdict, ldep) :
-
         # ***For now*** just m_tedana checks available
         if ap_ssdict['combine_method'] == 'm_tedana':
             comb_meth = ap_ssdict['combine_method']
-
-            ban      = lat.bannerize('multi-echo, via m_tedana')
-            obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_mecho_mtedana( obase, "mecho", "mtedana",
-                                               comb_meth )
-
-            str_FULL+= ban
-            str_FULL+= cmd
+            obase     = 'qc_{:02d}'.format(idx)
+            cmd       = lat.apqc_mecho_mtedana( ap_ssdict, obase, 
+                                                "mecho", "mtedana", 
+                                                comb_meth )
             idx     += 1
 
     # --------------------------------------------------------------------
@@ -1004,15 +784,9 @@ if __name__ == "__main__":
     # At some point, we will add in different info to put here, though.
     ldep = ['sum_ideal', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        ban      = lat.bannerize('sum of regressors of interest in X-matrix')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_ideal( obase, "regr", "ideal", RUN_STYLE, 
-                                        1600, 
-                                        has_cen_dset=HAS_censor_dset )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_regr_ideal( ap_ssdict, obase, "regr", "ideal", 
+                                        RUN_STYLE, 1600 )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1026,17 +800,11 @@ if __name__ == "__main__":
     # At some point, we will add in different info to put here, though.
     ldep = ['xmat_stim', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        # additional checks here for possible other uvars to use
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
         ban      = lat.bannerize('plot X-matrix, but without '
                                  'baseline and motion')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_stims( obase, "regr", "stims", RUN_STYLE, 
-                                        1600, 
-                                        has_cen_dset=HAS_censor_dset )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_regr_stims( ap_ssdict, obase, "regr", "stims", 
+                                        RUN_STYLE, 1600 )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1052,10 +820,7 @@ if __name__ == "__main__":
         # in this case, we also specify the indices of the ulay and
         # thr volumes in the stats dset-- we intend that this will
         # generalize to viewing not just the F-stat (the default)
-        cmd      = lat.apqc_regr_df( obase, "regr", "df" )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_regr_df( ap_ssdict, obase, "regr", "df" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1063,7 +828,7 @@ if __name__ == "__main__":
     # QC block: "regr"
     # item    : corr brain:  corr of errts WB mask ave with each voxel
 
-    # !!! make uvar for this??
+    # Q: make uvar for this?
 
     ldep     = ['errts_dset', 'final_anat']
     ldep2    = ['template']                                # 2ary consid
@@ -1073,32 +838,21 @@ if __name__ == "__main__":
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_REGR_CORR_ERRTS = 1
-        ulay     = '${main_dset}' #'${final_anat}'
-        focusbox = '${main_dset}'
-        #if lat.check_dep(ap_ssdict, ldep2) :
-        #    focusbox = '${templ_vol}'
-        #else:
-        #    focusbox = '${final_anat}'
+        ulay     = ap_ssdict['main_dset']
+        focusbox = ap_ssdict['main_dset']
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         DO_REGR_CORR_ERRTS = 1
-        ulay     = '${vr_base_dset}'
+        ulay     = ap_ssdict['vr_base_dset']
         focusbox = 'AMASK_FOCUS_ULAY' 
-
-    #ldep  = ['xmat_regress']
-    #if lat.check_dep(ap_ssdict, ldep) :
 
     list_corr_brain = glob.glob('corr_brain+*.HEAD')
     if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
-
         corr_brain = list_corr_brain[0]
 
-        ban      = lat.bannerize('check ave errts corr through brain')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_corr_errts( obase, "regr", "corr_errts",
+        cmd      = lat.apqc_regr_corr_errts( ap_ssdict, obase, "regr", 
+                                             "corr_errts",
                                              ulay, focusbox, corr_brain )
-
-        str_FULL+= ban
-        str_FULL+= cmd
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1113,33 +867,25 @@ if __name__ == "__main__":
     HAVE_ULAY = 0
     if lat.check_dep(ap_ssdict, ldep) :
         HAVE_ULAY = 1
-        ulay      = '${main_dset}' 
-        focusbox  = '${main_dset}'
+        ulay      = ap_ssdict['main_dset']
+        focusbox  = ap_ssdict['main_dset']
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         HAVE_ULAY = 1
-        ulay      = '${vr_base_dset}'
+        ulay      = ap_ssdict['vr_base_dset']
         focusbox  = 'AMASK_FOCUS_ULAY' 
 
     DO_TSNR_VREG = 0
-    tsnr_vreg = glob.glob( iopts.subjdir + '/' + 'TSNR*vreg*HEAD' )
+    tsnr_vreg = glob.glob( 'TSNR*vreg*HEAD' )
     if len(tsnr_vreg) == 1 :
         DO_TSNR_VREG = 1
 
     if HAVE_ULAY and DO_TSNR_VREG :
-
-        print("++ Will calc vreg TSNR.")
-        olay     = '( TSNR*vreg*HEAD )'
+        olay     = tsnr_vreg[0]
         descrip  = '(TSNR, from r01 dset after volreg)'
-
-        ban      = lat.bannerize('check vreg (r01) TSNR')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_vreg",
+        cmd      = lat.apqc_regr_tsnr( ap_ssdict, obase, "regr", "tsnr_vreg",
                                        ulay, focusbox, olay,
-                                       descrip=descrip,
-                                       HAVE_MASK=HAVE_MASK )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+                                       descrip=descrip )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1152,26 +898,20 @@ if __name__ == "__main__":
 
     if lat.check_dep(ap_ssdict, ldep) :
         DO_TSNR = 1
-        ulay     = '${main_dset}' 
-        focusbox = '${main_dset}'
+        ulay      = ap_ssdict['main_dset']
+        focusbox  = ap_ssdict['main_dset']
     elif lat.check_dep(ap_ssdict, alt_ldep) :
         DO_TSNR = 1
-        ulay     = '${vr_base_dset}'
-        focusbox = 'AMASK_FOCUS_ULAY' 
+        ulay      = ap_ssdict['vr_base_dset']
+        focusbox  = 'AMASK_FOCUS_ULAY' 
 
     if DO_TSNR :
-        olay     = '${tsnr_dset}' 
+        olay     = ap_ssdict['tsnr_dset']
         descrip  = '(final TSNR dset)'
-
-        ban      = lat.bannerize('check final TSNR')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_tsnr( obase, "regr", "tsnr_fin",
+        cmd      = lat.apqc_regr_tsnr( ap_ssdict, obase, "regr", "tsnr_fin",
                                        ulay, focusbox, olay,
-                                       descrip=descrip,
-                                       HAVE_MASK=HAVE_MASK )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+                                       descrip=descrip )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1181,23 +921,16 @@ if __name__ == "__main__":
     # [PT: Feb 23, 2021] moved here, seemed more logical place, 
     # above warns
 
-    ldep = ['have_radcor_dirs'] # binary flag
+    ldep = ['have_radcor_dirs']
     if lat.check_dep(ap_ssdict, ldep) :
         all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
         for ii in range(len(all_dir_radcor)):
-
-            rcdir  = all_dir_radcor[ii]
-            aaa    = rcdir.split(".")
-            rcname = "rc_" + aaa[2] # to be the label
-        
-            ban      = lat.bannerize('@radial_correlate '
-                                     'images: {}'.format(rcname))
+            rcdir    = all_dir_radcor[ii]
+            aaa      = rcdir.split(".")
+            rcname   = "rc_" + aaa[2] # to be the label
             obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
-                                              rcdir, ith_run=ii )
-
-            str_FULL+= ban
-            str_FULL+= cmd
+            cmd      = lat.apqc_radcor_rcvol( ap_ssdict, obase, "radcor", 
+                                              rcname, rcdir, ith_run=ii )
             idx     += 1
 
     # --------------------------------------------------------------------
@@ -1212,11 +945,8 @@ if __name__ == "__main__":
         txtfile  = ''
         if ap_ssdict.__contains__('cormat_warn_dset') :
             txtfile = ap_ssdict['cormat_warn_dset']
-        cmd      = lat.apqc_warns_xmat( obase, "warns", "xmat",
+        cmd      = lat.apqc_warns_xmat( ap_ssdict, obase, "warns", "xmat",
                                         fname = txtfile )
-
-        str_FULL+= ban
-        str_FULL+= cmd
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1227,18 +957,9 @@ if __name__ == "__main__":
     # apply if there is censoring used
     ldep = ['df_info_dset', 'censor_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        # ---------- get df info as json
-
-        df_dict = lat.read_in_txt_to_dict( ap_ssdict['df_info_dset'],
-                                           tmp_name='__tmp_df_info.json' )
-
-        ban      = lat.bannerize('Censor fraction (total)')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_cen_total( obase, "warns", "cen_total",
-                                             df_dict=df_dict )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_cen_total( ap_ssdict, obase, "warns", 
+                                             "cen_total" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1249,25 +970,9 @@ if __name__ == "__main__":
     # use if: there are stim files present, and censoring
     ldep = ['stats_dset', 'censor_dset', 'ss_review_dset', 'xmat_stim']
     if lat.check_dep(ap_ssdict, ldep) :
-
-        # get the ss_review_basic info as a dict
-        rev_dict = lat.read_in_txt_to_dict( ap_ssdict['ss_review_dset'],
-                                            tmp_name='__tmp_ss_rev.json' )
-
-        cmd = '''1d_tool.py -verb 0 -infile {xmat_stim} -show_labels
-        '''.format( **ap_ssdict )
-        com = BASE.shell_com(cmd, capture=1, save_hist=0)
-        com.run()
-        all_labels = com.so[0].split() # list of all labels
-
-        ban      = lat.bannerize('Censor fraction (per stim)')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_cen_stim( obase, "warns", "cen_stim",
-                                            rev_dict=rev_dict,
-                                            label_list=all_labels)
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_cen_stim( ap_ssdict, obase, "warns", 
+                                            "cen_stim" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1277,14 +982,8 @@ if __name__ == "__main__":
 
     ldep = ['decon_err_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('3dDeconvolve warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        txtfile  = ap_ssdict['decon_err_dset']
-        cmd      = lat.apqc_warns_decon( obase, "warns", "decon",
-                                         fname = txtfile)
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_decon( ap_ssdict, obase, "warns", "decon" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1296,12 +995,7 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('pre-steady state warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        txtfile  = ap_ssdict['pre_ss_warn_dset']
-        cmd      = lat.apqc_warns_press( obase, "warns", "press",
-                                         fname = txtfile)
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_press( ap_ssdict, obase, "warns", "press" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1311,14 +1005,8 @@ if __name__ == "__main__":
 
     ldep = ['tent_warn_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('TENT warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        txtfile  = ap_ssdict['tent_warn_dset']
-        cmd      = lat.apqc_warns_TENT( obase, "warns", "TENT",
-                                        fname = txtfile )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_TENT( ap_ssdict, obase, "warns", "TENT" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1328,14 +1016,8 @@ if __name__ == "__main__":
 
     ldep = ['flip_check_dset', 'flip_guess']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('check_flip warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        txtfile  = ap_ssdict['flip_check_dset']
-        cmd      = lat.apqc_warns_flip( obase, "warns", "flip",
-                                        fname = txtfile )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_flip( ap_ssdict, obase, "warns", "flip" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1345,13 +1027,9 @@ if __name__ == "__main__":
 
     ldep = ['vlines_tcat_dir']  
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('var_line warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_vlines( obase, "warns", "vlines",
-                                          dirname=ap_ssdict['vlines_tcat_dir'] )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_warns_vlines( ap_ssdict, obase, "warns", 
+                                          "vlines" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1363,10 +1041,8 @@ if __name__ == "__main__":
     if 1 :
         ban      = lat.bannerize('ss review basic info')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_qsumm_ssrev( obase, "qsumm", "ssrev" )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_qsumm_ssrev( ap_ssdict, obase, "qsumm", 
+                                         "ssrev" )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1377,67 +1053,49 @@ if __name__ == "__main__":
 
     # cp JSON(s) over to QC_* subdir
     if 1:
-        ban      = lat.bannerize('copy JSONs over to QC dir')
         all_json = [iopts.json] # only one at the moment...
-        cmd      = lat.apqc_DO_cp_subj_jsons( all_json )
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_DO_cp_subj_jsons( ap_ssdict, all_json )
         idx     += 1
 
-    # cp @ss_review_basic text file to QC dir; should always be true
+    # cp @ss_review_basic text file to QC dir, and also make a JSON
+    # version of it there; should always be true
     ldep = ['ss_review_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('copy review basic text file to QC dir')
-        cmd      = lat.apqc_DO_cp_subj_rev_basic()
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_DO_cp_subj_rev_basic( ap_ssdict )
         idx     += 1
 
     # echo @ss_review_basic *to terminal*, and then exit with 0
     if 1:
-        ban      = lat.bannerize('ss review basic info *to terminal*')
-        cmd      = lat.apqc_DO_term_ss_review_basic( )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
-    # --------------------------------------------------------------------
-
-    if 1:
-        ban      = lat.bannerize('Finish gracefully, if possible')
-        cmd      = lat.commandize('''exit 0''')
-
-        str_FULL+= ban
-        str_FULL+= cmd
+        cmd      = lat.apqc_DO_term_ss_review_basic( ap_ssdict )
         idx     += 1
 
     # ======================================================================
     # ======================================================================
+    # finishing text
 
-    # write, chmod and finish
+    # write out log/history of what has been done
+    olog = 'log_apqc_tcsh.txt'
+    UTIL.write_afni_com_log(olog)
 
-    fff = open(otcsh, 'w')
-    fff.write(str_FULL)
-    fff.close()
-
-    # deal with python 2/3   27 Nov 2018 [rickr]
-    try: code = eval('0o755')
-    except: code = eval('0755')
-    try:
-        os.chmod(otcsh, code)
-    except:
-        omsg = "failed: chmod {} {}".format(code, otcsh)
-        print(omsg)
+    # note where we are in the AP results dir
+    pwd_res   = os.getcwd()
+    qcdir_abs = pwd_res + '/' + ap_ssdict['odir_qc']
 
     bye_msg = '''
-    ++ Done making (executable) script to generate HTML QC:
-    {}
-    '''.format(otcsh)
+++ Done setting up QC dir: {qcdir_loc}
+   To create the APQC HTML, run either this (from any location):      
+     
+       apqc_make_html.py -qc_dir {qcdir_abs}
 
-    bye_msg = lat.commandize(bye_msg, ALLEOL=False)
+   ... or this (from the afni_proc.py results directory):
+
+       apqc_make_html.py -qc_dir {qcdir_loc}
+
+'''.format(qcdir_abs=qcdir_abs, qcdir_loc=ap_ssdict['odir_qc'])
+
     print( bye_msg )
+
+    # And the end of all our exploring will be to arrive where we started
+    os.chdir(pwd_orig)
 
     sys.exit(0)

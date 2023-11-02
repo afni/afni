@@ -275,7 +275,7 @@ static char * TSTAT_main( PLUGIN_interface *plint )
        *slf.dset = *iiset ;       /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
        nds = slf.dset_index ;
-       INFO_message("trashed and re-used old dataset %s",iiprefix) ;
+       INFO_message("trashed and reused old dataset %s",iiprefix) ;
 
      } else {                              /* add new to the session */
 

@@ -39,8 +39,8 @@ echo  'setenv R_LIBS ~/R'     >> ~/.cshrc
 rPkgsInstall -pkgs ALL
 
 
-echo "++ Run system check, saving to: ${asc}"
 set asc  = ~/o.afni_system_check.txt
+echo "++ Run system check, saving to: ${asc}"
 afni_system_check.py -check_all > ${asc}
 
 echo "++ Done with 2nd part of install"

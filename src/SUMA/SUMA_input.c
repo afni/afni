@@ -6637,7 +6637,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                   #endif
 
-                  /* perform the intersection calcluation and mark the surface */
+                  /* perform the intersection calculation and mark the surface */
                   SUMA_LHv("Finding hit: %d %d,\n"
                            "Pick0: %f %f %f, Pick1: %f %f %f\n",
                            (int)Bev.x, (int)Bev.y,
@@ -7316,7 +7316,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                        lado_type == SO_type)) {
                ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                if (ii > 0) { /* some surfaces, try */
-                  /* perform the intersection calcluation and mark the surface */
+                  /* perform the intersection calculation and mark the surface */
                   hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv,
                                                           1, NULL);
                   if (hit < 0) {

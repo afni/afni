@@ -2364,7 +2364,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ANY_DSET_type:
             case MD_DSET_type:
             case GDSET_type: /* Should not be in DO list */
-               SUMA_S_Warn("Should not have such objects as registrered DOs");
+               SUMA_S_Warn("Should not have such objects as registered DOs");
                break;
             case CDOM_type:
                SUMA_S_Err("Needs implementation");

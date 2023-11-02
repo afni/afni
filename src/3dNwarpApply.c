@@ -290,7 +290,7 @@ void NWA_help(void)
       "each time point.  When transforming a source dataset, the i-th time point\n"
       "will be transformed by the warp computed using the i-th line from any\n"
       "multi-line matrix file in the '-nwarp' specification.  (If there are more\n"
-      "dataset time points than matrix lines, then the last line will be re-used.)\n"
+      "dataset time points than matrix lines, then the last line will be reused.)\n"
       "\n"
       "In this way, 3dNwarpApply can be used to carry out time-dependent warping\n"
       "of time-dependent datasets, provided that the time-dependence in the warp\n"

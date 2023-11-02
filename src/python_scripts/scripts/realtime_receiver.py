@@ -186,7 +186,7 @@ realtime_receiver.py - program to receive and display real-time plugin data
       -extras_on_one_line yes/no: show 'extras' on one line only
                                   (default = no)
       -dc_params P1 P2 ...      : set data_choice parameters
-                                  e.g. for diff_ratio, parmas P1 P2
+                                  e.g. for diff_ratio, params P1 P2
                                      P1 = dr low limit, P2 = scalar -> [0,1]
                                      result is (dr-P1)*P2  {applied in [0,1]}
       -serial_port PORT         : specify serial port file for feedback data

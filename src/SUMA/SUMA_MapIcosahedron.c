@@ -362,7 +362,7 @@ int main (int argc, char *argv[])
                               "Warning %s:\n"
                               " Using sphere's center of mass as a\n"
                               " geometric center. This is only for\n"
-                              " compulsive backward comaptibility.\n"
+                              " compulsive backward compatibility.\n"
                               " It is better NOT to use this option.\n", 
                               FuncName);
          UseCOM = YUP;

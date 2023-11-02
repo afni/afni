@@ -1631,6 +1631,8 @@ class Afni1D:
                           pretty    - space columns to align
                           tsv       - apply sep as '\t'
 
+         if empty, create empty file
+
          return status"""
 
       if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s, s=%s' \
@@ -1642,10 +1644,6 @@ class Afni1D:
       if not fname:
          print("** missing filename for write")
          return 1
-
-      # bail if empty
-      if self.nt == 0:
-         return 0
 
       if fname == '-' or fname == 'stdout': fp = sys.stdout
       else:
@@ -1662,6 +1660,13 @@ class Afni1D:
       if with_header:
          hstr = self.make_xmat_header_string()
          if hstr != '': fp.write(hstr+'\n#\n')
+
+      # and bail if empty
+      if self.nt == 0:
+         if self.verb > 0:
+            print('** warning: writing empty file %s' % fname)
+         fp.close()
+         return 0
 
       # convert to strings initially, in case of pretty output
       smat = []
@@ -2580,14 +2585,22 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
-   def show_tpattern(self, mesg='', verb=1):
+   def show_tpattern(self, mesg='', rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
-         mesg: if set print before output
-         verb: if 0, no text"""
+         mesg    : ['']  : print before output
+         rdigits : [1]   : number of digtits used for rounding in pattern detection
+         verb    : [1]   : verbosity level (0 = quiet)"""
 
       if mesg:     print('%s' % mesg, end='')
-      nb, tpat = UTIL.timing_to_slice_pattern([v[0] for v in self.mat])
+
+      # allow timing to be either vertical or horizontal
+      if self.nvec == 1:
+         timing = self.mat[0]
+      else:
+         timing = [v[0] for v in self.mat]
+
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits, verb=verb)
       if nb < 0:
          tpat = 'INVALID'
       if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
@@ -3307,10 +3320,11 @@ class Afni1D:
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 
       tmat, clines = TD.read_data_file(fname, verb=self.verb)
+      if tmat is None:
+         return 1
       if not TD.data_is_rect(tmat):
          print("** data is not rectangular in %s" % fname)
          return 1
-      # if not tmat: return 1
 
       # treat columns as across time
       mat = UTIL.transpose(tmat)

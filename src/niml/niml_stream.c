@@ -1624,7 +1624,7 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
   (but clearly you can't have any NUL bytes in there).  For shm:, "keyname"
   is limited to 127 bytes also.
 
-  Since opening a socket or shared memory segment requires sychronizing
+  Since opening a socket or shared memory segment requires synchronizing
   two processes, you can't read or write to a tcp: or shm: stream
   immediately.  Instead you have to check if it is "good" first.  This
   can be done using the function NI_stream_goodcheck().

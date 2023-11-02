@@ -314,7 +314,7 @@ if options.anat!='':
 	cmdist = 20+sum([dd**2. for dd in deltas])**.5
 	cmdif =  max(abs(epicm[0]-anatcm[0]),abs(epicm[1]-anatcm[1]),abs(epicm[2]-anatcm[2]))
 	addslabs = abs(int(cmdif/maxvoxsz))+10
-   	zeropad_opts=" -I %s -S %s -A %s -P %s -L %s -R %s " % (tuple([addslabs]*6))
+	zeropad_opts=" -I %s -S %s -A %s -P %s -L %s -R %s " % (tuple([addslabs]*6))
 oblique_epi_read = int(os.popen('3dinfo -is_oblique %s' % (getdsname(0))).readlines()[0].strip())
 if oblique_epi_read or oblique_anat_read: 
 	oblique_mode = True

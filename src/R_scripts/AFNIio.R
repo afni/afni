@@ -157,19 +157,22 @@ exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
 
 #Locate and load R_io.so
 set_R_io <- function() {
-    rio <- 0
-    ll <- find.in.path('R_io.so')
-    if (!is.null(ll)) {
-        dd <- try(dyn.load(ll), silent=TRUE)
-        # newer versions might return R_io.so   8 Dec 2017 [rickr]
-        if (dd[[1]]!="R_io" && dd[[1]]!="R_io.so") {
-            warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
-            dyn.load(ll)
-        } else {
-            rio <- 1
-        }
-    }
-    return(rio) 
+   rio <- 0
+   ll <- find.in.path('R_io.so')
+   if (!is.null(ll)) {
+      dd <- try(dyn.load(ll), silent=TRUE)
+      # newer versions might return R_io.so   8 Dec 2017 [rickr]
+      if (dd[[1]]!="R_io" && dd[[1]]!="R_io.so") {
+         warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
+         dyn.load(ll)
+      } else {
+         rio <- 1
+      }
+   } else {
+     ## jkr 9/23 fail on no R_io.so
+     cat("\n** ERROR: Failed to load R_io.so\n\n") ; quit(status=78)
+   }
+   return(rio) 
 }
 
 if (R_io == -1) {

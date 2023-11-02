@@ -1,9 +1,10 @@
 
 # ----------------------------------------------------------------------
 # set up a machine for building AFNI
+# (it should only have 1 or 2 early sudo's, for brew and xquartz)
 #
-# this assumes 'zsh' is the login shell
-# this applies to both ARM and Intel
+# this prepares for zsh, bash or tcsh login shells
+# this applies to ARM (for R package)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -11,8 +12,11 @@
 # (command uses bash syntax, not just in script)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-(echo; echo 'eval "$(/usr/local/bin/brew shellenv)"') >> $HOME/.zprofile
-eval "$(/usr/local/bin/brew shellenv)"
+# prep multiple shells for brew (.bashrc seems safer for bash)
+(echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
+(echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv bash)"') >> $HOME/.bashrc
+(echo; echo 'eval `/opt/homebrew/bin/brew shellenv tcsh`') >> $HOME/.login
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 brew analytics off
 brew install python netpbm cmake gfortran
@@ -24,19 +28,13 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
              libxt mesa mesa-glu libxpm
 
 # ----------------------------------------------------------------------
-# put python in path and install matplotlib via pip
+# put python in path and install matplotlib via pip (multiple shells)
 
-export PATH=${PATH}:/usr/local/opt/python/libexec/bin
-echo 'export PATH=${PATH}:/usr/local/opt/python/libexec/bin' >> ~/.zshrc
+export PATH=${PATH}:/opt/homebrew/opt/python/libexec/bin
+echo 'export PATH=${PATH}:/opt/homebrew/opt/python/libexec/bin' >> ~/.zshrc
+echo 'export PATH=${PATH}:/opt/homebrew/opt/python/libexec/bin' >> ~/.bashrc
+echo 'setenv PATH ${PATH}:/opt/homebrew/opt/python/libexec/bin' >> ~/.login
 pip install matplotlib
 
 # ----------------------------------------------------------------------
-# install R
-
-curl -O https://cran.r-project.org/bin/macosx/base/R-4.2.3.pkg
-sudo installer -pkg R-4.2.3.pkg -target /
-
-
-# ----------------------------------------------------------------------
-# and reboot : sudo reboot
-# ----------------------------------------------------------------------
+# continue with R in the next script (another sudo)

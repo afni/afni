@@ -1673,7 +1673,7 @@ while(is.null(fm)) {
       cat('named Group in model specification and then listed as group in the table header\n')
       cat('would cause grief for 3dMVM.\n\n')
       cat('5) Not enough number of subjects. This may happen when there are two or more\n')
-      cat('withi-subject factors. For example, a model with two within-subject factors with\n')
+      cat('within-subject factors. For example, a model with two within-subject factors with\n')
       cat('m and n levels respectively requires more than (m-1)*(n-1) subjects to be able to\n')
       cat('model the two-way interaction with the multivariate approach.\n\n')
       errex.AFNI("Quitting due to model test failure...")
@@ -1831,7 +1831,7 @@ if(dimy == 1 & dimz == 1) {
    nSeg <- 20
    # drop the dimensions with a length of 1
    inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% increamental in parallel computing
+   # break into 20 segments, leading to 5% incremental in parallel computing
    dimx_n <- dimx%/%nSeg + 1
    # number of datasets need to be filled
    fill <- nSeg-dimx%%nSeg

@@ -319,7 +319,7 @@ To visualize results, you can launch suma with:\n\
 Then load datasets:\n\
    DemoSubj*.DEL_smd[1-4]*.niml.dset and *.Full.DEL.niml.dset\n\
    using SUMA's control surface interface and switch between datasets \n\
-   to view the reuslts.\n\
+   to view the results.\n\
    You probably want to turn on '1 Only' to avoid confusion.\n\
 \n\
 Or you can cut and paste the commands echoed to the screen \n\

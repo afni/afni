@@ -72,13 +72,13 @@ CEXTRA = -m64 -Wall -Wno-deprecated-declarations -Wcomment -Wformat -DUSE_TRACIN
 # or Apple clang from /usr/bin with 
 # architecture set for x86_64 or arm64
 # set CC and CCMIN to appropriate directory
-#CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
 # MacOS default is clang
-CC     = /usr/bin/gcc -O2 -arch arm64 -DDARWIN -DARM_M1 $(CEXTRA)
+# CCMIN  = /usr/bin/gcc -arch arm64 -DDARWIN -DARM_M1
+CCMIN  = /opt/homebrew/bin/gcc-13 -arch arm64 -DDARWIN -DARM_M1
+#CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
+CC     = $(CCMIN) -O1 $(CEXTRA)
 CCVOL  = $(CC)
 CCFAST = $(CC)
-#CCMIN  = /opt/homebrew/bin/gcc-10 -arch arm64
-CCMIN  = /usr/bin/gcc -arch arm64 -DDARWIN -DARM_M1
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 

@@ -1450,7 +1450,7 @@ int main( int argc , char *argv[] )
 "  -max_iter i = sets the maximum number of iterations to use in\n"
 "                in the power iteration. default = 1000\n"
 "\n"
-"  -polort m   = Remove polynomical trend of order 'm', for m=0..3.\n"
+"  -polort m   = Remove polynomial trend of order 'm', for m=0..3.\n"
 "                [default is m=1; removal is by least squares].\n"
 "                Using m=0 means that just the mean is removed.\n"
 "\n"

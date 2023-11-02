@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.3, Jan 19, 2023
+Version 2.1.4, July 11, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -329,7 +329,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         the user: the lower bound (lb) and the upper bound (ub). The input data will",
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
-   "         less than the second. You do not have to use this option to censor your data!\n", sep='\n')),
+   "         is less than the second. The default (the absence of this option) is no",
+   "         outlier removal.\n", sep='\n')),
        
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -1012,7 +1013,7 @@ runLME <- function(inData, dataframe, ModelForm) {
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
       dataframe <- assVV2(dataframe, lop$vQV, inData[(length(inData)/2+1):length(inData)], all(is.na(lop$vVarCenters)))
    }
-   if (!all(abs(inData) < 10e-8)) {        
+   if (!all(abs(na.omit(inData)) < 1e-8)) {        
       dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
       if(lop$ML) {
@@ -1101,7 +1102,7 @@ runLME <- function(inData, dataframe, ModelForm) {
 runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       try(fmAOV<-lmer(ModelForm, data=dataframe), tag<-1)
       if(tag != 1) {    
@@ -1117,7 +1118,7 @@ runREML <- function(myData, ModelForm, dataframe, nBrk, tag) {
 runREMLb <- function(myData, ModelForm, dataframe, nBrk, tag) {
    #browser()
    myStat<-vector(mode="numeric", length= nBrk)
-   if(!all(myData == 0)) {     
+   if(!all(na.omit(myData) == 0)) {     
       dataframe$Beta<-myData
       #try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma), tag<-1)
       try(fmAOV<-blmer(ModelForm, data=dataframe, cov.prior=gamma(shape = 2, rate = 0.5, posterior.scale = 'sd')), tag<-1)  
@@ -1158,7 +1159,7 @@ assVV2 <- function(DF, vQV, value, c) {
 
 runGLM <- function(inData, dataframe, ModelForm) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1193,7 +1194,7 @@ runGLM <- function(inData, dataframe, ModelForm) {
 
 runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1245,7 +1246,7 @@ runGLM2 <- function(inData, dataframe, ModelForm, nBoot) {
 
 runGLM0 <- function(inData, dataframe, ModelForm, nBoot) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
-   if (!all(abs(inData) < 1e-8)) {
+   if (!all(abs(na.omit(inData)) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
@@ -1863,7 +1864,7 @@ if(lop$ICC) {  # ICC part
       nSeg <- 20
       # drop the dimensions with a length of 1
       inData <- inData[, , ,]
-      # break into 20 segments, leading to 5% increamental in parallel computing
+      # break into 20 segments, leading to 5% incremental in parallel computing
       dimx_n <- dimx%/%nSeg + 1
       # number of datasets need to be filled
       fill <- nSeg-dimx%%nSeg

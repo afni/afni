@@ -382,7 +382,7 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
 "     each node in input datasets. This thresholding \n"
 "     parameter is like a union mask of input data \n"
 "     thresholded at the same level.\n"
-"  The signficance value is not provided on purpose.\n"
+"  The significance value is not provided on purpose.\n"
 "     I don't know of a good way to compute it, but \n"
 "     it serves its function or wedding out low SNR nodes.\n"
 "\n"                      
