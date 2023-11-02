@@ -1497,14 +1497,17 @@ head <- inData
 # Read in all input files
  inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
  tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
-    errex.AFNI(c("Problem with input files! Two possibilities: 1) There is a specification error\n",
-   "with either file path or file name. Use shell command \'ls\' on the last column in the\n",
-   "data table to find out the problem. 2) At least one of the input files has different dimensions:\n",
-   "either (1) numbers of voxels along X, Y, Z axes are different across files;\n",
-   "or     (2) some input files have more than one value per voxel.\n",
-   "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory\n",
-   "where the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
-   "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
+    errex.AFNI(c("** ERROR: Problem with input files.  Two possibilities:\n"
+"   1) There is a specification error with either file path or file name.\n"
+"      Use shell command \'ls\' on the last column in the data table to find\n"
+"      out if the problem is that one or more specified files cannot be found.\n"
+"   2) At least one of the input files has different dimensions. Either\n"
+"      (A) numbers of voxels along X, Y, Z axes are different across files;\n"
+"      (B) some input files have more than one value per voxel.\n"
+"      To check this, try running (or use *.nii* to specify the files):\n"
+"          3dinfo -same_all_grid -prefix *.HEAD\n"
+"      in the directory where the files are stored, and pinpoint which\n"
+"      file(s) is the trouble maker.\n")))
 cat('Reading input files: Done!\n\n')
 
 # voxel-wise covariate files
