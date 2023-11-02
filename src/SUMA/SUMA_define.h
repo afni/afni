@@ -1768,6 +1768,7 @@ typedef struct {
    float tract_length_mask[2];
    int UseMaskLen;
    Widget AlphaThresh_tb; /*!< alpha threshold */
+   Widget BoxOutlineThresh_tb; /*!< box outline threshold */
 }SUMA_X_SurfCont;
 
 typedef struct {

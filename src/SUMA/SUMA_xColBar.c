@@ -10826,12 +10826,12 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
              SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
                
             // create the alpha box toggle button 
-            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("B",
+            SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
                xmToggleButtonWidgetClass, rc3,
                NULL);
-             XtAddCallback (SurfCont->AlphaThresh_tb,
+             XtAddCallback (SurfCont->BoxOutlineThresh_tb,
                  XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
+             SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1,
                                        "SurfCont->Dset_Mapping->abs_T",
                                        "'Boxes: outline threshold regions",
                                        SUMA_SurfContHelp_AbsThr );
