@@ -575,7 +575,9 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
              vt     = lop$vt     <- ops[[i]],
              #qVarCenters = lop$qVarCenters <- ops[[i]],
              dataTable   = lop$dataTable   <- dataTable.AFNI.parse(ops[[i]]),
-             prediction  = lop$prediction  <- dataTable.AFNI.parse(ops[[i]]),
+	         
+	         ## use the old table parsing for the prediction table
+             prediction  = lop$prediction  <- dataTable.AFNI.parse.orig(ops[[i]]),
 
              help = help.MSS.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
