@@ -38,7 +38,7 @@
 #     /opt/homebrew/include/pgm.h
 
 # DRG: M1 homebrew location
-usr_ROOT   = /opt/homebrew
+usr_ROOT  = /opt/homebrew
 USE_ZLIB  = -DHAVE_ZLIB
 LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
@@ -73,9 +73,12 @@ CEXTRA = -m64 -Wall -Wno-deprecated-declarations -Wcomment -Wformat -DUSE_TRACIN
 # architecture set for x86_64 or arm64
 # set CC and CCMIN to appropriate directory
 # MacOS default is clang
+# 
 # CCMIN  = /usr/bin/gcc -arch arm64 -DDARWIN -DARM_M1
+# CCMIN  = /opt/homebrew/bin/gcc-13 -arch arm64 -DDARWIN -DARM_M1
+# CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
+
 CCMIN  = /opt/homebrew/bin/gcc-13 -arch arm64 -DDARWIN -DARM_M1
-#CC     = /opt/homebrew/bin/gcc-10 -O2  -DDARWIN $(CEXTRA)
 CC     = $(CCMIN) -O1 $(CEXTRA)
 CCVOL  = $(CC)
 CCFAST = $(CC)
@@ -137,7 +140,8 @@ EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
 
 IFLAGS = -I. -I$(BREWINCDIR) $(XROOT_I) -I/usr/include
          
-LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+# LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load $(LPYTHON)
+LFLAGS = -L. -L$(BREWLIBDIR) $(XROOT_L) -L/usr/lib $(LPYTHON)
 
 CCSVD  = $(CCMIN) -m64 -O0
 
