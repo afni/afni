@@ -10806,10 +10806,10 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          XmNmarginHeight , 0 ,
          XmNmarginWidth  , 0 ,
          NULL);
-
       
-        // Place alpha checkbox just above sliding bar
+        // Place "A" and "B" checkboxes just above sliding bar
         {
+            // Create widget within which to place "A" and "B" checkboxes
             Widget rc3 = NULL; // one pass through this block ONLY 
             rc3 = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rct,
@@ -10819,10 +10819,11 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             XmNmarginWidth , 0 ,
             NULL);
 
-            // create the alpha threshold toggle button 
+            // create the "A" toggle checkbox 
             SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
             xmToggleButtonWidgetClass, rc3,
             NULL);
+            // Make hover help, and BHelp, for "A" checkbox
             XtAddCallback (SurfCont->AlphaThresh_tb,
              XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
@@ -10832,10 +10833,11 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
 
             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
 
-            // create the alpha box toggle button 
+            // create the "B" toggle checkbox 
             SurfCont->BoxOutlineThresh_tb = XtVaCreateManagedWidget("B",
             xmToggleButtonWidgetClass, rc3,
             NULL);
+            // Make hover help, and BHelp, for "B" checkbox
             XtAddCallback (SurfCont->BoxOutlineThresh_tb,
              XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
             SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1, 

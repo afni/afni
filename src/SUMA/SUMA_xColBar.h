@@ -1363,7 +1363,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
    #define  SUMA_SurfContHelp_AlphaThr  \
 "Use transparency (alpha) threshold.:LR:\n\n"   \
-"   OFF: The alpha/opacicity of the surface overlays can\n"   \
+"   OFF: The alpha/opacity of the surface overlays can\n"   \
 "        range from 0 (maximum transparency) to 1\n"   \
 "        (maximum opacity). That is\n\n"   \
 "          O(n) = O(o):LR:\n\n"   \
@@ -1377,7 +1377,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "where:\n\n"   \
 "     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
 "     O(o) is the original opacity and\n"  \
-"     T is the threshold set by the slidiing bar. "  \
+"     T is the threshold set by the sliding bar. "  \
 
    #define  SUMA_SurfContHelp_BoxOutlineThr  \
 "Box outline thresholded regions.:LR:\n\n"   \
