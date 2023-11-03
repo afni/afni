@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.1.5,  July 11, 2023
+Version 4.1.6,  Nov 2, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1142,7 +1142,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
       }
       if(is.null(fm)) {
          rlm_run <- FALSE
-         if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=dataframe, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
+         if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=dataframe, factorize=FALSE, type=lop$SS_type, fun_aggregate = mean), silent=TRUE)) else
             suppressMessages(try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE))
       }
       if(!is.null(fm) & !rlm_run) {
@@ -1604,7 +1604,7 @@ while(is.null(fm)) {
        suppressMessages(try(fm <- lmrob(lop$ModelForm, data=lop$dataStr), silent=TRUE))
        if(!fm$converged) fm <- NULL
    } else {
-   if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
+   if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type, fun_aggregate = mean), silent=TRUE)) else
    suppressMessages(try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) }
 
    if(!is.null(fm)) {
@@ -1988,7 +1988,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       if(length(strsplit(lop$wsVars, '\\,')[[1]]) > 1) {  # LME: at least one within-subject factor other than ROI
          fm <- lme(ModelForm, random=~1|Subj, data=inData)
       } else { # MVM
-      if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type), silent=TRUE)) else
+      if(lop$afex_new) suppressMessages(try(fm <- aov_car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, fun_aggregate = mean), silent=TRUE)) else
       suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, type=lop$SS_type, return='full'), silent=TRUE)) } } else
       fm <-NULL
    #fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full')
