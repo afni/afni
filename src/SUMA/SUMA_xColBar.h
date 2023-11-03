@@ -1379,6 +1379,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "     O(o) is the original opacity and\n"  \
 "     T is the threshold set by the slidiing bar. "  \
 
+   #define  SUMA_SurfContHelp_BoxOutlineThr  \
+"Box outline thresholded regions.:LR:\n\n"   \
+"   OFF: Thresholded regions, of overlay, are identified\n"   \
+"        by color versus gray-scale, by different colors\n"   \
+"        or not at all.\n\n"   \
+"   ON: Thresholded regions are demarcated by black voxels\n"   \
+
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
    "about 0.:LR:\n"   \

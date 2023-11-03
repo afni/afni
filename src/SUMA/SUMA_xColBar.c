@@ -10838,10 +10838,10 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
             NULL);
             XtAddCallback (SurfCont->BoxOutlineThresh_tb,
              XmNvalueChangedCallback, SUMA_cb_BoxOutlineThresh_tb_toggled, ado);
-            SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1,
-                                   "SurfCont->AlphaThresh_tb",
+            SUMA_Register_Widget_Help(SurfCont->BoxOutlineThresh_tb , 1, 
+                                   "SurfCont->BoxOutlineThresh_tb",
                                    "'Boxes: outline threshold regions",
-                                   SUMA_SurfContHelp_AbsThr );
+                                   SUMA_SurfContHelp_BoxOutlineThr );
 
             SUMA_SET_SELECT_COLOR(SurfCont->BoxOutlineThresh_tb);
 
