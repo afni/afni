@@ -3784,9 +3784,9 @@ libtracktools.a:
 	cd ../	;		)
 
 # ptaylor programs in src dir
-p2dsetstat: p2dsetstat.o pvalstat_opts.o $(LIBMRI_OBJ)
+p2dsetstat: p2dsetstat.o statpval_opts.o $(LIBMRI_OBJ)
 	$(RM) $@
-	$(CC) -o p2dsetstat p2dsetstat.o pvalstat_opts.o $(LFLAGS) $(LLIBS)
+	$(CC) -o p2dsetstat p2dsetstat.o statpval_opts.o $(LFLAGS) $(LLIBS)
 
 #############
 #PKUNDU directory
