@@ -13,35 +13,35 @@
 
 
 /* help text */
-int usage_p2dsetstat() 
+int usage_dsetstat2p() 
 {
    char *author  = "PA Taylor and RC Reynolds (SSCC, NIMH, NIH)";
    char *version = "2.0";
    char *rev_dat = "Nov 04, 2023";
    PARAMS_statpval opts;
 
-   opts = set_p2dsetstat_defaults();  // to use in help text, as nec
+   opts = set_dsetstat2p_defaults();  // to use in help text, as nec
 
    printf(
 "\n"
 "Overview ~1~ \n"
 "\n"
-"This program converts a p-value to a statistic of choice, with\n"
+"This program converts a statistic value to a p-value, with\n"
 "reference to a particular dataset.\n"
 "\n"
-"Often to convert a p-value to a statistic, supplementary\n"
+"Often to convert a statistic to a p-value, supplementary\n"
 "information is needed, such as number of degrees of freedom.  AFNI\n"
 "programs that write statistics *do* store that info in headers, and\n"
 "this program is meant to be a useful to do conversions based on\n"
-"that info.  Here, the user provides the p-value and the specific [i]th\n"
-"brick of the dataset in question, and a statistic (either as single number,\n"
+"that info.  Here, the user provides the stat value and the specific [i]th\n"
+"brick of the dataset in question, and a p-value (either as single number,\n"
 "or with supplementary info) is output to screen.\n"
 "\n"
 "This program should give equivalent results to other AFNI programs\n"
 "like ccalc and cdf, but with less work by the user.\n"
 "\n"
 "See also the complementary program for doing the inverse, converting\n"
-"a statistic to an equivalent p-value:  dsetstat2p.\n"
+"a p-value to an equivalent statistic:  p2dsetstat.\n"
 "\n"
 "**Note that the user will have to choose explicitly whether they\n"
 "  are doing one-sided or bi-sided/two-sided testing!** This is\n"
@@ -57,9 +57,9 @@ int usage_p2dsetstat()
 "\n"
 "Options ~1~ \n"
 "\n"
-"  p2dsetstat                                  \\\n"
+"  dsetstat2p                                  \\\n"
 "        -inset   DDD\"[i]\"                     \\\n"
-"        -pval    P                            \\\n"
+"        -statval S                            \\\n"
 "        -bisided|-2sided|-1sided              \\\n"
 "        {-quiet}\n"
 "\n"
@@ -74,7 +74,8 @@ int usage_p2dsetstat()
 "                NB: we refer to \"sub-bricks\" here, but the inset\\\n"
 "                could also be a surface dataset, too.\\\n"
 "\n"
-"    -pval  P   :input p-value P, which MUST be in the interval (0,1).\n"
+"    -statval S :input stat-value S, which MUST be in the interval\n"
+"                 [0, infinity).\n"
 "\n"
 "    -bisided\n"
 "       or\n"
@@ -83,8 +84,8 @@ int usage_p2dsetstat()
 "    -1sided    :one of these sidedness options MUST be chosen, and it is\n"
 "                up to the researcher to choose which is appropriate.\n"
 "\n"
-"    -quiet     :an optional flag so that output ONLY the final statistic\n"
-"                value is output to standard output; this can be then be\n"
+"    -quiet     :an optional flag so that output ONLY the final p-value\n"
+"                is output to standard output; this can be then be\n"
 "                viewed, redirected to a text file or saved as a shell\n"
 "                variable.  (Default: display supplementary text.)\n"
 "\n"
@@ -96,11 +97,11 @@ int usage_p2dsetstat()
 "    corr coef, t-stat, F-stat or z-score.\n"
 "\n"
 "If \"-quiet\" is used, then basically just a single number (the converted\n"
-"statistic value) is output.  See examples for saving this in a file or\n"
+"p-value) is output.  See examples for saving this in a file or\n"
 "variable.\n"
 "\n"
 "Without the \"-quiet\" option, some descriptive text is also output with\n"
-"the calculation, stating what kind of statistic is being output, etc.\n"
+"the calculation, stating what kind of statistic is being used, etc.\n"
 "\n"
 "Sidenote: another way to get stat+parameter information is via 3dAttribute,\n"
 "and in particular asking for the \"BRICK_STATAUX\" information. That output\n"
@@ -117,32 +118,32 @@ int usage_p2dsetstat()
 "selector-- these are necessary in some shell types!\n"
 "\n"
 "1) Do a calculation and display various information to screen:\n"
-"     p2dsetstat                                       \\\n"
-"         -inset stats.sub01+tlrc\"[2]\"                 \\\n"
-"         -pval 0.001                                  \\\n"
+"     dsetstat2p                                       \\\n"
+"         -inset   stats.sub01+tlrc\"[2]\"               \\\n"
+"         -statval 3.313                               \\\n"
 "         -bisided\n"
 "\n"
 "2) Do a calculation and just display a single number (and also\n"
 "   use a string label to conveniently select the subbrick):\n"
-"     p2dsetstat                                       \\\n"
-"         -inset stats.sub01+tlrc\"[Full_Fstat]\"      \\\n"
-"         -pval 0.0005                                 \\\n"
+"     dsetstat2p                                       \\\n"
+"         -inset   stats.sub01+tlrc\"[Full_Fstat]\"    \\\n"
+"         -statval 155                                 \\\n"
 "         -1sided                                      \\\n"
 "         -quiet\n"
 "\n"
 "3) Do a calculation and store the output number as a variable,\n"
 "   here using tcsh syntax:\n"
-"     set my_stat = `p2dsetstat                        \\\n"
-"                     -inset stats.sub02+tlrc\"[8]\"     \\\n"
-"                     -pval 0.001                      \\\n"
+"     set my_stat = `dsetstat2p                        \\\n"
+"                     -inset   stats.sub02+tlrc\"[8]\"   \\\n"
+"                     -statval 3.313                   \\\n"
 "                     -bisided                         \\\n"
 "                     -quiet`\n"
 "\n"
 "4) Do a calculation and store the output number into a text\n"
 "   file:\n"
-"     p2dsetstat                                       \\\n"
-"         -inset stats.sub02+tlrc\"[8]\"                 \\\n"
-"         -pval 0.001                                  \\\n"
+"     dsetstat2p                                       \\\n"
+"         -inset   stats.sub02+tlrc\"[8]\"               \\\n"
+"         -statval 1.96                                \\\n"
 "         -bisided                                     \\\n"
 "         -quiet > MY_STAT_FILE.txt\n"
 "\n"
@@ -167,17 +168,17 @@ int main(int argc, char *argv[]) {
 
    int HAVE_INP_VAL = 0; // to ensure user input a value
 
-   mainENTRY("p2dsetstat"); machdep(); 
+   mainENTRY("dsetstat2p"); machdep(); 
 
    // fill option struct with defaults
-   InOpts = set_p2dsetstat_defaults();
+   InOpts = set_dsetstat2p_defaults();
   
    // ****************************************************************
    //                  parse command line arguments
    // ****************************************************************
 	
    /* no command line args -> see the help */
-   if (argc == 1) { usage_p2dsetstat(); exit(0); }
+   if (argc == 1) { usage_dsetstat2p(); exit(0); }
 
    /* scan through args */
    iarg = 1; 
@@ -185,7 +186,7 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
-         usage_p2dsetstat();
+         usage_dsetstat2p();
          exit(0);
       }
 
@@ -196,10 +197,10 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-pval") == 0 ){
+      if( strcmp(argv[iarg],"-statval") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '%s'", argv[iarg-1]);
-         InOpts.pval = atof(argv[iarg]);
+         InOpts.statval = atof(argv[iarg]);
          HAVE_INP_VAL = 1;
          iarg++ ; continue ;
       }
@@ -250,12 +251,11 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Can only use exactly one of these sidedness options:\n"
                  "   -1sided, -2sided, -bisided");
 
-   // pvalue used and in OK range --- [PT] why not include 0 and 1 ???
+   // statvalue used and in OK range 
    if ( !HAVE_INP_VAL )
-      ERROR_exit("User must enter '-pval ..' value.");
-   if ( InOpts.pval < 0.0 || InOpts.pval > 1.0 )
-      ERROR_exit("The pvalue can only be in range (0, 1).");
-      //ERROR_exit("The pvalue can only be in range [0, 1].");
+      ERROR_exit("User must enter '-statval ..' value.");
+   if ( InOpts.statval < 0.0 )
+      ERROR_exit("The statval can only be in range [0, infinity).");
 
    // check input dset
    if ( !InOpts.input_name )
@@ -282,10 +282,10 @@ int main(int argc, char *argv[]) {
    //                         Actual work
    // ****************************************************************
 
-   // stat value
-   InOpts.statval = THD_volume_pval_to_thresh(dset_inp, 0,
-                                              InOpts.pval, 
-                                              InOpts.as_1_sided);
+   // p-value
+   InOpts.pval = THD_volume_thresh_to_pval(dset_inp, 0,
+                                           InOpts.statval, 
+                                           InOpts.as_1_sided);
 
    // stat name and params as convenient string
    InOpts.stat_and_pars = THD_make_statsym_string(dset_inp, 0);
@@ -300,16 +300,20 @@ int main(int argc, char *argv[]) {
    if ( InOpts.verb ){
       fprintf(stdout, "++ Found input file  : %s\n", InOpts.input_name);
       fprintf(stdout, "++ Subbrick label    : %s\n", InOpts.brick_lab);
-      if ( InOpts.pval <= 1.e-6)
-         fprintf(stdout, "++ p-value           : %e\n", InOpts.pval);
-      else
-         fprintf(stdout, "++ p-value           : %.8f\n", InOpts.pval);
+      fprintf(stdout, "++ stat value        : %.6f\n", InOpts.statval);
       fprintf(stdout, "++ stat type and par : %s\n", InOpts.stat_and_pars);
       fprintf(stdout, "++ sidedness         : %s\n", InOpts.sidedness);
-      fprintf(stdout, "++ Final stat val    : %.6f\n", InOpts.statval);
+      if ( InOpts.pval <= 1.e-6)
+         fprintf(stdout, "++ Final p-value     : %e\n", InOpts.pval);
+      else
+         fprintf(stdout, "++ Final p-value     : %.8f\n", InOpts.pval);
    }
-   else
-      fprintf(stdout, "%.6f", InOpts.statval);
+   else {
+      if ( InOpts.pval <= 1.e-6)
+         fprintf(stdout, "%e\n", InOpts.pval);
+      else
+         fprintf(stdout, "%.8f\n", InOpts.pval);
+   }
    
    
    // ****************************************************************

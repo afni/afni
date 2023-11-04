@@ -26,8 +26,10 @@ typedef struct {
 
 // -------------------------------------------------------------------------
 
-/* function to initialize params */
+/* functions to initialize params, for complementary progs (the use
+   same struct type, for convenience) */
 PARAMS_statpval set_p2dsetstat_defaults(void);
+PARAMS_statpval set_dsetstat2p_defaults(void);
 
 
 
