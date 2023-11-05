@@ -1073,9 +1073,11 @@ if __name__ == "__main__":
     # ======================================================================
     # finishing text
 
-    # write out log/history of what has been done
-    olog = 'log_apqc_tcsh.txt'
-    UTIL.write_afni_com_log(olog)
+    # write out log/history of what has been done (not done by default, to
+    # save some time, bc this takes a mini-while)
+    if iopts.do_log :
+        olog = 'log_apqc_tcsh.txt'
+        UTIL.write_afni_com_log(olog)
 
     # note where we are in the AP results dir
     pwd_res   = os.getcwd()

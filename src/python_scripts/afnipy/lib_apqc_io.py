@@ -1855,6 +1855,11 @@ Options:
                    you can use this opt to provide the desired name of
                    the backup QC directory (def: use QC_<time>).
 
+-do_log           :(opt) flag to turn on making a text log of all the 
+                   shell commands that are run when apqc_make_tcsh.py
+                   is executed; mainly for debugging purposes, if 
+                   necessary.
+
 '''.format( str_apqc_review_styles,
             hstr_apqc_ow_modes.replace('\n', '\n'+ ' '*19 ))
 
@@ -1872,6 +1877,7 @@ class apqc_tcsh_opts:
         self.bup_dir          = None
         self.do_mot_grayplot  = True
         self.vstat_label_list = []
+        self.do_log           = False      # don't log by default
 
     # -------------------------
 
@@ -1895,10 +1901,12 @@ class apqc_tcsh_opts:
         self.revstyle = revstyle
 
     def set_mot_grayplot(self, tf):
-        if tf:
-            self.do_mot_grayplot = True
-        else:
-            self.do_mot_grayplot = False
+        if tf :   self.do_mot_grayplot = True
+        else:     self.do_mot_grayplot = False
+
+    def set_log(self, tf):
+        if tf :   self.do_log = True
+        else:     self.do_log = False
 
     def add_vstat_label(self, label):
         # keep list unique; checking if label is valid in the
@@ -1945,6 +1953,7 @@ list_apqc_tcsh_opts = ['-help', '-h',
                        '-vstat_list',
                        '-ow_mode',
                        '-bup_dir',
+                       '-do_log',
                        ]
 
 
@@ -2020,6 +2029,9 @@ def parse_tcsh_args(argv):
         ### AP can now pass opts here via '-html_review_opts ..'
         elif argv[i] == "-mot_grayplot_off":
             iopts.set_mot_grayplot(False)
+
+        elif argv[i] == "-do_log":
+            iopts.set_log(True)
 
         # get a list of labels 
         elif argv[i] == "-vstat_list":
