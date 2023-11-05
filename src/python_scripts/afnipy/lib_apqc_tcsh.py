@@ -402,6 +402,17 @@ def get_space_from_dset( dset ):
 
 # --------------------------------------------------------------------
 
+def is_volumetric( name ) :
+    """Return True if the dataset is volumetric (i.e., BRIK/HEAD or NIFTI)
+    and False if it is something else."""
+
+    # what could a volumetric extension in the uvar json be?
+    all_vol_ext = ('.HEAD', '.nii', '.nii.gz')
+
+    return name.endswith(all_vol_ext)
+
+# --------------------------------------------------------------------
+
 def get_warn_level_3( val, cutoff_list=[] ):
     '''Go through simple conditional cases for assigning level of
     warning; cutoff_list must be 3 items here.

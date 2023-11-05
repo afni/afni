@@ -364,7 +364,6 @@ if __name__ == "__main__":
     # ----------------- initialize some params/switches ----------------
 
     DO_REGR_CORR_ERRTS = 0
-    DO_TSNR            = 0
     HAVE_MASK          = lat.check_dep(ap_ssdict, ['mask_dset'])
 
     # -------------------------------------------------------------------
@@ -896,6 +895,7 @@ if __name__ == "__main__":
     ldep     = ['tsnr_dset', 'final_anat']
     alt_ldep = ['tsnr_dset', 'vr_base_dset']  # elif to ldep
 
+    DO_TSNR = 0
     if lat.check_dep(ap_ssdict, ldep) :
         DO_TSNR = 1
         ulay      = ap_ssdict['main_dset']
@@ -905,7 +905,9 @@ if __name__ == "__main__":
         ulay      = ap_ssdict['vr_base_dset']
         focusbox  = 'AMASK_FOCUS_ULAY' 
 
-    if DO_TSNR :
+    # currently, tsnr_dset must be volumetric (need to check here, bc
+    # sometimes mask+surf blocks are both used)
+    if DO_TSNR and lat.is_volumetric(ap_ssdict['tsnr_dset']) :
         olay     = ap_ssdict['tsnr_dset']
         descrip  = '(final TSNR dset)'
         obase    = 'qc_{:02d}'.format(idx)
