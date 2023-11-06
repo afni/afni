@@ -2050,8 +2050,6 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
         SUMA_RETURNe;
    }
 
-//   fprintf(stderr, "C: SurfCont->AlphaThresh = %d\n", SurfCont->AlphaThresh);
-//   fprintf(stderr, "SurfCont->ColPlaneOpacity->value = %f\n", SurfCont->ColPlaneOpacity->value);
    SUMA_ColPlane_NewOpacity(ado, NULL, SurfCont->ColPlaneOpacity->value, 1);
 
    SUMA_RETURNe;
@@ -6722,33 +6720,6 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
 
                 XtManageChild(rc);
 
-                // This block appears to be necessary to allow the lower A 
-                // checkbox to be displayed when the upper A checkbox is present.
-//                if (0){
-//                    // Put alpha button on new row just below IxT
-//                    Widget rc2 = NULL; /* one pass through this block ONLY */
-//                    rc2 = XtVaCreateWidget ("rowcolumn",
-//                    xmRowColumnWidgetClass, SurfCont->rcvo,
-//                    XmNpacking, XmPACK_TIGHT,
-//                    XmNorientation , XmVERTICAL ,
-//                    XmNmarginHeight, 0 ,
-//                    XmNmarginWidth , 0 ,
-//                    NULL);
-//
-//                    SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("A",
-//                    xmToggleButtonWidgetClass, rc2,
-//                    NULL);
-//                    XtAddCallback (SurfCont->AlphaThresh_tb,
-//                       XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-//                    SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
-//                                           "SurfCont->Dset_Mapping->abs_T",
-//                                           "Absolute threshold ON/OFF",
-//                                           SUMA_SurfContHelp_AbsThr );
-//
-//                    SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
-//
-//                    XtManageChild(rc2);
-//                }
          }
 
       if (!SurfCont->rcsw) {
@@ -7118,19 +7089,6 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                XmNmarginWidth , 0 ,
                NULL);
                
-         /* create the alpha threshold toggle button *//*
-         SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha T",
-               xmToggleButtonWidgetClass, rc,
-               NULL);
-         XtAddCallback (SurfCont->AlphaThresh_tb,
-               XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-         SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
-                                   "SurfCont->Dset_Mapping->abs_T",
-                                   "Absolute threshold ON/OFF",
-                                   SUMA_SurfContHelp_AbsThr );
-
-         SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
-*/               
          /* create the absolute threshold toggle button */
          SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|",
                xmToggleButtonWidgetClass, rc,
@@ -7264,34 +7222,6 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
 
    }/*  The Color map range and selector block */
    
-            // Place two alpha buttons above slider
-//            if (0)
-//           {
-//               Widget rc2 = NULL; // one pass through this block ONLY 
-//               rc2 = XtVaCreateWidget ("rowcolumn",
-//                  xmRowColumnWidgetClass, SurfCont->opts_form,
-//                  XmNpacking, XmPACK_TIGHT,
-//                  XmNorientation , XmHORIZONTAL ,
-//                  XmNmarginHeight, 0 ,
-//                  XmNmarginWidth , 0 ,
-//                  NULL);
-//               
-//            // create the alpha threshold toggle button 
-//            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha Thres",
-//               xmToggleButtonWidgetClass, rc2,
-//               NULL);
-//             XtAddCallback (SurfCont->AlphaThresh_tb,
-//                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-//             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
-//                                       "SurfCont->Dset_Mapping->abs_T",
-//                                       "Absolute threshold ON/OFF",
-//                                       SUMA_SurfContHelp_AbsThr );
-//
-//             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
-//
-//               XtManageChild(rc2);
-//
-//        }
 
 
    if (1){ /* The Range values block*/
@@ -7983,32 +7913,6 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
             XmNtopWidget, SurfCont->rcclust?SurfCont->rcclust:SurfCont->opts_rc,
             NULL);
       }
-//           {
-//               Widget rc2 = NULL; // one pass through this block ONLY 
-//               rc2 = XtVaCreateWidget ("rowcolumn",
-//                  xmRowColumnWidgetClass, SurfCont->rcswr,
-//                  XmNpacking, XmPACK_TIGHT,
-//                  XmNorientation , XmHORIZONTAL ,
-//                  XmNmarginHeight, 0 ,
-//                  XmNmarginWidth , 0 ,
-//                  NULL);
-//               
-//            // create the alpha threshold toggle button 
-//            SurfCont->AlphaThresh_tb = XtVaCreateManagedWidget("Alpha Thres",
-//               xmToggleButtonWidgetClass, rc2,
-//               NULL);
-//             XtAddCallback (SurfCont->AlphaThresh_tb,
-//                   XmNvalueChangedCallback, SUMA_cb_AlphaThresh_tb_toggled, ado);
-//             SUMA_Register_Widget_Help(SurfCont->AlphaThresh_tb , 1,
-//                                       "SurfCont->Dset_Mapping->abs_T",
-//                                       "Absolute threshold ON/OFF",
-//                                       SUMA_SurfContHelp_AbsThr );
-//
-//             SUMA_SET_SELECT_COLOR(SurfCont->AlphaThresh_tb);
-//
-//               XtManageChild(rc2);
-//
-//        }
 
       if (!SurfCont->RangeTable->cells) {
          int colw[5] = { 1, 6, 6, 6, 6 };
