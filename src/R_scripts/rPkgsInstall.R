@@ -40,7 +40,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, June 29, 2022
+Version 1.0.0, Nov 6, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -109,8 +109,8 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         within single/double quotes. For example, -pkgs \"afex,phia\". If",
    "         package_list is set as ALL, all the following packages required for",
    "         AFNI programs will be installed, updated, or removed:\n",
-   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'paran', 'psych'",
-   "         'corrplot', 'metafor'.\n",
+   "         'afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'data.table',",
+   "         'paran', 'psych', 'corrplot', 'metafor'.\n",
    "         You can use rPkgsInstall to install, update, or remove any R packages,",
    "         and those packages do not have to be in the list above.\n",
    "         ***NOTE*** these R packages should be good enough for running all major",
@@ -199,7 +199,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lmerTest', 'gamm4', 'data.table', 'paran', 'psych', 'brms', 'corrplot', 'metafor') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }
