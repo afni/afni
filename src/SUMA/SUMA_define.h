@@ -1769,6 +1769,8 @@ typedef struct {
    int UseMaskLen;
    Widget AlphaThresh_tb; /*!< alpha threshold */
    Widget BoxOutlineThresh_tb; /*!< box outline threshold */
+   int AlphaThresh;
+   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {
