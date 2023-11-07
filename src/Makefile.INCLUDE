@@ -166,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog                                                          \
+           3dedgedog p2dsetstat dsetstat2p                                    \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -212,6 +212,7 @@ PROGRAMS_NOPLUG =                                                             \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
         get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale    	   \
+        p2dsetstat dsetstat2p                                                 \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -245,7 +246,7 @@ PROGRAMS_EXE =                                                                \
         niccc 3dXYZcat column_cat GLTsymtest nifti1_tool gifti_tool           \
         cifti_tool images_equal uniq_images stimband 1dNLfit 3dExchange       \
         3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat          \
-        3dEdu_01_scale
+        3dEdu_01_scale p2dsetstat dsetstat2p
 
 
 # put all scripts to install here (no SCRIPTS variable)
@@ -1415,7 +1416,6 @@ mri_nstats.o:mri_nstats.c
 3dEdu_01_scale:3dEdu_01_scale.o
 	$(RM) $@
 	$(CC) -o 3dEdu_01_scale 3dEdu_01_scale.o $(LFLAGS) $(LLIBS)
-
 
 # --------------------------------------------------------------------------
 # this is the list of nonlinear warping program, and is here just for Zhark
@@ -3782,6 +3782,15 @@ libtracktools.a:
 	$(MAKE) clean libtracktools.a  ;	\
 	$(CP) libtracktools.a ../;	\
 	cd ../	;		)
+
+# ptaylor programs in src dir
+p2dsetstat: p2dsetstat.o statpval_opts.o $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CC) -o p2dsetstat p2dsetstat.o statpval_opts.o $(LFLAGS) $(LLIBS)
+
+dsetstat2p: dsetstat2p.o statpval_opts.o $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CC) -o dsetstat2p dsetstat2p.o statpval_opts.o $(LFLAGS) $(LLIBS)
 
 #############
 #PKUNDU directory

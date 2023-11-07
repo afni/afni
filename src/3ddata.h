@@ -5827,6 +5827,11 @@ extern THD_3dim_dataset * THD_dummy_RWCOX(void) ;  /* 12 Feb 2010 */
 extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;
 #endif
 
+extern float THD_volume_pval_to_thresh(THD_3dim_dataset * dset, int tindex,
+                        float pval, int as_1_sided);    /* 30 Oct 2023 rickr */
+extern float THD_volume_thresh_to_pval(THD_3dim_dataset * dset, int tindex,
+                        float thresh, int as_1_sided);  /* 30 Oct 2023 rickr */
+
 extern float THD_stat_to_pval  ( float thr , int statcode , float * stataux ) ;
 extern float THD_pval_to_stat  ( float pval, int statcode , float * stataux ) ;
 extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
