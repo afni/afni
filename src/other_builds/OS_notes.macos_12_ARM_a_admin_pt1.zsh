@@ -20,6 +20,10 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 brew analytics off
 brew install python netpbm cmake gfortran
+
+echo ""
+echo "== installing XQuartz (needs sudo)"
+echo ""
 brew install --cask xquartz
 
 # install build packages
