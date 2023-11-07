@@ -17,7 +17,15 @@ find.in.path <- function(file) { #Pretty much same as first.in.path
 }
 
 ## load in dataTable functions
-source(find.in.path('lib_dataTable.R'))
+## (as long as we are not called from rPkgsInstall)  7 Nov 2023 [rickr]
+do.source.libDT <- 1
+if (exists("ExecName")) {
+    if (ExecName == 'rPkgsInstall')
+        do.source.libDT <- 0
+}
+if ( do.source.libDT )
+    source(find.in.path('lib_dataTable.R'))
+
 
 #Return cat's file option to format the help output
 #for TXT or sphinx purposes

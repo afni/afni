@@ -9,8 +9,9 @@ first.in.path <- function(file) {
    #cat('Using ', ff[1],'\n');
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
-source(first.in.path('AFNIio.R'))
+
 ExecName <- 'rPkgsInstall'
+source(first.in.path('AFNIio.R'))
 
 
 greeting.1dRplot <- function ()
