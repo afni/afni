@@ -5,12 +5,21 @@ import os
 import json
 import gzip
 import copy
-import numpy           as np
-import lib_physio_opts as lro
+import numpy          as np
+from   afnipy import  lib_physio_opts    as lpo
+from   afnipy import  lib_physio_funcs   as lpf
+from   afnipy import  lib_physio_util    as lpu
+from   afnipy import  lib_physio_filt    as lpfilt
+from   afnipy import  lib_format_cmd_str as lfcs
 
 # ==========================================================================
 
 DEF_outlier_perc = [10, 90]
+
+# list of labels for available methods for interpolating bad points
+ALL_fix_method = [     
+    'interp_linear',
+]
 
 # ==========================================================================
 
@@ -20,37 +29,72 @@ derived data.
 
     """
 
-    def __init__(self, ts_orig, samp_freq = 0.0,
+    def __init__(self, ts_orig, samp_freq = 0.0, 
                  label=None, fname=None, ts_unfilt = None,
-                 min_bps = 0.0, max_bps = sys.float_info.max, start_time = 0.0, 
-                 verb=0, maxDisplayRawDataLen = 10000, maxDisplaySampleFreq = 200):
+                 min_bps = 0.0, max_bps = sys.float_info.max, 
+                 start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
+                 prefilt_init_freq = None, prefilt_mode = None, 
+                 prefilt_win = None, do_interact = False,
+                 verb=0):
         """Create object holding a physio time series data.
 
         """
 
-        self.verb      = verb                # verbosity level
-        self.label     = label               # str, e.g., 'card', 'resp', ...
-        self.fname     = fname               # str, fname, just for info
+        self.verb       = verb                # verbosity level
+        self.label      = label               # str, e.g., 'card', 'resp', ...
+        self.fname      = fname               # str, fname, just for info
 
-        self.ts_orig   = np.array(ts_orig)   # arr, original time series
-        self.samp_freq = float(samp_freq)    # float, sampling freq (in Hz)
+        self.ts_orig    = np.array(ts_orig)   # arr, original time series
+        self.samp_freq  = float(samp_freq)    # float, sampling freq (in Hz)
         self.start_time = start_time         # float, time offset (<=0, in s)
                                              # from start of MRI
         self.min_bps    = min_bps            # float, min beats/breaths per sec
         self.max_bps    = max_bps            # float, max beats/breaths per sec
+        self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
+        self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
+        self.bp_idx_freq_mode = 0.           # flt, peak freq idx in bandpass
 
-        self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig None
+        # plotting specific
         self.img_idx   = 0                   # int, for naming QC plots
-        
-        # Downsampling parameters
-        self.maxDisplayRawDataLen = maxDisplayRawDataLen 
-        self.maxDisplaySampleFreq = maxDisplaySampleFreq 
+        self.img_dot_freq = img_dot_freq     # flt, pt density in plts
 
-        # ----------------------------
+        # array selectors, for slicewise regressors.  Basically, these 
+        # contain a tuple for each slice:  label, list_of_ind
+        # the list_of_ind refer to time point values within self.tvalues,
+        # and can pick out values from any time series with len(self.ts_orig),
+        # esp. self.phases and self.rvt_ts
+        self.list_slice_sel_phys = []        # list, lab+ind for ts_orig sel
+        self.list_slice_sel_rvt  = []        # list, lab+ind for ts_orig sel
 
-        #if ts_unfilt != None:
-        #    self.ts_unfilt = np.array(ts_unfilt) # arr, for comp to clean orig
+        # peak/trough stuff
+        self.peaks     = []                      # list, for indices of peaks
+        self.troughs   = []                      # list, for indices of troughs
 
+        # phase stuff (M is upper summation index in Glover et
+        # al. 2000, Eq. 1)
+        self.phases    = np.zeros(0, dtype=int)  # arr, for phase info
+        self.M         = 2                       # int, later can vary
+
+        # rvt stuff (only becomes non-trivial for resp, prob)
+        self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
+
+        # regressor stuff: lists of labels and the actual values
+        # NB: at present, rvt likely only for rest (but doesn't matter deeply)
+        self.regress_dict_phys = {}      # dict of list, (lab, value)
+        self.regress_dict_rvt  = {}      # dict of list, (lab, value)
+
+        # prefiltering related: not used in proc, just to be able to report
+        self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
+        self.prefilt_mode      = prefilt_mode   # str, method of prefilt
+        self.prefilt_win       = prefilt_win    # flt, size (s) of prefilt win
+
+        self.do_interact       = do_interact    # bool, turn on user-interact
+
+    @property
+    def tvalues(self):
+        """The array of time values, using the start_time and samp_rate, so
+        this has physical units."""
+        return self.start_time + np.arange(self.n_ts_orig)*self.samp_rate
 
     @property
     def n_ts_orig(self):
@@ -90,179 +134,445 @@ derived data.
         else:
             return 0
 
+    @property
+    def stats_med_ts_orig(self):
+        """Median value for ts_orig."""
+
+        return np.median(self.ts_orig)
+
+    @property
+    def n_peaks(self):
+        """The number of peaks in the peaks collection."""
+        return len(self.peaks)
+
+    @property
+    def stats_perc_peaks(self):
+        """Percentile-based stats for the peak intervals, which are scaled to
+        units of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75,
+        90)"""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
+                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
+        return all_stat
+
+    @property
+    def stats_perc_troughs(self):
+        """Percentile-based stats for the trough intervals, which are scaled
+        to units of time. Percentiles calc'ed: (10, 25, 40, 50, 60,
+        75, 90)"""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
+                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
+        return all_stat
+
+    @property
+    def stats_quarts_peaks(self):
+        """Quartile (25, 50, 75) stats for the peak intervals, which are
+        scaled to units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
+                                         all_perc=(25, 50, 75))
+        return all_stat
+
+    @property
+    def stats_quarts_troughs(self):
+        """Quartile (25, 50, 75) stats for the trough intervals, which are
+        scaled to units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
+                                         all_perc=(25, 50, 75))
+        return all_stat
+
+    @property
+    def stats_mmms_peaks(self):
+        """Min/max/mean/std stats for the peak intervals, which are scaled to
+        units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_mmms(self.peaks, samp_rate=self.samp_rate)
+        return all_stat
+
+    @property
+    def stats_mmms_troughs(self):
+        """Min/max/mean/std stats for the trough intervals, which are scaled
+        to units of time."""
+
+        all_stat = \
+            lpu.calc_interval_stats_mmms(self.troughs, samp_rate=self.samp_rate)
+        return all_stat
+
+    @property
+    def n_troughs(self):
+        """The number of troughs in the troughs collection."""
+        return len(self.troughs)
+
+    @property
+    def n_slice_sel_phys(self):
+        """The number of elements in list_slice_sel_phys, which (when
+        populated) represents the number of slices for which there is
+        slice timing."""
+        return len(self.list_slice_sel_phys)
+
+    @property
+    def n_regress_phys(self):
+        """The number of plain ol' physio regressors (probably 4)."""
+        return len(self.regress_dict_phys)
+
+    @property
+    def n_regress_rvt(self):
+        """The number of fancy RVT regressors (probably 5 or 0, but user can
+        choose)."""
+        return len(self.regress_dict_rvt)
+
+    @property
+    def regress_rvt_phys(self):
+        """The keys of the physio regressors."""
+        return list(self.regress_dict_phys.keys())
+
+    @property
+    def regress_rvt_keys(self):
+        """The keys of the RVT regressors."""
+        return list(self.regress_dict_rvt.keys())
+
+    @property
+    def img_arr_step(self):
+        """When plotting lines in QC figs, don't need to plot each one---save
+        time and space by reducing that number.  The step is the ratio
+        of samp_freq to img_dot_freq."""
+        if self.img_dot_freq :
+            return max(int(self.samp_freq // self.img_dot_freq),1)
+        else:
+            return 1
+
+    @property
+    def ft_delta_f(self):
+        """The delta_f value of ts_orig in the Fourier domain; that is, the
+        step size along x-axis for frequency spectrum."""
+        return self.samp_freq / self.n_ts_orig
+
+    @property
+    def ft_nyquist_idx(self):
+        """The index of the Nyquist frequency of ts_orig in the Fourier
+        domain; that is, the index of the max indep freq in the FT
+        decomp."""
+        return (self.n_ts_orig // 2) + (self.n_ts_orig % 2)
+
+    @property
+    def ft_nyquist_freq(self):
+        """The physical values of the Nyquist frequency (in Hz) of ts_orig in
+        the Fourier domain; that is, the max indep freq in the FT
+        decomp."""
+        return self.samp_freq * self.ft_nyquist_idx
+
+    @property
+    def ft_freq_mode_phys(self):
+        """The physical value of the peak frequency (in Hz) of ts_orig in the
+        Fourier domain; that is, the mode of the freq spectrum in the
+        FT decomp."""
+        return self.bp_idx_freq_mode * self.ft_delta_f
+
 # -------------------------------------------------------------------------
 
 class retro_obj:
     """An object for starting the retroicor process for making physio
 regressors for MRI data.
 
+Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
+
     """
 
-    def __init__(self, args_dict=None, verb=0):
+    def __init__(self, args_dict=None, args_orig=[], verb=0):
         """Create object holding all retro info
 
         """
         
-        # physio data
-        self.resp_data  = None         # obj for resp data
-        self.card_data  = None         # obj for card data
-        # Q: add in RVT obj?
+        # save copy of input args_dict, for reference, as well as
+        # args_orig list (to record in a text file), if input
+        self.args_dict = copy.deepcopy(args_dict)
+        self.args_orig = copy.deepcopy(args_orig)
+
+        # physio data: refer to each as value of data dictionary.
+        # NB: RVT is contained within each card/resp/etc. data obj here
+        self.data = {
+            'card' : None,             # obj for card data
+            'resp' : None,             # obj for resp data
+        }
 
         # maybe not keep these in this obj?
-        self.phys_jdict = None         # dict from JSON file, maybe col labels
-        self.phys_file  = None         # phys file, might contain cardio/resp
+        self.phys_jdict      = None    # dict from JSON file, maybe col labels
+        self.phys_file       = None    # phys file, might contain cardio/resp
 
-        self.exit_on_rag  = True       # exit if raggedness in data files?
-        self.exit_on_nan  = True       # exit if NaN values in data files?
-        self.exit_on_null = True       # exit if null values in data files?
+        self.do_interact     = False   # only automatic peak/trough est
+        self.exit_on_rag     = True    # exit if raggedness in data files?
+        self.exit_on_nan     = True    # exit if NaN values in data files?
+        self.exit_on_null    = True    # exit if null values in data files?
         self.do_fix_outliers = False   # exit if null values in data files?
-        self.extra_fix_list = []       # list of to-be-bad values (-> interp)
+        self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
-        self.RVT_lags = []             # TVT start time, end time and number
+        self.rvt_shift_list  = []      # list of RVT shift values
 
-        # physio info (-> some now in resp_data and card_data objs)
+        # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
                                        # start of MRI
-        self.min_bps_card = lro.DEF_min_bpm_card/60. # float, min beats/sec
-        self.min_bps_resp = lro.DEF_min_bpm_resp/60. # float, min breaths/sec
-        self.max_bps_card = lro.DEF_max_bpm_card/60. # float, max beats/sec
-        self.max_bps_resp = lro.DEF_max_bpm_resp/60. # float, max breaths/sec
-        
-        self.maxDisplayRawRespDataLen = 10000
-        self.maxDisplayRespSampleFreq = 200
-        self.maxDisplayRawCardDataLen = 10000
-        self.maxDisplayCardSampleFreq = 200
+
+        # physio: init proc opts
+        self.init_samp_freq    = 0      # float, init samp_freq of phys ts
+        self.prefilt_max_freq  = -1     # float, init downsample if >0
+        self.prefilt_mode      = 'none' # str, keyword for downsamp method
+        self.prefilt_win = {
+            'card' : 0.,               # float, size (s) of window if downsamp
+            'resp' : 0.,               # float, size (s) of window if downsamp
+        }
 
         # MRI EPI volumetric info
-        self.vol_slice_times = []         # list of floats for slice timing
-        self.vol_slice_pat   = None       # str, name of slice pat (for ref)
-        self.vol_tr          = 0.0        # float, TR of MRI EPI
-        self.vol_nv          = 0          # int, Nvol (num_time_pts) MRI EPI 
+        self.vol_slice_times = []      # list of floats for slice timing
+        self.vol_slice_pat   = None    # str, name of slice pat (for ref)
+        self.vol_tr          = 0.0     # float, TR of MRI EPI
+        self.vol_nv          = 0       # int, Nvol (dset_nt) FMRI EPI 
 
         # I/O info
         self.verb         = verb       # int, verbosity level
         self.out_dir      = None       # str, name of output dir
         self.prefix       = None       # str, prefix of output filenames
-        self.show_graph_level = 0      # int, amount of graphs to show
-        self.save_graph_level = 1      # int, amount of graphs to save
-        self.font_size    = 10         # float, FS for output images
-        self.niml         = False      # bool, use niml in output ***
-        self.demo         = False      # bool, show demo?
-        self.debug        = False      # bool, do debugging?
         self.do_out_rvt   = True       # bool, flag
-        self.use_global_r_max = False  # bool, flag
         self.do_out_card  = True       # bool, flag
         self.do_out_resp  = True       # bool, flag
         self.save_proc_peaks = False   # bool, flag to write proc peaks to file
         self.save_proc_troughs = False # bool, flag to write proc trou to file
-        self.save_proc_rawData = False # bool, flag to write raw data to file
-        self.do_calc_ab   = False      # bool, calc a,b coeffs and use
-        self.do_save_ab   = False      # bool, save a,b coeffs to file
+
+        # QC image opts
+        self.img_verb     = 1          # int, amount of graphs to save
+        self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
+        self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
+        self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
+        self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
+        self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
 
         # -----------------------------------------------------------------
 
+        # Main actions!
         if args_dict != None :
-            self.apply_cmd_line_args(args_dict)
+            # get and store opts
+            self.apply_cmd_line_args()
+            # read in physio data
+            data_dict = self.read_in_physio_data()
+            # check and store physio data
+            self.check_and_store_physio_data(data_dict)
 
-        # check, please! ... based on final slice of final vol
-        if self.resp_data :
-            if not(self.check_end_time_phys_ge_final_slice('resp')) :
-                print("** ERROR: resp physio data too short for MRI data")
-                sys.exit(3)
-        if self.card_data :
-            if not(self.check_end_time_phys_ge_final_slice('card')) :
-                print("** ERROR: card physio data too short for MRI data")
-                sys.exit(3)
+        # check physio+MRI info: based on final slice of final vol
+        IS_BAD = 0
+        for label in lpf.PO_all_label:
+            if self.data[label] :
+                check = self.check_end_time_phys_ge_final_slice(label)
+                if not(check) :
+                    print("** ERROR: {} physio data too short for MRI data"
+                          "".format(label))
+                    IS_BAD+=1 
+
+        if IS_BAD :
+            sys.exit(3)
                 
-    def apply_cmd_line_args(self, args_dict):
-        """The main way to populate object fields at present.  The input
-        args_dict should be a dictionary from lib_physio_opts of
-        checked+verified items input from the command line.
+    # ----------------------------------------------------------------------
+
+    def read_in_physio_data(self):
+        """Read in any physio (card, resp, etc.) data, from whatever sources
+        might have some: a single 1D file, a pair of 1D files, a file+json
+        combo, etc.
+
+        Make a dictionary whose keys are physio labels, and whose
+        values are a [fname, time_series] list. Return this fun
+        dictionary.
+
         """
 
-        # *** this method is in progress ***
+        # convenient abbrev; not changing args_dict here
+        AD = self.args_dict
 
-        self.verb            = args_dict['verb']
+        is_bad_tot = 0
 
-        self.vol_slice_times = copy.deepcopy(args_dict['slice_times'])
-        self.vol_slice_pat   = args_dict['slice_pattern']
-        self.vol_tr          = args_dict['volume_tr']
-        self.vol_nv          = args_dict['num_time_pts']
+        # initialize something to hold any physio data
+        data_dict = {}
 
-        self.start_time      = args_dict['start_time']
-        self.min_bps_card    = args_dict['min_bpm_card']/60.
-        self.min_bps_resp    = args_dict['max_bpm_resp']/60.
-        self.max_bps_card    = args_dict['max_bpm_card']/60.
-        self.max_bps_resp    = args_dict['max_bpm_resp']/60.
+        # ------------------------ read -------------------------------
 
-        self.out_dir     = args_dict['out_dir']
-        self.prefix      = args_dict['prefix']
-        self.show_graph_level = args_dict['show_graph_level']
-        self.save_graph_level = args_dict['save_graph_level']
-        self.font_size   = args_dict['font_size']
-        self.niml        = args_dict['niml']
-        self.demo        = args_dict['demo']
-        self.debug       = args_dict['debug']
-        self.do_out_rvt  = not(args_dict['no_rvt_out'])
-        self.use_global_r_max = args_dict['global_r_max']
-        self.do_out_card = not(args_dict['no_card_out'])
-        self.do_out_resp = not(args_dict['no_resp_out'])
-        self.save_proc_peaks  = args_dict['save_proc_peaks']
-        self.save_proc_troughs = args_dict['save_proc_troughs']
-        self.save_proc_rawData = args_dict['save_proc_rawData']
-        self.do_calc_ab  = args_dict['do_calc_ab']
-        self.do_save_ab  = args_dict['do_save_ab']
+        # first, read in all data to a simple, temporary dict,
+        # whose keys are physio labels and values are time series
+        # for each label
+
+        # first, loop over possible individual, input 1D files
+        for label in lpf.PO_all_label:
+            fname = AD[label + '_file']
+            if fname :
+                is_bad, ts = self.read_data_from_solo_file(fname)
+                data_dict[label] = [fname, copy.deepcopy(ts)]
+                is_bad_tot+= is_bad
+
+        if AD['phys_file'] and AD['phys_json_dict'] :
+            is_bad, dd = self.read_data_from_phys_file_and_json()
+            for key in dd.keys():
+                data_dict[key] = [ AD['phys_file'], copy.deepcopy(dd[key])]
+            is_bad_tot+= is_bad
+
+        if is_bad_tot :
+            print("** ERROR: fatal problem reading in data.")
+            sys.exit(2)
+
+        if len(data_dict) == 0 :
+            print("** ERROR: read in no data.")
+            sys.exit(3)
         
-        self.maxDisplayRawRespDataLen = args_dict['maxDisplayRawRespDataLen']
-        self.maxDisplayRespSampleFreq = args_dict['maxDisplayRespSampleFreq']
-        self.maxDisplayRawCardDataLen = args_dict['maxDisplayRawCardDataLen']
-        self.maxDisplayCardSampleFreq = args_dict['maxDisplayCardSampleFreq']
+        return data_dict
+
+    def check_and_store_physio_data(self, data_dict):
+        """Go through data dict, which contains label+time_series key+value
+        pairs, and check each time series, as well as store it."""
+
+        # convenient abbrev in this func; don't change args_dict here
+        AD = self.args_dict
+
+        # label is 'card', 'resp', etc.
+        for label in data_dict.keys():
+
+            # this is the raw/original time series for that label
+            fname = data_dict[label][0]
+            arr   = data_dict[label][1]
+
+            # run checks (and fixes)
+            arr_fixed, ts_unfilt = self.run_all_checks_and_fix(arr)
+
+            samp_freq = AD['freq']
+
+            # downsample and/or filter, if desired; updates samp_freq
+            if self.prefilt_max_freq > 0 or self.prefilt_mode != 'none' :
+                arr_fixed, samp_freq \
+                    = self.run_prefilter_physio(arr_fixed, label)
+                if self.verb :
+                    print("++ Prefilter {} physio:".format(label))
+                    print("   orig samp freq  = {} Hz".format(AD['freq']))
+                    print("   final samp freq = {} Hz".format(samp_freq))
+
+            # create physio object
+            if label == 'resp' :
+                self.data['resp'] = phys_ts_obj(arr_fixed,
+                                     samp_freq = samp_freq,
+                                     label=label, fname=fname, 
+                                     ts_unfilt = ts_unfilt,
+                                     min_bps = AD['min_bpm_resp']/60.,
+                                     max_bps = AD['max_bpm_resp']/60.,
+                                     start_time = AD['start_time'],
+                                     img_dot_freq = AD['img_dot_freq'],
+                                     prefilt_mode = self.prefilt_mode,
+                                     prefilt_win = self.prefilt_win[label],
+                                     prefilt_init_freq = AD['freq'],
+                                     do_interact = AD['do_interact'],
+                                     verb=self.verb)
+            elif label == 'card' :
+                self.data['card'] = phys_ts_obj(arr_fixed,
+                                     samp_freq = samp_freq,
+                                     label=label, fname=fname, 
+                                     ts_unfilt = ts_unfilt,
+                                     min_bps = AD['min_bpm_card']/60.,
+                                     max_bps = AD['max_bpm_card']/60.,
+                                     start_time = AD['start_time'],
+                                     img_dot_freq = AD['img_dot_freq'],
+                                     prefilt_mode = self.prefilt_mode,
+                                     prefilt_win = self.prefilt_win[label],
+                                     prefilt_init_freq = AD['freq'],
+                                     do_interact = AD['do_interact'],
+                                     verb=self.verb)
+        return 0
+
+    def apply_cmd_line_args(self):
+        """The main way to populate object fields at present.  The main thing
+        utilized is the object's args_dict, which should be a
+        dictionary from lib_retro_opts of checked+verified items input
+        from the command line."""
+
+        # just give shorter label! don't use this to change args_dict
+        AD = self.args_dict
+
+        self.verb             = AD['verb']
+
+        # EPI dset processing opts ('-dset_* ..' opts, labeled 'vol_*')
+        self.vol_slice_times  = copy.deepcopy(AD['dset_slice_times'])
+        self.vol_slice_pat    = AD['dset_slice_pattern']
+        self.vol_tr           = AD['dset_tr']
+        self.vol_nv           = AD['dset_nt']
+
+        # physio: descriptive features
+        self.start_time       = AD['start_time']
+
+        # for optional pre-processing
+        self.init_samp_freq    = AD['freq']
+        self.prefilt_max_freq  = AD['prefilt_max_freq']
+        self.prefilt_mode      = AD['prefilt_mode']
+        self.prefilt_win['card'] = AD['prefilt_win_card'] 
+        self.prefilt_win['resp'] = AD['prefilt_win_resp'] 
+
+        self.out_dir          = AD['out_dir']
+        self.prefix           = AD['prefix']
+        self.do_out_rvt       = not(AD['rvt_off'])
+        self.do_out_card      = not(AD['no_card_out'])
+        self.do_out_resp      = not(AD['no_resp_out'])
+        self.save_proc_peaks  = AD['save_proc_peaks']
+        self.save_proc_troughs = AD['save_proc_troughs']
+
+        self.img_verb         = AD['img_verb']
+        self.img_figsize      = copy.deepcopy(AD['img_figsize'])
+        self.img_fontsize     = AD['img_fontsize']
+        self.img_line_time    = AD['img_line_time']
+        self.img_dot_freq     = AD['img_dot_freq']
+        self.img_bp_max_f     = AD['img_bp_max_f']
 
         #self.exit_on_rag -> NB: prob never try to fix
-        self.exit_on_nan     = not(args_dict['do_fix_nan'])
-        self.exit_on_null    = not(args_dict['do_fix_null'])
-        self.do_fix_outliers = args_dict['do_fix_outliers']
-        self.extra_fix_list  = copy.deepcopy(args_dict['extra_fix_list'])
-        self.remove_val_list = copy.deepcopy(args_dict['remove_val_list'])
-        self.RVT_lags = copy.deepcopy(args_dict['RVT_lags'])
-
-        # run these file reads+checks last, because they use option
-        # items from above
-        if args_dict['phys_file'] and args_dict['phys_json_dict'] :
-            self.set_data_from_phys_file_and_json(args_dict)
-        if args_dict['resp_file'] :
-            self.set_data_from_solo_file(args_dict, label='resp')
-        if args_dict['card_file'] :
-            self.set_data_from_solo_file(args_dict, label='card')
-
-
+        self.exit_on_nan      = not(AD['do_fix_nan'])
+        self.exit_on_null     = not(AD['do_fix_null'])
+        self.do_fix_outliers  = AD['do_fix_outliers']
+        self.extra_fix_list   = copy.deepcopy(AD['extra_fix_list'])
+        self.remove_val_list  = copy.deepcopy(AD['remove_val_list'])
+        self.rvt_shift_list   = copy.deepcopy(AD['rvt_shift_list'])
+        self.do_interact      = AD['do_interact']
     # -----------------------
 
-    def set_data_from_solo_file(self, args_dict, label=''):
-        """Using information stored in args_dict, try opening and reading
-        either the resp_file or card_file.  Use this to populate one
-        or more data objs.
+    def run_prefilter_physio(self, x, label):
+        """Downsample and/or filter the time series. The modes for 
+        prefiltering might grow over time"""
 
-        The 'label' is required, and must be one of:
-        'resp'
-        'card'
+        if self.prefilt_mode == 'none' :
+            # then we only downsample
+            y, new_samp_freq = self.downsamp_only(x)
+            return y, new_samp_freq
+        elif self.prefilt_mode == 'median' :
+            # median filter, with possible downsampling
+            winwid = self.prefilt_winwid(label)  # filt size, num time pts
+            step   = self.step_downsamp          # possible downsamp rate
 
-        Does not return anything, just populate one of: 
-        resp_data
-        card_data
+            y = lpfilt.med_filt_and_downsamp(x, winwid=winwid, step=step,
+                                             verb=self.verb)
+            return y, self.freq_downsamp
+
+    def downsamp_only(self, x):
+        """Only downsample the time series x; also return new samp freq."""
+
+        step = self.step_downsamp
+        if step <= 1 :    return x, self.init_samp_freq
+        else:             return x[::step], self.freq_downsamp
+
+    def run_all_checks_and_fix(self, arr):
+        """Run one or more badness checks on the input 1D time series (which
+        could be any physio data: card, resp, etc.).  Run the fixes,
+        too, if askd to do so.
+
+        Returns the fixed array, and another object which is either
+        the original, unfilt time series (if there *was* badness
+        found), or None (means nothing needed fixing).
 
         """
 
-        if label == 'resp' :
-            fname = args_dict['resp_file']
-        elif label == 'card' :
-            fname = args_dict['card_file']
-        else:
-            print("** ERROR: need a recognized label, not '{}'"
-                  "".format(label))
-
-        all_col = self.read_and_check_data_file(fname)
-        arr     = self.extract_list_col(all_col, 0) 
         arr2, nrem = \
             check_and_remove_arr_values(arr, 
                                         bad_vals=self.remove_val_list,
@@ -276,117 +586,67 @@ regressors for MRI data.
         if nfix :    ts_unfilt = copy.deepcopy(arr)
         else:        ts_unfilt = None
 
-        if label == 'resp' :
-            self.resp_data = phys_ts_obj(arr_fixed,
-                                         samp_freq = args_dict['freq'],
-                                         label=label, fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_resp']/60.,
-                                         max_bps = args_dict['max_bpm_resp']/60.,
-                                         start_time = args_dict['start_time'],
-                                         maxDisplayRawDataLen = 
-                                           args_dict['maxDisplayRawRespDataLen'],
-                                         maxDisplaySampleFreq = 
-                                           args_dict['maxDisplayRespSampleFreq'],
-                                         verb=self.verb)
-        elif label == 'card' :
-            self.card_data = phys_ts_obj(arr_fixed,
-                                         samp_freq = args_dict['freq'],
-                                         label=label, fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_card']/60.,
-                                         max_bps = args_dict['max_bpm_card']/60.,
-                                         start_time = args_dict['start_time'],
-                                         maxDisplayRawDataLen = 
-                                           args_dict['maxDisplayRawCardDataLen'],
-                                         maxDisplaySampleFreq = 
-                                           args_dict['maxDisplayCardSampleFreq'],
-                                         verb=self.verb)
+        return arr_fixed, ts_unfilt
 
-    def set_data_from_phys_file_and_json(self, args_dict):
-        """Using information stored in args_dict, try opening and reading the
-        phys_file, using a dictionary made from its accompanying JSON.
-        Use this to populate one or more data objs.
 
-        Does not return anything, just populate one or more of:
-        resp_data
-        card_data
+    # -----------------------
+
+    def read_data_from_solo_file(self, fname):
+        """Using information stored in args_dict, try opening and reading
+        either the resp_file or card_file.  
+        
+        Returns two objects: an int (0 if all went well, else
+        nonzero), and the 1D time series array.
 
         """
 
-        fname      = args_dict['phys_file']
-        D          = args_dict['phys_json_dict']
-        samp_freq  = args_dict['freq']
+        # read in data
+        all_col = self.read_and_check_data_file(fname)
+        arr     = self.extract_list_col(all_col, 0) 
+
+        return 0, arr
+
+    def read_data_from_phys_file_and_json(self):
+        """Read physio file and json combo, and try to extract any physio
+        columns of data there.  Fill in a data_dict, whose keys are
+        the labels of the physio data, and whose values are the 1D
+        arrays of each time series. 
+
+        Returns 2 objects: an int (0 is success, nonzero is fail) and
+        the data_dict.
+
+        """
+
+        fname      = self.args_dict['phys_file']
+        D          = self.args_dict['phys_json_dict']
+        samp_freq  = self.args_dict['freq']
         all_col    = self.read_and_check_data_file(fname)
-        USE_COL    = 0
+
+        # our object to populate, with key=label and value=time_series info
+        data_dict = {}
 
         if 'respiratory' in D['Columns'] :
             if self.verb:
-                print("++ Reading _resp_ data from {}".format(fname))
-            USE_COL+= 1
-            idx = D["Columns"].index('respiratory')
-            arr = self.extract_list_col(all_col, idx)
-            arr2, nrem = \
-                check_and_remove_arr_values(arr, 
-                                            bad_vals=self.remove_val_list,
-                                            verb=self.verb)
-            arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr2, 
-                                          bad_nums=self.extra_fix_list,
-                                          outliers_bad=self.do_fix_outliers,
-                                          verb=self.verb)
-            # if fixing is needed, put copy of orig as ts_unfilt
-            if nfix :    ts_unfilt = copy.deepcopy(arr)
-            else:        ts_unfilt = None
+                print("++ Reading resp data from:\n   {}".format(fname))
 
-            self.resp_data = phys_ts_obj(arr_fixed, 
-                                         samp_freq = samp_freq,
-                                         label='resp', fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_resp']/60.,
-                                         max_bps = args_dict['max_bpm_resp']/60.,
-                                         start_time = args_dict['start_time'],
-                                         maxDisplayRawDataLen = 
-                                           args_dict['maxDisplayRawRespDataLen'],
-                                         maxDisplaySampleFreq = 
-                                           args_dict['maxDisplayRespSampleFreq'],
-                                         verb=self.verb)
+            # read in data
+            idx = D["Columns"].index('respiratory')
+            data_dict['resp'] = self.extract_list_col(all_col, idx)
+
         if 'cardiac' in D['Columns'] :
             if self.verb:
-                print("++ Reading _card_ data from {}".format(fname))
-            USE_COL+= 1
-            idx = D["Columns"].index('cardiac')
-            arr = self.extract_list_col(all_col, idx)
-            arr2, nrem = \
-                check_and_remove_arr_values(arr, 
-                                            bad_vals=self.remove_val_list,
-                                            verb=self.verb)
-            arr_fixed, nfix = \
-                check_and_fix_arr_badness(arr2, 
-                                          bad_nums=self.extra_fix_list,
-                                          outliers_bad=self.do_fix_outliers,
-                                          verb=self.verb)
-            # if fixing is needed, put copy of orig as ts_unfilt
-            if nfix :    ts_unfilt = copy.deepcopy(arr)
-            else:        ts_unfilt = None
+                print("++ Reading card data from:\n   {}".format(fname))
 
-            self.card_data = phys_ts_obj(arr_fixed, 
-                                         samp_freq = samp_freq,
-                                         label='card', fname=fname, 
-                                         ts_unfilt = ts_unfilt,
-                                         min_bps = args_dict['min_bpm_card']/60.,
-                                         max_bps = args_dict['max_bpm_card']/60.,
-                                         start_time = args_dict['start_time'],
-                                         maxDisplayRawDataLen = 
-                                           args_dict['maxDisplayRawCardDataLen'],
-                                         maxDisplaySampleFreq = 
-                                           args_dict['maxDisplayCardSampleFreq'],
-                                         verb=self.verb)
-        if not(USE_COL) :
+            # read in data
+            idx = D["Columns"].index('cardiac')
+            data_dict['card'] = self.extract_list_col(all_col, idx)
+
+        if not(len(data_dict)) :
             print("** ERROR: could not find any columns in {} that were "
                   "labelled like data".format(fname))
-            sys.exit(7)
+            return 1, {}
 
+        return 0, data_dict
 
     def extract_list_col(self, all_col, idx):
         """For data that has been read in as a list of lists, extract the
@@ -444,15 +704,10 @@ regressors for MRI data.
         check_end_time_phys_ge_final_slice(...) for a more official one.
         """
 
-        if label=='resp' :
-            if not(self.have_resp) : return False
-            phys_end_time = self.resp_data.end_time
-        elif label=='card' :
-            if not(self.have_card) : return False
-            phys_end_time = self.card_data.end_time
-        else:
-            print("+* ERROR: Unrecognized label '{}'".format(label))
+        if not(self.have_label(label)) :
             return False
+
+        phys_end_time = self.data[label].end_time
 
         if phys_end_time < self.duration_vol :
             return False
@@ -467,38 +722,92 @@ regressors for MRI data.
         continue with the calculation.
         """
 
-        if label=='resp' :
-            if not(self.have_resp) : return False
-            phys_end_time = self.resp_data.end_time
-        elif label=='card' :
-            if not(self.have_card) : return False
-            phys_end_time = self.card_data.end_time
-        else:
-            print("+* ERROR: Unrecognized label '{}'".format(label))
+        if not(self.have_label(label)) :
             return False
+        
+        # just shorter names
+        start_time    = self.start_time
+        phys_end_time = self.data[label].end_time
+        mri_end_time  = self.vol_final_slice_time
 
-        if phys_end_time < self.vol_final_slice_time :
-            print("** -- Final duration problem -- ")
-            print("   physio end time      : ", phys_end_time)
-            print("   final MRI slice time : ", self.vol_final_slice_time)
+        print("++ Start time physio ({}) : {:0.6f}".format(label, start_time))
+        print("++ End times of physio ({}) and MRI:".format(label))
+        print("   physio end time      : {:0.6f}".format(phys_end_time))
+        print("   final MRI slice time : {:0.6f}".format(mri_end_time))
+
+        if phys_end_time < mri_end_time :
+            print("** -- Final duration problem ({}) -- ".format(label))
             return False
         else:
             return True
+
+    def have_label(self, label):
+        """Do we appear to have a 'label' data obj?"""
+
+        if label not in list(self.data.keys()):
+            print("+* WARN: label '{}' does not appear in data dict"
+                  "".format(label))
+            return False
+        else: 
+            return self.data[label] != None
+
+    def prefilt_winwid(self, label):
+        """If prefiltering the card/resp (=label) time series (e.g. with a
+        median filter), convert the specified window size (units of
+        sec) to n time points; at this point, the time series should
+        be at its original time sampling resolution still.  Return
+        integer, min=1."""
+
+        winwid = int(np.ceil(self.init_samp_freq * self.prefilt_win[label]))
+        winwid = max(winwid, 1)
+
+        wtxt = ''
+        if   winwid < 5 :                      wtxt = 'small'
+        elif winwid >= self.init_samp_freq :   wtxt = 'big'
+
+        if wtxt :
+            print("+* NB: {} data prefilter window size is {} "
+                  "({} time points), because\n"
+                  "       data samp freq = {} Hz\n"
+                  "       prefilt window = {} s\n"
+                  "   Are you sure that's what you want?"
+                  "".format(label, wtxt, winwid, 
+                            self.init_samp_freq, self.prefilt_win[label]))
+        return winwid
+
+    # ----------
+    
+    @property
+    def step_downsamp(self):
+        """Downsampling factor from original sampling freq to what user has
+        set as limit; return 0 or 1 means no downsampling, via
+        different mechanisms."""
+        if self.prefilt_max_freq <= 0 :
+            # nothing to do
+            return 0
+        elif self.init_samp_freq < self.prefilt_max_freq :
+            # nothing to do, and let user know
+            print("++ No downsampling needed: "
+                  "data sampling ({} Hz) < limit sampling freq ({} Hz)"
+                  "".format(self.init_samp_freq, self.prefilt_max_freq))
+            return 1
+        else:
+            # take every step-th value (min step=1)
+            step = int(np.ceil(self.init_samp_freq / self.prefilt_max_freq))
+            return max(step, 1)
+
+    @property
+    def freq_downsamp(self):
+        """Calc frequency after physio sampling frequency after prefilter
+        downsampling."""
+        
+        step = self.step_downsamp
+        return self.init_samp_freq / step
 
     @property
     def n_slice_times(self):
         """Length of volumetric slice times list."""
         return len(self.vol_slice_times)
-
-    @property
-    def have_card(self):
-        """Do we appear to have a card obj?"""
-        return self.card_data != None
-
-    @property
-    def have_resp(self):
-        """Do we appear to have a resp obj?"""
-        return self.resp_data != None
 
     @property
     def duration_vol(self):
@@ -623,7 +932,7 @@ arr_out : np.ndarray (1D)
         print("   [{:5.2f} %ile]  = {:.3f}".format(out_perc[1], ran_top))
         print("   inlier range  = [{:.3f}, {:.3f}]"
               "".format(out_bnd_bot, out_bnd_top))
-        print("++ Number of outliers found: {}".format(nout))
+        print("++ Number of outliers found  : {}".format(nout))
 
     return arr_out
 
@@ -659,7 +968,7 @@ true_ind_strk_max : int
     Ntrue    = len(true_ind)
 
     if verb :
-        print("++ Total num of 'bad' values  : {}".format(Ntrue))
+        print("++ Total num of 'bad' values : {}".format(Ntrue))
 
     # special cases: Ntrue <=1
     if not(Ntrue) :    
@@ -804,8 +1113,7 @@ nrem : int
 
     return x_fixed, nrem
 
-ALL_fix_method = [ 'interp_linear',
-]
+# ---------------------------------------------------------------------
 
 def check_and_fix_arr_badness(x, thr_nbad=None, thr_bad_strk=None,
                               fix_method='interp_linear',

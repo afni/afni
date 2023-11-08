@@ -21,16 +21,6 @@
             variance in linear model. Ratio of variance with/without regressors)
             - Does it explain more of the variance in the data (which would be 
               a good thing) - (Permanent item)
-        - Lags.  Number of lags.  Direction and size
-            - Add -oldRVT (current retroicorTaylor) option, and ability to flip 
-               RVT direction
-            - Add RVT_lags option with 3 parameters:
-                - (Relative (to onset of aqcuisition)) start time.  Beginning
-                   of leftmost shift.  (Earliest time - currently -20 but is 
-                   supposed) to be zero.  Currently beginning of -20 but ends at 0
-                   due to 4 intervals of 5 seconds
-                - (Relative) end time
-                - # RVTs
         - Convolve RVT with some function using physiological regressors (Catie 
           Chang)
         - Get percentage of variance accounted for by cardio
@@ -60,39 +50,140 @@
         - EPI data set (Being used in afni_proc.py command)
         - Large smoothing to find peaks and troughs
         - Small smoothing to remove outliers
+        - lags with RVT
 """
 
-import sys
-import lib_physio_opts    as lro
-import lib_physio_reading as lrr
-import lib_physio_proc as lrp
-import lib_physio_outObj as RETO
-# import lib_physio_logs    as lpl
+import sys, os
+import copy
+
+from afnipy import lib_physio_opts    as lpo
+from afnipy import lib_physio_reading as lpr
+from afnipy import lib_physio_logs    as lpl
+from afnipy import lib_physio_funcs   as lpf
+from afnipy import lib_physio_regress as lpreg
+from afnipy import lib_physio_plot    as lpplt
+
+# ===========================================================================
+
+def main():
+
+    return 0
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ================================ main =====================================
 
 if __name__ == "__main__":
 
-    # Process the command line options. Leads to one of:
+    # ----------------------- proc cmd line opts ----------------------------
+
+    # Leads to one of:
     # + a quick but OK exit (disp help, ver, opt list, etc.)
     # + getting a dict of checked opts for the program
     # + error exit :(
-    args_dict = lro.main_option_processing( sys.argv )
+    args_orig = copy.deepcopy(sys.argv)
+    args_dict = lpo.main_option_processing( sys.argv )
 
-    test_retro_obj = lrr.retro_obj(args_dict)
-    
-    physiologicalNoiseComponents = lrp.getPhysiologicalNoiseComponents(test_retro_obj)
-    if len(physiologicalNoiseComponents) == 0:
-        print('*** Error in retro_ts.  Failure to get physiological ' + \
-              'noise components')
-        sys.exit()
+    # --------------------- organize/check/combine ---------------------------
 
-    if RETO.outputInNimlFormat(physiologicalNoiseComponents, test_retro_obj):
-        print('** ERROR outputting SliBase file')
-        sys.exit()
-        
-    # Output logs
-    # lpl.save_peaks_troughs_file_1D(test_retro_obj)
+    # build the foundation objects: make main 'retro' object from
+    # processing input options, checking to see if all necessary info
+    # is present, and combining it as necessary
+    retobj  = lpr.retro_obj( args_dict, args_orig=args_orig )
+    verb    = retobj.verb
+
+    # --------------------- make output directory ----------------------------
+
+    ### !!! do more about checking for preexisting/overwrite
+    if os.path.isdir(retobj.out_dir) :
+        print("+* WARN: output directory exists already---just reusing here.")
+    else:
+        print("++ Making output directory:", retobj.out_dir)
+        os.mkdir(retobj.out_dir)
+
+    # save original command line opts (and the set of parsed opts) to
+    # a log file in output dir
+    tmp1 = lpl.save_cmd_orig(retobj)
+    tmp2 = lpl.save_cmd_opts_parsed(retobj)
+
+    # ---------------------- physio-MRI timing selection ---------------------
+
+    # Set up timing selection matrices, for slicewise regressors
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
+
+    # Set up timing for RVT time series
+    label = 'resp'
+    if retobj.data[label] :
+        lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+
+    # ------------- Process any card/resp/etc. time series ------------------
+
+    # Peak and trough estimation
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpf.calc_time_series_peaks( retobj, label=label, verb=verb )
+
+    # save/write out peaks/troughs, if user asks
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
+
+
+    # Phase estimation, which uses very diff methods for card and resp
+    # processing.
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpf.calc_time_series_phases( retobj, label=label, verb=verb )
+
+    # RVT time series estimation (prob just for resp)
+    label = 'resp'
+    if retobj.data[label] :
+        lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
+
+    # ------------- Calculate regressors ------------------
+
+    # Regressors, for all physio inputs
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpf.calc_regress_phys( retobj, label=label, verb=verb )
+
+    ### Comment: after this step, here is an example of the physio
+    ### regressors being stored:
+    # retobj.data["resp"].regress_dict_phys["c2"][4][1]
+    # -> for the 'resp' physio time series, "c2" means cos() with m=2, 
+    #    and 4 means the [4]th slice, and [1] means the actual regression
+    #    time series (the [0] in the last bracket would point to a label)
+
+    # make a plot of the physio regressors
+    lpplt.plot_regressors_phys(retobj)
+
+    # Regressors, for RVT time series (plot is made within this func)
+    label = 'resp'
+    if retobj.data[label] :
+        lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+
+    # ------------- Write out regressors ------------------
+
+    lpreg.write_regressor_file(retobj)
+
+    # -------------------- log some of the results --------------------------
+
+    for label in lpf.PO_all_label:
+        if retobj.data[label] :
+            lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
 
     print("++ DONE.  Goodbye.")

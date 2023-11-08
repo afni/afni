@@ -172,9 +172,19 @@ here."""
     
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    D['ts_orig num points']     = str(phobj.n_ts_orig)
-    D['ts_orig sampling rate']  = str(phobj.samp_rate)
+    D['read_in sampling freq']  = str(phobj.prefilt_init_freq)
+    D['prefilt mode']           = str(phobj.prefilt_mode)
+    if phobj.prefilt_mode != None and phobj.prefilt_mode != 'none' :
+        D['prefilt window, sec'] = str(phobj.prefilt_win)
+    else:
+        D['prefilt window, sec'] = 'NA'
+    D['is user interact on?'] = str(phobj.do_interact)
+    
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
     D['ts_orig sampling freq']  = str(phobj.samp_freq)
+    D['ts_orig sampling rate']  = str(phobj.samp_rate)
+    D['ts_orig num points']     = str(phobj.n_ts_orig)
     D['ts_orig start time']     = str(phobj.start_time)
     D['ts_orig end time']       = str(phobj.end_time)
     D['ts_orig duration']       = str(phobj.duration_ts_orig)
@@ -186,7 +196,9 @@ here."""
     q25, q50, q75 = phobj.stats_quarts_peaks
     D['peaks min max'] = str("{:9.6f} {:9.6f}".format(minval, maxval))
     D['peaks mean std'] = str("{:9.6f} {:9.6f}".format(meanval, stdval))
-    D['peaks q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, q50, q75))
+    D['peaks q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, 
+                                                                  q50, 
+                                                                  q75))
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 

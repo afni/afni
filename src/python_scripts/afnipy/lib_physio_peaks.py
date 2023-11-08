@@ -1,1600 +1,793 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug 25 14:46:15 2022
+#!/usr/bin/env python
 
-@author: peterlauren
+import os, sys
+import copy
+import numpy  as np
+from   scipy  import signal as sps
+from   afnipy import lib_physio_plot as lpplt
+from   afnipy import lib_physio_util as lpu
 
-Peak detection is as follows.
-1. Non-numeric (NaN) data in the input is identified and the gap replaced by a
-   inear interpolation from the adjacent valid entries.
-2. The remaining data is bandpass filtered as follows.
-    a. The data is Fourier transformed to FT.
-    b. The harmonic frequency unit, F0, is determined as the sampling frequency 
-       (Hz) divided by the raw data length.
-    c. The lower cutoff index, fmin, is the rounded quotient of the postulated 
-       minimum number of beats, or breaths, per second divided by F0.
-    d. Find the peak, indexed fp, between fmin and the Nyquist frequency.
-    e. Find the bounds, around the peak, based on -3 dB limits.  The lower bound
-       is constrained to be at ≤ fp/2 and the upper bound constrained to be ≥ 
-       1.5fp.
-    f. FT⟶0 outside these bounds but unchanged within.
-    g. An inverse FT obtains the BP filtered signal.
-3. Initial peaks found using the Python function scipy.signal.findpeaks with a 
-       (smoothing window) width of 0.025 seconds.
-4. Adjust peaks to account for non-uniform spacing.  Step 3 gives estimates of 
-      the peak locations.  A gradient ascent peak search is done around each of 
-      these estimates.
-5. Remove peaks < the required percentile (typically 70th) of the local input 
-      signal.
-6. Merge peaks closer than a quarter of the overall typical period.
-7. Remove peaks that are less than the raw input a quarter of a period on either
-      side.  
-8. Remove peaks < a quarter as far from the local minimum to the adjacent peaks.
-9. Add missing peaks based on breaks in the periodicity.
-10. Repeat step 7.
-The following steps are subsequently done for the respiratory data.
-11. Troughs initially found as peaks in the inverted bandpass filtered signal.
-12. Repeat steps 4-10 with lower thresholds, for peaks, replaced by upper 
-       thresholds for troughs.
-13. Remove peaks/troughs that are also troughs/peaks.
-14. Add missing peaks and troughs based on outliers in the interpeak, and 
-       intertrough, intervals and refining estimated peak locations using 
-       gradient ascent/descent.
+def bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
+                                                 min_bps, max_bps=None,
+                                                 label='', retobj=None,
+                                                 verb=0):
+    """Band pass filter raw data based on overall typical period of the
+time series, and also return the peak (mode) of freq between [1,
+Nyquist] in units of indices.
 
-"""
+If retobj is included, then a plot of the FT frequencies can be
+created.
 
-import numpy             as np
-import matplotlib.pyplot as plt
-import bisect
-import lib_retro_graph as lrg
+Parameters
+----------
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+samp_freq : float
+    sampling frequency (units of Hz) of the time series
+min_bps : int or float
+    Minimum number of beats (or breaths) per second
+max_bps : int or float
+    Maximum number of beats (or breaths) per second; if not entered, just
+    constrain with Nyquist estimate
+label : str
+    label for the time series, like 'card' or 'resp'
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
 
-def percentileFilter(peaks, rawData, test_retro_obj, lrp, percentile = 10, 
-        upperThreshold=False, phys_fs = None, dataType = "Cardiac", 
-        show_graph = False, save_graph = True, OutDir = None, font_size = 10):
+Returns
+-------
+x : np.ndarray
+    1D Python array (real/float values), the time series that has been 
+    filtered
+idx_freq_peak : int
+    index of the peak/mode frequency in the filter here, which might be
+    used later as the index of the "typical" frequency.
+
     """
-    NAME
-        percentileFilter
-            Filter peaks based on percentile of raw data
-            
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                 indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        percentile: (dType = float) Minimum (or maximum) percentile of raw data 
-                 for a peak value to imply a valid peak (or trough)
-                            
-        upperThreshold: (dType = bool) Whether the threshold is the maximum 
-                        acceptable value.  Default is False meaning it is the 
-                        minimum acceptable value
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to 
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (np.isnan(np.sum(rawData))):
-        print('*** ERROR in percentileFilter: nan values in data: ')
+
+    if (np.sum(np.isnan(x))) :
+        print('** ERROR in bandPassFilterRawDataAroundDominantFrequency: ' 
+              'nan values in data')
         return []
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if'+
-              ' graphing required')
-  
-    # Get peak values
-    peakVals = []
-    for i in peaks: peakVals.append(rawData[i])
-    
-    # Remove peaks that are less than the the required percentile of the input 
-    # signal
-    threshold = np.percentile(rawData, percentile)
-    if upperThreshold: peaks = peaks[peakVals <= threshold]    
-    else: peaks = peaks[peakVals >= threshold]
-            
-    # Graph (and save) results as required
-    if show_graph or save_graph:
-        if upperThreshold:
-           Caption = 'Filter ' + dataType + \
-               ' troughs based on percentile of raw data.'
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
-                phys_fs, dataType, troughs = peaks,
-                OutDir = OutDir, prefix = dataType + 
-                    'PctlFilt', 
-                caption = Caption,
-                font_size = font_size)
-        else:
-           Caption = 'Filter ' + dataType + \
-               ' peaks based on percentile of raw data.'
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-                phys_fs, dataType, 
-                OutDir = OutDir, prefix = dataType + 'PctlFilt', 
-                caption = Caption,
-                font_size = font_size)
 
-        processName = 'RawDataPercentileFiltered'
-        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                      test_retro_obj, lrp, saveGraph = save_graph, 
-                      showGraph = show_graph, Troughs = upperThreshold)
+    N = len(x)
 
-    return peaks
+    # Determine frequency step unit along freq axis (in Hz)
+    delta_f = samp_freq/N
 
-def localPercentileFilter(peaks, rawData, percentile, test_retro_obj, lrp,
-            period=None, numPeriods=4, upperThreshold=False, show_graph = False, 
-            save_graph = True, phys_fs = None, dataType = "Cardiac", 
-            OutDir = None, font_size = 10):
+    # Determine Nyquist index: ceil(N/2)
+    idx_ny = N // 2 + N % 2
+
+    # Get bottom cutoff index (as int)
+    idx_min = round(min_bps/delta_f)
+    # Get top cutoff index (as int): constrain by both user max and
+    # Nyquist
+    if max_bps == None :
+        idx_max = idx_ny
+    else:
+        idx_max = min(round(max_bps/delta_f), idx_ny)
+
+    # Get Fourier transform and magnitude series
+    X    = np.fft.fft(x)
+    Xabs = np.abs(X)
+
+    # Index and phys freq of peak freq
+    idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
+    freq_peak = idx_freq_peak * delta_f
+
+    print('++ For ' + label + ' data, bandpass filter frequency peak: '
+          '{:.6f} Hz'.format(freq_peak))
+
+    # Find bounds based on -3 dB limits (half peak)
+    val_peak    = Xabs[idx_freq_peak]
+    val_hpeak   = val_peak/2.0
+
+    # [PT] use idx=1 as minimum here in the range() and for default
+    # lowerMin, not 0, because that would be mean of time series,
+    # which is not what we want
+    leftIndices = [i for i in range(1, idx_freq_peak) if Xabs[i] < val_hpeak]
+    if not(len(leftIndices)):    lowerMin = 1 # 0
+    else:                        lowerMin = max(leftIndices)
+
+    rightIndices = [i for i in range(idx_freq_peak, idx_ny) \
+                    if Xabs[i] < val_hpeak]
+    if not(len(rightIndices)) :  lowerMax = idx_ny-1
+    else:                        lowerMax = min(rightIndices)
+
+    # Avoid filter being too narrow
+    lowerMin = min(round(idx_freq_peak/2), lowerMin)
+    lowerMax = max(round(1.5*idx_freq_peak), lowerMax)
+
+    # Determine band limits
+    upperMin = N - lowerMax
+    upperMax = N - lowerMin
+
+    if verb :
+        print("++ Report on Fourier peak filtering")
+        print("   Total number of time points:", N)
+        print("   Lower bound range: [{}, {}]".format(lowerMin, lowerMax))
+        print("   Upper bound range: [{}, {}]".format(upperMin, upperMax))
+        print("   Filtering being:")
+
+    # Zero part of FT outside limits
+    filterArray = np.zeros(N, dtype=float)
+    filterArray[lowerMin:lowerMax] = 1.0
+    filterArray[upperMin:upperMax] = 1.0
+    Xfilt = X * filterArray
+
+    # IFT (of which real part should be everything, as long as filter
+    # was symmetric)
+    xfilt = np.real(np.fft.ifft(Xfilt))
+
+    # ---- done with work, but can save also FT freq magn
+    if retobj != None and retobj.img_verb > 1 :
+        odir      = retobj.out_dir
+        prefix    = retobj.prefix
+        lab_title = 'Frequency magnitude spectrum, with bandpassing'
+        lab_short = 'bandpass_spectrum'
+        
+        fname, title = lpu.make_str_bandpass(label,
+                                             lab_title, lab_short, 
+                                             prefix=prefix, odir=odir)
+        lpplt.makefig_ft_bandpass_magn(X, Xfilt,
+                                       delta_f, idx_ny,
+                                       idx_freq_peak=idx_freq_peak,
+                                       title=title, fname=fname,
+                                       label=label,
+                                       retobj=retobj,
+                                       verb=verb)
+
+    return xfilt, idx_freq_peak
+
+def get_peaks_from_bandpass(x, samp_freq, min_bps, max_bps=None, 
+                            width_fac=4, label='', retobj=None, verb=0):
+    """Use bandpassing to smooth out the time series, and then search for
+peaks in what remains as a first pass.  The art of this is picking a
+good band to apply.  Here, we look for a major peak above the
+(extended) baseline peak, and roll with that.  The min_bps and max_bps
+provide useful guard rails for this process.  Additionally, the
+width_fac feature is used within the Scipy peak finding function
+function
+
+Parameters
+----------
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+samp_freq : float
+    sampling frequency (units of Hz) of the time series
+min_bps : int or float
+    Minimum number of beats (or breaths) per second
+max_bps : int or float
+    Maximum number of beats (or breaths) per second; if not entered, just
+    constrain with Nyquist estimate
+width_fac : int/float
+    parameter/number by which to scale the samp_fac; the int() of the
+    resulting ratio defines the 'width' param in sps.find_peaks();
+    default was simply used in original program formulation
+label : str
+    label for the time series, like 'card' or 'resp'
+
+Returns
+-------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+idx_freq_mode : int
+    index of the peak/mode frequency in the filter here, which might be
+    used later as the index of the "typical" frequency.
+xfilt : np.ndarray
+    1D Python array (float values) of the bandpass filtered input time
+    series
+
     """
-    NAME
-        localPercentileFilter
-            Filter peaks based on local percentile of raw data
-            
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                                       indices.
-        
-        rawData: (array, dType = float) Raw input data
-        
-        percentile: (dType = float) Minimum (or maximum) percentile of raw data 
-                    for a peak value to imply a valid peak (or trough)
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-                            
-        period: (dType = NoneType) Overall typical period of raw data in time 
-                series index units. Default is none, meaning the period is 
-                determined from the raw data.
-        
-        numPeriods: (dType = int) Number of periods defining the local 
-                                  neighborhood over which the percentile is 
-                                  determined.  Default is 4.
-                            
-        upperThreshold: (dType = bool) Whether the threshold is the maximum 
-                        acceptable value.  Default is False meaning it is the 
-                        minimum acceptable value
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to 
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
+
+    # Bandpass filter raw data, and also get idx of peak freq mode
+    # within range filtered
+    xfilt, idx_freq_mode \
+        = bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
+                                                       min_bps, 
+                                                       max_bps=max_bps,
+                                                       label=label, 
+                                                       retobj=retobj,
+                                                       verb=0)
+    if len(xfilt) == 0:
+       print("** ERROR: Failed to band-pass filter '{}' data".format(label))
+       return []
+
+    # --- Get initial peaks of bandpassed time series
+
+    # We *could* the mode of the bandpassed ts (idx_freq_mode) to put
+    # a minimum-distance requirement on peaks, or use sampling
+    # frequency to determine a min peak width
+    delta_f = retobj.data[label].ft_delta_f            # FT freq step, in Hz
+    phys_freq_mode = idx_freq_mode * delta_f           # FT peak freq, in Hz
+    min_dist_idx = int(0.5 * phys_freq_mode / delta_f) # min interval bt pks
+    width = int(samp_freq / width_fac)                 # earlier approach
+
+    # for now, don't use extra parameters here (such as: distance =
+    # min_dist_idx, width = width); different oddities can happen.
+    peaks, _ = sps.find_peaks(xfilt) 
+
+    # listify
+    peaks = list(peaks)
+
+    return peaks, idx_freq_mode, xfilt
+
+# ---------------------------------------------------------------------------
+
+def refinePeakLocations(peaks, x, is_troughs = False, 
+                        window_scale = 0.25, window_size = None,
+                        verb=0):
+    """Adjust peaks to correspond to local maxima.  This is usually
+necessary if the peaks were determined from a band-pass filtered
+version of the input raw data where the peaks are uniformly spaced
+based on the overall typical period of raw data.
+
+This basically takes each input peak, makes a plus/minus window around
+it, and finds the local max (or min, for troughs) in x there; the peak
+shifts to that new location. Output number of peaks matches input
+number.
+
+If window_size is None (default), use the median of peaks as the base
+window size (scaled then by window_scale).  For local refinement, one
+might want to first calculate the median interpeak interval across
+*all* peaks, but input just a mini-list of locations while providing
+that full-set interval as window_size (which will still be scaled by
+window_scale).
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+window_scale : float
+    factor to scale the peak-searching window; the window is the 
+    median(inter-peak interval)*window_scale
+window_size : float
+    size of window (which will be scaled by window_scale) within 
+    which to refine.  Typically None, unless one enters a subset of 
+    peaks to refine (whose median might not be trustworthy)
+is_troughs: bool
+    are we processing peaks or troughs here?
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
     """
-    
-    if (np.isnan(np.sum(rawData))):
-        print('*** ERROR in localPercentileFilter: nan values in data: ')
+
+    # check for min number of peaks
+    if len(peaks) < 1 :
+        print("** No peaks to start with for refinement!")
         return []
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-        return peaks
-    
-    # Estimate period from raw data if not supplied
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
-  
-    # Get peak values
-    peakVals = []
-    for i in peaks: peakVals.append(rawData[i])
-    
-    # Determine local percentil-based threshold around each peak
-    halfWindowWidth = round(period * numPeriods/2)
-    upperLimit = len(rawData) - 1
-    thresholds = []
-    for peak in peaks:
-        Min = max(0,peak - halfWindowWidth)
-        Max = min(upperLimit,peak + halfWindowWidth)
-        thresholds.append(np.percentile(rawData[Min:Max], percentile))
 
-    # Apply local percentile filter
-    if upperThreshold: peaks = peaks[np.array(peakVals) <= np.array(thresholds)]
-    else: peaks = peaks[np.array(peakVals) >= np.array(thresholds)]
-    if (show_graph or save_graph) and phys_fs:
-       Caption =  'Filter ' + dataType + ' peaks based on local percentile of raw data.'
-       graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'LocalPctlFilt', 
-            caption = Caption,
-            font_size = font_size)
-            
-       # Graph (and save) results as required
-       # filePrefix = dataType + 'PeaksLocallyPctlFiltered_v2'
-       processName = 'LocallyPctlFiltered'
-       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                     test_retro_obj, lrp, saveGraph = save_graph, 
-                     showGraph = show_graph)
-       
-    return peaks
+    N      = len(x)
+    Npeaks = len(peaks)
+    opeaks = []                # init output
 
-
-def getTimeSeriesPeriod(rawData, minFrequency=1):
-     """
-     NAME
-         getTimeSeriesPeriod
-             Get overall typical period (s) of raw data in time series index 
-             units          
-     TYPE
-          <class 'numpy.float64'>
-     ARGUMENTS
-         rawData: (array dType = float64) Raw cardiac data
-         
-         minFrequency: (dType = int) Minimum frequency (Hz) to be considered.  
-                                     Default = 1
-     AUTHOR
-         Peter Lauren
-     """
-    
-     if (np.isnan(np.sum(rawData))):
-        print('*** ERROR in getTimeSeriesPeriod: nan values in data: ')
-        return -1
-    
-     # Note that nan values are removed from the input raw values
-     limit = round(len(rawData)/2) # Frequency limit is Nyquist frequency
-     validRawData = rawData
-     FourierSpectrum = abs(np.fft.fft(validRawData))
-     selectedFourerSpectrum = FourierSpectrum[minFrequency:limit]
-     F0 = len(rawData)  # Length of Fourier spectrum
-     frequencyModeIndex = minFrequency+np.argmax(selectedFourerSpectrum)
-     return  F0/frequencyModeIndex
-
- 
-def removePeaksCloseToHigherPointInRawData(peaks, rawData, test_retro_obj, lrp, 
-        direction='right', portion=0.25, period=None, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
-        font_size = 10):
-    """
-    NAME
-        removePeaksCloseToHigherPointInRawData
-            Remove peaks with values less than the maximum raw input data in a 
-            specified portion of the overall period of the input data, from the 
-            peak, in the specified direction            
-     TYPE
-         <class 'numpy.ndarray'>
-     ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                                       indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        direction: (dType = str) Direction to look for higher point in raw data.  
-            Options are 'right' or 'left'.  Default = 'right'.  That is, it aims
-            to remove minor peaks on the rising side of a larger peak
-                            
-        portion: (dType = float) Portion of period that defines the offset from
-                 the peak.  Default is 0.25.  That is a quarter of the period
-            
-        period: (dType = numpy.float64) Overall period, in seconds,  of the raw 
-            data if known.  The default is that this is not supplied and is 
-            estimated by the function
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if len(peaks) == 0:
-        print('*** Error in removePeaksCloseToHigherPointInRawData:' + 
-              ' Peaks array empty')
-        return peaks
-    
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
-        
-    threshold = -(max(rawData) - min(rawData)) * 0.1
-        
-    searchLength = round(period * portion)
-    start = 0       # start and end are to handle peaks right at the beginning 
-                    #  or end of the input data
-    end = len(peaks)
-    if peaks[0] > 1:
-        searchLength = min(searchLength, peaks[0] - 1)
-    else:
-        searchLength = min(searchLength, peaks[1] - 1)
-        start = 1
-    if len(rawData) - peaks[-1] > 1:
-        searchLength = min(searchLength, len(rawData) - peaks[-1] - 1)
-    else:
-        searchLength = min(searchLength, len(rawData) - peaks[-2] - 1)
-        end = -1
-    diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) 
-            for x in peaks[start:end]]
-    if start > 0: diff.insert(0,0)
-    if end == -1: diff.append(0)
-    if len(diff) > 0: peaks = peaks[diff >= np.float64(threshold)]
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-        if direction=='right':
-            Caption = 'Remove ' + dataType + ' "peaks" less than the raw input a' + \
-                ' quarter of a period on right side.'
-            prefix = dataType + 'RemoveUpsideFalsePeaks'
-            caption = Caption
-        else:
-            Caption = 'Remove ' + dataType + ' "peaks" less than the raw input a' +\
-                ' quarter of a period on left side.'
-            prefix = dataType + 'RemoveDownsideFalsePeaks'
-            caption = Caption
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, dataType, OutDir = OutDir, prefix = prefix, 
-            caption = caption, font_size = font_size)
-   
-       # New graph format
-        if direction=='right':
-           processName = 'RemovedIfCloseToHigherRawDataJustToRight'
-        else:
-           processName = 'RemovedIfCloseToHigherRawDataJustToLeft'
-        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                      test_retro_obj, lrp, saveGraph = save_graph, 
-                      showGraph = show_graph)
-    
-    return peaks
-
-def removeTroughsCloseToLowerPointInRawData(troughs, rawData, test_retro_obj, 
-        lrp, direction='right', portion=0.25, period=None, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
-        font_size = 10):
-    """
-    NAME
-        removeTroughsCloseToLowerPointInRawData
-            Remove troughs with values greater than the minimum raw input data 
-            in a specified portion of the overall period of the input data, from
-            the peak, in the specified direction            
-     TYPE
-         <class 'numpy.ndarray'>
-     ARGUMENTS
-        troughs:   (array dType = numpy.int64) Array of trough locations in raw
-                                               data indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        direction: (dType = str) Direction to look for lower point in raw data.
-                   Options are 'right' or 'left'.  Default = 'right'.  That is,
-                   it aims to remove minor troughs on the falling side of a 
-                   deeper trough
-                            
-        portion: (dType = float) Portion of period that defines the offset from
-                 the peak.  Default is 0.25.  That is a quarter of the period
-            
-        period: (dType = numpy.float64) Overall period of the raw data if known.
-                The default is that this is not supplied and is estimated by the
-                function
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-    
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
-        
-    searchLength = round(period/4)
-    searchLength = min(searchLength, troughs[0] - 1)
-    searchLength = min(searchLength, len(rawData) - troughs[-1] - 1)
-    diff = [rawData[x] - max(rawData[x-searchLength:x+searchLength]) 
-            for x in troughs]
-    if len(diff) > 0: troughs = troughs[diff <= np.float64(0)]
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-        if direction=='right':
-            caption = 'Remove downstroke false ' + dataType + ' troughs.'
-            prefix = dataType + 'RemoveDownstrokeFalseTroughsFilt'
-        else: 
-            caption = 'Remove upstroke false ' + dataType + ' troughs.'
-            prefix = dataType + 'RemoveUpstrokeFalseTroughsFilt'
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], phys_fs, 
-            dataType, troughs = troughs, OutDir = OutDir, prefix = prefix, 
-            caption = caption, font_size = font_size)
-   
-       # New graph format
-        if direction=='right':
-           processName = 'RemovedIfCloseToLowerRawDataJustToRight'
-        else:
-           processName = 'RemovedIfCloseToLowerRawDataJustToLeft'
-        lrg.plotPeaks(rawData, troughs, OutDir, processName, caption, dataType, 
-                      test_retro_obj, lrp, saveGraph = save_graph, 
-                      showGraph = show_graph, Troughs = True)
-    
-    return troughs
-
-def removePeaksCloserToLocalMinsThanToAdjacentPeaks(peaks, rawData, 
-        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
-        save_graph = True, phys_fs = None, dataType = "Cardiac", OutDir = None, 
-        font_size = 10):
-    """
-    NAME
-        removePeaksCloserToLocalMinsThanToAdjacentPeaks
-            Remove peaks with values less than the maximum raw input data in a 
-            specified portion of the overall period of the input data, from the 
-            peak, in the specified direction            
-     TYPE
-         <class 'numpy.ndarray'>
-     ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                                       indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        denominator: (dType = float) Number by which to divide the current 
-                     amplitude to determine the lower threshold of the 
-                     accepitable peak value
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-        return peaks
-
-    # Get peak values
-    peakVals = []
-    for i in peaks: peakVals.append(rawData[i])
-           
-    # Remove peaks that are less than a quarter as far from the local minimum
-    # to the adjacent peaks
-    valleys = [((j-i)+(j-k))/2 
-               for i, j, k in zip(peakVals[:-1], peakVals[1:], peakVals[2:])]
-    fromLocalMin = [j-min(rawData[i:k]) 
-                for i, j, k in zip(peaks[:-1], peakVals[1:], peaks[2:])]
-    ratios = [i/j for i,j in zip(valleys,fromLocalMin)]
-    ratios.insert(0,0)
-    ratios.append(0)
-    threshold = np.float64(-denominator)
-    
-    peaks = peaks[ratios>threshold]
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-       Caption = 'Remove ' + dataType + ' peaks less than a quarter as far' + \
-           ' from local minimum to adjacent peaks.'
-       graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'RemovePeaksCloseToMinimum', 
-            caption = Caption,
-                font_size = font_size)
-   
-       # New graph format
-       processName = 'RemoveIfCloseToMinimum'
-       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                     test_retro_obj, lrp, saveGraph = save_graph, 
-                     showGraph = show_graph)
-    
-    return peaks
-
-def removeTroughsCloserToLocalMaxsThanToAdjacentTroughs(troughs, rawData, 
-        test_retro_obj, lrp, denominator=4.0, show_graph = False, 
-        save_graph = True, phys_fs = None,
-        dataType = "Cardiac", OutDir = None, font_size = 10):
-    """
-    NAME
-        removeTroughsCloserToLocalMaxsThanToAdjacentTroughs
-            Remove troughs with values greater than the minimum raw input data
-            in a specified portion of the overall period of the input data, 
-            from the trough, in the specified direction            
-     TYPE
-         <class 'numpy.ndarray'>
-     ARGUMENTS
-        troughs:   (array dType = numpy.int64) Array of trough locations in raw
-                                               data indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        denominator: (dType = float) Number by which to divide the current 
-                                     amplitude to determine the upper threshold
-                                     of the accepitable trough value
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('** WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              'if graphing required')
-
-    # Get trough values
-    troughVals = []
-    for i in troughs: troughVals.append(rawData[i])
-           
-    # Remove troughs that are less than a quarter as far from the local 
-    # maximum to the adjacent troughs
-    watersheds = [((j-i)+(j-k))/2 for i, j, k in zip(troughVals[:-1], 
-                                            troughVals[1:], troughVals[2:])]
-    fromLocalMax = [j-max(rawData[i:k]) for i, j, k in zip(troughs[:-1], 
-                                            troughVals[1:], troughs[2:])]
-    ratios = [i/j for i,j in zip(watersheds,fromLocalMax)]
-    ratios.insert(0,0)
-    ratios.append(0)
-    threshold = np.float64(4.0)
-    troughs = troughs[ratios<threshold]
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-        Caption = 'Remove ' + dataType + \
-            ' troughs closer to local max than to adjacent troughs.'
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
-             phys_fs, dataType, troughs = troughs,
-             OutDir = OutDir, 
-             prefix = dataType + 
-                 'removeTroughsCloserToLocalMaxThanAdjacentTroughs', 
-             caption = Caption,
-             font_size = font_size)
-   
-        # New graph format
-        processName = 'RemoveIfCloserToLocalMaxThanToAdjacentTroughs'
-        lrg.plotPeaks(rawData, troughs, OutDir, processName, Caption, dataType, 
-                      test_retro_obj, lrp, saveGraph = save_graph, 
-                      showGraph = show_graph, Troughs = True)
-    
-    return troughs
-
-def estimateSamplingFrequencyFromRawData(rawData, expectedCyclesPerMinute=70):
-    """
-    NAME
-        estimateSamplingFrequencyFromRawData
-            Estimate sampling frequency (Hz) from raw data based on expected 
-            cycles per minute            
-    TYPE
-       <class 'numpy.float64'>
-    ARGUMENTS
-       peaks: (array dType = int64) Array of peak locations in raw data indices.
-        
-        expectedCyclesPerMinute: (dType = int) Expected number of cycles (heart
-            beats, breaths) per minute based on input data type
-    AUTHOR
-        Peter Lauren
-    """
-    
-    return (getTimeSeriesPeriod(rawData)*60)/expectedCyclesPerMinute
-
-def removeOverlappingPeaksAndTroughs(peaks, troughs, rawData, 
-        test_retro_obj, lrp,
-        show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None, font_size = 10):
-    """
-    NAME
-        removeOverlappingPeaksAndTroughs
-            Identify peaks that are also troughs and decide what each one should
-            be (one or the other).
-     TYPE
-         <class 'numpy.float64'>, <class 'numpy.float64'>
-     ARGUMENTS
-        peaks: (array dType = int64) Array of peak locations in raw data indices
-        
-        troughs:   (array dType = numpy.int64) Array of trough locations in raw 
-                                               data indices.
-        
-        rawData: (array, dType = float) Raw input data
-                                
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    RETURNS
-        filtered peaks, filtered troughs
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              'if graphing required')
-        
-    numPeaks = len(peaks)
-    lastPeak = numPeaks - 1
-    numTroughs = len(troughs)
-    lastTrough = numTroughs - 1
-    
-    peaksToDelete = []
-    troughsToDelete = []
-    for peakIndex in range(0,numPeaks):
-        if peaks[peakIndex] in troughs:
-            troughIndex = np.argwhere(troughs == peaks[peakIndex])[0]
-            if (peakIndex > 0 and troughIndex > 0) or peakIndex == lastPeak or\
-                    troughIndex == lastTrough: 
-                if peaks[peakIndex - 1] > troughs[troughIndex - 1]:
-                    peaksToDelete.append(peakIndex)
-                else: troughsToDelete.append(troughIndex)
-            else: 
-                if peaks[peakIndex + 1] < troughs[troughIndex + 1]:
-                    peaksToDelete.append(peakIndex)
-                else: troughsToDelete.append(troughIndex)
-                
-    peaks = np.delete(peaks,peaksToDelete)
-    troughs = np.delete(troughs,troughsToDelete)
-    
-    if (show_graph or save_graph) and phys_fs:
-        Caption = 'Remove overlapping ' + dataType + ' peaks and troughs.'
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-             phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
-             prefix = dataType + 'removeOverlappingPeaksAndTroughs', 
-             caption = Caption,
-             font_size = font_size)
-   
-        # New graph format
-        # filePrefix = dataType + \
-        #        'RemoveOverlappingPeaksAndTroughs_v2'
-        processName = 'RemoveOverlappingPeaksAndTroughs'
-        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, 
-            Caption, dataType, test_retro_obj, lrp, saveGraph = save_graph, 
-            showGraph = show_graph)
-                
-    return peaks, troughs
-
-def removeExtraInterveningPeaksAndTroughs(peaks, troughs, rawData):
-    """
-    NAME
-        removeExtraInterveningPeaksAndTroughs
-            Ensure there is only one peak between each pair of troughs and only 
-            one trough between each pair of peaks
-    TYPE
-         <class 'numpy.float64'>, <class 'numpy.float64'>
-    ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                                       indices.
-        
-        troughs:   (array dType = numpy.int64) Array of trough locations in raw
-                                               data indices.
-        
-        rawData: (array, dType = float) Raw input data
-    RETURNS
-        filtered peaks, filtered troughs
-    AUTHOR
-        Peter Lauren
-    """
-    
-    # Get interpeak intervals
-    peakRanges = [range(x,y) for x,y in zip(peaks[0:], peaks[1:])]
-    
-    # Count troughs in interpeak intervals
-    interpeakTroughs = []
-    for Range in peakRanges:
-        interpeakTroughs.append(len([i for i in range(len(troughs)) 
-                                     if troughs[i] in Range]))
-        
-    # Identify interpeak intervals with more than one trough
-    crowdedIntervals = list(np.where(np.array(interpeakTroughs)>1)[0])
-    crowdedIntervals.insert(0,-1)   # Prepend dummy value so indices can run 
-                                    # backwards an include 0
-    
-    # Keep only the deepest trough in interpeak intervals
-    for interval in crowdedIntervals[-1:0:-1]:
-        troughGroup = [i for i in range(0,len(troughs)) 
-                       if troughs[i] in peakRanges[interval]]
-        keep = np.argmin([rawData[i] for i in troughGroup])
-        troughGroup.remove(troughGroup[keep])
-        troughs = np.delete(troughs,troughGroup)
-    
-    # Get intertrough intervals
-    troughRanges = [range(x,y) for x,y in zip(troughs[0:], troughs[1:])]
-    
-    # Count peaks in intertrough intervals
-    intertroughPeaks = []
-    for Range in troughRanges:
-        intertroughPeaks.append(len([i for i in range(len(peaks)) 
-                                     if peaks[i] in Range]))
-        
-    # Identify intertrough intervals with more than one peak
-    crowdedIntervals = list(np.where(np.array(intertroughPeaks)>1)[0])
-    crowdedIntervals.insert(0,-1)   # Prepend dummy value so indices can run 
-                                    # backwards an include 0
-    
-    # Keep only the hioghest peak in interpeak intervals
-    for interval in crowdedIntervals[-1:0:-1]:
-        peakGroup = [i for i in range(0,len(peaks)) 
-                     if peaks[i] in troughRanges[interval]]
-        keep = peakGroup[0] + np.argmax([rawData[peaks[i]] for i in peakGroup])
-        peakGroup.remove(keep)
-        peaks = np.delete(peaks,peakGroup)
-        
-    return peaks, troughs
-
-def removeClosePeaks(peaks, period, rawData, test_retro_obj, lrp, 
-                     Troughs = False, denominator=4, 
-                     show_graph = 0, save_graph = 1, phys_fs = None, 
-                     dataType = "Cardiac", OutDir = None, font_size = 10):
-    """
-    NAME
-        removeClosePeaks
-            Remove peaks (or troughs) that are closer than period/demonominator
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks:   (array dType = int64) Array of peak locations in raw data 
-                                       indices.
-        
-        period:   (dType = numpy.float64) Overall typical period of raw data in 
-                                          time series index units.
-
-        rawData: (array, dType = float) Raw input data
-                                      
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        Troughs:  (dType = bool) Whether processing troughs instead of peaks
-        
-        denominator: (dType = int) Number by which to divide the period in order
-                                  to determine the minimum acceptable separation
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    RETURNS
-        filtered peaks (or troughs)
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-        return peaks
-    
-    # Make and filter inter-peak itervals
+    # Determine half window width from distribution of intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    threshold = period/4
+    if window_size :
+        halfWindowWidth = round(window_size * window_scale)
+    else:
+        halfWindowWidth = round(np.median(intervals)*window_scale)
+
+    # adjust each peak by location of local max in original ts
+    for ii in range(Npeaks):
+        # determine mini-window, and local extremum within the win
+        idx     = peaks[ii]
+        start   = max(0, idx - halfWindowWidth)
+        finish  = min(idx + halfWindowWidth, N-1)
+        if is_troughs:
+            opeaks.append(start + np.argmin(x[start:finish]))
+        else:
+            opeaks.append(start + np.argmax(x[start:finish]))
+
+    return opeaks
+
+def percentileFilter_global(peaks, x, perc_filt = 10.0, 
+                            is_troughs = False, 
+                            save_by_interval = True, verb=0):
+    """Filter peaks based on global percentile of time series data x.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+perc_file : int/float
+    Percentile value in range [0, 100] for calculating threshold
+is_troughs: bool
+    whether the threshold is the maximum acceptable value.  Default is
+    False meaning it is the minimum acceptable value
+save_by_interval: bool
+    if on, choose to not filter out peaks whose removal would leave
+    large gaps
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
+    """
+
+
+    # !!! what about not removing the peak *if* it creates a gap
+    # !!! greater than 1.5 times the median peak distribution? that
+    # !!! way, we don't remove little bumps that might still be
+    # !!! believable based on earlier stuff
+
+    N = len(x)
+    
+    # make list of time series values at peak locations
+    peak_vals = np.array([x[idx] for idx in peaks])
+    
+    # Remove peaks that are less than the required percentile of the
+    # input signal
+
+    # global threshold
+    thr = np.percentile(x, perc_filt)
+
+    # estimate keep_arr with threshold: True means 'preserve'
+    if is_troughs :  keep_arr = peak_vals <= thr
+    else:            keep_arr = peak_vals >= thr
+
+    if save_by_interval :
+        keep_arr = make_save_by_interval(keep_arr, peaks, verb=verb)
+
+    # apply 'keep' filter
+    tmp    = np.array(peaks)
+    opeaks = list(tmp[keep_arr])
+
+    return opeaks
+
+
+def make_save_by_interval(keep_arr, peaks, verb=0):
+    """Go through 'keep' filter, and don't allow peaks to be removed if
+doing so greatly increases within-peak distance.
+
+The threshold value for deciding to not remove a point-to-be-filtered is:
++ if doing so leads to an interpeak distance of >1.5 * med(interpeak dist),
++ and if that points minimal interval is >0.5 * med(interpeak dist)
+
+Parameters
+----------
+keep_arr : array
+    1D boolean array, where True means 'keep that peak value' and False 
+    means 'remove it'
+peaks : array
+    1D array of peak indices, same length as filt_arr
+
+Returns
+-------
+okeep_arr : array
+    1D boolean array, after possibly saving some peaks, where True/False
+    have their original meanings
+
+    """
+
+    N = len(keep_arr)
+    okeep_arr = copy.deepcopy(keep_arr)
+
+    if np.sum(okeep_arr) == N :
+        # all points being kept, nothing to do
+        return okeep_arr
+
+    # loop through candidate points, because changing filter can
+    # affect other points.  Loop through until first time nothing is
+    # updated, or a fixed max number of iterations.
+    MAX_NLOOP = 50
+    nloop = 0
+    found = True
+    while found and nloop < MAX_NLOOP :
+        nloop+= 1
+        found = False
+
+        # indices of 'bad' peaks to (likely) filter, len N
+        bad_indices = np.arange(N)[okeep_arr == False]
+        nbad = len(bad_indices)
+        # all_intervals, len N-1
+        intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+        # the 'double interval' span, len N-2 (no first/last peak)
+        doub_span = [j+i for i, j in zip(intervals[:-1], intervals[1:])]
+
+        # define the threshold for the double-interval span, as well
+        # as for single interval span (*can refine this?*)
+        med_ival = np.median(intervals)
+        span_thr = 1.5*med_ival
+        ival_thr = 0.5*med_ival
+
+        for ii in range(nbad):
+            bad_idx = bad_indices[ii]
+            if bad_idx > 0 and bad_idx < N-1 :
+                bad_doub_span = doub_span[bad_idx-1]
+                bad_ival_min  = min(intervals[bad_idx], intervals[bad_idx-1])
+                if bad_doub_span > span_thr and \
+                   bad_ival_min > ival_thr :
+                    if verb > 1 :
+                        print("   -> retain an extremum: "
+                              'idx =', peaks[bad_idx], 
+                              bad_doub_span, '>', span_thr)
+                    # move this index to KEEP
+                    okeep_arr[bad_idx] = True
+                    found = True
+
+    return okeep_arr
+
+# -------------------------------------------------------------------------
+
+def percentileFilter_local(peaks, x, perc_filt = 10, 
+                           is_troughs = False, 
+                           period_idx = None, nbhd_idx = 4,
+                           save_by_interval = True, verb=0):
+    """Filter peaks based on local percentile of time series x.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+perc_file : int/float
+    Percentile value in range [0, 100] for calculating threshold
+is_troughs : bool
+    whether the threshold is the maximum acceptable value.  Default is
+    False meaning it is the minimum acceptable value
+period_idx : int
+    typical period of the time series, in units of index counts.
+    Default is None, meaning the period is determined from the data
+nbhd_idx : int
+    size of a neighborhood for local percentile estimation, in units
+    of index counts. Default chosen from early testing/practice
+save_by_interval: bool
+    if on, choose to not filter out peaks whose removal would leave
+    large gaps
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
+    """
+
+    N = len(x)
+
+    # Estimate period from time series if not supplied
+    if period_idx == None :
+        period_idx = getTimeSeriesPeriod_as_indices(x)
+
+    # make list of time series values at peak locations
+    peak_vals = np.array([x[idx] for idx in peaks])
+
+    # Determine local percentile-based threshold around each peak
+    halfWindowWidth = round(period_idx * nbhd_idx / 2.0)
+
+    # store per-index (local) thresholds
+    all_thr = []
+    halfWindowWidth = round(period_idx * nbhd_idx / 2.0)
+    for idx in peaks:
+        min_idx = max(0, idx - halfWindowWidth)
+        max_idx = min(N-1, idx + halfWindowWidth)
+        all_thr.append(np.percentile(x[min_idx:max_idx], perc_filt))
+    all_thr = np.array(all_thr)
+
+
+    # estimate keep_arr with threshold: True means 'preserve'
+    if is_troughs :  keep_arr = peak_vals <= all_thr
+    else:            keep_arr = peak_vals >= all_thr
+
+    if save_by_interval :
+        keep_arr = make_save_by_interval(keep_arr, peaks, verb=verb)
+
+    # apply 'keep' filter
+    tmp    = np.array(peaks)
+    opeaks = list(tmp[keep_arr])
+
+    return opeaks
+
+
+def getTimeSeriesPeriod_as_indices(x, min_nidx=1):
+    """Get overall typical period(s) of time series x in terms of number
+of indices.
+
+NB: This function doesn't do try to stay away from baseline
+frequencies.  Therefore, we try to use essentially the peak freq in
+xfilt in the main code, rather than this.
+
+Parameters
+----------
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+min_nidx : int
+    value of minimum number of indices that can be in the period.
+
+Returns
+-------
+nidx : int
+    integer value for the time series period (counting indices)
+
+    """
+    
+    N = len(x)
+
+    max_nidx = round(N/2)              # Frequency limit is Nyquist frequency
+
+    # FT, unshifted
+    X = abs(np.fft.fft(x))
+    if min_nidx == max_nidx :
+        idx_freq_mode = min_nidx
+    else:
+        # subset between mean and max freq
+        Xsub = X[min_nidx:max_nidx]
+        # find and return the index at the mode value
+        idx_freq_mode = min_nidx + np.argmax(Xsub)
+
+    return  N/idx_freq_mode
+    
+# ----------------------------------------------------------------------------
+
+# this version did removal, THEN refinement; see prog ver without
+# '_OLD' in name for just doing removal---which is all that should be
+# needed here??
+def removeClosePeaks_OLD(peaks, x, period_idx=None,
+                     is_troughs = False, width_fac=4.0, verb=0):
+    """Remove peaks (or troughs) that are closer than either:
++ med(peak intervals)/width_fac, which is default;
++ period_idx/width_fac, if period_idx is given.
+
+Upon viewing less well-behaved time series, have come to view
+med(interpeak interval) as more reliable for this.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+period_idx : int
+    typical period of the time series, in units of index counts. This
+    can be surprisingly tricky to define generally across all time series,
+    so often might opt for med(interpeak interval).
+is_troughs: bool
+    are we processing peaks or troughs here?
+width_fac : int/float
+    parameter/number by which to scale the samp_fac; the int() of the
+    resulting ratio defines the 'width' param in sps.find_peaks();
+    default was simply used in original program formulation
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
+    """
+
+    # interpeak intervals
+    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+
+    # NB: it might be most reliable to use median of the intervals.
+    if not(period_idx) :
+        period_idx = np.median(intervals)
+        
+    # Filter inter-peak intervals
+    threshold = int(period_idx / width_fac)
     last = len(intervals) - 1
-    for i in range(last,0,-1):
+    for i in range(last, 0, -1):
         if (intervals[i] < threshold):
             intervals[i-1] = intervals[i-1] + intervals[i]
             del intervals[i]
-            
-    # Make peaks from intervals
-    offset = peaks[0] 
-    peaks = [offset]
-    for interval in intervals:
-        peaks.append(offset+interval)
-        offset = offset + interval
-   
-    # Adjust peaks/troughs from uniform spacing
-    if Troughs: # Processing troughs instead of peaks
-        peaks = np.array(peaks)
-        for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
-                period = period, Troughs = True, 
-                show_graph = max(show_graph-1,0), 
-                save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
-                OutDir = OutDir, font_size = font_size)
-    else:   # Processing peaks
-        peaks = np.array(peaks)
-        for i in range(0,2):
-            peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
-                    period = period, show_graph = max(show_graph-1,0), 
-                    save_graph = max(save_graph-1,0), phys_fs = phys_fs, 
-                    OutDir = OutDir, font_size = font_size)
-            
-    # Convert peaks back to numpy array and remove duplicates that may result
-    # from refining the locations
-    peaks = np.unique(np.array(peaks))
-    
-    # Convert peaks to numpy array
-    peaks = np.array(peaks)
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-        if Troughs:
-           Caption = 'Merge ' + dataType + ' troughs closer than' + \
-                           ' one quarter of the overall typical period.'
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, [], 
-                phys_fs, dataType, troughs = peaks, OutDir = OutDir, 
-                prefix = dataType + 'MergeCloseTroughs', 
-                caption = Caption, font_size = font_size)
-        else:
-           Caption = 'Merge ' + dataType + ' peaks closer than' + \
-                           ' one quarter of the overall typical period.'
-           graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-                phys_fs, dataType, OutDir = OutDir, 
-                prefix = dataType + 'MergeClosePeaks', 
-                caption = Caption, font_size = font_size)
-   
-       # New graph format
-        # if Troughs:
-        #    filePrefix = dataType + 'TroughsMergeCloseTroughs_v2'
-        # else:
-        #    filePrefix = dataType + 'PeaksMergeClosePeaks_v2'
-        processName = 'MergeIfClose'
-        lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                      test_retro_obj, lrp, saveGraph = save_graph, 
-                      showGraph = show_graph, Troughs = Troughs)
-    
-    return peaks
 
-def bandPassFilterRawDataAroundDominantFrequency(rawData, minBeatsPerSecond,
-        maxBeatsPerSecond, phys_fs, dataType = "Cardiac", show_graph = False, 
-        save_graph = True, OutDir = None, graphIndex = None, font_size = 10) :
-    """
-    NAME
-        bandPassFilterRawDataAroundDominantFrequency
-            Band pass filter raw data based on overall typical period of raw 
-            data in time series index units.            
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        rawData: (array, dType = float) Raw input data
-        
-        minBeatsPerSecond: (dType = float) Minimum expected beats per second
-        
-        maxBeatsPerSecond: (dType = float) Maximum expected beats per second
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Required if graph 
-                                 True
-        
-        dataType: (dType = str) Type of data being processed
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (np.isnan(np.sum(rawData))):
-        print('*** ERROR in bandPassFilterRawDataAroundDominantFrequency:' + 
-              ' nan values in data: ')
-        return []
-    
-    rawDataLength = len(rawData)
-    
-    # Determine harmonic frequency unit
-    F0 = phys_fs/rawDataLength
-    
-    # Get lower cutoff index
-    lowerCutoffIndex = round(minBeatsPerSecond/F0)
-    
-    # Get lower cutoff index
-    upperCutoffIndex = round(maxBeatsPerSecond/F0)
-    
-    # Get Fourier transform
-    FourierTransform = np.fft.fft(rawData)
-    FourierSpectrum = abs(FourierTransform)
-    
-    # Determine frequency peak
-    NyquistLength = min(round(rawDataLength/2), upperCutoffIndex)
-    frequencyPeak = np.argmax(FourierSpectrum[lowerCutoffIndex:NyquistLength])\
-        +lowerCutoffIndex
-    print('++ {} bandpass filter frequency peak: {:.6f} Hz'
-          ''.format(dataType, F0 * frequencyPeak))
-    
-    # Find bounds based on -3 dB limits
-    peakVal = FourierSpectrum[frequencyPeak]
-    targetValue = peakVal/2
-    leftIndices = [i for i in range(0,frequencyPeak) 
-                   if FourierSpectrum[i] < targetValue]
-    if len(leftIndices) == 0:
-       lowerMin = 0
-    else: lowerMin = max(leftIndices)
-    rightIndices = [i for i in range(frequencyPeak,NyquistLength) 
-                    if FourierSpectrum[i] < targetValue]
-    if len(rightIndices) == 0:
-       lowerMax = NyquistLength-1
-    else: lowerMax = min(rightIndices)
-    
-    # Avoid filter being too narrow
-    lowerMin = min(round(frequencyPeak/2), lowerMin)
-    lowerMax = max(round(1.5*frequencyPeak), lowerMax)
-                                
-    # Determine band limits
-    upperMin = rawDataLength - lowerMax
-    upperMax = rawDataLength - lowerMin
-    
-    # Zero part of FT outside limits
-    filterArray = np.zeros(rawDataLength)
-    filterArray[lowerMin:lowerMax] = 1
-    filterArray[upperMin:upperMax] = 1
-    filteredFT = FourierTransform * filterArray
-    
-    # Get IFT
-    filteredRawData = np.real(np.fft.ifft(filteredFT))
-    
-    if show_graph or save_graph :
-        # Show selected part of Fourier transform
-        x = []  
-        rawData1 = abs(FourierTransform)
-        filteredrawData1 = filterArray
-        end = len(rawData1)
-        for i in range(0,end): x.append(i*F0)
-        fig, ax_left = plt.subplots()
-        plt.xlabel("Frequency (Hz)", fontdict={'fontsize': font_size})
-        plt.ylabel('Fourier Spectral Value',color='g', 
-                   fontdict={'fontsize': font_size})
-        ax_right = ax_left.twinx()
-        ax_right.plot(x[3:end//20], filteredrawData1[3:end//20], color='red')
-        ax_left.plot(x[3:end//20],rawData1[3:end//20], color='green')
-        plt.ylabel('Filter',color='r')
-        plt.title("Selected part of the Fourier Spectrum", 
-                         fontdict={'fontsize': font_size})
-        
-        # Save plot to file
-        if save_graph:
-            prefix = dataType + 'SelectedFourierTransformPart'
-            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            if show_graph: plt.show(block=True)
-            if not show_graph: plt.close()  # Close graph after saving
-    
-        # Plot filtered signal against raw data
-        x = []    
-        end = len(filteredRawData)
-        for i in range(0,end): x.append(i/phys_fs)
-        fig, ax_left = plt.subplots()
-        plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
-        plt.ylabel('Raw input data value',color='g', 
-                   fontdict={'fontsize': font_size})
-        ax_right = ax_left.twinx()
-        upperLimit = round(len(filteredRawData)/4)
-        ax_right.plot(x[0:upperLimit], filteredRawData[0:upperLimit], 
-                      color='red')
-        ax_left.plot(x[0:upperLimit],rawData[0:upperLimit], color='green')
-        # ax_right.plot(x, filteredRawData, color='red')
-        # ax_left.plot(x,rawData, color='green')
-        plt.ylabel('Filtered Data Value',color='r', 
-                   fontdict={'fontsize': font_size})
-        plt.title("BP Filtered [" + str(round(F0*lowerMin)) + ":" +\
-            str(round(F0*lowerMax)) + "] (red) and raw input data (green)", 
-            fontdict={'fontsize': font_size})
-            
-        # Save plot to file
-        if save_graph:
-            prefix = dataType + 'BPF_VRawInput'
-            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            
-        if show_graph: plt.show(block=True)
-        if not show_graph: plt.close()  # Close graph after saving
-        
-    return filteredRawData
+    # Make peaks from intervals, recursively
+    Nival  = len(intervals)
+    opeaks = np.zeros(Nival+1, dtype=int)
+    opeaks[0] = peaks[0]
+    for ii in range(Nival):
+        opeaks[ii+1] = opeaks[ii] + intervals[ii]
 
-def refinePeakLocations(peaks, rawData, test_retro_obj, lrp, period = None, 
-        Troughs = False, show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None, font_size = 10):
-    """
-    NAME
-        refinePeakLocations
-            Adjust peaks to correspond to local maxima.  This is usually 
-            necessary if the peaks were.Determined from a band-pass filtered 
-            version of the input raw data where the peaks are uniformly spaced 
-            based on the overall typical period of raw data
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks: (array dType = int64) Array of peaks to be refined
-        
-        rawData: (array, dType = float) Raw input data
-        
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        period: (dType = NoneType) Overall typical period of raw data in time 
-                series index units. Default is none, meaning the period is 
-                determined from the raw data.
-                
-        Troughs: (dType = bool) Whether troughs are processed instead of peaks
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                                   be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-        return peaks
-    
-    # Find period if not supplied
-    # if not period:
-    #     period = getTimeSeriesPeriod(rawData)
+    # Adjust peaks/troughs with local refinement.  Looping allows a
+    # bit of 'extra' movement for points on a slope while also
+    # maintaining a smaller refinement window, so that peaks don't
+    # jump wildly.
+    for i in range(0, 2):
+        opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
 
-    # # Determine half window width
-    # halfWindowWidth = round(period/4)
-    
+    # bit of cleaning of peaks: remove degeneracies and sort
+    opeaks  = list(set(opeaks))
+    opeaks.sort()
+
+    return opeaks
+
+def removeClosePeaks(peaks, x, period_idx=None,
+                     is_troughs = False, width_fac=4.0, verb=0):
+    """Remove peaks (or troughs) that are closer than either:
++ med(peak intervals)/width_fac, which is default;
++ period_idx/width_fac, if period_idx is given.
+
+Upon viewing less well-behaved time series, have come to view
+med(interpeak interval) as more reliable for this.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+period_idx : int
+    typical period of the time series, in units of index counts. This
+    can be surprisingly tricky to define generally across all time series,
+    so often might opt for med(interpeak interval).
+is_troughs: bool
+    are we processing peaks or troughs here?
+width_fac : int/float
+    parameter/number by which to scale the samp_fac; the int() of the
+    resulting ratio defines the 'width' param in sps.find_peaks();
+    default was simply used in original program formulation
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
+    """
+
+    # interpeak intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    halfWindowWidth = round(np.median(intervals)/4)
-    
-    # Determine offsets
-    arrayLength = len(rawData)
-    offsets = []
-    if Troughs:
-        for peak in peaks:
-            start = max(0, peak-halfWindowWidth)
-            finish = min(peak+halfWindowWidth, arrayLength-1)
-            localOffset = peak - start
-            offsets.append(np.argmin(rawData[start:finish])-localOffset)
-    else:
-        for peak in peaks:
-            start = max(0, peak-halfWindowWidth)
-            finish = min(peak+halfWindowWidth, arrayLength-1)
-            localOffset = peak - start
-            offsets.append(np.argmax(rawData[start:finish])-localOffset)
-            
-    # Adjust peak locations
-    peaks = peaks + offsets
-            
-    # Graph (and save) results as required
-    if Troughs:
-        Caption = 'Adjust ' + dataType + '  troughs from uniform spacing.'
-        troughs = peaks
-        Peaks = []
-    else:
-        Caption = 'Adjust ' + dataType + ' peaks from uniform spacing.'
-        troughs = []
-        Peaks = peaks
-    if (show_graph or save_graph) and phys_fs:
-       graphPeaksAgainstRawInput(show_graph, save_graph, rawData, Peaks, 
-            phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AdjustPeaksFromUniformSpacing', 
-            caption = Caption, troughs = troughs,
-            font_size = font_size)
-   
-       # New graph format
-       # if Troughs:
-       #     filePrefix = dataType + 'TroughsAdjustedForUniformSpacing_v2'
-       # else:
-       #     filePrefix = dataType + 'PeaksAdjustedForUniformSpacing_v2'
-       processName = 'AdjustedForUniformSpacing'
-       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                     test_retro_obj, lrp, saveGraph = save_graph, 
-                     showGraph = show_graph, Troughs = Troughs)
-           
-    # Apply offsets
-    return peaks
 
-def addMissingPeaks(peaks, rawData, test_retro_obj, lrp, period=None, 
-        show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None, font_size = 10):
+    # NB: it might be most reliable to use median of the intervals.
+    if not(period_idx) :
+        period_idx = np.median(intervals)   
+        
+    # Filter inter-peak intervals
+    threshold = int(period_idx / width_fac)
+    last = len(intervals) - 1
+    for i in range(last, 0, -1):
+        if (intervals[i] < threshold):
+            intervals[i-1] = intervals[i-1] + intervals[i]
+            del intervals[i]
+
+    # Make peaks from intervals, recursively
+    Nival  = len(intervals)
+    opeaks = np.zeros(Nival+1, dtype=int)
+    opeaks[0] = peaks[0]
+    for ii in range(Nival):
+        opeaks[ii+1] = opeaks[ii] + intervals[ii]
+
+    return list(opeaks)
+
+def addMissingPeaks(peaks, x, is_troughs=False, window_scale=1.75 , verb=0):
+    """Use the information about the statistics of the intervals of peaks
+(or troughs) to estimate where missing peaks (or troughs) should be
+inserted into the input 'peaks' collection (which can also represent
+troughs!).
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+is_troughs: bool
+    are we processing peaks or troughs here?
+window_scale : float
+    scale factor help determine whether two peaks are 'far enough'
+    apart to add in a new one; will do so if interpeak interval is
+    greater than: (1+window_scale)*median(interpeak interval)
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
     """
-    NAME
-        addMissingPeaks
-            Find and fill gaps in period series of peaks
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks: (array dType = int64) Array of peaks to be refined
-        
-        rawData: (array, dType = float) Raw input data
-        
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        period: (dType = NoneType) Overall typical period of raw data in time 
-                series index units. Default is none, meaning the period is 
-                determined from the raw data.
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is to
-                                be saved to disk.
-    AUTHOR
-        Peter Lauren
+
+    intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+    Nival     = len(intervals)
+    med_ival  = np.median(intervals)
+
+    # ref_ival: reference value, min interval scale based on median of
+    # all intervals
+    ref_ival   = np.median(intervals)*window_scale
+    # add a peak if: the interval is greater than ref_ival; the number
+    # of peaks is the integer part of the interval width divided by
+    # the median, minus 1
+    peaksToAdd = [max(int(np.floor(intervals[i]/med_ival))-1,0)*(intervals[i]>ref_ival) for i in range(Nival)]
+
+    # report on number being added
+    Ntoadd = np.sum(np.array(peaksToAdd))
+    if verb and Ntoadd :
+        if is_troughs : nnn = 'troughs'
+        else:           nnn = 'peaks'
+        print("   --> adding this many {}: {}".format(nnn, Ntoadd))
+
+    # work with a copy of the peaks
+    opeaks = copy.deepcopy(peaks)
+
+    # go backwards through the opeaks and insert likely missing peaks
+    for i in range(Nival-1,-1,-1):
+        if (peaksToAdd[i]):
+            nadd_p1   = peaksToAdd[i] + 1  # '+1' makes this 'num of intervals'
+            start     = opeaks[i]
+            end       = opeaks[i+1]
+            increment = int((end-start)/nadd_p1)    # must be integer
+            all_new   = [start+increment*j for j in range(1,nadd_p1)]
+            # refine this mini-set immediately, using the median of
+            # the full peaks set as window size
+            all_new = refinePeakLocations(all_new, x, is_troughs=is_troughs,
+                                          window_size=med_ival)
+            # go through list backwards to get final, inserted order right.
+            for jj in range(len(all_new)-1, -1, -1):
+                opeaks.insert(i+1, all_new[jj])
+#### !!! done above now, locally
+####    # adjust peaks for uniform spacing
+####    opeaks = refinePeakLocations(opeaks, x, is_troughs=is_troughs)
+
+    return opeaks
+
+# -------------------------------------------------------------------------
+
+def classify_endpts(peaks, troughs, x, verb=0):
+    """Figure out whether the endpoints of the time series x are peaks or
+troughs, and add those to the approrpiate collection.
+
+Parameters
+----------
+peaks : list
+    1D list (int values) of the indices of peak locations that
+    were estimated within x
+troughs : np.ndarray
+    1D Python array (int values) of the indices of trough locations that
+    were estimated within x
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+
+Returns
+-------
+opeaks : list
+    1D list (int values) of the indices of new peak locations that
+    were estimated within x, starting from input set of peaks
+
     """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied' + 
-              ' if graphing required')
-        return peaks
-    
-    # Find period if not supplied
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
-        
-    # Find interpeak intervals
-    intervals = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
-    factor = np.median(intervals)*0.9
-    peaksToAdd = [round(intervals[i]/factor)-1 for i in range(0,len(intervals))]
-    for i in range(len(intervals)-1,-1,-1):
-        if (peaksToAdd[i]>0):
-            additionPlus1 = peaksToAdd[i] + 1
-            start = peaks[i]
-            end = peaks[i+1]
-            increment = (end-start)/additionPlus1
-            peaks = np.insert(peaks, i+1, [start+increment*j 
-                                           for j in range(1,additionPlus1)])
-   
-    # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
-                period = period, show_graph = show_graph, 
-                save_graph = save_graph, phys_fs = phys_fs, OutDir = OutDir,
-                font_size = font_size, dataType = dataType )
-            
-    # Graph (and save) results as required
-    if (show_graph or save_graph) and phys_fs:
-       Caption = 'Add missing ' + dataType + ' peaks per periodicity.'
-       graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, dataType, OutDir = OutDir, 
-            prefix = dataType + 'AddMissingPeaksPerPeriodicity', 
-            caption = Caption, font_size = font_size)
-   
-       # New graph format
-       # filePrefix = dataType + 'AddMissingPeaksPerPeriodicity_v2'
-       processName = 'AddMissingPerPeriodicity'
-       lrg.plotPeaks(rawData, peaks, OutDir, processName, Caption, dataType, 
-                     test_retro_obj, lrp, saveGraph = save_graph, 
-                     showGraph = show_graph)
-    
-    return peaks
+
+    # init output
+    opeaks   = copy.deepcopy(peaks)
+    otroughs = copy.deepcopy(troughs)
+
+    Nx = len(x)                       # num of actual time points in ts
+
+    # check first endpoint; assign simply by (anti)proximity, unless
+    # it is already claimed
+    if opeaks[0] == 0 or otroughs[0] == 0 :
+        # nothing to do, endpt is already classified
+        pass
+    elif opeaks[0] > otroughs[0] :
+        opeaks.insert(0,0)
+    else :
+        otroughs.insert(0,0)
+
+    # similarly, check last endpoint
+    if opeaks[-1] == Nx or otroughs[-1] == Nx :
+        # nothing to do, endpt is already classified
+        pass
+    elif opeaks[-1] < otroughs[-1] :
+        opeaks.insert(-1, Nx-1)
+    else :
+        otroughs.insert(-1, Nx-1)
 
 
-def addMissingPeaksAndTroughs(peaks, troughs, rawData, test_retro_obj, lrp, 
-        period=None, show_graph = False, save_graph = True, phys_fs = None, 
-        dataType = "Cardiac", OutDir = None, font_size = 10):
-    """
-    NAME
-        addMissingPeaksAndTroughs
-            Find and fill gaps in period series of peaks and troughs
-    TYPE
-         <class 'numpy.ndarray'>
-    ARGUMENTS
-        peaks: (array dType = int64) Array of peaks to be refined
-        
-        troughs: (array dType = int64) Array of troughs to be refined
-        
-        rawData: (array, dType = float) Raw input data
-        
-        test_retro_obj: (dType = <class 'lib_retro_reading.retro_obj'>) Object 
-                        for starting the retroicor process for making physio
-                        regressors for MRI data.  It contains the following 
-                        fields.
-            card_data: (dType = <class 'lib_retro_reading.phys_ts_obj'>) Object
-                       for cardiac data.  It contains the following fields.
-                  samp_rate: (dType = <class 'float'>) Physical sampling rate  
-                       (in sec)
-            font_size: (dType = <class 'int'>) Font size for output images.
-            
-        lrp: (dType = <class 'module'>) Object for holding one time series or 
-             set of points for plotting.
-        
-        period: (dType = NoneType) Overall typical period of raw data in time 
-            series index units.  Default is none, meaning the period is 
-            determined from the raw data.
-        
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        phys_fs: (dType = float) Sampling frequency in Hz.  Only relevant if 
-                                 results are to be graphed
-        
-        dataType: (dType = str) Type of data being processed
-        
-        OutDir:   (dType = str) Output directory.  Only relevant if graph is 
-                                to be saved to disk.
-    AUTHOR
-        Peter Lauren
-    """
-    
-    if (show_graph or save_graph) and not phys_fs:
-        print('+* WARNING: Sampling frequency (phys_fs) must be supplied if' +
-              ' graphing required')
-    
-    # Find period if not supplied
-    if not period:
-        period = getTimeSeriesPeriod(rawData)
-
-    # Threshold for peaks and troughs        
-    threshold = (max(rawData) - min(rawData)) * 0.1
-        
-    # Find interpeak intervals
-    intervals = [x - peaks[i - 1] for i, x in enumerate(peaks)][1:]
-    factor = np.median(intervals)*0.9
-    searchLength = int(factor/2)
-    peaksToAdd = [round(intervals[i]/factor)-1 for i in range(0,len(intervals))]
-    for i in range(len(intervals)-1,-1,-1):
-        if (peaksToAdd[i]>0):
-            additionPlus1 = peaksToAdd[i] + 1
-            start = peaks[i]
-            end = peaks[i+1]
-            increment = (end-start)/additionPlus1
-            newPeaks = [start+increment*j for j in range(1,additionPlus1)]
-            
-            # Filter out false peaks
-            diff = [rawData[round(x)] - min(rawData[round(x-searchLength):\
-                                    round(x+searchLength)]) for x in newPeaks]
-            newPeaks = np.array(newPeaks)[diff >= -np.float64(threshold)]
-            if len(newPeaks) > 0:
-                troughs = np.insert(troughs, i+1, newPeaks)
-        
-    # Find intertrough intervals
-    intervals = [x - troughs[i - 1] for i, x in enumerate(troughs)][1:]
-    factor = np.median(intervals)*0.9
-    troughsToAdd = [round(intervals[i]/factor)-1 
-                    for i in range(0,len(intervals))]
-    for i in range(len(intervals)-1,-1,-1):
-        if (troughsToAdd[i]>0):
-            additionPlus1 = troughsToAdd[i] + 1
-            start = troughs[i]
-            end = troughs[i+1]
-            increment = (end-start)/additionPlus1
-            newTroughs = [start+increment*j for j in range(1,additionPlus1)]
-            
-            # Filter out false troughs
-            diff = [rawData[round(x)] - min(rawData[round(x-searchLength):\
-                                round(x+searchLength)]) for x in newTroughs]
-            newTroughs = np.array(newTroughs)[diff <= np.float64(threshold)]
-            if len(newTroughs) > 0:
-                troughs = np.insert(troughs, i+1, newTroughs)
-   
-    # Adjust peaks from uniform spacing
-    peaks = refinePeakLocations(peaks, rawData, test_retro_obj, lrp, 
-                period = np.median(intervals)/2, 
-                show_graph = max(show_graph - 1, 0), 
-                save_graph = max(save_graph - 1, 0),
-                phys_fs = phys_fs, OutDir = OutDir)
-    troughs = refinePeakLocations(troughs, rawData, test_retro_obj, lrp, 
-       period = np.median(intervals)/2, Troughs = True, 
-       show_graph = max(show_graph - 1, 0), save_graph = max(save_graph - 1, 0),
-       phys_fs = phys_fs, OutDir = OutDir)
-    
-    # Remove extra peaks between troughs and troughs between peaks
-    peaks, troughs = removeExtraInterveningPeaksAndTroughs(peaks, troughs, 
-                                                           rawData)
-    
-    if (show_graph or save_graph) and phys_fs:
-        Caption = 'Add missing peaks and troughs.'
-        graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, 
-            phys_fs, dataType, troughs = troughs, OutDir = OutDir, 
-            prefix = dataType + 'addMissingPeaksAndTroughs', 
-            caption = Caption, font_size = font_size)
-   
-       # New graph format
-        processName = 'AddMissing'
-        # filePrefix = dataType + 'AddMissingPeaksAndTroughs_v2'
-        lrg.plotPeaksAndTroughs(rawData, peaks, troughs, OutDir, processName, 
-                Caption, dataType, test_retro_obj, lrp, saveGraph = save_graph, 
-                showGraph = show_graph)
-    
-    return peaks, troughs
-
-def graphPeaksAgainstRawInput(show_graph, save_graph, rawData, peaks, phys_fs, 
-        peakType, troughs = [], OutDir = None, prefix = 'cardiacPeaks', 
-        caption = [], font_size = 10):
-    '''
-    NAME
-        graphPeaksAgainstRawInput
-        Graph raw input data along with peaks and optionally troughs
-    TYPE
-         <void>
-    ARGUMENTS
-        show_graph:   (dType = bool) Whether to graph the results
-        
-        save_graph: (dType = bool) Whether to save graoh to disk
-        
-        rawData: (array, dType = float) Raw input data
-        
-        peaks: (array dType = int64) Array of peaks to be refined
-        
-        phys_fs: (dType = float) Sampling frequency in Hz
-                
-        peakType: (dType = str) String that defines the type of data.  May be 
-                                "Cardiac" or "Respiratory"
-        
-        troughs: (array dType = int64) Array of troughs to be refined. Not used
-                                       if plotting troughs not required
-        
-        OutDir: (dType = str) String defining the directory to which the graph
-                              is written. Not used if it is not required to save
-                              the graph to disk.
-    AUTHOR
-        Peter Lauren
-    '''
-    
-    # Graph respiratory peaks and troughs against respiratory time series
-    x = []    
-    end = len(rawData)
-    for i in range(0,end): x.append(i/phys_fs)
-    plt.subplot(211)
-    plt.plot(x, rawData, "g") #Lines connecting peaks and troughs
-    if len(peaks) > 0:
-        peakVals = []
-        for i in peaks: peakVals.append(rawData[i])
-        plt.plot(peaks/phys_fs, peakVals, "ro") # Peaks
-    if len(troughs) > 0:
-        troughVals = []
-        for i in troughs: troughVals.append(rawData[i])
-        plt.plot(troughs/phys_fs, troughVals, "bo") # troughs
-        if len(peaks) > 0:
-            title = peakType +\
-                " peaks (red), troughs (blue) and raw input data (green)"
-        else:
-            title = peakType + " troughs (blue) and raw input data (green)"
-    else:
-        title = peakType + " peaks (red) and raw input data (green)"
-    title += '\n' + caption
-    plt.xlabel("Time (s)", fontdict={'fontsize': font_size})
-    plt.ylabel("Input data value", fontdict={'fontsize': font_size})
-    plt.title(title, fontdict={'fontsize': font_size})
-    # plt.text(.5, .05, caption, ha='center') # PSL: This puts an unneeded  
-                                              # caption in an unwated place.
-    ### [PT] the above should replace this code, so we can avoid the
-    ### nonstandard mpl import
-    ### PDL: It seems this was not doing anything
-    # mpl.text.Text(.5, .05, caption, ha='center')
-
-    # Save plot to file
-    # if show_graph: 
-    #     plt.ion()
-    #     plt.show(block=True)
-    # else:
-    #     plt.ioff()
-        
-    if save_graph:
-        if not OutDir:
-            print('+* WARNING (graphPeaksAgainstRawInput): Cannot save graph.' +
-                  ' No output directory specified')
-            if not show_graph: plt.close()  # Close graph after saving
-            # return 1
-        else:
-            plt.savefig('%s/%s.pdf' % (OutDir, prefix)) 
-            
-    if show_graph: plt.show(block=True)
-    if not show_graph: plt.close()  # Close graph after saving
-
-    return 0
-
-def checkForNans(rawData, dataType, failureThreshold = 100):
-    '''
-    NAME
-        checkForNans
-        Check for NaN entries, in numeric data, and replace them
-    TYPE
-         <void>
-    ARGUMENTS
-        rawData: (array, dType = float) Raw input data
-        
-        dataType: (dType = str) Type of data; "Cardiac" or "Respiratory"
-        
-        failureThreshold: (dType = int) Maximum number of consecutive NaN values
-                                        before failure
-    AUTHOR
-        Peter Lauren
-    '''    
-    
-    if (np.isnan(np.sum(rawData))): # If nan's in raw data
-        print('+* WARNING. NaN entries at the following indices of the ' +
-              dataType + ' data')
-        nanIndices = np.argwhere(np.isnan(rawData))
-        print(nanIndices)
-        print('NaN values')
-        print(rawData[nanIndices])
-        
-        # Try to replace each nan with adjacent valid value(s) 
-        if (nanIndices[0] == 0):    # If first element a nan
-            rawData[0] = rawData[bisect.bisect_left(nanIndices, -1)]
-            nanIndices = np.delete(nanIndices, 0)
-        if (nanIndices[-1] == len(rawData) - 1):    # If last element a nan
-            rawData[-1] = rawData[bisect.bisect_right(nanIndices, 
-                                                      nanIndices[-1]-1)]
-            nanIndices = np.delete(nanIndices, -1)
-        for i in nanIndices: # Process all Nans, 
-            nanIndex = i
-            left = nanIndex - 1
-            right = left+2
-            nanLength = 1
-            while np.isnan(rawData[right]): 
-                right = right + 1
-                nanLength = nanLength + 1
-                if nanLength > failureThreshold:
-                    print('*** ERROR: Too many consecutive NaNs')
-                    return []
-            rawData[nanIndex] = rawData[left]+(rawData[right]-rawData[left])*\
-                                (float(nanIndex-left)/(right-left))
-        
-    return rawData
+    return opeaks, otroughs
