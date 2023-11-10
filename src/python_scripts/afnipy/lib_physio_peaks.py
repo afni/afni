@@ -76,7 +76,7 @@ idx_freq_peak : int
     idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
-    print('++ For ' + label + ' data, bandpass filter frequency peak: '
+    print('++ (' + label + ') Bandpass filter frequency peak: '
           '{:.6f} Hz'.format(freq_peak))
 
     # Find bounds based on -3 dB limits (half peak)

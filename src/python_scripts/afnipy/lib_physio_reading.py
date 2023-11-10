@@ -35,9 +35,10 @@ derived data.
                  start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
                  prefilt_init_freq = None, prefilt_mode = None, 
                  prefilt_win = None, do_interact = False,
+                 duration_vol = None, vol_tr = None,
                  verb=0):
         """Create object holding a physio time series data.
-
+        
         """
 
         self.verb       = verb                # verbosity level
@@ -53,6 +54,9 @@ derived data.
         self.ts_unfilt  = np.array(ts_unfilt) # arr, store raw ts
         self.ts_orig_bp = np.zeros(0, dtype=float) # arr, orig ts post-bandpass
         self.bp_idx_freq_mode = 0.           # flt, peak freq idx in bandpass
+
+        self.duration_vol = duration_vol     # float, length of MRI in sec
+        self.vol_tr       = vol_tr           # float, MRI TR in sec
 
         # plotting specific
         self.img_idx   = 0                   # int, for naming QC plots
@@ -90,14 +94,130 @@ derived data.
 
         self.do_interact       = do_interact    # bool, turn on user-interact
 
-    @property
-    def tvalues(self):
-        """The array of time values, using the start_time and samp_rate, so
-        this has physical units."""
-        return self.start_time + np.arange(self.n_ts_orig)*self.samp_rate
+        # array of time values, has physical units
+        self.tvalues = self.start_time + \
+            np.arange(self.n_ts_orig)*self.samp_rate
+
+        # list of 2 ints: indices in ts_orig that represent the first
+        # and last indices where the MRI volume occurs: [A, B)
+        self.indices_vol = self.get_indices_vol_duration() 
+
+
+    # -----------------------------
+
+    def get_indices_vol_duration(self):
+        """Find A and B such that A is the smallest value where
+        self.tvalues[A] >= 0, and B is the smallest value where
+        self.tvalues[B] >= self.duration_vol.  That is, [A, B) is the
+        half-open index range covered by the MRI volume."""
+
+        indices_vol = [-1, -1]
+
+        for A in range(self.n_ts_orig):
+            if self.tvalues[A] >= 0 :
+                indices_vol[0] = A
+                break
+
+        if self.duration_vol != None :
+            for B in range(self.n_ts_orig-1, -1, -1):
+                if self.tvalues[B] < self.duration_vol :
+                    indices_vol[1] = B+1
+                    break
+
+        if indices_vol[0] < 0 :
+            indices_vol[0] = 0
+            print("+* WARN: no time value >=0?")
+        if indices_vol[1] < 0 :
+            indices_vol[1] = self.n_ts_orig  # bc half-open interval
+            print("+* WARN: MRI end time later than physio duration?")
+
+        return indices_vol
+        
+    def stats_ival_percentiles(self, kind=None, all_perc=(25, 50, 75),
+                               min_idx=None, max_idx=None):
+        """Percentile-based stats for some kind (= 'peaks', 'troughs') of
+        intervals, which are scaled to units of time.
+        The default is to calculate quartile (25, 50, 75) stats, but any 
+        set can be provided as a list/tuple all_perc.  Another useful set
+        could be: (10, 25, 40, 50, 60, 75, 90).
+        The min_idx and max_idx values can be provided as a range
+        within which to calc the interval stats: [min_idx,
+        max_idx). This is useful, for example, to get stats only
+        within the duration of the MRI volume.
+        Return the list of the desired stats values."""
+
+        kind_list = self.adjunct_get_list(kind=kind, 
+                                          min_idx=min_idx, 
+                                          max_idx=max_idx)
+
+        all_stat = \
+            lpu.calc_interval_stats_perc(kind_list, samp_rate=self.samp_rate,
+                                         all_perc=all_perc)
+        return all_stat
+
+    def stats_ival_mmms(self, kind=None,
+                        min_idx=None, max_idx=None):
+        """Min/max/mean/std stats for some kind (= 'peaks', 'troughs') of
+        intervals, which are scaled to units of time.
+        The min_idx and max_idx values can be provided as a range
+        within which to calc the interval stats: [min_idx,
+        max_idx). This is useful, for example, to get stats only
+        within the duration of the MRI volume.
+        Return the list of the desired stats values."""
+
+        kind_list = self.adjunct_get_list(kind=kind, 
+                                          min_idx=min_idx, 
+                                          max_idx=max_idx)
+
+        all_stat = \
+            lpu.calc_interval_stats_mmms(kind_list, samp_rate=self.samp_rate)
+        return all_stat
+
+    def stats_count_pt(self, kind=None,
+                       min_idx=None, max_idx=None):
+        """Count extrema for some kind (= 'peaks', 'troughs') of
+        list.
+        The min_idx and max_idx values can be provided as a range
+        within which to calc the interval stats: [min_idx,
+        max_idx). This is useful, for example, to get stats only
+        within the duration of the MRI volume.
+        Return the list of the desired stats values."""
+
+        kind_list = self.adjunct_get_list(kind=kind, 
+                                          min_idx=min_idx, 
+                                          max_idx=max_idx)
+
+        return len(kind_list)
+
+    def adjunct_get_list(self, kind=None,
+                         min_idx=None, max_idx=None):
+        """Get some kind (= 'peaks', 'troughs'), of extrema list.
+        The min_idx and max_idx values can be provided as a range
+        within which to calc the interval stats: [min_idx,
+        max_idx). This is useful, for example, to get stats only
+        within the duration of the MRI volume.
+        Return the list of indices."""
+
+        if kind == 'troughs' :     kind_list = self.troughs
+        elif kind == 'peaks' :     kind_list = self.peaks
+        else:
+            print("** ERROR: must provide 'kind' (peaks, troughs, etc.)")
+            sys.exit(3)
+  
+        if min_idx != None :
+            tmp = np.array(kind_list)
+            kind_list = list( tmp[tmp>=min_idx] )
+        if max_idx != None :
+            tmp = np.array(kind_list)
+            kind_list = list( tmp[tmp<max_idx] )
+
+        return kind_list
+
+    # ---------
 
     @property
     def n_ts_orig(self):
+
         """The number of time points in original time series."""
         return len(self.ts_orig)
 
@@ -107,7 +227,7 @@ derived data.
         try:
             rate = 1.0/self.samp_freq
         except:
-            print("** WARNING: undefined sampling rate")
+            print("+* WARNING: undefined sampling rate")
             rate = np.nan
         return rate
 
@@ -144,66 +264,6 @@ derived data.
     def n_peaks(self):
         """The number of peaks in the peaks collection."""
         return len(self.peaks)
-
-    @property
-    def stats_perc_peaks(self):
-        """Percentile-based stats for the peak intervals, which are scaled to
-        units of time. Percentiles calc'ed: (10, 25, 40, 50, 60, 75,
-        90)"""
-
-        all_stat = \
-            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
-                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
-        return all_stat
-
-    @property
-    def stats_perc_troughs(self):
-        """Percentile-based stats for the trough intervals, which are scaled
-        to units of time. Percentiles calc'ed: (10, 25, 40, 50, 60,
-        75, 90)"""
-
-        all_stat = \
-            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
-                                         all_perc=(10, 25, 40, 50, 60, 75, 90))
-        return all_stat
-
-    @property
-    def stats_quarts_peaks(self):
-        """Quartile (25, 50, 75) stats for the peak intervals, which are
-        scaled to units of time."""
-
-        all_stat = \
-            lpu.calc_interval_stats_perc(self.peaks, samp_rate=self.samp_rate,
-                                         all_perc=(25, 50, 75))
-        return all_stat
-
-    @property
-    def stats_quarts_troughs(self):
-        """Quartile (25, 50, 75) stats for the trough intervals, which are
-        scaled to units of time."""
-
-        all_stat = \
-            lpu.calc_interval_stats_perc(self.troughs, samp_rate=self.samp_rate,
-                                         all_perc=(25, 50, 75))
-        return all_stat
-
-    @property
-    def stats_mmms_peaks(self):
-        """Min/max/mean/std stats for the peak intervals, which are scaled to
-        units of time."""
-
-        all_stat = \
-            lpu.calc_interval_stats_mmms(self.peaks, samp_rate=self.samp_rate)
-        return all_stat
-
-    @property
-    def stats_mmms_troughs(self):
-        """Min/max/mean/std stats for the trough intervals, which are scaled
-        to units of time."""
-
-        all_stat = \
-            lpu.calc_interval_stats_mmms(self.troughs, samp_rate=self.samp_rate)
-        return all_stat
 
     @property
     def n_troughs(self):
@@ -469,6 +529,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      prefilt_win = self.prefilt_win[label],
                                      prefilt_init_freq = AD['freq'],
                                      do_interact = AD['do_interact'],
+                                     duration_vol = self.duration_vol,
+                                     vol_tr = self.vol_tr,
                                      verb=self.verb)
             elif label == 'card' :
                 self.data['card'] = phys_ts_obj(arr_fixed,
@@ -483,6 +545,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
                                      prefilt_win = self.prefilt_win[label],
                                      prefilt_init_freq = AD['freq'],
                                      do_interact = AD['do_interact'],
+                                     duration_vol = self.duration_vol,
+                                     vol_tr = self.vol_tr,
                                      verb=self.verb)
         return 0
 
@@ -730,8 +794,8 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         phys_end_time = self.data[label].end_time
         mri_end_time  = self.vol_final_slice_time
 
-        print("++ Start time physio ({}) : {:0.6f}".format(label, start_time))
-        print("++ End times of physio ({}) and MRI:".format(label))
+        print("++ ({}) Start time physio : {:0.6f}".format(label, start_time))
+        print("++ ({}) End times of physio and MRI:".format(label))
         print("   physio end time      : {:0.6f}".format(phys_end_time))
         print("   final MRI slice time : {:0.6f}".format(mri_end_time))
 

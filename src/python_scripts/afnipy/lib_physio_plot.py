@@ -2,6 +2,7 @@
 
 import sys, copy
 import numpy as np
+import matplotlib             as     mpl
 import matplotlib.pyplot      as     plt
 from   matplotlib.collections import PatchCollection as MPC
 import matplotlib.patches     as     mplp
@@ -16,6 +17,7 @@ DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
 
 PY_VER    = sys.version_info.major   # Python major version
+MAT_VER   = mpl.__version__          # have some mpl ver dependence---sigh
 
 # =========================================================================
 
@@ -668,7 +670,7 @@ them.
                                   loc='left', labelpad=4)
 
                 # put a plot-wide ylabel at the top
-                if PY_VER > 2 and self.ylabel :
+                if PY_VER > 2 and self.ylabel and MAT_VER >= '3.4' :
                     fff.supylabel(self.ylabel, y=0.9, va='top', 
                                   fontsize=self.fontsize)
 
