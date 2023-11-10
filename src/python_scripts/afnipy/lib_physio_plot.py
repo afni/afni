@@ -594,14 +594,18 @@ them.
                         idx   = self.all_sub_slice[ii][jj]
                         xvals = copy.deepcopy(plobj.x[idx[0]:idx[1]])
                         yvals = copy.deepcopy(plobj.y[idx[0]:idx[1]])
-
+                        
                         # NB: for polygon quirks, add in a far
                         # away+nonremovable point; must remove later.
                         # The new vert's xcoor is: x[0] - 3*(x[1]-x[0])
                         newx = 4*self.all_range_xlim[ii][0] 
                         newx-= 3*self.all_range_xlim[ii][1]
                         xvals = np.insert(xvals, 0, newx)
-                        yvals = np.insert(yvals, 0, min(yvals))
+                        # sidenote: more stable to use this for the
+                        # yvalue to insert here, bc it is possible
+                        # that idx[0]==idx[1], meaning that the list
+                        # of peaks or troughs is empty
+                        yvals = np.insert(yvals, 0, self.range_ylim[0])
 
                         if jj :
                             # labels to ID peaks and troughs in Interactive
