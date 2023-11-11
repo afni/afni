@@ -155,7 +155,7 @@ is_ok : int
     # write out
     fff = open( oname_rev, mode )
     for key in dict_rev:
-        fff.write("{:30s} : {:s}\n".format(key, dict_rev[key]))
+        fff.write("{:35s} : {:s}\n".format(key, dict_rev[key]))
     fff.close()
 
     return 0
@@ -169,37 +169,107 @@ here."""
 
     D['filename'] = phobj.fname
     D['label']    = phobj.label
+    idxA, idxB    = phobj.indices_vol # MRI dset interval ranges
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    D['read_in sampling freq']  = str(phobj.prefilt_init_freq)
+    D['prefilt mode']           = str(phobj.prefilt_mode)
+    if phobj.prefilt_mode != None and phobj.prefilt_mode != 'none' :
+        D['prefilt window, sec'] = str(phobj.prefilt_win)
+    else:
+        D['prefilt window, sec'] = 'NA'
+    D['is user interact on?'] = str(phobj.do_interact)
     
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    D['ts_orig num points']     = str(phobj.n_ts_orig)
-    D['ts_orig sampling rate']  = str(phobj.samp_rate)
     D['ts_orig sampling freq']  = str(phobj.samp_freq)
+    D['ts_orig sampling rate']  = str(phobj.samp_rate)
+    D['ts_orig num points']     = str(phobj.n_ts_orig)
     D['ts_orig start time']     = str(phobj.start_time)
     D['ts_orig end time']       = str(phobj.end_time)
     D['ts_orig duration']       = str(phobj.duration_ts_orig)
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    D['peaks num'] = str(phobj.n_peaks)
-    minval, maxval, meanval, stdval = phobj.stats_mmms_peaks
-    q25, q50, q75 = phobj.stats_quarts_peaks
-    D['peaks min max'] = str("{:9.6f} {:9.6f}".format(minval, maxval))
-    D['peaks mean std'] = str("{:9.6f} {:9.6f}".format(meanval, stdval))
-    D['peaks q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, q50, q75))
+    D['dset tr']          = "{:.6f}".format(phobj.vol_tr)
+    D['dset start time']  = "{:.6f}".format(0.0)
+    D['dset end time']    = "{:.6f}".format(phobj.duration_vol)
+    D['dset duration']    = "{:.6f}".format(phobj.duration_vol)
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    D['troughs num'] = str(phobj.n_troughs)
+    D['peak num total'] = str(phobj.n_peaks)
+    minval, maxval, meanval, stdval = phobj.stats_ival_mmms("peaks")
+    q25, q50, q75 = phobj.stats_ival_percentiles("peaks") # def: quartiles
+    D['peak ival min max'] = str("{:8.6f} {:8.6f}".format(minval, 
+                                                          maxval))
+    D['peak ival mean std'] = str("{:8.6f} {:8.6f}".format(meanval,
+                                                           stdval))
+    D['peak ival q25 q50 q75'] = str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
+                                                                      q50, 
+                                                                      q75))
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    # info over subset of MRI dset duration
+    D['peak num over dset'] = str(phobj.stats_count_pt("peaks", 
+                                                       min_idx=idxA,
+                                                       max_idx=idxB))
+    minval, maxval, meanval, stdval = phobj.stats_ival_mmms("peaks", 
+                                                            min_idx=idxA,
+                                                            max_idx=idxB)
+    q25, q50, q75 = phobj.stats_ival_percentiles("peaks", min_idx=idxA,
+                                                 max_idx=idxB)
+    D['peak ival over dset min max'] = str("{:8.6f} {:8.6f}".format(minval, 
+                                                                    maxval))
+    D['peak ival over dset mean std'] = str("{:8.6f} {:8.6f}".format(meanval,
+                                                                     stdval))
+    D['peak ival over dset q25 q50 q75'] = \
+        str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
+                                             q50, 
+                                             q75))
+
+
     if phobj.n_troughs :
-        minval, maxval, meanval, stdval = phobj.stats_mmms_troughs
-        q25, q50, q75 = phobj.stats_quarts_troughs
-        D['troughs min max'] = str("{:9.6f} {:9.6f}".format(minval, maxval))
-        D['troughs mean std'] = str("{:9.6f} {:9.6f}".format(meanval, 
+        D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+        D['trough num total'] = str(phobj.n_troughs)
+        minval, maxval, meanval, stdval = phobj.stats_ival_mmms("troughs")
+        q25, q50, q75 = phobj.stats_ival_percentiles("troughs")
+        D['trough ival min max'] = str("{:8.6f} {:8.6f}".format(minval, 
+                                                                maxval))
+        D['trough ival mean std'] = str("{:8.6f} {:8.6f}".format(meanval, 
                                                                  stdval))
-        D['troughs q25 q50 q75'] = str("{:9.6f} {:9.6f} {:9.6f}".format(q25, 
-                                                                        q50, 
-                                                                        q75))
+        D['trough ival q25 q50 q75'] = \
+            str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
+                                                 q50, 
+                                                 q75))
+
+        D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+        # info over subset of MRI dset duration
+        D['trough num over dset'] = str(phobj.stats_count_pt("troughs", 
+                                                             min_idx=idxA,
+                                                             max_idx=idxB))
+        if phobj.n_troughs :
+            minval, maxval, meanval, stdval = \
+                phobj.stats_ival_mmms("troughs",
+                                      min_idx=idxA,
+                                      max_idx=idxB)
+            q25, q50, q75 = phobj.stats_ival_percentiles("troughs", 
+                                                         min_idx=idxA,
+                                                         max_idx=idxB)
+            D['trough ival over dset min max'] = \
+                str("{:8.6f} {:8.6f}".format(minval, 
+                                             maxval))
+            D['trough ival over dset mean std'] = \
+                str("{:8.6f} {:8.6f}".format(meanval, 
+                                             stdval))
+            D['trough ival over dset q25 q50 q75'] = \
+                str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
+                                                     q50, 
+                                                     q75))
 
     return D
 
