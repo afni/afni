@@ -1741,6 +1741,8 @@ typedef struct {
                                  controlling the coord bias widgets */
    SUMA_MENU_WIDGET *LinkModeMenu; /*[SW_N_LinkMode] vector of widgets
                                  controlling the linking of I, T widgets */
+//   SUMA_MENU_WIDGET *AlphaMode_Menu; /*Alpha vector of widgets
+//                                 controlling alpha threshold and boxing */
    SUMA_MENU_WIDGET *CmapModeMenu; /* [SW_N_CmapMode] */
    Widget opts_rc; /*!< rowcolumn for color map, color bar and switch buttons */
    Widget opts_form; /*!< rowcolumn containing all options for colormapping */
@@ -1765,6 +1767,10 @@ typedef struct {
    int DeleteMask_row;
    float tract_length_mask[2];
    int UseMaskLen;
+   Widget AlphaThresh_tb; /*!< alpha threshold */
+   Widget BoxOutlineThresh_tb; /*!< box outline threshold */
+   int AlphaThresh;
+   int BoxOutlineThresh;
 }SUMA_X_SurfCont;
 
 typedef struct {
