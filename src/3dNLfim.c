@@ -2544,12 +2544,14 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   float fbuf[MAX_STAT_AUX];           /* float buffer */
   float fimfac;                       /* scale factor for short data */
 /*  int output_datum;  */                 /* data type for output data */
-  short * tsp;                        /* 2nd sub-brick data pointer */
+  short * tsp=NULL;                   /* 2nd sub-brick data pointer */
+  float * fsp=NULL;                   /* float version of 2nd sub data */
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
   char label[THD_MAX_NAME];           /* label for output file history */
   int nbad;                           /* number of bad voxels in volume */
+  int outfloat;                       /* output stat as float? [14 Nov 2023] */
 
   /*----- read input dataset -----*/
   dset = THD_open_dataset (input_filename) ; /* was THD_open_one...*/
@@ -2579,7 +2581,11 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   if( output_datum == MRI_byte ) output_datum = MRI_short ;
 */
 
+  /* do not output MRI_shorts with float results  [14 Nov 2023 rickr] */
+  outfloat = (output_datum == MRI_float);
+
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
+  if( outfloat ) ibuf[1] = MRI_float;
 
   if (dendof == 0) func_type = FUNC_TT_TYPE;
   else func_type = FUNC_FT_TYPE;
@@ -2620,46 +2626,59 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   /*----- allocate memory for output data -----*/
   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz );
   if (vdif == NULL)   NLfit_error ("Unable to allocate memory for vdif");
-  tsp  = (short *) malloc( sizeof(short) * nxyz );
-  if (tsp == NULL)   NLfit_error ("Unable to allocate memory for tsp");
+  if( outfloat ) {
+     fsp  = (float *) malloc( sizeof(float) * nxyz );
+     if (fsp == NULL) NLfit_error ("Unable to allocate memory for fsp");
+     memcpy(fsp, ftr, sizeof(float) * nxyz);
+  } else {
+     /* create tsp data for scaled short stats */
+     tsp  = (short *) malloc( sizeof(short) * nxyz );
+     if (tsp == NULL) NLfit_error ("Unable to allocate memory for tsp");
+  }
 
   /*----- attach bricks to new data set -----*/
   mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
 
+  if( outfloat ) {
+     mri_fix_data_pointer (fsp, DSET_BRICK(new_dset,1));
+     fimfac = 0.0;
+  } else {
+     mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
 
-  /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz,
-                          MRI_float, ffim,
-                          output_datum, vdif);
-  if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
+     /* non-float: before attaching, convert float statistic to scaled short */
+
+     /*----- convert data type to output specification -----*/
+     fimfac = EDIT_coerce_autoscale_new (nxyz,
+                             MRI_float, ffim,
+                             output_datum, vdif);
+     if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
 
 #define TOP_SS  32700
 
-  if (dendof == 0)   /* t-statistic */
-    {
-      top = TOP_SS/FUNC_TT_SCALE_SHORT;
-      func_scale_short = FUNC_TT_SCALE_SHORT;
-    }
-  else               /* F-statistic */
-    {
-      top = TOP_SS/FUNC_FT_SCALE_SHORT;
-      func_scale_short = FUNC_FT_SCALE_SHORT;
-    }
+     if (dendof == 0)   /* t-statistic */
+       {
+         top = TOP_SS/FUNC_TT_SCALE_SHORT;
+         func_scale_short = FUNC_TT_SCALE_SHORT;
+       }
+     else               /* F-statistic */
+       {
+         top = TOP_SS/FUNC_FT_SCALE_SHORT;
+         func_scale_short = FUNC_FT_SCALE_SHORT;
+       }
 
-  for (ii = 0;  ii < nxyz;  ii++)
-    {
-      if (ftr[ii] > top)
-     tsp[ii] = TOP_SS;
-      else  if (ftr[ii] < -top)
-     tsp[ii] = -TOP_SS;
-      else  if (ftr[ii] >= 0.0)
-     tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
-      else
-     tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
+     for (ii = 0;  ii < nxyz;  ii++)
+       {
+         if (ftr[ii] > top)
+        tsp[ii] = TOP_SS;
+         else  if (ftr[ii] < -top)
+        tsp[ii] = -TOP_SS;
+         else  if (ftr[ii] >= 0.0)
+        tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
+         else
+        tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
-    }
-
+       }
+   } /* end !outfloat */
 
   /*----- write afni data set -----*/
   INFO_message("Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
@@ -2670,7 +2689,8 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
 
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-  fbuf[1] = 1.0 / func_scale_short ;
+  if( outfloat ) fbuf[1] = 0.0;
+  else           fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") )

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Nov, 2023, RCR, "3dNLfim", MINOR, TYPE_BUG_FIX,
+   "when creating non-bucket output, if float output, make all volumes float",
+   "Thanks to V Dinh for noting the problem."
+ } ,
+
  { 30, Oct, 2023, RCR, "Makefile.macos_13_ARM_clang", MINOR, TYPE_MODIFY,
    "(w/DG) use homebrew gcc-13, and downgrade -O2 to -O1",
    "We have yet to resolve why /usr/bin/gcc led to a 3dSkullStrip crash.\n"
