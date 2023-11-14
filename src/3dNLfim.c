@@ -2643,41 +2643,41 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
      mri_fix_data_pointer (fsp, DSET_BRICK(new_dset,1));
      fimfac = 0.0;
   } else {
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
+     mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
 
-  /* non-float: before attaching, convert float statistic to scaled short */
+     /* non-float: before attaching, convert float statistic to scaled short */
 
-  /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz,
-                          MRI_float, ffim,
-                          output_datum, vdif);
-  if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
+     /*----- convert data type to output specification -----*/
+     fimfac = EDIT_coerce_autoscale_new (nxyz,
+                             MRI_float, ffim,
+                             output_datum, vdif);
+     if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
 
 #define TOP_SS  32700
 
-  if (dendof == 0)   /* t-statistic */
-    {
-      top = TOP_SS/FUNC_TT_SCALE_SHORT;
-      func_scale_short = FUNC_TT_SCALE_SHORT;
-    }
-  else               /* F-statistic */
-    {
-      top = TOP_SS/FUNC_FT_SCALE_SHORT;
-      func_scale_short = FUNC_FT_SCALE_SHORT;
-    }
+     if (dendof == 0)   /* t-statistic */
+       {
+         top = TOP_SS/FUNC_TT_SCALE_SHORT;
+         func_scale_short = FUNC_TT_SCALE_SHORT;
+       }
+     else               /* F-statistic */
+       {
+         top = TOP_SS/FUNC_FT_SCALE_SHORT;
+         func_scale_short = FUNC_FT_SCALE_SHORT;
+       }
 
-  for (ii = 0;  ii < nxyz;  ii++)
-    {
-      if (ftr[ii] > top)
-     tsp[ii] = TOP_SS;
-      else  if (ftr[ii] < -top)
-     tsp[ii] = -TOP_SS;
-      else  if (ftr[ii] >= 0.0)
-     tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
-      else
-     tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
+     for (ii = 0;  ii < nxyz;  ii++)
+       {
+         if (ftr[ii] > top)
+        tsp[ii] = TOP_SS;
+         else  if (ftr[ii] < -top)
+        tsp[ii] = -TOP_SS;
+         else  if (ftr[ii] >= 0.0)
+        tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
+         else
+        tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
-    }
+       }
    } /* end !outfloat */
 
   /*----- write afni data set -----*/
