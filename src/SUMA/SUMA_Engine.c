@@ -146,6 +146,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
    SUMA_ENTRY;
 
+
    if (NI_TALK_MODE < 0) {
       if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
          SUMA_S_Note("Talking in text mode");

@@ -14541,6 +14541,8 @@ int SUMA_ColPlane_NewOrder(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -14845,6 +14847,8 @@ int SUMA_ColPlane_NewOpacity (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15031,6 +15035,8 @@ int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15168,6 +15174,8 @@ int SUMA_ColPlane_NewAlphaThresh (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    SUMA_LH("Called");
 
@@ -15495,7 +15503,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
       ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
 
@@ -15529,6 +15537,7 @@ SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
    if (!list) list = SUMA_CreateList ();
    SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_RedisplayNow_AllVisible,
                                        SES_Suma, NULL);
+
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURN(NOPE);
@@ -15650,6 +15659,8 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
@@ -16278,6 +16289,8 @@ int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   fprintf(stderr, "%s\n", FuncName);
 
    if (!ado || !LW) SUMA_RETURN(0);
 
