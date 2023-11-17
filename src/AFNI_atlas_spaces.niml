@@ -382,7 +382,7 @@
 <ATLAS
  atlas_name="MNI_Glasser_HCP_v1.0"
  dset_name="MNI_Glasser_HCP_v1.0.nii.gz"
- template_space="MNI"
+ template_space="MNI_2009c_asym"
  description="Glasser HCP 2016 surface-based parcellation"
  comment="Glasser, et al,A multi-modal parcellation of human cerebral cortex,
     Nature,2016. 
@@ -400,13 +400,14 @@
  description="Brainnetome MPM"
  comment="Please cite Fan, L. et al., The Human Brainnetome Atlas:
      A New Brain Atlas Based on Connectional Architecture.
-     Cerebral Cortex, 26 (8): 3508-3526,(2016)."
+     Cerebral Cortex, 26 (8): 3508-3526,(2016).
+     In HCP-40 space, a space similar to MNI_2009c"
 ></ATLAS>
 
 <ATLAS
   atlas_name="CA_MPM_22_MNI"
   dset_name="MNI_caez_mpm_22+tlrc"
-  template_space="MNI"
+  template_space="MNI_N27"
   description="Eickhoff-Zilles MPM atlas"
   comment="Eickhoff-Zilles maximum probability map from cytoarchitectonic probabilistic atlas
    SPM ANATOMY TOOLBOX  v2.2
@@ -494,23 +495,6 @@
     Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
 ></ATLAS>
 
-<ATLAS
-   atlas_name="CA_N27_MPM"   
-   dset_name="TT_caez_mpm_18+tlrc"
-   template_space="TT_N27"
-   description="Cytoarch. Max. Prob. Maps"
-   comment="Eickhoff-Zilles maximum probability map-1.8 version on TT_N27
-    from post-mortem analysis"
-></ATLAS>
-
-<ATLAS
-   atlas_name="CA_N27_PM"   
-   dset_name="TT_caez_pmaps_18+tlrc"
-   template_space="TT_N27"
-   description="Cytoarch. Probabilistic Maps 1.8"
-   comment="Eickhoff-Zilles probability maps 1.8 version on TT_N27
-    from post-mortem analysis"
-></ATLAS>
 
 <ATLAS
    atlas_name="CA_N27_GW"   
@@ -521,148 +505,23 @@
     from post-mortem analysis"
 ></ATLAS>
 
-<ATLAS
-   atlas_name="CA_N27_LR"
-   dset_name="TT_caez_lr_18+tlrc"
-   template_space="TT_N27"
-   description="Left/Right (N27) 1.8"
-   comment="Simple left, right hemisphere segmentation 1.8 version"
-></ATLAS>
-
 #Cytoarchitectonic atlases shifted to MNI space
 <ATLAS
    atlas_name="CA_ML_18_MNI"   
    dset_name="MNI_caez_ml_18+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
    description="Macro Labels (N27-MNI)"
    comment="Eickhoff-Zilles macro labels from N27 (MNI space)"
 ></ATLAS>
 
 <ATLAS
-   atlas_name="CA_MPM_18_MNI"   
-   dset_name="MNI_caez_mpm_18+tlrc"
-   template_space="MNI"
-   description="Cytoarch. Max. Prob. Maps (MNI)"
-   comment="Eickhoff-Zilles maximum probability map on MNI-152 
-     from post-mortem analysis (MNI space)"
-></ATLAS>
-
-<ATLAS
    atlas_name="CA_LR_18_MNI"
    dset_name="MNI_caez_lr_18+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
    description="Left/Right (N27-MNI)"
    comment="Simple left, right hemisphere segmentation (MNI space)"
 ></ATLAS>
 
-
-#Cytoarchitectonic atlases in original MNI_ANAT space
-<ATLAS
-   atlas_name="CA_ML_18_MNIA"   
-   dset_name="MNIa_caez_ml_18+tlrc"
-   template_space="MNI_ANAT"
-   description="Macro Labels (N27)"
-   comment="Eickhoff-Zilles macro labels from N27 (MNI_ANAT space)"
-></ATLAS>
-
-<ATLAS
-   atlas_name="CA_MPM_18_MNIA"   
-   dset_name="MNIa_caez_mpm_18+tlrc"
-   template_space="MNI_ANAT"
-   description="Cytoarch. Max. Prob. Maps"
-   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis (MNI_ANAT space)"
-></ATLAS>
-
-<ATLAS
-   atlas_name="CA_PM_18_MNIA"   
-   dset_name="MNIa_caez_pmaps_18+tlrc"
-   template_space="MNI_ANAT"
-   description="Cytoarch. Probabilistic Maps"
-   comment="Eickhoff-Zilles probability maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
-></ATLAS>
-
-<ATLAS
-   atlas_name="CA_GW_18_MNIA"   
-   dset_name="MNIa_caez_gw_18+tlrc"
-   template_space="MNI_ANAT"
-   description="Cytoarch. Prob. Maps for gray/white matter"
-   comment="Eickhoff-Zilles probability maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
-></ATLAS>
-
-<ATLAS
-   atlas_name="CA_LR_18_MNIA"
-   dset_name="MNIa_caez_lr_18+tlrc"
-   template_space="MNI_ANAT"
-   description="Left/Right (N27)"
-   comment="Simple left, right hemisphere segmentation (MNI_ANAT space)"
-></ATLAS>
-
-
-#Desai atlases - based on @auto_tlrc alignment of FreeSurfer parcellation
-<ATLAS
-   atlas_name="DKD_Desai_PM"
-   dset_name="TT_desai_dkpmaps+tlrc"
-   template_space="TT_N27"
-   description="Probability maps of 35 cortical areas (gyri)"
-   comment="
-     Please cite:
-     Desikan et al., Neuroimage 2006 (31) pp. 968-980."
-></ATLAS>
-
-<ATLAS
-   atlas_name="DD_Desai_PM"
-   dset_name="TT_desai_ddpmaps+tlrc"
-   template_space="TT_N27"
-   description="Probability maps of 75 cortical areas"
-   comment="
-     For each hemisphere,including both gyri and sulci.
-     Please cite:
-       Destrieux et al., Neuroimage 2010 (53) pp. 1-15."
-></ATLAS>
-
-<ATLAS
-   atlas_name="FS_Desai_PM"
-   dset_name="TT_desai_fspmaps+tlrc"
-   template_space="TT_N27"
-   description="40 subcortical areas"
-   comment="15 in left & right hemispheres,10 midline structures parcellated by freesurfer"
-></ATLAS>
-
-<ATLAS
-   atlas_name="DD_Desai_MPM"
-   dset_name="TT_desai_dd_mpm+tlrc"
-   template_space="TT_N27"
-   description="Maximum probability maps of Desai DD and FS maps"
-   comment="Smoothed maximum maps masked by unsmoothed maximum map"
-></ATLAS>
-
-<ATLAS
-   atlas_name="DKD_Desai_MPM"
-   dset_name="TT_desai_dk_mpm+tlrc"
-   template_space="TT_N27"
-   description="Maximum probability maps of Desai DKD and FS maps"
-   comment="Smoothed maximum maps masked by unsmoothed maximum map"
-></ATLAS>
-
-# Ventromedial prefrontal cortex
-<ATLAS
- atlas_name="MNI_VmPFC"
- dset_name="MNI_VmPFC+tlrc"
- template_space="MNI"
- description="Ventromedial Prefrontal Cortex"
- comment="Mackey, S. and Petrides, M. (2014), Architecture and morphology
-     of the human ventromedial prefrontal cortex. European Journal 
-     of Neuroscience, 40: 2777-796. doi: 10.1111/ejn.12654"
-></ATLAS>
-
-# Classic and deeply flawed Talairach Daemon (moved down to avoid being shown early in whereami output)
-<ATLAS
-   atlas_name="TT_Daemon"   
-   dset_name="TTatlas+tlrc"
-   template_space="TLRC"
-   description="Talairach-Tournoux Atlas"
-   comment="The standard talaraich atlas"
-></ATLAS>
 
 # Haskins Pediatric atlas (nonlinear version only)
 <ATLAS
@@ -697,45 +556,8 @@
 ></TEMPLATE>
 
 <TEMPLATE
-   template_name="TT_152_2009c+tlrc"
-   template_space="TT_N27"
-   comment="Talairached MNI 2009c template, aligned to TT_N27
-      with @auto_tlrc. See MNI152_T1_2009c+tlrc for copyright
-      and citation information"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="TT_avg152T1+tlrc"
-   template_space="TT_avg"
-   comment="152 subjects T1 scan aligned to Colin brain template.
-     Brett transformed to TLRC"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="TT_avg152T2+tlrc"
-   template_space="TT_avg"
-   comment="152 subjects T2 scan aligned to Colin brain template
-     Brett transformed to TLRC"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="TT_icbm452+tlrc"
-   template_space="TT_avg"
-   comment="452 subjects T1 scan aligned to Colin brain template
-    This dataset was manually transformed to Talairach space from
-    an Analyze format dataset from the ICBM/LONI site"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="TT_EPI+tlrc"
-   template_space="TT_avg"
-   comment="EPI average template
-    Brett transformed to TLRC"
-></TEMPLATE>
-
-<TEMPLATE
    template_name="MNI152_T1_2009c+tlrc"
-   template_space="MNI"
+   template_space="MNI_2009c_asym"
    comment="152 subjects T1 nonlinear at 1mm
       VS Fonov, et al, Unbiased average age-appropriate atlases for pediatric
       studies,NeuroImage,Volume 54, Issue 1, January 2011, ISSN 1053-8119,
@@ -759,28 +581,8 @@
 ></TEMPLATE>
 
 <TEMPLATE
-   template_name="MNI152.nii"
-   template_space="MNI"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="ICBM452.nii"
-   template_space="MNI"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="MNI_EPI.nii"
-   template_space="MNI"
-></TEMPLATE>
-
-<TEMPLATE
-   template_name="MNIa_caez_N27+tlrc"
-   template_space="MNI_ANAT"
-></TEMPLATE>
-
-<TEMPLATE
    template_name="MNI_caez_N27+tlrc"
-   template_space="MNI"
+   template_space="MNI_N27"
 ></TEMPLATE>
 
 <TEMPLATE
@@ -794,3 +596,130 @@
 ></TEMPLATE>
 
 #**********************************************
+<TEMPLATE_SPACE
+  space_name="MNI_2009c_asym"
+  generic_space="MNI"
+  comment="MNI 2009c asymmetric template 1mm3"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
+  space_name="MNI_N27"
+  generic_space="MNI"
+  comment="MNI N27 Single Subject"
+></TEMPLATE_SPACE>
+
+<ATLAS
+  atlas_name="FS.afni.MNI2009c_asym"
+  dset_name="FS.afni.MNI2009c_asym.nii.gz"
+  template_space="MNI_2009c_asym"
+  description="Freesurfer MNI2009c DK parcellation"
+  comment="Freesurfer recon-all freesurfer-linux-centos7_x86_64-7.3.2-20220804-6354275" />
+<ATLAS
+  atlas_name="FS.afni.TTN27"
+  dset_name="FS.afni.TTN27.nii.gz"
+  template_space="TT_N27"
+  description="Freesurfer TT_N27 DK parcellation"
+  comment="Freesurfer recon-all freesurfer-linux-centos7_x86_64-7.3.2-20220804-6354275" />
+></ATLAS>
+
+<ATLAS
+ atlas_name="Brodmann_Pijn"
+ dset_name="Brodmann.nii.gz"
+ template_space="MNI_N27"
+ description="Brodmann atlas MNI N27 - Pijnenburg"
+ comment="Pijnenburg, R., et al (2021). Myelo- and cytoarchitectonic microstructural and functional human cortical atlases reconstructed in common MRI space. NeuroImage, 239, 118274."
+></ATLAS>
+
+<ATLAS
+ atlas_name="Brodmann_Pijn_AFNI"
+ dset_name="Brodmann_pijn_afni.nii.gz"
+ template_space="MNI_2009c_asym"
+ description="Brodmann atlas for MNI 2009c - Pijnenburg AFNI version"
+ comment="Pijnenburg, R., et al (2021). Myelo- and cytoarchitectonic microstructural
+     and functional human cortical atlases reconstructed in common MRI space.
+     NeuroImage, 239, 118274.
+     This AFNI version has been reprojected into the MNI 2009c template space 
+     via a standard mesh surface and then modally smoothed and renumbered."
+></ATLAS>
+
+<ATLAS
+  atlas_name="Julich_MNI2009c"
+  dset_name="Julich_MNI2009c.nii.gz"
+  template_space="MNI_2009c_asym"
+  description="JulichBrain 3.0 for MNI 2009c asymmetric space"
+  comment="From EBRAINS3.0 website, v3.0.3 available here:
+    https://search.kg.ebrains.eu/instances/d69b70e2-3002-4eaf-9c61-9c56f019bbc8
+
+    Please cite this dataset version and the original research publication:
+    Amunts, K, Mohlberg, H, Bludau, S, Caspers, S, Lewis, LB, Eickhoff, SB, 
+      Pieperhoff, P (2023). 
+      Julich-Brain Atlas, cytoarchitectonic maps (v3.0.3) [Data set].
+      DOI: 10.25493/56EM-75H
+    Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
+      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      DOI: 10.1016/j.neuroimage.2012.01.024
+    Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
+      Zilles, K. (2005).
+      A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
+      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      DOI: 10.1016/j.neuroimage.2004.12.034
+
+    For the overall scientific concept and methodology of the Julich-Brain, please cite:
+      Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
+      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
+      Science, 369(6506), 988–992.
+      DOI: 10.1126/science.abb4588
+"
+></ATLAS>
+
+<ATLAS
+  atlas_name="Julich_MNI_N27"
+  dset_name="Julich_MNI_N27.nii.gz"
+  template_space="MNI_N27"
+  description="JulichBrain 3.0 for MNI N27 space"
+  comment="From EBRAINS3.0 website, v3.0.3 available here:
+    https://search.kg.ebrains.eu/instances/d69b70e2-3002-4eaf-9c61-9c56f019bbc8
+
+    Please cite this dataset version and the original research publication:
+    Amunts, K, Mohlberg, H, Bludau, S, Caspers, S, Lewis, LB, Eickhoff, SB, 
+      Pieperhoff, P (2023). 
+      Julich-Brain Atlas, cytoarchitectonic maps (v3.0.3) [Data set].
+      DOI: 10.25493/56EM-75H
+    Evans, AC, Janke, AL, Collins, DL, Baillet, S (2012).
+      Brain templates and atlases. NeuroImage, 62(2), 911–922.
+      DOI: 10.1016/j.neuroimage.2012.01.024
+    Eickhoff, SB, Stephan, KE, Mohlberg, H, Grefkes, C, Fink, GR, Amunts, K,
+      Zilles, K. (2005).
+      A new SPM toolbox for combining probabilistic cytoarchitectonic maps and
+      functional imaging data. NeuroImage, 25(4), 1325–1335.
+      DOI: 10.1016/j.neuroimage.2004.12.034
+
+    For the overall scientific concept and methodology of the Julich-Brain, please cite:
+      Amunts, K, Mohlberg, H, Bludau, S, & Zilles, K (2020).
+      Julich-Brain: A 3D probabilistic atlas of the human brain’s cytoarchitecture.
+      Science, 369(6506), 988–992.
+      DOI: 10.1126/science.abb4588
+></ATLAS>
+
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNI::MNI_N27"
+  source="MNI"
+  dest="MNI_N27"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
+<XFORM
+  ni_type="1*float"
+  ni_dimen="1"
+  xform_name="MNI::MNI_2009c_asym"
+  source="MNI"
+  dest="MNI_2009c_asym"
+  distance="0.1"
+  xform_type="Identity" >
+  1
+>
+</XFORM>
