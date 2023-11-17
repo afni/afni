@@ -1089,7 +1089,9 @@ typedef struct {
    DList *ClustList; /*!< The list of clusters */
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
-   int AlphaThresh;
+   int AlphaThresh;     // "A" button checked.  Opacity of overlay falls off away
+                        //      from threshold
+   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
 } SUMA_OVERLAYS;
 
 
@@ -3250,7 +3252,9 @@ typedef struct {
 
    SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
                              for on the fly masking */
-   int AlphaThresh;
+   int AlphaThresh;     // "A" button checked.  Opacity of overlay falls off away
+                        //      from threshold
+   int BoxOutline;      // "B" button checked.  Threshold outlined with black pixels.
 } SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

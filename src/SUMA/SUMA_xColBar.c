@@ -2050,12 +2050,9 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
 void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
-    //TODO:  Modify code
    static char FuncName[]={"SUMA_cb_AlphaThresh_tb_toggled"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL;
-   SUMA_Boolean LocalHead = NOPE;
    static int AlphaThresh = 0;
 
    SUMA_ENTRY;
@@ -2075,8 +2072,23 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
 void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
                                    XtPointer client_data)
 {
+   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   static int BoxOutline = 0;
 
-    // TODO: Add code
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+   
+   BoxOutline = !BoxOutline;
+   SO->BoxOutline = BoxOutline;
+   fprintf(stderr, "New SO->BoxOutline = %d\n", SO->BoxOutline);
+
+   SUMA_RETURNe;
 }
 
 void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,

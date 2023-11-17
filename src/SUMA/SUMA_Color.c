@@ -7456,8 +7456,26 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
    SUMA_RETURN(NOPE);
 }
 
-float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
+void boxThresholdOutline(SUMA_OVERLAYS **Overlays, int N_Overlays, int BoxOutline, 
+                         int N_Node, byte *isColored_Fore){
+    static char FuncName[]={"boxThresholdOutline"};
+    int o, i;
+    SUMA_OVERLAYS *overlay;
+    float threshold, tolerance = 0.005;
+    
+    if (!Overlays || !isColored_Fore) return;
+   
+    for (o=0; o<N_Overlays; ++o){
+        overlay = Overlays[o];
+        threshold = overlay->OptScl->ThreshRange[0];
+        for (i=0; i<N_Node; ++i){
+            isColored_Fore[i] = (BoxOutline && abs(overlay->T[i] - threshold) < tolerance);
+        }
+   }
+}
 
+float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
+    static char FuncName[]={"makeAlphaOpacities"};
     float **alphaOpacities = NULL, *alphaOpacityPtr, threshold;
     SUMA_OVERLAYS *overlay;
     int i, j;
@@ -7486,6 +7504,7 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
 }
 
 void freeAlphaOpacities(float **lphaOpacities, int N_Overlays){
+    static char FuncName[]={"freeAlphaOpacities"};
     int i;
     
     for (i=0; i<N_Overlays; ++i) free(lphaOpacities[i]);
@@ -7716,8 +7735,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);
 
-         fprintf(stderr, "Before SUMA_MixOverlays. Line 7672\n");
          // This is called when the sliding bar is adjusted
+         boxThresholdOutline(Overlays, N_Overlays, SO->BoxOutline, N_Node, isColored_Back); 
          if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_Back_sort,
                                  NshowOverlays_Back, glcolar_Back, N_Node,
                                  isColored_Back, NOPE)) {
@@ -7733,11 +7752,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^  Background colors --------------------------*/
    
    /* vvvvvvvvvvvvvvvvvvvvvvvvv Foreground  colors ----------------------------*/
-   fprintf(stderr, "ShowForeground = %d\n", ShowForeground);
+
    if (ShowForeground) {
       /* arrange foreground color planes by plane order */
          /* sort plane order */
-         fprintf(stderr, "NshowOverlays = %d\n", NshowOverlays);
          if (NshowOverlays > 1) {
             isort = SUMA_z_dqsort (OverlayOrder, NshowOverlays );
             /* use sorting by plane order to reorder ShowOverlays */
@@ -7785,8 +7803,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
 
    /* time to modulate the mixed colors with the average brightness */
-         fprintf(stderr, "NshowOverlays = %d\n", NshowOverlays);
-         fprintf(stderr, "NshowOverlays_Back = %d\n", NshowOverlays_Back);
    if (NshowOverlays && NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,
@@ -8311,14 +8327,6 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          SUMA_S_Err("Failed to elementarize overlay");
          SUMA_RETURN (NOPE);
       }
-          fprintf(stderr, "ColEVec[0], ColEVec[1], ColEVec[2] = %f, %f, %f\n",
-                ColEVec[0], ColEVec[1], ColEVec[2]);
-          fprintf(stderr, "ColEVec[4], ColEVec[5], ColEVec[6] = %f, %f, %f\n",
-                ColEVec[3], ColEVec[4], ColEVec[5]);
-          fprintf(stderr, "ColEVec[6], ColEVec[7], ColEVec[8] = %f, %f, %f\n",
-                ColEVec[6], ColEVec[7], ColEVec[8]);
-          fprintf(stderr, "ColEVec[9], ColEVec[10], ColEVec[11] = %f, %f, %f\n",
-                ColEVec[9], ColEVec[10], ColEVec[11]);
 
       SUMA_LHv("Building color layer %d Overlay #%d: %s ...\n"
                "Full=%d, Glob=%d (Globopacity %f), Locl=%d,Fill=%d\n",
