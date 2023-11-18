@@ -7568,24 +7568,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float **alphaOpacities = NULL;
    static GLfloat *glOldGlColar;
 
-   // fprintf(stderr, "%s\n", FuncName);
-
    SUMA_ENTRY;
    
-   // GLfloat *old = SUMA_GetColorListPtr(SV->ColList[0]);
-   
-   
-//          fprintf(stderr, "old[0], old[1], old[2] = %f, %f, %f\n",
-//                old[0], old[1], old[2]);
-//          fprintf(stderr, "ColEVec[0], ColEVec[1], ColEVec[2] = %f, %f, %f\n",
-//                SO->Overlays[0]->ColVec[0], SO->Overlays[0]->ColVec[1], SO->Overlays[0]->ColVec[2]);
-//          fprintf(stderr, "ColEVec[4], ColEVec[5], ColEVec[6] = %f, %f, %f\n",
-//                SO->Overlays[0]->ColVec[3], SO->Overlays[0]->ColVec[4], SO->Overlays[0]->ColVec[5]);
-//          fprintf(stderr, "ColEVec[6], ColEVec[7], ColEVec[8] = %f, %f, %f\n",
-//                SO->Overlays[0]->ColVec[6], SO->Overlays[0]->ColVec[7], SO->Overlays[0]->ColVec[8]);
-//          fprintf(stderr, "glcolar[0], glcolar[1], glcolar[2] = %f, %f, %f\n",
-//                glcolar[0], glcolar[1], glcolar[2]);
-
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
       SUMA_RETURN(NOPE);

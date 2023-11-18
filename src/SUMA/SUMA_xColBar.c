@@ -2064,7 +2064,10 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    
    AlphaThresh = !AlphaThresh;
    SO->AlphaThresh = AlphaThresh;
-   fprintf(stderr, "New SO->AlphaThresh = %d\n", SO->AlphaThresh);
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
@@ -2086,7 +2089,10 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    
    BoxOutline = !BoxOutline;
    SO->BoxOutline = BoxOutline;
-   fprintf(stderr, "New SO->BoxOutline = %d\n", SO->BoxOutline);
+   
+   // Refresh display
+   SUMA_Remixedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
 
    SUMA_RETURNe;
 }
