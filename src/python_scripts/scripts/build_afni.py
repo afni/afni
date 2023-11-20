@@ -150,15 +150,32 @@ other options:
 
                 mv      : apply the Unix 'mv' command
 
-                          Benefit: ABIN is really cleaned, and will not contain
-                          any removed files.
+                        + Benefit: ABIN is really cleaned, and will not contain
+                          any removed files.  This method should be faster.
 
                 rsync   : apply the Unix 'rsync' command
+                          (this is the default method)
 
-                          Benefit: ABIN is preserved, even if the program is
-                          terminated while making the backup or running the
-                          install.  Termination might lead to a mix of new and
-                          old files, of course.
+                        + Benefit: ABIN is preserved during the backup process.
+                          Even if the program is terminated while making the
+                          backup, ABIN will be maintained.
+
+                        + Benefit: old ABIN files are removed.
+                          So old files do not accumulate.
+                          If some file or program is no longer built and
+                          distributed, it will not linger in the ABIN.
+                
+                          After the backup stage, ABIN is emptied before
+                          repopulating it with a new install.
+
+                rsync_preserve : use 'rsync', but do not remove old files
+
+                        + Benefit: ABIN is preserved.
+
+                        + Benefit: old ABIN files are never removed.
+                          So old files accumulate over time.
+                          If some file or program is no longer built and
+                          distributed, it will linger in the ABIN.
 
           See also -do_backup.
 
@@ -337,10 +354,13 @@ g_history = """
         - show 'tail log_make.txt' on build failure
         - default to updating atlases
    0.8  Oct 12, 2023 - advise patience
+   0.9  Nov 20, 2023
+        - add 'rsync_preserve' backup_method
+        - 'rsync' method now cleans up the old abin contents
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.8, October 12, 2023" % g_prog
+g_version = "%s, version 0.9, November 20, 2023" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -559,7 +579,7 @@ class MyInterface:
 
       # general options
       self.valid_opts.add_opt('-backup_method', 1, [],
-                      acplist=['mv','rsync'],
+                      acplist=['mv','rsync','rsync_preseve'],
                       helpstr='specify method of backup (def=rsync)')
       self.valid_opts.add_opt('-clean_root', 1, [],
                       helpstr='clean up from old work? (def=y)')
@@ -1057,10 +1077,43 @@ class MyInterface:
          # (use backup method: mv or rsync)
          if self.backup_method == 'mv':
             cmd = 'mv %s/* %s/' % (abin, self.backup_abin)
+            st, ot = self.run_cmd(cmd)
+            if st: return st
          else:
+            # use one of the rsync methods
+
+            # first make the actual backup
             cmd = 'rsync -av %s/ %s/' % (abin, self.backup_abin)
-         st, ot = self.run_cmd(cmd)
-         if st: return st
+            st, ot = self.run_cmd(cmd)
+            if st: return st
+
+            # if we are not preserving the old files, clean out the abin
+            # ** on a large file system, are we sure the rsync is finished?
+            if self.backup_method != 'rsync_preserve':
+               MESGm("cleaning old abin")
+               # after sync, delete abin before repopulating
+               cmd = 'if ( `ls -a %s/ | wc -l` > 2 ) rm -fr %s/*' % (abin,abin)
+               st, ot = self.run_cmd(cmd)
+               if st: return st
+
+         # other options to consider for backups:
+         #
+         #    goal: make sure the abin contents are never lost
+         #    goal: be fast
+         #    goal: save disk space: do not have too many copies of results
+         #
+         #    If abin is not a link, we could 'mv' the actual abin directory to
+         #    the backup and recreate it with the new contents.
+         #    That might be the fastest way to go, plus it should preserve abin
+         #    without concerns about the file system handling rsync before rm.
+         #    Perhaps the only question would be whether the user owns the
+         #    *parent* directory.  Also, if 'mv' goes across file systems,
+         #    maybe it becomes the same sync question again.
+         #
+         #    If we finally went ahead and populated a local install directory,
+         #    then we could use rsync --delete for cleaning, or even use
+         #    --delete-after.
+         #
 
          self.add_final_mesg("------------------------------")
          self.add_final_mesg("to revert from backup, run:")

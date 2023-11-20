@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Nov, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
+   "add 'rsync_preserve' backup_method; rsync now cleans abin after backup",
+   "Prior to this, abin was allowed to accumulate files.  That is no longer\n"
+   "the default operation."
+ } ,
+
  { 14, Nov, 2023, RCR, "3dNLfim", MINOR, TYPE_BUG_FIX,
    "when creating non-bucket output, if float output, make all volumes float",
    "Thanks to V Dinh for noting the problem."
