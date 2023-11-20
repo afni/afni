@@ -842,7 +842,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
    ENTRY("MNI_Anatomical_Side");
 
 // abandoning N27_LR mask method- no need for LR atlas in list
-// coordinates themselve determine left and right of brain
+// coordinates themselves determine left and right of brain
       if (ac.x<0.0) {
          RETURN('r');
       } else {
