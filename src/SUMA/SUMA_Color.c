@@ -7480,23 +7480,41 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     SUMA_OVERLAYS *overlay;
     int i, j;
     
+    fprintf(stderr, "Overlays = %p\n", Overlays);
+    fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
+    
     // Allocate memory to alpha opacity arrays
     if (!(alphaOpacities = (float **)malloc(N_Overlays*sizeof(float *))))
         return NULL;        
-    for (i=0; i<N_Overlays; ++i)
-        if (!(alphaOpacities[i] = (float *)malloc(Overlays[i]->N_T*sizeof(float)))){
+    for (i=0; i<N_Overlays; ++i){
+//        fprintf(stderr, "Overlays[%d]->N_T = %d\n", i, Overlays[i]->N_T);
+//        fprintf(stderr, "Overlays[%d]->N_V = %d\n", i, Overlays[i]->N_T);
+        if (!(alphaOpacities[i] = (float *)malloc(Overlays[i]->N_V*sizeof(float)))){
+            fprintf(stderr, "Failure to allocate memory to alpha opacities\n");
             for (--i; i>=0; --i) free(alphaOpacities[i]);
             free(alphaOpacities);
             return NULL;
         }
+    }
         
     // Fill alpha opacities
     for (i=0; i<N_Overlays; ++i){
         overlay = Overlays[i];
+        
+        // Maybe only overlays, with overlay->ShowMode == SW_SurfCont_DsetViewCol,
+        //  should be processed.
+        if (overlay->ShowMode == SW_SurfCont_DsetViewXXX) continue;
+//        fprintf(stderr, "overlay->T = %p\n", overlay->T);
+//        fprintf(stderr, "overlay->V = %p\n", overlay->T);
+//        fprintf(stderr, "overlay->N_T = %d\n", overlay->N_T);
+//        fprintf(stderr, "overlay->N_V = %d\n", overlay->N_V);
+//        fprintf(stderr, "overlay->ShowMode = %d\n", overlay->ShowMode);
         threshold = overlay->OptScl->ThreshRange[0];
         alphaOpacityPtr = alphaOpacities[i];
-        for (j=0; j<overlay->N_T; ++j){
-            alphaOpacityPtr[j] = MIN(1.0f, overlay[i].T[j]/threshold);
+        // for (j=0; j<overlay->N_T; ++j){
+        for (j=0; j<overlay->N_V; ++j){
+            // alphaOpacityPtr[j] = MIN(1.0f, overlay[i].T[j]/threshold);
+            alphaOpacityPtr[j] = MIN(1.0f, overlay[i].V[j]/threshold);
         }
     }
 
@@ -7593,7 +7611,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays, 0);
       }
    }
-
+   
    /* get the indices into the color structure vector of overlays to be shown */
    NshowOverlays = 0;
    NshowOverlays_Back = 0;
@@ -7719,7 +7737,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          if (LocalHead)
             fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);
 
-         // This is called when the sliding bar is adjusted
+         // This is called when the sliding bar is adjusted"Background colors
          boxThresholdOutline(Overlays, N_Overlays, SO->BoxOutline, N_Node, isColored_Back); 
          if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_Back_sort,
                                  NshowOverlays_Back, glcolar_Back, N_Node,
@@ -7845,7 +7863,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
-         fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
+         fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n");
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
@@ -7876,11 +7894,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 SUMA_RETURN (NOPE);
             }
 
-               if (!glOldGlColar){
-                int numElements = SO->N_Node * 4;
-                glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat));
-                for (int i=0; i<numElements; ++i) glOldGlColar[i] = glcolar[i];
-               }
+            if (!glOldGlColar){
+            int numElements = SO->N_Node * 4;
+            glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat));
+            for (int i=0; i<numElements; ++i) glOldGlColar[i] = glcolar[i];
+            }
 
              for (i=0; i < N_Node; ++i) {
                 if (isColored_Back[i]) {
@@ -7894,6 +7912,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 } else {
                    float opacity = alphaOpacities[0][i];
                    float complement = 1 - alphaOpacities[0][i];
+                   fprintf(stderr, "opacity + %f\n", opacity);
                    i4 = 4 * i;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (SUMA_GRAY_NODE_COLOR * complement); ++i4;

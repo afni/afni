@@ -2892,9 +2892,7 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
    if (SO->Side == SUMA_LEFT) findside = SUMA_RIGHT;
    else findside = SUMA_LEFT;
 
-   fprintf(stderr, "SUMA_Contralateral_SO: N_dov=%d\n", N_dov);
    for (i=0; i<N_dov; ++i) {
-      fprintf(stderr, "SUMA_Contralateral_SO: (i,SO->Group) =(%d, %s)\n", i, SO->Group);
       if (SUMA_isSO_G(dov[i], SO->Group)) {
          SOC = (SUMA_SurfaceObject *)dov[i].OP;
          if (SOC->Side == findside && !strcmp(SOC->State, SO->State) ) break;
