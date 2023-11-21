@@ -7480,8 +7480,8 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     SUMA_OVERLAYS *overlay;
     int i, j;
     
-    fprintf(stderr, "Overlays = %p\n", Overlays);
-    fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
+//    fprintf(stderr, "Overlays = %p\n", Overlays);
+//    fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
     
     // Allocate memory to alpha opacity arrays
     if (!(alphaOpacities = (float **)malloc(N_Overlays*sizeof(float *))))
@@ -7489,6 +7489,8 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     for (i=0; i<N_Overlays; ++i){
 //        fprintf(stderr, "Overlays[%d]->N_T = %d\n", i, Overlays[i]->N_T);
 //        fprintf(stderr, "Overlays[%d]->N_V = %d\n", i, Overlays[i]->N_T);
+//        fprintf(stderr, "Overlays[%d]->Name = %s\n", i, Overlays[i]->Name);
+//        fprintf(stderr, "Overlays[%d]->Label = %s\n", i, Overlays[i]->Label);
         if (!(alphaOpacities[i] = (float *)malloc(Overlays[i]->N_V*sizeof(float)))){
             fprintf(stderr, "Failure to allocate memory to alpha opacities\n");
             for (--i; i>=0; --i) free(alphaOpacities[i]);
@@ -7509,12 +7511,17 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
 //        fprintf(stderr, "overlay->N_T = %d\n", overlay->N_T);
 //        fprintf(stderr, "overlay->N_V = %d\n", overlay->N_V);
 //        fprintf(stderr, "overlay->ShowMode = %d\n", overlay->ShowMode);
+        float MinVal = FLT_MAX;
+        for (j=0; j<overlay->N_V; ++j){
+            MinVal = MIN(MinVal, overlay->V[j]);
+            }
+//        fprintf(stderr, "MinVal = %f\n", MinVal);
         threshold = overlay->OptScl->ThreshRange[0];
+        float denom = threshold - MinVal;
         alphaOpacityPtr = alphaOpacities[i];
         // for (j=0; j<overlay->N_T; ++j){
         for (j=0; j<overlay->N_V; ++j){
-            // alphaOpacityPtr[j] = MIN(1.0f, overlay[i].T[j]/threshold);
-            alphaOpacityPtr[j] = MIN(1.0f, overlay[i].V[j]/threshold);
+            alphaOpacityPtr[j] = MIN(1.0f, (overlay->V[j] - MinVal)/denom);
         }
     }
 
@@ -7527,6 +7534,49 @@ void freeAlphaOpacities(float **lphaOpacities, int N_Overlays){
     
     for (i=0; i<N_Overlays; ++i) free(lphaOpacities[i]);
     free(lphaOpacities);
+}
+
+GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
+    static char FuncName[]={"makeGlOldGlColar"};
+    GLfloat *glOldGlColar = NULL;
+    int i, j, k;
+    SUMA_OVERLAYS *overlay = NULL;
+    
+    // Find latest valid overlay
+    for (i=SO->N_Overlays-1; i>=0; --i){
+        if (SO->Overlays[i]->ShowMode != SW_SurfCont_DsetViewXXX){
+            overlay = SO->Overlays[i];
+            break;
+        }
+    }
+    if (!overlay){
+        SUMA_S_Err("Could not find valid overlay\n");
+        return NULL;
+    }
+    
+    // Allocate memory to old GLcolor
+    int numElements = SO->N_Node * 4;
+    if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
+        return NULL;
+    }
+    
+//    for (i=0; i<25; ++i)
+//        fprintf(stderr, "overlay->ColVec[i] = %f, %f, %f\n", i, overlay->ColVec[3*i], overlay->ColVec[3*i+1], overlay->ColVec[3*i+2]);
+    
+    // Fill GLfloat vector
+    int i4;
+    for (i=0, j=0; i<SO->N_Node; ++i){
+        i4 = 4 * i;
+        glOldGlColar[i4] = overlay->ColVec[j++]; ++i4;
+        glOldGlColar[i4] = overlay->ColVec[j++]; ++i4;
+        glOldGlColar[i4] = overlay->ColVec[j++]; ++i4;
+    }
+    
+//    for (i=0; i<25; ++i)
+//        fprintf(stderr, "glOldGlColar[i] = %f, %f, %f\n", i, glOldGlColar[4*i], glOldGlColar[4*i+1], glOldGlColar[4*i+2]);
+    
+    return glOldGlColar;
 }
 
 /*!
@@ -7613,18 +7663,17 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
    
    /* get the indices into the color structure vector of overlays to be shown */
+    if (!Overlays){
+        SUMA_S_Err("NULL Overlays pointer.");
+        SUMA_RETURN (NOPE);
+    }
+    if (Overlays == 0x1){
+        SUMA_S_Err("Invalid Overlays pointer: 0x1.");
+        SUMA_RETURN (NOPE);
+    }
    NshowOverlays = 0;
    NshowOverlays_Back = 0;
    for (j=0; j < N_Overlays; ++j) {
-      if (!Overlays){
-            SUMA_S_Err("NULL Overlays pointer.");
-            SUMA_RETURN (NOPE);
-      }
-      if (Overlays == 0x1){
-            SUMA_S_Err("Invalid Overlays pointer: 0x1.");
-            SUMA_RETURN (NOPE);
-      }
-
       if ( (Overlays[j]->ShowMode == SW_SurfCont_DsetViewCol ||
             Overlays[j]->ShowMode == SW_SurfCont_DsetViewCaC ) &&
            Overlays[j]->GlobalOpacity != 0) {
@@ -7803,7 +7852,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
       NshowOverlays = 0;
    }
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
-
+   
    /* time to modulate the mixed colors with the average brightness */
    if (NshowOverlays && NshowOverlays_Back) {
       if (LocalHead)
@@ -7811,49 +7860,152 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                   "%s: Modulating Brightness of Foreground colors ...\n",
                   FuncName);
 
-      for (i=0; i < N_Node; ++i) {
-         avgfact = Back_Modfact / 3.0;
-         if (isColored_Fore[i] && isColored_Back[i]) {
-                     /* colors from both sides, adjust brightness */
-            i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
-            if (!Back_Modfact) {
-               glcolar[i4_0] = glcolar_Fore[i4_0];
-               glcolar[i4_1] = glcolar_Fore[i4_1];
-               glcolar[i4_2] = glcolar_Fore[i4_2];
-            } else {
-               avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
-                           glcolar_Back[i4_2]) * avgfact ;
-               glcolar[i4_0] = avg_Back * glcolar_Fore[i4_0];
-               glcolar[i4_1] = avg_Back * glcolar_Fore[i4_1];
-               glcolar[i4_2] = avg_Back * glcolar_Fore[i4_2];
+      if (SO->AlphaThresh){
+            if (!(alphaOpacities = makeAlphaOpacities(Overlays, N_Overlays))){
+                SUMA_S_Err("Failed to make Alpha opacities.");
+                SUMA_RETURN (NOPE);
             }
-               isColored[i] = YUP;
-               continue;
-         }
-         if (isColored_Fore[i]) {
-            i4 = 4 * i;
-            glcolar[i4] = glcolar_Fore[i4]; ++i4;
-            glcolar[i4] = glcolar_Fore[i4]; ++i4;
-            glcolar[i4] = glcolar_Fore[i4]; ++i4;
-            isColored[i] = YUP;
-            continue;
-         }
-         if (isColored_Back[i]) {
-            i4 = 4 * i;
-            glcolar[i4] = glcolar_Back[i4]; ++i4;
-            glcolar[i4] = glcolar_Back[i4]; ++i4;
-            glcolar[i4] = glcolar_Back[i4]; ++i4;
-            isColored[i] = YUP;
-            continue;
-         } else {
-            /* has never been colored, put defaults */
-            i4 = 4 * i;
-            glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-            glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-            glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-            isColored[i] = NOPE;
-         }
-      }
+
+            if (!glOldGlColar){
+                if (!(glOldGlColar = makeGlOldGlColar(SO))){
+                    SUMA_S_Err("Failed to make old color vector for alpha threshold\n");
+                    SUMA_RETURN (NOPE);
+                }
+//                int numElements = SO->N_Node * 4;
+//                glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat));
+//                for (int i=0; i<numElements; ++i) glOldGlColar[i] = glcolar[i];
+            }
+
+          for (i=0; i < N_Node; ++i) {
+             avgfact = Back_Modfact / 3.0;
+             if (isColored_Fore[i] && isColored_Back[i]) {
+                         /* colors from both sides, adjust brightness */
+                i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
+                if (!Back_Modfact) {
+                   glcolar[i4_0] = glcolar_Fore[i4_0];
+                   glcolar[i4_1] = glcolar_Fore[i4_1];
+                   glcolar[i4_2] = glcolar_Fore[i4_2];
+                } else {
+                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
+                               glcolar_Back[i4_2]) * avgfact ;
+                   glcolar[i4_0] = avg_Back * glcolar_Fore[i4_0];
+                   glcolar[i4_1] = avg_Back * glcolar_Fore[i4_1];
+                   glcolar[i4_2] = avg_Back * glcolar_Fore[i4_2];
+                }
+                   isColored[i] = YUP;
+                   continue;
+             }
+             if (isColored_Fore[i]) {
+                i4 = 4 * i;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                isColored[i] = YUP;
+                continue;
+             } else {
+                   float opacity = alphaOpacities[0][i];
+                   float complement = 1 - alphaOpacities[0][i];
+                   // fprintf(stderr, "11-Fore: opacity = %f\n", opacity);
+                   i4 = 4 * i;
+                   // fprintf(stderr, "glOldGlColar = %f, %f, %f\n", glOldGlColar[i4], glOldGlColar[i4+1], glOldGlColar[i4+2]);
+                   
+                   // DEBUG
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   /*
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                    */
+                   isColored[i] = NOPE;
+             }
+             /* DEBUG 
+             if (isColored_Back[i]) {
+             // if (0) {
+                i4 = 4 * i;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                isColored[i] = YUP;
+                continue;
+             } else {
+                   float opacity = alphaOpacities[0][i];
+                   float complement = 1 - alphaOpacities[0][i];
+                   fprintf(stderr, "11-Back: opacity = %f\n", opacity);
+                   i4 = 4 * i;
+                   // DEBUG
+                   glcolar[i4] = (0.0f*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (1.0f*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (0.0f*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   /*
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                    *//*
+                   isColored[i] = NOPE;
+             }
+             /**/
+          }
+     } else {
+          for (i=0; i < N_Node; ++i) {
+             avgfact = Back_Modfact / 3.0;
+             if (isColored_Fore[i] && isColored_Back[i]) {
+                         /* colors from both sides, adjust brightness */
+                i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
+                if (!Back_Modfact) {
+                   glcolar[i4_0] = glcolar_Fore[i4_0];
+                   glcolar[i4_1] = glcolar_Fore[i4_1];
+                   glcolar[i4_2] = glcolar_Fore[i4_2];
+                } else {
+                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
+                               glcolar_Back[i4_2]) * avgfact ;
+                   glcolar[i4_0] = avg_Back * glcolar_Fore[i4_0];
+                   glcolar[i4_1] = avg_Back * glcolar_Fore[i4_1];
+                   glcolar[i4_2] = avg_Back * glcolar_Fore[i4_2];
+                }
+                   isColored[i] = YUP;
+                   continue;
+             }
+             if (isColored_Fore[i]) {
+                i4 = 4 * i;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                isColored[i] = YUP;
+                continue;
+             }
+             if (isColored_Back[i]) {
+                i4 = 4 * i;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                glcolar[i4] = glcolar_Back[i4]; ++i4;
+                isColored[i] = YUP;
+                continue;
+             } else {
+                /* has never been colored, put defaults */
+                i4 = 4 * i;
+                glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                isColored[i] = NOPE;
+             }
+          }
+     
+     }
+
 
       if (LocalHead)
          fprintf (SUMA_STDERR,
@@ -7882,6 +8034,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
          }
    }
 
+//   fprintf(stderr, "NshowOverlays = %d\n", NshowOverlays);
+//   fprintf(stderr, "NshowOverlays_Back = %d\n", NshowOverlays_Back);
   if (!NshowOverlays && NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
@@ -7900,7 +8054,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             for (int i=0; i<numElements; ++i) glOldGlColar[i] = glcolar[i];
             }
 
-             for (i=0; i < N_Node; ++i) {
+             for (i=0; i < SO->N_Node; ++i) {
                 if (isColored_Back[i]) {
                    i4 = 4 * i;
                    glcolar[i4] = glcolar_Back[i4]; ++i4;
@@ -7912,7 +8066,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 } else {
                    float opacity = alphaOpacities[0][i];
                    float complement = 1 - alphaOpacities[0][i];
-                   fprintf(stderr, "opacity + %f\n", opacity);
+                   // fprintf(stderr, "01: opacity = %f\n", opacity);
                    i4 = 4 * i;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (SUMA_GRAY_NODE_COLOR * complement); ++i4;
@@ -7923,34 +8077,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = NOPE;
                    continue;
                 }
-                /*
-                   float opacity = alphaOpacities[0][i];
-                   float complement = 1 - alphaOpacities[0][i];
-                   i4 = 4 * i;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   /*
-                   glcolar[i4] = (glcolar_Back[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                   glcolar[i4] = (glcolar_Back[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                   glcolar[i4] = (glcolar_Back[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                    */
-                   // glcolar[i4] = alphaOpacities[0][i];
-                   // isColored[i] = YUP;
-                   /*  Adjusting the A value, of glcolar, seems to have no effect 
-                } else {
-                   i4 = 4 * i;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = alphaOpacities[0][i];
-                   isColored[i] = YUP;
-                }
-                /**/
-                /**/
              }
             freeAlphaOpacities(alphaOpacities, N_Overlays);
          }else{
