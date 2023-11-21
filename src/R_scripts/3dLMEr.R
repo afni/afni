@@ -410,7 +410,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
        '-R2' = apl(n=0, h = paste(
    "-R2: Enabling this option will prompt the program to provide both",
    "         conditional and marginal coefficient of determination (R^2)",
-   "         values associated with the adopted model. Marginal R² indicates",
+   "         values associated with the adopted model. Marginal R^2 indicates",
    "         the proportion of variance explained by the fixed effects in the",
    "         model, while conditional R^2 represents the proportion of variance",
    "         explained by the entire model, encompassing both fixed and random",
