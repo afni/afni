@@ -473,25 +473,29 @@ is_ok : int
                                           retobj=retobj,
                                           verb=verb)
 
-    # --------------
-    count+= 1
-    lab_title = 'Add any missing peaks'
-    lab_short = 'add_missing_peaks'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
-    peaks = lpp.addMissingPeaks(peaks, 
-                                phobj.ts_orig,
-                                is_troughs = False,
-                                verb=verb)
-    if check_empty_list(peaks, count, lab_title, label) :  return 1
-
-    if retobj.img_verb > 1 :
-        fname, title = make_str_ts_peak_trough(label, count, 
-                                               lab_title, lab_short,
-                                               prefix=prefix, odir=odir)
-        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                          title=title, fname=fname,
-                                          retobj=retobj,
-                                          verb=verb)
+###### [PT: Nov 22, 2023] Disable this for now.  Too many datasets
+###### have too many gaps and instances of large variability for doing
+###### this *without* also checking for a local bump on which a peak
+###### should be placed.  This can be revisited.
+#    # --------------
+#    count+= 1
+#    lab_title = 'Add any missing peaks'
+#    lab_short = 'add_missing_peaks'
+#    if verb :   print('++ ({}) {}'.format(label, lab_title))
+#    peaks = lpp.addMissingPeaks(peaks, 
+#                                phobj.ts_orig,
+#                                is_troughs = False,
+#                                verb=verb)
+#    if check_empty_list(peaks, count, lab_title, label) :  return 1
+#
+#    if retobj.img_verb > 1 :
+#        fname, title = make_str_ts_peak_trough(label, count, 
+#                                               lab_title, lab_short,
+#                                               prefix=prefix, odir=odir)
+#        lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+#                                          title=title, fname=fname,
+#                                          retobj=retobj,
+#                                          verb=verb)
 
 
     # -------- trough considerations: resp only
@@ -601,26 +605,30 @@ is_ok : int
                                               retobj=retobj,
                                               verb=verb)
 
-        # --------------
-        count+= 1
-        lab_title = 'Add any missing troughs'
-        lab_short = 'add_missing_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
-        troughs = lpp.addMissingPeaks(troughs, 
-                                      phobj.ts_orig,
-                                      is_troughs = True,
-                                      verb=verb)
-        if check_empty_list(troughs, count, lab_title, label) :  return 1
-
-        if retobj.img_verb > 1 :
-            fname, title = make_str_ts_peak_trough(label, count, 
-                                                   lab_title, lab_short,
-                                                   prefix=prefix, odir=odir)
-            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
-                                              troughs=troughs,
-                                              title=title, fname=fname,
-                                              retobj=retobj,
-                                              verb=verb)
+###### [PT: Nov 22, 2023] Disable this for now.  Too many datasets
+###### have too many gaps and instances of large variability for doing
+###### this *without* also checking for a local bump on which a trough
+###### should be placed.  This can be revisited.
+#        # --------------
+#        count+= 1
+#        lab_title = 'Add any missing troughs'
+#        lab_short = 'add_missing_troughs'
+#        if verb :   print('++ ({}) {}'.format(label, lab_title))
+#        troughs = lpp.addMissingPeaks(troughs, 
+#                                      phobj.ts_orig,
+#                                      is_troughs = True,
+#                                      verb=verb)
+#        if check_empty_list(troughs, count, lab_title, label) :  return 1
+#
+#        if retobj.img_verb > 1 :
+#            fname, title = make_str_ts_peak_trough(label, count, 
+#                                                   lab_title, lab_short,
+#                                                   prefix=prefix, odir=odir)
+#            lpplt.makefig_phobj_peaks_troughs(phobj, peaks=peaks,
+#                                              troughs=troughs,
+#                                              title=title, fname=fname,
+#                                              retobj=retobj,
+#                                              verb=verb)
 
     # ----- DONE with peak+trough estimation+refinement: add to obj -----
     phobj.peaks = peaks

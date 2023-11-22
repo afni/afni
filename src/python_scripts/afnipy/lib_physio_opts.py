@@ -5,7 +5,8 @@
 # ==========================================================================
 
 #version = '1.0'
-version = '1.1'   # add remove_val_list, for some vals to get replaced
+#version = '1.1'   # add remove_val_list, for some vals to get replaced
+version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
 
 # ==========================================================================
 
@@ -1340,7 +1341,7 @@ hlp = '''Figure dimensions used for QC images (def: depends on length of
 physio time series)'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('LEN', 'WID'),
+                    metavar=('WID', 'LEN'),
                     nargs=2, type=str) # parse later
 
 opt = '''img_fontsize'''

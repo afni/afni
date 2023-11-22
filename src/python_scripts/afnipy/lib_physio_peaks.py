@@ -7,10 +7,263 @@ from   scipy  import signal as sps
 from   afnipy import lib_physio_plot as lpplt
 from   afnipy import lib_physio_util as lpu
 
-def bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
-                                                 min_bps, max_bps=None,
-                                                 label='', retobj=None,
-                                                 verb=0):
+# ==========================================================================
+
+def func_flatgauss(N, delta=None, sigma=1.0):
+    """For a freq series with N points and step size delta (i.e., df) and
+width-scale parameter sigma, return an array of the 'flat Gaussian'
+filter values.  NB: the 'flat Gaussian' is the FT partner of the
+Gaussian standard normal-distribution, whose height is always 1.
+
+Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
+
+Parameters
+----------
+N : int
+    total number of frequencies in the frequency series
+delta : float
+    step size along abscissa (like, df for freq series)
+sigma: float
+    what would be the standard deviation parameter in a Gaussian
+
+Returns
+-------
+y : np.ndarray
+    1D Python array (real/float values), that can be applied to filter
+    a frequency series.  This output array is not shifted, so it could
+    be directly multiplied by the np.fft.fft(...) of a time series.
+
+    """
+
+    # NB: no 1.0/np.sqrt(2*np.pi*sigma**2) term here, and sigma is
+    # divisive in the exponent
+    if delta==None :
+        print("** ERROR: user must provide delta value.")
+        sys.exit(3)
+
+    y      = np.zeros(N, dtype=float)
+    kmax   = int(np.floor(N/2))
+    kmaxp1 = kmax + 1
+
+    # first half of filter
+    fhalf      = np.arange(kmaxp1)*delta
+    y[:kmaxp1] = np.exp(-0.5*fhalf*fhalf/sigma/sigma)
+
+    # ... and second half of filt, filled in symmetrically
+    if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
+    else:         y[kmax:]   = y[kmax:0:-1]
+
+    return y
+
+
+def func_blackman_nuttall(N, delta=None, sigma=1.0):
+    """For a freq series with N points and step size delta (i.e., df) and
+width-scale parameter sigma, return an array of the Blackman-Nuttall
+filter values.  NB: the 'Blackman-Nuttall' window is symmetric and
+kinda Gaussian shaped, but tapers faster.  Its peak height is always
+1.  For details, see the window description here:
+    https://en.wikipedia.org/wiki/Window_function
+
+Default sigma value is 1, in units of Hz (bigger sigma -> wider filter).
+
+Parameters
+----------
+N : int
+    total number of frequencies in the frequency series
+delta : float
+    step size along abscissa (like, df for freq series)
+sigma: float
+    what would be the standard deviation parameter in a Gaussian
+
+Returns
+-------
+y : np.ndarray
+    1D Python array (real/float values), that can be applied to filter
+    a frequency series.  This output array is not shifted, so it could
+    be directly multiplied by the np.fft.fft(...) of a time series.
+
+    """
+
+    if delta==None :
+        print("** ERROR: user must provide delta value.")
+        sys.exit(3)
+
+    y      = np.zeros(N, dtype=float)
+    kmax   = int(np.floor(N/2))
+    kmaxp1 = kmax + 1
+
+    # ----- determine width of nonzero window 
+
+    nhwin = int(10 * sigma / 3.0 / delta)
+    all_n = np.arange(nhwin) - nhwin 
+
+    # ----- make window
+
+    # see: https://en.wikipedia.org/wiki/Window_function
+    a = [0.3635819,
+         0.4891775,
+         0.1365995,
+         0.0106411]
+    w = a[0] * np.ones(nhwin, dtype=float)
+    for i in range(1, 4):
+        w+= a[i] * np.cos(2*i*np.pi * all_n / (2*nhwin)) * (-1)**i
+
+    # ----- make output
+
+    # first half of filter
+    if nhwin <= kmaxp1 :    y[:nhwin]  = w
+    else:                   y[:kmaxp1] = w[:kmaxp1]
+
+    # ... and second half of filt, filled in symmetrically
+    if N % 2 :    y[kmaxp1:] = y[kmax:0:-1]
+    else:         y[kmax:]   = y[kmax:0:-1]
+
+
+    return y
+
+
+def apply_bandpass_smooth(x, samp_freq,
+                          min_bps, max_bps=None,
+                          label='', retobj=None,
+                          win_shape='blackman_nuttall',
+                          verb=0):
+    """Bandpass filter raw data based on overall typical period of the
+time series, and also return the peak (mode) of freq between [1,
+Nyquist] in units of indices.
+
+NB: this function is mostly for highpassing, and it does so by
+applying a smooth shape (rather than a simple 1s/0s window, that
+introduces ringing).  Parameters for the smooth shape are one of:
+  'blackman_nuttall'
+  'flat_gaussian'
+
+If retobj is included, then a plot of the FT frequencies can be
+created.
+
+Parameters
+----------
+x : np.ndarray
+    1D Python array (real/float values), the input time series
+samp_freq : float
+    sampling frequency (units of Hz) of the time series
+min_bps : int or float
+    Minimum number of beats (or breaths) per second
+max_bps : int or float
+    Maximum number of beats (or breaths) per second; if not entered, just
+    constrain with Nyquist estimate
+label : str
+    label for the time series, like 'card' or 'resp'
+retobj : retro_obj class
+    object with all necessary input time series info; will also store
+    outputs from here; contains dictionary of phys_ts_objs
+
+Returns
+-------
+x : np.ndarray
+    1D Python array (real/float values), the time series that has been 
+    filtered
+idx_freq_peak : int
+    index of the peak/mode frequency in the filter here, which might be
+    used later as the index of the "typical" frequency.
+
+    """
+
+    if (np.sum(np.isnan(x))) :
+        print('** ERROR in apply_bandpass_smooth(): ' 
+              'nan values in data')
+        return []
+
+    # ------ Prep freq quants
+
+    N       = len(x)
+    delta_f = samp_freq/N                    # 'step' along freq axis (in Hz)
+    idx_ny  = N // 2 + N % 2                 # Nyquist index: ceil(N/2)
+    all_f   = (np.arange(N)-idx_ny)*delta_f  # all freq (center around f=0)
+
+    # ------ Perform Fourier transform and make magnitude series
+
+    X    = np.fft.fft(x)
+    Xabs = np.abs(X)
+
+    # ------ Search for peak freq (as index and phys Hz)
+
+    # bottom cutoff search bound (as int)
+    idx_min = round(min_bps/delta_f)
+
+    # top cutoff bound (as int): constrain by user max and Nyquist
+    if max_bps == None :
+        idx_max = idx_ny
+    else:
+        idx_max = min(round(max_bps/delta_f), idx_ny)
+
+    # actual peak location, as both index and phys value
+    idx_freq_peak = np.argmax(Xabs[idx_min:idx_max]) + idx_min
+    freq_peak = idx_freq_peak * delta_f
+
+    print('++ (' + label + ') Bandpass filter frequency peak: '
+          '{:.6f} Hz'.format(freq_peak))
+
+    # magnitude at peak (and its half)
+    val_peak    = Xabs[idx_freq_peak]
+    val_hpeak   = val_peak/2.0
+
+    # ----- window/attenuation/'bandpass'
+
+    # [PT: Nov 22, 2023] Don't use a simple step filter---that can
+    # introduce ringing. Each of these filters is better, because of
+    # the tapering.
+    if win_shape == 'blackman_nuttall' :
+        sigma = 1.0*freq_peak                         # scale width
+        filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma)
+    elif win_shape == 'flat_gaussian' :
+        sigma = 1.0*freq_peak                         # scale width
+        filt  = func_flatgauss(N, delta=delta_f, sigma=sigma)
+    else:
+        print("** ERROR: '{}' is not an allowed win_shape"
+              "".format(win_shape))
+        sys.exit(5)
+
+    if verb :
+        print("++ Report on Fourier peak filtering")
+        print("   Total num pts  = {}".format(N))
+        print("   peak freq (Hz) = {:.6f}".format(freq_peak))
+        print("   sigma (Hz**-1) = {:.6f}".format(sigma))
+        print("   Filtering being:")
+
+    # apply filter, which was made to be applied to unshifted spectrum
+    Xfilt = X * filt
+
+    # IFT (of which real part should be everything, as long as filter
+    # was symmetric)
+    xfilt = np.real(np.fft.ifft(Xfilt))
+
+    # ---- done with work, but can save also FT freq magn
+    if retobj != None and retobj.img_verb > 1 :
+        odir      = retobj.out_dir
+        prefix    = retobj.prefix
+        lab_title = 'Frequency magnitude spectrum, with bandpassing'
+        lab_short = 'bandpass_spectrum'
+        
+        fname, title = lpu.make_str_bandpass(label,
+                                             lab_title, lab_short, 
+                                             prefix=prefix, odir=odir)
+        lpplt.makefig_ft_bandpass_magn(X, Xfilt,
+                                       delta_f, idx_ny,
+                                       idx_freq_peak=idx_freq_peak,
+                                       title=title, fname=fname,
+                                       label=label,
+                                       retobj=retobj,
+                                       verb=verb)
+
+    return xfilt, idx_freq_peak
+
+
+# Original, but now not used bandpassing program.  This was a simple
+# step function for filtering, but that introduced unwanted ringing
+def apply_bandpass_window(x, samp_freq,
+                          min_bps, max_bps=None,
+                          label='', retobj=None,
+                          verb=0):
     """Band pass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
 Nyquist] in units of indices.
@@ -47,7 +300,7 @@ idx_freq_peak : int
     """
 
     if (np.sum(np.isnan(x))) :
-        print('** ERROR in bandPassFilterRawDataAroundDominantFrequency: ' 
+        print('** ERROR in apply_bandpass_window(): ' 
               'nan values in data')
         return []
 
@@ -185,12 +438,12 @@ xfilt : np.ndarray
     # Bandpass filter raw data, and also get idx of peak freq mode
     # within range filtered
     xfilt, idx_freq_mode \
-        = bandPassFilterRawDataAroundDominantFrequency(x, samp_freq,
-                                                       min_bps, 
-                                                       max_bps=max_bps,
-                                                       label=label, 
-                                                       retobj=retobj,
-                                                       verb=0)
+        = apply_bandpass_smooth(x, samp_freq,
+                                min_bps, 
+                                max_bps=max_bps,
+                                label=label, 
+                                retobj=retobj,
+                                verb=0)
     if len(xfilt) == 0:
        print("** ERROR: Failed to band-pass filter '{}' data".format(label))
        return []
@@ -414,7 +667,7 @@ okeep_arr : array
                    bad_ival_min > ival_thr :
                     if verb > 1 :
                         print("   -> retain an extremum: "
-                              'idx =', peaks[bad_idx], 
+                              'idx =', peaks[bad_idx], ',', 
                               bad_doub_span, '>', span_thr)
                     # move this index to KEEP
                     okeep_arr[bad_idx] = True

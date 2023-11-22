@@ -206,6 +206,7 @@ them.
 
         self.ypad          = 0.3                # used to space ylims in plot
         # ------------------
+        self.told_figsize  = False
 
 
     # --------------------------------------------------------------------
@@ -504,9 +505,14 @@ them.
             tmp*= self.n_subplots_per_fig_rem / self.n_subplots_per_fig
             tmp+= 1
             self.figsize_rem = (self.figsize_use[0], tmp)
-            if self.verb > 2 :
+
+            # require 'final' in figname, otherwise the reporting of
+            # fig dimensions is too verbose
+            if self.verb > 2 and self.told_figsize == False and \
+               'final' in self.figname :
                 print("   figsize_use:", self.figsize_use)
                 print("   figsize_rem:", self.figsize_rem)
+                self.told_figsize = True
       
         if self.is_multifig :
             # make props for *full* figures
