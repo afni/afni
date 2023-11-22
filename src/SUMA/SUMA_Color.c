@@ -7479,8 +7479,8 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     float **alphaOpacities = NULL, *alphaOpacityPtr, threshold;
     SUMA_OVERLAYS *overlay;
     int i, j;
+    enum OpacityModel opacityModel = QUADRATIC; // Could make a menu option
     
-//    fprintf(stderr, "Overlays = %p\n", Overlays);
 //    fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
     
     // Allocate memory to alpha opacity arrays
@@ -7489,7 +7489,6 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     for (i=0; i<N_Overlays; ++i){
 //        fprintf(stderr, "Overlays[%d]->N_T = %d\n", i, Overlays[i]->N_T);
 //        fprintf(stderr, "Overlays[%d]->N_V = %d\n", i, Overlays[i]->N_T);
-//        fprintf(stderr, "Overlays[%d]->Name = %s\n", i, Overlays[i]->Name);
 //        fprintf(stderr, "Overlays[%d]->Label = %s\n", i, Overlays[i]->Label);
         if (!(alphaOpacities[i] = (float *)malloc(Overlays[i]->N_V*sizeof(float)))){
             fprintf(stderr, "Failure to allocate memory to alpha opacities\n");
@@ -7506,25 +7505,20 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
         // Maybe only overlays, with overlay->ShowMode == SW_SurfCont_DsetViewCol,
         //  should be processed.
         if (overlay->ShowMode == SW_SurfCont_DsetViewXXX) continue;
-//        fprintf(stderr, "overlay->T = %p\n", overlay->T);
-//        fprintf(stderr, "overlay->V = %p\n", overlay->T);
-//        fprintf(stderr, "overlay->N_T = %d\n", overlay->N_T);
-//        fprintf(stderr, "overlay->N_V = %d\n", overlay->N_V);
-//        fprintf(stderr, "overlay->ShowMode = %d\n", overlay->ShowMode);
         float MinVal = FLT_MAX;
         for (j=0; j<overlay->N_V; ++j){
             MinVal = MIN(MinVal, overlay->V[j]);
             }
-//        fprintf(stderr, "MinVal = %f\n", MinVal);
         threshold = overlay->OptScl->ThreshRange[0];
         float denom = threshold - MinVal;
         alphaOpacityPtr = alphaOpacities[i];
-        // for (j=0; j<overlay->N_T; ++j){
         for (j=0; j<overlay->N_V; ++j){
             alphaOpacityPtr[j] = MIN(1.0f, (overlay->V[j] - MinVal)/denom);
+            if (opacityModel == FRACTIONAL) alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
+            else if (opacityModel == QUADRATIC) alphaOpacityPtr[j] *= alphaOpacityPtr[j];
         }
     }
-
+    
     return alphaOpacities;
 }
 

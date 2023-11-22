@@ -1373,7 +1373,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "       [0,1].  That is,\n\n"   \
 "          O(n) = 1, O(o)>=T\n"   \
 "          O(n) = O(o)/T, O(o)<T, linear case\n"   \
-"          O(n) = (O(o)xO(o))/(TxT), O(o)<T, quadratic case\n\n"   \
+"          O(n) = (O(o)/T)^2, O(o)<T, quadratic case\n\n"   \
 "where:\n\n"   \
 "     O(n) is the opacity set by the alpha mapping.:LR:\n"   \
 "     O(o) is the original opacity and\n"  \
