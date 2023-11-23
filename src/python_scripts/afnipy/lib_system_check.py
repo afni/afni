@@ -31,7 +31,7 @@ g_fs_space_checked  = []
 g_fs_space_whine    = 1         # do we whine about fs space? (only once)
 
 # indentation
-g_indent  = '%8s' % ' '
+g_indent            = '%8s' % ' '
 
 # ------------------------------ main class  ------------------------------
 
@@ -993,7 +993,7 @@ class SysInfo:
       """
       # actual lib test
       plib = 'matplotlib.pyplot'
-      rv = self.test_python_lib(plib, mesg='required', verb=verb)
+      rv = self.test_python_lib(plib, fmesg='required', verb=verb)
 
       # if missing, we are done
       if rv:
@@ -1167,17 +1167,30 @@ class SysInfo:
 
       return 0
 
-   def test_python_lib(self, pylib, mesg='', verb=2):
+   def test_python_lib(self, pylib, fmesg='', showver=0, verb=2):
+      """try to import the given pylib library
+
+         pylib      : (string) library name
+         fmesg      : failure message
+         showver    : display __version__
+         verb       : verbosity level
+      """
       # actual lib test
       rv = MT.simple_import_test(pylib, verb=verb)
 
-      if mesg : pmesg = mesg
-      else:     pmesg = 'not required, but is desirable'
+      if fmesg : pmesg = fmesg
+      else:      pmesg = 'not required, but is desirable'
 
       # if failure, no biggie, but warn
       if rv:
          print('-- %s is %s' % (pylib, pmesg))
          return 1
+
+      if showver:
+         vstr = MT.simple_import_version(pylib)
+         # on success, show the version info
+         if vstr != '':
+            print("   %s version : %s" % (pylib, vstr))
 
       if pylib.startswith('matplotlib'):
          self.have_matplotlib = 1
@@ -1188,7 +1201,7 @@ class SysInfo:
 
       # any extra libs to test beyond main ones
       # (empty for now, since matplotlib got its own function)
-      extralibs = []
+      extralibs = ['flask', 'flask_cors']
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
@@ -1203,7 +1216,7 @@ class SysInfo:
 
       # then go after any others
       for plib in extralibs:
-         self.test_python_lib(plib, verb=verb)
+         self.test_python_lib(plib, showver=1, verb=verb)
          print('')
 
       for rootdir in ['/sw/bin', '/usr/local/bin']:
