@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Nov, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "add -disp_ver_pylibs",
+   "Show python library __version__ strings.\n"
+   "Check for flask and flask_cors with -check_all."
+ } ,
+
  { 20, Nov, 2023, RCR, "build_afni.py", MINOR, TYPE_NEW_OPT,
    "add 'rsync_preserve' backup_method; rsync now cleans abin after backup",
    "Prior to this, abin was allowed to accumulate files.  That is no longer\n"
