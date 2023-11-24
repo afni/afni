@@ -58,6 +58,9 @@ action options:
                           - this refers to those installed by rPkgsInstall,
                             most likely under $R_LIBS
    -disp_ver_matplotlib : display matplotlib version (else "None")
+   -disp_ver_pylibs LIB LIB ... :
+                          display versions of given python libraries (else NONE)
+                          - use 'ALL' for the default test list
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
    -dot_file_pack NAME  : create a NAME.tgz package containing dot files
@@ -338,9 +341,12 @@ g_history = """
    1.25 Sep 21, 2023 - capture the R platform with its version
    1.26 Sep 28, 2023 - add option -disp_R_ver_for_lib
    1.27 Oct 12, 2023 - only check flat_namespace on 10.7/12_local
+   1.28 Nov 23, 2023
+        - test for flask and flask_cors
+        - add -disp_ver_pylibs, to show library version for a specified list
 """
 
-g_version = "afni_system_check.py version 1.27, October 12, 2023"
+g_version = "afni_system_check.py version 1.28, November 23, 2023"
 
 
 class CmdInterface:

@@ -32,6 +32,8 @@ g_fs_space_whine    = 1         # do we whine about fs space? (only once)
 
 # indentation
 g_indent            = '%8s' % ' '
+                      # libraries to possibly show __version__ on
+g_python_vtest_libs = ['matplotlib', 'flask', 'flask_cors']
 
 # ------------------------------ main class  ------------------------------
 
@@ -1187,7 +1189,7 @@ class SysInfo:
          return 1
 
       if showver:
-         vstr = MT.simple_import_version(pylib)
+         vstr = MT.get_version(pylib)
          # on success, show the version info
          if vstr != '':
             print("   %s version : %s" % (pylib, vstr))
@@ -1197,6 +1199,16 @@ class SysInfo:
 
       return 0
 
+   def show_python_lib_versions(self, tlibs=g_python_vtest_libs, verb=0):
+      """show any __version__ attribute
+      """
+
+      for tlib in tlibs:
+         vstr = MT.get_version(tlib,verb=verb)
+         print("   %-12s version : %s" % (tlib, vstr))
+         if verb: print("")
+      print("")
+
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyond main ones
@@ -1205,6 +1217,7 @@ class SysInfo:
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
+      self.show_python_lib_versions(verb=verb)
 
       # itemize special libraries to test: PyQt4
       self.test_python_lib_pyqt4(verb=verb)
