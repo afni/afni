@@ -283,6 +283,23 @@ def simple_import(libname, details=1, verb=1):
 
    return mod
 
+def get_version(libname, vfield='__version__',verb=0):
+   """if this is an importable library, return the LIB.vfield element
+      return 'NONE' on error
+   """
+   rstr = 'NONE'
+   if verb > 0: details = 1
+   else:        details = 0
+   mod = simple_import(libname, details=details, verb=verb)
+   if mod is None:
+      return rstr
+
+   # return the given attribute
+   if hasattr(mod, vfield):
+      return getattr(mod, vfield)
+
+   return rstr
+
 def simple_import_test(libname, details=1, verb=1):
    """test whether the library can be imported, return 0 on success
    """

@@ -58,6 +58,9 @@ action options:
                           - this refers to those installed by rPkgsInstall,
                             most likely under $R_LIBS
    -disp_ver_matplotlib : display matplotlib version (else "None")
+   -disp_ver_pylibs LIB LIB ... :
+                          display versions of given python libraries (else NONE)
+                          - use 'ALL' to include the default test list
    -dot_file_list       : list all found dot files (startup files)
    -dot_file_show       : display contents of all found dot files
    -dot_file_pack NAME  : create a NAME.tgz package containing dot files
@@ -338,9 +341,12 @@ g_history = """
    1.25 Sep 21, 2023 - capture the R platform with its version
    1.26 Sep 28, 2023 - add option -disp_R_ver_for_lib
    1.27 Oct 12, 2023 - only check flat_namespace on 10.7/12_local
+   1.28 Nov 24, 2023
+        - check for flask and flask_cors
+        - add -disp_ver_pylibs, to show library version for a specified list
 """
 
-g_version = "afni_system_check.py version 1.27, October 12, 2023"
+g_version = "afni_system_check.py version 1.28, November 24, 2023"
 
 
 class CmdInterface:
@@ -368,6 +374,10 @@ class CmdInterface:
       self.data_root       = ''
       self.exact           = 0          # use exact matching or not
       self.verb            = 1
+
+      # disp_* helpers
+      self.R_ver_lib_path  = ''         # path to R libraries
+      self.py_lib_vers     = SC.g_python_vtest_libs # python libs for versions
 
       # initialize valid_opts
       self.init_options()
@@ -405,6 +415,8 @@ class CmdInterface:
                       helpstr='display R version library was built against')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
+      self.valid_opts.add_opt('-disp_ver_pylibs', -1, [],
+                      helpstr='display python library versions (else NONE)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
                       helpstr='list found dot files')
       self.valid_opts.add_opt('-dot_file_pack', 1, [],
@@ -496,6 +508,12 @@ class CmdInterface:
             self.sys_disp.append('ver_matplotlib')
             continue
 
+         if opt.name == '-disp_ver_pylibs':
+            self.act = 1
+            self.sys_disp.append('ver_pylibs')
+            self.py_lib_vers = opt.parlist
+            continue
+
          if opt.name == '-data_root':
             self.data_root = opt.parlist[0]
             continue
@@ -575,6 +593,11 @@ class CmdInterface:
               print(self.sinfo.get_cpu_count())
           if x == 'ver_matplotlib':
               print(self.sinfo.get_ver_matplotlib())
+          if x == 'ver_pylibs':
+              # have this verbosity default to 0
+              if self.verb > 1: vv = self.verb
+              else:             vv = 0
+              self.sinfo.show_python_lib_versions(self.py_lib_vers, verb=vv)
           if x == 'R_ver_for_lib':
               print(self.sinfo.get_R_ver_for_lib(self.R_ver_lib_path))
 
