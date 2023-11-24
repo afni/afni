@@ -375,6 +375,10 @@ class CmdInterface:
       self.exact           = 0          # use exact matching or not
       self.verb            = 1
 
+      # disp_* helpers
+      self.R_ver_lib_path  = ''         # path to R libraries
+      self.py_lib_vers     = SC.g_python_vtest_libs # python libs for versions
+
       # initialize valid_opts
       self.init_options()
 
@@ -411,6 +415,8 @@ class CmdInterface:
                       helpstr='display R version library was built against')
       self.valid_opts.add_opt('-disp_ver_matplotlib', 0, [],
                       helpstr='display matplotlib version (else None)')
+      self.valid_opts.add_opt('-disp_ver_pylibs', -1, [],
+                      helpstr='display python library versions (else NONE)')
       self.valid_opts.add_opt('-dot_file_list', 0, [],
                       helpstr='list found dot files')
       self.valid_opts.add_opt('-dot_file_pack', 1, [],
@@ -502,6 +508,12 @@ class CmdInterface:
             self.sys_disp.append('ver_matplotlib')
             continue
 
+         if opt.name == '-disp_ver_pylibs':
+            self.act = 1
+            self.sys_disp.append('ver_pylibs')
+            self.py_lib_vers = opt.parlist
+            continue
+
          if opt.name == '-data_root':
             self.data_root = opt.parlist[0]
             continue
@@ -581,6 +593,11 @@ class CmdInterface:
               print(self.sinfo.get_cpu_count())
           if x == 'ver_matplotlib':
               print(self.sinfo.get_ver_matplotlib())
+          if x == 'ver_pylibs':
+              # have this verbosity default to 0
+              if self.verb > 1: vv = self.verb
+              else:             vv = 0
+              self.sinfo.show_python_lib_versions(self.py_lib_vers, verb=vv)
           if x == 'R_ver_for_lib':
               print(self.sinfo.get_R_ver_for_lib(self.R_ver_lib_path))
 

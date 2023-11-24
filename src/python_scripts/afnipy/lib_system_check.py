@@ -1201,13 +1201,27 @@ class SysInfo:
 
    def show_python_lib_versions(self, tlibs=g_python_vtest_libs, verb=0):
       """show any __version__ attribute
+
+         tlibs  : provide a list of libraries to get the version of
+                  if 'ALL' is in the list, replace it with g_python_vtest_libs
       """
 
-      for tlib in tlibs:
+      # if ALL is in the list, replace it with global defaults
+      # (and remove dupes)
+      testlibs = tlibs[:]
+      if 'ALL' in tlibs:
+         testlibs.remove('ALL')
+         testlibs.extend(g_python_vtest_libs)
+         testlibs = UTIL.get_unique_sublist(testlibs)
+
+      # and print the versions
+      for tlib in testlibs:
          vstr = MT.get_version(tlib,verb=verb)
          print("   %-12s version : %s" % (tlib, vstr))
          if verb: print("")
       print("")
+
+      del(testlibs)
 
    def show_python_lib_info(self, header=1):
 
@@ -1217,7 +1231,6 @@ class SysInfo:
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
-      self.show_python_lib_versions(verb=verb)
 
       # itemize special libraries to test: PyQt4
       self.test_python_lib_pyqt4(verb=verb)
