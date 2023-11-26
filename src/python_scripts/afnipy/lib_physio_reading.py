@@ -370,7 +370,7 @@ Each phys_ts_obj is now held as a value to the data[LABEL] dictionary here
         self.exit_on_rag     = True    # exit if raggedness in data files?
         self.exit_on_nan     = True    # exit if NaN values in data files?
         self.exit_on_null    = True    # exit if null values in data files?
-        self.do_fix_outliers = False   # exit if null values in data files?
+        self.do_fix_outliers = False   # exit if outlier values in data files?
         self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
         self.rvt_shift_list  = []      # list of RVT shift values

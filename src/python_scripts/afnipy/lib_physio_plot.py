@@ -574,9 +574,11 @@ them.
             for ii in range( iistart, iiend ):
                 iicount = ii - iistart
 
-                # make 'pp' the object for the subplot in question
-                if self.is_multiplot :  pp = subpl[iicount]
-                else:                   pp = subpl
+                # make 'pp' the object for the subplot in question;
+                # need to know if we have more than one subplot in the
+                # fig/subfig
+                if iinum>1 :  pp = subpl[iicount]
+                else:         pp = subpl
 
                 # loop over all plobj and add them
                 for jj in range( self.n_plobj ):
