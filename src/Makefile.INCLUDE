@@ -966,9 +966,9 @@ count:count.o
 	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
 
 # a replacement name for 'count', since it clashes with other software
-ccount:count.o
+ccount:ccount.o
 	$(RM) $@
-	$(CC) -o ccount count.o $(LFLAGS) $(LLIBS)
+	$(CC) -o ccount ccount.o $(LFLAGS) $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
