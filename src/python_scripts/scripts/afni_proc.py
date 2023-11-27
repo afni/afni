@@ -757,12 +757,14 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
+    7.62 Nov 27, 2023: use ccount instead of count
 """
 
-g_version = "version 7.60, August 21, 2023"
+g_version = "version 7.62, November 27, 2023"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "27 Nov 2023",  "ccount" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
@@ -3140,13 +3142,13 @@ class SubjProcSream:
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3
-        self.write_text('set runs = (`count -digits %d 1 %d`)\n\n' \
+        self.write_text('set runs = (`ccount -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
 
         if self.have_me:
            self.write_text('# note %d echoes and registration echo index\n' \
                            % self.num_echo)
-           self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
+           self.write_text('set echo_list = (`ccount -digits 2 1 %d`)\n' \
                            % self.num_echo)
            if len(self.echo_times) > 0:
               etimes = ['%s' % et for et in self.echo_times]
