@@ -955,22 +955,39 @@ Returns
         print("++ ({}) Update from interactive mode".format(phobj.label))
         if len(new_peaks_x) :
             # convert to indices; the initial ratios should essentially be int
-            tmp1 = np.round( np.array(new_peaks_x)/phobj.samp_rate, 
+            tmp1 = np.round( (np.array(new_peaks_x) - 
+                              phobj.start_time)/phobj.samp_rate, 
                              decimals=0)
             # set conversion to remove any duplicates
-            tmp2 = list(set(tmp1.astype(int)))
-            # make sure sorted
-            tmp2.sort()
-            phobj.peaks = copy.deepcopy(tmp2)
+            tmp2 = set(tmp1.astype(int))
+            # ... and to count number of diffs from orig
+            all_orig = set(phobj.peaks)
+            diffA = tmp2.difference(all_orig)
+            diffB = all_orig.difference(tmp2)
+            print("HEY, diffA", diffA)
+            print("HEY, diffB", diffB)
+            print("HEY, lens", len(diffA), len(diffB))
+            phobj.ndiff_inter_peaks = len(diffA) + len(diffB)
+            # listify and sort
+            tmp3 = list(tmp2)
+            tmp3.sort()
+            phobj.peaks = copy.deepcopy(tmp3)
         if len(new_troughs_x) :
             # convert to indices; the initial ratios should essentially be int
-            tmp1 = np.round( np.array(new_troughs_x)/phobj.samp_rate, 
+            tmp1 = np.round( (np.array(new_troughs_x) - 
+                              phobj.start_time)/phobj.samp_rate, 
                              decimals=0)
             # set conversion to remove any duplicates
-            tmp2 = list(set(tmp1.astype(int)))
-            # make sure sorted
-            tmp2.sort()
-            phobj.troughs = copy.deepcopy(tmp2)
+            tmp2 = set(tmp1.astype(int))
+            # ... and to count number of diffs from orig
+            all_orig = set(phobj.troughs)
+            diffA = tmp2.difference(all_orig)
+            diffB = all_orig.difference(tmp2)
+            phobj.ndiff_inter_troughs = len(diffA) + len(diffB)
+            # listify and sort
+            tmp3 = list(tmp2)
+            tmp3.sort()
+            phobj.troughs = copy.deepcopy(tmp3)
 
 # --------------------------------------------------------------------------
 

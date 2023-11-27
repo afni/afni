@@ -93,6 +93,8 @@ derived data.
         self.prefilt_win       = prefilt_win    # flt, size (s) of prefilt win
 
         self.do_interact       = do_interact    # bool, turn on user-interact
+        self.ndiff_inter_peaks = 0              # int, Npeak differing
+        self.ndiff_inter_troughs = 0            # int, Ntrough differing
 
         # array of time values, has physical units
         self.tvalues = self.start_time + \

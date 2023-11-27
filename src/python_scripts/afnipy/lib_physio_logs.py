@@ -180,7 +180,10 @@ here."""
     else:
         D['prefilt window, sec'] = 'NA'
     D['is user interact on?'] = str(phobj.do_interact)
-    
+    D['num peaks changed'] = str(phobj.ndiff_inter_peaks)
+    if phobj.n_troughs :
+        D['num troughs changed'] = str(phobj.ndiff_inter_troughs)
+
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
     D['ts_orig sampling freq']  = str(phobj.samp_freq)
