@@ -62,7 +62,7 @@ void usage_count(int detail) {
 "               not valid with random number sequence options\n"
 "\n"
 "The main application of this program is for use in C shell programming:\n"
-"  foreach fred ( `count 1 20` )\n"
+"  foreach fred ( `ccount 1 20` )\n"
 "     mv wilma.${fred} barney.${fred}\n"
 "  end\n"
 "The backward quote operator in the foreach statement executes the\n"

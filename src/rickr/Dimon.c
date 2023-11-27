@@ -6662,7 +6662,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         if( opts->num_chan > 1 ) {
            indent = 4;
            fprintf(fp, "# process %d channels/echoes\n"
-                       "foreach chan ( `count -digits %d 1 %d` )\n",
+                       "foreach chan ( `ccount -digits %d 1 %d` )\n",
                        opts->num_chan, opts->chan_digits, opts->num_chan);
         }
 

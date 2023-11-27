@@ -51,7 +51,7 @@ set nn   = 0
 
 # counts for the alist
 set anum = $#alist
-set aqq  = ( `count -dig 1 1 $anum` )
+set aqq  = ( `ccount -dig 1 1 $anum` )
 set asum = ( )
 foreach uuu ( $alist )
   set asum = ( $asum 0 )
@@ -59,7 +59,7 @@ end
 
 # counts for the blist
 set bnum = $#blist1
-set bqq  = ( `count -dig 1 1 $bnum` )
+set bqq  = ( `ccount -dig 1 1 $bnum` )
 set bsum = ( )
 foreach uuu ( $blist1 )
   set bsum = ( $bsum 0 )

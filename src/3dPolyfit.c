@@ -86,7 +86,7 @@ int main( int argc , char * argv[] )
              "     set dset = errts.nii\n"
              "     set nval = `3dnvals $dset`\n"
              "     @ vtop = $nval - 1\n"
-             "     foreach vv ( `count 0 $vtop` )\n"
+             "     foreach vv ( `ccount 0 $vtop` )\n"
              "       3dPolyfit -base \"$base\" -nord 0 -mask \"$base\" -1Dcoef QQ.$vv -prefix QQ.$vv.nii $dset\"[$vv]\"\n"
              "     end\n"
              "     3dTcat -prefix QQall.nii QQ.0*.nii\n"

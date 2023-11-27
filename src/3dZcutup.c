@@ -39,7 +39,7 @@ int main( int argc , char * argv[] )
              "  #!/bin/csh\n"
              "  # Cut 3D+time dataset epi07+orig into individual slices\n"
              "\n"
-             "  foreach sl ( `count -dig 2 0 20` )\n"
+             "  foreach sl ( `ccount -dig 2 0 20` )\n"
              "    3dZcutup -prefix zcut${sl} -keep $sl $sl epi07+orig\n"
              "\n"
              "    # Analyze this slice with 3dDeconvolve separately\n"

@@ -632,7 +632,7 @@ static char *tip[] = {
    "will produce a list of 9 distinct random numbers from 0..99 (inclusive),\n"
    "separated by commas; for example: '31,18,60,62,7,95'. This list could\n"
    "be used to select a random subset of dataset sub-bricks for analysis\n"
-   "  3dttest++ -setA Fred.nii[`count -dig 1 -comma 0 333 S20`]\n"
+   "  3dttest++ -setA Fred.nii[`ccount -dig 1 -comma 0 333 S20`]\n"
    "(in the above command, the quotes are the single backquote ` and not\n"
    "the single frontquote ')."
  ,
