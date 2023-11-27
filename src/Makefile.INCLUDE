@@ -115,7 +115,7 @@ EXTRAS   = cjpeg djpeg whirlgif myget rmz aiv mycat quotize $(EXPROGS)
 ## the program list is now split into 4 parts, to facilite the build process
 ## [RWC - Feb 2018]
 
-PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count                \
+PROGS_1  = afni to3d from3d 3dclust nsize 3dinfo 3dmerge count ccount         \
            sfim tfim imrotate imreg imstat 3dnvals                            \
            fim2 imand immask imdump imaver 3dhistog 3daxialize                \
            cdf 2swap 4swap 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta              \
@@ -211,8 +211,8 @@ PROGRAMS_NOPLUG =                                                             \
         3dToyProg nifti1_tool gifti_tool cifti_tool images_equal uniq_images  \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
-        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale    	   \
-        p2dsetstat dsetstat2p                                                 \
+        get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale          \
+        p2dsetstat dsetstat2p ccount                                          \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -246,7 +246,7 @@ PROGRAMS_EXE =                                                                \
         niccc 3dXYZcat column_cat GLTsymtest nifti1_tool gifti_tool           \
         cifti_tool images_equal uniq_images stimband 1dNLfit 3dExchange       \
         3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict 2dcat          \
-        3dEdu_01_scale p2dsetstat dsetstat2p
+        3dEdu_01_scale p2dsetstat dsetstat2p ccount
 
 
 # put all scripts to install here (no SCRIPTS variable)
@@ -960,9 +960,15 @@ hide:hide.o
 	$(RM) $@
 	$(CC) -o hide hide.o $(LFLAGS)
 
+# to be deprecated
 count:count.o
 	$(RM) $@
 	$(CC) -o count count.o $(LFLAGS) $(LLIBS)
+
+# a replacement name for 'count', since it clashes with other software
+ccount:count.o
+	$(RM) $@
+	$(CC) -o ccount count.o $(LFLAGS) $(LLIBS)
 
 nsize:nsize.o
 	$(RM) $@
