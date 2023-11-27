@@ -36,15 +36,19 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
    char *cpt ;
 
    *nret = -1;
+   /* include ccount   [27 Nov 2023 rickr] */
    if (!str || !strstr(str,"count ") || strlen (str) < 8) {
-      fprintf(stderr, "NULL input or string does not have 'count '"
-                      " or at least 2 values are not present after 'count '\n");
+     fprintf(stderr, "NULL input or string does not have 'ccount '"
+                     " or at least 2 values are not present after 'ccount '\n");
       return (NULL);
    }
 
-   /* move past count */
+   /* move past count (or ccount) */
    slen = strlen(str) ;
-   ipos = strlen("count ");
+   if( strstr(str, "ccount") )
+      ipos = strlen("ccount ");
+   else
+      ipos = strlen("count ");
 
    /* see if you have seed */
    if (strstr(str, "-seed ")) {
@@ -579,6 +583,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
       return(get_1dcat_intlist ( str, &ii, nvals-1 ));
    }
    /* do we have a count string in there ZSS ? */
+   /* (this includes ccount) */
    if (strstr(str,"count ")) {
       free(subv) ;
       return(get_count_intlist ( str, &ii, nvals-1 ));
@@ -940,7 +945,7 @@ int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
       tmplist = get_1dcat_intlist_eng(str, &nvals, 0, 1);
       if( ! tmplist || nvals < 1 ) RETURN(1);
    }
-   if (strstr(str,"count ")) {
+   if (strstr(str,"count ")) {    /* includes ccount */
       tmplist = get_count_intlist_eng(str, &nvals, 0, 1);
       if( ! tmplist || nvals < 1 ) RETURN(1);
    }
