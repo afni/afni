@@ -87,6 +87,7 @@ history for $prog :
   3.20  3 May 2022 : for anyos packages, test update with AFNI_version.txt
   3.21 22 Jul 2022 : add linux_fedora_28_shared to obsolete_list
   3.22  5 May 2023 : fix setting cur_afni
+  3.23 27 Nov 2023 : add some comments about build_afni.py
 
 -------------------------------------------------------------------------------
 EOF
@@ -95,7 +96,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.22, May 5, 2023"
+set aub_version = "3.23, November 27, 2023"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -359,6 +360,9 @@ $prog   - upgrade AFNI binaries ~1~
 
 Install or update the AFNI binaries, either via '-defaults' or by the
 '-bindir' and/or '-package' options.
+
+
+    Note: one can use build_afni.py to compile locally
 
 examples:
 

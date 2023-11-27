@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2023, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "add some comments about build_afni.py",
+   NULL
+ } ,
+
  { 24, Nov, 2023, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "add -disp_ver_pylibs",
    "Show python library __version__ strings.\n"
