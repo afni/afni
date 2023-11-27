@@ -142,7 +142,7 @@ echo "========== Bandpassing and computing ACF smoothness =========="
 
 echo "# 3dFWHMx output" > BPtemp.$rrr.1D
 
-foreach nnn ( `count -dig 1 1 $#errlist` )
+foreach nnn ( `ccount -dig 1 1 $#errlist` )
 
   set eee = $errlist[$nnn]
   set mmm = $msklist[$nnn]

@@ -410,12 +410,12 @@ class Decon:
            cmd += UTIL.add_line_wrappers(tmpc)
 
         pind = 0
-        cmd += '# process each input file\n'                      \
-               'foreach findex ( `count -digits 2 1 $#files` )\n' \
-               '   # no zero-padding in shell index\n'            \
-               '   set ival   = `ccalc -i $findex`\n'             \
-               '   set infile = $files[$ival]:t\n'                \
-               '   set label  = $labels[$ival]\n\n'               \
+        cmd += '# process each input file\n'                       \
+               'foreach findex ( `ccount -digits 2 1 $#files` )\n' \
+               '   # no zero-padding in shell index\n'             \
+               '   set ival   = `ccalc -i $findex`\n'              \
+               '   set infile = $files[$ival]:t\n'                 \
+               '   set label  = $labels[$ival]\n\n'                \
 
         polort = UTIL.get_default_polort(self.tr, self.reps)
         olab = 'p%02d.det.$label.1D' % pind

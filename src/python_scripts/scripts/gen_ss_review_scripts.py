@@ -567,7 +567,7 @@ if ( $was_censored && $num_stim > 0 ) then
     set stim_trs = ()
     set stim_trs_censor = ()
     set stim_frac_censor = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `ccount -digits 1 0 $nm1` )
         # count response TRs, with and without censoring
         # (their difference is the number of TRs lost to censoring)
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
@@ -589,7 +589,7 @@ if ( $was_censored && $num_stim > 0 ) then
 else if ( $num_stim > 0 ) then
     # no censoring - just compute num TRs per regressor
     set stim_trs = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `ccount -digits 1 0 $nm1` )
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set stim_trs = ( $stim_trs $st )
     end
@@ -606,7 +606,7 @@ g_ave_mot_sresp_str = """
 if ( $was_censored && $num_stim > 0 ) then
     set sresp_mot = ()
     set sresp_mot_cen = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `ccount -digits 1 0 $nm1` )
         set st  = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set snc = `1deval -a $xstim"[$index]" -b $censor_dset   \\
                    -expr 'bool(a*b)' | grep 1 | wc -l`
@@ -627,7 +627,7 @@ if ( $was_censored && $num_stim > 0 ) then
 
 else if ( $num_stim > 0 ) then
     set sresp_mot = ()
-    foreach index ( `count -digits 1 0 $nm1` )
+    foreach index ( `ccount -digits 1 0 $nm1` )
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
         set sm = `1deval -a $xstim"[$index]" -b $enorm_dset -expr 'bool(a)*b'\\
                   | 3dTstat -sum -prefix - 1D:stdin\\' |& tail -n 1`

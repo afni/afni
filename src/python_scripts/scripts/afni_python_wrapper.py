@@ -192,7 +192,7 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
            afni_python_wrapper.py -listfunc -join -float demean 1 2 3 4 5
 
            afni_python_wrapper.py -listfunc -join shuffle       \\
-                                  `count -digits 4 1 124`
+                                  `ccount -digits 4 1 124`
 
            count -digits 4 1 124 | afni_python_wrapper.py -listfunc \\
                                   -join shuffle -

@@ -445,7 +445,7 @@ NOTE: distribution of ISI ~2~
     histogram of rest durations.
 
        echo -n "" > isis_all.1D
-       foreach rep ( `count 1 100` )
+       foreach rep ( `ccount 1 100` )
           echo simulation $rep
           make_random_timing.py -num_stim 1 -num_runs 1 -run_time 300 \\
               -stim_dur 2 -num_reps 100 -prefix t -verb 0
