@@ -180,7 +180,7 @@ MAKE_TABLE:
       # get the label from the temporary file parsed above
       set ll = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_`
       # get the value index
-      set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
+      set inds = `ccount -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       # get the longname if there is one
       if ($lncol) then
          set ln = `sed -n "${cnt}p" ${tmpdir}/TMPLIST_${RNS}_ln_`
@@ -305,7 +305,7 @@ MAKE_ATLAS_TABLE:
       set lli = `ccalc -int -expr "$llistmin[$cnt]"`
       set llistmin[$cnt] = $lli
 
-      set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
+      set inds = `ccount -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
@@ -369,7 +369,7 @@ MAKE_ATLAS_TABLE:
       set ne = `wc -l ${tmpdir}/${RNS}.___ult.txt`
       printf '<atlas_point_list\n' > $labeltable
       printf ' ni_form="ni_group">\n\n' >> $labeltable
-      foreach n (`count -digits 1 1 $ne[1] 1`)
+      foreach n (`ccount -digits 1 1 $ne[1] 1`)
          set lln = `sed -n ${n}p ${tmpdir}/${RNS}.___ult.txt`
          set cogval = `echo $lln[1] |tr -d \"`
          if ($SKIPNOVOX) then

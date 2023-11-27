@@ -163,7 +163,7 @@ endif
 # check required datasets
 set dsetlist = ( "$epi_in" $mot_in )
 set namelist = ( -epi -motion_file )
-foreach index ( `count -digits 1 1 $#dsetlist` )
+foreach index ( `ccount -digits 1 1 $#dsetlist` )
    set dset = "$dsetlist[$index]"
    set dname = "$namelist[$index]"
    if ( "$dset" == "" ) goto FAIL_NO_OPTION
@@ -383,7 +383,7 @@ while ( $trind < $mot_nt )
       # --- warp at slice times, extract slices, Zcat
       if ( -f zslice.000$view.HEAD ) \rm zslice.*
 
-      foreach zind ( `count -digits 3 0 $nzm1` )
+      foreach zind ( `ccount -digits 3 0 $nzm1` )
          set zp1 = `ccalc -n $zind+1`
          @ rotind = $trind * $nz + $slice_inds[$zp1]
 

@@ -153,7 +153,7 @@ set use_files = ()
 set identical = 0
 if ( $#new_files == $#old_files ) then
    set identical = 1
-   foreach index ( `count -digits 1 1 $#new_files` )
+   foreach index ( `ccount -digits 1 1 $#new_files` )
       if ( $new_files[$index] != $old_files[$index] ) then
          set identical = 0
          break
@@ -185,7 +185,7 @@ if ( ! $identical && ($#new_files == $#old_files)  \
       echo "++ pairwise file name comparison:"
       echo ""
    endif
-   foreach index ( `count -digits 1 1 $#new_files` )
+   foreach index ( `ccount -digits 1 1 $#new_files` )
       if ( $new_files[$index] != $old_files[$index] ) then
          @ ndiffs += 1
          printf "%30s  vs.  %-30s\n" $new_files[$index] $old_files[$index]

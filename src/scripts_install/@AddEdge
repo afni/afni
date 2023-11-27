@@ -456,7 +456,7 @@ endif
 if ($do_rand == 1) then
 #Randomize list 
    #Get a random sequence for the pairs
-   set rli = `count -digits 1 1 $n_pairs S -sseed "${dd}_${uname}"`
+   set rli = `ccount -digits 1 1 $n_pairs S -sseed "${dd}_${uname}"`
    #Now randomize the volume order AND rename them
    #first copy first volume in list (never used!)
    set qlist = ($olist)
@@ -500,7 +500,7 @@ if ($do_rand == 1) then
    echo "$olist"
 else
    set qlist = ($olist)
-   set rli = `count -digits 1 1 $n_pairs`
+   set rli = `ccount -digits 1 1 $n_pairs`
    #Do not allow rating when there is no randomization
    set do_score = 0   
 endif
@@ -699,7 +699,7 @@ if ($do_score == 1) then
    echo ""
    echo "Enter scores for dsets 1..$#rli (just one 0 to score all with 0s):"
    echo ""
-   set scl = `count -quiet -digits 1 0 0 S$#rli`
+   set scl = `ccount -quiet -digits 1 0 0 S$#rli`
    set sc = ""
    if (1) then
       while ("$sc" == "")
@@ -741,7 +741,7 @@ if ($do_score == 1) then
    echo ""
    echo "Enter ranks for dsets 1..$#rli (just one 0 to rank all with 0s):"
    echo ""
-   set rnl = `count -quiet -digits 1 0 0 S$#rli`
+   set rnl = `ccount -quiet -digits 1 0 0 S$#rli`
    set rn = ""
    if (1) then
       while ("$rn" == "")
@@ -783,7 +783,7 @@ if ($do_score == 1) then
 
    STORE:
    #Now spit out the score sheet correctly
-   set rnlunt = `count -quiet -digits 1 0 0 S$#rli`
+   set rnlunt = `ccount -quiet -digits 1 0 0 S$#rli`
    set sclunt = ($rnlunt)
    set dlist = ""
    set cnt = 1

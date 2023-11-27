@@ -104,7 +104,7 @@ endif
 
 	
 set DirN = $1
-set sDir = `count -digits 3 $DirN $DirN`
+set sDir = `ccount -digits 3 $DirN $DirN`
 set Nloc = $2
 set Nslc = $3
 set Nreps = $4
@@ -145,8 +145,8 @@ RENAMING:
 	set Nimage = 0
 	echo "Forming image list ..."
 	test -d $sDir || goto NOSDIR
-	set NlocPad = `count -digits 3 $Nloc $Nloc`
-	set NimagePad = `count -digits 5 $Nimage $Nimage`
+	set NlocPad = `ccount -digits 3 $Nloc $Nloc`
+	set NimagePad = `ccount -digits 5 $Nimage $Nimage`
 	echo ""
 	echo "Logfile for $BrickPrefix $cwd `date` (`basename $0` Version $VerNum)" >> $LogFile
 	echo "From $sDir/I.$NlocPad ..."	
@@ -169,10 +169,10 @@ RENAMING:
 			set Nimage = `expr $Nimage + 999 - $Nloc + 1`
 			set Nremain = `expr $Ntot - $Nimage`
 			set Nloc = 1
-			set NimagePad = `count -digits 3 $Nimage $Nimage`
-			set NLocPad = `count -digits 3 $Nloc $Nloc`
+			set NimagePad = `ccount -digits 3 $Nimage $Nimage`
+			set NLocPad = `ccount -digits 3 $Nloc $Nloc`
 			set DirN = `expr $DirN + 20`
-			set sDir = `count -digits 3 $DirN $DirN`
+			set sDir = `ccount -digits 3 $DirN $DirN`
 			test -d $sDir || goto NOSDIR
 			#echo " $sDir ..."
 		else if ($Nremain > 0) then
@@ -180,7 +180,7 @@ RENAMING:
 			set Nend = `expr $Nremain + $Nloc`
 			@ Nend --  
 			#echo "in $sDir from $Nloc to $Nend"
-			set NendPad = `count -digits 3 $Nend $Nend`
+			set NendPad = `ccount -digits 3 $Nend $Nend`
 			count -column -digit 3 -root $sDir/I. $Nloc $Nend \
                               >> $listfile
 			set Nimage = `expr $Nimage + $Nend`
@@ -253,20 +253,20 @@ LOOKFORMISSING:
 	set Nimage = 1
 	echo "Searching for missing image, this takes a while ..."
 	echo "Now in $sDir ..."
-	set NlocPad = `count -digits 3 $Nloc $Nloc`
-	set NimagePad = `count -digits 5 $Nimage $Nimage`
+	set NlocPad = `ccount -digits 3 $Nloc $Nloc`
+	set NimagePad = `ccount -digits 5 $Nimage $Nimage`
 	while ($Nimage <= $Ntot)
 		if ($Nloc > 999) then
 			set Nloc = 1
 			set DirN = `expr $DirN + 20`
-			set sDir = `count -digits 3 $DirN $DirN`
+			set sDir = `ccount -digits 3 $DirN $DirN`
 			echo "Now in $sDir ..."
-			set NlocPad = `count -digits 3 $Nloc $Nloc`
-			set NimagePad = `count -digits 5 $Nimage $Nimage`
+			set NlocPad = `ccount -digits 3 $Nloc $Nloc`
+			set NimagePad = `ccount -digits 5 $Nimage $Nimage`
 		endif
 	
-		set NlocPad = `count -digits 3 $Nloc $Nloc`
-		set NimagePad = `count -digits 5 $Nimage $Nimage`
+		set NlocPad = `ccount -digits 3 $Nloc $Nloc`
+		set NimagePad = `ccount -digits 5 $Nimage $Nimage`
 	
 		test -f $sDir/I.$NlocPad || goto MISSINGFILE
 			

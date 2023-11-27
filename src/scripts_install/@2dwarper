@@ -137,7 +137,7 @@ echo "Freezing parameters $shift $rota $rotb $scala $shra $shrb in 3dWarpDrive"
 ###   #shra  = shear factor involving 3rd dimension
 ###   #shrb  = shear factor involving 3rd dimension
 
-foreach zz ( `count 0 $nz1` )
+foreach zz ( `ccount 0 $nz1` )
   echo "==================== processing slice #$zz ===================="
   3dZcutup -keep $zz $zz -prefix ${inp}_${zz}        ${inp}+orig
   3dZcutup -keep $zz $zz -prefix ${inp}_weight_${zz} ${inp}_weight+orig

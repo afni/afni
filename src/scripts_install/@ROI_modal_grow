@@ -151,7 +151,7 @@ endif
 cd "${outdir}"
 set inset = rm_rgm_00.nii.gz
 
-foreach iter (`count -digits 2 1 $niters`)
+foreach iter (`ccount -digits 2 1 $niters`)
     3dLocalstat -nbhd "SPHERE(${NN})" -stat nzmode -overwrite \
        -prefix rm_rgm_${iter}.nii.gz $inset
     set inset = rm_rgm_${iter}.nii.gz

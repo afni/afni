@@ -96,7 +96,7 @@ WORK:
       endif
       if ($bad) then
          @ cnt ++
-         set cntstr = `count $cnt $cnt 1 -digits 3`
+         set cntstr = `ccount $cnt $cnt 1 -digits 3`
          set tpref = ${pref}_v$cntstr
       endif
    end

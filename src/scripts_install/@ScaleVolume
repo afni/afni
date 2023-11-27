@@ -222,7 +222,7 @@ DOIT_FEAT_NORM:
    set v1 = 99
    set nid = __tt.`3dnewid -fun`
    set sbm = `ccalc -i $nvals - 1`
-   foreach sb (`count -digits 1 0 $sbm `)
+   foreach sb (`ccount -digits 1 0 $sbm `)
       set op = `printf %03d $sb`
       set rng = `3dBrickStat ${maskopt} -non-zero -min -max $invol"[$sb]"`
       3dcalc   -a $invol"[$sb]" \
@@ -243,7 +243,7 @@ DOIT_FEAT_ZNORM:
    set v1 = 99
    set nid = __tt.`3dnewid -fun`
    set sbm = `ccalc -i $nvals - 1`
-   foreach sb (`count -digits 1 0 $sbm `)
+   foreach sb (`ccount -digits 1 0 $sbm `)
       set op = `printf %03d $sb`
       set rng = `3dBrickStat ${maskopt} -non-zero -mean -var $invol"[$sb]"`
       3dcalc   -a $invol"[$sb]" \

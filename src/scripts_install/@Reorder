@@ -176,7 +176,7 @@ endif
 # grab each label average
 set length1 = -1
 echo -n "" > $lenfile
-foreach index ( `count -digits 3 1 $#labels` )
+foreach index ( `ccount -digits 3 1 $#labels` )
     set label = $labels[$index]
     set ilist = ( `awk "/$label/ {print NR-1+$offset}" $mapfile` )
 

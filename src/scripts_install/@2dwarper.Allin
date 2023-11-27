@@ -137,7 +137,7 @@ setenv AFNI_QUIET_STARTUP YES
 
 set source_mask = ""    # maybe a source mask option will be applied
 
-foreach zz ( `count 0 $nz1` )
+foreach zz ( `ccount 0 $nz1` )
 
   echo "____________________ processing slice #$zz ____________________"
 
@@ -150,7 +150,7 @@ foreach zz ( `count 0 $nz1` )
 
 ### process each time point in turn (-nwarp only allows 1 sub-brick)
 
-  foreach tt ( `count 0 $nt1` )
+  foreach tt ( `ccount 0 $nt1` )
 
     3dAllineate -warp affine_general -final quintic    \
                 -prefix ${pfx}_reg_${zz}_${tt}         \

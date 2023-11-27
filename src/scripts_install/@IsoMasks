@@ -143,7 +143,7 @@ HELP:
    echo "Creates isosurfaces from isovolume envelopes."
    echo ""
    echo "For example, to create contours of TLRC regions:"
-   echo " `basename $0` -mask ~/abin/TTatlas+tlrc'[0]' -isovals "' `count -digits 1 1 77` '
+   echo " `basename $0` -mask ~/abin/TTatlas+tlrc'[0]' -isovals "' `ccount -digits 1 1 77` '
    echo ""
    goto END
    
