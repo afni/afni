@@ -364,9 +364,8 @@ them.
 
     @property
     def all_range_xlim(self):
-        """Range based on min/max x-values for each subplot (basically, expand
-        min/max by 1%)."""
-        list_win = copy.deepcopy(self.all_sub_xwin)
+        """Return a list of ranges based on min/max x-values for each subplot
+        (basically, expand min/max by 1%)."""
 
         list_win = []
         for ii in range(self.n_subplots):
@@ -679,22 +678,43 @@ them.
 
                     # obj can have interval bands (ibands)
                     if plobj.add_ibandT :
-                        y_iband, h_iband = self.yh_ibandT    # from main obj
+                        y_iband, h_iband = self.yh_ibandT    # from
+                        # main obj check for rectangles to add
+                        #bxlim = copy.deepcopy(self.all_sub_xwin[ii]) # unpadded
+                        bxlim = copy.deepcopy(self.all_range_xlim[ii])
                         for bb in range(plobj.n_ibandT):
-                            pp.add_patch(mplp.Rectangle(
-                                (plobj.xw_ibandT[bb][0], y_iband),
-                                plobj.xw_ibandT[bb][1],
-                                h_iband,
-                                color=plobj.col_ibandT[bb]))
+                            bstart = plobj.xw_ibandT[bb][0]
+                            bstop = bstart + plobj.xw_ibandT[bb][1]
+                            # is rect within xlim of this subplot?
+                            if bstop > bxlim[0] and bstart < bxlim[1] :
+                                # trim any rect
+                                if bstart < bxlim[0] : bstart = bxlim[0]
+                                if bstop > bxlim[1] :  bstop  = bxlim[1]
+                                bwidth = bstop - bstart
+                                pp.add_patch(mplp.Rectangle(
+                                    (bstart, y_iband),
+                                    bwidth,
+                                    h_iband,
+                                    color=plobj.col_ibandT[bb]))
 
                     if plobj.add_ibandB :
                         y_iband, h_iband = self.yh_ibandB    # from main obj
+                        # check for rectangles to add
+                        bxlim = copy.deepcopy(self.all_range_xlim[ii])
                         for bb in range(plobj.n_ibandB):
-                            pp.add_patch(mplp.Rectangle(
-                                (plobj.xw_ibandB[bb][0], y_iband),
-                                plobj.xw_ibandB[bb][1],
-                                h_iband,
-                                color=plobj.col_ibandB[bb]))
+                            bstart = plobj.xw_ibandB[bb][0]
+                            bstop = bstart + plobj.xw_ibandB[bb][1]
+                            # is rect within xlim of this subplot?
+                            if bstop > bxlim[0] and bstart < bxlim[1] :
+                                # trim any rect
+                                if bstart < bxlim[0] : bstart = bxlim[0]
+                                if bstop > bxlim[1] :  bstop  = bxlim[1]
+                                bwidth = bstop - bstart
+                                pp.add_patch(mplp.Rectangle(
+                                    (bstart, y_iband),
+                                    bwidth,
+                                    h_iband,
+                                    color=plobj.col_ibandB[bb]))
 
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
