@@ -31,7 +31,9 @@ g_fs_space_checked  = []
 g_fs_space_whine    = 1         # do we whine about fs space? (only once)
 
 # indentation
-g_indent  = '%8s' % ' '
+g_indent            = '%8s' % ' '
+                      # libraries to possibly show __version__ on
+g_python_vtest_libs = ['matplotlib', 'flask', 'flask_cors']
 
 # ------------------------------ main class  ------------------------------
 
@@ -993,7 +995,7 @@ class SysInfo:
       """
       # actual lib test
       plib = 'matplotlib.pyplot'
-      rv = self.test_python_lib(plib, mesg='required', verb=verb)
+      rv = self.test_python_lib(plib, fmesg='required', verb=verb)
 
       # if missing, we are done
       if rv:
@@ -1167,28 +1169,65 @@ class SysInfo:
 
       return 0
 
-   def test_python_lib(self, pylib, mesg='', verb=2):
+   def test_python_lib(self, pylib, fmesg='', showver=0, verb=2):
+      """try to import the given pylib library
+
+         pylib      : (string) library name
+         fmesg      : failure message
+         showver    : display __version__
+         verb       : verbosity level
+      """
       # actual lib test
       rv = MT.simple_import_test(pylib, verb=verb)
 
-      if mesg : pmesg = mesg
-      else:     pmesg = 'not required, but is desirable'
+      if fmesg : pmesg = fmesg
+      else:      pmesg = 'not required, but is desirable'
 
       # if failure, no biggie, but warn
       if rv:
          print('-- %s is %s' % (pylib, pmesg))
          return 1
 
+      if showver:
+         vstr = MT.get_version(pylib)
+         # on success, show the version info
+         if vstr != '':
+            print("   %s version : %s" % (pylib, vstr))
+
       if pylib.startswith('matplotlib'):
          self.have_matplotlib = 1
 
       return 0
 
+   def show_python_lib_versions(self, tlibs=g_python_vtest_libs, verb=0):
+      """show any __version__ attribute
+
+         tlibs  : provide a list of libraries to get the version of
+                  if 'ALL' is in the list, replace it with g_python_vtest_libs
+      """
+
+      # if ALL is in the list, replace it with global defaults
+      # (and remove dupes)
+      testlibs = tlibs[:]
+      if 'ALL' in tlibs:
+         testlibs.remove('ALL')
+         testlibs.extend(g_python_vtest_libs)
+         testlibs = UTIL.get_unique_sublist(testlibs)
+
+      # and print the versions
+      for tlib in testlibs:
+         vstr = MT.get_version(tlib,verb=verb)
+         print("   %-12s version : %s" % (tlib, vstr))
+         if verb: print("")
+      print("")
+
+      del(testlibs)
+
    def show_python_lib_info(self, header=1):
 
       # any extra libs to test beyond main ones
       # (empty for now, since matplotlib got its own function)
-      extralibs = []
+      extralibs = ['flask', 'flask_cors']
       verb = 3
 
       if header: print(UTIL.section_divider('python libs', hchar='-'))
@@ -1203,7 +1242,7 @@ class SysInfo:
 
       # then go after any others
       for plib in extralibs:
-         self.test_python_lib(plib, verb=verb)
+         self.test_python_lib(plib, showver=1, verb=verb)
          print('')
 
       for rootdir in ['/sw/bin', '/usr/local/bin']:

@@ -5064,7 +5064,6 @@ def shuffle(vlist, start=0, end=-1):
     for index in range(nvals-1):
         rind = int((nvals-index)*random.random())
         swap_2(vlist, start+index, start+index+rind)
-        continue
 
     # return list reference, though usually ignored
     return vlist

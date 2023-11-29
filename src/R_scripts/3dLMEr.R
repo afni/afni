@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.5, Oct 18, 2023
+Version 1.0.6, Nov 21, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -407,6 +407,16 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         file called .3dLMEr.dbg.AFNI.args in the current directory",
    "          so that debugging can be performed.\n", sep='\n')),
 
+       '-R2' = apl(n=0, h = paste(
+   "-R2: Enabling this option will prompt the program to provide both",
+   "         conditional and marginal coefficient of determination (R^2)",
+   "         values associated with the adopted model. Marginal R^2 indicates",
+   "         the proportion of variance explained by the fixed effects in the",
+   "         model, while conditional R^2 represents the proportion of variance",
+   "         explained by the entire model, encompassing both fixed and random",
+   "         effects. Two sub-bricks labeled 'R2m' and 'R2c' will be provided",
+   "         in the output.\n", sep='\n')),
+
        '-TRR' = apl(n=0, h = paste(
    "-TRR: This option will allow the analyst to perform test-retest reliability analysis",
    "         at the whole-brain voxel level. To be able to adopt this modeling approach,",
@@ -600,6 +610,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$glfCode  <- NULL
       lop$dataTable <- NULL
       lop$SS_type <- 3
+      lop$R2      <- FALSE 
 
       lop$iometh  <- 'clib'
       lop$dbgArgs <- FALSE # for debugging purpose
@@ -627,7 +638,8 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              vVarCenters = lop$vVarCenters <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
 	     SS_type = lop$SS_type <- ops[[i]],
-
+	     
+	     R2      = lop$R2 <- TRUE,
              help = help.LME.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              TRR     = lop$TRR     <- TRUE,
@@ -843,6 +855,7 @@ runLME <- function(myData, DM, tag) {
                Stat[lop$nF[1]+2*lop$num_glt+ii] <- qchisq(ff[2,'Pr(>Chisq)'], 2, lower.tail = F) # glf[2,2]  # convert chisq to Z
             }
          }
+         if(lop$R2) Stat[(lop$nF[1]+2*lop$num_glt+lop$num_glf+1):(lop$nF[1]+2*lop$num_glt+lop$num_glf+2)] <- r.squaredGLMM(fm)
          if(!is.null(lop$resid)) {
             resid <- unname(residuals(fm))
             if(!is.null(res.na)) for(aa in res.na) resid <- append(resid, 0, after=aa-1) # fill in missing data with 0s 
@@ -1089,7 +1102,8 @@ if(!is.na(lop$maskFN)) {
 
 lop$model <- as.formula(paste('yy ~ ', lop$model))
 require(lmerTest)
-if(!lop$TRR) require(phia)
+if(lop$R2)  pkgLoad('MuMIn')
+if(!lop$TRR) pkgLoad('phia')
 fm<-NULL
 if(any(!is.na(lop$vQV))) {
      lop$dataStr <- assVV2(lop$dataStr, lop$vQV, inData[ii,jj,kk,(nrow(lop$dataStr)+1):(2*nrow(lop$dataStr))], all(is.na(lop$vVarCenters)))
@@ -1136,7 +1150,7 @@ while(is.null(fm)) {
       } else {
          lop$nF      <- nrow(anova(fm, type=lop$SS_type))    # total number of F-stat
          nT          <- 2*lop$num_glt
-         lop$NoBrick <- lop$nF + nT + lop$num_glf
+         lop$NoBrick <- lop$nF + nT + lop$num_glf + 2*lop$R2
       }
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
@@ -1213,7 +1227,7 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, "lop", envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
             Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runTRR,
@@ -1249,7 +1263,7 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, c("lop", "assVV2"), envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for(kk in 1:nSeg) {
             Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
@@ -1274,7 +1288,7 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, c("lop", "assVV2"), envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
             if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
@@ -1309,6 +1323,8 @@ if(lop$TRR) {
    if(lop$num_glf > 0) for (n in 1:lop$num_glf) {
       brickNames <- append(brickNames, paste(lop$glfLabel[n], "Chi-sq"))
    }
+   if(lop$R2) brickNames <- append(brickNames, c('R2m', 'R2c'))
+   
    statsym <- NULL
    if(lop$nF > 0) for (n in 1:lop$nF)
       statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=2)))

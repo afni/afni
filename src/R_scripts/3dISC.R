@@ -631,7 +631,7 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              #vVarCenters = lop$vVarCenters <- ops[[i]],
              #ISC     = lop$ISC     <- ops[[i]],
-             dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
+             dataTable  = lop$dataTable <- dataTable.AFNI.parse.orig(ops[[i]]),
              
              help = help.ISC.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
