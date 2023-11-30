@@ -363,6 +363,9 @@ AFNI_TRUSTHOST_99.  (That should be enough - how trusting do you really
 want to be?)  If you want to remove the builtin trust for MCW Biophysics,
 you'll have to edit file thd_trusthost.c.
 
+Note that while AFNI also makes uses of NIML_TRUSTHOST_* variables,
+plug_realtime does not.
+
 You cannot use hostnames for this purpose - only actual IP addresses in
 the dotted form, as shown above.  (What I'll do when IPv6 becomes widely
 used, I don't know.  Yet.)
