@@ -7456,22 +7456,47 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
    SUMA_RETURN(NOPE);
 }
 
-void boxThresholdOutline(SUMA_OVERLAYS **Overlays, int N_Overlays, int BoxOutline, 
-                         int N_Node, byte *isColored_Fore){
+int *boxThresholdOutline(SUMA_SurfaceObject *SO, byte *isColored_Fore){
     static char FuncName[]={"boxThresholdOutline"};
-    int o, i;
+    int o, i, j, k;
     SUMA_OVERLAYS *overlay;
-    float threshold, tolerance = 0.005;
+    float threshold;
+    // float tolerance = 0.005;
+    float tolerance = 0.05;
+    int *output = NULL;
     
-    if (!Overlays || !isColored_Fore) return;
-   
-    for (o=0; o<N_Overlays; ++o){
-        overlay = Overlays[o];
-        threshold = overlay->OptScl->ThreshRange[0];
-        for (i=0; i<N_Node; ++i){
-            isColored_Fore[i] = (BoxOutline && abs(overlay->T[i] - threshold) < tolerance);
+    if (!SO || !(SO->Overlays) || !isColored_Fore) return NULL;
+    
+    if (!(output = (int *)calloc(SO->N_Node, sizeof(int)))) return NULL;
+    
+    // Find latest valid overlay
+    for (i=SO->N_Overlays-1; i>=0; --i){
+        if (SO->Overlays[i]->ShowMode != SW_SurfCont_DsetViewXXX){
+            overlay = SO->Overlays[i];
+            break;
         }
-   }
+    }
+
+    if (!overlay){
+        SUMA_S_Err("Could not find valid overlay\n");
+        return NULL;
+    }
+   
+        threshold = overlay->OptScl->ThreshRange[0];
+//        for (i=0; i<SO->N_Node; ++i){
+//            isColored_Fore[i] = output[i] = (abs(overlay->T[i] - threshold) < tolerance);
+//        }
+        int last = SO->N_Node - 1;
+        overlay->BordFrac = 1;
+        overlay->EdgeThick = 1;
+        overlay->EdgeThickGain = 0.0f;
+        for (i=0, j=1, k=2; k<SO->N_Node; ++i, ++j, ++k)
+            if ((overlay->T[i] < threshold && overlay->T[k] > threshold) || 
+                (overlay->T[k] < threshold && overlay->T[i] > threshold)) {
+                    /* isColored_Fore[j] = */ output[j] = 1;
+        }
+   
+   return output;
 }
 
 float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
@@ -7551,7 +7576,7 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     // Allocate memory to old GLcolor
     int numElements = SO->N_Node * 4;
     if (!(glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat)))){
-        SUMA_S_Err("Error allocating memory to old glOldGlColar vector\n");
+        SUMA_S_Err("Error allocating memory to old glOldGlColar vactor\n");
         return NULL;
     }
     
@@ -7631,6 +7656,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
    float **alphaOpacities = NULL;
    static GLfloat *glOldGlColar;
+   int *outlinevector = NULL;
 
    SUMA_ENTRY;
    
@@ -7758,6 +7784,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^ allocate space ------------------------------*/
 
    /* vvvvvvvvvvvvvvvvvvvvvvvvv Background colors -----------------------------*/
+   if (SO->BoxOutline && !(outlinevector = boxThresholdOutline(SO, isColored_Back)))
+        SUMA_S_Err("Failed to allocate memory to outline vector\n");
 
    if (ShowBackground) {
       /* arrange Background color planes by plane order in preparation for
@@ -7783,7 +7811,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             fprintf (SUMA_STDERR,"%s: Mixing Background colors ...\n", FuncName);
 
          // This is called when the sliding bar is adjusted"Background colors
-         boxThresholdOutline(Overlays, N_Overlays, SO->BoxOutline, N_Node, isColored_Back); 
          if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_Back_sort,
                                  NshowOverlays_Back, glcolar_Back, N_Node,
                                  isColored_Back, NOPE)) {
@@ -7880,8 +7907,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
+             /*
              if (isColored_Fore[i] && isColored_Back[i]) {
-                         /* colors from both sides, adjust brightness */
+                         // colors from both sides, adjust brightness 
                 i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
                 if (!Back_Modfact) {
                    glcolar[i4_0] = glcolar_Fore[i4_0];
@@ -7897,27 +7925,37 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = YUP;
                    continue;
              }
-             if (isColored_Fore[i]) {
-                i4 = 4 * i;
-                glcolar[i4] = glcolar_Fore[i4]; ++i4;
-                glcolar[i4] = glcolar_Fore[i4]; ++i4;
-                glcolar[i4] = glcolar_Fore[i4]; ++i4;
-                isColored[i] = YUP;
-                continue;
+             */
+             if (SO->BoxOutline && outlinevector[i]){
+                   i4 = 4 * i;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 1.0f;
+                   isColored[i] = YUP;
+                   continue;
+             } else if (isColored_Fore[i]) {
+                    i4 = 4 * i;
+                    glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                    glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                    glcolar[i4] = glcolar_Fore[i4]; ++i4;
+                    isColored[i] = YUP;
+                    continue;
              } else {
                    float opacity = activeAlphaOpacities[i];
                    float complement = 1.0f - opacity;
-                   // fprintf(stderr, "11-Fore: opacity = %f\n", opacity);
                    i4 = 4 * i;
-                   // fprintf(stderr, "glOldGlColar = %f, %f, %f\n", glOldGlColar[i4], glOldGlColar[i4+1], glOldGlColar[i4+2]);
+                   i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
+                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
+                               glcolar_Back[i4_2])/3;
                    
                    // DEBUG
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                    (avg_Back * complement); ++i4;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                    (avg_Back * complement); ++i4;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
+                    (avg_Back * complement); ++i4;
                    /*
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (SUMA_GRAY_NODE_COLOR * complement); ++i4;
@@ -8057,7 +8095,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             }
 
              for (i=0; i < SO->N_Node; ++i) {
-                if (isColored_Back[i]) {
+                if (SO->BoxOutline && outlinevector[i]){
+                   i4 = 4 * i;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 1.0f;
+                   isColored[i] = YUP;
+                   continue;
+                } else if (isColored_Back[i]) {
                    i4 = 4 * i;
                    glcolar[i4] = glcolar_Back[i4]; ++i4;
                    glcolar[i4] = glcolar_Back[i4]; ++i4;
@@ -8083,18 +8129,38 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             freeAlphaOpacities(alphaOpacities, N_Overlays);
          }else{
              for (i=0; i < N_Node; ++i) {
-                if (isColored_Back[i]) {
+                /* if (SO->BoxOutline && outlinevector[i]){
                    i4 = 4 * i;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   glcolar[i4] = glcolar_Back[i4]; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 0; ++i4;
+                   glcolar[i4] = 1.0f;
+                   isColored[i] = NOPE;
+                   continue;
+                } else */ if (isColored_Back[i]) {
+                   i4 = 4 * i;
+                   if (i>0 && SO->BoxOutline && !(isColored_Back[i-1])){
+                       glcolar[i4] = 0; ++i4;
+                       glcolar[i4] = 0; ++i4;
+                       glcolar[i4] = 0; ++i4;
+                   } else {
+                       glcolar[i4] = glcolar_Back[i4]; ++i4;
+                       glcolar[i4] = glcolar_Back[i4]; ++i4;
+                       glcolar[i4] = glcolar_Back[i4]; ++i4;
+                   }
                    isColored[i] = YUP;
                    continue;
                 } else {
                    i4 = 4 * i;
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
-                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                   if (i>0 && SO->BoxOutline && (isColored_Back[i-1])){
+                       glcolar[i4] = 0; ++i4;
+                       glcolar[i4] = 0; ++i4;
+                       glcolar[i4] = 0; ++i4;
+                   } else {
+                       glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                       glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                       glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                   }
                    isColored[i] = NOPE;
                 }
              }
@@ -8151,6 +8217,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (glcolar_Back) SUMA_free(glcolar_Back);
    if (isColored_Fore) SUMA_free(isColored_Fore);
    if (glcolar_Fore) SUMA_free(glcolar_Fore);
+   if (SO->BoxOutline) free(outlinevector);
 
    SUMA_RETURN (YUP);
 }
@@ -8535,7 +8602,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          // NodeEDef is just a monotonically increasing, array of integers giving the indices
          // of the nodes, typically 0,1,2,3,4,...,N_Node-1
          // glcolar is an array of RGBA values (GLFloat). for the first four tetrads, A always 
-         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  When the 
+         //     seems to be zero.  Setting the A value to 1.0 seems to have no effect.  Whne the 
          // color is gone, the RGB values are set to zero
          // Before SUMA_RGBv_PnGnL_AR4op is called, glcolar is all zeros.  SUMA_RGBv_PnGnL_AR4op
          // Assigns the RGB values, in ColEVec to the RGB values of glcolar.  The A values
