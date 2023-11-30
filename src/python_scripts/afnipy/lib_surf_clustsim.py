@@ -298,7 +298,7 @@ class SurfClust(object):
              '   echo "-- processing $#file_list files for p = $pthr"\n'  \
              '\n'                                                         \
              '   # process each file, counting through them\n'            \
-             '   foreach findex ( `count -digits 1 1 $#file_list` )\n'    \
+             '   foreach findex ( `ccount -digits 1 1 $#file_list` )\n'   \
              '      set file = $file_list[$findex]\n'                     \
              '\n'                                                         \
              '      # print pacifier every 100 files\n'                   \
@@ -360,7 +360,7 @@ class SurfClust(object):
 
       cmd +=                                                                 \
         '# for each iteration block, process $itersize sets of p/z-scores\n' \
-        'foreach iter ( `count -digits 3 1 $niter` )\n\n'                    \
+        'foreach iter ( `ccount -digits 3 1 $niter` )\n\n'                   \
         '   # track time for each iteration\n'                               \
         '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'        \
         + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale                          \
@@ -400,8 +400,8 @@ class SurfClust(object):
       clist = [ \
         '# compute cluster sizes (for each iteration and p/z-score)\n',
         '@ iminus1 = $itersize - 1   # want 0-based indices\n',
-        'foreach index ( `count -digits 1 0 $iminus1` )\n',
-        '   foreach pind ( `count -digits 1 1 $#pthr_list` )\n',
+        'foreach index ( `ccount -digits 1 0 $iminus1` )\n',
+        '   foreach pind ( `ccount -digits 1 1 $#pthr_list` )\n',
         '      # note corresponding p and z-values\n',
         '      set pthr = $pthr_list[$pind]\n',
         '      set zthr = $zthr_list[$pind]\n\n',

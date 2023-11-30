@@ -85,7 +85,7 @@ int main( int argc , char *argv[] )
        " a csh shell script like the one below:\n"
        "\n"
        " # Compute the individual SVD vectors\n"
-       " foreach mm ( `count 1 77` )\n"
+       " foreach mm ( `ccount 1 77` )\n"
        "   3dmaskSVD -vnorm -mask mymask+orig\"<${mm}..${mm}>\" epi+orig > qvec${mm}.1D\n"
        " end\n"
        " # Glue them together into 1 big file, then delete the individual files\n"

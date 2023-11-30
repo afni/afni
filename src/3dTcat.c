@@ -570,7 +570,7 @@ void TCAT_Syntax(void)
     "the sub-bricks. Example:\n"
     "  fred+orig[count -seed 2 5 11 s] is equivalent to something like:\n"
     "  fred+orig[ 6, 5, 11, 10, 9, 8, 7] \n"
-    "You could also do: fred+orig[`count -seed 2 -digits 1 -suffix ',' 5 11 s`]\n"
+    "You could also do: fred+orig[`ccount -seed 2 -digits 1 -suffix ',' 5 11 s`]\n"
     "but if you have lots of numbers, the command line would get too\n"
     "long for the shell to process it properly. Omit the seed option if\n"
     "you want the code to generate a seed automatically.\n"

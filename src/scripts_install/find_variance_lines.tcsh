@@ -160,7 +160,7 @@ endif
 # copy inputs (minus pre-ss trs) to results dir
 
 set dset_list = ()
-foreach index ( `count -digits 1 1 $#din_list` )
+foreach index ( `ccount -digits 1 1 $#din_list` )
    set inset = $din_list[$index]
 
    set ichr  = r     # r or d, for run or dset
@@ -272,7 +272,7 @@ set zcoord = `3dinfo -dcz $dset_list[1]`
 # count the number of bad columnar regions per input
 set bad_counts = ()
 
-foreach index ( `count -digits 1 1 $#dset_list` )
+foreach index ( `ccount -digits 1 1 $#dset_list` )
 
    set ind02 = `ccalc -form '%02d' $index`
    set dset = $dset_list[$index]

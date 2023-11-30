@@ -115,7 +115,7 @@ SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} \
 #get a random collection
 set nout = `3dnvals -all ${pr}.TriNormSeg.1D`
 set nout = `ccalc -int $nout[1] - 1`
-set rows = `count -commas 0 $nout S50`
+set rows = `ccount -commas 0 $nout S50`
 1dcat $pr.TriNormSeg.1D"{$rows}" > $pr.mini.TriNormSeg.1D
 
 DriveSuma   -echo_edu   \

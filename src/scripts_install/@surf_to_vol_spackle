@@ -255,7 +255,7 @@ set fillset = temp_${outpref}_f00.nii.gz
 # try up to 4 (maxiters default) times to smooth and fill
 # smooth "fillset" each time, replacing zeros
 # in original dataset
-foreach ii (`count -digits 2 1 $maxiters`)
+foreach ii (`ccount -digits 2 1 $maxiters`)
    set smoothset =  temp_${outpref}_sm${ii}.nii.gz
    if ($stat == "mode") then
        # smooth with non-zero mode value in neighborhood

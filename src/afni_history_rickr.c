@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2023, RCR, "afni-general", MAJOR, TYPE_MODIFY,
+   "change 'count' program and usage to 'ccount'",
+   "Add ccount to the distribution, modify scripts to use it, and\n"
+   "allow use of ccount is sub-brick selection (e.g. dset'[ccount 3 5]').\n"
+   "Note that 'count' is still allowed, for now."
+ } ,
+
  { 27, Nov, 2023, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "add some comments about build_afni.py",
    NULL

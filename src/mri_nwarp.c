@@ -8271,7 +8271,7 @@ static INLINE float_quint HCwarp_eval_basis5( float x )
 /***************************************************************************
    ## brute force csh script to plot the above 5 functions:
    \rm e?.1D
-   foreach ii ( `count -dig 1 0 200` )
+   foreach ii ( `ccount -dig 1 0 200` )
      set xx = `ccalc "-1+0.01*$ii"`
      set aa = `ccalc "abs($xx)"`
      set bb = `ccalc "(1.0-$aa)^2"`
@@ -9447,9 +9447,9 @@ void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
        @ nbb = $nb5 - 1
 
        echo "float"
-       foreach rr ( `count -dig 1 0 $nbb` )
-         foreach qq ( `count -dig 1 0 $nbb` )
-           foreach pp ( `count -dig 1 0 $nbb` )
+       foreach rr ( `ccount -dig 1 0 $nbb` )
+         foreach qq ( `ccount -dig 1 0 $nbb` )
+           foreach pp ( `ccount -dig 1 0 $nbb` )
              echo " b${pp}zb${qq}yb${rr}x,"
            end
          end
@@ -9457,9 +9457,9 @@ void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 
        echo
 
-       foreach rr ( `count -dig 1 0 $nbb` )
-         foreach qq ( `count -dig 1 0 $nbb` )
-           foreach pp ( `count -dig 1 0 $nbb` )
+       foreach rr ( `ccount -dig 1 0 $nbb` )
+         foreach qq ( `ccount -dig 1 0 $nbb` )
+           foreach pp ( `ccount -dig 1 0 $nbb` )
              @ ss = $pp + $qq * $nb5 + $rr * $nb5 * $nb5
              echo "b${pp}zb${qq}yb${rr}x = bbbcar[$ss][qq] ;"
            end
@@ -9468,9 +9468,9 @@ void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 
        echo
 
-       foreach rr ( `count -dig 1 0 $nbb` )
-         foreach qq ( `count -dig 1 0 $nbb` )
-           foreach pp ( `count -dig 1 0 $nbb` )
+       foreach rr ( `ccount -dig 1 0 $nbb` )
+         foreach qq ( `ccount -dig 1 0 $nbb` )
+           foreach pp ( `ccount -dig 1 0 $nbb` )
              @ ss = $pp + $qq * $nb5 + $rr * $nb5 * $nb5
              echo " + b${pp}zb${qq}yb${rr}x*Hxpar[$ss]"
            end

@@ -539,7 +539,7 @@ foreach sd ($sides)
             endif
             if ($nvals != 0) then
                echo '' > $ref_ts.WAVER.log
-               set onv = (`count -digits 1 $cco`)
+               set onv = (`ccount -digits 1 $cco`)
                foreach on ($onv) 
                   set on2 = `printf %02d $on`
                   set off = `ccalc -i $T - $on`

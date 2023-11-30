@@ -315,7 +315,7 @@ void BUCK_read_opts( int argc , char * argv[] )
          if (strlen(argv[nopt])-ii > THD_MAX_NAME-1) {
             ERROR_exit( "Too long a sub-brick selection for '%s'\n"
                         "Maximum limit is %d, have %d\n"
-                  "Consider using '[1dcat FF.1D]' or '[count ...]' methods\n"
+                  "Consider using '[1dcat FF.1D]' or '[ccount ...]' methods\n"
                   "for sub-brick selection. See 3dTcat -help for details.\n",
                         argv[nopt], THD_MAX_NAME-1, strlen(argv[nopt])-ii);
          }

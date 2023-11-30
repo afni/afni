@@ -252,7 +252,7 @@ endif
 if ( $verb ) echo "-- have $necho echoes"
 if ( $verb == 2 ) echo "-- have view $view"
 
-set eind_list = ( `count -digits 1 1 $necho` )
+set eind_list = ( `ccount -digits 1 1 $necho` )
 
 # ----------------------------------------------------------------------
 # make a new work directory and get to it

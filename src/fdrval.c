@@ -52,7 +52,7 @@ int main( int argc , char *argv[] )
        "    FDR curve in the dataset header, you will get a threshold at or above\n"
        "    the largest value in that sub-brick.\n"
        "* Sample usage:\n"
-       "      fdrval Fred_REML+orig 0 `count -scale 0.1 10 20` | 1dplot -stdin\n"
+       "      fdrval Fred_REML+orig 0 `ccount -scale 0.1 10 20` | 1dplot -stdin\n"
        "    Uses the 'count' program to input a sequence of values, and then\n"
        "    pipes into the 1dplot program to make a graph of F vs. q.\n"
        "* See the link below for information on how AFNI computes FDR curves:\n"

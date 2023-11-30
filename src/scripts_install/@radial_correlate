@@ -217,7 +217,7 @@ endif
 if ( $do_corr == 'yes' ) then
    set rind = 1
    set dind = 1
-   foreach index ( `count -digits 1 1 $#dset_list` )
+   foreach index ( `ccount -digits 1 1 $#dset_list` )
       set inset = $dset_list[$index]
 
       # special known datasets will get 'd'
@@ -264,7 +264,7 @@ touch $name_file
 # main work: compute correlation datasets and surviving threshold fractions
 set rind = 1
 set dind = 1
-foreach index ( `count -digits 1 1 $#dset_list` )
+foreach index ( `ccount -digits 1 1 $#dset_list` )
 
    # resulting variables
 
@@ -479,7 +479,7 @@ if ( $do_clust == 'yes' ) then
 
    set thr = $cthresh
 
-   foreach index ( `count -digits 1 1 $#dset_list` )
+   foreach index ( `ccount -digits 1 1 $#dset_list` )
       set inset = $dset_list[$index]
       set res = $res_list[$index]
 

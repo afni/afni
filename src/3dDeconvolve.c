@@ -12931,7 +12931,7 @@ set LAM = 0.5
 # create the voxel time series = simulated data
 
 1deval -num $D -expr "${B}*sin(PI*t/${P})^2"  > signal.1D
-foreach ii ( `count -dig 4 1 $numvox` )
+foreach ii ( `ccount -dig 4 1 $numvox` )
   1dgenARMA11 -num $D -a $AA -lam $LAM               > noise.1D
   1deval      -a noise.1D -b signal.1D -expr 'a+b'   > data${ii}.1D
 end
@@ -12963,7 +12963,7 @@ end
 @ ns1 = $nstim - 1
 if( -f test.Rbeta.all.1D ) \rm test.Rbeta.all.1D
 if( -f test.Obeta.all.1D ) \rm test.Obeta.all.1D
-foreach ii ( `count -dig 1 0 $ns1` )
+foreach ii ( `ccount -dig 1 0 $ns1` )
   1dcat test.Rbeta.1D"[$ii]" >> test.Rbeta.all.1D
   1dcat test.Obeta.1D"[$ii]" >> test.Obeta.all.1D
 end

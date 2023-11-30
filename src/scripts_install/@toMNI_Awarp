@@ -43,7 +43,7 @@ endif
 
 set dlist = ( )
 set nerr  = 0
-foreach nnn ( `count -dig 1 2 $#argv` )
+foreach nnn ( `ccount -dig 1 2 $#argv` )
   set dlist = ( $dlist $argv[$nnn] )
   if ( ! -f $argv[$nnn] ) then
     echo "  *** @toMNI_Awarp: Dataset file $argv[$nnn] does not exist"
@@ -71,7 +71,7 @@ echo " "
 echo "===== @toMNI_Awarp: copying input datasets to $dname ====="
 echo " "
 
-foreach nnn ( `count -dig 1 1 $ndset` )
+foreach nnn ( `ccount -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $dlist[$nnn]`
   set isn = `3dinfo -is_nifti $dlist[$nnn]`
   if ( $isn ) then
@@ -92,7 +92,7 @@ echo "===== @toMNI_Awarp: beginning 3dUnifize loop ====="
 echo " "
 
 setenv OMP_NUM_THREADS 1
-foreach nnn ( `count -dig 1 1 $ndset` )
+foreach nnn ( `ccount -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $flist[$nnn]`
   set pre = $pan[2]
   set vvv = $pan[3]
@@ -112,7 +112,7 @@ echo " "
 echo "===== @toMNI_Awarp: beginning @auto_tlrc loop ====="
 echo " "
 
-foreach nnn ( `count -dig 1 1 $ndset` )
+foreach nnn ( `ccount -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $flist[$nnn]`
   set pre = $pan[2]
   set vvv = $pan[3]

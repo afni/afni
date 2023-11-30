@@ -189,7 +189,7 @@ PARSE:
          endif
          @ cnt ++
          set npb1 = $argv[$cnt]
-         foreach nn (`count -digits 1 $npb0 $npb1`)
+         foreach nn (`ccount -digits 1 $npb0 $npb1`)
             set npb_vals = ($npb_vals $nn)
          end
          set donext = 0; goto NEXT		

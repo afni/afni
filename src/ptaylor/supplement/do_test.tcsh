@@ -60,11 +60,11 @@ foreach ii ( `seq 2 1 101` )
     set iiidx  = `printf "%05d" $idx`
 
     # need a file of excised numbers
-    set maxind = `count -digits 1 10 200 R1`
+    set maxind = `ccount -digits 1 10 200 R1`
     @ maxnum   = $maxind - 1
 
     # make a random number of files to combine
-    set nrand  = `count -digits 1 2 5 R1`
+    set nrand  = `ccount -digits 1 2 5 R1`
     set my_str = ( )
     foreach k ( `seq 1 1 $nrand` ) 
         python test_help.py \
@@ -149,13 +149,13 @@ foreach ii ( `seq 2 1 101` )
     set iiidx  = `printf "%05d" $idx`
 
     # need a file of excised numbers
-    set maxind = `count -digits 1 10 200 R1`
+    set maxind = `ccount -digits 1 10 200 R1`
     @ maxnum   = $maxind - 1
 
     @ hind   = $maxind / 2
-    set nrand  = `count -digits 1 0 $hind R1`
+    set nrand  = `ccount -digits 1 0 $hind R1`
     if ( $nrand ) then
-        set alldig = `count -digits 1 0 $maxnum R$nrand`
+        set alldig = `ccount -digits 1 0 $maxnum R$nrand`
     else
         set alldig = ""
     endif

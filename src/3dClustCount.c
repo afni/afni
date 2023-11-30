@@ -136,7 +136,7 @@ void display_help_menu()
    "                  -labelA A -labelB B -seedrad 5 -nosix -sendall \\\n"
    "                  -batchRAND 250 ABscat\n"
    "    foreach fred ( ABscat*.HEAD )\n"
-   "      foreach nnn ( `count -dig 2 0 79` )\n"
+   "      foreach nnn ( `ccount -dig 2 0 79` )\n"
    "        2perm -prefix QQ 2 191\n"
    "        3dttest++ -setA ${fred}'[1dcat QQ_A]' \\\n"
    "                  -setB ${fred}'[1dcat QQ_B]' \\\n"

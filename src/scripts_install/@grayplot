@@ -304,7 +304,7 @@ endif
 
 set elist = ( *errts.*+${spac}.HEAD )
 
-foreach iii ( `count -dig 1 1 $num_order` )
+foreach iii ( `ccount -dig 1 1 $num_order` )
   set order = $order_list[$iii]
   set osuff = $osuff_list[$iii]
 
@@ -336,7 +336,7 @@ end
 
 @ port = 3 * $nrun
 
-foreach iii ( `count -dig 1 1 $num_order` )
+foreach iii ( `ccount -dig 1 1 $num_order` )
   set order = $order_list[$iii]
   set osuff = $osuff_list[$iii]
 

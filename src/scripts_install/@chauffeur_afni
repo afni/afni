@@ -2230,14 +2230,14 @@ EOF
     endif
 
     if ( $rrr == 1 ) then ### only need to start once, i.e., if in MODE_4D
-        set ranval = `count -dig 1 1 999999 R1`
+        set ranval = `ccount -dig 1 1 999999 R1`
 
         if ( $?xdisplay == 0 ) then
           set killX     = 1
           set ntry      = 1
           set Xnotfound = 1
           while( $Xnotfound )
-            set xdisplay = `count -dig 1 3 999 R1`
+            set xdisplay = `ccount -dig 1 3 999 R1`
             if ( -e /tmp/.X${xdisplay}-lock ) continue
             echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
             Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
