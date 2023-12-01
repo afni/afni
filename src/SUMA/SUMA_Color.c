@@ -7491,8 +7491,8 @@ int *boxThresholdOutline(SUMA_SurfaceObject *SO, byte *isColored_Fore){
         overlay->EdgeThick = 1;
         overlay->EdgeThickGain = 0.0f;
         for (i=0, j=1, k=2; k<SO->N_Node; ++i, ++j, ++k)
-            if ((overlay->T[i] < threshold && overlay->T[k] > threshold) || 
-                (overlay->T[k] < threshold && overlay->T[i] > threshold)) {
+            if ((overlay->T[i] < threshold && overlay->V[k] > threshold) || 
+                (overlay->T[k] < threshold && overlay->V[i] > threshold)) {
                     /* isColored_Fore[j] = */ output[j] = 1;
         }
    
@@ -7506,15 +7506,10 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     int i, j;
     enum OpacityModel opacityModel = QUADRATIC; // Could make a menu option
     
-//    fprintf(stderr, "N_Overlays = %d\n", N_Overlays);
-    
     // Allocate memory to alpha opacity arrays
     if (!(alphaOpacities = (float **)malloc(N_Overlays*sizeof(float *))))
         return NULL;        
     for (i=0; i<N_Overlays; ++i){
-//        fprintf(stderr, "Overlays[%d]->N_T = %d\n", i, Overlays[i]->N_T);
-//        fprintf(stderr, "Overlays[%d]->N_V = %d\n", i, Overlays[i]->N_T);
-//        fprintf(stderr, "Overlays[%d]->Label = %s\n", i, Overlays[i]->Label);
         if (!(alphaOpacities[i] = (float *)malloc(Overlays[i]->N_V*sizeof(float)))){
             fprintf(stderr, "Failure to allocate memory to alpha opacities\n");
             for (--i; i>=0; --i) free(alphaOpacities[i]);
@@ -7530,15 +7525,15 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
         // Maybe only overlays, with overlay->ShowMode == SW_SurfCont_DsetViewCol,
         //  should be processed.
         if (overlay->ShowMode == SW_SurfCont_DsetViewXXX) continue;
-        float MinVal = FLT_MAX;
-        for (j=0; j<overlay->N_V; ++j){
+        float MinVal = overlay->V[0];
+        for (j=1; j<overlay->N_V; ++j){
             MinVal = MIN(MinVal, overlay->V[j]);
             }
         threshold = overlay->OptScl->ThreshRange[0];
-        float denom = threshold - MinVal;
+        float denom = MAX(0,threshold - MinVal);
         alphaOpacityPtr = alphaOpacities[i];
         for (j=0; j<overlay->N_V; ++j){
-            alphaOpacityPtr[j] = MIN(1.0f, (overlay->V[j] - MinVal)/denom);
+            alphaOpacityPtr[j] = denom? MIN(1.0f, fabs(overlay->V[j] - MinVal)/denom) : 1.0f;
             if (opacityModel == FRACTIONAL) alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
             else if (opacityModel == QUADRATIC) alphaOpacityPtr[j] *= alphaOpacityPtr[j];
         }
@@ -7657,6 +7652,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    float **alphaOpacities = NULL;
    static GLfloat *glOldGlColar;
    int *outlinevector = NULL;
+   SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
 
    SUMA_ENTRY;
    
@@ -7907,7 +7903,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
-             /*
+             /**/
              if (isColored_Fore[i] && isColored_Back[i]) {
                          // colors from both sides, adjust brightness 
                 i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
@@ -7925,7 +7921,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = YUP;
                    continue;
              }
-             */
+             /**/
              if (SO->BoxOutline && outlinevector[i]){
                    i4 = 4 * i;
                    glcolar[i4] = 0; ++i4;
@@ -7948,23 +7944,19 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
                    avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
                                glcolar_Back[i4_2])/3;
+//                   avg_Back = (baseOverlay->ColVec[3*1] + baseOverlay->ColVec[3*1+1] +
+//                               baseOverlay->ColVec[3*1+2])/6;
                    
-                   // DEBUG
+//                   glcolar[i4] = (glOldGlColar[i4]*opacity); ++i4;
+//                   glcolar[i4] = (avg_Back * complement); ++i4;
+//                   glcolar[i4] = (avg_Back * complement); ++i4;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (avg_Back * complement); ++i4;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (avg_Back * complement); ++i4;
                    glcolar[i4] = (glOldGlColar[i4]*opacity) +
                     (avg_Back * complement); ++i4;
-                   /*
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (SUMA_GRAY_NODE_COLOR * complement); ++i4;
-                    */
-                   isColored[i] = NOPE;
+                   isColored[i] = YUP;
              }
              /* DEBUG 
              if (isColored_Back[i]) {
