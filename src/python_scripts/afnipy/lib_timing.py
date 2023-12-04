@@ -493,6 +493,8 @@ class AfniTiming(LD.AfniData):
       if force_married:
          self.write_dm = 1
          simple = 0
+         if self.verb > 2:
+            print("-- forcing write timing as married")
       self.write_as_timing(fname, nplaces=nplaces, mplaces=mplaces,
                                   check_simple=simple)
 
@@ -1228,7 +1230,7 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
    skeys.sort()
    for cname in skeys:
       mdata = cdict[cname]
-      timing = AfniTiming(mdata=cdict[cname])
+      timing = AfniTiming(mdata=cdict[cname], verb=verb)
       # init name and fname based on label, consider ability to change
       timing.name = cname
       timing.fname = 'times.%s.txt' % cname
