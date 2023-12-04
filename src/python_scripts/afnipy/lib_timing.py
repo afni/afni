@@ -303,7 +303,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(val) == str:
-         try: val = tofloat(val, verb=self.verb)
+         try: val = float(val)
          except:
             print("** invalid value to add to timing: '%s'" % val)
             return 1
@@ -327,7 +327,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(offset) == str:
-         try: offset = tofloat(offset, verb=self.verb)
+         try: offset = float(offset)
          except:
             print("** invalid offset to add to timing: '%s'" % offset)
             return 1
@@ -359,7 +359,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(val) == type('hi'):
-         try: val = tofloat(val, verb=self.verb)
+         try: val = float(val)
          except:
             print("** invalid value to scale into timing: '%s'" % val)
             return 1
@@ -1213,11 +1213,25 @@ def read_multi_ncol_tsv(flist, hlabels=None, def_dur_lab=None,
       skeys.sort()
       for cname in skeys:
          # there might be an amplitude
-         if nvals > 3:
-             cevents = [[e[0], e[3], e[1]] for e in elist if e[2] == cname]
-         else:
-             cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
+         # if nvals > 3:
+         cevents = [e for e in elist if e[2] == cname]
+         # check for consisency:
+         #   note whether AMs exist, and that use is constant
+         numam = 0
+         if len(cevents) > 0:
+            le = len(cevents[0])
+            numam = len(cevents[0][3])
+            for e in cevents:
+               if len(e) != le:
+                  print("** inconsistent modulators for condition %s" % cname)
+                  return 1, tlist
+               if numam != len(e[3]):
+                  print("** inconsistent num mods for condition %s" % cname)
+                  return 1, tlist
+
+         cevents = [[e[0], e[3], e[1]] for e in cevents]
          cdict[cname].append(cevents)
+
          if verb > 4:
             print('++ RM3CT: append cdict[%s] with %s' % (cname, cevents))
 
@@ -1367,8 +1381,8 @@ def parse_Ncol_tsv(fname, hlabels=None,
    header = []
    l0 = lines[0]
    try:
-      onset = tofloat(l0[col_inds[0]], verb=verb)
-      dur   = tofloat(l0[col_inds[1]], verb=verb)
+      onset = float(l0[col_inds[0]])
+      dur   = float(l0[col_inds[1]])
       lab   = l0[col_inds[2]].replace(' ', '_') # convert spaces to underscores
    except:
       l0 = lines.pop(0)
@@ -1399,11 +1413,9 @@ def parse_Ncol_tsv(fname, hlabels=None,
                  % (line_no, dind, line[dind], col_dur_alt, dur_txt))
 
       try:
-         onset = tofloat(line[oind], verb=verb)
-         dur = tofloat(dur_txt, verb=verb)
+         onset = float(line[oind])
+         dur = float(dur_txt)
          lab = line[lind].replace(' ', '_')   # convert spaces to underscores
-         if len(ainds) > 0:
-             amps = [tofloat(line[aind], verb=verb) for aind in ainds]
       except:
          if verb:
             print('** bad line Ncol tsv file %s:\n   %s' \
@@ -1411,17 +1423,36 @@ def parse_Ncol_tsv(fname, hlabels=None,
             print("   dur_txt = '%s'" % dur_txt)
          return -1, [], []
 
+      # in modulators, check for na
+      amps = []
+      if len(ainds) > 0:
+         # if any na exists, ignore mods
+         avals = [line[aind] for aind in ainds]
+         if not has_na(avals):
+             amps = [float(v) for v in avals]
+         elif verb > 3:
+             print("-- ignoring mods due to n/a")
+
       # append new event, possibly with a 'MISSED' label
       if missing_event:
          use_lab = 'MISSED_%s' % lab
       else:
          use_lab = lab
-      if len(ainds) > 0: slist.append([onset, dur, use_lab, amps])
-      else:              slist.append([onset, dur, use_lab])
+
+      slist.append([onset, dur, use_lab, amps])
 
    nuse = len(col_inds)
 
    return nuse, header, slist
+
+def has_na(vals):
+   """return 1 if there are any na-type vals in the list"""
+   if len(vals) < 1:
+      return 0
+   for val in ['na', 'NA', 'n/a', 'N/A']:
+      if val in vals:
+         return 1
+   return 0
 
 def tofloat(val,verb=1):
    """convert to float, but allow na, NA, n/a, N/A"""
