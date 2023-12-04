@@ -1663,9 +1663,10 @@ g_history = """
    3.18 Sep 20, 2022 - make -timing_to_1D overlap error more clear
    3.19 Jan  3, 2023 - fix -write_tsv_cols_of_interest with -tsv_labels
    3.20 Jan  4, 2023 - include -help_basis output in main -help
+   3.21 Dec  4, 2023 - allow n/a in more tsv fields
 """
 
-g_version = "timing_tool.py version 3.20, January 4, 2023"
+g_version = "timing_tool.py version 3.21, December 4, 2023"
 
 
 

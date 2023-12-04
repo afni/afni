@@ -303,7 +303,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(val) == str:
-         try: val = float(val)
+         try: val = tofloat(val, verb=self.verb)
          except:
             print("** invalid value to add to timing: '%s'" % val)
             return 1
@@ -327,7 +327,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(offset) == str:
-         try: offset = float(offset)
+         try: offset = tofloat(offset, verb=self.verb)
          except:
             print("** invalid offset to add to timing: '%s'" % offset)
             return 1
@@ -359,7 +359,7 @@ class AfniTiming(LD.AfniData):
       if not self.ready: return 1
 
       if type(val) == type('hi'):
-         try: val = float(val)
+         try: val = tofloat(val, verb=self.verb)
          except:
             print("** invalid value to scale into timing: '%s'" % val)
             return 1
@@ -1367,8 +1367,8 @@ def parse_Ncol_tsv(fname, hlabels=None,
    header = []
    l0 = lines[0]
    try:
-      onset = float(l0[col_inds[0]])
-      dur   = float(l0[col_inds[1]])
+      onset = tofloat(l0[col_inds[0]], verb=verb)
+      dur   = tofloat(l0[col_inds[1]], verb=verb)
       lab   = l0[col_inds[2]].replace(' ', '_') # convert spaces to underscores
    except:
       l0 = lines.pop(0)
@@ -1399,11 +1399,11 @@ def parse_Ncol_tsv(fname, hlabels=None,
                  % (line_no, dind, line[dind], col_dur_alt, dur_txt))
 
       try:
-         onset = float(line[oind])
-         dur = float(dur_txt)
+         onset = tofloat(line[oind], verb=verb)
+         dur = tofloat(dur_txt, verb=verb)
          lab = line[lind].replace(' ', '_')   # convert spaces to underscores
          if len(ainds) > 0:
-             amps = [float(line[aind]) for aind in ainds]
+             amps = [tofloat(line[aind], verb=verb) for aind in ainds]
       except:
          if verb:
             print('** bad line Ncol tsv file %s:\n   %s' \
@@ -1422,6 +1422,13 @@ def parse_Ncol_tsv(fname, hlabels=None,
    nuse = len(col_inds)
 
    return nuse, header, slist
+
+def tofloat(val,verb=1):
+   """convert to float, but allow na, NA, n/a, N/A"""
+   if val in ['na', 'NA', 'n/a', 'N/A']:
+      if verb > 3: print("-- converting %s to 0.0" % val)
+      return 0.0
+   return float(val)
 
 def write_tsv_cols(table, cols, ofile='stdout'):
 
@@ -1503,7 +1510,7 @@ def tsv_hlabels_to_col_list(hlabs, linelists,
    nfloat = ntext = 0
    for entry in line0:
       try:
-         fval = float(entry)
+         fval = tofloat(entry, verb=verb)
          nfloat += 1
       except:
          ntext += 1

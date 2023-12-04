@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Dec, 2023, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "allow more n/a fields in tsv files",
+   NULL
+ } ,
+
  { 27, Nov, 2023, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "add some comments about build_afni.py",
    NULL
