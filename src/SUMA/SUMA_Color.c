@@ -7653,6 +7653,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static GLfloat *glOldGlColar;
    int *outlinevector = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
+   SUMA_OVERLAYS *currentOverlay = SO->Overlays[SO->N_Overlays-1];
 
    SUMA_ENTRY;
    
@@ -7903,7 +7904,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
-             /**/
+             
+             // If this block is left out, the overlay becomes wrongly thick 
+             //   and bright.
              if (isColored_Fore[i] && isColored_Back[i]) {
                          // colors from both sides, adjust brightness 
                 i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
@@ -7921,7 +7924,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = YUP;
                    continue;
              }
-             /**/
+             
              if (SO->BoxOutline && outlinevector[i]){
                    i4 = 4 * i;
                    glcolar[i4] = 0; ++i4;
@@ -7941,6 +7944,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    float opacity = activeAlphaOpacities[i];
                    float complement = 1.0f - opacity;
                    i4 = 4 * i;
+                   int i3 = 3 * i;
                    i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
                    avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
                                glcolar_Back[i4_2])/3;
@@ -7950,12 +7954,19 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 //                   glcolar[i4] = (glOldGlColar[i4]*opacity); ++i4;
 //                   glcolar[i4] = (avg_Back * complement); ++i4;
 //                   glcolar[i4] = (avg_Back * complement); ++i4;
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (avg_Back * complement); ++i4;
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (avg_Back * complement); ++i4;
-                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
-                    (avg_Back * complement); ++i4;
+
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
+                    (avg_Back * complement); ++i4; ++i3;
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
+                    (avg_Back * complement); ++i4; ++i3;
+                   glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
+                    (avg_Back * complement); ++i4; ++i3;
+//                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+//                    (avg_Back * complement); ++i4;
+//                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+//                    (avg_Back * complement); ++i4;
+//                   glcolar[i4] = (glOldGlColar[i4]*opacity) +
+//                    (avg_Back * complement); ++i4;
                    isColored[i] = YUP;
              }
              /* DEBUG 
