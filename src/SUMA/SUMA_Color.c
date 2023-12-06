@@ -7995,6 +7995,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
              }
           }
           
+          free(activeAlphaOpacities);
           // FreeAlphaOpacities(alphaOpacities, N_Overlays);
      } else {
           for (i=0; i < N_Node; ++i) {
