@@ -7499,6 +7499,40 @@ int *boxThresholdOutline(SUMA_SurfaceObject *SO, byte *isColored_Fore){
    return output;
 }
 
+float *alphaOpacitiesForOverlay(SUMA_OVERLAYS *overlay){
+    static char FuncName[]={"alphaOpacitiesForOverlay"};
+    float *alphaOpacities = NULL, threshold;
+    int i;
+    enum OpacityModel opacityModel = QUADRATIC; // Could make a menu option
+    
+    // Check whether valid overlay
+    if (overlay->ShowMode == SW_SurfCont_DsetViewXXX)
+        SUMA_S_Err("Invalid overlay for alpha\n");
+    
+    // Allocate memory to alpha opacity arrays
+    if (!(alphaOpacities = (float *)malloc(overlay->N_V*sizeof(float))))
+        return NULL;        
+        
+    // Fill alpha opacities
+    // Maybe only overlays, with overlay->ShowMode == SW_SurfCont_DsetViewCol,
+    //  should be processed.
+    float MinVal = overlay->V[0];
+    for (i=1; i<overlay->N_V; ++i){
+        MinVal = MIN(MinVal, overlay->V[i]);
+        }
+    threshold = overlay->OptScl->ThreshRange[0];
+    // float denom = MAX(0,threshold - MinVal);
+    float denom = MAX(0,threshold);
+    for (i=0; i<overlay->N_V; ++i){
+        // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
+        alphaOpacities[i] = denom? MIN(1.0f, (fabs(overlay->V[i]))/denom) : 1.0f;
+        if (opacityModel == FRACTIONAL) alphaOpacities[i] *= sqrt(alphaOpacities[i]);
+        else if (opacityModel == QUADRATIC) alphaOpacities[i] *= alphaOpacities[i];
+    }
+    
+    return alphaOpacities;
+}
+
 float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
     static char FuncName[]={"makeAlphaOpacities"};
     float **alphaOpacities = NULL, *alphaOpacityPtr, threshold;
@@ -7530,10 +7564,12 @@ float **makeAlphaOpacities(SUMA_OVERLAYS **Overlays, int N_Overlays){
             MinVal = MIN(MinVal, overlay->V[j]);
             }
         threshold = overlay->OptScl->ThreshRange[0];
-        float denom = MAX(0,threshold - MinVal);
+        // float denom = MAX(0,threshold - MinVal);
+        float denom = MAX(0,threshold);
         alphaOpacityPtr = alphaOpacities[i];
         for (j=0; j<overlay->N_V; ++j){
-            alphaOpacityPtr[j] = denom? MIN(1.0f, fabs(overlay->V[j] - MinVal)/denom) : 1.0f;
+            // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
+            alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j]))/denom) : 1.0f;
             if (opacityModel == FRACTIONAL) alphaOpacityPtr[j] *= sqrt(alphaOpacityPtr[j]);
             else if (opacityModel == QUADRATIC) alphaOpacityPtr[j] *= alphaOpacityPtr[j];
         }
@@ -7653,7 +7689,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static GLfloat *glOldGlColar;
    int *outlinevector = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
-   SUMA_OVERLAYS *currentOverlay = SO->Overlays[SO->N_Overlays-1];
+   // SUMA_OVERLAYS *currentOverlay = SO->Overlays[SO->N_Overlays-1];
+   SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
 
    SUMA_ENTRY;
    
@@ -7882,11 +7919,14 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
       if (SO->AlphaThresh){
             // TODO: Need a function for this to check for invalid overlays
+            /*
             if (!(alphaOpacities = makeAlphaOpacities(Overlays, N_Overlays))){
                 SUMA_S_Err("Failed to make Alpha opacities.");
                 SUMA_RETURN (NOPE);
             }
-            float *activeAlphaOpacities = alphaOpacities[N_Overlays - 1];
+            */
+            // float *activeAlphaOpacities = alphaOpacities[N_Overlays - 1];
+            float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
 
             if (!glOldGlColar){
                 
@@ -7938,19 +7978,24 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    float complement = 1.0f - opacity;
                    i4 = 4 * i;
                    int i3 = 3 * i;
-                   i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
-                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
-                               glcolar_Back[i4_2])/3;
-
+//                   i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
+//                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
+//                               glcolar_Back[i4_2])/3;
+                   int i3_0 = 3 * i, i3_1 = i3_0 + 1, i3_2 = i3_0 + 2;
+                   avg_Back = (baseOverlay->ColVec[i3_0] + baseOverlay->ColVec[i3_1] +
+                               baseOverlay->ColVec[i3_2])/3;
+                   // fprintf(stderr, "opacity = %f, avg_Back = %f\n", opacity, avg_Back);
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
-                   isColored[i] = YUP;
+                   isColored[i] = NOPE;
              }
           }
+          
+          // FreeAlphaOpacities(alphaOpacities, N_Overlays);
      } else {
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
