@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Dec, 2023, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -overwrite_build",
+   "This option is now required to allow @uab to run and overwrite\n"
+   "a local binary package that was created using build_afni.py."
+ } ,
+
  {  4, Dec, 2023, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "allow more n/a fields in tsv files",
    NULL
