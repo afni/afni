@@ -88,6 +88,7 @@ history for $prog :
   3.21 22 Jul 2022 : add linux_fedora_28_shared to obsolete_list
   3.22  5 May 2023 : fix setting cur_afni
   3.23 27 Nov 2023 : add some comments about build_afni.py
+  3.24  7 Dec 2023 : add -overwrite_build (required for that operation)
 
 -------------------------------------------------------------------------------
 EOF
@@ -96,7 +97,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.23, November 27, 2023"
+set aub_version = "3.24, December 7, 2023"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -120,6 +121,7 @@ set abin = ""
 set flatdir = /opt/X11/lib/flat_namespace
 set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
+set overwrite_build = 0         # do we allow overwriting build_afni.py
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
 
@@ -254,6 +256,8 @@ while ( $ac <= $#argv )
         else
            set make_backup = 1
         endif
+    else if ( "$argv[$ac]" == "-overwrite_build" ) then
+        set overwrite_build = 1
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -626,9 +630,20 @@ endif
 
 # warn if the current package was made by build_afni.py
 if ( $build_label == build ) then
-   echo ""
-   echo "** warning, the current package was made by build_afni.py"
-   echo "   (maybe we don't want to run $prog)\n"
+   if ( $overwrite_build ) then
+      echo "-- will overwrite local build_afni.py package at user's request"
+   else
+      echo ""
+      echo "** error: the current package was made by build_afni.py"
+      echo ""
+      echo "          refusing to overwrite it without -overwrite_build"
+      echo ""
+      echo "    note: the typical update method in this case would be:"
+      echo ""
+      echo "          build_afni.py -build_root ~/abin"
+      echo ""
+      exit 1
+   endif
 endif
 
 # possibly apply default binary directory
