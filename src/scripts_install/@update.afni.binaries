@@ -640,7 +640,7 @@ if ( $build_label == build ) then
       echo ""
       echo "    note: the typical update method in this case would be:"
       echo ""
-      echo "          build_afni.py -build_root ~/abin"
+      echo "          build_afni.py -build_root ~/afni_build"
       echo ""
       exit 1
    endif
@@ -1148,12 +1148,12 @@ if ( $local_package == "" ) then
          if ( -d ~/afni_build ) then
             echo "note: current package was built by build_afni.py, consider:"
             echo ""
-            echo '      build_afni -build_root ~/afni_build'
+            echo '      build_afni.py -build_root ~/afni_build'
          else
             echo "note: current package was built by build_afni.py, but it is"
             echo "      not clear what -build_root should be, consider:"
             echo ""
-            echo '      build_afni -build_root SOME_DIRECTORY'
+            echo '      build_afni.py -build_root SOME_DIRECTORY'
          endif
       else
          echo "   (package is not official, so it is either old" \
