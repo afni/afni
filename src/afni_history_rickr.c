@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Dec, 2023, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
+   "copy README files into build_src; use prev directory, not prefix",
+   "Thanks to D Glen for noting the missing README files."
+ } ,
+
  {  7, Dec, 2023, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
    "add -overwrite_build",
    "This option is now required to allow @uab to run and overwrite\n"
