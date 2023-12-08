@@ -39,6 +39,7 @@ build_afni.py - compile an AFNI package ~1~
            unless -update_atlases is given
       - prepare src build
          - copy git/afni/src to build_src
+         - copy git/afni/doc/README/README.* to build_src
          - copy specified Makefile
          - run build
       - prepare cmake build (optional)
@@ -357,10 +358,13 @@ g_history = """
    0.9  Nov 20, 2023
         - add 'rsync_preserve' backup_method
         - 'rsync' method now cleans up the old abin contents
+   0.10 Dec  8, 2023
+        - copy git/afni/doc/README/README.* into build_src
+        - make prev a directory, not a name prefix
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.9, November 20, 2023" % g_prog
+g_version = "%s, version 0.10, December 8, 2023" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
@@ -513,9 +517,11 @@ class MyInterface:
       self.rsync_file      = 'hist_rsync.txt' # rsync history file
       self.makefile_path   = ''     # abspath to -makefile
 
-      self.pold            = 'prev.'        # prefix for old version
+      self.poldp           = 'prev'         # prefix for old version
+      self.pold            = self.poldp+'/' # include dot or directory slash
       self.dcbuild         = 'build_cmake'
       self.dsbuild         = 'build_src'
+      self.dsdoc           = 'doc'
 
       # system and possible mac stuff
       self.sysname         = platform.system()
@@ -1320,12 +1326,29 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
+      # if we already have a doc dir, the user requested not to clean
+      #
+      # This directory is not currently used, so let's not create it.
+      # Uncomment this section to retrieve.
+      #
+      # if os.path.isdir(self.dsdoc):
+      #    MESGm("will reuse existing doc directory, %s" % self.dsdoc)
+      # else:
+      #    st, ot = self.run_cmd('cp -rp', ['git/afni/doc', self.dsdoc])
+      #    if st: return st
+
       # if we already have a build dir, the user requested not to clean
       if os.path.isdir(self.dsbuild):
          MESGm("will reuse existing src directory, %s" % self.dsbuild)
       else:
          st, ot = self.run_cmd('cp -rp', ['git/afni/src', self.dsbuild])
          if st: return st
+         # and get the README files from the same git tree
+         readpre = 'git/afni/doc/README/README'
+         if os.path.isfile(readpre+'.environment'):
+            MESGm("copying README files")
+            st, ot = self.run_cmd('cp -p', [readpre+'.*', self.dsbuild])
+            if st: return st
 
       st, ot = self.run_cmd('cd', self.dsbuild, pc=1)
       if st: return st
@@ -1797,8 +1820,13 @@ class MyInterface:
       st, ot = self.run_cmd('cd', self.do_root.abspath, pc=1)
       if st: return st
 
+      # if prev stuff is a directory, create it
+      if self.pold.endswith('/') and not os.path.exists(self.poldp):
+         st, ot = self.run_cmd('mkdir', self.poldp, pc=1)
+         if st: return st
+
       # if build dirs exist, rename to prev.*
-      for sdir in [self.dsbuild, self.dcbuild]:
+      for sdir in [self.dsbuild, self.dcbuild, self.dsdoc]:
          prev = '%s%s' % (self.pold, sdir)
          if os.path.exists(sdir):
             if self.verb:
