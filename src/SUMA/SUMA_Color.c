@@ -7635,6 +7635,7 @@ void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
     float fMin, fMax, indexStep, maxDiff;
     
     fprintf(stderr, "Starting %s\n", FuncName);
+    fprintf(stderr, "colormap->frac = %p\n", colormap->frac);
     
     // Find data range
     fMin = fMax = overlay->T[0];
@@ -8019,6 +8020,16 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     glcolar[i4] = glcolar_Fore[i4]; ++i4;
                     isColored[i] = YUP;
                     continue;
+             } else if (currentOverlay->OptScl->MaskZero &&
+                currentOverlay->T[i]==0){ // Don't show zero
+                   int i4 = 4 * i;
+                   int i3_0 = 3 * i, i3_1 = i3_0 + 1, i3_2 = i3_0 + 2;
+                   avg_Back = (baseOverlay->ColVec[i3_0] + baseOverlay->ColVec[i3_1] +
+                               baseOverlay->ColVec[i3_2])/3;
+                   glcolar[i4] = avg_Back; ++i4;
+                   glcolar[i4] = avg_Back; ++i4;
+                   glcolar[i4] = avg_Back; ++i4;
+                   isColored[i] = NOPE;
              } else {
                    float opacity = activeAlphaOpacities[i];
                    float complement = 1.0f - opacity;
@@ -8030,6 +8041,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    avg_Back = (baseOverlay->ColVec[i3_0] + baseOverlay->ColVec[i3_1] +
                                baseOverlay->ColVec[i3_2])/3;
                                
+                   int i4 = 4 * i;
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
                     (avg_Back * complement); ++i4; ++i3;
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
