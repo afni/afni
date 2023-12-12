@@ -7961,14 +7961,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 
       if (SO->AlphaThresh){
             float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
-/*
-            if (!glOldGlColar){
-                
-                int numElements = SO->N_Node * 4;
-                glOldGlColar = (GLfloat *)malloc(numElements*sizeof(GLfloat));
-                for (int i=0; i<numElements; ++i) glOldGlColar[i] = glcolar[i];
-            }
-*/
+
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
              
@@ -7991,20 +7984,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = YUP;
                    continue;
              }
-             
-             // DEBUG: Determine max. green to red ratio
-             // NB: This shows that currentOverlay->ColVec doesn't cnage, with new colormap, until threshold lowered to zero.
-             /*
-             float maxRatio = 0.0f, ratio;
-             int debug_j;
-             for (debug_j = 0; debug_j < N_Node; ++debug_j){
-                int i3 = 3 * debug_j;
-                ratio = currentOverlay->ColVec[i3+1]/currentOverlay->ColVec[i3];
-                maxRatio = MAX(maxRatio, ratio);
-             }
-             fprintf(stderr, "Max green/red ratio = %f  \r", maxRatio);
-             */
-             
              
              i4 = 4 * i;
              if (SO->BoxOutline && outlinevector[i]){
@@ -8034,12 +8013,12 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    float opacity = activeAlphaOpacities[i];
                    float complement = 1.0f - opacity;
                    int i3 = 3 * i;
-//                   i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
-//                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
-//                               glcolar_Back[i4_2])/3;
-                   int i3_0 = 3 * i, i3_1 = i3_0 + 1, i3_2 = i3_0 + 2;
-                   avg_Back = (baseOverlay->ColVec[i3_0] + baseOverlay->ColVec[i3_1] +
-                               baseOverlay->ColVec[i3_2])/3;
+                   i4_0 = 4 * i; i4_1 = i4_0 + 1; i4_2 = i4_0 + 2;
+                   avg_Back = (glcolar_Back[i4_0] + glcolar_Back[i4_1] +
+                               glcolar_Back[i4_2])/3;
+//                   int i3_0 = 3 * i, i3_1 = i3_0 + 1, i3_2 = i3_0 + 2;
+//                   avg_Back = (baseOverlay->ColVec[i3_0] + baseOverlay->ColVec[i3_1] +
+//                               baseOverlay->ColVec[i3_2])/3;
                                
                    int i4 = 4 * i;
                    glcolar[i4] = (currentOverlay->ColVec[i3]*opacity) +
@@ -8053,7 +8032,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
           }
           
           free(activeAlphaOpacities);
-          // FreeAlphaOpacities(alphaOpacities, N_Overlays);
      } else {
           for (i=0; i < N_Node; ++i) {
              avgfact = Back_Modfact / 3.0;
