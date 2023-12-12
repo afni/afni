@@ -3076,6 +3076,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE);
    }
    if (!SUMAg_CF->scm) {
+        fprintf(stderr, "SUMAg_CF->scm = FALSE\n");
       SUMAg_CF->scm = SUMA_Build_Color_maps();
       if (!SUMAg_CF->scm) {
          SUMA_SL_Err("Can't build color maps");
@@ -7516,18 +7517,9 @@ float *alphaOpacitiesForOverlay(SUMA_OVERLAYS *overlay){
     // Fill alpha opacities
     // Maybe only overlays, with overlay->ShowMode == SW_SurfCont_DsetViewCol,
     //  should be processed.
-    /*
-    float MinVal = overlay->V[0];
-    for (i=1; i<overlay->N_V; ++i){
-        MinVal = MIN(MinVal, overlay->V[i]);
-        }
-        */
-    float MinVal = 0.0f;
     threshold = overlay->OptScl->ThreshRange[0];
-    // float denom = MAX(0,threshold - MinVal);
     float denom = MAX(0,threshold);
     for (i=0; i<overlay->N_V; ++i){
-        // alphaOpacityPtr[j] = denom? MIN(1.0f, (fabs(overlay->V[j] - MinVal))/denom) : 1.0f;
         alphaOpacities[i] = denom? MIN(1.0f, (fabs(overlay->T[i]))/denom) : 1.0f;
         if (opacityModel == FRACTIONAL) alphaOpacities[i] *= sqrt(alphaOpacities[i]);
         else if (opacityModel == QUADRATIC) alphaOpacities[i] *= alphaOpacities[i];
@@ -7634,6 +7626,38 @@ GLfloat *makeGlOldGlColar(SUMA_SurfaceObject *SO){
     return glOldGlColar;
 }
 
+void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
+    static char FuncName[]={"applyColorMapToOverlay"};
+    int i, j, index, maxIndex, i3;
+    SUMA_COLOR_MAP *colormap = SUMA_CmapOfPlane (overlay);
+    SUMA_COLOR_SCALED_VECT * SV = SUMA_Create_ColorScaledVect(SDSET_VECFILLED(overlay->dset_link),
+                                    overlay->OptScl->ColsContMode);
+    float fMin, fMax, indexStep, maxDiff;
+    
+    fprintf(stderr, "Starting %s\n", FuncName);
+    
+    // Find data range
+    fMin = fMax = overlay->T[0];
+    for (i=1; i<overlay->N_T; ++i){
+        fMin = MIN(fMin, overlay->T[i]);
+        fMax = MAX(fMax, overlay->T[i]);
+    }
+    maxDiff = fMax - fMin;
+    indexStep = maxDiff/colormap->N_M[0];
+    maxIndex = colormap->N_M[0] - 1;
+    
+    // Write color vector
+    for (i=0; i<overlay->N_T; ++i){
+        index = (overlay->T[i] == fMax)? maxIndex : (int)((overlay->T[i] - fMin)/indexStep);
+        i3 = 3 * i;
+        overlay->ColVec[i3++] = colormap->M[index][0];
+        overlay->ColVec[i3++] = colormap->M[index][1];
+        overlay->ColVec[i3] = colormap->M[index][2];
+    }
+    
+    fprintf(stderr, "Ending %s\n", FuncName);
+}
+
 /*!
 
    function to turn color overlay planes into GL color array
@@ -7694,13 +7718,23 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    // SUMA_OVERLAYS *currentOverlay = SO->Overlays[SO->N_Overlays-1];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
+   static char *cMapName = NULL;
+   SUMA_Boolean cmapChanged; 
 
-   SUMA_ENTRY;
-/*   
-   if (SO->SurfCont->SwitchCmapMenu)
-    // fprintf(stderr, "SO->SurfCont->SwitchCmapMenu->mw = %p\n", SO->SurfCont->SwitchCmapMenu->mw);
-    fprintf(stderr, "SO->SurfCont->SwitchCmapMenu->N_mw = %p\n", SO->SurfCont->SwitchCmapMenu->N_mw);
-*/   
+   SUMA_ENTRY;   
+    
+    // Check whether color map changed
+    if (!cMapName) cMapName = currentOverlay->cmapname;
+
+    if (currentOverlay && SO->AlphaThresh){
+        cmapChanged = strcmp(cMapName, currentOverlay->cmapname);
+        cMapName = currentOverlay->cmapname;
+        if ((cmapChanged)){ // CMAP changed with alpha threshold
+            applyColorMapToOverlay(SO, currentOverlay);
+            cMapName, currentOverlay->cmapname;
+        }
+   }
+   
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
       SUMA_RETURN(NOPE);
@@ -12136,8 +12170,6 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
 
    SUMA_ENTRY;
 
-   fprintf(stderr, "%s\n", FuncName);
-
    if (LocalHead)  {
       SUMA_LH("Color Plane Pre Colorizing");
       SUMA_DUMP_TRACE("Who called ColorizePlane?");
@@ -12198,6 +12230,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
          SUMA_S_Note("%s",s);
          SUMA_free(s);
       }
+
       if (cp->DimFact == 1.0) {
          for (i=0; i < SDSET_VECFILLED(cp->dset_link); ++i) {
             i3 = 3 * i;
