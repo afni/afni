@@ -7636,13 +7636,19 @@ void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
     
     fprintf(stderr, "Starting %s\n", FuncName);
     fprintf(stderr, "colormap->frac = %p\n", colormap->frac);
+    fprintf(stderr, "overlay->OptScl->IntRange[0] = %f\n", overlay->OptScl->IntRange[0]);
+    fprintf(stderr, "overlay->OptScl->IntRange[0] = %f\n", overlay->OptScl->IntRange[1]);
     
     // Find data range
+    /*
     fMin = fMax = overlay->T[0];
     for (i=1; i<overlay->N_T; ++i){
         fMin = MIN(fMin, overlay->T[i]);
         fMax = MAX(fMax, overlay->T[i]);
     }
+    */
+    fMin = overlay->OptScl->IntRange[0];
+    fMax = overlay->OptScl->IntRange[1];
     maxDiff = fMax - fMin;
     indexStep = maxDiff/colormap->N_M[0];
     maxIndex = colormap->N_M[0] - 1;
