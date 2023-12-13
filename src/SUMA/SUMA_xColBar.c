@@ -2056,14 +2056,17 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
    static int AlphaThresh = 0;
 
    SUMA_ENTRY;
-
+   
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
    SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
    
    AlphaThresh = !AlphaThresh;
-   SO->AlphaThresh = AlphaThresh;
+   
+   // SO->SurfCont->AlphaThresh is common across period key
+   //   viewing states.  SO->AlphaThresh is not.
+   SO->AlphaThresh = SO->SurfCont->AlphaThresh = AlphaThresh;
    
    // Refresh display
    SUMA_Remixedisplay(ado);
