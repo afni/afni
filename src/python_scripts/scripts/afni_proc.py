@@ -757,6 +757,7 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
+    7.62 ...: -show_example_keywords
 """
 
 g_version = "version 7.60, August 21, 2023"
@@ -823,6 +824,7 @@ interesting milestones for afni_proc.py:
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
+   2022.11 : find_variance_lines.tcsh
    2022.11 : find_variance_lines.tcsh
 """
 
@@ -1275,6 +1277,8 @@ class SubjProcSream:
                         helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_example', 1, [],
                         helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_keywords', 0, [],
+                        helpstr="show keywords from all examples")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_pretty_command', 0, [],
@@ -1969,6 +1973,10 @@ class SubjProcSream:
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
+           return 0
+
+        if opt_list.find_opt('-show_example_keywords'):
+           self.show_example_keywords(verb=self.verb)
            return 0
         
         if opt_list.find_opt('-show_example_names'):
@@ -4040,6 +4048,10 @@ class SubjProcSream:
            return
         eg.display(verb=verb, sphinx=0)
         
+    def show_example_keywords(self, verb=2):
+        EGS = self.egs()
+        EGS.show_example_keywords(['ALL'])
+
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)

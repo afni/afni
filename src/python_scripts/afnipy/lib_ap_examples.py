@@ -331,6 +331,15 @@ class APExample:
       del(cc)
 
  
+def get_all_examples():
+   """return all known examples"""
+
+   examples = egs_ap_run()
+   examples.extend(egs_2023())
+
+   return examples
+
+ 
 def populate_examples(keys_keep=[], keys_rm=[], verb=1):
    """only populate the examples array if someone wants it
 
@@ -387,11 +396,22 @@ def show_example_keywords(elist, mesg=''):
    if mesg: mstr = '(%s) ' % mesg
    else:    mstr = ''
 
-   print("-- %d examples %s:" % (len(elist), mstr))
    if len(elist) == 0:
+      print("-- %d examples %s:" % (len(elist), mstr))
       print()
       return
 
+   # special cases, get all keywords, and show a unique list
+   if elist[0] == 'ALL':
+      elist = get_all_examples()
+      klist = []
+      for ex in elist:
+         klist.extend(ex.keywords)
+      klist = UTIL.get_unique_sublist(klist)
+      print('   ' + '\n   '.join(klist))
+      return
+
+   print("-- %d examples %s:" % (len(elist), mstr))
    # align ':' using max name length
    nlen = max([len(ex.name) for ex in elist])
    for ex in elist:
@@ -405,7 +425,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
 
        # sample example generation
        sample = APExample( 'my help example name',
-         source='please to find this example in use',
+         source='place to find this example in use',
          descrip='short description w/name in help output',
          header='''
                   (recommended?  no, not intended for a complete analysis)
