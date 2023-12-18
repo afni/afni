@@ -7474,7 +7474,6 @@ void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
     maxIndex = colormap->N_M[0] - 1;
     
     // Write color vector
-    fprintf(stderr, "Write color vector\n");
     for (i=0; i<overlay->N_T; ++i){
         index = (overlay->T[i] >= fMax)? maxIndex : (int)((overlay->T[i] - fMin)/indexStep);
         i3 = 3 * i;
@@ -7542,7 +7541,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int *outlinevector = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   static char *cMapName = NULL;
+   static char cMapName[2048];
    SUMA_Boolean cmapChanged; 
    static double IntRange[2]={DBL_MAX, -DBL_MAX};
 
@@ -7554,7 +7553,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SO->AlphaThresh = SO->SurfCont->AlphaThresh;
    
    // Ititialize display changing variables
-   if (!cMapName) cMapName = currentOverlay->cmapname;
+   if (!cMapName) sprintf(cMapName, "%s", currentOverlay->cmapname);
+
    if (currentOverlay && IntRange[0] > IntRange[1]){
     IntRange[0] = currentOverlay->OptScl->IntRange[0];
     IntRange[1] = currentOverlay->OptScl->IntRange[1];
@@ -7565,12 +7565,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
         cmapChanged = (strcmp(cMapName, currentOverlay->cmapname) ||
             IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
             IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-        cMapName = currentOverlay->cmapname;
         if ((cmapChanged)){ // CMAP changed with alpha threshold
             applyColorMapToOverlay(SO, currentOverlay);
-            cMapName = currentOverlay->cmapname;
             IntRange[0] = currentOverlay->OptScl->IntRange[0];
             IntRange[1] = currentOverlay->OptScl->IntRange[1];
+            sprintf(cMapName, "%s", currentOverlay->cmapname);
         }
    }
    
