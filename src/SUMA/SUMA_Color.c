@@ -7837,8 +7837,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    glcolar[i4] = 1.0f;
                    isColored[i] = YUP;
                    continue;
-             // } else if (isColored_Fore[i]) {
-             } else if (opacity >= 0.99f) {
+             } else if (isColored_Fore[i]) {
                 glcolar[i4] = glcolar_Fore[i4]; ++i4;
                 glcolar[i4] = glcolar_Fore[i4]; ++i4;
                 glcolar[i4] = glcolar_Fore[i4]; ++i4;
@@ -8110,8 +8109,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (cmapChanged){
     float threshold = currentOverlay->OptScl->ThreshRange[0];
     SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &threshold);
-    //               SUMA_Remixedisplay((SUMA_ALL_DO *)SO);
-    //               SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
    }
 
    SUMA_RETURN (YUP);
