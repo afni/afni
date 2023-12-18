@@ -331,8 +331,11 @@ class APExample:
       del(cc)
 
  
-def populate_examples():
+def populate_examples(keys_keep=[], keys_rm=[], verb=1):
    """only populate the examples array if someone wants it
+
+        keys_keep : if not empty, keep only entries with any of these keywords
+        keys_rm   : if not empty, remove entries with any of these keywords
 
       populate the global ap_examples array from some of the egs_* functions
    """
@@ -348,6 +351,35 @@ def populate_examples():
    # ponder adding new examples
    # examples.extend(egs_ap_run())
    examples.extend(egs_2023())
+
+   # keys_keep = ['task', 'surface']
+   # keys_rm   = ['obsolete', 'surface']
+
+   if verb > 2:
+      show_example_keywords(examples, mesg='initial examples')
+
+   # --------------------------------------------------
+   # keep only those entries with at least one of the given keys
+   if len(keys_keep) > 0:
+      newex = []
+      for key in keys_keep:
+         for ex in examples:
+            if key in ex.keywords:
+               if ex not in newex:
+                  newex.append(ex)
+
+      examples = newex
+
+      if verb > 2:
+         show_example_keywords(examples, mesg='post-keep examples')
+
+   # --------------------------------------------------
+   # remove any entry with any given key
+   for key in keys_rm:
+      # counting from the end, pop unwanted indices
+      for eind in range(len(examples)-1, -1, -1):
+         if key in examples[eind].keywords:
+            examples.pop(eind)
 
    ap_examples = examples
 
@@ -366,7 +398,7 @@ def show_example_keywords(elist, mesg=''):
       print("    %-*s : %s" % (nlen, ex.name, ', '.join(ex.keywords)))
    print()
 
-def egs_ap_run():
+def egs_ap_run(keys_keep=[], keys_rm=[]):
    """only populate the examples array if someone wants it
 
       return an array of APExample objects
