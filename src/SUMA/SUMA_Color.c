@@ -7465,6 +7465,8 @@ void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
                                     overlay->OptScl->ColsContMode);
     float fMin, fMax, indexStep, maxDiff;
     
+    fprintf(stderr, "Begin %s\n", FuncName);
+    
     // Find data range from I:Min/Max edit boxes
     fMin = overlay->OptScl->IntRange[0];
     fMax = overlay->OptScl->IntRange[1];
@@ -7476,11 +7478,15 @@ void applyColorMapToOverlay(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *overlay){
     // Write color vector
     for (i=0; i<overlay->N_T; ++i){
         index = (overlay->T[i] >= fMax)? maxIndex : (int)((overlay->T[i] - fMin)/indexStep);
+        fprintf(stderr, "index = %d\n", index);
+        index = MIN(maxIndex, MAX(index, 0));
         i3 = 3 * i;
         overlay->ColVec[i3++] = colormap->M[index][0];
         overlay->ColVec[i3++] = colormap->M[index][1];
         overlay->ColVec[i3] = colormap->M[index][2];
     }
+    
+    fprintf(stderr, "End %s\n", FuncName);
 }
 
 /*!
