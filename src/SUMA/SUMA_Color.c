@@ -7542,7 +7542,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    int *outlinevector = NULL;
    SUMA_OVERLAYS *baseOverlay = SO->Overlays[0];
    SUMA_OVERLAYS *currentOverlay = SO->SurfCont->curColPlane;
-   static char cMapName[2048];
+   static char *cMapName;
    SUMA_Boolean cmapChanged; 
    static double IntRange[2]={DBL_MAX, -DBL_MAX};
 
@@ -7554,7 +7554,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SO->AlphaThresh = SO->SurfCont->AlphaThresh;
    
    // Ititialize display changing variables
-   if (!cMapName) sprintf(cMapName, "%s", currentOverlay->cmapname);
+   if (!cMapName && currentOverlay){
+      int allocationLength = strlen(currentOverlay->cmapname)+128;
+      if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
+        SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
+      }
+      sprintf(cMapName, "%s", currentOverlay->cmapname);
+   } 
 
    if (currentOverlay && IntRange[0] > IntRange[1]){
     IntRange[0] = currentOverlay->OptScl->IntRange[0];
@@ -7570,6 +7576,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             applyColorMapToOverlay(SO, currentOverlay);
             IntRange[0] = currentOverlay->OptScl->IntRange[0];
             IntRange[1] = currentOverlay->OptScl->IntRange[1];
+            if (strlen(currentOverlay->cmapname)>strlen(cMapName)){
+                int allocationLength = strlen(currentOverlay->cmapname)+128;
+                free(cMapName);
+                if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
+                    SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
+                }
+            }
             sprintf(cMapName, "%s", currentOverlay->cmapname);
         }
    }
