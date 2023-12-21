@@ -585,8 +585,8 @@ them.
 
             # set output filename, depending on multiplotting or not
             if self.is_multifig :
-                obase = ''.join(self.figname.split('.')[:-1])    # basename
-                oext  = self.figname.split('.')[-1]              # ext
+                obase = '.'.join(self.figname.split('.')[:-1])    # basename
+                oext  = self.figname.split('.')[-1]               # ext
                 oimg  = obase + '_{:03d}'.format(hh+1) + '.' + oext
             else:
                 oimg  = self.figname
