@@ -372,11 +372,19 @@ There will always be at least one vertex left (which is, in fact, a
 
     def on_button_press(self, event):
         """Callback for mouse button presses."""
-        if not self.vert_on:
+
+        if not self.vert_on :
             return
-        if event.inaxes is None:
+        if event.inaxes is None :
             return
-        if event.button != 1:
+        # each subplot/axis now only pays attention to clicks within itself
+        # (important for efficiency, and for not editing neighboring subplots)
+        if event.inaxes != self.ax.axes :
+            return
+        #else:
+        #    print("HEY, inaxes: |{}|".format(event.inaxes))
+        #    print("     rect:   |{}|".format(self.ax.axes))        
+        if event.button != 1 :
             return
         # In Zoom/Pan mode, user clicks to draw selection rectangle;
         # thus, we want to *not* drag points, too, so just return.
@@ -399,7 +407,12 @@ There will always be at least one vertex left (which is, in fact, a
         """Callback for key presses."""
         all_lab = []  # list of labs to update, and for redrawing canvas
 
-        if not event.inaxes:
+        if not event.inaxes :
+            return
+
+        # each subplot/axis now only pays attention to clicks within itself
+        # (important for efficiency, and for not editing neighboring subplots)
+        if event.inaxes != self.ax.axes :
             return
 
         if event.key == '4':
