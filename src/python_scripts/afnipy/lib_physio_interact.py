@@ -378,6 +378,13 @@ There will always be at least one vertex left (which is, in fact, a
             return
         if event.button != 1:
             return
+        # In Zoom/Pan mode, user clicks to draw selection rectangle;
+        # thus, we want to *not* drag points, too, so just return.
+        # Thanks for pointing this out, Josh D!
+        if self.ax.get_navigate_mode() != None :
+            return
+
+        # ... otherwise, update info on label+index that has been selected
         self.act_lab, self.act_ind = self.get_ind_under_point(event)
 
     def on_button_release(self, event):
