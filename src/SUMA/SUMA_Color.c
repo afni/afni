@@ -7559,47 +7559,55 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (SO->SurfCont->AlphaThresh != 1) SO->SurfCont->AlphaThresh = 0;
    SO->AlphaThresh = SO->SurfCont->AlphaThresh;
    
-   // Ititialize display changing variables
-   if (!cMapName && currentOverlay){
-      int allocationLength = strlen(currentOverlay->cmapname)+128;
-      if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
-        SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
-      }
-      sprintf(cMapName, "%s", currentOverlay->cmapname);
-   } 
+   if (currentOverlay){ // Tests that require active overlay
    
-   // Initialize color map
-   if (!ColVec && currentOverlay){
-    if (!(ColVec=malloc(bytes2CopyToColVec))){
-        SUMA_SL_Err("Failed to allocate memory to colormap!");
-    }
-    memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
-   }
-
-   if (currentOverlay && IntRange[0] > IntRange[1]){
-    IntRange[0] = currentOverlay->OptScl->IntRange[0];
-    IntRange[1] = currentOverlay->OptScl->IntRange[1];
-   }
-
-    // Check whether display changed
-   if (currentOverlay && SO->AlphaThresh){
-        cmapChanged = (strcmp(cMapName, currentOverlay->cmapname) ||
-            IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
-            IntRange[1] != currentOverlay->OptScl->IntRange[1]);
-        if ((cmapChanged)){ // CMAP changed with alpha threshold
-            applyColorMapToOverlay(SO, currentOverlay);
-            IntRange[0] = currentOverlay->OptScl->IntRange[0];
-            IntRange[1] = currentOverlay->OptScl->IntRange[1];
-            if (strlen(currentOverlay->cmapname)>strlen(cMapName)){
-                int allocationLength = strlen(currentOverlay->cmapname)+128;
-                free(cMapName);
-                if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
-                    SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
-                }
+       // Ititialize display changing variables
+       if (!cMapName){
+          int allocationLength = strlen(currentOverlay->cmapname)+128;
+          if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
+            SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
+          }
+          sprintf(cMapName, "%s", currentOverlay->cmapname);
+       } 
+   
+        // Initialize color map
+        if (!ColVec){
+            if (!(ColVec=malloc(bytes2CopyToColVec))){
+                SUMA_SL_Err("Failed to allocate memory to colormap!");
             }
-            sprintf(cMapName, "%s", currentOverlay->cmapname);
             memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
         }
+
+        // I:Min/Max changed
+       if (IntRange[0] > IntRange[1]){
+        IntRange[0] = currentOverlay->OptScl->IntRange[0];
+        IntRange[1] = currentOverlay->OptScl->IntRange[1];
+       }
+
+        // Check whether display changed
+       if (SO->AlphaThresh){
+            cmapChanged = (strcmp(cMapName, currentOverlay->cmapname) ||
+                IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
+                IntRange[1] != currentOverlay->OptScl->IntRange[1]);
+            if ((cmapChanged)){ // CMAP changed with alpha threshold
+                applyColorMapToOverlay(SO, currentOverlay);
+                IntRange[0] = currentOverlay->OptScl->IntRange[0];
+                IntRange[1] = currentOverlay->OptScl->IntRange[1];
+                if (strlen(currentOverlay->cmapname)>strlen(cMapName)){
+                    int allocationLength = strlen(currentOverlay->cmapname)+128;
+                    free(cMapName);
+                    if (!(cMapName=(char *)malloc(allocationLength*sizeof(char)))){
+                        SUMA_SL_Err("Failed to allocate memory to colormap name buffer!");
+                    }
+                }
+                sprintf(cMapName, "%s", currentOverlay->cmapname);
+                memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
+            }
+       }
+
+//        fprintf(stderr, "currentOverlay->OptScl->find = %d\n", currentOverlay->OptScl->find);
+//        fprintf(stderr, "currentOverlay->OptScl->tind = %d\n", currentOverlay->OptScl->tind);
+//        fprintf(stderr, "currentOverlay->OptScl->bind = %d\n", currentOverlay->OptScl->bind);
    }
    
    if (!SO || !SV || !glcolar) {
