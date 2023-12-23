@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "get a new idcode whenever a new dataset name is assigned",
+   "This deals with programs like 3dTsplit4D creating multiple datasets,\n"
+   "as well as programs like afni reading many similarly named files\n"
+   "Thanks for J Blujus for reminding of the issue."
+ } ,
+
  { 21, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "allow nim->nvox to exceed int32_t range with NIFTI-1 output",
    "Thanks to P Rais-Roldan for noting the discrepancy."
