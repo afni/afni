@@ -53,6 +53,39 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "get a new idcode whenever a new dataset name is assigned",
+   "This deals with programs like 3dTsplit4D creating multiple datasets,\n"
+   "as well as programs like afni reading many similarly named files\n"
+   "Thanks for J Blujus for reminding of the issue."
+ } ,
+
+ { 21, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "allow nim->nvox to exceed int32_t range with NIFTI-1 output",
+   "Thanks to P Rais-Roldan for noting the discrepancy."
+ } ,
+
+ { 21, Dec, 2023, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
+   "add AFNI_NIFTI_WRITE_TYPE to override choice of NIFTI-1 or -2 output",
+   NULL
+ } ,
+
+ {  8, Dec, 2023, RCR, "build_afni.py", MINOR, TYPE_BUG_FIX,
+   "copy README files into build_src; use prev directory, not prefix",
+   "Thanks to D Glen for noting the missing README files."
+ } ,
+
+ {  7, Dec, 2023, RCR, "@update.afni_binaries", MINOR, TYPE_NEW_OPT,
+   "add -overwrite_build",
+   "This option is now required to allow @uab to run and overwrite\n"
+   "a local binary package that was created using build_afni.py."
+ } ,
+
+ {  4, Dec, 2023, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "allow more n/a fields in tsv files",
+   NULL
+ } ,
+
  { 27, Nov, 2023, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
    "add some comments about build_afni.py",
    NULL
