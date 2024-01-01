@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.6, Nov 21, 2023
+Version 1.0.7, Dec 30, 2023
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -845,7 +845,7 @@ runLME <- function(myData, DM, tag) {
          }
 	 if(lop$num_glf > 0) for(ii in 1:lop$num_glf) {
             ff <- NULL
-            if(is.na(lop$glfList[[ii]])) ff <- tryCatch(testFactors(fm, pairwise=NULL,
+            if(any(is.na(lop$glfList[[ii]]))) ff <- tryCatch(testFactors(fm, pairwise=NULL,
 	       slope=lop$slpListF[[ii]], covariates=lop$covValListF[[ii]],
 	       adjustment="none")$terms$`(Intercept)`$test, error=function(e) NULL) else
 	    ff <- tryCatch(testFactors(fm, levels=lop$glfList[[ii]],
@@ -1133,7 +1133,7 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glf > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glf)) {
-         if(is.na(lop$glfList[[n]])) glfRes[[n]] <- tryCatch(testFactors(fm, pairwise=NULL,
+         if(any(is.na(lop$glfList[[n]]))) glfRes[[n]] <- tryCatch(testFactors(fm, pairwise=NULL,
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          glfRes[[n]] <- tryCatch(testFactors(fm, levels=lop$glfList[[n]],
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
