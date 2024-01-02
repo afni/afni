@@ -334,8 +334,8 @@ class APExample:
 def get_all_examples():
    """return all known examples"""
 
-   examples = egs_ap_run()
-   examples.extend(egs_2023())
+   examples = egs_2023()
+   examples.extend(egs_ap_run())
 
    return examples
 
@@ -402,12 +402,13 @@ def show_example_keywords(elist, mesg=''):
       return
 
    # special cases, get all keywords, and show a unique list
-   if elist[0] == 'ALL':
+   if 'ALL' in elist:
       elist = get_all_examples()
       klist = []
       for ex in elist:
          klist.extend(ex.keywords)
       klist = UTIL.get_unique_sublist(klist)
+      klist.sort()
       print('   ' + '\n   '.join(klist))
       return
 
@@ -2080,18 +2081,17 @@ def find_eg(name):
    nlist = [eg.name.lower() for eg in ap_examples]
    lname = name.lower()
 
-   # if lanme is in nlist, return the respective example
+   # if lname is exactly (no case) in nlist, return the respective example
    if lname in nlist:
       return ap_examples[nlist.index(lname)]
 
    # otherwise, try harder
 
-   # If number (possibly with trailing a,b,c,...) search for it as a trailer.
-   # Prepend ' ' to not confuse 1a with 11a, for example.
+   # If number (possibly with trailing a,b,c,...) search after 'example'.
    if lname[0].isdigit():
-      ind = unique_substr_name_index(' '+lname, nlist, endswith=1)
-      if ind >= 0:
-         return ap_examples[ind]
+      tname = 'example ' + lname
+      if tname in nlist:
+         return ap_examples[nlist.index(tname)]
 
    # otherwise, just see if there is a unique substring match
    ind = unique_substr_name_index(lname, nlist)
