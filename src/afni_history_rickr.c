@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jan, 2024, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
+   "apply apsearch updates only if shell file applies to current or login",
+   NULL
+ } ,
+
+ {  2, Jan, 2024, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "warn on matplotlib version 3.1.2 for not being able to write JPEG",
+   NULL
+ } ,
+
  { 22, Dec, 2023, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "get a new idcode whenever a new dataset name is assigned",
    "This deals with programs like 3dTsplit4D creating multiple datasets,\n"
