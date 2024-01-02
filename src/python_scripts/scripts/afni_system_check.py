@@ -344,9 +344,10 @@ g_history = """
    1.28 Nov 24, 2023
         - check for flask and flask_cors
         - add -disp_ver_pylibs, to show library version for a specified list
+   1.29 Jan  2, 2024 - warn on matplotlib 3.1.2
 """
 
-g_version = "afni_system_check.py version 1.28, November 24, 2023"
+g_version = "afni_system_check.py version 1.29, January 2, 2024"
 
 
 class CmdInterface:

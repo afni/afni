@@ -1024,6 +1024,11 @@ class SysInfo:
          wstr = 'need maptplotlib version 2.2+ for APQC'
          print("** %s\n" % wstr)
          self.comments.append(wstr)
+      # warn about 3.1.2 explicitly
+      elif mver == '3.1.2':
+         wstr = 'matplotlib version %s cannot write jpeg images' % mver
+         print("** %s\n" % wstr)
+         self.comments.append(wstr)
 
    def get_ver_matplotlib(self):
       """simply return a matplotlib version string, and "None" on failure.
