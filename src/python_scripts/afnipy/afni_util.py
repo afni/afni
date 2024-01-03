@@ -4602,43 +4602,31 @@ def stdev_ub(data):
               stdev_ub = sqrt( (sumsq - N*mean^2)/(N-1) )
     """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/(length-1.0)
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance_ub(data))
 
 def stdev(data):
-    """(biased) standard deviation (divide by len, not len-1)"""
+    """(biased) standard deviation (divide by len, not len-1)
+       standard deviation = sqrt(variance)
+    """
 
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = loc_sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/length
-
-    # watch for truncation artifact
-    if val < 0.0 : return 0.0
-    return math.sqrt(val)
+    return math.sqrt(variance(data))
 
 def variance_ub(data):
-    """unbiased variance (divide by len-1, not just len)"""
+    """unbiased variance (divide by len-1, not just len)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+
+     * unbiased variance
+                = sum(x-mean)^2 / (N-1)
+                = (sumsq - N*mean^2)/(N-1)
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/(length-1.0)
@@ -4648,13 +4636,18 @@ def variance_ub(data):
     return val
 
 def variance(data):
-    """(biased) variance (divide by len, not len-1)"""
+    """(biased) variance (divide by len, not len-1)
+
+       variance = mean squared difference from the mean
+                = sum(x-mean)^2 / N
+                = (sumsq - N*mean^2)/N
+    """
 
     length = len(data)
     if length <  2: return 0.0
 
     meanval = loc_sum(data)/float(length)
-    # compute standard deviation
+    # compute variance
     ssq = 0.0
     for val in data: ssq += val*val
     val = (ssq - length*meanval*meanval)/length
