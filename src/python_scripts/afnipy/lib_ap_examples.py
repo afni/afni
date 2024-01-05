@@ -33,11 +33,12 @@ ap_examples_new = []
 # ----------------------------------------------------------------------
 # class definition for instances in ap_examples array
 class APExample:
-   def __init__(self, name, olist, source='', descrip='',
+   def __init__(self, name, olist, source='', descrip='', moddate='UNKNOWN',
                 header='', trailer='', keywords=[]):
       self.name     = name          # used to reference example
       self.source   = source        # from AP help, AD6, etc.
       self.descrip  = descrip       # very short description
+      self.moddate  = moddate       # most recent modification date
       self.header   = header        # shown before example (in -help)
       self.trailer  = trailer       # shown after example (in -help)
       self.keywords = keywords      # list: 
@@ -428,6 +429,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
        sample = APExample( 'my help example name',
          source='place to find this example in use',
          descrip='short description w/name in help output',
+         moddate='1946.02.30',
          header='''
                   (recommended?  no, not intended for a complete analysis)
                   (              merely shows how simple a command can be)
@@ -449,6 +451,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
    examples.append( APExample( 'run_ap FT',
      source='ap_run_simple_rest.tcsh on class subject FT',
      descrip='Basic example to generate APQC for quick review.',
+     moddate='2023.12.18',
      keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -508,6 +511,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
    examples.append( APExample('simple align orig EPI',
      source='basic example',
      descrip='Perform orig space alignment to EPI base.',
+     moddate='2023.12.18',
      keywords=['registration'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -540,6 +544,7 @@ def egs_2023():
    examples.append( APExample( 'Example 1',
      source='afni_proc.py -help',
      descrip='Minimum use.',
+     moddate='2008.12.10',
      keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -560,6 +565,7 @@ def egs_2023():
    examples.append( APExample('Example 2',
      source='afni_proc.py -help',
      descrip='Very simple.',
+     moddate='2009.05.28',
      keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -581,6 +587,7 @@ def egs_2023():
    examples.append( APExample('Example 3',
      source='afni_proc.py -help',
      descrip='Formerly a simple class example.',
+     moddate='2009.05.28',
      keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -616,6 +623,7 @@ def egs_2023():
    examples.append( APExample( 'Example 4',
      source='afni_proc.py -help',
      descrip='Similar to 3, but specify the processing blocks.',
+     moddate='2009.05.28',
      keywords=['obsolete', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -644,6 +652,7 @@ def egs_2023():
    examples.append( APExample( 'Example 5a',
      source='afni_proc.py -help',
      descrip='RETROICOR, resting state data.',
+     moddate='2009.05.28',
      keywords=['obsolete', 'physio', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -687,6 +696,7 @@ def egs_2023():
    examples.append( APExample( 'Example 5b',
      source='afni_proc.py -help',
      descrip='RETROICOR, while running a normal regression.',
+     moddate='2009.05.28',
      keywords=['obsolete', 'physio', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -724,6 +734,7 @@ def egs_2023():
    examples.append( APExample( 'Example 5c',
      source='afni_proc.py -help',
      descrip='RETROICOR: censor and band pass.',
+     moddate='2016.05.03',
      keywords=['obsolete', 'physio', 'task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -775,6 +786,7 @@ def egs_2023():
    examples.append( APExample( 'Example 6',
      source='afni_proc.py -help',
      descrip='A simple task example, based on AFNI_data6.',
+     moddate='2020.02.15',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -895,6 +907,7 @@ def egs_2023():
    examples.append( APExample( 'Example 6b',
      source='afni_proc.py -help',
      descrip='A modern task example, with preferable options.',
+     moddate='2020.02.15',
      keywords=['task', 'complete'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -974,6 +987,7 @@ def egs_2023():
    examples.append( APExample( 'Example 7',
      source='afni_proc.py -help',
      descrip='Apply some esoteric options.',
+     moddate='2020.01.08',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1063,6 +1077,7 @@ def egs_2023():
    examples.append( APExample('Example 8',
      source='afni_proc.py -help',
      descrip='Surface-based analysis.',
+     moddate='2017.09.12',
      keywords=['complete', 'surface', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1128,6 +1143,7 @@ def egs_2023():
    examples.append( APExample('Example 9',
      source='afni_proc.py -help',
      descrip='Resting state analysis with censoring and band passing.',
+     moddate='2019.02.26',
      keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1215,6 +1231,7 @@ def egs_2023():
    examples.append( APExample('Example 9b',
      source='afni_proc.py -help',
      descrip='Resting state analysis with ANATICOR.',
+     moddate='2020.01.08',
      keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1256,6 +1273,7 @@ def egs_2023():
    examples.append( APExample('Example 10',
      source='afni_proc.py -help',
      descrip='Resting state analysis, with tissue-based regressors.',
+     moddate='2020.01.08',
      keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1311,6 +1329,7 @@ def egs_2023():
    examples.append( APExample('Example 10b',
      source='afni_proc.py -help',
      descrip='Resting state analysis, as 10a with 3dRSFC.',
+     moddate='2019.02.13',
      keywords=['rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1354,6 +1373,7 @@ def egs_2023():
    examples.append( APExample( 'Example 11',
      source='afni_proc.py -help',
      descrip='Resting state analysis (now even more modern :).',
+     moddate='2022.10.06',
      keywords=['complete', 'rest'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1450,6 +1470,7 @@ def egs_2023():
    examples.append( APExample('Example 11b',
      source='afni_proc.py -help',
      descrip='Similar to 11, but without FreeSurfer.',
+     moddate='2020.01.17',
      keywords=['complete', 'rest'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1518,6 +1539,7 @@ def egs_2023():
    examples.append( APExample('Example 12',
      source='afni_proc.py -help',
      descrip='background: Multi-echo data processing.',
+     moddate='2018.02.27',
      keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1551,6 +1573,7 @@ def egs_2023():
    examples.append( APExample('Example 12a',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - very simple.',
+     moddate='2018.02.27',
      keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1587,6 +1610,7 @@ def egs_2023():
    examples.append( APExample('Example 12b',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - OC resting state.',
+     moddate='2020.01.08',
      keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1633,6 +1657,7 @@ def egs_2023():
    examples.append( APExample('Example 12c',
      source='afni_proc.py -help',
      descrip='Multi-echo data processing - ME-ICA resting state.',
+     moddate='2020.01.08',
      keywords=['ME', 'rest'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1679,6 +1704,7 @@ def egs_2023():
    examples.append( APExample( 'Example 13',
      source='afni_proc.py -help',
      descrip='Complicated ME, surface-based resting state example.',
+     moddate='2019.09.06',
      keywords=['complete', 'ME', 'physio', 'rest', 'surface'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1752,6 +1778,7 @@ def egs_2023():
    examples.append( APExample('s03.ap.surface',
      source='FT_analysis',
      descrip='class demo - basic surface analysis',
+     moddate='2022.11.23',
      keywords=['complete', 'surface', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1788,6 +1815,7 @@ def egs_2023():
    examples.append( APExample('s05.ap.uber',
      source='FT_analysis',
      descrip='class demo - basic task analysis',
+     moddate='2022.11.23',
      keywords=['task'],
      header="""
               (recommended?  no, not intended for a complete analysis)
@@ -1846,6 +1874,7 @@ def egs_2023():
    examples.append( APExample('NARPS',
      source='eventually mention paper reference?',
      descrip='Applied NARPS example from AFNI.',
+     moddate='2020.02.10',
      keywords=['complete', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1917,6 +1946,7 @@ def egs_2023():
    examples.append( APExample('pamenc',
      source='AFNI_demos',
      descrip='ds000030.v16 parametric encoding task analysis.',
+     moddate='2020.02.10',
      keywords=['complete', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
@@ -1978,6 +2008,7 @@ def egs_2023():
    examples.append( APExample('simple_rest_QC',
      source='ap_run_simple_rest.tcsh',
      descrip='for QC, run ap_run_simple_rest.tcsh with defaults',
+     moddate='2022.11.23',
      keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control)
@@ -2024,6 +2055,7 @@ def egs_2023():
    examples.append( APExample('simple_rest_QC_na',
      source='ap_run_simple_rest.tcsh',
      descrip='for QC, run ap_run_simple_rest.tcsh with NO ANAT',
+     moddate='2022.11.23',
      keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control of EPI)
