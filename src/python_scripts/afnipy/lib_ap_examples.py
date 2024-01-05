@@ -335,8 +335,13 @@ class APExample:
 def get_all_examples():
    """return all known examples"""
 
-   examples = egs_2023()
-   examples.extend(egs_ap_run())
+   examples = []
+
+   examples.extend(egs_example())
+   examples.extend(egs_class())
+   examples.extend(egs_demo())
+   examples.extend(egs_publish())
+
 
    return examples
 
@@ -356,11 +361,7 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
       return
 
    # use a local name to populate the global list
-   examples = ap_examples
-
-   # ponder adding new examples
-   # examples.extend(egs_ap_run())
-   examples.extend(egs_2023())
+   examples = get_all_examples()
 
    # keys_keep = ['task', 'surface']
    # keys_rm   = ['obsolete', 'surface']
@@ -385,15 +386,23 @@ def populate_examples(keys_keep=[], keys_rm=[], verb=1):
 
    # --------------------------------------------------
    # remove any entry with any given key
-   for key in keys_rm:
+   poplist = []
       # counting from the end, pop unwanted indices
-      for eind in range(len(examples)-1, -1, -1):
-         if key in examples[eind].keywords:
-            examples.pop(eind)
+   for eind, eg in enumerate(examples):
+      # if there is any bad key, add to poplist and break
+      for key in keys_rm:
+         if key in eg.keywords:
+            poplist.append(eg)
+            break
+   # remove everything in poplist
+   if len(poplist) > 0:
+      examples = [e for e in examples if e not in poplist]
 
    ap_examples = examples
 
-def show_example_keywords(elist, mesg=''):
+def show_example_keywords(elist, mesg='', verb=1):
+   """
+   """
    if mesg: mstr = '(%s) ' % mesg
    else:    mstr = ''
 
@@ -405,14 +414,17 @@ def show_example_keywords(elist, mesg=''):
    # special cases, get all keywords, and show a unique list
    if 'ALL' in elist:
       elist = get_all_examples()
-      klist = []
-      for ex in elist:
-         klist.extend(ex.keywords)
+
+   # if being quiet just show a compact key list
+   if verb <= 1:
+      # now python has a strange left to right reading to nest 2 lists
+      klist = [e for ex in elist for e in ex.keywords]
       klist = UTIL.get_unique_sublist(klist)
       klist.sort()
       print('   ' + '\n   '.join(klist))
       return
 
+   # else verbose, so show all examples and their keys
    print("-- %d examples %s:" % (len(elist), mstr))
    # align ':' using max name length
    nlen = max([len(ex.name) for ex in elist])
@@ -421,7 +433,10 @@ def show_example_keywords(elist, mesg=''):
    print()
 
 def egs_ap_run(keys_keep=[], keys_rm=[]):
-   """only populate the examples array if someone wants it
+   """
+            ***** this is probably garbage *****
+
+      only populate the examples array if someone wants it
 
       return an array of APExample objects
 
@@ -462,7 +477,7 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
            be generated (and run) using the following:
 
               cd AFNI_data6/FT_analysis/FT
-              ap_run_simple_rest.tcsh -subjid FT.run_ap -run_proc \\
+              ap_run_simple_rest.tcsh -subjid FT -run_proc \\
                 -anat FT_anat+orig -epi FT_epi_r*.HEAD
            """,
      trailer="""
@@ -536,9 +551,9 @@ def egs_ap_run(keys_keep=[], keys_rm=[]):
                                       
    return examples
 
-def egs_2023():
-   # Examples present early 2023.
-   # Perhaps some will be copied out and live on.
+def egs_example():
+   """general "Example" list, corresponding to the 2023 list"""
+
    examples = []
 
    examples.append( APExample( 'Example 1',
@@ -1775,9 +1790,17 @@ def egs_2023():
        ]
      ))
 
-   examples.append( APExample('s03.ap.surface',
+   return examples
+
+def egs_class():
+   """AP class examples
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP class 3',
      source='FT_analysis',
-     descrip='class demo - basic surface analysis',
+     descrip='s03.ap.surface - basic surface analysis',
      moddate='2022.11.23',
      keywords=['complete', 'surface', 'task'],
      header="""
@@ -1812,9 +1835,9 @@ def egs_2023():
        ]
      ))
 
-   examples.append( APExample('s05.ap.uber',
+   examples.append( APExample('AP class 5',
      source='FT_analysis',
-     descrip='class demo - basic task analysis',
+     descrip='s05.ap.uber - basic task analysis',
      moddate='2022.11.23',
      keywords=['task'],
      header="""
@@ -1871,9 +1894,79 @@ def egs_2023():
        ]
      ))
 
-   examples.append( APExample('NARPS',
+   return examples
+
+def egs_publish():
+   """AP publish examples
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP publish 1',
+     source='AFNI_demos',
+     descrip='pamenc, ds000030.v16 parametric encoding task analysis.',
+     moddate='2020.02.10',
+     keywords=['complete', 'task'],
+     header="""
+              (recommended?  yes, reasonable for a complete analysis)
+
+           original analysis was from:
+               Gorgolewski KJ, Durnez J and Poldrack RA.
+               Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
+               F1000Research 2017, 6:1262
+               https://doi.org/10.12688/f1000research.11964.2
+
+           downloadable from https://legacy.openfmri.org/dataset/ds000030
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',               ['SID']],
+        ['-script',                ['proc.SID']],
+        ['-scr_overwrite',         []],
+        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
+                                    'mask', 'blur', 'scale', 'regress']],
+        ['-copy_anat',             ['anatSS.SID.nii']],
+        ['-anat_has_skull',        ['no']],
+        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
+        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
+        ['-tcat_remove_first_trs', ['0']],
+        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
+        ['-radial_correlate',      ['yes']],
+        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
+                                    '-check_flip']],
+        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',          []],
+        ['-tlrc_NL_warped_dsets',  ['anatQQ.SID.nii', 'anatQQ.SID.aff12.1D',
+                                    'anatQQ.SID_WARP.nii']],
+        ['-volreg_align_to',       ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',      []],
+        ['-volreg_tlrc_warp',      []],
+        ['-mask_epi_anat',         ['yes']],
+        ['-blur_size',             ['6']],
+        ['-blur_in_mask',          ['yes']],
+        ['-regress_stim_times',    ['timing/times.CONTROL.txt',
+                                    'timing/times.TASK.txt']],
+        ['-regress_stim_labels',   ['CONTROL', 'TASK']],
+        ['-regress_stim_types',    ['AM1']],
+        ['-regress_basis_multi',   ['dmBLOCK']],
+        ['-regress_motion_per_run', []],
+        ['-regress_censor_motion', ['0.3']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_compute_fitts', []],
+        ['-regress_fout',          ['no']],
+        ['-regress_opts_3dD',      ['-jobs', '8']],
+        ['-regress_3dD_stop',      []],
+        ['-regress_reml_exec',     []],
+        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
+        ['-regress_est_blur_errts', []],
+        ['-regress_run_clustsim',  ['no']],
+        ['-html_review_style',     ['pythonic']],
+       ],
+     ))
+                                      
+   examples.append( APExample('AP publish 2',
      source='eventually mention paper reference?',
-     descrip='Applied NARPS example from AFNI.',
+     descrip='NARPS analysis from AFNI.',
      moddate='2020.02.10',
      keywords=['complete', 'task'],
      header="""
@@ -1943,86 +2036,35 @@ def egs_2023():
        ],
      ))
                                       
-   examples.append( APExample('pamenc',
-     source='AFNI_demos',
-     descrip='ds000030.v16 parametric encoding task analysis.',
-     moddate='2020.02.10',
-     keywords=['complete', 'task'],
-     header="""
-              (recommended?  yes, reasonable for a complete analysis)
+   return examples
 
-           original analysis was from:
-               Gorgolewski KJ, Durnez J and Poldrack RA.
-               Preprocessed Consortium for Neuropsychiatric Phenomics dataset.
-               F1000Research 2017, 6:1262
-               https://doi.org/10.12688/f1000research.11964.2
+def egs_demo():
+   """AP demo examples
+   """
 
-           downloadable from https://legacy.openfmri.org/dataset/ds000030
-            """,
-     trailer=""" """,
-     olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-scr_overwrite',         []],
-        ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
-                                    'mask', 'blur', 'scale', 'regress']],
-        ['-copy_anat',             ['anatSS.SID.nii']],
-        ['-anat_has_skull',        ['no']],
-        ['-anat_follower',         ['anat_w_skull', 'anat', 'anatU.SID.nii']],
-        ['-dsets',                 ['func/SID_task-pamenc_bold.nii.gz']],
-        ['-tcat_remove_first_trs', ['0']],
-        ['-tshift_opts_ts',        ['-tpattern', 'alt+z2']],
-        ['-radial_correlate',      ['yes']],
-        ['-align_opts_aea',        ['-cost', 'lpc+ZZ', '-giant_move',
-                                    '-check_flip']],
-        ['-tlrc_base',             ['MNI152_2009_template_SSW.nii.gz']],
-        ['-tlrc_NL_warp',          []],
-        ['-tlrc_NL_warped_dsets',  ['anatQQ.SID.nii', 'anatQQ.SID.aff12.1D',
-                                    'anatQQ.SID_WARP.nii']],
-        ['-volreg_align_to',       ['MIN_OUTLIER']],
-        ['-volreg_align_e2a',      []],
-        ['-volreg_tlrc_warp',      []],
-        ['-mask_epi_anat',         ['yes']],
-        ['-blur_size',             ['6']],
-        ['-blur_in_mask',          ['yes']],
-        ['-regress_stim_times',    ['timing/times.CONTROL.txt',
-                                    'timing/times.TASK.txt']],
-        ['-regress_stim_labels',   ['CONTROL', 'TASK']],
-        ['-regress_stim_types',    ['AM1']],
-        ['-regress_basis_multi',   ['dmBLOCK']],
-        ['-regress_motion_per_run', []],
-        ['-regress_censor_motion', ['0.3']],
-        ['-regress_censor_outliers', ['0.05']],
-        ['-regress_compute_fitts', []],
-        ['-regress_fout',          ['no']],
-        ['-regress_opts_3dD',      ['-jobs', '8']],
-        ['-regress_3dD_stop',      []],
-        ['-regress_reml_exec',     []],
-        ['-regress_make_ideal_sum', ['sum_ideal.1D']],
-        ['-regress_est_blur_errts', []],
-        ['-regress_run_clustsim',  ['no']],
-        ['-html_review_style',     ['pythonic']],
-       ],
-     ))
-                                      
-   examples.append( APExample('simple_rest_QC',
+   examples =  []
+
+   examples.append( APExample('AP demo 1a',
      source='ap_run_simple_rest.tcsh',
-     descrip='for QC, run ap_run_simple_rest.tcsh with defaults',
+     descrip='for QC, ap_run_simple_rest.tcsh with EPI and anat',
      moddate='2022.11.23',
      keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control)
 
-         This example matches running ap_run_simple_rest.tcsh with default
-         parameters using anat and EPI data from AFNI_data6/FT.  It is meant
-         for quality control evaluation, treating it as rest.
+         This example was generated by running ap_run_simple_rest.tcsh,
+         providing a single subject anat and (3 runs of) EPI.  It could
+         be generated (and run) using the following:
 
+            cd AFNI_data6/FT_analysis/FT
+            ap_run_simple_rest.tcsh -subjid FT -run_proc \\
+              -anat FT_anat+orig -epi FT_epi_r*.HEAD
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-out_dir',               ['SID.results']],
+        ['-subj_id',               ['FT']],
+        ['-script',                ['proc.FT']],
+        ['-out_dir',               ['FT.results']],
         ['-blocks',                ['tshift', 'align', 'tlrc', 'volreg',
                                     'mask', 'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
@@ -2052,17 +2094,20 @@ def egs_2023():
        ],
      ))
                                       
-   examples.append( APExample('simple_rest_QC_na',
+   examples.append( APExample('AP demo 1b',
      source='ap_run_simple_rest.tcsh',
-     descrip='for QC, run ap_run_simple_rest.tcsh with NO ANAT',
+     descrip='for QC, ap_run_simple_rest.tcsh with no anat',
      moddate='2022.11.23',
      keywords=['rest'],
      header="""
               (recommended?  yes, for quick quality control of EPI)
 
-         This example matches running ap_run_simple_rest.tcsh with default
-         parameters using only EPI data from AFNI_data6/FT.  It is meant
-         for quality control evaluation, treating it as rest.
+         This example was generated by running ap_run_simple_rest.tcsh,
+         providing only 3 runs of EPI data.  It could be generated (and run)
+         using the following:
+
+            cd AFNI_data6/FT_analysis/FT
+            ap_run_simple_rest.tcsh -subjid FT -run_proc -epi FT_epi_r*.HEAD
 
          No anatomical volume is included, excluding many options from 
          example simple_rest_QC.
@@ -2070,9 +2115,9 @@ def egs_2023():
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',               ['SID']],
-        ['-script',                ['proc.SID']],
-        ['-out_dir',               ['SID.results']],
+        ['-subj_id',               ['FT']],
+        ['-script',                ['proc.FT']],
+        ['-out_dir',               ['FT.results']],
         ['-blocks',                ['tshift', 'volreg', 'mask',
                                     'blur', 'scale', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
@@ -2183,15 +2228,18 @@ def show_enames(verb=1):
 
    # nicer: show pretty list
    if verb == 1:
-      istr = ' '*3
+      istr = ' '*2
       jstr = '\n%s' % istr
       print("%s%s\n" % (istr, jstr.join(nlist)))
       return
 
+   # so verb > 1
    maxn = max([len(name) for name in nlist])
-   indent = ' '*4
+   indent = ' '*2
    for eg in ap_examples:
-      print("%s%-*s : %s" % (indent, maxn, eg.name, eg.descrip))
+      if verb <= 2: dstr = ''
+      else:         dstr = '%s : ' % eg.moddate
+      print("%s%-*s : %s%s" % (indent, maxn, eg.name, dstr, eg.descrip))
 
 def compare_eg_pair(eg1, eg2, eskip=[], verb=1):
    """similar to compare(), above, but compare 2 known examples"""

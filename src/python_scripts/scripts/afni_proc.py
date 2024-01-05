@@ -4048,9 +4048,9 @@ class SubjProcSream:
            return
         eg.display(verb=verb, sphinx=0)
         
-    def show_example_keywords(self, verb=2):
+    def show_example_keywords(self, verb=1):
         EGS = self.egs()
-        EGS.show_example_keywords(['ALL'])
+        EGS.show_example_keywords(['ALL'], verb=verb)
 
     def show_example_names(self, verb=2):
         EGS = self.egs()
