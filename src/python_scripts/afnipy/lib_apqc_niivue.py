@@ -44,6 +44,11 @@ nv_dict : dict
 
     # subbricks of ulay, olay and thr, respectively
     subbb   = copy.deepcopy(pbar_dict['subbb'])
+    # ... and prevent negative indices going further here; when
+    # driving in @chauffeur_afni, they just meant 'ignore' and were
+    # treated like 0, if used at all, but here they cause NaNs to appear
+    for i in range(len(subbb)):
+        if subbb[i] < 0 :  subbb[i] = 0
 
     # cmap or cmaps in niivue
     if '=' in pbar_dict['cbar']:
@@ -272,20 +277,34 @@ nv_then_txt : str
     #{nobj}.volumes[0].colorbarVisible = false; // no ulay bar
     #{nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
     #{nobj}.volumes[2].colorbarVisible = false; // no thr bar
+
     nv_then_txt = '''
-      {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
+      if ( {nobj}.volumes.length > 1 ) {{
+        {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
+      }}
       {nobj}.overlayOutlineWidth = {do_boxed};
       {nobj}.opts.multiplanarForceRender = true;
-      {nobj}.backgroundMasksOverlays = true;
+      {nobj}.backgroundMasksOverlays = true;'''.format(**nv_dict)
+    # as of (large set of) NV changes b/t ver=0.38.0 and v=0.38.3,
+    # modulateAlpha behaves differently, so we now (perhaps more
+    # stably anyways) use setModulationImage() only if modAlpha (which
+    # is int/flt) is nonzero
+    if nv_dict['modAlpha'] :
+        nv_then_txt+= '''
       {nobj}.setModulationImage(
         {nobj}.volumes[1].id,
         {nobj}.volumes[2].id,
         modulateAlpha = {modAlpha} 
       ); // activate+specify mapping'''.format(**nv_dict)
+    else:
+        # just a comment 
+        nv_then_txt+= '''
+      // no setModulationImage(), bc modulation is not used'''
+
 
     if nv_dict['coor_type'] == "SET_DICOM_XYZ" :
         nv_then_txt+= '''
-        {nobj}.scene.crosshairPos = '''.format(**nv_dict)
+      {nobj}.scene.crosshairPos = '''.format(**nv_dict)
         nv_then_txt+= '''{nobj}.mm2frac([{coors_str}]);'''.format(**nv_dict)
         nv_then_txt+= ''' // jump to XYZ'''.format(**nv_dict)
 
@@ -353,10 +372,29 @@ otxt : str
     nv_dict['nid']  = nid
     nv_dict['nobj'] = nobj
 
-    # create pieces of text within NiiVue canvas
-    nv_ulay_txt = set_niivue_ulay(nv_dict)
+    # create pieces of text within NiiVue canvas; now more
+    # complicated, because we won't always just put olay and thr in
+    # and adjust coloring/opacity as necessary---now we include O/T
+    # vols only as needed. These criteria might seem a bit confusing,
+    # but the correct U/O/T volumes should be getting into the correct
+    # 0/1/2 slots this way
+    if nv_dict['ulay'] != nv_dict['olay'] :
+        # we used duplicate ulay and olay for what were really
+        # "olay-only" images; now no more.  In such cases, there is no
+        # thr, and the 'olay' one contains more information, so this
+        # condition means that only the olay will be shown, actually
+        nv_ulay_txt = set_niivue_ulay(nv_dict)
+    else:
+        nv_ulay_txt = ''
     nv_olay_txt = set_niivue_olay(nv_dict)
-    nv_thr_txt  = set_niivue_thr(nv_dict)
+    # kind of annoying: remove a comma, add a tab
+    if nv_ulay_txt == '' :
+        nv_olay_txt = ' '*4 + nv_olay_txt[1:]
+    if nv_dict['ulay'] != nv_dict['olay'] and \
+       float(nv_dict['cal_max_thr']) > 0 :
+        nv_thr_txt = set_niivue_thr(nv_dict)
+    else:
+        nv_thr_txt = ''
     nv_then_txt = set_niivue_then(nv_dict)
 
     # top of mini-html: the typecast part
@@ -450,10 +488,16 @@ otxt : str
                   x.padStart(8).replace(/ /g, '&nbsp;') + ' ' +
                   y.padStart(8).replace(/ /g, '&nbsp;') + ' ' +
                   z.padStart(8).replace(/ /g, '&nbsp;') + '], '
-      // value str
-      let u = flt2str0(data.values[0].value, 6)
-      let o = flt2str0(data.values[1].value, 6)
-      let t = flt2str0(data.values[2].value, 6)
+      // value str (accommodate Olay/Thr being present or not)
+      let u = flt2str0(data.values[0].value, 6)   // always have ulay
+      let o = 'NA';
+      let t = 'NA';
+      if (data.values.length > 1) {{ // do we have olay?
+        o = flt2str0(data.values[1].value, 6);
+      }}
+      if (data.values.length > 2) {{ // do we have thr?
+        t = flt2str0(data.values[2].value, 6);
+      }}
       let str_v = 'UOT:[' + 
                   u.padStart(12).replace(/ /g, '&nbsp;') + ' ' + 
                   o.padStart(12).replace(/ /g, '&nbsp;') + ' ' + 
@@ -476,8 +520,7 @@ otxt : str
     {nobj}.attachTo('{nid}');
     {nobj}.loadVolumes([
 {nv_ulay_txt}{nv_olay_txt}{nv_thr_txt}
-    ]).then(()=>{{ // more actions
-{nv_then_txt}
+    ]).then(()=>{{ // more actions{nv_then_txt}
     }})'''.format( nv_ulay_txt=nv_ulay_txt, nv_olay_txt=nv_olay_txt,
                    nv_thr_txt=nv_thr_txt, nv_then_txt=nv_then_txt,
                    **nv_dict )
