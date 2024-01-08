@@ -757,7 +757,7 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
-    7.62 ...: -show_example_keywords
+    7.62 ...: -show_example_keywords, -show_pythoic_command
 """
 
 g_version = "version 7.60, August 21, 2023"
@@ -1283,6 +1283,8 @@ class SubjProcSream:
                         helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_pretty_command', 0, [],
                         helpstr="display afni_proc.py command in a nice format")
+        self.valid_opts.add_opt('-show_pythonic_command', 0, [],
+                        helpstr="display afni_proc.py command as a python list")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1937,6 +1939,11 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_pretty_command'):
             tstr = self.get_ap_command_str(style='pretty', lstart='')
+            print(tstr)
+            return 0
+        
+        if opt_list.find_opt('-show_pythonic_command'):
+            tstr = self.get_ap_pythonic_cmd_str()
             print(tstr)
             return 0
         
@@ -3568,6 +3575,23 @@ class SubjProcSream:
           tstr = UTIL.get_command_str(args=self.argv)
 
        return tstr
+
+    def get_ap_pythonic_cmd_str(self):
+        """return a string showing the command in a python list structure
+           (of the form found in lib_ap_examples.py)
+        """
+        allopts = self.valid_opts.all_opt_names()
+        arglist = FCS.make_big_list_from_args(self.argv, list_cmd_args=allopts)
+        arglist.pop(0)
+        
+        # make an indentation list (add space for 2 quotes and a comma)
+        maxlen = max([len(s[0]) for s in arglist]) + 3
+        for s in arglist:
+           tstr = "'%s'," % s[0]
+           s[0] = '%-*s' % (maxlen, tstr)
+
+        return '\n'.join(["[%s %s]," % (s[0], str(s[1:])) \
+                         for s in arglist])
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported

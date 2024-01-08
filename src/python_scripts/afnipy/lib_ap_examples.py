@@ -317,8 +317,10 @@ class APExample:
       # header
       if verb > 1:
          print("%s" % cc.header)
-      else:
-         print("")
+         print("%slast mod date: %s" % (indent, cc.moddate))
+         print("%skeywords     : %s" % (indent, ', '.join(cc.keywords)))
+
+      print("")
 
       # print the actual example
       print("%s" % cmd)
