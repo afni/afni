@@ -7703,22 +7703,21 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 //            currentOverlay->OptScl->ThrMode = SUMA_NO_THRESH;
 //            SUMA_ScaleToMap_Interactive (  currentOverlay );
 //            currentOverlay->OptScl->ThrMode = ThrMode;
-//            // memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
+                memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
 //            SUMA_ScaleToMap_Interactive (  currentOverlay );
             ITB[0] = currentOverlay->OptScl->find;
             ITB[1] = currentOverlay->OptScl->tind;
             ITB[2] = currentOverlay->OptScl->bind;           
         }
         
-//        if (0 && cmapChanged || DSET_MapChanged){
-//            fprintf(stderr, "DEBUG: DESET changed\n");
-//            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
-//            float val = 0.0f; 
-//            // float val = currentThreshold; 
-//            reload = 2;
-//            SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
-//            SUMA_set_threshold((SUMA_ALL_DO *)SO, NULL, &val);
-//        }
+        if (DSET_MapChanged){
+            fprintf(stderr, "DEBUG: DESET changed\n");
+            currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+            float val = 0.0f; 
+            reload = 2;
+            SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+            SUMA_set_threshold((SUMA_ALL_DO *)SO, NULL, &val);
+        }
    }    // End if (currentOverlay)
    
    if (!SO || !SV || !glcolar) {
@@ -8128,6 +8127,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    }
 
   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
+        // SV->DO_PickMode = 1;
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Background colors.\n", FuncName);
          
@@ -8180,27 +8180,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                    isColored[i] = NOPE;
              }
           }
-    }else{
+    }else if (0){
              for (i=0; i < N_Node; ++i) {
-                /* if (SO->BoxOutline && outlinevector[i]){
-                   i4 = 4 * i;
-                   glcolar[i4] = 0; ++i4;
-                   glcolar[i4] = 0; ++i4;
-                   glcolar[i4] = 0; ++i4;
-                   glcolar[i4] = 1.0f;
-                   isColored[i] = NOPE;
-                   continue;
-                } else */ if (isColored_Back[i]) {
-                   i4 = 4 * i;
-                   /*if (i>0 && SO->BoxOutline && (outlinevector[i])){
-                       glcolar[i4] = 0; ++i4;
-                       glcolar[i4] = 0; ++i4;
-                       glcolar[i4] = 0; ++i4;
-                   } else */{
-                       glcolar[i4] = glcolar_Back[i4]; ++i4;
-                       glcolar[i4] = glcolar_Back[i4]; ++i4;
-                       glcolar[i4] = glcolar_Back[i4]; ++i4;
-                   }
+                if (isColored_Back[i]) {
+                   i4 = 4 * i;                  
+                   glcolar[i4] = glcolar_Back[i4]; ++i4;
+                   glcolar[i4] = glcolar_Back[i4]; ++i4;
+                   glcolar[i4] = glcolar_Back[i4]; ++i4;
                    isColored[i] = YUP;
                    continue;
                 } else {
@@ -8303,7 +8289,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // Possibly temporary fix for suprathreshol nodes incorrect
    // when alphaThresh selected just after intensity range changed
    // Refresh window be resending threshold
-   if (cmapChanged){
+   if (0 && cmapChanged){
     float threshold = currentOverlay->OptScl->ThreshRange[0];
     SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &threshold);
    }
@@ -9698,10 +9684,10 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 
 
    isv = SUMA_WhichSVg(sv);
-
+   
    if (LocalHead) SUMA_DUMP_TRACE("Mixing of the colors, sv %d, N_ColList = %d",
                                   isv, sv->N_ColList);
-
+                                  
    for (i=0; i<sv->N_ColList; ++i){
 
       if (!(pp = SUMA_find_any_object(sv->ColList[i]->idcode_str, &tp))) {
@@ -9710,6 +9696,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
       }
       if (sv->ColList[i]->Remix) {
          ++sv->ColList[i]->RemixID;
+         
          switch (tp) {
             case SO_type:
                if (LocalHead)
@@ -9807,6 +9794,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                SUMA_RETURN(NOPE);
          }
       }
+      
       SUMA_LH("ColList[%d](%p)->per_sv_extra[%d]=%d",
                i, sv->ColList[i], isv, sv->ColList[i]->per_sv_extra[isv]);
       {/* Check on extras */
