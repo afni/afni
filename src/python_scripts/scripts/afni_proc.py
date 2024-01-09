@@ -827,7 +827,6 @@ interesting milestones for afni_proc.py:
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
    2022.11 : find_variance_lines.tcsh
-   2022.11 : find_variance_lines.tcsh
 """
 
 
