@@ -758,6 +758,8 @@ g_history = """
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
     7.62 ...: -show_example_keywords, -show_pythonic_command
+              example.moddate, keywords
+              examples:example,class,demo,publish
 """
 
 g_version = "version 7.60, August 21, 2023"
@@ -865,6 +867,8 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
+  - allow listing examples by keyword (choose and/or remove)
+  - example demo 2b should be added to APMD1 tree
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -873,12 +877,13 @@ g_todo_str = """todo:
           (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
-     - motion params?  censoring?
+     - pre-ME: motion params?  censoring?
      x add help for new combine methods
      x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
-     - allow use of -mask_import
+     x allow use of -mask_import
+     - -mask_import or anat_follower_ROI for ROI TSNR averages
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
