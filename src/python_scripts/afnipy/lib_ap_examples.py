@@ -2167,9 +2167,11 @@ def egs_demo():
 
             - noise removal of:
                 - motion and derivatives, per run
-                - ventrical principal components (top 3 per run)
+                - ventricle principal components (top 3 per run)
                 - fast ANATICOR
                 - censoring for both motion and outliers
+
+         * note: input dataset names have been shortened to protect the margins
 
             """,
      trailer=""" """,
@@ -2191,7 +2193,7 @@ def egs_demo():
                                       'SUMA/fs_ap_latvent.nii.gz']],
         ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
         ['-anat_follower_erode',     ['FSvent', 'FSWe']],
-        ['-dsets',                   ['sub-005_rest_run-1_echo-2_bold.nii.gz']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
         ['-tcat_remove_first_trs',   ['4']],
         ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
                                       '-check_flip']],
@@ -2219,7 +2221,93 @@ def egs_demo():
         ['-regress_est_blur_epits',  []],
         ['-regress_est_blur_errts',  []],
         ['-html_review_style',       ['pythonic']],
-        ['-show_pythonic_command',   []],
+       ],
+     ))
+                                      
+   examples.append( APExample('AP demo 2b',
+     source='APMULTI_Demo1_rest/scripts_desktop/do_44_ap_me_bTs.tcsh',
+     descrip='do_44_ap_me_bTs.tcsh - ME surface rest with tedana',
+     moddate='2024.01.04',
+     keywords=['blip', 'complete', 'ME', 'rest', 'surface', 'tedana'],
+     header="""
+              (recommended?  yes)
+
+         This example is part of the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample rest processing command, including:
+
+            - reverse phase encoding (blip) distortion correction
+              (-blip_forward_dset, -blip_reverse_dset)
+            - multi-echo EPI (-dsets_me_run, -echo_times)
+            - MEICA-group tedana usage
+              (-combine_method m_tedana, -volreg_warp_final_interp wsinc5)
+            
+            - surface-based analysis (-surf_anat, -surf_spec)
+
+            - despike block for high motion subjects
+
+            - QC options:
+                -radial_correlate_blocks, -align_opts_aea -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -anat_follower anat_w_skull, -anat_follower_ROI (some for QC),
+                -html_review_style
+
+            - noise removal of:
+                - tedana
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+
+         * note: input dataset names have been shortened to protect the margins
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'volreg',
+                                      'mask', 'combine', 'surf', 'blur',
+                                      'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                      'SUMA/fs_ap_latvent.nii.gz']],
+        ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+        ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+        ['-surf_anat',               ['SUMA/sub-005_SurfVol.nii']],
+        ['-surf_spec',               ['SUMA/std.141.sub-005_lh.spec',
+                                      'SUMA/std.141.sub-005_rh.spec']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-dsets_me_run',            ['func/sub-005_rest_echo-1_bold.nii.gz',
+                                      'func/sub-005_rest_echo-2_bold.nii.gz',
+                                      'func/sub-005_rest_echo-3_bold.nii.gz']],
+        ['-echo_times',              ['12.5', '27.6', '42.7']],
+        ['-combine_method',          ['m_tedana']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-tshift_interp',           ['-wsinc9']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_warp_final_interp',['wsinc5']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-blur_size',               ['4']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-html_review_style',       ['pythonic']],
        ],
      ))
                                       

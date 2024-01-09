@@ -757,7 +757,7 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
-    7.62 ...: -show_example_keywords, -show_pythoic_command
+    7.62 ...: -show_example_keywords, -show_pythonic_command
 """
 
 g_version = "version 7.60, August 21, 2023"
@@ -3579,10 +3579,16 @@ class SubjProcSream:
     def get_ap_pythonic_cmd_str(self):
         """return a string showing the command in a python list structure
            (of the form found in lib_ap_examples.py)
+           (remove any -show_pythonic_command option)
         """
+        # remove any -show_pythonic_command option(s)
+        args = self.argv[:]
+        while '-show_pythonic_command' in args:
+           oind = args.index('-show_pythonic_command')
+           args.pop(oind)
+
         allopts = self.valid_opts.all_opt_names()
-        arglist = FCS.make_big_list_from_args(self.argv, list_cmd_args=allopts)
-        arglist.pop(0)
+        arglist = FCS.make_big_list_from_args(args, list_cmd_args=allopts)
         
         # make an indentation list (add space for 2 quotes and a comma)
         maxlen = max([len(s[0]) for s in arglist]) + 3

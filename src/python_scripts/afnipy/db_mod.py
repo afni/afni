@@ -11561,10 +11561,10 @@ OPTIONS:  ~2~
             e.g. afni_proc.py -show_pretty_command
 
         Adding this option to an existing afni_proc.py command will result in
-        displaying the command itself in a nicely indended manner, using the
+        displaying the command itself in a nicely indented manner, using the
         P Taylor special routines.
 
-    -show_pythoic_command   : output the same command, but as a python list
+    -show_pythonic_command  : output the same command, but as a python list
 
             e.g. afni_proc.py -show_pythonic_command
 
@@ -11641,19 +11641,6 @@ OPTIONS:  ~2~
                 (what is beyond the matching/differing cases)
 
         This option is the basis for all of the -compare* options.
-
-        See also -show_example_names.
-
-    -compare_example_pair EG1 EG2 : compare options for pair of examples
-
-            e.g. -compare_example_pair 'example 6' 'example 6b'
-
-        more completely:
-
-            afni_proc.py -compare_example_pair 'example 6' 'example 6b'
-
-        Like -compare_opts, but rather than comparing the current command
-        against a known example, it compares 2 known examples.
 
         See also -show_example_names.
 
