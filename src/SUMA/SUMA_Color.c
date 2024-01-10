@@ -7608,11 +7608,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    
    cmapChanged = 0;
    
+   // Copy overlay color vector into current color vector if DSET changed
    if (reload){
         reload = 0;
-        SUMA_ColorizePlane (currentOverlay);          
-        applyColorMapToOverlay(SO, currentOverlay);
         memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
+        SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
    }
    
    if (SO->BoxOutline && 
@@ -8213,10 +8213,6 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
 //        SUMA_Draw_SO_ROI (SO, SUMAg_DOv, numThresholdNodes,
 //                               SUMAg_cSV);
         drawThresholdOutline(SO, outlinevector, numThresholdNodes);
-        fprintf(stderr, "Continue?");
-//        char dummy;
-//        scanf("%c", &dummy);
-//        fprintf(stderr, "\n");
    }
 
    /* free this mess and get out */
