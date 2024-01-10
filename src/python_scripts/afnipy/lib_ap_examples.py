@@ -317,8 +317,10 @@ class APExample:
       # header
       if verb > 1:
          print("%s" % cc.header)
-         print("%slast mod date: %s" % (indent, cc.moddate))
-         print("%skeywords     : %s" % (indent, ', '.join(cc.keywords)))
+         print("%s--------------------------" % indent)
+         print("%slast mod date : %s" % (indent, cc.moddate))
+         print("%skeywords      : %s" % (indent, ', '.join(cc.keywords)))
+         print("%s--------------------------" % indent)
 
       print("")
 
@@ -342,6 +344,7 @@ def get_all_examples():
    examples.extend(egs_example())
    examples.extend(egs_class())
    examples.extend(egs_demo())
+   examples.extend(egs_short())
    examples.extend(egs_publish())
 
 
@@ -686,7 +689,7 @@ def egs_example():
            parameters per-run (each run gets a separate set of 6 regressors).
 
            The regression will use 81 basic regressors (all of "no interest"),
-           with 13 retroicor regressors being removed during pre-processing:
+           with 13 retroicor regressors being removed during preprocessing:
 
                  27 baseline  regressors ( 3 per run * 9 runs)
                  54 motion    regressors ( 6 per run * 9 runs)
@@ -1169,7 +1172,7 @@ def egs_example():
 
            With censoring and bandpass filtering.
 
-           This is our suggested way to do pre-processing for resting state
+           This is our suggested way to do preprocessing for resting state
            analysis, under the assumption that no cardio/physio recordings
            were made (see example 5 for cardio files).
 
@@ -2061,6 +2064,11 @@ def egs_demo():
             cd AFNI_data6/FT_analysis/FT
             ap_run_simple_rest.tcsh -subjid FT -run_proc \\
               -anat FT_anat+orig -epi FT_epi_r*.HEAD
+
+         This is highly recommended as a tool for quick quality control to be
+         run on all EPI data right out of the scanner.  It is fine to run on
+         task data, but without worrying about the actual task regression.
+
             """,
      trailer=""" """,
      olist = [
@@ -2171,7 +2179,7 @@ def egs_demo():
                 - fast ANATICOR
                 - censoring for both motion and outliers
 
-         * note: input dataset names have been shortened to protect the margins
+         * input dataset names have been shortened to protect the margins
 
             """,
      trailer=""" """,
@@ -2232,7 +2240,7 @@ def egs_demo():
      header="""
               (recommended?  yes)
 
-         This example is part of the APMULTI_Demo1_rest tree, installable by
+         This example is based on the APMULTI_Demo1_rest tree, installable by
          running :
 
             @Install_APMULTI_Demo1_rest
@@ -2260,7 +2268,8 @@ def egs_demo():
                 - motion and derivatives, per run
                 - censoring for both motion and outliers
 
-         * note: input dataset names have been shortened to protect the margins
+         * input dataset names have been shortened to protect the margins
+
             """,
      trailer=""" """,
      olist = [
@@ -2308,6 +2317,73 @@ def egs_demo():
         ['-regress_censor_outliers', ['0.05']],
         ['-regress_apply_mot_types', ['demean', 'deriv']],
         ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+                                      
+   return examples
+
+def egs_short():
+   """AP short examples (examples of only partial processing)
+   """
+
+   examples =  []
+
+   examples.append( APExample('AP short 1a',
+     source='APMULTI_Demo1_rest/scripts_desktop/do_41_ap_align_only.tcsh',
+     descrip='do_41_ap_align_only.tcsh - only perform alignment steps',
+     moddate='2024.01.04',
+     keywords=['partial', 'rest'],
+     header="""
+              (recommended?  somewhat, for alignment only)
+
+         This example is based on the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample alignment processing command, including:
+
+            - reverse phase encoding (blip) distortion correction
+              (-blip_forward_dset, -blip_reverse_dset)
+            - EPI motion registration (to MIN_OUTLIER)
+            - EPI to anatomical registration
+            - non-linear anatomical to MNI template registration
+              (precomputed affine+non-linear warp is provided)
+
+            - QC options:
+                -radial_correlate_blocks, -anat_follower (with skull)
+                -volreg_compute_tsnr, (-align_opts_aea) -check_flip
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-blocks',                  ['align', 'tlrc', 'volreg']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
+                                      'sswarper/anatQQ.sub-005.aff12.1D',
+                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
        ],
      ))
                                       
