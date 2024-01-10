@@ -146,13 +146,13 @@ y : np.ndarray
         if mini_hwin :    y[i] = np.median(x[n-mini_hwin:n+mini_hwin+1])
         else:             y[i] = np.median(x[n:n+2])
 
-#    # ----- use shrinking window for right edge
+    # ----- use shrinking window for right edge
     for i in range(stop+1, M):
         n = all_n[i]
         mini_hwin = N-n-1
-        # use shrinking window; if n==0, use 1 neighbor to left (and to M)
+        # use shrinking window; if n==0, use 1 neighbor to left (and final val)
         if mini_hwin :    y[i] = np.median(x[n-mini_hwin:n+mini_hwin+1])
-        else:             y[i] = np.median(x[n-1:M])
+        else:             y[i] = np.median(x[n-1:n+1])
 
 
     
