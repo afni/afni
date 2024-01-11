@@ -53,6 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2024, RCR, "afni", MINOR, TYPE_BUG_FIX,
+   "validate fim_now in AFNI_autorange_label",
+   "If the underlay existed in both orig and tlrc view, switching to the\n"
+   "view without an overlay would cause a crash.\n"
+   "Thanks to msh23m (AFNI message board) for noting the problem."
+ } ,
+
  {  2, Jan, 2024, RCR, "init_user_dotfiles.py", MICRO, TYPE_ENHANCE,
    "apply apsearch updates only if shell file applies to current or login",
    NULL
