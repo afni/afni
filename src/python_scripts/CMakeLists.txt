@@ -63,6 +63,7 @@ else()
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "__init__.py" EXCLUDE
+    PERMISSIONS WORLD_EXECUTE
   )
   install(
       DIRECTORY ../python_scripts/afnipy
