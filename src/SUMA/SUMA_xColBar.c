@@ -941,9 +941,16 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
    SUMA_LH("called");
 
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
+   if (!(SurfCont = SUMA_ADO_Cont(SurfCont))) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
 
-   SurfCont = SUMA_ADO_Cont(ado);
+   // SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (curColPlane->OptScl<0x20) { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
+   
+   fprintf(stderr, "%s: curColPlane = %p\n", FuncName, curColPlane);
+   fprintf(stderr, "%s: curColPlane->OptScl = %p\n", FuncName, curColPlane->OptScl);
+   fprintf(stderr, "%s: sizeof(curColPlane->OptScl) = %d\n", FuncName, sizeof(curColPlane->OptScl));
+   fprintf(stderr, "%s: curColPlane->OptScl->ThrMode = %d\n", FuncName, curColPlane->OptScl->ThrMode);
 
    switch (curColPlane->OptScl->ThrMode) {
       case SUMA_LESS_THAN:
@@ -973,6 +980,9 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
                        MV_format_fval(val), MV_format_fval(val2));
          break;
    }
+   fprintf(stderr, "%s: SurfCont = %p\n", SurfCont);
+   fprintf(stderr, "%s: SurfCont->SetThrScaleTable = %p\n", SurfCont->SetThrScaleTable);
+   fprintf(stderr, "%s: slabel = %c\n", slabel);
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
 
@@ -1135,7 +1145,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
       }
 
    /* call this one since it is not being called as the slider is dragged. */
-   SUMA_set_threshold_label(ado, val, 0.0);
+   if (!(SUMA_set_threshold_label(ado, val, 0.0))) { SUMA_SL_Err("Error setting threshold label"); SUMA_RETURN(0); }
 
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado));
@@ -1340,7 +1350,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                            /* This function will cause undue redisplays, but
                            keeps code clean */
                            if ( pp != 0.0) {
-                              SUMA_set_threshold_one(ado, colp, &pp);
+                              if (!(SUMA_set_threshold_one(ado, colp, &pp))) 
+                                { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                            }
                         }
                      }
@@ -1373,7 +1384,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                /* This function will cause undue redisplays, but
                keeps code clean */
                if ( pp != 0.0) {
-                  SUMA_set_threshold_one(ado, colp, &pp);
+                  if (!(SUMA_set_threshold_one(ado, colp, &pp)))
+                    { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                }
             }
          }
@@ -1400,7 +1412,8 @@ int SUMA_SwitchColPlaneIntensity_one (
                /* This function will cause undue redisplays, but
                keeps code clean */
                if ( pp != 0.0) {
-                  SUMA_set_threshold_one(ado, colp, &pp);
+                  if (!(SUMA_set_threshold_one(ado, colp, &pp))) 
+                    { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
                }
             }
          }
@@ -1592,7 +1605,8 @@ int SUMA_SwitchColPlaneThreshold_one(
       pp = (float)SUMA_Pval2ThreshVal (ado, (double)pp);
       /* This function will cause undue redisplays, but keeps code clean */
       if ( pp != 0.0) {
-         SUMA_set_threshold_one(ado, colp, &pp);
+         if (!(SUMA_set_threshold_one(ado, colp, &pp)))
+            { SUMA_SL_Err("Error in SUMA_set_threshold_one"); SUMA_RETURN(0); }
       }
    }
 
