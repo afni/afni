@@ -17,7 +17,7 @@
 # installation does not. pip is used unless the environment variable
 # DO_NOT_USE_PIP is set.
 
-set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_WRITE;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
+#set(SCRIPT_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_EXECUTE WORLD_READ)
 
 if(STANDARD_PYTHON_INSTALL)
   # A standard installation of the python code is required to run the tests as
@@ -65,8 +65,8 @@ else()
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "__init__.py" EXCLUDE
-    PERMISSIONS ${SCRIPT_PERMISSIONS}
-  )
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_EXECUTE WORLD_READ
+    )
   install(
       DIRECTORY ../python_scripts/afnipy
       COMPONENT python
