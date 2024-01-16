@@ -7785,6 +7785,15 @@ int getNodeIndex(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *SV){
     return nodeIndex;
 }
 
+void setSliderLocation(SUMA_SurfaceObject *SO, int sliderPosition){
+    static char FuncName[]={"setSliderLocation"};
+
+    Widget w = SO->SurfCont->thr_sc;
+    XtVaSetValues(w,
+    XmNvalue, sliderPosition,
+    NULL);
+}
+
 /*!
 
    function to turn color overlay planes into GL color array
@@ -7917,6 +7926,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                         float val = 0.0f; 
                         reload = 1;
                         SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                        setSliderLocation(SO, 0);
                     }
             }
        }
@@ -7944,6 +7954,13 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             float val = 0.0f; 
             reload = 1;
             SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+            
+            // Set slider location to zero
+            setSliderLocation(SO, 0);
+//            Widget w = SO->SurfCont->thr_sc;
+//            XtVaSetValues(w,
+//            XmNvalue, 0,
+//            NULL);
        }
    }
       
