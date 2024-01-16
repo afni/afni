@@ -17,6 +17,8 @@
 # installation does not. pip is used unless the environment variable
 # DO_NOT_USE_PIP is set.
 
+set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_WRITE;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
+
 if(STANDARD_PYTHON_INSTALL)
   # A standard installation of the python code is required to run the tests as
   # part of the build system (using the pytest target). Using pip (or just
@@ -63,7 +65,7 @@ else()
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "__init__.py" EXCLUDE
-    PERMISSIONS WORLD_EXECUTE
+    PERMISSIONS ${SCRIPT_PERMISSIONS}
   )
   install(
       DIRECTORY ../python_scripts/afnipy
