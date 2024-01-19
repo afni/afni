@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2024, RCR, "3dZeropad", MINOR, TYPE_NEW_OPT,
+   "add options -pad2odds, -pad2mult (pad to any positive multiple)",
+   "Motivated by P Taylor."
+ } ,
+
  { 11, Jan, 2024, RCR, "afni", MINOR, TYPE_BUG_FIX,
    "validate fim_now in AFNI_autorange_label",
    "If the underlay existed in both orig and tlrc view, switching to the\n"
