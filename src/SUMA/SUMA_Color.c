@@ -8185,6 +8185,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^  Foreground colors -------------------------*/
    
    /* time to modulate the mixed colors with the average brightness */
+   // (NshowOverlays_Back gives the status of show background colors)
    if (NshowOverlays && NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,
@@ -8312,6 +8313,43 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (NshowOverlays && !NshowOverlays_Back) {
       if (LocalHead)
          fprintf (SUMA_STDERR,"%s: Only Foreground colors.\n", FuncName);
+      if (SO->AlphaThresh){
+         float *activeAlphaOpacities = alphaOpacitiesForOverlay(currentOverlay);
+         for (i=0; i < N_Node; ++i) {
+            i4 = 4 * i;
+            float opacity = activeAlphaOpacities[i];
+
+            if (isColored_Fore[i]) {
+               i4 = 4 * i;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               glcolar[i4] = glcolar_Fore[i4]; ++i4;
+               isColored[i] = YUP;
+               continue;
+            } else if ((currentOverlay->OptScl->MaskZero &&
+                currentOverlay->T[i]==0)){ // Don't show zero
+                   int i4 = 4 * i;
+                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                   glcolar[i4] = SUMA_GRAY_NODE_COLOR; ++i4;
+                   isColored[i] = NOPE;
+             } else {
+               float opacity = activeAlphaOpacities[i];
+               float complement = 1.0f - opacity;
+               int i3 = 3 * i;
+               i4 = 4 * i;
+               glcolar[i4] = (ColVec[i3]*opacity) +
+                (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
+               glcolar[i4] = (ColVec[i3]*opacity) +
+                (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
+               glcolar[i4] = (ColVec[i3]*opacity) +
+                (SUMA_GRAY_NODE_COLOR * complement); ++i4; ++i3;
+               isColored[i] = NOPE;
+            }
+         }
+          
+          free(activeAlphaOpacities);
+      } else {     
          for (i=0; i < N_Node; ++i) {
             if (isColored_Fore[i]) {
                i4 = 4 * i;
@@ -8328,6 +8366,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                isColored[i] = NOPE;
             }
          }
+      }
+
    }
 
   if (!NshowOverlays && NshowOverlays_Back) {   // Toy examples
