@@ -17981,7 +17981,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-
+   
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18180,12 +18180,12 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          switch (RENDER_METHOD) {
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
-               #if 0
-               fprintf(stderr, "%s: NP = %d\n", FuncName, NP);
-               fprintf(stderr, "%s: N_glar_FaceSet = %d\n", FuncName, N_glar_FaceSet);
-               fprintf(stderr, "%s: SurfObj = %p\n", FuncName, SurfObj);
-               #endif
 	       if (NP==3) {
+                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
+                    int i3 = 3*i;
+                    fprintf("SurfObj->glar_FaceSetList[%d] = (%d, %d, %d)\n", i, 
+                        SurfObj->glar_FaceSetList[i3], SurfObj->glar_FaceSetList[13+1], SurfObj->glar_FaceSetList[i3+2]);
+                }
                 // TOY_CRASH: WHERE CRASH OCCURS WITH TOY EXAMPLES.
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
@@ -18195,9 +18195,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                } else {
                   SUMA_S_Err("Oh no you don't"); SUMA_RETURNe;
                }
-               #if 0
-               fprintf(stderr, "%s: After glDrawElements\n", FuncName);
-               #endif
                break;
             case POINTS:
                glPointSize(4.0); /* keep outside of glBegin */

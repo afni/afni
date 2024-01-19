@@ -947,11 +947,6 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
    curColPlane = SUMA_ADO_CurColPlane(ado);
    if (curColPlane->OptScl<0x20) { SUMA_SL_Err("Invalid curColPlane->OptScl"); SUMA_RETURN(0); }
    
-   fprintf(stderr, "%s: curColPlane = %p\n", FuncName, curColPlane);
-   fprintf(stderr, "%s: curColPlane->OptScl = %p\n", FuncName, curColPlane->OptScl);
-   fprintf(stderr, "%s: sizeof(curColPlane->OptScl) = %d\n", FuncName, sizeof(curColPlane->OptScl));
-   fprintf(stderr, "%s: curColPlane->OptScl->ThrMode = %d\n", FuncName, curColPlane->OptScl->ThrMode);
-
    switch (curColPlane->OptScl->ThrMode) {
       case SUMA_LESS_THAN:
          sprintf(slabel, "%5s", MV_format_fval(val));
@@ -980,9 +975,6 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
                        MV_format_fval(val), MV_format_fval(val2));
          break;
    }
-   fprintf(stderr, "%s: SurfCont = %p\n", SurfCont);
-   fprintf(stderr, "%s: SurfCont->SetThrScaleTable = %p\n", SurfCont->SetThrScaleTable);
-   fprintf(stderr, "%s: slabel = %c\n", slabel);
    /* SUMA_SET_LABEL(SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SurfCont->SetThrScaleTable, 0,0,slabel);
 
