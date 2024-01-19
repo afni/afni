@@ -59,7 +59,8 @@ def change_path_basename(orig, prefix='', suffix='', append=0):
     return "%s/%s" % (head, tail)
 
 # write text to a file
-def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
+def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
+                       method='rr'):
     """write the given text (tdata) to the given file
           fname   : file name to write (or append) to
           dtata   : text to write
@@ -67,6 +68,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
           wrap    : optional wrap flag [default=0, 1=RR, 2=PT special]
           wrapstr : optional wrap string: if wrap, apply this string
           exe     : whether to make file executable
+          method  : either 'rr' or 'pt'
 
        return 0 on success, 1 on error
     """
@@ -82,7 +84,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
              print("** failed to nicify_cmd_str")
              return 1
        else:
-          tdata = add_line_wrappers(tdata, wrapstr)
+          tdata = add_line_wrappers(tdata, wrapstr, method=method)
     
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
@@ -124,7 +126,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
-   if tdata != '': write_text_to_file(outfile, tdata, wrap=2)
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method='pt')
    
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
@@ -2846,9 +2848,13 @@ def list_to_wrapped_command(cname, llist, nindent=10, nextra=3, maxlen=76):
 
 
 # MAIN wrapper: add line wrappers ('\'), and align them all
-def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
+def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1,
+                      method='rr'):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
-       if '\\\n', align all wrapstr strings"""
+       if '\\\n', align all wrapstr strings
+
+       method can be rr or pt
+    """
     new_cmd = ''
     posn = 0
 
@@ -2863,16 +2869,27 @@ def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
             continue
 
         # command needs wrapping
-        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr,
-                                   maxlen=maxlen, verb=verb)
+        if method == 'pt':
+            cline = commands[posn:end+1]
+            clist = cline.replace('\\\n', ' ').split()
+            cline = ' '.join(clist)
+            rv, cline = lfcs.afni_niceify_cmd_str(cline)
+            new_line = cline + '\n'
+        else:
+            new_line = insert_wrappers(commands, posn, end, wstring=wrapstr,
+                                       maxlen=maxlen, verb=verb)
 
+        new_cmd += new_line
+            
         posn = end + 1     # else, update posn and continue
 
     result = new_cmd + commands[posn:]
 
-    # wrappers are in, now align them
-    if wrapstr == '\\\n': return align_wrappers(result)
-    else:                 return result
+    # wrappers are in, now align them (unless method == 'pt')
+    if wrapstr == '\\\n' and method != 'pt':
+       return align_wrappers(result)
+    else:
+       return result
 
 def align_wrappers(command):
     """align all '\\\n' strings to be the largest offset
