@@ -296,8 +296,11 @@ where the following options exist:
   -local_mask LM      :provide the masking option to be used in the
                        3dLocalStat step, which should be enclosed in
                        quotes for passing along to the internal
-                       program call.  To remove any masking, put "None" as
-                       the option value.
+                       program call.  So, to use a pre-existing mask,
+                       you might call this option like:
+                         -local_mask "-mask my_mask.nii.gz"
+                       To remove any masking, put the special keyword
+                       "None" as the option value.
                        (def: "${local_mask}")
 
   -filter_thr FT      :put a ceiling on values in the final, scaled dataset,
