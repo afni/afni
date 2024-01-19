@@ -64,7 +64,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
           fname   : file name to write (or append) to
           dtata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
-          wrap    : optional wrap flag [default=0]
+          wrap    : optional wrap flag [default=0, 1=RR, 2=PT special]
           wrapstr : optional wrap string: if wrap, apply this string
           exe     : whether to make file executable
 
@@ -75,7 +75,14 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
         print("** WTTF: missing text or filename")
         return 1
 
-    if wrap: tdata = add_line_wrappers(tdata, wrapstr)
+    if wrap:
+       if wrap == 2:    # PT special
+          rv, tdata = lfcs.afni_niceify_cmd_str(tdata)
+          if rv:
+             print("** failed to nicify_cmd_str")
+             return 1
+       else:
+          tdata = add_line_wrappers(tdata, wrapstr)
     
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
@@ -117,7 +124,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
-   if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=2)
    
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):

@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jan, 2024, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "have wrap_file_text() default to wrap=2 in nwrite_text_to_file()",
+   NULL
+ } ,
+
  { 18, Jan, 2024, RCR, "3dZeropad", MINOR, TYPE_NEW_OPT,
    "add options -pad2odds, -pad2mult (pad to any positive multiple)",
    "Motivated by P Taylor."
