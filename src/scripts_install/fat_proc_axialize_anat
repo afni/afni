@@ -323,7 +323,7 @@ if ( "$MODESET" == "" ) then
     goto BAD_EXIT
 endif
 
-# make sure we can read volumes OK: anat and final mask, if inpu
+# make sure we can read volumes OK: anat and final mask, if input
 foreach ff ( "$ifile" "$iref" $final_al_wtmask $imask )
     set check = `3dinfo -prefix "$ff"`
     if ( "$check" == "NO-DSET" ) then
