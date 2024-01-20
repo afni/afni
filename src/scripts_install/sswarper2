@@ -345,7 +345,7 @@ while ( $ac <= $#argv )
         @ ac += 1
         set penfac = "$argv[$ac]"
 
-    # [PT: Jan 14, 2020] probably just for backwards compatability:
+    # [PT: Jan 14, 2020] probably just for backwards compatibility:
     # default will be lpa hereafter  (could be '-pcl' for back-compat)
     else if ( "$argv[$ac]" == "-cost_nl_init" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1428,14 +1428,14 @@ grown/improved over time):
               part of alignment.  Here, 'CA' would be just the name of
               the cost function to be provided after '-cost ..' (def:
               is now "lpa+ZZ").  This is probably only here for
-              backwards compatability to older @SSwarper (where def
+              backwards compatibility to older @SSwarper (where def
               was 'hel').
 
   -cost_nl_init CNI 
              :(opt) specify cost function for initial nonlinear
               (3dQwarp) part of alignment.  Here, 'CNI' would be the
               cost function name to be provided (def: is now "lpa").
-              This is probably only here for backwards compatability
+              This is probably only here for backwards compatibility
               to older @SSwarper (where def was 'pcl').
 
   -cost_nl_final CNF 
@@ -1538,7 +1538,7 @@ Then the outputs from this script will be"
                             skullstripped output (anatSS* dset)
 
 * The .aff12.1D and _WARP.nii transformations need to be catenated to get
-  the full warp from orginal space to the base space; example:
+  the full warp from original space to the base space; example:
     3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
 
 * It is important to examine (at least) the two .jpg snapshot images to
@@ -1602,7 +1602,7 @@ You Know My Methods, Watson ~2~
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
-  #2: Strip the skull with 3dSkullStrip, with mildly agressive settings.
+  #2: Strip the skull with 3dSkullStrip, with mildly aggressive settings.
        ==> anatS.sub007.nii
   #3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on
       template, driving the warping to a medium level of refinement.
