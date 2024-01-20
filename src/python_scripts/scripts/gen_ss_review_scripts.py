@@ -2,10 +2,12 @@
 
 # python3 status: compatible
 
-# [PT: Oct 4, 2019] add @animal_warper to list of programs for getting
-#                   template name
-# [PT: Mar 3, 2021] add sswarper2 to list of programs for getting
-#                   template name
+# [PT: Oct  4, 2019] add @animal_warper to list of programs for getting
+#                    template name
+# [PT: Mar  3, 2021] add sswarper2 to list of programs for getting
+#                    template name
+# [PT: Jan 20, 2024] update F-stat visualization have Alpha+Boxed on
+#                    - also use better olay func_range, pbar, and pos_only
 
 # system libraries
 import sys, os, glob
@@ -3025,11 +3027,14 @@ class MyInterface:
       txt = 'echo ' + UTIL.section_divider('view stats results',
                                            maxlen=60, hchar='-') + '\n\n'
 
-      s1   = 'set pp = ( `3dBrickStat -slow -percentile 90 1 90 \\\n' \
+      # now get both a thr value *and* a func_range value
+      s1   = 'set pp = ( `3dBrickStat -slow -percentile 90 9 99 \\\n' \
              '            -mask %s %s"[0]"` )\n' % (mset.pv(), sset.pv())
 
       s2   = 'set thresh = $pp[2]\n'                                    \
-             'echo -- thresholding F-stat at $thresh\n'
+             'echo -- thresholding F-stat at $thresh\n'                 \
+             'set frange = $pp[4]\n'                                    \
+             'echo -- olay range of F-stat : $frange\n'
 
       aset = self.dsets.val('final_anat')
       if not self.check_for_dset('final_anat', ''):
@@ -3046,6 +3051,7 @@ class MyInterface:
        % (sset.pv(), mset.pv(), self.uvars.final_view)
 
       txt += '# get 90 percentile for thresholding in afni GUI\n'       \
+             '# (and 99 percentile for olay range; show Pos only)\n'    \
              '%s'                                                       \
              '%s'                                                       \
              '\n'                                                       \
@@ -3054,13 +3060,18 @@ class MyInterface:
       ac   = 'afni -com "OPEN_WINDOW A.axialimage"     \\\n'            \
              '     -com "OPEN_WINDOW A.sagittalimage"  \\\n'            \
              '%s'                                                       \
+             '     -com "SET_PBAR_ALL    +99 1 Plasma" \\\n'            \
              '     -com "SWITCH_OVERLAY %s"   \\\n'                     \
              '     -com "SET_SUBBRICKS A 0 0 0"        \\\n'            \
+             '     -com "SET_FUNC_RANGE A $frange"     \\\n'            \
              '     -com "SET_THRESHNEW A $thresh"      \\\n'            \
+             '     -com "SET_FUNC_ALPHA  Yes"          \\\n'            \
+             '     -com "SET_FUNC_BOXED  Yes"          \\\n'            \
              '     -com "SET_DICOM_XYZ A $maxcoords"\n'                 \
              '\n' % (s3, sset.prefix)
       
       txt += '# start afni with stats thresholding at peak location\n'  \
+             '# (with Alpha and Boxed on)\n'                            \
              + ac
 
       txt += '\n'                                                      \
