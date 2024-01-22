@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jan, 2024, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
+   "add -wrap_text and -wrap_text_method for more clear command line use",
+   NULL
+ } ,
+
  { 21, Jan, 2024, RCR, "afni_util.py", MINOR, TYPE_MODIFY,
    "redo deep PT special",
    NULL
