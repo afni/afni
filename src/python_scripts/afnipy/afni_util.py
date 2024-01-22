@@ -13,7 +13,6 @@ from afnipy import afni_base as BASE
 from afnipy import lib_textdata as TD
 from afnipy import lib_format_cmd_str as lfcs
 import glob
-import pdb
 import re
 
 # global lists for basis functions
@@ -65,7 +64,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
           fname   : file name to write (or append) to
           dtata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
-          wrap    : optional wrap flag [default=0, 1=RR, 2=PT special]
+          wrap    : optional wrap flag
           wrapstr : optional wrap string: if wrap, apply this string
           exe     : whether to make file executable
           method  : either 'rr' or 'pt'
@@ -78,13 +77,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
         return 1
 
     if wrap:
-       if wrap == 2:    # PT special
-          rv, tdata = lfcs.afni_niceify_cmd_str(tdata)
-          if rv:
-             print("** failed to nicify_cmd_str")
-             return 1
-       else:
-          tdata = add_line_wrappers(tdata, wrapstr, method=method)
+       tdata = add_line_wrappers(tdata, wrapstr, method=method, verb=1)
     
     if fname == 'stdout' or fname == '-':
        fp = sys.stdout
@@ -111,7 +104,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0,
 
     return 0
 
-def wrap_file_text(infile='stdin', outfile='stdout'):
+def wrap_file_text(infile='stdin', outfile='stdout', method='pt'):
    """make a new file with line wrappers                14 Mar 2014
 
       The default parameters makes it easy to process as a stream:
@@ -126,7 +119,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    """
 
    tdata = read_text_file(fname=infile, lines=0, strip=0)
-   if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method='pt')
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=1, method=method)
    
 
 def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
@@ -2868,16 +2861,8 @@ def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1,
             posn = end+1
             continue
 
-        # command needs wrapping
-        if method == 'pt':
-            cline = commands[posn:end+1]
-            clist = cline.replace('\\\n', ' ').split()
-            cline = ' '.join(clist)
-            rv, cline = lfcs.afni_niceify_cmd_str(cline)
-            new_line = cline + '\n'
-        else:
-            new_line = insert_wrappers(commands, posn, end, wstring=wrapstr,
-                                       maxlen=maxlen, verb=verb)
+        new_line = insert_wrappers(commands, posn, end, wstring=wrapstr,
+                                   maxlen=maxlen, method=method, verb=verb)
 
         new_cmd += new_line
             
@@ -2930,11 +2915,13 @@ def align_wrappers(command):
     return new_cmd
 
 def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
-                    maxlen=78, verb=1):
+                    maxlen=78, method='rr', verb=1):
     """insert any '\\' chars for the given command
          - insert between start and end positions
          - apply specified wrap string wstring
-       return a new string, in any case"""
+
+       return a new string, in any case
+    """
 
     global wrap_verb
 
@@ -2950,13 +2937,21 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
     if verb > 1: print("+d insert wrappers: nfirst=%d, prefix='%s', plen=%d" \
                        % (nfirst, prefix, plen))
 
-    #pdb.set_trace()
+    # if P Taylor special, short circuit the rest
+    if method == 'pt':
+        cline = command[start:end+1]
+        clist = cline.replace('\\\n', ' ').split()
+        cline = ' '.join(clist)
+        short_pre = prefix[:-4]
+        rv, cline = lfcs.afni_niceify_cmd_str(cline, comment_start=short_pre)
+        return cline + '\n'
 
     # rewrite: create new command strings after each wrap     29 May 2009
-    while needs_wrapper(command,maxlen,cur,end):
+    # (only care where new wrappers are needed)
+    while needs_new_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
-        if needs_wrapper(command,maxlen,cur,endposn):  # no change on this line
 
+        if needs_new_wrapper(command,maxlen,cur,endposn):
             lposn = find_last_space(command, cur+sskip, endposn, maxlen-sskip)
 
             # if the last space is farther in than next indent, wrap
@@ -3005,10 +3000,43 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
     if end < 0: end_posn = len(command) - 1
     else:       end_posn = end
 
+    # cur_posn should always point to the beginning of a line
     cur_posn = start
     remain = end_posn - cur_posn
+
+    # find end of current line (\\\n does not count)
+    # (newend will point to '\n', if it exists)
+    while cur_posn < end_posn:
+        newend = find_command_end(command, cur_posn, check_cmnt=0)
+        # print("\n== new length %d, command:\n%s\n===\n\n" \
+        #       % (newend-cur_posn,command[cur_posn:newend+1]))
+        # if it is long, we want to wrap
+        if newend - cur_posn >= maxlen:
+           return 1
+        # otherwise, see if we are done
+        if newend >= end_posn:
+           return 0
+
+        # we are not done, adjust cur_posn and continue
+        cur_posn = newend+1
+
+    return 0
+
+def needs_new_wrapper(command, maxlen=78, start=0, end=-1):
+    """does the current string need NEW line wrappers
+       (different to needing ANY)
+
+       a string needs wrapping if there are more than 78 characters between
+       any previous newline, and the next newline, wrap, or end"""
+
+    if end < 0: end_posn = len(command) - 1
+    else:       end_posn = end
+
+    # cur_posn should always point to the beginning of a line
+    cur_posn = start
+    remain = end_posn - cur_posn
+
     while remain > maxlen:
-        
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
         if 0 <= posn-cur_posn <= maxlen: # adjust and continue
@@ -3029,22 +3057,23 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
 
     return 0        # if we get here, line wrapping is not needed
 
-def find_command_end(command, start=0):
+def find_command_end(command, start=0, check_cmnt=1):
     """find the next '\n' that is not preceded by '\\', or return the
        last valid position (length-1)"""
 
     length = len(command)
-    end = start-1
+    end = start-1   # just to re-init start
     while 1:
         start = end + 1
         end = command.find('\n',start)
 
         if end < 0: return length-1   # not in command
         elif end > start and command[end-1] == '\\':
-            if length > end+1 and command[start] == '#'   \
-                              and command[end+1] != '#':
-                return end      # since comments cannot wrap
-            else: continue 
+            if check_cmnt:
+                if length > end+1 and command[start] == '#'   \
+                                  and command[end+1] != '#':
+                    return end      # since comments cannot wrap
+            continue 
         return end              # found
 
 def num_leading_line_spaces(istr,start,pound=0):
