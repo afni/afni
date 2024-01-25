@@ -2349,6 +2349,7 @@ def egs_short():
             - EPI to anatomical registration
             - non-linear anatomical to MNI template registration
               (precomputed affine+non-linear warp is provided)
+            * the regress block is included only for QC
 
             - QC options:
                 -radial_correlate_blocks, -anat_follower (with skull)
@@ -2361,7 +2362,7 @@ def egs_short():
      trailer=""" """,
      olist = [
         ['-subj_id',                 ['sub-005']],
-        ['-blocks',                  ['align', 'tlrc', 'volreg']],
+        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
