@@ -3,13 +3,17 @@
 #          x<0 --> R,   y<0 --> A,   z<0 --> I,  
 #          x>0 --> L,   y>0 --> P,   z>0 --> S.
 # -----------------------------------------------------------------------------
-# ver  = 1.7  ;  date = Aug 5, 2022
+# ver  = 1.7  ;  date = Aug  5, 2022
+# ver  = 1.8  ;  date = Jan 25, 2024: add more specific MNI_2009c_asym
 # -----------------------------------------------------------------------------
 #    x       y      z       space                roi_label                netw
 # -----------------------------------------------------------------------------
      5      49     40       MNI                  lh-PCC                   DMN
     -4      91     -3       MNI                  rh-cort-vis              Vis
     64      12      2       MNI                  lh-cort-aud              Aud
+     5      49     40       MNI_2009c_asym       lh-PCC                   DMN
+    -4      91     -3       MNI_2009c_asym       rh-cort-vis              Vis
+    64      12      2       MNI_2009c_asym       lh-cort-aud              Aud
      5      48     43       TT_N27               lh-PCC                   DMN
     -7      85     -4       TT_N27               rh-cort-vis              Vis
     59      11      4       TT_N27               lh-cort-aud              Aud
