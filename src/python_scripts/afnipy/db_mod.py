@@ -11539,10 +11539,38 @@ OPTIONS:  ~2~
                               (possibly for use with -compare options)
 
             e.g. afni_proc.py -show_example_names
+            e.g. afni_proc.py -show_example_names -verb 3
 
         Use this command to list the current examples know by afni_proc.py.
         The format of the output is affected by -verb, with -verb 2 format
         being the default.
+
+        Adding -verb 3 will display the most recent modification date.
+
+    -show_example_keywords  : show keywords associated with all examples
+
+            e.g. afni_proc.py -show_example_keywords
+            e.g. afni_proc.py -show_example_keywords -verb 2
+
+        Use this command to list the current examples know by afni_proc.py.
+        The format of the output is affected by -verb, with -verb 2 format
+        being the default.
+
+    -show_pretty_command    : output the same command, but in a nice format
+
+            e.g. afni_proc.py -show_pretty_command
+
+        Adding this option to an existing afni_proc.py command will result in
+        displaying the command itself in a nicely indented manner, using the
+        P Taylor special routines.
+
+    -show_pythonic_command  : output the same command, but as a python list
+
+            e.g. afni_proc.py -show_pythonic_command
+
+        Adding this option to an existing afni_proc.py command will result in
+        displaying the command itself, but in a python list format that is
+        helpful to me.
 
     -ver                    : show the version number
 
@@ -11613,19 +11641,6 @@ OPTIONS:  ~2~
                 (what is beyond the matching/differing cases)
 
         This option is the basis for all of the -compare* options.
-
-        See also -show_example_names.
-
-    -compare_example_pair EG1 EG2 : compare options for pair of examples
-
-            e.g. -compare_example_pair 'example 6' 'example 6b'
-
-        more completely:
-
-            afni_proc.py -compare_example_pair 'example 6' 'example 6b'
-
-        Like -compare_opts, but rather than comparing the current command
-        against a known example, it compares 2 known examples.
 
         See also -show_example_names.
 

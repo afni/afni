@@ -757,6 +757,9 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
+    7.62 ...: -show_example_keywords, -show_pythonic_command
+              example.moddate, keywords
+              examples:example,class,demo,publish
 """
 
 g_version = "version 7.60, August 21, 2023"
@@ -863,6 +866,8 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
+  - allow listing examples by keyword (choose and/or remove)
+  - example demo 2b should be added to APMD1 tree
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -871,12 +876,13 @@ g_todo_str = """todo:
           (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
-     - motion params?  censoring?
+     - pre-ME: motion params?  censoring?
      x add help for new combine methods
      x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
-     - allow use of -mask_import
+     x allow use of -mask_import
+     - -mask_import or anat_follower_ROI for ROI TSNR averages
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
@@ -1275,10 +1281,14 @@ class SubjProcSream:
                         helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_example', 1, [],
                         helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_keywords', 0, [],
+                        helpstr="show keywords from all examples")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
         self.valid_opts.add_opt('-show_pretty_command', 0, [],
                         helpstr="display afni_proc.py command in a nice format")
+        self.valid_opts.add_opt('-show_pythonic_command', 0, [],
+                        helpstr="display afni_proc.py command as a python list")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
@@ -1936,6 +1946,11 @@ class SubjProcSream:
             print(tstr)
             return 0
         
+        if opt_list.find_opt('-show_pythonic_command'):
+            tstr = self.get_ap_pythonic_cmd_str()
+            print(tstr)
+            return 0
+        
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
         
@@ -1969,6 +1984,10 @@ class SubjProcSream:
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
+           return 0
+
+        if opt_list.find_opt('-show_example_keywords'):
+           self.show_example_keywords(verb=self.verb)
            return 0
         
         if opt_list.find_opt('-show_example_names'):
@@ -3561,6 +3580,29 @@ class SubjProcSream:
 
        return tstr
 
+    def get_ap_pythonic_cmd_str(self):
+        """return a string showing the command in a python list structure
+           (of the form found in lib_ap_examples.py)
+           (remove any -show_pythonic_command option)
+        """
+        # remove any -show_pythonic_command option(s)
+        args = self.argv[:]
+        while '-show_pythonic_command' in args:
+           oind = args.index('-show_pythonic_command')
+           args.pop(oind)
+
+        allopts = self.valid_opts.all_opt_names()
+        arglist = FCS.make_big_list_from_args(args, list_cmd_args=allopts)
+        
+        # make an indentation list (add space for 2 quotes and a comma)
+        maxlen = max([len(s[0]) for s in arglist]) + 3
+        for s in arglist:
+           tstr = "'%s'," % s[0]
+           s[0] = '%-*s' % (maxlen, tstr)
+
+        return '\n'.join(["[%s %s]," % (s[0], str(s[1:])) \
+                         for s in arglist])
+
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
            at the end of processing
@@ -4040,6 +4082,10 @@ class SubjProcSream:
            return
         eg.display(verb=verb, sphinx=0)
         
+    def show_example_keywords(self, verb=1):
+        EGS = self.egs()
+        EGS.show_example_keywords(['ALL'], verb=verb)
+
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
