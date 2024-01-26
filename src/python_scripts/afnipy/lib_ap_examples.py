@@ -2331,7 +2331,7 @@ def egs_short():
    examples.append( APExample('AP short 1a',
      source='APMULTI_Demo1_rest/scripts_desktop/do_41_ap_align_only.tcsh',
      descrip='do_41_ap_align_only.tcsh - only perform alignment steps',
-     moddate='2024.01.04',
+     moddate='2024.01.26',
      keywords=['partial', 'rest'],
      header="""
               (recommended?  somewhat, for alignment only)
@@ -2352,8 +2352,7 @@ def egs_short():
             * the regress block is included only for QC
 
             - QC options:
-                -radial_correlate_blocks, -anat_follower (with skull)
-                -volreg_compute_tsnr, (-align_opts_aea) -check_flip
+                -anat_follower (with skull), (-align_opts_aea) -check_flip
                 -html_review_style
 
          * input dataset names have been shortened to protect the margins
@@ -2363,7 +2362,6 @@ def egs_short():
      olist = [
         ['-subj_id',                 ['sub-005']],
         ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
         ['-anat_follower',           ['anat_w_skull', 'anat',
@@ -2384,7 +2382,6 @@ def egs_short():
         ['-volreg_align_e2a',        []],
         ['-volreg_tlrc_warp',        []],
         ['-volreg_warp_dxyz',        ['3']],
-        ['-volreg_compute_tsnr',     ['yes']],
        ],
      ))
                                       
