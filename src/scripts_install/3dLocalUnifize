@@ -9,8 +9,12 @@
 #set version   = "1.0";  set rev_dat   = "June 3, 2022"
 # [PT]  add help file
 #
-set version   = "1.1";  set rev_dat   = "July 4, 2022"
+#set version   = "1.1";  set rev_dat   = "July 4, 2022"
 # [PT]  change how masking is turned off
+#
+set version   = "1.2";  set rev_dat   = "Jan 29, 2024"
+# [PT]  change how local_mask is parsed, so '-mask DSET' is 
+#       properly handled with an initial dset copy to the wdir
 #
 # ----------------------------------------------------------------
 
@@ -152,6 +156,34 @@ else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "      ${wdir}"
 endif
+
+# check about whether local_mask opt uses a mask dset; if so, copy
+# that mask to wdir and change var to use that local copy
+set nlm = `python -c "print(len('${local_mask}'.split()))"`
+if ( "${nlm}" == "2" ) then
+    # does local_mask start with '-mask'?
+    set lll = `echo "${local_mask}" | awk '{print $1}'`
+    if ( "${lll}" == "-mask" ) then
+        # if here, we have a mask dset input
+
+        # get name of mask; careful of subbrick selectors
+        set mmm = `echo "${local_mask}" | awk '{print $2}'`
+
+        # copy the dset
+        3dTcat ${overwrite}                                         \
+            -prefix   "${wdir}/dset_mask.nii.gz"                    \
+            "${mmm}"
+
+        if ( $status ) then
+            echo "** ERROR when processing local_mask opt: '${local_mask}'"
+            goto BAD_EXIT
+        endif
+            
+        # edit the local_mask opt to use the local wdir mask name
+        set local_mask = "-mask dset_mask.nii.gz"
+    endif
+endif
+
 
 # ======================= main program work ===========================
 
