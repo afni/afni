@@ -945,7 +945,8 @@ Returns
     # overlaps the FMRI dset run (white) and where it doesn't (gray)
     if do_graypatch_bnds :
         A = phobj.tvalues[phobj.indices_vol[0]]
-        B = phobj.tvalues[phobj.indices_vol[1]]
+        # use '-1' here because indices_vol is half-open interval: [...)
+        B = phobj.tvalues[phobj.indices_vol[1]-1] 
         fff.add_graypatch([None, A])
         fff.add_graypatch([B, None])
 
