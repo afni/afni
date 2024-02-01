@@ -2040,6 +2040,223 @@ def egs_publish():
         ['-html_review_style',     ['pythonic']],
        ],
      ))
+
+   examples.append( APExample('AP publish 3a',
+     source='AP_paper.../scripts_desktop/do_41_ap_ex1.tcsh',
+     descrip='do_41_ap_ex1.tcsh - only perform alignment steps.',
+     moddate='2024.01.26',
+     keywords=['partial', 'rest'],
+     header="""
+              (recommended?  somewhat, for alignment only)
+
+         This example is based on the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample alignment processing command, including:
+
+            - reverse phase encoding (blip) distortion correction
+              (-blip_forward_dset, -blip_reverse_dset)
+            - EPI motion registration (to MIN_OUTLIER)
+            - EPI to anatomical registration
+            - non-linear anatomical to MNI template registration
+              (precomputed affine+non-linear warp is provided)
+            * the regress block is included only for QC
+
+            - QC options:
+                -anat_follower (with skull), (-align_opts_aea) -check_flip
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
+        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'sswarper/anatU.sub-005.nii']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
+        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
+                                      'sswarper/anatQQ.sub-005.aff12.1D',
+                                      'sswarper/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+       ],
+     ))
+                                      
+   examples.append( APExample('AP publish 3b',
+     source='AP_paper.../scripts_desktop/do_41_ap_ex1.tcsh',
+     descrip='do_41_ap_ex1.tcsh - eat more cheese.',
+     moddate='2024.01.26',
+     keywords=['partial', 'rest'],
+     header="""
+              (recommended?  ...)
+
+         This example is based on the AFNI_demos/AFNI_pamenc....
+         running :
+
+            ...
+
+         This is a sample alignment processing command, including:
+
+            ...
+
+            - QC options:
+                ...
+                -anat_follower (with skull), (-align_opts_aea) -check_flip
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['/home/rickr/abin/afni_proc.py', []],
+      ['-subj_id',                      ['sub-10506']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
+      ['-anat_has_skull',               ['no']],
+      ['-anat_follower',                ['anat_w_skull', 'anat',
+                                         'anat/sub-10506_T1w.nii.gz']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+      ['-tcat_remove_first_trs',        ['0']],
+      ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg']],
+      ['-align_unifize_epi',            ['local']],
+      ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
+                                         '-check_flip']],
+      ['-tlrc_base',                    ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',                 []],
+      ['-tlrc_NL_warped_dsets',         ['ssw/anatQQ.sub-10506.nii',
+                                         'ssw/anatQQ.sub-10506.aff12.1D',
+                                         'ssw/anatQQ.sub-10506_WARP.nii']],
+      ['-volreg_align_to',              ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',             []],
+      ['-volreg_tlrc_warp',             []],
+      ['-volreg_warp_dxyz',             ['3.0']],
+      ['-volreg_compute_tsnr',          ['yes']],
+      ['-mask_epi_anat',                ['yes']],
+      ['-blur_size',                    ['6']],
+      ['-blur_in_mask',                 ['yes']],
+      ['-regress_stim_times',           ['timing/times.CONTROL.txt',
+                                         'timing/times.TASK.txt']],
+      ['-regress_stim_labels',          ['CONTROL', 'TASK']],
+      ['-regress_stim_types',           ['AM1']],
+      ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
+      ['-regress_opts_3dD',             ['-jobs', '8',
+                                         '-gltsym', 'SYM: TASK -CONTROL',
+                                         '-glt_label', '1', 'T-C',
+                                         '-gltsym',
+                                         'SYM: 0.5*TASK +0.5*CONTROL',
+                                         '-glt_label', '2', 'meanTC']],
+      ['-regress_3dD_stop',             []],
+      ['-regress_reml_exec',            []],
+      ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
+      ['-regress_est_blur_errts',       []],
+      ['-regress_run_clustsim',         ['no']],
+      ['-html_review_style',            ['pythonic']],
+       ],
+     ))
+                                      
+   examples.append( APExample('AP publish 3c',
+     source='AP_paper.../scripts_desktop/do_43_ap_ex3.tcsh',
+     descrip='do_41_ap_ex1.tcsh - eat more cheese.',
+     moddate='2024.01.26',
+     keywords=['partial', 'rest'],
+     header="""
+              (recommended?  ...)
+
+         This example is based on the AFNI_demos/AFNI_pamenc....
+         running :
+
+            ...
+
+         This is a sample alignment processing command, including:
+
+            ...
+
+            - QC options:
+                ...
+                -anat_follower (with skull), (-align_opts_aea) -check_flip
+                -html_review_style
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+      ['/home/rickr/abin/afni_proc.py', []],
+      ['-subj_id',                      ['sub-10506']],
+      ['-blocks',                       ['tshift', 'align', 'tlrc', 'volreg',
+                                         'mask', 'blur', 'scale', 'regress']],
+      ['-copy_anat',                    ['ssw/anatSS.sub-10506.nii']],
+      ['-anat_has_skull',               ['no']],
+      ['-anat_follower',                ['anat_w_skull', 'anat',
+                                         'anat/sub-10506_T1w.nii.gz']],
+      ['-dsets',                        ['func/sub-10506_pamenc_bold.nii.gz']],
+      ['-tcat_remove_first_trs',        ['0']],
+      ['-tshift_opts_ts',               ['-tpattern', 'alt+z2']],
+      ['-radial_correlate_blocks',      ['tcat', 'volreg']],
+      ['-align_unifize_epi',            ['local']],
+      ['-align_opts_aea',               ['-giant_move', '-cost', 'lpc+ZZ',
+                                         '-check_flip']],
+      ['-tlrc_base',                    ['MNI152_2009_template_SSW.nii.gz']],
+      ['-tlrc_NL_warp',                 []],
+      ['-tlrc_NL_warped_dsets',         ['ssw/anatQQ.sub-10506.nii',
+                                         'ssw/anatQQ.sub-10506.aff12.1D',
+                                         'ssw/anatQQ.sub-10506_WARP.nii']],
+      ['-volreg_align_to',              ['MIN_OUTLIER']],
+      ['-volreg_align_e2a',             []],
+      ['-volreg_tlrc_warp',             []],
+      ['-volreg_warp_dxyz',             ['3.0']],
+      ['-volreg_compute_tsnr',          ['yes']],
+      ['-mask_epi_anat',                ['yes']],
+      ['-blur_size',                    ['6']],
+      ['-blur_in_mask',                 ['yes']],
+      ['-regress_stim_times',           ['timing/times.CONTROL.txt',
+                                         'timing/times.TASK.txt']],
+      ['-regress_stim_labels',          ['CONTROL', 'TASK']],
+      ['-regress_stim_types',           ['AM1']],
+      ['-regress_basis_multi',          ['dmUBLOCK(-1)']],
+      ['-regress_motion_per_run',       []],
+      ['-regress_censor_motion',        ['0.3']],
+      ['-regress_censor_outliers',      ['0.05']],
+      ['-regress_compute_fitts',        []],
+      ['-regress_fout',                 ['no']],
+      ['-regress_opts_3dD',             ['-jobs', '8',
+                                         '-gltsym', 'SYM: TASK -CONTROL',
+                                         '-glt_label', '1', 'T-C',
+                                         '-gltsym',
+                                         'SYM: 0.5*TASK +0.5*CONTROL',
+                                         '-glt_label', '2', 'meanTC']],
+      ['-regress_3dD_stop',             []],
+      ['-regress_reml_exec',            []],
+      ['-regress_make_ideal_sum',       ['sum_ideal.1D']],
+      ['-regress_est_blur_errts',       []],
+      ['-regress_run_clustsim',         ['no']],
+      ['-html_review_style',            ['pythonic']],
+       ],
+     ))
                                       
    return examples
 
@@ -2328,63 +2545,6 @@ def egs_short():
 
    examples =  []
 
-   examples.append( APExample('AP short 1a',
-     source='APMULTI_Demo1_rest/scripts_desktop/do_41_ap_align_only.tcsh',
-     descrip='do_41_ap_align_only.tcsh - only perform alignment steps',
-     moddate='2024.01.26',
-     keywords=['partial', 'rest'],
-     header="""
-              (recommended?  somewhat, for alignment only)
-
-         This example is based on the APMULTI_Demo1_rest tree, installable by
-         running :
-
-            @Install_APMULTI_Demo1_rest
-
-         This is a sample alignment processing command, including:
-
-            - reverse phase encoding (blip) distortion correction
-              (-blip_forward_dset, -blip_reverse_dset)
-            - EPI motion registration (to MIN_OUTLIER)
-            - EPI to anatomical registration
-            - non-linear anatomical to MNI template registration
-              (precomputed affine+non-linear warp is provided)
-            * the regress block is included only for QC
-
-            - QC options:
-                -anat_follower (with skull), (-align_opts_aea) -check_flip
-                -html_review_style
-
-         * input dataset names have been shortened to protect the margins
-
-            """,
-     trailer=""" """,
-     olist = [
-        ['-subj_id',                 ['sub-005']],
-        ['-blocks',                  ['align', 'tlrc', 'volreg', 'regress']],
-        ['-copy_anat',               ['sswarper/anatSS.sub-005.nii']],
-        ['-anat_has_skull',          ['no']],
-        ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'sswarper/anatU.sub-005.nii']],
-        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
-        ['-blip_forward_dset',       ['func/sub-005_blip-match.nii.gz[0]']],
-        ['-blip_reverse_dset',       ['func/sub-005_blip-opp.nii.gz[0]']],
-        ['-tcat_remove_first_trs',   ['4']],
-        ['-align_unifize_epi',       ['local']],
-        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
-                                      '-check_flip']],
-        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
-        ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['sswarper/anatQQ.sub-005.nii',
-                                      'sswarper/anatQQ.sub-005.aff12.1D',
-                                      'sswarper/anatQQ.sub-005_WARP.nii']],
-        ['-volreg_align_to',         ['MIN_OUTLIER']],
-        ['-volreg_align_e2a',        []],
-        ['-volreg_tlrc_warp',        []],
-        ['-volreg_warp_dxyz',        ['3']],
-       ],
-     ))
-                                      
    return examples
 
 def find_eg(name):
