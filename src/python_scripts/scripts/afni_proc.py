@@ -757,12 +757,13 @@ g_history = """
                             (it is now corr vs ave, rather than ave corr)
     7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
     7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
-    7.62 ...: -show_example_keywords, -show_pythonic_command
-              example.moddate, keywords
-              examples:example,class,demo,publish
+    7.62 Feb  1, 2024: 
+       - add options -show_example_keywords, -show_pythonic_command
+       - include keywords and modification date in examples
+       - partially revamp examples, add demo, short and publish examples
 """
 
-g_version = "version 7.60, August 21, 2023"
+g_version = "version 7.62, February 1, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -827,6 +828,7 @@ interesting milestones for afni_proc.py:
    2019.02 : compare options with examples and other afni_proc.py commands
    2021.11 : updated MEICA group tedana
    2022.11 : find_variance_lines.tcsh
+   2024.02 : new examples (demo, short, publish), with mod date
 """
 
 

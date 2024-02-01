@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "-show_example_keywords, -show_pythonic_command; revamp examples",
+   NULL
+ } ,
+
  { 21, Jan, 2024, RCR, "file_tool", MINOR, TYPE_NEW_OPT,
    "add -wrap_text and -wrap_text_method for more clear command line use",
    NULL
