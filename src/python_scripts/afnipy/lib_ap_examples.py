@@ -928,7 +928,7 @@ def egs_example():
      source='afni_proc.py -help',
      descrip='A modern task example, with preferable options.',
      moddate='2020.02.15',
-     keywords=['task', 'complete'],
+     keywords=['complete', 'task'],
      header="""
               (recommended?  yes, reasonable for a complete analysis)
 
@@ -2293,7 +2293,7 @@ def egs_publish():
      source='AP_paper/scripts_rest/do_24_ap_ex4_surf.tcsh',
      descrip='do_24_ap_ex4_surf.tcsh - multi-echo surface-based analysis.',
      moddate='2024.01.30',
-     keywords=['blip', 'complete', 'ME', 'publish', 'rest',
+     keywords=['complete', 'blip', 'ME', 'publish', 'rest',
                'surface', 'tedana'],
      header="""
               (recommended?  yes)
@@ -2576,7 +2576,7 @@ def egs_demo():
      source='APMULTI_Demo1_rest/scripts_desktop/do_44_ap_me_bTs.tcsh',
      descrip='do_44_ap_me_bTs.tcsh - ME surface rest with tedana',
      moddate='2024.01.04',
-     keywords=['blip', 'complete', 'ME', 'rest', 'surface', 'tedana'],
+     keywords=['complete', 'blip', 'ME', 'rest', 'surface', 'tedana'],
      header="""
               (recommended?  yes)
 
