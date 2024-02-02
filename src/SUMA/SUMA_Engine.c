@@ -3616,6 +3616,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if ((SO = SUMA_SV_Focus_SO(sv))) {
                GLfloat *glar_ColorList;
+               // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SO->idcode_str);
                glar_ColorList = SUMA_GetColorList(sv, SO->idcode_str);
                if (!glar_ColorList) {
                   SUMA_S_Err("NULL color list array. Trouble.");

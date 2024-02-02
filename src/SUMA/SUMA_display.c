@@ -2491,6 +2491,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                            env above for example */
                            SUMA_DrawMesh_mask(SO, csv); /* create the surface */
                         } else {
+                            // fprintf(stderr, "%s: 1: DO_idstr = %s\n", FuncName, SO->idcode_str);
                            SUMA_DrawMesh(SO, csv); /* create the surface */
                         }
                   }

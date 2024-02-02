@@ -939,9 +939,10 @@ int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
    SUMA_ENTRY;
 
    SUMA_LH("called");
-
+   
    if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
-   if (!(SurfCont = SUMA_ADO_Cont(SurfCont))) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) { 
+    SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(0); }
 
    // SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
@@ -1165,6 +1166,16 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   // cbs->event->type = 5;    // DEBUG: Still returns to zero and also truns magenta
+//   fprintf(stderr, "%s: w = %p\n", FuncName, w);
+//   fprintf(stderr, "%s: w->core.name = %s\n", FuncName, w->core.name);
+//   fprintf(stderr, "%s: cbs->reason = %d\n", FuncName, cbs->reason);
+//   fprintf(stderr, "%s: cbs->value = %d\n", FuncName, cbs->value);
+//   fprintf(stderr, "%s: cbs->event->type = %d\n", FuncName, cbs->event->type);
+   if (((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value)
+       fprintf(stderr, "%s: ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0] = %s\n", 
+        FuncName, ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0]);
 
    SUMA_LH("called");
    ado = (SUMA_ALL_DO *)clientData;

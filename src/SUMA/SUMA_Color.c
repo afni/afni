@@ -9,9 +9,6 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;
 
-// DEBUG
-int globalNodeIndex = 14846;
-
 #define DUMP_CMAP(cm) { \
    int cm_ii;           \
    printf("%s\n", (cm)->Name); \
@@ -6771,10 +6768,10 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_ALL_DO *ado,
       SUMA_RETURN(NULL);
    }
 
+   // fprintf(stderr, "%s: ado->do_type = %d\n", FuncName, ado->do_type);
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-
          SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(SO->Overlays,
                         SO->N_Overlays, dset, OverInd));
          break; }
@@ -7779,13 +7776,20 @@ int getNodeIndex(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *SV){
     return nodeIndex;
 }
 
-void setSliderLocation(SUMA_SurfaceObject *SO, int sliderPosition){
+void setSliderLocation(SUMA_SurfaceObject *SO, float sliderPosition){
     static char FuncName[]={"setSliderLocation"};
 
     Widget w = SO->SurfCont->thr_sc;
+    fprintf(stderr, "%s: sliderPosition = %f\n", FuncName, sliderPosition);
     XtVaSetValues(w,
     XmNvalue, sliderPosition,
     NULL);
+}
+
+void SUMA_NULL_Function(){
+   static char FuncName[]={"SUMA_NULL_Function"};
+
+   SUMA_ENTRY;
 }
 
 /*!
@@ -7857,11 +7861,23 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    static float currentThreshold;
    int numThresholdNodes = 0;
    int nodeIndex = getNodeIndex(SO, SV);
+   static int thresholdReset = 0;
    
-   // DEBUG
-   int debugRed = nodeIndex*3, debugGreen = debugRed + 1, debugBlue = debugRed + 2;
-
    SUMA_ENTRY; 
+   
+//      if (thresholdReset){
+//       fprintf(stderr,"beginning of %s\n", FuncName);
+//       sleep(5);
+//   }
+   
+//    if (thresholdReset){
+//       fprintf(stderr,"%s 1\n", FuncName);
+//       fprintf(stderr, "Continue?: ");
+//       char debugStr[8];
+//       scanf("%s", debugStr);
+//       fprintf(stderr, "\n");
+//   }
+
    
    // currentOverlay = NshowOverlays? SO->SurfCont->curColPlane : NULL;
    
@@ -7871,7 +7887,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    if (SO->SurfCont->AlphaThresh != 1) SO->SurfCont->AlphaThresh = 0;
    SO->AlphaThresh = SO->SurfCont->AlphaThresh;
    
-   if (currentOverlay){
+   if (!thresholdReset && currentOverlay){
    
        // Ititialize display changing variables
        if (!cMapName){
@@ -7902,6 +7918,19 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 IntRange[0] != currentOverlay->OptScl->IntRange[0] ||
                 IntRange[1] != currentOverlay->OptScl->IntRange[1]);
             if ((cmapChanged)){ // CMAP changed with alpha threshold
+                fprintf(stderr, "cmapChanged = %d\n", cmapChanged);
+                if (strcmp(cMapName, currentOverlay->cmapname)){
+                    fprintf(stderr, "cMapName = %s\n", cMapName);
+                    fprintf(stderr, "currentOverlay->cmapname = %s\n", currentOverlay->cmapname);
+                }
+                if (IntRange[0] != currentOverlay->OptScl->IntRange[0]){
+                    fprintf(stderr, "IntRange[0] = %f\n", IntRange[0]);
+                    fprintf(stderr, "currentOverlay->OptScl->IntRange[0] = %f\n", currentOverlay->OptScl->IntRange[0]);
+                }
+                if (IntRange[1] != currentOverlay->OptScl->IntRange[1]){
+                    fprintf(stderr, "IntRange[1] = %f\n", IntRange[1]);
+                    fprintf(stderr, "currentOverlay->OptScl->IntRange[1] = %f\n", currentOverlay->OptScl->IntRange[1]);
+                }
                 // Update parameters to be checked for change
                 if (strlen(currentOverlay->cmapname)>strlen(cMapName)){
                     int allocationLength = strlen(currentOverlay->cmapname)+128;
@@ -7918,10 +7947,15 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                 
                 if (currentOverlay->OptScl->find!= 0 ||
                     currentOverlay->OptScl->tind!=0){
-                        float val = 0.0f; 
                         reload = 1;
+                        cmapChanged = 0;
+                        currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+                        fprintf(stderr, "Set: currentThreshold = %f\n", currentThreshold);
+                        float val = 0.0f; 
                         SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
-                        setSliderLocation(SO, 0);
+                        // if (reload) setSliderLocation(SO, 0);
+                        val = currentThreshold;
+                        SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
                     }
             }
            
@@ -7931,30 +7965,122 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
             ITB[1] = currentOverlay->OptScl->tind;
             ITB[2] = currentOverlay->OptScl->bind;
            }
+   
+//            if (thresholdReset){
+//               fprintf(stderr,"%s 8\n", FuncName);
+//               fprintf(stderr, "Continue?: ");
+//               char debugStr[8];
+//               scanf("%s", debugStr);
+//               fprintf(stderr, "\n");
+//           }
            
            // Reload colormap if DSET mapping settings changed
            DSET_MapChanged = (ITB[0] != currentOverlay->OptScl->find ||
             ITB[1] != currentOverlay->OptScl->tind ||
             ITB[2] != currentOverlay->OptScl->bind);
+   
+//            if (thresholdReset){
+//               fprintf(stderr,"%s 8.1\n", FuncName);
+//               fprintf(stderr, "Continue?: ");
+//               char debugStr[8];
+//               scanf("%s", debugStr);
+//               fprintf(stderr, "\n");
+//           }
            if (DSET_MapChanged){
+   
+//            if (thresholdReset){
+//               fprintf(stderr,"%s 8.2\n", FuncName);
+//               fprintf(stderr, "Continue?: ");
+//               char debugStr[8];
+//               scanf("%s", debugStr);
+//               fprintf(stderr, "\n");
+//           }
                 ITB[0] = currentOverlay->OptScl->find;
                 ITB[1] = currentOverlay->OptScl->tind;
-                ITB[2] = currentOverlay->OptScl->bind; 
+                ITB[2] = currentOverlay->OptScl->bind;
+                DSET_MapChanged = 0; 
                 SUMA_ColorizePlane (currentOverlay);          
                 applyColorMapToOverlay(SO, currentOverlay);
                 memcpy(ColVec, currentOverlay->ColVec, bytes2CopyToColVec);
                 
-                // Reinitialize threshold
-                float val = 0.0f; 
-                reload = 1;
-                SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
-                
-                // Set slider location to zero
-                setSliderLocation(SO, 0);
+                if (!thresholdReset){
+                    // Reinitialize threshold
+                    currentThreshold = currentOverlay->OptScl->ThreshRange[0];
+                    fprintf(stderr, "Set 2: currentThreshold = %f\n", currentThreshold);
+                    float val = 0.0f; 
+                    reload = 1;
+   
+//                    if (thresholdReset){
+//                       fprintf(stderr,"%s 8.24\n", FuncName);
+//                       fprintf(stderr, "Continue?: ");
+//                       char debugStr[8];
+//                       scanf("%s", debugStr);
+//                       fprintf(stderr, "\n");
+//                   }
+                    
+                    if (thresholdReset){
+                        fprintf(stderr, "currentThreshold = %f\n", currentThreshold);
+                        val = currentThreshold;
+                    } 
+                    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                    val = currentThreshold;
+                    SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+   
+//                    if (thresholdReset){
+//                       fprintf(stderr,"%s 8.25\n", FuncName);
+//                       fprintf(stderr, "Continue?: ");
+//                       char debugStr[8];
+//                       scanf("%s", debugStr);
+//                       fprintf(stderr, "\n");
+//                   }
+                    
+                    // Set slider location to zero
+                    if (reload) setSliderLocation(SO, 0);
+   
+//                    if (thresholdReset){
+//                       fprintf(stderr,"%s 8.3\n", FuncName);
+//                       fprintf(stderr, "Continue?: ");
+//                       char debugStr[8];
+//                       scanf("%s", debugStr);
+//                       fprintf(stderr, "\n");
+//                   }
+                }
+   
+//                if (thresholdReset){
+//                   fprintf(stderr,"%s 8.4\n", FuncName);
+//                   fprintf(stderr, "Continue?: ");
+//                   char debugStr[8];
+//                   scanf("%s", debugStr);
+//                   fprintf(stderr, "\n");
+//               }
            }
+   
+//            if (thresholdReset){
+//               fprintf(stderr,"%s 8.5\n", FuncName);
+//               fprintf(stderr, "Continue?: ");
+//               char debugStr[8];
+//               scanf("%s", debugStr);
+//               fprintf(stderr, "\n");
+//           }
        }
 
+   
+//        if (thresholdReset){
+//           fprintf(stderr,"%s 9\n", FuncName);
+//           fprintf(stderr, "Continue?: ");
+//           char debugStr[8];
+//           scanf("%s", debugStr);
+//           fprintf(stderr, "\n");
+//       }
    }
+   
+//    if (thresholdReset){
+//       fprintf(stderr,"%s 10\n", FuncName);
+//       fprintf(stderr, "Continue?: ");
+//       char debugStr[8];
+//       scanf("%s", debugStr);
+//       fprintf(stderr, "\n");
+//   }
       
    if (!SO || !SV || !glcolar) {
       SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
@@ -8162,7 +8288,60 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
                     for (int j=0; j<3; ++j)
                         ColVec[i3++] = glcolar_Fore[i4++];
                 }
+                /*
+                SUMA_ALL_DO *ado = (SUMA_ALL_DO *)SO;
                 SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                float val = currentThreshold; 
+                SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &val);
+                currentOverlay->OptScl->ThreshRange[1] = currentThreshold;
+                currentOverlay->OptScl->ThreshStats[0] = currentThreshold;
+                currentOverlay->OptScl->ThreshStats[1] = currentThreshold;
+                val = currentThreshold;
+                SUMA_set_threshold((SUMA_ALL_DO *)SO, NULL, &val);
+                SO->SurfCont->thrstat_lb;
+                SUMA_ThreshVal2ScalePos(ado, &val);
+
+                if (SO->SurfCont->thr_sc)
+                    fprintf(stderr, "%s: SO->SurfCont->thr_sc->core.name = %s\n", FuncName, SO->SurfCont->thr_sc->core.name);
+                    
+
+                currentOverlay->OptScl->ThreshRange[0] = currentThreshold;
+                // fprintf(stderr, "%s: SO->do_type = %d\n", FuncName, SO->do_type);
+                char slabel[100];
+                sprintf(slabel, "%f",currentOverlay->OptScl->ThreshRange[0]);
+                fprintf(stderr, "slabel = %s\n", slabel);
+                if (!(SO->SurfCont->SetThrScaleTable->str_value)){
+                    SO->SurfCont->SetThrScaleTable->str_value = (char **)malloc(sizeof(char *));
+                    SO->SurfCont->SetThrScaleTable->str_value[0] = (char *)malloc(sizeof(char));
+                }
+                SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel);
+                fprintf(stderr, "%s: SO->SurfCont->SetThrScaleTable->str_value = %s\n", FuncName, SO->SurfCont->SetThrScaleTable->str_value);
+                fprintf(stderr, "%s: SO->SurfCont->SetThrScaleTable->str_value[0] = %s\n", FuncName, SO->SurfCont->SetThrScaleTable->str_value[0]);
+
+//                SUMA_UpdateNodeLblField(clientData);
+
+                XtPointer clientData = (XtPointer)ado;
+                XtPointer call = (XtPointer)ado;
+                XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+                cbs->reason = 2;
+                cbs->value = 1200;
+                cbs->event->type = 5;
+//                char origSO_idcode_str[128];
+//                sprintf(origSO_idcode_str, "%s", SO->idcode_str);
+                if (!(SO->idcode_str) || strlen(SO->idcode_str) < 8) 
+                    sprintf(SO->idcode_str, "%s", SV->ColList[SV->N_ColList - 1]->idcode_str);
+                SO->do_type = 1;
+                fprintf(stderr, "%s: SO->SurfCont->SetThrScaleTable->str_value[0] = %f\n", FuncName, SO->SurfCont->SetThrScaleTable->str_value[0]);
+                sprintf(((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0], "%s", slabel);
+                fprintf(stderr, "%s: ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0] = %s\n", 
+                    FuncName, ((SUMA_SurfaceObject *)clientData)->SurfCont->SetThrScaleTable->str_value[0]);
+                SUMA_cb_set_threshold(SO->SurfCont->thr_sc, clientData, (XtPointer)cbs);
+//                sprintf(origSO_idcode_str, "%s", SO->idcode_str);
+                // sleep(5);
+                SUMA_NULL_Function();
+                thresholdReset = 1;
+                
+                */
            }
             if (SUMAg_CF->X->NumForeSmoothing > 0) {
                glcolar_Fore_tmp = NULL;
@@ -8498,7 +8677,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    // Possibly temporary fix for suprathreshol nodes incorrect
    // when alphaThresh selected just after intensity range changed
    // Refresh window be resending threshold
-   if (cmapChanged){
+   if (0 && cmapChanged){
     float threshold = currentOverlay->OptScl->ThreshRange[0];
     SUMA_set_threshold((SUMA_ALL_DO *)SO, currentOverlay, &threshold);
    }
