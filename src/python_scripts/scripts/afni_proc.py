@@ -761,9 +761,10 @@ g_history = """
        - add options -show_example_keywords, -show_pythonic_command
        - include keywords and modification date in examples
        - partially revamp examples, add demo, short and publish examples
+    7.63 Feb  2, 2024: add -ROI_import (can regress PCs for now)
 """
 
-g_version = "version 7.62, February 1, 2024"
+g_version = "version 7.63, February 2, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -870,6 +871,7 @@ g_todo_str = """todo:
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
+  - ROI_import, anat_follower_ROI for ROI TSNR averages
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -884,7 +886,6 @@ g_todo_str = """todo:
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
      x allow use of -mask_import
-     - -mask_import or anat_follower_ROI for ROI TSNR averages
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
@@ -1650,6 +1651,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-mask_type', 1, [],
                         acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
+        self.valid_opts.add_opt('-ROI_import', 2, [],
+                        helpstr="import ROI as given label (label/mset)")
 
         self.valid_opts.add_opt('-scale_max_val', 1, [],
                         helpstr="maximum value for scaled data (def: 200)")
@@ -3325,22 +3328,26 @@ class SubjProcSream:
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
-        # copy any -mask_import datasets as mask_import_LABEL
+        # copy any -mask_import/ROI_import datasets as mask_import_LABEL
         tstr = ''
         oname = '-mask_import'
-        for opt in self.user_opts.find_all_opts(oname):
-           if tstr == '':
-              tstr = '# copy any %s datasets as mask_import_LABEL\n' % oname
-           # get label and dset params
-           label = opt.parlist[0]
-           dset  = opt.parlist[1]
-           # find in ROI dict
-           aname = self.get_roi_dset(label)
-           if not aname:
-              print("** no -mask_import label set for '%s' to copy" % label)
-              return 1
-           tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
-           self.tlist.add(dset, aname.shortinput(), 'mask_import', ftype='dset')
+        for oname in ['-mask_import', '-ROI_import']:
+           olist = self.user_opts.find_all_opts(oname)
+           if len(olist) == 0:
+              continue
+           tstr += '# copy any %s datasets as %s_LABEL\n' % (oname, oname[1:])
+           for opt in self.user_opts.find_all_opts(oname):
+              # get label and dset params
+              label = opt.parlist[0]
+              dset  = opt.parlist[1]
+              # find in ROI dict
+              aname = self.get_roi_dset(label)
+              if not aname:
+                 print("** no %s label '%s' dataset to copy" % (oname, label))
+                 return 1
+              tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
+              self.tlist.add(dset, aname.shortinput(), 'mask_import',
+                             ftype='dset')
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
@@ -3911,6 +3918,7 @@ class SubjProcSream:
     # ROI overview:
     #  - masks can come from -mask_segment_anat, 'full'? (so EPI),
     #    or -anat_follower_ROI XXXX epi XXXX
+    #    (or -mask_import or -ROI_import, but these are not followers)
     #  - regression can come from -regress_ROI or -regress_ROI_PC
     #    or -regress_anaticor[_fast], maybe with _label
     #
@@ -3990,7 +3998,7 @@ class SubjProcSream:
           if af.label == label: return af
        return None
 
-    def add_roi_dict_key(self, key, aname=None, overwrite=0):
+    def add_roi_dict_key(self, key, aname=None, overwrite=0, resam=0):
        """set roi_dict[key], but check for existence
           return non-zero on error
        """

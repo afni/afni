@@ -516,6 +516,12 @@ def db_mod_postdata(block, proc, user_opts):
     # note other anat followers (-anat_follower*)
     if apply_general_anat_followers(proc): return
 
+    # note any ROI imports (-ROI_import)
+    # - add to dict now
+    # - resample in regress block
+    # - initial 3dcopy is in afni_proc.py
+    if apply_general_ROI_imports(proc): return
+
     if len(block.opts.olist) == 0: pass
     block.valid = 1
 
@@ -569,6 +575,29 @@ def db_cmd_postdata(proc, block):
        if tcmd: cmd += tcmd
 
     return cmd
+
+def apply_general_ROI_imports(proc):
+   oname = '-ROI_import'
+
+   # nothing to do?
+   if not proc.user_opts.find_opt(oname):
+      return 0
+
+   # do we have a regress block?
+   if not proc.find_block('regress'):
+      print('** missing regress block for use of %s' % oname)
+      return 1
+
+   # add roi dict keys
+   for opt in proc.user_opts.find_all_opts(oname):
+      label = opt.parlist[0]
+      dname = opt.parlist[1]
+
+      aname = BASE.afni_name('ROI_import_%s' % label)
+      if proc.add_roi_dict_key(label, aname=aname):
+         return 1
+
+   return 0
 
 def apply_general_anat_followers(proc):
    # add any other anat follower datasets
@@ -4736,6 +4765,7 @@ def db_cmd_mask(proc, block):
        dims = UTIL.get_3dinfo_val_list(dset, 'd3', float, verb=1)
        if not UTIL.lists_are_same(dims, proc.delta,
                     epsilon=abs(proc.delta[0]*0.01),doabs=1):
+          # flag for resampling
           print("** bad dims for -mask_import dataset: \n" \
                 "   %s\n"                                  \
                 "   import dims = %s, analysis dims = %s"  \
@@ -5965,6 +5995,17 @@ def db_cmd_regress(proc, block):
        print("   either omit 'tlrc' block, or add -volreg_tlrc_warp")
        return
     
+    # ----------------------------------------------------------------
+    # start handling ROIs: first perform any resampling for ROI_import
+    # ----------------------------------------------------------------
+
+    # ----------------------------------------
+    # check for user option -ROI_import, and resample any ROI dsets
+    if proc.user_opts.find_opt('-ROI_import'):
+        err, newcmd = db_cmd_regress_resam_ROI(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
     # ----------------------------------------
     # gmean?  change to generic -regress_RONI
     if block.opts.find_opt('-regress_ROI'):
@@ -7613,6 +7654,43 @@ def regress_pc_followers_regressors(proc, optname, roipcs, pcdset,
       if not perrun: clist.append('\n')
 
    return 0, clist
+
+def db_cmd_regress_resam_ROI(proc, block):
+    """resample any -ROI_import datasets (onto the final EPI grid)
+
+       return an error code (0=success) and command string
+    """
+    oname = '-ROI_import'
+    olist = proc.user_opts.find_all_opts(oname)
+    # is there anything to do?
+    if len(olist) == 0:
+       return 0, ''
+
+    # note the final vr_base dset
+    vr_base = proc.vr_base_dset.nice_input(head=0)
+
+    cmd = '# resample any -ROI_import dataset onto the final grid\n'
+
+    # resample the given datasets
+    for opt in proc.user_opts.find_all_opts(oname):
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+       aname = proc.roi_dict[label]
+       aname.view = proc.view
+
+       # append _resam to prefix, but note current input name
+       inname = aname.shortinput()
+       aname.prefix += '_resam'
+
+       cmd += '3dresample -master %s \\\n' \
+              '           -input %s \\\n'  \
+              '           -prefix %s\n\n'  \
+              % (vr_base, inname, aname.out_prefix())
+
+    return 0, cmd
 
 def db_cmd_regress_ROI(proc, block):
     """remove any regressors of no interest

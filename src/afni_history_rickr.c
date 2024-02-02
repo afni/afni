@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -ROI_import (in prep for TSNR stats)",
+   NULL
+ } ,
+
  {  1, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "-show_example_keywords, -show_pythonic_command; revamp examples",
    NULL
