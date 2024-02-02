@@ -12938,7 +12938,7 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
+   fprintf(stderr, "%s\n", FuncName);
 
    if (!s || !sv || !SO) SUMA_RETURNe;
 
@@ -13895,7 +13895,7 @@ void SUMA_JumpFocusNode (char *s, void *data)
 
    SUMA_ENTRY;
 
-   // fprintf(stderr, "%s\n", FuncName);
+   fprintf(stderr, "%s\n", FuncName);
 
    if (!s) SUMA_RETURNe;
 

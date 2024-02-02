@@ -6382,6 +6382,7 @@ SUMA_Boolean SUMA_DrawTractDO_basic (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
       }
       Sover = SUMA_ADO_CurColPlane(ado);
       #if 1
+      // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, ADO_ID((SUMA_ALL_DO *)TDO));
       if (Sover)  TDO->colv = SUMA_GetColorList(sv, ADO_ID((SUMA_ALL_DO *)TDO));
       if (!TDO->colv) {
          SUMA_S_Warn("Colv not found for %s\n", ADO_LABEL((SUMA_ALL_DO *)TDO));
@@ -6790,6 +6791,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
             ans = NOPE; goto GETOUT;
       }
       #if 1
+      // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, ADO_ID((SUMA_ALL_DO *)TDO));
       if (Sover)  TDO->colv = SUMA_GetColorList(sv, ADO_ID((SUMA_ALL_DO *)TDO));
       if (!TDO->colv) {
          SUMA_S_Warn("Colv not found for %s\n", ADO_LABEL((SUMA_ALL_DO *)TDO));
@@ -9033,6 +9035,7 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
                #endif
             }
             /* Colors? */
+            //  fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SDSET_ID(dset));
             GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
             /* thickness? */
             GSaux->SDO->thickv = NULL;
@@ -9066,6 +9069,7 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
    It would be best to create a new class of segment DOs that
    are just for graph links and never store colv inside SDO.
    See SUMA_free_SegmentDO for special treatment of colv */
+   // fprintf(stderr, "%s: DO_idstr = %s\n", FuncName, SDSET_ID(dset));
    GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
    SUMA_LH("Colv for %s is %p", ADO_LABEL(ado), GSaux->SDO->colv);
    /* and draw the GSaux */
@@ -16983,6 +16987,7 @@ SUMA_Boolean SUMA_ApplyDataToNodeObjects(
 
    SUMA_ENTRY;
 
+   // fprintf(stderr, "%s: 1: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
    if (!(colp = SUMA_GetColorList (sv, SurfObj->idcode_str))) SUMA_RETURN(NOPE);
 
    if (! (SurfObj->NodeObjects &&
@@ -17758,6 +17763,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glEnableClientState (GL_COLOR_ARRAY);
             glEnableClientState (GL_VERTEX_ARRAY);
             glEnableClientState (GL_NORMAL_ARRAY);
+            // fprintf(stderr, "%s: 2: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
             colp = SUMA_GetColorList (sv, SurfObj->idcode_str);
             if (!colp) { /* no color list, try  PermCol */
                if (SurfObj->PermCol) {
@@ -17975,13 +17981,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
 
    SUMA_LH("Entered DrawMesh");
-
+   
    if (LocalHead) {
       SUMA_EnablingRecord SER;
       SUMA_RecordEnablingState(&SER, SurfObj->Label);
       SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
    }
-
+   
    if (  SurfObj->PolyMode == SRM_Hide ||
          sv->PolyMode == SRM_Hide ||
          SurfObj->TransMode == STM_16 ||
@@ -18158,6 +18164,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glEnableClientState (GL_COLOR_ARRAY);
          glEnableClientState (GL_VERTEX_ARRAY);
          glEnableClientState (GL_NORMAL_ARRAY);
+         // fprintf(stderr, "%s: 3: DO_idstr = %s\n", FuncName, SurfObj->idcode_str);
          colp = SUMA_GetColorList (sv, SurfObj->idcode_str);
          if (!colp) { /* no color list, try  PermCol */
             if (SurfObj->PermCol) {
@@ -18176,10 +18183,17 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          if (LocalHead)
             fprintf(stdout, "Ready to draw Elements %d from %s\n",
 	             N_glar_FaceSet, SurfObj->Label);
+	             
          switch (RENDER_METHOD) {
             case TRIANGLES:
                SUMA_LH("Tri %d %p",NP, SurfObj->glar_FaceSetList);
 	       if (NP==3) {
+                for (int i=0; i<(GLsizei)N_glar_FaceSet; ++i){
+                    int i3 = 3*i;
+                    fprintf("SurfObj->glar_FaceSetList[%d] = (%d, %d, %d)\n", i, 
+                        SurfObj->glar_FaceSetList[i3], SurfObj->glar_FaceSetList[13+1], SurfObj->glar_FaceSetList[i3+2]);
+                }
+                // TOY_CRASH: WHERE CRASH OCCURS WITH TOY EXAMPLES.
                   glDrawElements (  GL_TRIANGLES, (GLsizei)N_glar_FaceSet*3,
                                     GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                } else if (NP==4) {
