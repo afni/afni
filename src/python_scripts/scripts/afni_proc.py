@@ -3998,7 +3998,7 @@ class SubjProcSream:
           if af.label == label: return af
        return None
 
-    def add_roi_dict_key(self, key, aname=None, overwrite=0, resam=0):
+    def add_roi_dict_key(self, key, aname=None, overwrite=0):
        """set roi_dict[key], but check for existence
           return non-zero on error
        """
