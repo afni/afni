@@ -134,6 +134,8 @@ dependency, such as:
 
 * `ENIGMA HALFpipe <https://enigma.ini.usc.edu/protocols/functional-protocols/>`_
 
+* `LONI QC <https://qc.loni.usc.edu/>`_
+
 * `Nipype <https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.afni.html>`_
 
 
