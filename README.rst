@@ -89,7 +89,9 @@ doc/
 src/
     source code for AFNI
 src/python_scripts/
-    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: ``from afnipy import ...``
+    Python command programs and library files; distributed together as the **afnipy** module, which can be imported and used as: 
+
+    ``from afnipy import ...``
 tests/
     tests for AFNI codebase
 
