@@ -1287,7 +1287,7 @@ def get_3dinfo(dname, lines=0, verb=0):
    vstr = ' '
    if verb == 1: vstr = ' -verb'
    elif verb > 1: vstr = ' -VERB'
-   command = '3dinfo%s %s' % (vstr, dname)
+   command = '3dinfo%s "%s"' % (vstr, dname)
    status, output = exec_tcsh_command(command, lines=lines, noblank=1)
    if status: return None
 
@@ -1298,7 +1298,7 @@ def get_3dinfo_nt(dname, verb=1):
 
       return 0 on failure (>= 0 on success)
    """
-   command = '3dinfo -nt %s' % dname
+   command = '3dinfo -nt "%s"' % dname
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb: print('** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output))
@@ -1323,7 +1323,7 @@ def get_3dinfo_val(dname, val, vtype, verb=1):
 
       return vtype(0) on failure
    """
-   command = '3dinfo -%s %s' % (val, dname)
+   command = '3dinfo -%s "%s"' % (val, dname)
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb:
