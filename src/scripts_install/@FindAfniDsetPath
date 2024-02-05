@@ -177,9 +177,9 @@ if ( "$ref_path" == "$wa" ) then
 endif
 if ( `@CheckForAfniDset "${ref_path}/${ref_in}"` ) then
     if ($append_file == 0) then
-       echo $ref_path
+       echo "$ref_path"
     else
-       echo ${ref_path}/${ref_file}
+       echo "${ref_path}/${ref_file}"
     endif
     exit 0
 endif
