@@ -37,7 +37,6 @@ endif
 
 # remove any sub-brick selector
 set Nom = `echo "$fname" | awk -F[ '{print $1}'`
-echo "== Nom = $Nom"
 
 #remove extension .HEAD or .BRIK
 set ext = $Nom:e
