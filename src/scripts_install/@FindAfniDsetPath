@@ -47,12 +47,12 @@ while ($ac <= $#argv)
     else if ( "$argv[$ac]" == "-full_path") then
          set full_path = 1
     else 
-         set ref_in = $argv[$ac]
+         set ref_in = "$argv[$ac]"
     endif
     @ ac ++
 end
 
-if ($ref_in == "") then
+if ("$ref_in" == "") then
    echo "No datasets on command line?"
    exit 1
 endif
@@ -61,17 +61,17 @@ set dataset_path = './'
 
 # check if this dataset might be an atlas name  13 Aug 2019 [drg]
 # see if the filename ends with .nii, .nii.gz, +orig, +tlrc, .HEAD,.BRIK,...
-set storageguess = ` ParseName ${ref_in} | grep StorageModeNm|awk -F: '{print $2}'`
+set storageguess = ` ParseName "${ref_in}" | \grep StorageModeNm|awk -F: '{print $2}'`
 # if not a regular dataset, then we might find it as an atlas instead
 if ($storageguess  == "UNDEFINED") then
    # find the dataset file associated with the atlas (cf. whereami help) 
-   set possibleatlas = `whereami -atlas ${ref_in} -show_atlas_dset`
+   set possibleatlas = `whereami -atlas "${ref_in}" -show_atlas_dset`
    if ($possibleatlas != "") then
-      set ref_in = $possibleatlas
+      set ref_in = "$possibleatlas"
    endif
 endif
 # get the file name now
-set ref_file = ` ParseName ${ref_in} | grep "FileName "|awk -F: '{print $2}'`
+set ref_file = ` ParseName "${ref_in}" | grep "FileName "|awk -F: '{print $2}'`
 
 # ------------------- search first with possible path -------------
 
@@ -80,19 +80,19 @@ set ref_file = ` ParseName ${ref_in} | grep "FileName "|awk -F: '{print $2}'`
 # [PT: Oct 15, 3018] Update to allow for finding NIFTIs in this way
 set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
-    set result = `@CheckForAfniDset ${ref_in}`
+    set result = `@CheckForAfniDset "${ref_in}"`
     if ($full_path == 1) then
        if ($dir == ".") then
-          set dir = `pwd`
+          set dir = "`pwd`"
        else
-          cd $dir ; set dir = `pwd` ; cd -
+          cd $dir ; set dir = "`pwd`" ; cd -
        endif 
     endif
     if ( "$result" == 2 || "$result" == 3 ) then
         if ($append_file == 0) then
-           echo $dir
+           echo "$dir"
         else
-           echo ${dir}/${ref_file}
+           echo "${dir}/${ref_file}"
         endif
         exit 0
     endif
@@ -109,7 +109,7 @@ set list_of_vars = ( "AFNI_GLOBAL_SESSION" \
 # Loop through each of those to see if AFNI knows about any (and which)
 foreach vv ( $list_of_vars )
 
-    set aaa = `afni -get_processed_env  | grep "${vv}"`
+    set aaa = `afni -get_processed_env  | \grep "${vv}"`
 
     if ( "$aaa" != "" ) then
 
@@ -140,7 +140,7 @@ endif
 # + Updating this to be fine with finding NIFTI data sets via the
 #   above (using the '... == 3')!
 foreach dir ( ${dataset_path} )
-    set result = `@CheckForAfniDset ${dir}/${ref_in}`
+    set result = `@CheckForAfniDset "${dir}/${ref_in}"`
     if ( "$result" == 2 || "$result" == 3 ) then
 
         if ($full_path == 1) then
@@ -167,7 +167,7 @@ end
 # Check afni bin directory, for compatibility with older installations
 # that installed atlas datasets there.
 ### This can *already* find NIFTI sets
-set wa = `which afni`
+set wa = "`which afni`"
 if ( $status != 0) then
    exit 1
 endif
@@ -175,11 +175,11 @@ set ref_path = "$wa:h"
 if ( "$ref_path" == "$wa" ) then
    exit 1
 endif
-if ( `@CheckForAfniDset ${ref_path}/${ref_in}` ) then
+if ( `@CheckForAfniDset "${ref_path}/${ref_in}"` ) then
     if ($append_file == 0) then
-       echo $ref_path
+       echo "$ref_path"
     else
-       echo ${ref_path}/${ref_file}
+       echo "${ref_path}/${ref_file}"
     endif
     exit 0
 endif
