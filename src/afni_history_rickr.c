@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Feb, 2024, RCR, "@FindAfniDsetPath", MINOR, TYPE_MODIFY,
+   "one change to allow spaces in dataset names",
+   "Spaces in the paths to templates/atlases or the abin is currently\n"
+   "not allowed.  But we might slowly change that."
+ } ,
+
  {  2, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -ROI_import (in prep for TSNR stats)",
    NULL

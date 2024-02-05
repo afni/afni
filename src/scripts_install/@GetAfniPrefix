@@ -5,27 +5,40 @@ endif
 
 set noglob
 
+set basearg = 1
 set withpath=0
-set arlist=()
-foreach aa ($argv)
-   if ("$aa" == "-p") then
-      set withpath=1
-   else
-      set arlist = ($arlist "$aa")
-   endif
-end
 
-set PrefSuf = ''
-if ($#arlist > 1) then
-   set PrefSuf = $arlist[2]
+# check for with path option
+if ( "$argv[1]" == "-p" ) then
+    set withpath = 1
+    @ basearg += 1
 endif
 
-set cln = `echo "$arlist[1]" | cut -d \[ -f1`
+# note input dataset
+set inname = "$argv[$basearg]"
 
-set pt = `dirname $cln`
+# note any PrefSuf
+set PrefSuf = ''
+if ( $#argv > $basearg ) then
+   @ psarg = $basearg + 1
+   set PrefSuf = "$argv[$psarg]"
+endif
 
-#remove path
-set Nom = $cln:t
+# separate dir and file (and be careful of spaces)
+set dname = "$inname:h"
+set fname = "$inname:t"
+
+# if no dir, use .
+if ( "$dname" == "$inname" ) then
+   set pt = "."
+else
+   set pt = "$dname"
+endif
+
+# remove any sub-brick selector
+set Nom = `echo "$fname" | awk -F[ '{print $1}'`
+echo "== Nom = $Nom"
+
 #remove extension .HEAD or .BRIK
 set ext = $Nom:e
 set fext = ""
