@@ -2290,8 +2290,8 @@ def egs_publish():
      ))
 
    examples.append( APExample('AP publish 3d',
-     source='AP_paper/scripts_rest/do_24_ap_ex4_surf.tcsh',
-     descrip='do_24_ap_ex4_surf.tcsh - multi-echo surface-based analysis.',
+     source='AP_paper/scripts_rest/do_24_ap_ex4_mesurf.tcsh',
+     descrip='do_24_ap_ex4_mesurf.tcsh - multi-echo surface-based analysis.',
      moddate='2024.01.30',
      keywords=['complete', 'blip', 'ME', 'publish', 'rest',
                'surface', 'tedana'],
