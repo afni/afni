@@ -53,13 +53,13 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3, Feb, 2024, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+ {  5, Feb, 2024, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "change GIFTI write from PREFIX to HEADNAME",
    "Previously, the output directories were not being used.\n"
    "Thanks to eriklee (AFNI MB) for noting the problem."
  } ,
 
- {  3, Feb, 2024, RCR, "@FindAfniDsetPath", MINOR, TYPE_MODIFY,
+ {  5, Feb, 2024, RCR, "@FindAfniDsetPath", MINOR, TYPE_MODIFY,
    "one change to allow spaces in dataset names",
    "Spaces in the paths to templates/atlases or the abin is currently\n"
    "not allowed.  But we might slowly change that."
