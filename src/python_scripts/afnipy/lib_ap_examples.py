@@ -97,6 +97,9 @@ class APExample:
 
       # otherwise, try to find an instance in the ap_examples list
       eg = find_eg(target)
+      # if not found, try replacing any '_' with ' '
+      if eg == None and target.find('_') >= 0:
+          eg = find_eg(target.replace('_', ' '))
       if eg != None:
          return self.compare_v_instance(eg, eskip=eskip, verb=verb)
 
@@ -2290,8 +2293,8 @@ def egs_publish():
      ))
 
    examples.append( APExample('AP publish 3d',
-     source='AP_paper/scripts_rest/do_24_ap_ex4_surf.tcsh',
-     descrip='do_24_ap_ex4_surf.tcsh - multi-echo surface-based analysis.',
+     source='AP_paper/scripts_rest/do_24_ap_ex4_mesurf.tcsh',
+     descrip='do_24_ap_ex4_mesurf.tcsh - multi-echo surface-based analysis.',
      moddate='2024.01.30',
      keywords=['complete', 'blip', 'ME', 'publish', 'rest',
                'surface', 'tedana'],

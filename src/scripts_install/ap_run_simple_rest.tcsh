@@ -33,13 +33,12 @@ set run_proc = 0        # do we run the resulting proc script?
 set template = MNI152_2009_template_SSW.nii.gz
 set verb     = 1
 
-# rcr - todo
-set run_clustsim = 1    # time-saving option, but takes time
+# run_clustsim is not relevant for rest
 
 # ----------------------------------------------------------------------
 # parameters not controlled by user
 set prog = `basename $0`
-set script_version = 0.3
+set script_version = 0.4  # ugly, SHOW_HIST is at the end
 
 set compare_opts = ''   # any applied -compare_opts option
 
@@ -98,7 +97,8 @@ while ( $ac <= $narg )
          echo "** -compare_to requires 1 parameter"
          exit 1
       endif
-      set compare_to = $argv[$ac]
+      # translate any spaces to underscores
+      set compare_to = `echo $argv[$ac] | tr ' ' _`
    else if ( "$argv[$ac]" == '-nt_rm' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -184,14 +184,15 @@ if ( $compare_to != "" ) then
    # if the user wants the default, base it on having an anat
    if ( $compare_to == "DEFAULT" ) then
       if ( $#anat > 0 ) then
-         set compare_to = "simple_rest_QC"
+         set compare_to = "demo_1a"
       else
          # no anat version
-         set compare_to = "simple_rest_QC_na"
+         set compare_to = "demo_1b"
       endif
+   else
    endif
-
    set compare_opts = "-compare_opts $compare_to"
+
 endif
 
 # ---------------------------------------------------------------------------
@@ -267,7 +268,7 @@ afni_proc.py                   $compare_opts \
     -out_dir                   $dir_results \
     -blocks                    tshift align tlrc volreg mask        \
                                blur scale regress                   \
-    -radial_correlate_blocks   tcat volreg                          \
+    -radial_correlate_blocks   tcat volreg regress                  \
     -copy_anat                 $anat \
     -dsets                     $epi_list \
     -tcat_remove_first_trs     $nt_rm \
@@ -324,7 +325,7 @@ afni_proc.py                   $compare_opts \
     -out_dir                   $dir_results \
     -blocks                    tshift volreg mask                   \
                                blur scale regress                   \
-    -radial_correlate_blocks   tcat volreg                          \
+    -radial_correlate_blocks   tcat volreg regress                  \
     -dsets                     $epi_list \
     -tcat_remove_first_trs     $nt_rm \
     -volreg_align_to           MIN_OUTLIER                          \
@@ -535,8 +536,12 @@ $prog modification history:
    0.1  : Apr  8, 2021: initial version
    0.2  : Aug 17, 2022: -anat is now optional (only -epi is needed)
    0.3  : Nov 23, 2022:
-                - add -align_unifize_epi local
-                - add -compare_to option
+          - add -align_unifize_epi local
+          - add -compare_to option
+   0.4  : Feb  7, 2024:
+          - add regress to -radial_correlate_blocks
+          - handle new DEFAULT example names
+          - process AP example names using underscore rather than space
 
    current version: $script_version
 EOF

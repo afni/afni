@@ -53,6 +53,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2024, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
+   "add regress to -radial_correlate_blocks",
+   "Also, handle new DEFAULT example names, and pass using underscores."
+ } ,
+
+ {  7, Feb, 2024, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "allow underscores in example names, and convert to spaces",
+   NULL
+ } ,
+
  {  5, Feb, 2024, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "change GIFTI write from PREFIX to HEADNAME",
    "Previously, the output directories were not being used.\n"
