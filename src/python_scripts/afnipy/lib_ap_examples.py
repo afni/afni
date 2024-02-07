@@ -97,6 +97,9 @@ class APExample:
 
       # otherwise, try to find an instance in the ap_examples list
       eg = find_eg(target)
+      # if not found, try replacing any '_' with ' '
+      if eg == None and target.find('_') >= 0:
+          eg = find_eg(target.replace('_', ' '))
       if eg != None:
          return self.compare_v_instance(eg, eskip=eskip, verb=verb)
 
