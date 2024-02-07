@@ -1,0 +1,52 @@
+#!/bin/tcsh
+
+# [PDL: Fenruary 6, 2024] Demo for Alpha transparency
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#Example commands for running @DriveSuma
+# No output
+
+set HelpOpt = ''
+echo "$1" | \grep -w -E  \
+      '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+if ($status == 0) then
+   set HelpOpt = "$1"
+   goto HELP
+endif
+
+if ($#argv > 0) then
+   #Need to exit with unknown options.
+   echo "No parameters accepted. See `basename $0` -help."
+   exit 1
+endif
+
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+Make sure no current SUMA is running, then press OK'`
+        if ( $l == '0') goto STEND
+
+        #Launch suma
+	cd /home/peterlauren/AFNI_data6/FT_analysis/FT.surf.results
+	set NEW_PORT = `afni -available_npb_quiet`
+	echo  $NEW_PORT
+	~/afniDev/afni/build/src/SUMA/suma  \
+		-spec /home/peterlauren/AFNI_data6/FT_analysis/FT/SUMA/std.60.FT_lh.spec \
+		-sv FT.surf_SurfVol_Alnd_Exp+orig -niml &
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key '.'
+	DriveSuma -com  viewer_cont -key 'ctrl+s'
+	DriveSuma -com surf_cont -view_surf_cont y
+
+       DriveSuma -com surf_cont -load_dset stats.FT.surf.lh.niml.dset
+       set THR = 20
+       DriveSuma -com  surf_cont -T_val $THR
+        set l = `prompt_user -pause \
+'@DriveSuma \n\
+Finished?, then press OK'`
+        if ( $l == '0') goto STEND
+
+
+	sleep 3; set l = `prompt_user -pause 'Waiting to exit'\
+
