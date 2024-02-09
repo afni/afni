@@ -762,9 +762,12 @@ g_history = """
        - include keywords and modification date in examples
        - partially revamp examples, add demo, short and publish examples
     7.63 Feb  2, 2024: add -ROI_import (can regress PCs for now)
+    7.64 Feb  8, 2024:
+       - if radcor is after scaling, pass an EPI mask (warn if no mask)
+       - block radcor once processing enters the surface domain
 """
 
-g_version = "version 7.63, February 2, 2024"
+g_version = "version 7.64, February 8, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2468,7 +2471,7 @@ class SubjProcSream:
 
             # for radcor, make 'regress' the default
             if oname == '-radial_correlate_blocks' and rcblocks is None:
-               if self.find_block('regress'):
+               if self.find_block('regress') and not self.surf_anat:
                  print("-- including default: -radial_correlate_blocks regress")
                  rcblocks = ['regress']
 
