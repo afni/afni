@@ -1194,6 +1194,9 @@ class SubjProcSream:
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys
 
+        # parameters related to TSNR and ROIs
+        self.tsnr_dset  = None          # for volumetric tsnr ROI stats
+
         # options related to ACF and clustsim
         self.ACFdir     = 'files_ACF'   # where to put 3dFWHMx -ACF files
         self.CSdir      = 'files_ClustSim' # and 3dClustSim files
@@ -2058,7 +2061,7 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
-            self.anat = afni_name(opt.parlist[0])
+            self.anat = gen_afni_name(opt.parlist[0])
             # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
@@ -2163,7 +2166,7 @@ class SubjProcSream:
               return 1
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
-              aname = afni_name(dset)
+              aname = gen_afni_name(dset)
               if aname.selectors() != '': self.have_sels = 1
               aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
@@ -2201,7 +2204,7 @@ class SubjProcSream:
 
               dsets = []
               for rind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have echo %d option %s without any dataset list" \
                        % (eind, oname))
@@ -2226,7 +2229,7 @@ class SubjProcSream:
 
               dsets = []
               for eind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have run %d option %s without any dataset list" \
                        % (rind, oname))
@@ -2336,7 +2339,7 @@ class SubjProcSream:
         # or surface analysis
         opt = self.user_opts.find_opt('-surf_anat')
         if opt != None:
-           self.surf_anat = afni_name(opt.parlist[0])
+           self.surf_anat = gen_afni_name(opt.parlist[0])
 
         # init block either from DefLabels or -blocks
         opt = self.user_opts.find_opt('-blocks')
@@ -3371,7 +3374,7 @@ class SubjProcSream:
            # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
-              an = afni_name('%s+tlrc' % an.prefix)
+              an = gen_afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
            self.tlist.add(anorig, an.shortinput(), 'NL_warp', ftype='dset')
@@ -3402,7 +3405,7 @@ class SubjProcSream:
 
         bstr = ''
         if isinstance(self.blip_in_for, afni_name):
-           self.blip_dset_for = afni_name('blip_forward', view=self.view)
+           self.blip_dset_for = gen_afni_name('blip_forward', view=self.view)
            tstr = '# copy external -blip_forward_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_for.prefix,
@@ -3417,7 +3420,7 @@ class SubjProcSream:
               bstr += '# will extract automatic -blip_forward_dset in tcat ' \
                       'block, below\n\n'
 
-           self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
+           self.blip_dset_rev = gen_afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
@@ -3430,7 +3433,7 @@ class SubjProcSream:
            if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
-              self.blip_dset_med = afni_name('blip_median_base',view=self.view)
+              self.blip_dset_med = gen_afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
                      (self.blip_in_med.nice_input(), self.od_var,
@@ -3440,7 +3443,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('blip_NL_warp', view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
@@ -3829,10 +3832,10 @@ class SubjProcSream:
            if name == '':
               print('** new_anat_follower requires name or aname')
               return None 
-           aname = afni_name(name)
+           aname = gen_afni_name(name)
 
         if label:
-           lname = afni_name(label)
+           lname = gen_afni_name(label)
            if lname.exist():
               print("** ERROR: anat_follower label exists as dataset: '%s'" \
                     % label)
@@ -3852,7 +3855,7 @@ class SubjProcSream:
         vo.set_var('cname',  aname)     # cname is current name
         if label: cppre = 'copy_af_%s' % label
         else:     cppre = aname.prefix
-        vo.set_var('cpname', afni_name(cppre))
+        vo.set_var('cpname', gen_afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -3978,7 +3981,7 @@ class SubjProcSream:
            print('** new_anat_follower requires name or aname')
            return None
 
-        if aname == None: aname = afni_name(name)
+        if aname == None: aname = gen_afni_name(name)
         si = aname.shortinput()
 
         # warn user if dupe is seen
@@ -4492,8 +4495,8 @@ class TrackedFlist:
 
        if vo.ftype == 'dset':
           # make afni_name for any dset
-          vo.in_an  = afni_name(vo.oldname)
-          vo.out_an = afni_name(vo.newname)
+          vo.in_an  = gen_afni_name(vo.oldname)
+          vo.out_an = gen_afni_name(vo.newname)
           vo.short_in = vo.in_an.shortinput()
           vo.short_out = vo.out_an.shortinput()
 
