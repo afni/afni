@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "in radcor: pass mask after any data scaling or in regress block",
+   "Scaled or errts data won't automask well.\n"
+   "Also, block radcor once in the surface domain."
+ } ,
+
  {  7, Feb, 2024, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_ENHANCE,
    "add regress to -radial_correlate_blocks",
    "Also, handle new DEFAULT example names, and pass using underscores."

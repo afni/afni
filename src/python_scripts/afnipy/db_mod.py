@@ -790,6 +790,25 @@ def run_radial_correlate(proc, block, full=0):
     else:
        dsets = proc.dset_form_wild(block.label, eind=-1)
 
+    # if block is scale or scale has happened, pass any EPI mask
+    # (since we do not want to automask a scaled dataset)
+    # also, mask in regress block due to errts
+    mopt = ''
+    if block.label == 'scale' or block.label == 'regress' \
+       or proc.blocks_ordered('scale', block.label):
+       # be sure we have created the mask
+       if mask_created(proc.mask):
+          mopt = '%18s-mask %s \\\n' % (' ', proc.mask.nice_input())
+       else:
+          print("** warning computing radcor on scaled/errts data without mask")
+          print("   (might get weak results along brain edges)")
+
+    # fail if we have entered the dreaded surface domain
+    if proc.surf_anat and (block.label == 'surf' or \
+                           proc.blocks_ordered('surf', block.label)):
+       print("** cannot compute radcor on surface data")
+       return 1, ''
+
     # if doing the full form, include a header, clust, etc.
     if full:
        rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
@@ -802,8 +821,9 @@ def run_radial_correlate(proc, block, full=0):
        cmd += '@radial_correlate -nfirst 0 -polort %s -do_clust yes \\\n' \
               '                  -rdir %s \\\n'                           \
               '%s'                                                        \
+              '%s'                                                        \
               '                  %s\n\n'                                  \
-              % (proc.regress_polort, rdir, other_opts, dsets)
+              % (proc.regress_polort, rdir, mopt, other_opts, dsets)
     else:
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
@@ -811,8 +831,9 @@ def run_radial_correlate(proc, block, full=0):
               '@radial_correlate -nfirst 0 -polort %s -do_clean yes \\\n'     \
               '                  -rdir %s \\\n'                               \
               '%s'                                                            \
+              '%s'                                                            \
               '                  %s\n\n'                                      \
-              % (proc.regress_polort, rdir, other_opts, dsets)
+              % (proc.regress_polort, rdir, mopt, other_opts, dsets)
 
     return 0, cmd
 
