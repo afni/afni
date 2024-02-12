@@ -2802,7 +2802,8 @@ class SubjProcSream:
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
             if tr != self.tr:
-                print('** TR of %g != run #1 TR %g' % (tr, self.tr))
+                print('** TR of %g (in %s) != run #1 TR %g' \
+                      % (tr, dr.shortinput(), self.tr))
                 return 1
 
         # check for consistency
@@ -2817,7 +2818,8 @@ class SubjProcSream:
                            % (rind+1, eind+1))
                      return 1
                   if tr != self.tr:
-                      print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))
+                      print('** TR of %g (in %s) != run 1 echo 1 TR %g' \
+                            %(tr, dset.shortinput(), self.tr))
                       return 1
 
         # note data type and whether data is scaled
