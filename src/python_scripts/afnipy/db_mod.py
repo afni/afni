@@ -7788,10 +7788,12 @@ def db_cmd_resam_ROI_imports(proc, block):
     # get to work
 
     # note the final vr_base dset, and be sure one has been made
-    if proc.vr_base_dset is None:
+    vbase = proc.epi_final
+    if vbase is None:
+       vbase = proc.vr_base_dset
+    if vbase is None:
        print("** cannot resample ROIs without vr_base_dset")
        return 1, ''
-    vr_base = proc.vr_base_dset.nice_input(head=0)
 
     cmd = '# resample any -ROI_import dataset onto the EPI grid\n'
 
@@ -7817,7 +7819,7 @@ def db_cmd_resam_ROI_imports(proc, block):
        cmd += '3dresample -master %s -rmode NN \\\n' \
               '           -input %s \\\n'  \
               '           -prefix %s\n\n'  \
-              % (vr_base, inname, aname.out_prefix())
+              % (vbase.nice_input(head=0), inname, aname.out_prefix())
 
        # mark as resampled
        aname.to_resam = 0
