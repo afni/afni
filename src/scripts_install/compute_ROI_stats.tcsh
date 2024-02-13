@@ -212,6 +212,26 @@ if ( ! $proceed ) then
    exit 1
 endif
 
+# ---------------------------------------------------------------------------
+# test validity of some inputs
+set tt = `3dinfo -nijk $dset_ROI`
+if ( $tt == NO-DSET ) then
+   echo "** invalid -dset_ROI: '$dset_ROI'"
+   exit 1
+endif
+
+set tt = `3dinfo -nijk $dset_data`
+if ( $tt == NO-DSET ) then
+   echo "** invalid -dset_data: '$dset_data'"
+   exit 1
+endif
+
+set tt = `3dinfo -same_grid $dset_ROI $dset_data | grep 1 | wc -l`
+if ( $tt != 2 ) then
+   echo "** -dset_ROI and -dset_data do not seem to be on the same grid"
+   exit 1
+endif
+
 # ===========================================================================
 # why are we here?  oh, right, do some actual work
 # ===========================================================================
@@ -228,10 +248,67 @@ if ( ! -d $out_dir ) then
    endif
 endif
 
+# ---------------------------------------------------------------------------
+# first, run 3dDepthMap on the ROI dataset
+set depthmap = $out_dir/depth_$rset_label.nii.gz
+set cmd = ( 3dDepthMap -zeros_are_zero -input $dset_ROI -prefix $depthmap )
+$cmd
+if ( $status ) then
+   echo "** failed command:\n   $cmd\n"
+   exit 1
+endif
 
 # ---------------------------------------------------------------------------
-# is the current mask 
+# process each ROI value in the ROI mask dataset
+foreach rval ( $rval_list )
+   # is there anything in the mask?
+   set Nvox = `3dBrickStat -mask $dset_ROI -non-zero -count $dset_ROI"<$rval>"`
 
+   # handle the all-zero case
+   if ( $Nvox == 0 ) then
+      echo "== RR: deal with this"
+      continue
+   endif
+
+   # count number of zero voxels
+   set Nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
+                            -zero -count $dset_data`
+
+   # quartiles
+   set cmd = ( 3dBrickStat -non-zero -mrange $rval $rval -mask $dset_ROI \
+                           -percentile 0 25 100 -perc_quiet $dset_data )
+   set quartiles = ( `$cmd` )
+   if ( $status || $#quartiles != 5 ) then
+      echo "** failed to get quartiles from command:\n   $cmd\n"
+      exit 1
+   endif
+
+   # maximum ROI depth and coords
+   # -closure to include boundaries, -partial to allow for value equality
+   set cmd = ( 3dExtrema -mask_file $dset_ROI"<$rval>" -volume -nbest 1 \
+                         -closure -partial -quiet $depthmap )
+   set extrema = ( `$cmd` )
+   if ( $status || $#extrema != 7 ) then
+      echo "** failed to get depth extrema from command:\n   $cmd\n"
+      exit 1
+   endif
+   set depth = $extrema[2]
+   set coords = ( $extrema[3-5] )
+
+   # finally the ROI_name (label for this mask index)
+   set ltvals = ( `3dinfo -labeltable $dset_ROI | grep \"$rval\" | tr -d \"` )
+   if ( $#ltvals == 2 ) then
+      set ROI_name = $ltvals[1]
+   else
+      set ROI_name = UNKNOWN
+   endif
+
+
+   # okay, what should we do with this junk now...
+
+   
+
+end
 
 
 # ===========================================================================
@@ -248,12 +325,40 @@ cat << EOF
 ------------------------------------------------------------------------------
 $prog  - run a quick afni_proc.py analysis for QC
 
+todo:
+   - do we restrict depth map to dset_data?
+
    usage: $prog [options] something something...
 
-------------------------------------------------------------------------------
-example 0: 
+   given:
+      dset_ROI    : an ROI dataset
+      dset_data   : a dataset to compute statistics over (e.g. TSNR)
+      out_dir     : a directory to store the results in
+      rset_label  : a label for dset_ROI
+      rval_list   : a list of ROI values to compute stats over (e.g. 2 41 99)
 
-      $prog ...
+   create a stats (text) file:
+      create a depth map for dset_ROI
+      for each requested ROI value rval in rval_list (for dset_ROI)
+         compute and store in stats file:
+            ROI_val      : rval - ROI index value
+            Nvoxel       : N voxels in dset_ROI
+            Nzero        : N ROI voxels that are 0 in dset_data
+            Tmin, T25%, Tmed, T75%, Tmax
+                         : multiples of 25%-iles (with min/max)
+            coor_x, y, z : x, y and z coordinates at max ROI depth
+            ROI_name     : dataset name of dset_ROI
+
+------------------------------------------------------------------------------
+example 0: something ...
+
+   tcsh ~/afni/c/python/ap/compute_ROI_stats.tcsh   \\
+       -dset_ROI    ROI_import_Glasser_resam+tlrc   \\
+       -dset_data   TSNR.ROI.11+tlrc                \\
+       -out_dir     tsnr_stats_regress              \\
+       -rset_label  Glasser                         \\
+       -rval_list   2 41 99
+
 
 ------------------------------------------------------------------------------
 terminal options:
