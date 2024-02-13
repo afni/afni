@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.7, Dec 30, 2023
+Version 1.0.8, Feb 13, 2024
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1101,7 +1101,8 @@ if(!is.na(lop$maskFN)) {
 #}
 
 lop$model <- as.formula(paste('yy ~ ', lop$model))
-require(lmerTest)
+pkgLoad(lme4)
+pkgLoad(lmerTest)
 if(lop$R2)  pkgLoad('MuMIn')
 if(!lop$TRR) pkgLoad('phia')
 fm<-NULL
