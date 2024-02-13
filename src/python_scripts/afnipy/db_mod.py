@@ -7795,7 +7795,8 @@ def db_cmd_resam_ROI_imports(proc, block):
        print("** cannot resample ROIs without vr_base_dset")
        return 1, ''
 
-    cmd = '# resample any -ROI_import dataset onto the EPI grid\n'
+    cmd = '# resample any -ROI_import dataset onto the EPI grid\n' \
+          '# (and copy its labeltable)\n\n'
 
     # resample the given datasets
     for opt in proc.user_opts.find_all_opts(oname):
@@ -7820,6 +7821,10 @@ def db_cmd_resam_ROI_imports(proc, block):
               '           -input %s \\\n'  \
               '           -prefix %s\n\n'  \
               % (vbase.nice_input(head=0), inname, aname.out_prefix())
+
+       cmd += '3drefit -copytables %s %s\n'   \
+              '3drefit -cmap INT_CMAP %s\n\n' \
+              % (inname, aname.out_prefix(),aname.out_prefix())
 
        # mark as resampled
        aname.to_resam = 0
