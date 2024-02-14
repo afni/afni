@@ -1161,7 +1161,7 @@ while(is.null(fm)) {
       cat('0) Missing R packages lme4, lmerTest, and phia. \n')
       cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
       cat('2) Incorrect specifications with -gltCode.\n\n')
-      cat('3) Inconsitencies in the data table.\n')
+      cat('3) inconsistencies in the data table.\n')
       cat('4) Inconsistent variable names (e.g., typos, case sensitive characters).\n')
       errex.AFNI("Quitting due to model test failure...")
    }
