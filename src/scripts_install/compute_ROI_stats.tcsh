@@ -38,11 +38,12 @@ set script_version = "version 0.0, February 32, 2145"
 
 # ----------------------------------------------------------------------
 # required user parameters
-set dset_ROI    = ''
-set dset_data   = ''
-set out_dir     = ''
-set rset_label  = ''
-set rval_list   = ()
+set dset_ROI    = ''    # dataset with possibly many ROIs
+set dset_data   = ''    # dataset to compute statistics over
+set out_dir     = ''    # directory to store work and results in
+set rset_label  = ''    # label for ROI dataset
+set rval_list   = ()    # ROI values to compute stats over
+set stats_file  = ''    # file to store text results in
 
 # ----------------------------------------------------------------------
 # other user-controllable parameters
@@ -134,6 +135,14 @@ while ( $ac <= $narg )
 
       # keep ac at last processed arg
       @ ac --
+
+   else if ( "$argv[$ac]" == '-stats_file' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -stats_file (output stats results) requires 1 parameter"
+         exit 1
+      endif
+      set stats_file = $argv[$ac]
 
    # -------------------- other opts --------------------
    # -echo is special case of -verb
@@ -238,8 +247,14 @@ endif
 # why are we here?  oh, right, do some actual work
 # ===========================================================================
 
-set outfile = $out_dir/stats_$rset_label.txt
-echo "++ writing stats to $outfile"
+# if we are not given a stats file name, make one up
+if ( $stats_file == "" ) then
+   set stats_file = $out_dir/stats_$rset_label.txt
+endif
+
+if ( $verb > 0 ) then
+   echo "++ writing stats text to $stats_file"
+endif
 
 # ---------------------------------------------------------------------------
 # make sure we have an output directory
@@ -269,12 +284,12 @@ printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
        "Tmin" "T25%" "Tmed" "T75%" "Tmax"                   \
        "coor_x" "coor_y" "coor_z"                           \
        "ROI_name"                                           \
-       >! $outfile
+       >! $stats_file
 printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
        "-------" "-------" "-------"                        \
        "------"  "------"  "------"  "------"  "------"     \
        "-------" "-------" "-------" "-------"              \
-       >>! $outfile
+       >>! $stats_file
 
 # ---------------------------------------------------------------------------
 # process each ROI value in the ROI mask dataset
@@ -295,7 +310,7 @@ foreach rval ( $rval_list )
       set btext = "`printf '%7s %7s %7s' $rval 0 0`"
       set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' 0 0 0 0 0`"
       set ctext = "`printf '%7.1f %7.1f %7.1f ' 0 0 0`"
-      echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $outfile
+      echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
       continue
    endif
@@ -320,17 +335,18 @@ foreach rval ( $rval_list )
 
    # ** separate stdout and stderr for now, and read back from a file
    # (do we remove the 3dExtrema author text?)
-   ( $cmd >! $out_dir/out.extrema.txt ) >& /dev/null
+   ( $cmd >! $out_dir/tmp.extrema.txt ) >& /dev/null
    if ( $status ) then
       echo "** failed to run command:\n   $cmd\n"
       exit 1
    endif
-   set extrema = ( `cat $out_dir/out.extrema.txt` )
+   set extrema = ( `cat $out_dir/tmp.extrema.txt` )
    if ( $#extrema != 7 ) then
       echo "** failed to get depth extrema from command:\n   $cmd\n"
+      echo "   $#extrema vals: $extrema"
       exit 1
    endif
-   \rm -f $out_dir/out.extrema.txt
+   \rm -f $out_dir/tmp.extrema.txt
 
    set depth = $extrema[2]
    set coords = ( $extrema[3-5] )
@@ -344,13 +360,15 @@ foreach rval ( $rval_list )
                        $quarts[1] $quarts[2] $quarts[3] $quarts[4] $quarts[5]`"
    set ctext = "`printf '%7.1f %7.1f %7.1f '             \
                        $coords[1] $coords[2] $coords[3]`"
-   echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $outfile
+   echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $stats_file
 
 end
 
 # finally, display the results
-cat $outfile
-echo ""
+if ( $verb > 0 ) then
+   cat $stats_file
+   echo ""
+endif
 
 
 # ===========================================================================
