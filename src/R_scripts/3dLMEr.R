@@ -1101,10 +1101,11 @@ if(!is.na(lop$maskFN)) {
 #}
 
 lop$model <- as.formula(paste('yy ~ ', lop$model))
-pkgLoad('lme4')
+pkgLoad('lme4'); 
 pkgLoad('lmerTest')
+pkgLoad('phia')
 if(lop$R2)  pkgLoad('MuMIn')
-if(!lop$TRR) pkgLoad('phia')
+#if(!lop$TRR) pkgLoad('phia')
 fm<-NULL
 if(any(!is.na(lop$vQV))) {
      lop$dataStr <- assVV2(lop$dataStr, lop$vQV, inData[ii,jj,kk,(nrow(lop$dataStr)+1):(2*nrow(lop$dataStr))], all(is.na(lop$vVarCenters)))
@@ -1157,15 +1158,11 @@ while(is.null(fm)) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')
       cat('Possible reasons:\n\n')
-      cat('0) Make sure that R package lmerTest has been installed. See the 3dLME\n')
-      cat('help documentation for more details.\n\n')
+      cat('0) Missing R packages lme4, lmerTest, and phia. \n')
       cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
-      cat('2) In correct specifications for random effect with -ranEff.\n\n')
-      cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
-      cat('whether there are any inconsistencies.\n\n')
-      cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
-      cat('named Scanner in model specification and then listed as scanner in the table hader\n')
-      cat('would cause grief for 3dLMEr.\n')
+      cat('2) Incorrect specifications with -gltCode.\n\n')
+      cat('3) Inconsitencies in the data table.\n')
+      cat('4) Inconsistent variable names (e.g., typos, case sensitive characters).\n')
       errex.AFNI("Quitting due to model test failure...")
    }
 }
@@ -1228,7 +1225,8 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, "lop", envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         if(lop$R2) clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
             Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runTRR,
@@ -1264,7 +1262,8 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, c("lop", "assVV2"), envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         if(lop$R2) clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for(kk in 1:nSeg) {
             Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, DM=lop$dataStr, tag=0), c(2,1))
@@ -1289,7 +1288,8 @@ if(lop$TRR) { # test-retest analysis
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          clusterExport(cl, c("lop", "assVV2"), envir=environment())
-         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia)); clusterEvalQ(cl, library(MuMIn))
+         clusterEvalQ(cl, library(lmerTest)); clusterEvalQ(cl, library(phia))
+         if(lop$R2) clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
             if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME,
