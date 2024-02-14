@@ -1943,6 +1943,7 @@ SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
       SUMA_RETURN(NULL);
    }
    {
+        fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
       while ((nini = NI_read_element(ns, 1))) {
          if (SUMA_iswordin(nini->name,"nido_head")) {/* fill special fields */
             if (nido) {

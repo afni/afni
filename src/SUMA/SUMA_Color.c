@@ -1925,6 +1925,7 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_NIML (char *Name)
    }
    SUMA_free(niname); niname = NULL;
 
+   fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
    nini = NI_read_element(ns, 1) ;
    NI_stream_close( ns ) ; ns = NULL;
    tt = NI_element_type(nini);
@@ -4116,6 +4117,7 @@ NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset,
       if ((nel = SUMA_FindDsetAttributeElement( dset, "ATLAS_LABEL_TABLE"))) {
          SUMA_NEL_GET_STRING(nel, 0, 0, buf);
          if (LocalHead) SUMA_ShowNel(nel);
+         fprintf(stderr, "+++++ %s: NI_read_element_fromstring\n", FuncName);
          if (!(ngr = (NI_group *)NI_read_element_fromstring(buf))) {
             fprintf(stderr,"** WARNING: Poorly formatted ATLAS_LABEL_TABLE\n");
          } else {

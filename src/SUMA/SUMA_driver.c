@@ -402,6 +402,11 @@ if (detail > 1) {
 "                         is symmetric from -|IR0| to |IR0|.\n"
 "       -shw_0 y/n      or \n"
 "       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
+"       -SET_FUNC_ALPHA y/n       or \n"
+"       -SET_FUNC_ALPHA on/off\n"
+"       -SET_FUNC_ALPHA A.Linear/A.Quadratic \n"
+"       -SET_FUNC_BOXED y/n       or \n"
+"       -SET_FUNC_BOXED on/off\n"
 "       -Dsp MODE: Set the viewing mode of the current DSET.\n"
 "                  MODE is one of XXX, Con, Col, or 'C&C' \n"
 "                      (single quotes necessary for 'C&C' MODE).\n"
@@ -594,6 +599,33 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
       SUMA_LH("Sending LoadCol to suma");
+      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
+      NI_free_element(ngr); ngr = NULL;
+   }  else if (strstr(com, "SET_FUNC_ALPHA")) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
+      }
+      fprintf(stderr, "***** ngr->attr_lhs[0] = %s\n", ngr->attr_lhs[0]);
+      fprintf(stderr, "***** ngr->attr_rhs[0] = %s\n", ngr->attr_rhs[0]);
+      fprintf(stderr, "***** ngr->attr_lhs[1] = %s\n", ngr->attr_lhs[1]);
+      fprintf(stderr, "***** ngr->attr_rhs[1] = %s\n", ngr->attr_rhs[1]);
+      SUMA_LH("Sending LoadCol to suma");
+      if (((!strcmp(ngr->attr_rhs[1], "Y")) || !strcmp(ngr->attr_rhs[1], "y") ||
+        !strcmp(ngr->attr_rhs[1], "on") || !strcmp(ngr->attr_rhs[1], "On") ||
+        !strcmp(ngr->attr_rhs[1], "ON")) && !(SO->SurfCont->AlphaThresh) ||
+        ((!strcmp(ngr->attr_rhs[1], "N")) || !strcmp(ngr->attr_rhs[1], "n") ||
+        !strcmp(ngr->attr_rhs[1], "off") || !strcmp(ngr->attr_rhs[1], "Off") ||
+        !strcmp(ngr->attr_rhs[1], "OFF")) && (SO->SurfCont->AlphaThresh))
+        {
+            Widget w = SO->SurfCont->AlphaThresh_tb;
+            XtPointer data = (XtPointer)SO;
+        /*
+            SUMA_cb_AlphaThresh_tb_toggled(w, data,  NULL);
+            */
+        }
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
@@ -953,7 +985,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    /* parse 'em */
    kar = 1;
    brk = NOPE;
@@ -1556,6 +1588,59 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
 
+      if (!brk && (  (strcmp(argt[kar], "-SET_FUNC_ALPHA") == 0) ))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -SET_FUNC_ALPHA \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y' ||
+            (strcmp(argt[kar], "on") == 0) || (strcmp(argt[kar], "On") == 0) ||
+            (strcmp(argt[kar], "ON") == 0))
+            NI_set_attribute(ngr, "SET_FUNC_ALPHA", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N' ||
+            (strcmp(argt[kar], "off") == 0) || (strcmp(argt[kar], "Off") == 0)
+            || (strcmp(argt[kar], "OFF") == 0))
+            NI_set_attribute(ngr, "SET_FUNC_ALPHA", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -SET_FUNC_ALPHA \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+
+      if (!brk && (  (strcmp(argt[kar], "-SET_FUNC_BOXED") == 0) ))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -SET_FUNC_BOXED \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y' ||
+            (strcmp(argt[kar], "on") == 0) || (strcmp(argt[kar], "On") == 0) ||
+            (strcmp(argt[kar], "ON") == 0))
+            NI_set_attribute(ngr, "SET_FUNC_BOXED", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N' ||
+            (strcmp(argt[kar], "off") == 0) || (strcmp(argt[kar], "Off") == 0)
+            || (strcmp(argt[kar], "OFF") == 0))
+            NI_set_attribute(ngr, "SET_FUNC_BOXED", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n', or 'on/off', after");
+            fprintf (SUMA_STDERR, " -SET_FUNC_BOXED \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argt[kar], "-view_dset") == 0))
       {
@@ -2292,6 +2377,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          } else {
             /* check that the new element is OK, that function reads
                just one element*/
+               fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
             if (!(nel=NI_read_element_fromstring(qar))) {
                SUMA_S_Errv("Could not parse -fixed_do %s\n"
                   "Try experimenting with niccc -s to get the syntax right.\n",

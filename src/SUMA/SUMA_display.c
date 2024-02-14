@@ -1645,6 +1645,7 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
       fprintf(stderr,"%s: Can't open file\n", FuncName);
       SUMA_RETURNe;
    }
+   fprintf(stderr, "+++++ %s: NI_read_element\n", FuncName);
    nel = NI_read_element (nstdin, 1);
    if (!nel) {
       SUMA_SL_Err("Failed to read nel.\n");

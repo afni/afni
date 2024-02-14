@@ -2074,6 +2074,8 @@ void SUMA_cb_AlphaThresh_tb_toggled(Widget w, XtPointer data,
 
    SUMA_ENTRY;
    
+   fprintf(stderr, "***** SUMA_cb_AlphaThresh_tb_toggled\n");
+   
    ado = (SUMA_ALL_DO *)data;
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
             || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;

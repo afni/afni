@@ -98,6 +98,7 @@ int main (int argc,char *argv[])
    } else {
       /* interpret command line commands */
       for (i=0; i<Opt->N_com; ++i) {
+      fprintf(stderr, "Opt->com[%d] = %s\n", i, Opt->com[i]);
          if (LocalHead) {
             SUMA_LH("Have the following commands");
             fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
