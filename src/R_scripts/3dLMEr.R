@@ -1101,8 +1101,8 @@ if(!is.na(lop$maskFN)) {
 #}
 
 lop$model <- as.formula(paste('yy ~ ', lop$model))
-pkgLoad(lme4)
-pkgLoad(lmerTest)
+pkgLoad('lme4')
+pkgLoad('lmerTest')
 if(lop$R2)  pkgLoad('MuMIn')
 if(!lop$TRR) pkgLoad('phia')
 fm<-NULL
