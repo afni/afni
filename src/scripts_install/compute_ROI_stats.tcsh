@@ -170,6 +170,8 @@ while ( $ac <= $narg )
 end
 
 # ---------------------------------------------------------------------------
+#
+
 if ( $verb > 1 ) then
    # display parameters?
 cat << EOF
@@ -226,7 +228,7 @@ if ( $tt == NO-DSET ) then
    exit 1
 endif
 
-set tt = `3dinfo -same_grid $dset_ROI $dset_data | grep 1 | wc -l`
+set tt = `3dinfo -same_grid $dset_ROI $dset_data | \grep 1 | wc -l`
 if ( $tt != 2 ) then
    echo "** -dset_ROI and -dset_data do not seem to be on the same grid"
    exit 1
@@ -236,7 +238,8 @@ endif
 # why are we here?  oh, right, do some actual work
 # ===========================================================================
 
-echo getting to work....
+set outfile = $out_dir/stats_$rset_label.txt
+echo "++ writing stats to $outfile"
 
 # ---------------------------------------------------------------------------
 # make sure we have an output directory
@@ -251,64 +254,103 @@ endif
 # ---------------------------------------------------------------------------
 # first, run 3dDepthMap on the ROI dataset
 set depthmap = $out_dir/depth_$rset_label.nii.gz
-set cmd = ( 3dDepthMap -zeros_are_zero -input $dset_ROI -prefix $depthmap )
-$cmd
+set cmd = ( 3dDepthMap -overwrite -zeros_are_zero -input $dset_ROI \
+                                  -prefix $depthmap )
+$cmd >& /dev/null
 if ( $status ) then
    echo "** failed command:\n   $cmd\n"
    exit 1
 endif
 
 # ---------------------------------------------------------------------------
+# start by printing header (must match btext lines, below )
+printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
+       "ROI_val" "Nvoxel" "Nzero"                           \
+       "Tmin" "T25%" "Tmed" "T75%" "Tmax"                   \
+       "coor_x" "coor_y" "coor_z"                           \
+       "ROI_name"                                           \
+       >! $outfile
+printf '%7s %7s %7s %6s %6s %6s %6s %6s  %7s %7s %7s  %s\n' \
+       "-------" "-------" "-------"                        \
+       "------"  "------"  "------"  "------"  "------"     \
+       "-------" "-------" "-------" "-------"              \
+       >>! $outfile
+
+# ---------------------------------------------------------------------------
 # process each ROI value in the ROI mask dataset
 foreach rval ( $rval_list )
    # is there anything in the mask?
-   set Nvox = `3dBrickStat -mask $dset_ROI -non-zero -count $dset_ROI"<$rval>"`
+   set nvox = `3dBrickStat -mask $dset_ROI -non-zero -count $dset_ROI"<$rval>"`
 
-   # handle the all-zero case
-   if ( $Nvox == 0 ) then
-      echo "== RR: deal with this"
+   # get the ROI_name early, in case it does not actually exist in the dataset
+   set ltvals = ( `3dinfo -labeltable $dset_ROI | \grep \"$rval\" | tr -d \"` )
+   if ( $#ltvals == 2 ) then
+      set ROI_name = $ltvals[2]
+   else
+      set ROI_name = UNKNOWN
+   endif
+
+   # handle the all-zero case and move on
+   if ( $nvox == 0 ) then
+      set btext = "`printf '%7s %7s %7s' $rval 0 0`"
+      set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' 0 0 0 0 0`"
+      set ctext = "`printf '%7.1f %7.1f %7.1f ' 0 0 0`"
+      echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $outfile
+
       continue
    endif
 
    # count number of zero voxels
-   set Nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
+   set nzero = `3dBrickStat -mask $dset_ROI -mrange $rval $rval \
                             -zero -count $dset_data`
 
    # quartiles
    set cmd = ( 3dBrickStat -non-zero -mrange $rval $rval -mask $dset_ROI \
                            -percentile 0 25 100 -perc_quiet $dset_data )
-   set quartiles = ( `$cmd` )
-   if ( $status || $#quartiles != 5 ) then
+   set quarts = ( `$cmd` )
+   if ( $status || $#quarts != 5 ) then
       echo "** failed to get quartiles from command:\n   $cmd\n"
       exit 1
    endif
 
    # maximum ROI depth and coords
    # -closure to include boundaries, -partial to allow for value equality
-   set cmd = ( 3dExtrema -mask_file $dset_ROI"<$rval>" -volume -nbest 1 \
-                         -closure -partial -quiet $depthmap )
-   set extrema = ( `$cmd` )
-   if ( $status || $#extrema != 7 ) then
+   set cmd = ( 3dExtrema -volume -nbest 1 -closure -partial -quiet \
+                         -mask_file $dset_ROI"<$rval>" $depthmap )
+
+   # ** separate stdout and stderr for now, and read back from a file
+   # (do we remove the 3dExtrema author text?)
+   ( $cmd >! $out_dir/out.extrema.txt ) >& /dev/null
+   if ( $status ) then
+      echo "** failed to run command:\n   $cmd\n"
+      exit 1
+   endif
+   set extrema = ( `cat $out_dir/out.extrema.txt` )
+   if ( $#extrema != 7 ) then
       echo "** failed to get depth extrema from command:\n   $cmd\n"
       exit 1
    endif
+   \rm -f $out_dir/out.extrema.txt
+
    set depth = $extrema[2]
    set coords = ( $extrema[3-5] )
 
-   # finally the ROI_name (label for this mask index)
-   set ltvals = ( `3dinfo -labeltable $dset_ROI | grep \"$rval\" | tr -d \"` )
-   if ( $#ltvals == 2 ) then
-      set ROI_name = $ltvals[1]
-   else
-      set ROI_name = UNKNOWN
-   endif
 
+   # print out the results
 
-   # okay, what should we do with this junk now...
-
-   
+   # too long for a line, so break up the pieces
+   set btext = "`printf '%7s %7s %7s' $rval $nvox $nzero`"
+   set qtext = "`printf '%6.1f %6.1f %6.1f %6.1f %6.1f ' \
+                       $quarts[1] $quarts[2] $quarts[3] $quarts[4] $quarts[5]`"
+   set ctext = "`printf '%7.1f %7.1f %7.1f '             \
+                       $coords[1] $coords[2] $coords[3]`"
+   echo "$btext" "$qtext" "$ctext" "$ROI_name" >>! $outfile
 
 end
+
+# finally, display the results
+cat $outfile
+echo ""
 
 
 # ===========================================================================
