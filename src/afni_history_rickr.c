@@ -60,7 +60,7 @@ afni_history_struct rickr_history[] = {
 
  { 15, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -regress_compute_tsnr_stats",
-   "This is intented to be added to P Taylor's APQC HTML report."
+   "This is intended to be added to P Taylor's APQC HTML report."
  } ,
 
  {  8, Feb, 2024, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
