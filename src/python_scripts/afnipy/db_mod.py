@@ -6548,8 +6548,8 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
        if errts:
-          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
-          if tcmd == None: return  # error
+          rv, tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
+          if rv or tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        else: print('-- no errts, will not compute final TSNR')
 
@@ -7140,9 +7140,11 @@ def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if block.opts.find_opt('-regress_compute_tsnr_stats'):
        # given ROIs and new proc.tsnr_dset
        rv, scmd = db_cmd_compute_tsnr_stats(proc, block)
+       if rv:
+          return 1, ''
        tsnr_cmd += '\n' + scmd
 
-    return tsnr_cmd
+    return 0, tsnr_cmd
 
 # compute temporal signal to noise after the regression
 def db_cmd_compute_tsnr_stats(proc, block):
@@ -14743,7 +14745,38 @@ OPTIONS:  ~2~
         Use this option to prevent the TSNR dataset computation in the
         'regress' block.
 
+        One can also compute per-ROI statistics over the resulting TSNR
+        dataset via -regress_compute_tsnr_stats.
+
         See also -volreg_compute_tsnr.
+        See also -regress_compute_tsnr_stats.
+
+    -regress_compute_tsnr_stats ROI_DSET_LABEL ROI_1 ROI_2 ...
+                              : compute TSNR statistics per ROI
+
+            e.g. -regress_compute_tsnr_stats Glasser 4 41 99 999
+
+            e.g. -anat_follower_ROI aeseg epi SUMA/aparc.a2009s+aseg.nii.gz \\
+                 -ROI_import Glasser ~/abin/MNI_Glasser_HCP_v1.0.nii.gz     \\
+                 -regress_compute_tsnr_stats aeseg   4 41 99 999            \\
+                 -regress_compute_tsnr_stats Glasser 4 41 99 999
+
+        Given:
+           - TSNR statistics are being computed in the regress block
+           - there is an EPI-grid ROI dataset with label ROI_DSET_LABEL
+
+        Then one can list ROI regions in each ROI dataset to compute TSNR
+        statistics over.  Details will be output for each ROI region, such as
+        quartiles of the TSNR values, and maximum depth coordinates.
+
+        This option results in a compute_ROI_stats.tcsh command being run for
+        the ROI and TSNR datasets, and the ROI indices of interest.
+
+        ROI datasets (and their respective labels) are made via options like
+        -anat_follower_ROI, -ROI_import or even -mask_segment_anat.
+
+        See 'compute_ROI_stats.tcsh -help' for more details.
+        See also -anat_follower_ROI, -ROI_import, -regress_compute_tsnr.
 
     -regress_mask_tsnr yes/no : apply mask to errts TSNR dataset
 

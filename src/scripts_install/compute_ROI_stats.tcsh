@@ -25,13 +25,13 @@ cat << EOF
 -----------------------------------------------------------------
 $prog modification history:
 
-   0.0  : Feb 32, 2145: eat more cheese
+   1.0  : Feb 15, 2024: initial version
 
    current version: $script_version
 EOF
 exit 0
 SKIP_HIST:
-set script_version = "version 0.0, February 32, 2145"
+set script_version = "version 1.0, February 15, 2024"
 
 
 # ===========================================================================
@@ -401,12 +401,9 @@ SHOW_HELP:
 cat << EOF
 
 ------------------------------------------------------------------------------
-$prog  - run a quick afni_proc.py analysis for QC
+$prog  - compute per-ROI value statisics over a given dataset
 
-todo:
-   - do we restrict depth map to dset_data?
-
-   usage: $prog [options] something something...
+   usage: $prog [options] many_required_parameters...
 
    given:
       dset_ROI    : an ROI dataset
@@ -460,7 +457,7 @@ required parameters:
    -out_dir OUT_DIR        : directory to put results into
                              The output directory will hold a depth map for all
                              DSET_ROI regions.
-                              
+
    -rset_label RSET_LABEL  : text label to refer to dset_ROI by
 
    -rval_list V1 V2 ...    : ROI index values

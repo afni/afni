@@ -765,12 +765,14 @@ g_history = """
     7.64 Feb  8, 2024:
        - if radcor is after scaling, pass an EPI mask (warn if no mask)
        - block radcor once processing enters the surface domain
+    7.65 Feb 15, 2024: add option -regress_compute_tsnr_stats
 """
 
-g_version = "version 7.64, February 8, 2024"
+g_version = "version 7.65, February 15, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      # [ "15 Feb 2024",  "find_variance_lines.tcsh" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
