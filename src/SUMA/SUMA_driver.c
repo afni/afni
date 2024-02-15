@@ -614,6 +614,16 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
+   }  else if (strstr(com, "SET_FUNC_BOXED")) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
+      }
+      SUMA_LH("Sending LoadCol to suma");
+      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
+      NI_free_element(ngr); ngr = NULL;
    } else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
