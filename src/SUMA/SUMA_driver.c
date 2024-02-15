@@ -608,10 +608,6 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE);
       }
-      fprintf(stderr, "***** ngr->attr_lhs[0] = %s\n", ngr->attr_lhs[0]);
-      fprintf(stderr, "***** ngr->attr_rhs[0] = %s\n", ngr->attr_rhs[0]);
-      fprintf(stderr, "***** ngr->attr_lhs[1] = %s\n", ngr->attr_lhs[1]);
-      fprintf(stderr, "***** ngr->attr_rhs[1] = %s\n", ngr->attr_rhs[1]);
       SUMA_LH("Sending LoadCol to suma");
       if (((!strcmp(ngr->attr_rhs[1], "Y")) || !strcmp(ngr->attr_rhs[1], "y") ||
         !strcmp(ngr->attr_rhs[1], "on") || !strcmp(ngr->attr_rhs[1], "On") ||

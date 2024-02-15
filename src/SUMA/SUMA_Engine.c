@@ -4080,6 +4080,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
 
+            if (NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA")) {
+                fprintf(stderr, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ %s: I_get_attribute(EngineData->ngr, \"SET_FUNC_ALPHA\")\n", FuncName);
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "y")){
+                    fprintf(stderr, "Set alpha threshold to TRUE\n");
+                  SurfCont->curColPlane->AlphaThresh = 1;
+               }
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "SET_FUNC_ALPHA", "n"))
+               {
+                    fprintf(stderr, "Set alpha threshold to FALSE\n");
+                  SurfCont->curColPlane->AlphaThresh = 0;
+               }
+               else {
+                  SUMA_S_Errv("Bad value of %s for SET_FUNC_ALPHA, setting to 'y'\n",
+                              NI_get_attribute(EngineData->ngr, "SET_FUNC_ALPHA"));
+                  SurfCont->curColPlane->AlphaThresh = NOPE;
+               }
+               fprintf(stderr, "SurfCont->curColPlane->AlphaThresh = %d\n\n", SurfCont->curColPlane->AlphaThresh);
+               XmToggleButtonSetState ( SurfCont->AlphaThresh_tb,
+                              SurfCont->curColPlane->AlphaThresh, YUP);
+            }
+
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
                NI_GET_INT(EngineData->ngr, "B_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
