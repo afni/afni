@@ -7149,13 +7149,6 @@ def db_cmd_compute_tsnr_stats(proc, block):
     """create a string for computing statistics on ROIs across the TSNR stats
        dataset
     """
-    oname = '-ROI_import'
-    olist = proc.user_opts.find_all_opts(oname)
-    # is there anything to do? 
-    if len(olist) == 0: 
-       return 0, ''
-    if proc.vr_base_dset is None:
-       return 0, ''
 
     # make a list of ROI dset labels to work with
     oname = '-%s_compute_tsnr_stats' % block.label
@@ -7165,17 +7158,46 @@ def db_cmd_compute_tsnr_stats(proc, block):
              % (len(olist), oname))
     if len(olist) == 0:
        return 0, ''
+
+    # if we don't have a tsnr_dset for some reason, panic into error
+    if proc.tsnr_dset is None:
+       print("** cannot compute_tsnr_stats without TSNR dset")
+       return 1, ''
+
     dlablist = [opt.parlist[0] for opt in olist]
     if proc.verb > 0:
        print("++ will compute %s TSNR stats for dsets: %s" \
              % (block.label, ', '.join(dlablist)))
 
-    # outdir = '%s_'
-    # cmd = '# --------------------------------------------------\n' \
-    #       '# compute TSNR stats for dset labels: %s\n'             \
-    #       'mkdir -p
-    #       % (', '.join(dlablist))
-    cmd = ''
+    # prep header, output directory and input dataset (-dset_data)
+    cmd = '# --------------------------------------------------\n' \
+          '# compute TSNR stats for dset labels: %s\n'             \
+          % (', '.join(dlablist))
+    if len(dlablist) > 1:
+       cmd += '\n'
+
+    outdir = 'tsnr_stats_%s' % block.label
+    dset_data = proc.tsnr_dset.shortinput()
+
+    # resample the given datasets
+    for opt in proc.user_opts.find_all_opts(oname):
+       if len(opt.parlist) < 2:
+          print("** %s %s : missing ROI values" % (oname, label))
+          return 1, ''
+       label = opt.parlist[0]
+       aname = proc.get_roi_dset(label)
+       if not aname:
+          print("** compute_tsnr: missing -ROI_import ROI '%s'" % label)
+          return 1, ''
+
+       cmd += "compute_ROI_stats.tcsh \\\n"  \
+              "    -out_dir    %s \\\n"      \
+              "    -dset_ROI   %s \\\n"      \
+              "    -dset_data  %s \\\n"      \
+              "    -rset_label %s \\\n"      \
+              "    -rval_list  %s\n\n"       \
+              % (outdir, aname.shortinput(), proc.tsnr_dset.shortinput(),
+                 label, ' '.join(opt.parlist[1:]))
 
     return 0, cmd
 
@@ -7824,7 +7846,7 @@ def db_cmd_resam_ROI_imports(proc, block):
 
        cmd += '3drefit -copytables %s %s\n'   \
               '3drefit -cmap INT_CMAP %s\n\n' \
-              % (inname, aname.out_prefix(),aname.out_prefix())
+              % (inname, aname.nice_input(), aname.nice_input())
 
        # mark as resampled
        aname.to_resam = 0

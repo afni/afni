@@ -8,6 +8,7 @@
 #               label_roiset  - label for dset_ROI
 #               out_dir       - directory to put all results in
 #               rval_list     - ROI value list (ints), compute stats per rval
+#    outputs:   stats_file    - text file with stats for these ROIs
 #
 # ===========================================================================
 
@@ -157,7 +158,7 @@ while ( $ac <= $narg )
       endif
       set verb = $argv[$ac]
 
-      # test for integral
+      # test for integral value
       set vtmp = `ccalc -i $verb`
       if ( $vtmp != $verb ) then
          echo "** -verb requires an integral parameter"
@@ -397,39 +398,46 @@ todo:
       rset_label  : a label for dset_ROI
       rval_list   : a list of ROI values to compute stats over (e.g. 2 41 99)
 
+   and maybe:
+      stats_file  : name for the resulting statisics text file
+
    create a stats (text) file:
       create a depth map for dset_ROI
       for each requested ROI value rval in rval_list (for dset_ROI)
          compute and store in stats file:
             ROI_val      : rval - ROI index value
-            Nvoxel       : N voxels in dset_ROI
+            Nvoxel       : N voxels in dset_ROI rval region
             Nzero        : N ROI voxels that are 0 in dset_data
             Tmin, T25%, Tmed, T75%, Tmax
                          : multiples of 25%-iles (with min/max)
             coor_x, y, z : x, y and z coordinates at max ROI depth
+                           (coordinates are in DICOM/RAI orientation)
             ROI_name     : dataset name of dset_ROI
 
 ------------------------------------------------------------------------------
-example 0: something ...
+example 0: as done by afni_proc.py
 
    tcsh ~/afni/c/python/ap/compute_ROI_stats.tcsh   \\
        -dset_ROI    ROI_import_Glasser_resam+tlrc   \\
-       -dset_data   TSNR.ROI.11+tlrc                \\
+       -dset_data   TSNR.FT+tlrc                    \\
        -out_dir     tsnr_stats_regress              \\
        -rset_label  Glasser                         \\
-       -rval_list   2 41 99
-
+       -rval_list   2 41 99                         \\
+       -stats_file  tsnr_stats_regress/stats_Glasser.txt
 
 ------------------------------------------------------------------------------
 terminal options:
 
    -help                   : show this help
+   -hist                   : show the revision history
+   -ver                    : show the program version
+
+required parameters:
 
 optional parameters:
 
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb
-
    -echo                   : same as -verb 3
 
 ------------------------------------------------------------------------------
