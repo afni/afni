@@ -772,7 +772,7 @@ g_version = "version 7.65, February 15, 2024"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
-      # [ "15 Feb 2024",  "find_variance_lines.tcsh" ],
+      [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
